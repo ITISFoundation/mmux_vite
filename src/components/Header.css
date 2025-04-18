@@ -1,0 +1,25 @@
+/* Header card styling */
+/* TODO add for setup & sumo-building (diff colors) */
+.application-header {
+    background-color: #981F29 !important;
+    border: 3px solid red;
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.sumo-header {
+    background-color: #003952 !important;
+    border: 3px solid #0075a2;
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.setup-header {
+    background-color: #460066 !important;
+    border: 3px solid ;/* #8300BF;*/
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+}
