@@ -23,3 +23,6 @@ ts-client: ## requires serving from FunctionsAPI already active
 		-i openapi.json \
 		-g typescript \
 		-o ./src/functions-api-ts-client
+
+test:
+	npm run test
