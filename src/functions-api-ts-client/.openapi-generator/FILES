@@ -1,6 +1,5 @@
 .gitattributes
 .gitignore
-.openapi-generator-ignore
 DefaultApi.md
 FunctionApi.md
 FunctionJobApi.md
