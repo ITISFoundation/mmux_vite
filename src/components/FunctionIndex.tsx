@@ -5,107 +5,76 @@ import { FUNCTION_API, PYTHON_DAKOTA_BACKEND } from './api_objects';
 import { findFunction, waitJobCompletion, createInputOutputSchema } from './function_utils';
 import { pickCsv, readCsvData } from './csv_utils.ts'
 
-export async function registerCsvAsFunction(file: File) {
-    try {
-        const previous_funs = await FUNCTION_API.searchFunctionsByName(file.name);
-        if (previous_funs.length > 0) {
-            if (previous_funs.length > 1) {
-                throw new Error(`Multiple functions with the name "${file.name}" are already registered.`);
-            } else {
-                window.alert(`A file with the name "${file.name}" is already registered.`);
-                return previous_funs[0];
-            }
+export async function registerCsvAsFunction(file: File, name?: string): Promise<Function> {
+    const previous_funs = await FUNCTION_API.searchFunctionsByName(file.name);
+    if (previous_funs.length > 0) {
+        if (previous_funs.length > 1) {
+            throw new Error(`Multiple functions with the name "${file.name}" are already registered.`);
+        } else {
+            window.alert(`A file with the name "${file.name}" is already registered.`);
+            return previous_funs[0];
         }
-        const response = await fetch(
-            PYTHON_DAKOTA_BACKEND
-            + '/flask/get_nih_inputs_outputs'
-            + "?filename=" + file.name
-        );
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        const body = await response.text();
-        const data: { input_vars: string[]; output_vars: string[] } = JSON.parse(body);
-
-        await FUNCTION_API.createFunction(
-            {
-                "name": file.name,
-                "type": "local.python",
-                "url": "./examples/csv_retrieval_functions.py:retrieve_csv_result",
-                "description": "",
-                "inputSchema": createInputOutputSchema(data.input_vars),
-                "outputSchema": createInputOutputSchema(data.output_vars),
-                "tags": ["cacheable"],
-            }
-        );
-
-        const fun = await findFunction(file.name)
-        console.log("Function registered successfully with id: ", fun.id);
-        return fun;
-    } catch (error) {
-        console.error("Error processing file:", error);
     }
+    const response = await fetch(
+        PYTHON_DAKOTA_BACKEND
+        + '/flask/get_nih_inputs_outputs' // TODO eventually generalize this
+        //  (w popup window that allows to select what is input, what is output)
+        + "?filename=" + file.name
+    );
+    if (!response.ok) {
+        throw new Error('Network response was not ok');
+    }
+    const body = await response.text();
+    const data: { input_vars: string[]; output_vars: string[] } = JSON.parse(body);
+
+    await FUNCTION_API.createFunction(
+        {
+            "name": name ?? file.name,
+            "type": "local.python",
+            "url": "./examples/csv_retrieval_functions.py:retrieve_csv_result",
+            "description": "",
+            "inputSchema": createInputOutputSchema(data.input_vars),
+            "outputSchema": createInputOutputSchema(data.output_vars),
+            "tags": ["cacheable"],
+        }
+    );
+
+    const fun = await findFunction(file.name)
+    console.log("Function registered successfully with id: ", fun.id);
+    return fun;
 };
 
-export async function registerCsvValuesAsFunctionJobs(fun: Function, file: File, asJobCollection: boolean = false): Promise<Job[]> {
-    if (!fun) {
-        throw new Error("Need to provide a Function to registerCsvValuesAsFunctionJobs");
-    }
-    if (!file) {
-        throw new Error("Need to provide a File to registerCsvValuesAsFunctionJobs");
-    }
-    const data = await readCsvData(file)
-    const headers = data[0]
-    const rows = data[1]
+export async function registerCsvValuesAsFunctionJobs(fun: Function, file: File): Promise<FunctionJob[]> {
+    const { headers, rows } = await readCsvData(file)
+    const values = rows.map(row => {
+        return headers.reduce((acc, header, index) => {
+            acc[header] = parseFloat(row[index]) || row[index];
+            return acc;
+        }, {} as Record<string, any>);
+    });
 
-    if (!asJobCollection) {
-        const values = rows.map(row => {
-            return headers.reduce((acc, header, index) => {
-                acc[header] = parseFloat(row[index]) || row[index];
-                return acc;
-            }, {} as Record<string, any>);
-        });
-
-        // let job = await FUNCTION_API.runFunction(
-        //     fun.id as number,
-        //     values.map(value => {
-        //         var inputValues = Object.keys(fun.inputSchema.properties).reduce((acc, key) => {
-        //             if (key in value) {
-        //                 acc[key] = value[key];
-        //             } else {
-        //                 console.warn(`Missing value for input key: ${key}`);
-        //             }
-        //             return acc;
-        //         }, {} as Record<string, any>);
-        //         inputValues["csv_file_path"] = file.name
-        //         const result = JSON.stringify(inputValues)// Convert input values to a comma-separated string with key-value pairs
-        //         return result
-        //     })[0],
-        // );
+    async function runCsvRow(fun: Function, file: File, row: Record<string, any>): Promise<FunctionJob> {
+        var inputValues = Object.keys(fun.inputSchema.properties).reduce((acc, key) => {
+            if (key in row) {
+                acc[key] = row[key];
+            } else {
+                console.warn(`Missing value for input key: ${key}`);
+            }
+            return acc;
+        }, {} as Record<string, any>);
+        inputValues["csv_file_path"] = file.name
+        let job = await FUNCTION_API.runFunction(
+            fun.id as number,
+            JSON.stringify(inputValues)// Convert input values to a comma-separated string with key-value pairs
+        )
         // await waitJobCompletion(job)
-
-        const jobs = values.map(value => runCsvRow(fun, value))
-        return jobs
+        return job
     }
+    const jobs = await Promise.all(values.map(value => runCsvRow(fun, file, value)));
+    return jobs
 }
 
-// async function runCsvRow(fun: Function, row: Record<string, any>) {
-//     var inputValues = Object.keys(fun.inputSchema.properties).reduce((acc, key) => {
-//         if (key in row) {
-//             acc[key] = row[key];
-//         } else {
-//             console.warn(`Missing value for input key: ${key}`);
-//         }
-//         return acc;
-//     }, {} as Record<string, any>);
-//     inputValues["csv_file_path"] = file.name
-//     let job = await FUNCTION_API.runFunction(
-//         fun.id as number,
-//         JSON.stringify(inputValues)// Convert input values to a comma-separated string with key-value pairs
-//     )
-//     await waitJobCompletion(job)
-
-// }
+// export async function registerCsvValuesAsFunctionJobCollection(fun: Function, file: File, name?: string): Promise<FunctionJobCollection> {
 // JobCollection did not seem to work well -- move away from it for now
 // let jobCollection = await FUNCTION_API.batchRunFunction(
 //     fun.id as number,
@@ -128,7 +97,7 @@ export async function registerCsvValuesAsFunctionJobs(fun: Function, file: File,
 // console.log(jobCollection)
 // await waitJobCompletion(jobCollection)
 // }
-
+// }
 
 export function FunctionIndex() {
     const [functions, setFunctions] = useState<Function[]>([]);
@@ -205,8 +174,7 @@ export function FunctionIndex() {
                         const fun = await registerCsvAsFunction(file);
                         refreshFunctionList()
                         console.log("Displaying changes")
-                        // registerCsvValues(file);
-                        registerCsvValuesAsFunctionJobs(fun, file)
+                        const jobs = await registerCsvValuesAsFunctionJobs(fun, file)
                         console.log("Jobs Loaded")
                     }
                 }}>Load Results from CSV</Button>
