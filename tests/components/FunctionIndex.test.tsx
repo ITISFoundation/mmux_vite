@@ -39,8 +39,8 @@ describe('Register CSV Integration Test', () => {
         const firstJob = jobs[0];
         expect(firstJob).toBeDefined();
         console.log(firstJob)
-        expect(firstJob.functionId).toBe(fun.id);
-        expect(firstJob.status).toBe('SUCCESS');
+        expect(firstJob.functionID).toBe(fun.id);
+        expect(firstJob.status).toBe('COMPLETED');
         console.log("FunctionJobs are correctly registered")
     });
 

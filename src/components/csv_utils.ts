@@ -19,8 +19,12 @@ export async function readCsvData(file: File): Promise<{ headers: string[]; rows
 export async function pickCsv(filePath?: string): Promise<File> {
     if (filePath) {
         const fileName = path.basename(filePath);
-        const fileBuffer = await fs.promises.readFile(filePath);
-        return new File([fileBuffer], fileName, { type: "csv" });
+        const fileBuffer = await fs.promises.readFile(filePath, { encoding: 'utf-8' });
+        const file = {
+            name: fileName,
+            text: async () => fileBuffer,
+        } as unknown as File;
+        return file
     } else {
         let selectedFile: File | null = null;
         console.log("start");
