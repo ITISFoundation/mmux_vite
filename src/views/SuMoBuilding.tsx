@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import FileSelector from '../components/FileSelector';
 import SuMoTypeSelector from '../components/SuMoTypeSelector';
 import OutputResponseSelector from '../components/OutputResponseSelector';
 import MetaModelingUX from '../components/MetaModelingUX';
-import { Button, Box } from '@mui/material';
+import { Button, Box, Container } from '@mui/material';
+import FunctionContext from './FunctionContext';
+// import PlotData from '../components/PlotData'
+import PlotDataTogether from '../components/PlotDataTogether'
+import { Function } from '../functions-api-ts-client';
+import { FUNCTION_API, JOB_API, PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
 
 function PlotImageIfExists(props: any) {
     return (
@@ -17,81 +22,77 @@ function PlotImageIfExists(props: any) {
 }
 
 function SuMoBuildingValidation() {
-    const [fileName, setFileName] = useState([])
-    const [inputVars, setInputVars] = useState([])
-    const [outputVars, setOutputVars] = useState([])
-    const [selectedResponse, setSelectedResponse] = useState();
+    const context = useContext(FunctionContext)
+    const inputVars = context?.function?.inputSchema.required as string[]
+    const outputVars = context?.function?.outputSchema.required as string[]
+
+    const [selectedResponse, setSelectedResponse] = useState(outputVars ? outputVars[0] : '');
     const [isLogEnabled, setIsLogEnabled] = useState(false);
     const [sumoCurves, setSumoCurves] = useState(null)
 
-    function fetchColumnNames(event: any) {
-        const filename = event.target.files[0].name
-        if (!filename) {
-            console.error("No file name provided");
-            return;
-        }
-        setFileName(filename); // save in state
-        // const url = new URL("/flask/query_data", "http://localhost:3001")
-        // url.searchParams.append("filename", fileName)
-        const url = "/flask/get_nih_inputs_outputs" + "?filename=" + filename
-        console.log(url)
-        return fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            // .then(console.log) // just logging
-            .then(data => {
-                setInputVars(data.input_vars);
-                setOutputVars(data.output_vars);
-            })
-            .catch(error => console.error('Error:', error));
-    }
+    const [plotData, setPlotData] = useState(undefined);
 
-    // useEffect(() => {
-    //     console.log("Set sumoCurves to:", sumoCurves);
-    // }, [sumoCurves]);
+    useEffect(() => {
+        if (Array.isArray(outputVars)) setSelectedResponse(outputVars[0])
+    }, [context])
 
-    function runSuMo() {
+    async function runSuMo() {
         console.log("Running SuMo...");
-        // const url = new URL("/flask/query_data", "http://localhost:3001")
-        // url.searchParams.append("filename", "asdf")
-        // url.searchParams.append("output", selectedResponse)
-        const url = '/flask/sumo_along_axes' + "?filename=" + fileName + "&output=" + selectedResponse + "&inputs=" + inputVars + "&log=" + isLogEnabled
-        console.log(url)
-        fetch(url)
-            .then(response => {
-                console.log(response)
+        const jobs = await JOB_API.getFunctionJobs(context?.function?.id as number)
+        fetch(
+            PYTHON_DAKOTA_BACKEND + '/flask/sumo_along_axes',
+            {
+                method: "POST",
+                // mode: 'no-cors',
+                // headers: {
+                //     'Content-Type': 'application/json'
+                // },
+                body: JSON.stringify(
+                    {
+                        inputs: inputVars,
+                        output: selectedResponse,
+                        log: isLogEnabled,
+                        FunctionJobs: jobs,
+                    }
+                ),
+            }).then(function (response) {
                 return response.json()
+            }).then(function (data) {
+                setPlotData(data)
             })
-            .then(data => {
-                setSumoCurves(data.imagePath);
-            })
-            .catch(error => console.debug('Error:', error));
+        // console.log(url)
+        // fetch(url)
+        //     .then(response => {
+        //         console.log(response)
+        //         return response.json()
+        //     })
+        //     .then(data => {
+        //         setSumoCurves(data.imagePath);
+        //     })
+        //     .catch(error => console.debug('Error:', error));
     }
 
     return (
         < MetaModelingUX tabTitle="SuMo Building & Validation" headerType="sumo-header">
+            <Container>
+                <Box sx={{ justifySelf: 'center', flex: 1, display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                    <Button onClick={runSuMo} sx={{ backgroundColor: 'purple', color: 'white' }}>
+                        <h5> Run</h5>
+                    </Button>
+                    <p>asdasd</p>
+                    <p>asdasd</p>
+                    <p>asdasd</p>
+                    <p>asdasd</p>
+                    <p>asdasd</p>
+                </Box>
+                <Box sx={{ display: 'flex', width: '100%', overflowX: 'auto' }}>
+                    {
+                        plotData && inputVars &&
+                        <PlotDataTogether data={plotData} inputVars={inputVars} />
+                    }
+                </Box>
+            </Container>
 
-            {/* <FileSelector fileName={fileName} setFileName={setFileName} /> */}
-            <input type="file" onChange={fetchColumnNames} /> {/* This includes fetching variable names */}
-
-            <SuMoTypeSelector /> {/* TODO get which type of SuMo from here*/}
-            <OutputResponseSelector
-                responses={outputVars}
-                selectedResponse={selectedResponse}
-                setSelectedResponse={setSelectedResponse}
-                isLogEnabled={isLogEnabled}
-                setIsLogEnabled={setIsLogEnabled}
-            />
-
-            <Button onClick={runSuMo} sx={{ backgroundColor: 'purple', color: 'white' }}>
-                <h5> Run</h5>
-            </Button>
-
-            <PlotImageIfExists image={sumoCurves} height={200} width={1500} />
 
             {/* 
             /* TODO this is also including SuMo building: choose jobs, dump into a csv file for Dakota, then call python and generate SuMo, then save and register it

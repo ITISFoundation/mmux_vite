@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Card, Typography, Table, TableRow, TableCell, TableBody, TableHead, Paper, Button } from "@mui/material";
-import { Function, FunctionJob, FunctionJobCollection } from '../functions-api-ts-client';
+import { Function, FunctionJob } from '../functions-api-ts-client';
 import { FUNCTION_API, JOB_API, PYTHON_DAKOTA_BACKEND } from './api_objects';
-import { findFunction, waitJobCompletion, createInputOutputSchema } from './function_utils';
+import { findFunction, createInputOutputSchema } from './function_utils';
 import { pickCsv, readCsvData } from './csv_utils.ts'
+import FunctionContext from '../views/FunctionContext.tsx';
 
 export async function registerCsvAsFunction(file: File, name?: string): Promise<Function> {
     const previous_funs = await FUNCTION_API.searchFunctionsByName(file.name);
@@ -127,6 +128,54 @@ export function FunctionIndex() {
             });
     }
 
+    useEffect(() => {
+        refreshFunctionList();
+        console.log(functions)
+    }, []);
+
+    return (
+        <Card variant="outlined" sx={{ marginBottom: "10px", marginTop: "10px" }}>
+            <Typography variant="h4" textAlign={"center"} >
+                Function Index
+            </Typography>
+            <div style={{ display: "flex", justifyContent: "space-between", margin: "10px" }}>
+                <Button onClick={() => refreshFunctionList()}>Refresh Function List</Button>
+                <Button onClick={() => clearFunctionList()}>Clear Function List</Button>
+                <Button variant="contained" color="secondary" onClick={async () => {
+                    const file = await pickCsv()
+                    if (file) {
+                        const fun = await registerCsvAsFunction(file);
+                        refreshFunctionList()
+                        console.log("Displaying changes")
+                        await registerCsvValuesAsFunctionJobs(fun, file)
+                        console.log("Jobs Loaded")
+                    }
+                }}>Load Results from CSV</Button>
+            </div>
+            <FunctionList functions={[]} />
+        </Card>
+
+    );
+}
+
+export function FunctionList(props: { functions: Function[] } = { functions: [] }) {
+    const [functions, setFunctions] = useState<Function[]>([]);
+    const context = useContext(FunctionContext);
+
+    useEffect(() => {
+        if (props.functions.length === 0) {
+            // Fetch functions only if none are passed in props
+            (async () => {
+                const funs = await FUNCTION_API.listFunctions();
+                console.debug("Functions obtained: ", funs);
+                setFunctions(funs);
+            })();
+        } else {
+            console.debug("Functions passed in", props.functions);
+            setFunctions(props.functions);
+        }
+    }, [props.functions]); // Dependency array ensures this runs only when props.functions changes
+
     function showInputOutputSchema(schema: { type: string; properties: Record<string, any>; required: string[] }) {
         if (!schema || schema.type !== "object" || !schema.properties) {
             console.error("Invalid schema:", schema);
@@ -155,10 +204,9 @@ export function FunctionIndex() {
 
     }
 
-    // TODO improve; make a list similar visually to that of Functions
     async function showJobList(fun: Function) {
         if (typeof fun.id === "number") {
-            let jobList = await JOB_API.getFunctionJobs(fun.id)
+            let jobList = await JOB_API.getFunctionJobs(fun.id);
             if (jobList.length === 0) {
                 window.alert(`No jobs available for function "${fun.name}" with id "${fun.id}".`);
             }
@@ -171,67 +219,38 @@ export function FunctionIndex() {
                 });
                 jobListWindow.document.write("<button onclick='window.close()'>Close</button>");
                 jobListWindow.document.write("</body></html>");
-                // jobListWindow.document.close();
-                // return;
             } else {
                 console.error("Failed to open job list window.");
             }
         } else {
-            console.error("The function provided does not have a valid ID")
+            console.error("The function provided does not have a valid ID");
         }
-
-
     }
 
-    useEffect(() => {
-        refreshFunctionList();
-        console.log(functions)
-    }, []);
+    // Maybe modularize as Cards (instead of Table) ?
     return (
-        <Card variant="outlined" sx={{ marginBottom: "10px", marginTop: "10px" }}>
-            <Typography variant="h4" textAlign={"center"} >
-                Function Index
-            </Typography>
-            <div style={{ display: "flex", justifyContent: "space-between", margin: "10px" }}>
-                <Button onClick={() => refreshFunctionList()}>Refresh Function List</Button>
-                <Button onClick={() => clearFunctionList()}>Clear Function List</Button>
-                <Button variant="contained" color="secondary" onClick={async () => {
-                    const file = await pickCsv()
-                    if (file) {
-                        const fun = await registerCsvAsFunction(file);
-                        refreshFunctionList()
-                        console.log("Displaying changes")
-                        await registerCsvValuesAsFunctionJobs(fun, file)
-                        console.log("Jobs Loaded")
-                    }
-                }}>Load Results from CSV</Button>
-            </div>
-            <Table component={Paper}>
-                <TableHead>
-                    <TableRow>
-                        {/* Adjust headers based on your data sTableRowucture */}
-                        <TableCell>ID</TableCell>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Inputs</TableCell>
-                        <TableCell>Outputs</TableCell>
+        <Table component={Paper}>
+            <TableHead>
+                <TableRow>
+                    <TableCell>ID</TableCell>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Inputs</TableCell>
+                    <TableCell>Outputs</TableCell>
+                </TableRow>
+            </TableHead>
+            <TableBody>
+                {functions.map(fun => (
+                    <TableRow key={fun.id}>
+                        <TableCell>{fun.id}</TableCell>
+                        <TableCell>{fun.name}</TableCell>
+                        <TableCell>{showInputOutputSchema(fun.inputSchema)}</TableCell>
+                        <TableCell>{showInputOutputSchema(fun.outputSchema)}</TableCell>
+                        <TableCell>{<Button variant="contained" onClick={() => showJobList(fun)}>Show Jobs</Button>}</TableCell>
+                        <TableCell align='right'>{<Button variant="contained" onClick={() => context?.setFunction(fun)}>Select</Button>}</TableCell>
                     </TableRow>
-                </TableHead>
-                <TableBody>
-                    {functions.map(fun => (
-                        <TableRow key={fun.id}>
-                            <TableCell>{fun.id}</TableCell>
-                            <TableCell>{fun.name}</TableCell>
-                            <TableCell>{showInputOutputSchema(fun.inputSchema)}</TableCell>
-                            <TableCell>{showInputOutputSchema(fun.outputSchema)}</TableCell>
-                            <TableCell>{<Button variant="contained" onClick={() => showJobList(fun)}>Show Jobs</Button>}{ }</TableCell>
-                            <TableCell align='right'>{<Button variant="contained" onClick={() => undefined}>Select</Button>}</TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </Card >
-
+                ))}
+            </TableBody>
+        </Table>
     );
-};
+}
 
-export default FunctionIndex;
