@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, JSX } from 'react';
 // import FileSelector from '../components/FileSelector';
 // import SuMoTypeSelector from '../components/SuMoTypeSelector';
 // import OutputResponseSelector from '../components/OutputResponseSelector';
@@ -28,14 +28,14 @@ function SuMoBuildingValidation() {
 
     const [selectedResponse, setSelectedResponse] = useState(outputVars ? outputVars[0] : '');
     const [isLogEnabled, setIsLogEnabled] = useState(false);
+    const [plotDataSumoCentralCurves, setPlotDataSumoCentralCurves] = useState(undefined);
 
-    const [plotData, setPlotData] = useState(undefined);
 
     useEffect(() => {
         if (Array.isArray(outputVars)) setSelectedResponse(outputVars[0])
     }, [context])
 
-    async function runSuMo() {
+    async function RunPlotCentralSuMoInterpolations() {
         console.log("Running SuMo...");
         const jobs = await JOB_API.getFunctionJobs(context?.selectedFunction?.id as number)
         fetch(
@@ -53,7 +53,7 @@ function SuMoBuildingValidation() {
             }).then(function (response) {
                 return response.json()
             }).then(function (data) {
-                setPlotData(data)
+                setPlotDataSumoCentralCurves(data)
             })
     }
 
@@ -81,27 +81,66 @@ function SuMoBuildingValidation() {
         )
     }
 
+    function ButtonAddPlot(onClickFun: CallableFunction, plotFunElement: JSX.Element, text: string, data: undefined): JSX.Element {
+        return <Box sx={{ justifySelf: 'left', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: "10px" }}>
+            <Button
+                onClick={onClickFun}
+                sx={{ backgroundColor: 'purple', color: 'white', minWidth: "30px", height: "30px", display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                children={<h3>+</h3>}
+            /> <text style={{ margin: 5 }}>{text}</text>
+            <Box sx={{ display: 'flex', width: '100%', overflowX: 'auto' }}>
+                {
+                    data && inputVars &&
+                    <plotFunElement data={data} inputVars={inputVars} qoi={selectedResponse} />
+                }
+            </Box>
+        </Box>
+    }
+
+    function SuMoCentralCurves() {
+        return ButtonAddPlot(RunPlotCentralSuMoInterpolations, PlotDataTogether, "Add central SuMo interpolations", plotDataSumoCentralCurves)
+
+        // return <Box sx={{ justifySelf: 'left', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: "10px" }}>
+        //     <Button
+        //         onClick={RunPlotCentralSuMoInterpolations}
+        //         sx={{ backgroundColor: 'purple', color: 'white', minWidth: "30px", height: "30px", display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        //         children={<h3>+</h3>}
+        //     /> <text style={{ margin: 5 }}>Add central SuMo interpolations</text>
+        //     <Box sx={{ display: 'flex', width: '100%', overflowX: 'auto' }}>
+        //         {
+        //             plotDataSumoCentralCurves && inputVars &&
+        //             <PlotDataTogether data={plotDataSumoCentralCurves} inputVars={inputVars} qoi={selectedResponse} />
+        //         }
+        //     </Box>
+        // </Box>
+    }
+
+    function SuMoCVAccuracyMetrics() {
+        return ButtonAddPlot(() => null, <text>Not implemented yet </text>, "Add SuMo CrossValidation accuracy metrics", undefined)
+    }
+
+    function SuMo2DVisualization() {
+        return ButtonAddPlot(() => null, <text>Not implemented yet </text>, "Add SuMo 2D visualization", undefined)
+        // This should have a pop-up to select 2 input variables
+    }
+    function SuMo3DVisualization() {
+        return ButtonAddPlot(() => null, <text>Not implemented yet </text>, "Add SuMo 3D visualization", undefined)
+        // This should have a pop-up to select 3 input variables
+    }
+
     return (
-        < MetaModelingUX tabTitle="SuMo Building & Validation" headerType="sumo-header">
+        < MetaModelingUX tabTitle="Surrogate Model Building & Validation" headerType="sumo-header">
             <Container>
-                <Box sx={{ justifySelf: 'center', flex: 1, display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                <Box sx={{ justifySelf: 'left', flex: 1, display: 'flex', flexDirection: 'column', gap: "10px", justifyContent: 'space-between' }}>
                     <text>Selected Function: <b>{context?.selectedFunction?.name}</b> </text>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        // TODO include toggle to choose SuMo (?)
-                        <QoISelector />
-                        // TODO change this by + button that allows to get central cuts; get SuMo fitting metrics, get 3D visualziations (?)
-                        <Button onClick={runSuMo} sx={{ backgroundColor: 'purple', color: 'white' }}>
-                            <h5> Run</h5>
-                        </Button>
-                    </Box>
+                    <QoISelector />
+                    // TODO include button "create SuMo" and a loading wheel for 3 secs; that should enable the + buttons
+                    <SuMoCentralCurves />
+                    <SuMoCVAccuracyMetrics />
+                    <SuMo2DVisualization />
+                    <SuMo3DVisualization />
                 </Box>
-                <Box sx={{ display: 'flex', width: '100%', overflowX: 'auto' }}>
-                    {
-                        plotData && inputVars &&
-                        <PlotDataTogether data={plotData} inputVars={inputVars} qoi={selectedResponse} />
-                    }
-                </Box>
-                // TODO make it one after the other vertically
+
             </Container>
 
 
