@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
-import FileSelector from '../components/FileSelector';
-import SuMoTypeSelector from '../components/SuMoTypeSelector';
-import OutputResponseSelector from '../components/OutputResponseSelector';
+// import FileSelector from '../components/FileSelector';
+// import SuMoTypeSelector from '../components/SuMoTypeSelector';
+// import OutputResponseSelector from '../components/OutputResponseSelector';
 import MetaModelingUX from '../components/MetaModelingUX';
 import { Button, Box, Container } from '@mui/material';
-import FunctionContext from './FunctionContext';
+import MMUXContext from './MMUXContext';
 // import PlotData from '../components/PlotData'
 import PlotDataTogether from '../components/PlotDataTogether'
 import { Function } from '../functions-api-ts-client';
@@ -22,13 +22,12 @@ function PlotImageIfExists(props: any) {
 }
 
 function SuMoBuildingValidation() {
-    const context = useContext(FunctionContext)
-    const inputVars = context?.function?.inputSchema.required as string[]
-    const outputVars = context?.function?.outputSchema.required as string[]
+    const context = useContext(MMUXContext)
+    const inputVars = context?.selectedFunction?.inputSchema.required as string[]
+    const outputVars = context?.selectedFunction?.outputSchema.required as string[]
 
     const [selectedResponse, setSelectedResponse] = useState(outputVars ? outputVars[0] : '');
     const [isLogEnabled, setIsLogEnabled] = useState(false);
-    const [sumoCurves, setSumoCurves] = useState(null)
 
     const [plotData, setPlotData] = useState(undefined);
 
@@ -38,15 +37,11 @@ function SuMoBuildingValidation() {
 
     async function runSuMo() {
         console.log("Running SuMo...");
-        const jobs = await JOB_API.getFunctionJobs(context?.function?.id as number)
+        const jobs = await JOB_API.getFunctionJobs(context?.selectedFunction?.id as number)
         fetch(
             PYTHON_DAKOTA_BACKEND + '/flask/sumo_along_axes',
             {
                 method: "POST",
-                // mode: 'no-cors',
-                // headers: {
-                //     'Content-Type': 'application/json'
-                // },
                 body: JSON.stringify(
                     {
                         inputs: inputVars,
@@ -60,37 +55,53 @@ function SuMoBuildingValidation() {
             }).then(function (data) {
                 setPlotData(data)
             })
-        // console.log(url)
-        // fetch(url)
-        //     .then(response => {
-        //         console.log(response)
-        //         return response.json()
-        //     })
-        //     .then(data => {
-        //         setSumoCurves(data.imagePath);
-        //     })
-        //     .catch(error => console.debug('Error:', error));
+    }
+
+    function QoISelector() {
+        return (
+
+            <div>
+                <text>Quantity of Interest (QoI) to inspect: </text>
+                <select
+                    value={selectedResponse}
+                    onChange={(e) => {
+                        setSelectedResponse(e.target.value)
+                        console.log(selectedResponse)
+                    }}
+                >// TODO issue: onlly creating DF w inputs + QoI, and NIH is trying to normalize...
+                    // How do I solve that in general (given that I wanna give users chance to do operations, etc w custom code)?
+                    // Pass evth to function and then leave only inputs + qoi right before saving?
+                    {outputVars?.map((qoi) => (
+                        <option key={qoi} value={qoi}>
+                            {qoi}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        )
     }
 
     return (
         < MetaModelingUX tabTitle="SuMo Building & Validation" headerType="sumo-header">
             <Container>
                 <Box sx={{ justifySelf: 'center', flex: 1, display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-                    <Button onClick={runSuMo} sx={{ backgroundColor: 'purple', color: 'white' }}>
-                        <h5> Run</h5>
-                    </Button>
-                    <p>asdasd</p>
-                    <p>asdasd</p>
-                    <p>asdasd</p>
-                    <p>asdasd</p>
-                    <p>asdasd</p>
+                    <text>Selected Function: <b>{context?.selectedFunction?.name}</b> </text>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        // TODO include toggle to choose SuMo (?)
+                        <QoISelector />
+                        // TODO change this by + button that allows to get central cuts; get SuMo fitting metrics, get 3D visualziations (?)
+                        <Button onClick={runSuMo} sx={{ backgroundColor: 'purple', color: 'white' }}>
+                            <h5> Run</h5>
+                        </Button>
+                    </Box>
                 </Box>
                 <Box sx={{ display: 'flex', width: '100%', overflowX: 'auto' }}>
                     {
                         plotData && inputVars &&
-                        <PlotDataTogether data={plotData} inputVars={inputVars} />
+                        <PlotDataTogether data={plotData} inputVars={inputVars} qoi={selectedResponse} />
                     }
                 </Box>
+                // TODO make it one after the other vertically
             </Container>
 
 

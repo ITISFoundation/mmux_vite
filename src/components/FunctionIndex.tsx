@@ -4,7 +4,7 @@ import { Function, FunctionJob } from '../functions-api-ts-client';
 import { FUNCTION_API, JOB_API, PYTHON_DAKOTA_BACKEND } from './api_objects';
 import { findFunction, createInputOutputSchema } from './function_utils';
 import { pickCsv, readCsvData } from './csv_utils.ts'
-import FunctionContext from '../views/FunctionContext.tsx';
+import MMUXContext from '../views/MMUXContext.tsx';
 
 export async function registerCsvAsFunction(file: File, name?: string): Promise<Function> {
     const previous_funs = await FUNCTION_API.searchFunctionsByName(file.name);
@@ -160,7 +160,7 @@ export function FunctionIndex() {
 
 export function FunctionList(props: { functions: Function[] } = { functions: [] }) {
     const [functions, setFunctions] = useState<Function[]>([]);
-    const context = useContext(FunctionContext);
+    const context = useContext(MMUXContext);
 
     useEffect(() => {
         if (props.functions.length === 0) {
@@ -240,13 +240,16 @@ export function FunctionList(props: { functions: Function[] } = { functions: [] 
             </TableHead>
             <TableBody>
                 {functions.map(fun => (
-                    <TableRow key={fun.id}>
+                    <TableRow
+                        key={fun.id}
+                        sx={{ fontWeight: fun.id === context?.selectedFunction?.id ? 'bold' : 'normal', backgroundColor: fun.id === context?.selectedFunction?.id ? '#f0f0f0' : 'inherit' }}
+                    >
                         <TableCell>{fun.id}</TableCell>
                         <TableCell>{fun.name}</TableCell>
                         <TableCell>{showInputOutputSchema(fun.inputSchema)}</TableCell>
                         <TableCell>{showInputOutputSchema(fun.outputSchema)}</TableCell>
                         <TableCell>{<Button variant="contained" onClick={() => showJobList(fun)}>Show Jobs</Button>}</TableCell>
-                        <TableCell align='right'>{<Button variant="contained" onClick={() => context?.setFunction(fun)}>Select</Button>}</TableCell>
+                        <TableCell align='right'>{<Button variant="contained" onClick={() => context?.setSelectedFunction(fun)}>Select</Button>}</TableCell>
                     </TableRow>
                 ))}
             </TableBody>
