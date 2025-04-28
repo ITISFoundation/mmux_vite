@@ -7,7 +7,9 @@ import { pickCsv, readCsvData } from './csv_utils.ts'
 import MMUXContext from '../views/MMUXContext.tsx';
 
 export async function registerCsvAsFunction(file: File, name?: string): Promise<Function> {
-    const previous_funs = await FUNCTION_API.searchFunctionsByName(file.name);
+    const funname = name ? name : file.name
+    console.log(funname)
+    const previous_funs = await FUNCTION_API.searchFunctionsByName(funname);
     if (previous_funs.length > 0) {
         if (previous_funs.length > 1) {
             throw new Error(`Multiple functions with the name "${file.name}" are already registered.`);
@@ -30,17 +32,17 @@ export async function registerCsvAsFunction(file: File, name?: string): Promise<
 
     await FUNCTION_API.createFunction(
         {
-            "name": name ?? file.name,
+            "name": funname,
             "type": "local.python",
             "url": "./examples/csv_retrieval_functions.py:retrieve_csv_result",
             "description": "",
-            "inputSchema": createInputOutputSchema(data.input_vars),
+            "inputSchema": createInputOutputSchema(data.input_vars.slice(0, 5)),
             "outputSchema": createInputOutputSchema(data.output_vars),
             "tags": ["cacheable"],
         }
     );
 
-    const fun = await findFunction(file.name)
+    const fun = await findFunction(funname)
     console.log("Function registered successfully with id: ", fun.id);
     return fun;
 };

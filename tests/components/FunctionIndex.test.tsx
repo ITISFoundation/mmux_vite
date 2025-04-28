@@ -25,9 +25,10 @@ describe('Register CSV Integration Test', () => {
         console.log("Picked CSV")
 
         await FUNCTION_API.deleteAllFunctions()
-        const fun = await registerCsvAsFunction(file);
+        const funname = "NIH Safety Variability Study"
+        const fun = await registerCsvAsFunction(file, funname);
         expect(fun).toBeDefined();
-        expect(fun.name).toBe(file.name);
+        expect(fun.name).toBe(funname);
         console.log("Registered CSV as Function")
 
         const jobs = await registerCsvValuesAsFunctionJobs(fun, file);
