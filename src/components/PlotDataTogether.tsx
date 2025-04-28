@@ -21,16 +21,17 @@ const PlotDataTogether = (props: PlotDataType) => {
             yaxis: `y`,
         });
 
+        const w = 1 / inputVars.length
+        const padding = 0.2 // this means 20% of each figure size
+        const domain = [i * w + padding / 2 * w, (i + 1) * w - padding / 2 * w]
         xAxes.push({
             title: { text: inputVars[i] },
-            domain: [i / inputVars.length, (i + 1) * 0.5 / inputVars.length],
+            domain: domain,
             // for some reason, different x-scales produce different plot sizes? 
             anchor: 'y',
             autorange: true,
             nticks: 4,
-            // tickwidth: 1,
         });
-
     }
 
     let subplot_config = [inputVars.map((_, i) => `x${i + 1}y`)]
@@ -41,8 +42,11 @@ const PlotDataTogether = (props: PlotDataType) => {
                 // title: { text: qoi },
                 width: 180 * inputVars.length,
                 height: 300,
-                grid: { rows: 1, columns: inputVars.length, subplots: subplot_config, },
-                yaxis: { showgrid: true },
+                grid: { rows: 1, columns: inputVars.length, subplots: subplot_config, padding: 100 },
+                yaxis: {
+                    // title: { text: qoi }, 
+                    showgrid: true, anchor: 'x1'
+                },
                 ...xAxes.reduce((acc, axis, i) => ({ ...acc, [`xaxis${i + 1}`]: axis }), {}),
                 showlegend: false,
             }}
