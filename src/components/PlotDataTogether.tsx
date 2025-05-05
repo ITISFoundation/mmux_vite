@@ -42,7 +42,7 @@ const PlotDataTogether = (props: PlotDataType) => {
                 // title: { text: qoi },
                 width: 180 * inputVars.length,
                 height: 300,
-                grid: { rows: 1, columns: inputVars.length, subplots: subplot_config, padding: 100 },
+                grid: { rows: 1, columns: inputVars.length, subplots: subplot_config },
                 yaxis: {
                     // title: { text: qoi }, 
                     showgrid: true, anchor: 'x1'
