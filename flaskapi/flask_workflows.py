@@ -238,3 +238,30 @@ def flask_load_json():
         data = json.load(f)
     logger.info(f"data: {data}")
     return jsonify(data)
+
+@app.route("/flask/lhs_sampling", methods=["POST"])
+def flask_lhs():
+    logger.info("Starting flask function: flask/lhs_sampling")
+    logger.info("Cwd: " + str(Path.cwd()))
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    config = request_data["config"]
+    logger.info("LHS config: ")
+    logger.info(config)
+    seed = request_data["seed"]
+    n = config[0]["points"]
+    k = len(config)
+    
+    from mmux_python.utils.lhs import lhs
+    logger.info(f"config: {config} \n n: {n}, k: {k}, seed: {seed}")
+    H = lhs(n, k, seed=seed)
+    logger.info(f"H: {H.shape}")
+
+    samples = []
+    for j in range(n):
+        samples.append(
+            {config[i]["variable"] : H[i, j] * (config[i]["end"] - config[i]["start"]) + config[i]["start"] for i in range(k)}
+        )
+    logger.info(f"Samples: {samples}")
+
+    return jsonify(samples)

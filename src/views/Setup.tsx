@@ -1,12 +1,15 @@
-import { useState, useContext, useEffect, use } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import MetaModelingUX from '../components/MetaModelingUX';
 import { Button, Input } from '@mui/material';
 import { FunctionList } from '../components/FunctionIndex';
 import MMUXContext from './MMUXContext';
 import PlusButton from '../components/PlusButton';
 import usePersistentJSONState from '../hooks/usePersistentJSONState';
+import { FUNCTION_API, PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
+import { Function, FunctionJob } from '../functions-api-ts-client';
 
-function runGridSearchSampling(points: any[]) {
+
+function runGridSearchSampling(config: any[]) {
     console.log("Grid Search Sampling not implemented yet!")
 }
 
@@ -86,9 +89,56 @@ function GridSearchSampling() {
     );
 }
 
-function runLhsSampling(config: any[]) {
-    console.log("LHS Sampling not implemented yet!")
+async function runLhsSampling(fun: Function, config: any[], seed: number = 0) {
+    // send config to Python backend to create LHS
+    console.log("Running LHS Sampling with config: ", config);
+    const samples = await fetch(
+        PYTHON_DAKOTA_BACKEND + '/flask/lhs_sampling',
+        {
+            method: "POST",
+            body: JSON.stringify(
+                {
+                    config: config,
+                    seed: seed,
+                }
+            ),
+        }).then(function (response) {
+            return response.json()
+        }).then(function (points) {
+            console.log("LHS Sampling points: ", points);
+            return points
+        }).catch(function (error) {
+            console.error("Error running LHS sampling: ", error);
+        })
+
+    // run jobs of the selected function based on the API
+    // const context = useContext(MMUXContext);
+    console.log("Running jobs for LHS samples: ", samples);
+    const jobs = await Promise.all(samples.map((jobInput: any) => {
+        return runFunctionJob(fun, jobInput);
+    }));
+    console.log("Jobs created: ", jobs);
 }
+
+
+
+async function runFunctionJob(fun: Function, row: Record<string, any>): Promise<FunctionJob> {
+    var inputValues = Object.keys(fun.inputSchema.properties).reduce((acc, key) => {
+        if (key in row) {
+            acc[key] = row[key];
+        } else {
+            console.warn(`Missing value for input key: ${key}`);
+        }
+        return acc;
+    }, {} as Record<string, any>);
+    let job = await FUNCTION_API.runFunction(
+        fun.id as number,
+        JSON.stringify(inputValues)// Convert input values to a comma-separated string with key-value pairs
+    )
+    return job
+}
+
+// TODO include the PR viewer for current running jobs!! :)
 
 function LHSSampling() {
     const context = useContext(MMUXContext);
@@ -160,7 +210,7 @@ function LHSSampling() {
                     sx={{ width: 100 }}
                     onChange={(e) => handleInputChange(0, "points", e.target.value)}
                 />
-                <Button variant="contained" onClick={() => runLhsSampling(lhsInputs)}>Run LHS Sampling</Button>
+                <Button variant="contained" onClick={() => runLhsSampling(context?.selectedFunction as Function, lhsInputs)}>Run LHS Sampling</Button>
             </form>
 
         </>
