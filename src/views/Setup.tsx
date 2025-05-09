@@ -86,6 +86,87 @@ function GridSearchSampling() {
     );
 }
 
+function runLhsSampling(config: any[]) {
+    console.log("LHS Sampling not implemented yet!")
+}
+
+function LHSSampling() {
+    const context = useContext(MMUXContext);
+    const inputVars = context?.selectedFunction?.inputSchema.required as string[];
+    const [JSONStateFilePath, setJSONStateFilePath] = useState("");
+    // Needed to move the filePath outside of the PersistentJSONState hook to avoid triggering infinite loops
+    // Now it works and I have persistence even across sessions :)
+    const [lhsInputs, setLhsInputs] = usePersistentJSONState({
+        defaultState: inputVars.map((inputVar) => ({
+            variable: inputVar,
+            start: 0.0,
+            end: 1.0,
+            points: 50,
+        })),
+        filePath: JSONStateFilePath
+    });
+
+    useEffect(() => {
+        if (context?.selectedFunction) {
+            const funname = context?.selectedFunction?.name.replace(/\s+/g, "_");
+            setJSONStateFilePath(`src/assets/LhsInputs_${funname}.json`);
+        }
+    }, [context?.selectedFunction]);
+
+
+    function handleInputChange(index: number, field: string, value: string) {
+        setLhsInputs((prevInputs: any) => {
+            const newInputs = [...prevInputs];
+            newInputs[index] = {
+                ...newInputs[index],
+                [field]: field === "points" ? parseInt(value) : parseFloat(value),
+            };
+            return newInputs;
+        });
+    }
+
+    return (
+        <>
+            <h4>LHS Sampling</h4>
+            <p>Specify total number of points, as well as the ranges of each parameter.</p>
+            {lhsInputs?.map((inputVar, index) => (
+                <form key={index} style={{ display: "flex", alignItems: "center", marginBottom: "20px", gap: "20px", }}>
+                    <h5 style={{ marginLeft: 10, marginRight: 20, marginBottom: 0, marginTop: 0, fontSize: 18 }}>{inputVar.variable}</h5>
+                    <text>Start: </text>
+                    <Input
+                        type="number"
+                        placeholder="Start"
+                        value={inputVar.start.toString()}
+                        sx={{ width: 100 }}
+                        onChange={(e) => handleInputChange(index, "start", e.target.value)}
+                    />
+                    <text>End: </text>
+                    <Input
+                        type="number"
+                        placeholder="End"
+                        value={inputVar.end.toString()}
+                        sx={{ width: 100 }}
+                        onChange={(e) => handleInputChange(index, "end", e.target.value)}
+                    />
+                </form>
+            ))}
+
+            <form style={{ display: "flex", alignItems: "center", marginBottom: "20px", gap: "40px", }}>
+                <text>Number of sampling points: </text>
+                <Input
+                    type="number"
+                    placeholder="N"
+                    value={lhsInputs[0].points.toString()}
+                    sx={{ width: 100 }}
+                    onChange={(e) => handleInputChange(0, "points", e.target.value)}
+                />
+                <Button variant="contained" onClick={() => runLhsSampling(lhsInputs)}>Run LHS Sampling</Button>
+            </form>
+
+        </>
+    );
+}
+
 export default function Setup() {
     const [showFunctionIndex, setShowFunctionIndex] = useState(false)
     const context = useContext(MMUXContext)
@@ -111,9 +192,8 @@ export default function Setup() {
                     // ONGOING implement LHS / grid sampling setup & Run as an ELement (or bunch of them)
                     return (
                         <div>
-                            <h4>Sampling Campaign Setup</h4>
-                            <p>Specify the ranges and number of points for the sampling campaign.</p>
-                            {<GridSearchSampling />}
+                            {/* {<GridSearchSampling />} */}
+                            {<LHSSampling />}
                         </div>
                     );
                 }}
