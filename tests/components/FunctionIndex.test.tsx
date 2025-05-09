@@ -24,7 +24,7 @@ describe('Register CSV Integration Test', () => {
         expect(file.name).toBe(path.basename(filePath));
         console.log("Picked CSV")
 
-        await FUNCTION_API.deleteAllFunctions()
+        // await FUNCTION_API.deleteAllFunctions()
         const funname = "NIH Safety Variability Study"
         const fun = await registerCsvAsFunction(file, funname);
         expect(fun).toBeDefined();
