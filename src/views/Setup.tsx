@@ -4,7 +4,7 @@ import { Button, Input } from '@mui/material';
 import { FunctionList } from '../components/FunctionIndex';
 import MMUXContext from './MMUXContext';
 import PlusButton from '../components/PlusButton';
-// import { writeFile } from 'fs';
+import { loadJSONState, saveJSONState } from '../components/json_state_utils';
 
 function runGridSearchSampling(points: any[]) {
     console.log("Grid Search Sampling not implemented yet!")
@@ -14,6 +14,8 @@ function GridSearchSampling() {
     const context = useContext(MMUXContext)
     const inputVars = context?.selectedFunction?.inputSchema.required as string[]
     const [gridSearchInputs, setGridSearchInputs] = useState<any[]>([]);
+    // TODO at some point, this should be a list of objects (keyed by function uuid) and only the changed values be modified; thus state within service kept indefinitely
+
     function updateGridSearchInputs() {
         // gather all input and save to the gridSearchInputs (not just the one that was changed)
         inputVars.forEach((inputVar, index) => {
@@ -31,17 +33,28 @@ function GridSearchSampling() {
                 };
                 return newInputs;
             });
-            // // Save the updated gridSearchInputs to a JSON file
-            // const filePath = '/home/jgo/itis/mmux_vite/assets/gridSearchInputs.json';
-            // writeFile(filePath, JSON.stringify(gridSearchInputs, null, 2), (err) => {
-            //     if (err) {
-            //         console.error('Error saving gridSearchInputs.json:', err);
-            //     } else {
-            //         console.log('gridSearchInputs.json saved successfully');
-            //     }
-            // });
         });
-        console.log("grid SEARCH: ", gridSearchInputs);
+        // Save the updated gridSearchInputs to a JSON file using the FlaskAPI 
+        const filePath = '/home/jgo/itis/mmux_vite/src/assets/gridSearchInputs.json';
+        console.log("Saving gridSearchInputs ", gridSearchInputs, " to ", filePath);
+        saveJSONState(gridSearchInputs, filePath)
+        // To ensure sync with the file (and that operations on the input data are displayed to the user)
+        // load the data & apply it to the state
+        loadJSONState(filePath, setGridSearchInputs);
+        // then, apply it to the actual input fields (otherwise what the user sees might not be the actual state!)
+        inputVars.forEach((inputVar, index) => {
+            const startInput = document.querySelectorAll('input[placeholder="Start"]')[index] as HTMLInputElement;
+            const endInput = document.querySelectorAll('input[placeholder="End"]')[index] as HTMLInputElement;
+            const pointsInput = document.querySelectorAll('input[placeholder="Points"]')[index] as HTMLInputElement;
+            if (gridSearchInputs[index]?.variable === inputVar) {
+                // startInput.value = gridSearchInputs[index].start.toString();
+                startInput.value = "42";
+                endInput.value = gridSearchInputs[index].end.toString();
+                pointsInput.value = gridSearchInputs[index].points.toString();
+            } else {
+                console.log("loaded variable ", gridSearchInputs[index]?.variable, " does not match inputVar ", inputVar);
+            }
+        });
     }
 
     return (

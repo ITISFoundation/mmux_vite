@@ -209,3 +209,32 @@ def flask_uq_propagation() -> Dict[str, str]:
     )
     # _save_in_react_public_folder(savepath)
     return {"imagePath": savepath.name}
+
+@app.route("/flask/save_json", methods=["POST"])
+def flask_save_json():
+    logger.info("Starting flask function: flask_save_json")
+    logger.info("Cwd: " + str(Path.cwd()))
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    filename = request_data["filePath"]
+    data = request_data["data"]
+    logger.info(f"Inputs of the request: {request_data}")
+    logger.info(f"filename: {filename}")
+    logger.info(f"data: {data}")
+    assert Path(filename).parent.exists(), f"The directory {Path(filename).parent} were the file should be created does not exist."
+    with open(filename, "w+") as f:
+        json.dump(data, f)
+    return jsonify({"status": "success"})
+
+@app.route("/flask/load_json", methods=["GET"])
+def flask_load_json():
+    logger.info("Starting flask function: flask_load_json")
+    logger.info("Cwd: " + str(Path.cwd()))
+    filePath = request.args["filePath"]
+    logger.info(f"Inputs of the request: {request.args}")
+    logger.info(f"filename: {filePath}")
+    assert Path(filePath).exists(), f"The file {filePath} does not exist."
+    with open(filePath, "r") as f:
+        data = json.load(f)
+    logger.info(f"data: {data}")
+    return jsonify(data)
