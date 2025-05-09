@@ -4,6 +4,7 @@ import { Button, Box, Container } from '@mui/material';
 import MMUXContext from './MMUXContext';
 import PlotDataTogether from '../components/PlotDataTogether'
 import { JOB_API, PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
+import PlusButton from '../components/PlusButton';
 
 function SuMoBuildingValidation() {
     const context = useContext(MMUXContext)
@@ -77,7 +78,7 @@ function SuMoBuildingValidation() {
             setTimeout(() => {
                 setIsSuMoGenerated(true);
                 setLoading(false);
-            }, 3000);
+            }, 1000);
         };
 
         return (
@@ -92,64 +93,19 @@ function SuMoBuildingValidation() {
             </Box>
         );
     }
-    function ButtonAddPlot(onClickFun: CallableFunction, PlotFunComponent: (props: any) => JSX.Element, text: string, data: any): React.Element<any> {
-        return <>
-            <Box sx={{ justifySelf: 'left', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: "10px" }}>
-                <Button
-                    sx={{
-                        color: "secondary", variant: "contained",
-                        minWidth: "30px", height: "30px",
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}
-                    onClick={onClickFun}
-                    disabled={!isSuMoGenerated}
-                >
-                    <h3>+</h3>
-                </Button>
-                <text style={{ margin: 5, color: isSuMoGenerated ? 'black' : 'grey' }}>{text ? text : ''}</text>
-                {/* TODO make text disappear if already plotted
-                TODO disable button as well -- or make it a - if the user wants to remove it */}
-            </Box >
 
-            <Box sx={{ display: 'flex', width: '100%', overflowX: 'auto' }}>
-                {
-                    data && inputVars &&
-                    <PlotFunComponent data={data} inputVars={inputVars} qoi={selectedResponse} />
-                }
-            </Box>
-        </>
-    }
 
-    function SuMoCentralCurves() {
-        return ButtonAddPlot(RunPlotCentralSuMoInterpolations, PlotDataTogether, "Add central SuMo interpolations", plotDataSumoCentralCurves)
-
-        // return <Box sx={{ justifySelf: 'left', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: "10px" }}>
-        //     <Button
-        //         onClick={RunPlotCentralSuMoInterpolations}
-        //         sx={{ backgroundColor: 'purple', color: 'white', minWidth: "30px", height: "30px", display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        //         children={<h3>+</h3>}
-        //     /> <text style={{ margin: 5 }}>Add central SuMo interpolations</text>
-        //     <Box sx={{ display: 'flex', width: '100%', overflowX: 'auto' }}>
-        //         {
-        //             plotDataSumoCentralCurves && inputVars &&
-        //             <PlotDataTogether data={plotDataSumoCentralCurves} inputVars={inputVars} qoi={selectedResponse} />
-        //         }
-        //     </Box>
-        // </Box>
-    }
-
-    function SuMoCVAccuracyMetrics() {
-        return ButtonAddPlot(() => null, <text>Not implemented yet </text>, "Add SuMo CrossValidation accuracy metrics", null)
-    }
-
-    function SuMo2DVisualization() {
-        return ButtonAddPlot(() => null, <text>Not implemented yet </text>, "Add SuMo 2D visualization", undefined)
-        // This should have a pop-up to select 2 input variables
-    }
-    function SuMo3DVisualization() {
-        return ButtonAddPlot(() => null, <text>Not implemented yet </text>, "Add SuMo 3D visualization", undefined)
-        // This should have a pop-up to select 3 input variables
-    }
+    // TODO update plots when data arrives / changes
+    <PlusButton
+        onClickFun={RunPlotCentralSuMoInterpolations}
+        PlotFunComponent={() => <PlotDataTogether
+            data={plotDataSumoCentralCurves}
+            inputVars={inputVars}
+            qoi={selectedResponse}
+        />}
+        text="Visualize central SuMo interpolations"
+        enabled={isSuMoGenerated && plotDataSumoCentralCurves !== undefined}
+    />
 
     return (
         < MetaModelingUX tabTitle="Surrogate Model Building & Validation" headerType="sumo-header">
@@ -157,22 +113,37 @@ function SuMoBuildingValidation() {
                 <Box sx={{ justifySelf: 'left', flex: 1, display: 'flex', flexDirection: 'column', gap: "10px", justifyContent: 'space-between' }}>
                     <text>Selected Function: <b>{context?.selectedFunction?.name}</b> </text>
                     <QoISelector />
-                    <SuMoCentralCurves />
-                    <SuMoCVAccuracyMetrics />
-                    <SuMo2DVisualization />
-                    <SuMo3DVisualization />
-                    {/* <{ButtonAddPlot(() => null, <text>Not implemented yet </text>, "Add SuMo 3D visualization", undefined)} /> */}
+                    <PlusButton
+                        onClickFun={RunPlotCentralSuMoInterpolations}
+                        PlotFunComponent={() => <PlotDataTogether
+                            data={plotDataSumoCentralCurves}
+                            inputVars={inputVars}
+                            qoi={selectedResponse}
+                        />}
+                        text="Visualize central SuMo interpolations"
+                        enabled={isSuMoGenerated}
+                    />
+
+                    <PlusButton
+                        onClickFun={() => null}
+                        PlotFunComponent={() => <text>Not implemented yet</text>}
+                        text="Add SuMo CrossValidation accuracy metrics"
+                        enabled={isSuMoGenerated}
+                    />
+                    <PlusButton
+                        onClickFun={() => null}
+                        PlotFunComponent={() => <text>Not implemented yet</text>}
+                        text="Add SuMo 2D visualization"
+                        enabled={isSuMoGenerated}
+                    />
+                    <PlusButton
+                        onClickFun={() => null}
+                        PlotFunComponent={() => <text>Not implemented yet</text>}
+                        text="Add SuMo 3D visualization"
+                        enabled={isSuMoGenerated}
+                    />
                 </Box>
-
             </Container>
-
-
-            {/* 
-            /* TODO this is also including SuMo building: choose jobs, dump into a csv file for Dakota, then call python and generate SuMo, then save and register it
-            This all should also eventually be done with Functions API
-            However, for now, for simplicity, simply choose the file and build the SuMo on the fly (I already have those scripts)
-            The rest of the pipeline (getting outputs of Dakota, and plotting & showing) should stay the same */}
-
         </MetaModelingUX >
     );
 }
