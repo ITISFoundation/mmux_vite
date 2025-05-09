@@ -1,2 +1,2 @@
-FLASK_APP=mmux_python/flask_workflows.py
+FLASK_APP=flask_workflows.py
 FLASK_DEBUG=1
