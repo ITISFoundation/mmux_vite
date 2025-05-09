@@ -21,14 +21,14 @@ async function saveJSONState(state: any, filePath: string) {
                 )       
 }
 
-async function loadJSONState(filePath: string, setter: React.Dispatch<React.SetStateAction<any[]>>) {
-    fetch(
+async function loadJSONState(filePath: string): Promise<any> {
+    return await fetch(
         PYTHON_DAKOTA_BACKEND + '/flask/load_json' + "?filePath=" + filePath,
     ).then(function (response) {
         return response.json()
     }).then(function (data) {
         console.log("Loaded ", filePath, " successfully", data);
-        setter(data);
+        return data
     }).catch(function (error) {
         console.error("Error loading ", filePath, ": ", error);
     }

@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import MetaModelingUX from '../components/MetaModelingUX';
 import { Button, Input } from '@mui/material';
 import { FunctionList } from '../components/FunctionIndex';
@@ -13,66 +13,117 @@ function runGridSearchSampling(points: any[]) {
 function GridSearchSampling() {
     const context = useContext(MMUXContext)
     const inputVars = context?.selectedFunction?.inputSchema.required as string[]
-    const [gridSearchInputs, setGridSearchInputs] = useState<any[]>([]);
     // TODO at some point, this should be a list of objects (keyed by function uuid) and only the changed values be modified; thus state within service kept indefinitely
+    const [gridSearchInputs, setGridSearchInputs] = useState(
+        inputVars.map((inputVar) => ({
+            variable: inputVar,
+            start: NaN,
+            end: NaN,
+            points: NaN,
+        }))
+    );
+    const [gridSearchSettingsFilePath, setGridSearchSettingsFilePath] = useState("src/assets/gridSearchInputs.json")
 
-    function updateGridSearchInputs() {
-        // gather all input and save to the gridSearchInputs (not just the one that was changed)
-        inputVars.forEach((inputVar, index) => {
-            const startInput = document.querySelectorAll('input[placeholder="Start"]')[index] as HTMLInputElement;
-            const endInput = document.querySelectorAll('input[placeholder="End"]')[index] as HTMLInputElement;
-            const pointsInput = document.querySelectorAll('input[placeholder="Points"]')[index] as HTMLInputElement;
-
-            setGridSearchInputs((prevInputs) => {
-                const newInputs = [...prevInputs];
-                newInputs[index] = {
-                    variable: inputVar,
-                    start: parseFloat(startInput.value),
-                    end: parseFloat(endInput.value),
-                    points: parseInt(pointsInput.value),
-                };
-                return newInputs;
-            });
-        });
-        // Save the updated gridSearchInputs to a JSON file using the FlaskAPI 
-        const filePath = '/home/jgo/itis/mmux_vite/src/assets/gridSearchInputs.json';
-        console.log("Saving gridSearchInputs ", gridSearchInputs, " to ", filePath);
-        saveJSONState(gridSearchInputs, filePath)
-        // To ensure sync with the file (and that operations on the input data are displayed to the user)
-        // load the data & apply it to the state
-        loadJSONState(filePath, setGridSearchInputs);
-        // then, apply it to the actual input fields (otherwise what the user sees might not be the actual state!)
-        inputVars.forEach((inputVar, index) => {
-            const startInput = document.querySelectorAll('input[placeholder="Start"]')[index] as HTMLInputElement;
-            const endInput = document.querySelectorAll('input[placeholder="End"]')[index] as HTMLInputElement;
-            const pointsInput = document.querySelectorAll('input[placeholder="Points"]')[index] as HTMLInputElement;
-            if (gridSearchInputs[index]?.variable === inputVar) {
-                // startInput.value = gridSearchInputs[index].start.toString();
-                startInput.value = "42";
-                endInput.value = gridSearchInputs[index].end.toString();
-                pointsInput.value = gridSearchInputs[index].points.toString();
-            } else {
-                console.log("loaded variable ", gridSearchInputs[index]?.variable, " does not match inputVar ", inputVar);
+    useEffect(() => {
+        async function initializeGridSearchInputs() {
+            if (context?.selectedFunction) {
+                let funname = context?.selectedFunction.name
+                funname = funname.replace(/\s+/g, "_");
+                const filePath = "src/assets/gridSearchInputs_" + funname + ".json"
+                console.log(filePath)
+                setGridSearchSettingsFilePath(filePath)
+                const data = await loadJSONState(filePath);
+                console.log("Loaded data: ", data)
+                if (data && data.length > 0) {
+                    setGridSearchInputs(data);
+                } else {
+                    console.log("Applying defaults to GridSearch input parameters")
+                    const inputVars = context.selectedFunction.inputSchema.required as string[];
+                    setGridSearchInputs(
+                        inputVars.map((inputVar) => ({
+                            variable: inputVar,
+                            start: 0.00,
+                            end: 1.00,
+                            points: 10,
+                        }))
+                    );
+                }
             }
+        }
+        initializeGridSearchInputs();
+    }, [context?.selectedFunction]);
+
+    // Callback function for input changes
+    function handleInputChange(index: number, field: string, value: string) {
+        setGridSearchInputs((prevInputs) => {
+            const newInputs = [...prevInputs];
+            newInputs[index] = {
+                ...newInputs[index],
+                [field]: field === "points" ? parseInt(value) : parseFloat(value),
+            };
+            return newInputs;
         });
     }
+
+    // Save state to file
+    async function saveStateToFile() {
+        console.log(context?.selectedFunction)
+        console.log("Saving gridSearchInputs to file:", gridSearchSettingsFilePath);
+        await saveJSONState(gridSearchInputs, gridSearchSettingsFilePath);
+    }
+
+    // Load state from file and update inputs
+    async function loadStateFromFile() {
+        const filePath = '/home/jgo/itis/mmux_vite/src/assets/gridSearchInputs.json';
+        const data = await loadJSONState(filePath);
+        console.log("Loaded data: ", data)
+        setGridSearchInputs(data); // Update state
+        // Update input fields without triggering onChange
+    }
+
+    useEffect(() => {
+        // Save state to file whenever gridSearchInputs changes
+        saveStateToFile();
+    }, [gridSearchInputs]);
 
     return (
         <>
             <h4>Grid Search Sampling</h4>
             <p>Specify the ranges and number of points per dimension for the grid search sampling.</p>
-            {inputVars?.map((inputVar, index) => (
-                <form key={index} style={{ display: "flex", alignItems: "center", marginBottom: "20px", gap: "10px" }}>
-                    <h5 style={{ marginLeft: 10, marginRight: 20, marginBottom: 0, marginTop: 0, fontSize: 18 }}>{inputVar}</h5>
-                    <Input type="number" placeholder="Start" sx={{ width: 100 }} onChange={updateGridSearchInputs} />
-                    <Input type="number" placeholder="End" sx={{ width: 100 }} onChange={updateGridSearchInputs} />
-                    <Input type="number" placeholder="Points" sx={{ width: 100 }} onChange={updateGridSearchInputs} />
+            {gridSearchInputs?.map((inputVar, index) => (
+                <form key={index} style={{ display: "flex", alignItems: "center", marginBottom: "20px", gap: "20px", }}>
+                    <h5 style={{ marginLeft: 10, marginRight: 20, marginBottom: 0, marginTop: 0, fontSize: 18 }}>{inputVar.variable}</h5>
+                    <text>Start: </text>
+                    <Input
+                        type="number"
+                        placeholder="Start"
+                        value={inputVar.start.toString()}
+                        sx={{ width: 100 }}
+                        onChange={(e) => handleInputChange(index, "start", e.target.value)}
+                    />
+                    <text>End: </text>
+                    <Input
+                        type="number"
+                        placeholder="End"
+                        value={inputVar.end.toString()}
+                        sx={{ width: 100 }}
+                        onChange={(e) => handleInputChange(index, "end", e.target.value)}
+                    />
+                    <text>Number of points: </text>
+                    <Input
+                        type="number"
+                        placeholder="Points"
+                        value={inputVar.points.toString()}
+                        sx={{ width: 100 }}
+                        onChange={(e) => handleInputChange(index, "points", e.target.value)}
+                    />
                 </form>
             ))}
 
             <Button onClick={() => runGridSearchSampling(gridSearchInputs)}>Run Grid Search Sampling</Button>
-        </>)
-};
+        </>
+    );
+}
 
 export default function Setup() {
     const [showFunctionIndex, setShowFunctionIndex] = useState(false)

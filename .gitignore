@@ -1,6 +1,7 @@
 ## Custom
 flaskapi/runs/*
 *__pycache__*
+src/assets/*Inputs*.json
 
 # Logs
 logs
