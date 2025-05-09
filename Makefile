@@ -3,6 +3,12 @@ VENV_DIR := $(FLASKAPI_DIR)/.venv
 MMUX_PYTHON_DIR := $(FLASKAPI_DIR)/mmux_python
 MMUX_PYTHON_BRANCH := "work/jgo/flask_mmux_nih"
 
+base-install:
+	curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+	nvm install 22 ## gets node v22 (latest)
+	npm install # install all dependencies
+	apt install python3.10 python3.10-venv # install python venv
+
 install-mmux-python:
 	git clone https://github.com/ITISFoundation/mmux_python $(MMUX_PYTHON_DIR)
 	cd $(MMUX_PYTHON_DIR) && git checkout $(MMUX_PYTHON_BRANCH)

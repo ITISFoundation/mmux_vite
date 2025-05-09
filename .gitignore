@@ -1,3 +1,7 @@
+## Custom
+flaskapi/runs/*
+*__pycache__*
+
 # Logs
 logs
 *.log

@@ -29,6 +29,7 @@
     "@types/node": "^22.14.1",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
+    "@types/react-plotly.js": "^2.6.3",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/ui": "^3.1.2",
     "c8": "^10.1.3",
