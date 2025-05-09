@@ -1,61 +1,43 @@
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect, use } from 'react';
 import MetaModelingUX from '../components/MetaModelingUX';
 import { Button, Input } from '@mui/material';
 import { FunctionList } from '../components/FunctionIndex';
 import MMUXContext from './MMUXContext';
 import PlusButton from '../components/PlusButton';
-import { loadJSONState, saveJSONState } from '../components/json_state_utils';
+import usePersistentJSONState from '../hooks/usePersistentJSONState';
 
 function runGridSearchSampling(points: any[]) {
     console.log("Grid Search Sampling not implemented yet!")
 }
 
+
 function GridSearchSampling() {
-    const context = useContext(MMUXContext)
-    const inputVars = context?.selectedFunction?.inputSchema.required as string[]
-    // TODO at some point, this should be a list of objects (keyed by function uuid) and only the changed values be modified; thus state within service kept indefinitely
-    const [gridSearchInputs, setGridSearchInputs] = useState(
-        inputVars.map((inputVar) => ({
+    const context = useContext(MMUXContext);
+    const inputVars = context?.selectedFunction?.inputSchema.required as string[];
+    const [JSONStateFilePath, setJSONStateFilePath] = useState("");
+    // Needed to move the filePath outside of the PersistentJSONState hook to avoid triggering infinite loops
+    // Now it works and I have persistence even across sessions :)
+
+    const [gridSearchInputs, setGridSearchInputs] = usePersistentJSONState({
+        defaultState: inputVars.map((inputVar) => ({
             variable: inputVar,
-            start: NaN,
-            end: NaN,
-            points: NaN,
-        }))
-    );
-    const [gridSearchSettingsFilePath, setGridSearchSettingsFilePath] = useState("src/assets/gridSearchInputs.json")
+            start: 0.0,
+            end: 1.0,
+            points: 10,
+        })),
+        filePath: JSONStateFilePath
+    });
 
     useEffect(() => {
-        async function initializeGridSearchInputs() {
-            if (context?.selectedFunction) {
-                let funname = context?.selectedFunction.name
-                funname = funname.replace(/\s+/g, "_");
-                const filePath = "src/assets/gridSearchInputs_" + funname + ".json"
-                console.log(filePath)
-                setGridSearchSettingsFilePath(filePath)
-                const data = await loadJSONState(filePath);
-                console.log("Loaded data: ", data)
-                if (data && data.length > 0) {
-                    setGridSearchInputs(data);
-                } else {
-                    console.log("Applying defaults to GridSearch input parameters")
-                    const inputVars = context.selectedFunction.inputSchema.required as string[];
-                    setGridSearchInputs(
-                        inputVars.map((inputVar) => ({
-                            variable: inputVar,
-                            start: 0.00,
-                            end: 1.00,
-                            points: 10,
-                        }))
-                    );
-                }
-            }
+        if (context?.selectedFunction) {
+            const funname = context?.selectedFunction?.name.replace(/\s+/g, "_");
+            setJSONStateFilePath(`src/assets/gridSearchInputs_${funname}.json`);
         }
-        initializeGridSearchInputs();
     }, [context?.selectedFunction]);
 
-    // Callback function for input changes
+
     function handleInputChange(index: number, field: string, value: string) {
-        setGridSearchInputs((prevInputs) => {
+        setGridSearchInputs((prevInputs: any) => {
             const newInputs = [...prevInputs];
             newInputs[index] = {
                 ...newInputs[index],
@@ -64,27 +46,6 @@ function GridSearchSampling() {
             return newInputs;
         });
     }
-
-    // Save state to file
-    async function saveStateToFile() {
-        console.log(context?.selectedFunction)
-        console.log("Saving gridSearchInputs to file:", gridSearchSettingsFilePath);
-        await saveJSONState(gridSearchInputs, gridSearchSettingsFilePath);
-    }
-
-    // Load state from file and update inputs
-    async function loadStateFromFile() {
-        const filePath = '/home/jgo/itis/mmux_vite/src/assets/gridSearchInputs.json';
-        const data = await loadJSONState(filePath);
-        console.log("Loaded data: ", data)
-        setGridSearchInputs(data); // Update state
-        // Update input fields without triggering onChange
-    }
-
-    useEffect(() => {
-        // Save state to file whenever gridSearchInputs changes
-        saveStateToFile();
-    }, [gridSearchInputs]);
 
     return (
         <>

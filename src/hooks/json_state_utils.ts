@@ -1,7 +1,7 @@
 import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
 
 async function saveJSONState(state: any, filePath: string) {
-    fetch(
+    return await fetch(
         PYTHON_DAKOTA_BACKEND + '/flask/save_json',
         {
             method: "POST",
@@ -14,11 +14,11 @@ async function saveJSONState(state: any, filePath: string) {
         }).then(function (response) {
             return response.json()
         }).then(function (data) {
-            console.log("Saved gridSearchInputs.json successfully", data);
+            console.log("Saved ", filePath, " successfully", data);
         }).catch(function (error) {
-            console.error("Error saving gridSearchInputs.json", error);
+            console.error("Error saving ", filePath, ": ", error);
         }
-                )       
+        )
 }
 
 async function loadJSONState(filePath: string): Promise<any> {
