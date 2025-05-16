@@ -11,7 +11,6 @@ import { Function } from './functions-api-ts-client';
 import { FunctionIndex } from './components/FunctionIndex';
 import JobIndex from './components/JobIndex';
 
-
 function App() {
   const steps = [
     { id: 1, label: "Setup" },
@@ -22,7 +21,7 @@ function App() {
     // { id: 99, label: "JobIndex" },
   ];
   const [activeStep, setActiveStep] = useState(steps[0].id)
-  const [previousViews, setPreviousViews] = useState<number[]>([])
+  // const [previousViews, setPreviousViews] = useState<number[]>([])
   const [funct, setFunct] = useState<Function | undefined>(undefined)
   const defaultMMUXContext = {
     selectedFunction: funct,
@@ -70,12 +69,10 @@ function App() {
           marginLeft: "5px", marginRight: "5px",
           marginBottom: "3px", marginTop: "10px"
         }}>
-          <img src={osparc_logo} height={25} />
-          {/* <img src={osparc_loading_symbol} height={25} alt="Jobs" onClick={() => setActiveStep(99)} /> */}
+          <img src={osparc_logo} style={{ height: "35px" }} />
         </div>
       </div>
     </MMUXContext.Provider >
-
   );
 }
 

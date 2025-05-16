@@ -1,13 +1,18 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig as defineVitestConfig } from 'vitest/config';
+import tailwindcss from '@tailwindcss/vite';
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    tailwindcss(),
+  ],
   test: defineVitestConfig({
     globals: true,
     environment: 'jsdom',
+    testTimeout: 20000, // 20 seconds
     setupFiles: './vitest.setup.ts',
     coverage: {
       provider: 'c8', // Use c8 for coverage

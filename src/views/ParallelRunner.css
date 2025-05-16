@@ -1,0 +1,18 @@
+/* from ParallelRunner */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes progress-mac {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(0);
+    }
+}
+
+.animate-progress-mac {
+    animation: progress-mac 2s linear infinite;
+}

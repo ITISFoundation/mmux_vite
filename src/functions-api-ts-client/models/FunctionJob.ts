@@ -11,7 +11,6 @@
  */
 
 import { JobStatus } from '../models/JobStatus';
-import { HttpFile } from '../http/http';
 
 export class FunctionJob {
     'id'?: number | null;

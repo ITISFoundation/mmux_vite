@@ -7,7 +7,7 @@ import PlusButton from '../components/PlusButton';
 import usePersistentJSONState from '../hooks/usePersistentJSONState';
 import { FUNCTION_API, PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
 import { Function, FunctionJob } from '../functions-api-ts-client';
-
+import ParallelRunner from './ParallelRunner';
 
 function runGridSearchSampling(config: any[]) {
     console.log("Grid Search Sampling not implemented yet!")
@@ -212,7 +212,8 @@ function LHSSampling() {
                 />
                 <Button variant="contained" onClick={() => runLhsSampling(context?.selectedFunction as Function, lhsInputs)}>Run LHS Sampling</Button>
             </form>
-
+            <p>Note: The LHS sampling will be run in the background, and you can check the status of the jobs in the Parallel Runner.</p>
+            <ParallelRunner />
         </>
     );
 }

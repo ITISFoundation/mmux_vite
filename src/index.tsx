@@ -4,7 +4,6 @@ import { ThemeProvider } from '@mui/material'
 import './index.css'
 import App from './App.tsx'
 import { setupTheme } from './theme.ts';
-
 const theme = setupTheme();
 
 
