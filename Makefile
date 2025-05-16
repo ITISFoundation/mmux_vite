@@ -23,7 +23,7 @@ start-frontend:
 	npm run dev
 
 ts-client: ## requires serving from FunctionsAPI already active
-	curl http://localhost:8087/generate-openapi -o openapi.json
+	curl https://api.osparc-master.speag.com/api/v0/openapi.json -o openapi.json
 	npm install @openapitools/openapi-generator-cli -g
 	openapi-generator-cli generate \
 		-i openapi.json \

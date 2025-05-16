@@ -1,18 +1,198 @@
+export * from '../models/BodyAbortMultipartUploadV0FilesFileIdAbortPost';
+export * from '../models/BodyCompleteMultipartUploadV0FilesFileIdCompletePost';
+export * from '../models/BodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost';
+export * from '../models/ClientFile';
+export * from '../models/ClientFileUploadData';
+export * from '../models/ErrorGet';
+export * from '../models/FileUploadCompletionBody';
+export * from '../models/FileUploadData';
 export * from '../models/Function';
 export * from '../models/FunctionJob';
 export * from '../models/FunctionJobCollection';
+export * from '../models/FunctionJobCollectionListFunctionJobs200ResponseInner';
+export * from '../models/FunctionJobCollectionStatus';
+export * from '../models/FunctionJobStatus';
+export * from '../models/GetCreditPriceLegacy';
+export * from '../models/Groups';
 export * from '../models/HTTPValidationError';
+export * from '../models/InputSchema';
+export * from '../models/JSONFunctionInputSchema';
+export * from '../models/JSONFunctionOutputSchema';
+export * from '../models/Job';
+export * from '../models/JobInputs';
+export * from '../models/JobLog';
+export * from '../models/JobLogsMap';
+export * from '../models/JobMetadata';
+export * from '../models/JobMetadataUpdate';
+export * from '../models/JobOutputs';
 export * from '../models/JobStatus';
+export * from '../models/LicensedItemCheckoutData';
+export * from '../models/LicensedItemCheckoutGet';
+export * from '../models/LicensedItemGet';
+export * from '../models/LicensedResource';
+export * from '../models/LicensedResourceSource';
+export * from '../models/LicensedResourceSourceFeaturesDict';
+export * from '../models/LicensedResourceType';
+export * from '../models/Links';
+export * from '../models/LogLink';
+export * from '../models/Meta';
+export * from '../models/MetadataValue';
+export * from '../models/ModelFile';
+export * from '../models/OnePageSolverPort';
+export * from '../models/OnePageStudyPort';
+export * from '../models/OutputSchema';
+export * from '../models/PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
+export * from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
+export * from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner';
+export * from '../models/PageFile';
+export * from '../models/PageJob';
+export * from '../models/PageLicensedItemGet';
+export * from '../models/PageRegisteredFunctionJobCollection';
+export * from '../models/PageStudy';
+export * from '../models/PricingPlanClassification';
+export * from '../models/PricingUnitGetLegacy';
+export * from '../models/Profile';
+export * from '../models/ProfileUpdate';
+export * from '../models/Program';
+export * from '../models/ProjectFunction';
+export * from '../models/ProjectFunctionJob';
+export * from '../models/PythonCodeFunction';
+export * from '../models/PythonCodeFunctionJob';
+export * from '../models/RegisteredFunctionJobCollection';
+export * from '../models/RegisteredProjectFunction';
+export * from '../models/RegisteredProjectFunctionJob';
+export * from '../models/RegisteredPythonCodeFunction';
+export * from '../models/RegisteredPythonCodeFunctionJob';
+export * from '../models/RegisteredSolverFunction';
+export * from '../models/RegisteredSolverFunctionJob';
+export * from '../models/Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet';
+export * from '../models/ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet';
+export * from '../models/ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet';
+export * from '../models/ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet';
+export * from '../models/ResponseGetFunctionV0FunctionsFunctionIdGet';
+export * from '../models/ResponseRegisterFunctionJobV0FunctionJobsPost';
+export * from '../models/ResponseRegisterFunctionV0FunctionsPost';
+export * from '../models/ResponseRunFunctionV0FunctionsFunctionIdRunPost';
+export * from '../models/ResponseUpdateFunctionDescriptionV0FunctionsFunctionIdDescriptionPatch';
+export * from '../models/ResponseUpdateFunctionTitleV0FunctionsFunctionIdTitlePatch';
+export * from '../models/RunningState';
+export * from '../models/ServicePricingPlanGetLegacy';
+export * from '../models/Solver';
+export * from '../models/SolverFunction';
+export * from '../models/SolverFunctionJob';
+export * from '../models/SolverPort';
+export * from '../models/Study';
+export * from '../models/StudyPort';
+export * from '../models/UnitExtraInfoTier';
+export * from '../models/UploadLinks';
+export * from '../models/UploadedPart';
+export * from '../models/UserFile';
+export * from '../models/UserFileToProgramJob';
+export * from '../models/UserRoleEnum';
+export * from '../models/UsersGroup';
 export * from '../models/ValidationError';
 export * from '../models/ValidationErrorLocInner';
+export * from '../models/ValuesValue';
+export * from '../models/WalletGetWithAvailableCreditsLegacy';
+export * from '../models/WalletStatus';
 
-import { Function } from '../models/Function';
-import { FunctionJob        } from '../models/FunctionJob';
+import { BodyAbortMultipartUploadV0FilesFileIdAbortPost } from '../models/BodyAbortMultipartUploadV0FilesFileIdAbortPost';
+import { BodyCompleteMultipartUploadV0FilesFileIdCompletePost } from '../models/BodyCompleteMultipartUploadV0FilesFileIdCompletePost';
+import { BodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost } from '../models/BodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost';
+import { ClientFile } from '../models/ClientFile';
+import { ClientFileUploadData } from '../models/ClientFileUploadData';
+import { ErrorGet } from '../models/ErrorGet';
+import { FileUploadCompletionBody } from '../models/FileUploadCompletionBody';
+import { FileUploadData } from '../models/FileUploadData';
+import { FunctionClass } from '../models/Function';
+import { FunctionJobClass } from '../models/FunctionJob';
 import { FunctionJobCollection } from '../models/FunctionJobCollection';
+import { FunctionJobCollectionListFunctionJobs200ResponseInnerClass } from '../models/FunctionJobCollectionListFunctionJobs200ResponseInner';
+import { FunctionJobCollectionStatus } from '../models/FunctionJobCollectionStatus';
+import { FunctionJobStatus } from '../models/FunctionJobStatus';
+import { GetCreditPriceLegacy } from '../models/GetCreditPriceLegacy';
+import { Groups } from '../models/Groups';
 import { HTTPValidationError } from '../models/HTTPValidationError';
-import { JobStatus } from '../models/JobStatus';
+import { InputSchemaClass } from '../models/InputSchema';
+import { JSONFunctionInputSchema , JSONFunctionInputSchemaSchemaClassEnum   } from '../models/JSONFunctionInputSchema';
+import { JSONFunctionOutputSchema , JSONFunctionOutputSchemaSchemaClassEnum   } from '../models/JSONFunctionOutputSchema';
+import { Job } from '../models/Job';
+import { JobInputs } from '../models/JobInputs';
+import { JobLog } from '../models/JobLog';
+import { JobLogsMap } from '../models/JobLogsMap';
+import { JobMetadata } from '../models/JobMetadata';
+import { JobMetadataUpdate } from '../models/JobMetadataUpdate';
+import { JobOutputs } from '../models/JobOutputs';
+import { JobStatus       } from '../models/JobStatus';
+import { LicensedItemCheckoutData } from '../models/LicensedItemCheckoutData';
+import { LicensedItemCheckoutGet } from '../models/LicensedItemCheckoutGet';
+import { LicensedItemGet           } from '../models/LicensedItemGet';
+import { LicensedResource } from '../models/LicensedResource';
+import { LicensedResourceSource       , LicensedResourceSourceProtectionEnum    } from '../models/LicensedResourceSource';
+import { LicensedResourceSourceFeaturesDict } from '../models/LicensedResourceSourceFeaturesDict';
+import { LicensedResourceType } from '../models/LicensedResourceType';
+import { Links } from '../models/Links';
+import { LogLink } from '../models/LogLink';
+import { Meta } from '../models/Meta';
+import { MetadataValue } from '../models/MetadataValue';
+import { ModelFile } from '../models/ModelFile';
+import { OnePageSolverPort } from '../models/OnePageSolverPort';
+import { OnePageStudyPort } from '../models/OnePageStudyPort';
+import { OutputSchemaClass } from '../models/OutputSchema';
+import { PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
+import { PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
+import { PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInnerClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner';
+import { PageFile } from '../models/PageFile';
+import { PageJob } from '../models/PageJob';
+import { PageLicensedItemGet } from '../models/PageLicensedItemGet';
+import { PageRegisteredFunctionJobCollection } from '../models/PageRegisteredFunctionJobCollection';
+import { PageStudy } from '../models/PageStudy';
+import { PricingPlanClassification } from '../models/PricingPlanClassification';
+import { PricingUnitGetLegacy } from '../models/PricingUnitGetLegacy';
+import { Profile        } from '../models/Profile';
+import { ProfileUpdate } from '../models/ProfileUpdate';
+import { Program } from '../models/Program';
+import { ProjectFunction, ProjectFunctionFunctionClassEnum         } from '../models/ProjectFunction';
+import { ProjectFunctionJob     , ProjectFunctionJobFunctionClassEnum    } from '../models/ProjectFunctionJob';
+import { PythonCodeFunction, PythonCodeFunctionFunctionClassEnum         } from '../models/PythonCodeFunction';
+import { PythonCodeFunctionJob     , PythonCodeFunctionJobFunctionClassEnum   } from '../models/PythonCodeFunctionJob';
+import { RegisteredFunctionJobCollection } from '../models/RegisteredFunctionJobCollection';
+import { RegisteredProjectFunction, RegisteredProjectFunctionFunctionClassEnum          } from '../models/RegisteredProjectFunction';
+import { RegisteredProjectFunctionJob     , RegisteredProjectFunctionJobFunctionClassEnum     } from '../models/RegisteredProjectFunctionJob';
+import { RegisteredPythonCodeFunction, RegisteredPythonCodeFunctionFunctionClassEnum          } from '../models/RegisteredPythonCodeFunction';
+import { RegisteredPythonCodeFunctionJob     , RegisteredPythonCodeFunctionJobFunctionClassEnum    } from '../models/RegisteredPythonCodeFunctionJob';
+import { RegisteredSolverFunction, RegisteredSolverFunctionFunctionClassEnum           } from '../models/RegisteredSolverFunction';
+import { RegisteredSolverFunctionJob     , RegisteredSolverFunctionJobFunctionClassEnum     } from '../models/RegisteredSolverFunctionJob';
+import { Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet } from '../models/Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet';
+import { ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGetClass } from '../models/ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet';
+import { ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGetClass } from '../models/ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet';
+import { ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGetClass } from '../models/ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet';
+import { ResponseGetFunctionV0FunctionsFunctionIdGetClass } from '../models/ResponseGetFunctionV0FunctionsFunctionIdGet';
+import { ResponseRegisterFunctionJobV0FunctionJobsPostClass } from '../models/ResponseRegisterFunctionJobV0FunctionJobsPost';
+import { ResponseRegisterFunctionV0FunctionsPostClass } from '../models/ResponseRegisterFunctionV0FunctionsPost';
+import { ResponseRunFunctionV0FunctionsFunctionIdRunPostClass } from '../models/ResponseRunFunctionV0FunctionsFunctionIdRunPost';
+import { ResponseUpdateFunctionDescriptionV0FunctionsFunctionIdDescriptionPatchClass } from '../models/ResponseUpdateFunctionDescriptionV0FunctionsFunctionIdDescriptionPatch';
+import { ResponseUpdateFunctionTitleV0FunctionsFunctionIdTitlePatchClass } from '../models/ResponseUpdateFunctionTitleV0FunctionsFunctionIdTitlePatch';
+import { RunningState } from '../models/RunningState';
+import { ServicePricingPlanGetLegacy        } from '../models/ServicePricingPlanGetLegacy';
+import { Solver } from '../models/Solver';
+import { SolverFunction, SolverFunctionFunctionClassEnum          } from '../models/SolverFunction';
+import { SolverFunctionJob     , SolverFunctionJobFunctionClassEnum    } from '../models/SolverFunctionJob';
+import { SolverPort , SolverPortKindEnum    } from '../models/SolverPort';
+import { Study } from '../models/Study';
+import { StudyPort , StudyPortKindEnum    } from '../models/StudyPort';
+import { UnitExtraInfoTier } from '../models/UnitExtraInfoTier';
+import { UploadLinks } from '../models/UploadLinks';
+import { UploadedPart } from '../models/UploadedPart';
+import { UserFile } from '../models/UserFile';
+import { UserFileToProgramJob } from '../models/UserFileToProgramJob';
+import { UserRoleEnum } from '../models/UserRoleEnum';
+import { UsersGroup } from '../models/UsersGroup';
 import { ValidationError } from '../models/ValidationError';
 import { ValidationErrorLocInner } from '../models/ValidationErrorLocInner';
+import { ValuesValue } from '../models/ValuesValue';
+import { WalletGetWithAvailableCreditsLegacy          } from '../models/WalletGetWithAvailableCreditsLegacy';
+import { WalletStatus } from '../models/WalletStatus';
 
 /* tslint:disable:no-unused-variable */
 let primitives = [
@@ -27,16 +207,138 @@ let primitives = [
                  ];
 
 let enumsMap: Set<string> = new Set<string>([
-    "JobStatus",
+    "FunctionFunctionClassEnum",
+    "FunctionJobFunctionClassEnum",
+    "FunctionJobCollectionListFunctionJobs200ResponseInnerFunctionClassEnum",
+    "InputSchemaSchemaClassEnum",
+    "JSONFunctionInputSchemaSchemaClassEnum",
+    "JSONFunctionOutputSchemaSchemaClassEnum",
+    "LicensedResourceSourceProtectionEnum",
+    "LicensedResourceType",
+    "OutputSchemaSchemaClassEnum",
+    "PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInnerFunctionClassEnum",
+    "PricingPlanClassification",
+    "ProjectFunctionFunctionClassEnum",
+    "ProjectFunctionJobFunctionClassEnum",
+    "PythonCodeFunctionFunctionClassEnum",
+    "PythonCodeFunctionJobFunctionClassEnum",
+    "RegisteredProjectFunctionFunctionClassEnum",
+    "RegisteredProjectFunctionJobFunctionClassEnum",
+    "RegisteredPythonCodeFunctionFunctionClassEnum",
+    "RegisteredPythonCodeFunctionJobFunctionClassEnum",
+    "RegisteredSolverFunctionFunctionClassEnum",
+    "RegisteredSolverFunctionJobFunctionClassEnum",
+    "ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGetSchemaClassEnum",
+    "ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGetFunctionClassEnum",
+    "ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGetSchemaClassEnum",
+    "ResponseGetFunctionV0FunctionsFunctionIdGetFunctionClassEnum",
+    "ResponseRegisterFunctionJobV0FunctionJobsPostFunctionClassEnum",
+    "ResponseRegisterFunctionV0FunctionsPostFunctionClassEnum",
+    "ResponseRunFunctionV0FunctionsFunctionIdRunPostFunctionClassEnum",
+    "ResponseUpdateFunctionDescriptionV0FunctionsFunctionIdDescriptionPatchFunctionClassEnum",
+    "ResponseUpdateFunctionTitleV0FunctionsFunctionIdTitlePatchFunctionClassEnum",
+    "RunningState",
+    "SolverFunctionFunctionClassEnum",
+    "SolverFunctionJobFunctionClassEnum",
+    "SolverPortKindEnum",
+    "StudyPortKindEnum",
+    "UserRoleEnum",
+    "WalletStatus",
 ]);
 
 let typeMap: {[index: string]: any} = {
-    "Function": Function,
-    "FunctionJob": FunctionJob,
+    "BodyAbortMultipartUploadV0FilesFileIdAbortPost": BodyAbortMultipartUploadV0FilesFileIdAbortPost,
+    "BodyCompleteMultipartUploadV0FilesFileIdCompletePost": BodyCompleteMultipartUploadV0FilesFileIdCompletePost,
+    "BodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost": BodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost,
+    "ClientFile": ClientFile,
+    "ClientFileUploadData": ClientFileUploadData,
+    "ErrorGet": ErrorGet,
+    "FileUploadCompletionBody": FileUploadCompletionBody,
+    "FileUploadData": FileUploadData,
+    "Function": FunctionClass,
+    "FunctionJob": FunctionJobClass,
     "FunctionJobCollection": FunctionJobCollection,
+    "FunctionJobCollectionListFunctionJobs200ResponseInner": FunctionJobCollectionListFunctionJobs200ResponseInnerClass,
+    "FunctionJobCollectionStatus": FunctionJobCollectionStatus,
+    "FunctionJobStatus": FunctionJobStatus,
+    "GetCreditPriceLegacy": GetCreditPriceLegacy,
+    "Groups": Groups,
     "HTTPValidationError": HTTPValidationError,
+    "InputSchema": InputSchemaClass,
+    "JSONFunctionInputSchema": JSONFunctionInputSchema,
+    "JSONFunctionOutputSchema": JSONFunctionOutputSchema,
+    "Job": Job,
+    "JobInputs": JobInputs,
+    "JobLog": JobLog,
+    "JobLogsMap": JobLogsMap,
+    "JobMetadata": JobMetadata,
+    "JobMetadataUpdate": JobMetadataUpdate,
+    "JobOutputs": JobOutputs,
+    "JobStatus": JobStatus,
+    "LicensedItemCheckoutData": LicensedItemCheckoutData,
+    "LicensedItemCheckoutGet": LicensedItemCheckoutGet,
+    "LicensedItemGet": LicensedItemGet,
+    "LicensedResource": LicensedResource,
+    "LicensedResourceSource": LicensedResourceSource,
+    "LicensedResourceSourceFeaturesDict": LicensedResourceSourceFeaturesDict,
+    "Links": Links,
+    "LogLink": LogLink,
+    "Meta": Meta,
+    "MetadataValue": MetadataValue,
+    "ModelFile": ModelFile,
+    "OnePageSolverPort": OnePageSolverPort,
+    "OnePageStudyPort": OnePageStudyPort,
+    "OutputSchema": OutputSchemaClass,
+    "PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass": PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass,
+    "PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass": PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass,
+    "PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner": PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInnerClass,
+    "PageFile": PageFile,
+    "PageJob": PageJob,
+    "PageLicensedItemGet": PageLicensedItemGet,
+    "PageRegisteredFunctionJobCollection": PageRegisteredFunctionJobCollection,
+    "PageStudy": PageStudy,
+    "PricingUnitGetLegacy": PricingUnitGetLegacy,
+    "Profile": Profile,
+    "ProfileUpdate": ProfileUpdate,
+    "Program": Program,
+    "ProjectFunction": ProjectFunction,
+    "ProjectFunctionJob": ProjectFunctionJob,
+    "PythonCodeFunction": PythonCodeFunction,
+    "PythonCodeFunctionJob": PythonCodeFunctionJob,
+    "RegisteredFunctionJobCollection": RegisteredFunctionJobCollection,
+    "RegisteredProjectFunction": RegisteredProjectFunction,
+    "RegisteredProjectFunctionJob": RegisteredProjectFunctionJob,
+    "RegisteredPythonCodeFunction": RegisteredPythonCodeFunction,
+    "RegisteredPythonCodeFunctionJob": RegisteredPythonCodeFunctionJob,
+    "RegisteredSolverFunction": RegisteredSolverFunction,
+    "RegisteredSolverFunctionJob": RegisteredSolverFunctionJob,
+    "Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet": Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet,
+    "ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet": ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGetClass,
+    "ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet": ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGetClass,
+    "ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet": ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGetClass,
+    "ResponseGetFunctionV0FunctionsFunctionIdGet": ResponseGetFunctionV0FunctionsFunctionIdGetClass,
+    "ResponseRegisterFunctionJobV0FunctionJobsPost": ResponseRegisterFunctionJobV0FunctionJobsPostClass,
+    "ResponseRegisterFunctionV0FunctionsPost": ResponseRegisterFunctionV0FunctionsPostClass,
+    "ResponseRunFunctionV0FunctionsFunctionIdRunPost": ResponseRunFunctionV0FunctionsFunctionIdRunPostClass,
+    "ResponseUpdateFunctionDescriptionV0FunctionsFunctionIdDescriptionPatch": ResponseUpdateFunctionDescriptionV0FunctionsFunctionIdDescriptionPatchClass,
+    "ResponseUpdateFunctionTitleV0FunctionsFunctionIdTitlePatch": ResponseUpdateFunctionTitleV0FunctionsFunctionIdTitlePatchClass,
+    "ServicePricingPlanGetLegacy": ServicePricingPlanGetLegacy,
+    "Solver": Solver,
+    "SolverFunction": SolverFunction,
+    "SolverFunctionJob": SolverFunctionJob,
+    "SolverPort": SolverPort,
+    "Study": Study,
+    "StudyPort": StudyPort,
+    "UnitExtraInfoTier": UnitExtraInfoTier,
+    "UploadLinks": UploadLinks,
+    "UploadedPart": UploadedPart,
+    "UserFile": UserFile,
+    "UserFileToProgramJob": UserFileToProgramJob,
+    "UsersGroup": UsersGroup,
     "ValidationError": ValidationError,
     "ValidationErrorLocInner": ValidationErrorLocInner,
+    "ValuesValue": ValuesValue,
+    "WalletGetWithAvailableCreditsLegacy": WalletGetWithAvailableCreditsLegacy,
 }
 
 type MimeTypeDescriptor = {
