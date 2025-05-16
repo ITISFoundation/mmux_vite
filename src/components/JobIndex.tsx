@@ -8,7 +8,7 @@ function JobIndex() {
       {id: 2, name: "Example Job 2", inputs: 42, status: "COMPLETE", outputs: 585.51},
       {id: 3, name: "Example Job 3", inputs: 34234, status: "RUNNING", outputs: "-"}
     ]);
-    function getJobColor(status) {
+    function getJobColor(status: string) {
         if (status === "COMPLETE") {
             return "lightgreen"
         } 
@@ -21,7 +21,7 @@ function JobIndex() {
     }
 
     return (
-        <Card variant="plain" sx={{marginBottom:"10px"}}>
+        <Card sx={{ marginBottom: "10px" }}>
             <Typography variant="h4" textAlign={"center"} >
                 Job Index
             </Typography>

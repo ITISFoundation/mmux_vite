@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useContext, JSX } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import MetaModelingUX from '../components/MetaModelingUX';
+import JobSelector from '../components/JobSelector';
 import { Button, Box, Container } from '@mui/material';
 import MMUXContext from './MMUXContext';
 import PlotDataTogether from '../components/PlotDataTogether'
@@ -94,24 +95,12 @@ function SuMoBuildingValidation() {
         );
     }
 
-
-    // TODO update plots when data arrives / changes
-    <PlusButton
-        onClickFun={RunPlotCentralSuMoInterpolations}
-        PlotFunComponent={() => <PlotDataTogether
-            data={plotDataSumoCentralCurves}
-            inputVars={inputVars}
-            qoi={selectedResponse}
-        />}
-        text="Visualize central SuMo interpolations"
-        enabled={isSuMoGenerated && plotDataSumoCentralCurves !== undefined}
-    />
-
     return (
         < MetaModelingUX tabTitle="Surrogate Model Building & Validation" headerType="sumo-header">
             <Container>
                 <Box sx={{ justifySelf: 'left', flex: 1, display: 'flex', flexDirection: 'column', gap: "10px", justifyContent: 'space-between' }}>
                     <text>Selected Function: <b>{context?.selectedFunction?.name}</b> </text>
+                    <JobSelector />
                     <QoISelector />
                     <PlusButton
                         onClickFun={RunPlotCentralSuMoInterpolations}

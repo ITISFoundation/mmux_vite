@@ -203,7 +203,6 @@ export function FunctionList(props: { functions: Function[] } = { functions: [] 
             title={schema ? vars.join(", ") : ""}>
             {display_vars}
         </div>
-
     }
 
     async function showJobList(fun: Function) {
@@ -250,7 +249,7 @@ export function FunctionList(props: { functions: Function[] } = { functions: [] 
                         <TableCell>{fun.name}</TableCell>
                         <TableCell>{showInputOutputSchema(fun.inputSchema)}</TableCell>
                         <TableCell>{showInputOutputSchema(fun.outputSchema)}</TableCell>
-                        <TableCell>{<Button variant="contained" onClick={() => showJobList(fun)}>Show Jobs</Button>}</TableCell>
+                        {/* <TableCell>{<Button variant="contained" onClick={() => showJobList(fun)}>Show Jobs</Button>}</TableCell> */}
                         <TableCell align='right'>{<Button variant="contained" onClick={() => context?.setSelectedFunction(fun)}>Select</Button>}</TableCell>
                     </TableRow>
                 ))}
