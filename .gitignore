@@ -2,6 +2,7 @@
 flaskapi/runs/*
 *__pycache__*
 src/assets/*Inputs*.json
+*.conf.json
 
 # Logs
 logs
