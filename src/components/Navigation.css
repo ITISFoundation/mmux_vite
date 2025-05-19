@@ -8,11 +8,10 @@
     background-color: #07080a;
 }
 
-.nav-btn {
+.nav-btn.non-active {
     background-color: #525252;
-    color: #fff !important;
 }
 
 .nav-btn.active {
-    background-color: #0090D0;
+    background-color: #0090D0; /* S4L blue */
 }

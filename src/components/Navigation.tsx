@@ -6,7 +6,7 @@ function Navigation(props) {
     <div className="nav-bar">
       {props.steps.map((step) => (
         <Button
-          className={`nav-btn${props.activeStep === step.id ? ' active' : ''}`}
+          className={`nav-btn${props.activeStep === step.id ? ' active' : 'non-active'}`}
           key={step.id}
           variant={props.activeStep === step.id ? "contained" : "outlined"}
           onClick={() => props.setActiveStep(step.id)}
