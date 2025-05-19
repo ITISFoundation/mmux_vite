@@ -14,7 +14,7 @@ export function setupTheme() {
                                 variant: "contained",
                             },
                             style: {
-                                // backgroundColor works but disableElevation doesnt...
+                                // backgroundColor works but disableElevation doesn't...
                                 // disableElevation: true,
                                 // disableRipple: true,
                                 // backgroundColor : "red",
@@ -24,6 +24,9 @@ export function setupTheme() {
                         ],
                         '&:hover': {
                             backgroundColor: '#0090D0', /* S4L blue */
+                        },
+                        '&:disabled': {
+                            color: '#bbb',
                         },
                     },
                 },
