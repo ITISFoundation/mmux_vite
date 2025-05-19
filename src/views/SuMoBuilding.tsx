@@ -110,7 +110,15 @@ function SuMoBuildingValidation() {
     return (
         < MetaModelingUX tabTitle="Surrogate Model Building & Validation" headerType="header">
             <Container>
-                <Box sx={{ justifySelf: 'left', flex: 1, display: 'flex', flexDirection: 'column', gap: "10px", justifyContent: 'space-between' }}>
+                <Box sx={{
+                    justifySelf: 'left',
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: "10px",
+                    justifyContent: 'space-between',
+                    color: '#eee',
+                }}>
                     <text>Selected Function: <b>{context?.selectedFunction?.name}</b> </text>
                     <QoISelector />
                     <PlusButton

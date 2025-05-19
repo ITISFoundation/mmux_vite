@@ -7,7 +7,7 @@ export function setupTheme() {
             MuiButton: {
                 styleOverrides: {
                     root: {
-                        color: '#fff', // white text in buttons
+                        color: '#eee', // almost white text in buttons
                         backgroundColor: '#343839',
                         variants: [{
                             props: {

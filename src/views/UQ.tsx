@@ -96,7 +96,15 @@ export default function UQ() {
         <MetaModelingUX tabTitle="Uncertainty Quantification" headerType="header">
             {/* // 1 - Function is selected; tickbox to "use SuMo" ? */}
             < Container >
-                <Box sx={{ justifySelf: 'left', flex: 1, display: 'flex', flexDirection: 'column', gap: "10px", justifyContent: 'space-between' }}>
+                <Box sx={{
+                    justifySelf: 'left',
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: "10px",
+                    justifyContent: 'space-between',
+                    color: '#eee',
+                }}>
                     <text>Selected Function: <b>{context?.selectedFunction?.name}</b> </text>
                     <label htmlFor="useSuMo">Use Surrogate Model to perform Uncertainty Quantification</label>
                     <input
