@@ -2,8 +2,8 @@ import React, { JSX , useState} from 'react';
 import { Button, Box } from '@mui/material';
 
 // This element is a generic + button with a few extra elements
-// - Shows a text specifiying what will be added
-// - Allows to compute data on click, to be showed inmediately (e.g. for SuMo plots)
+// - Shows a text specifying what will be added
+// - Allows to compute data on click, to be showed immediately (e.g. for SuMo plots)
 // - TODO allows to remove the element (or at least to hide it) -- this is not implemented yet
 type PlusButtonProps = {
     onClickFun: CallableFunction, // This defines whether something has to be done in the backend prior to adding the element
