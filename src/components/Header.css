@@ -2,6 +2,8 @@
 /* TODO add for setup & sumo-building (diff colors) */
 .header {
     background-color: #202427 !important;
+    color: white !important;
+    border-radius: 0px !important;
     padding: 16px;
     text-align: center;
 }
