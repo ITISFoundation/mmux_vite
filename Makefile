@@ -22,13 +22,23 @@ start-backend:
 start-frontend:
 	npm run dev
 
-ts-client: ## requires serving from FunctionsAPI already active
+ts-client: 
 	curl https://api.osparc-master.speag.com/api/v0/openapi.json -o openapi.json
 	npm install @openapitools/openapi-generator-cli -g
 	openapi-generator-cli generate \
 		-i openapi.json \
 		-g typescript \
 		-o ./src/functions-api-ts-client
+
+python-client: 
+	curl https://api.osparc-master.speag.com/api/v0/openapi.json -o openapi.json
+# npm install @openapitools/openapi-generator-cli -g
+	openapi-generator-cli generate \
+		-i openapi.json \
+		-g python \
+		-o ./flaskapi/functions-api-python-client \
+		--package-name osparc_client
+	$(VENV_DIR)/bin/python -m pip install ./flaskapi/functions-api-python-client
 
 test:
 	npm run test

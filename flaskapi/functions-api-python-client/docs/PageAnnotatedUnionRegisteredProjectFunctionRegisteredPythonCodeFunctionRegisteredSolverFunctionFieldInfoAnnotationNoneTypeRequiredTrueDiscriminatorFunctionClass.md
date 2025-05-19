@@ -1,0 +1,33 @@
+# PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass
+
+
+## Properties
+
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**items** | [**List[PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner]**](PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner.md) |  | 
+**total** | **int** |  | 
+**limit** | **int** |  | 
+**offset** | **int** |  | 
+**links** | [**Links**](Links.md) |  | 
+
+## Example
+
+```python
+from osparc_client.models.page_annotated_union_registered_project_function_registered_python_code_function_registered_solver_function_field_info_annotation_none_type_required_true_discriminator_function_class import PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass
+
+# TODO update the JSON string below
+json = "{}"
+# create an instance of PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass from a JSON string
+page_annotated_union_registered_project_function_registered_python_code_function_registered_solver_function_field_info_annotation_none_type_required_true_discriminator_function_class_instance = PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass.from_json(json)
+# print the JSON string representation of the object
+print(PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass.to_json())
+
+# convert the object into a dict
+page_annotated_union_registered_project_function_registered_python_code_function_registered_solver_function_field_info_annotation_none_type_required_true_discriminator_function_class_dict = page_annotated_union_registered_project_function_registered_python_code_function_registered_solver_function_field_info_annotation_none_type_required_true_discriminator_function_class_instance.to_dict()
+# create an instance of PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass from a dict
+page_annotated_union_registered_project_function_registered_python_code_function_registered_solver_function_field_info_annotation_none_type_required_true_discriminator_function_class_from_dict = PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass.from_dict(page_annotated_union_registered_project_function_registered_python_code_function_registered_solver_function_field_info_annotation_none_type_required_true_discriminator_function_class_dict)
+```
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
+
+
