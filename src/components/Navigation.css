@@ -5,4 +5,13 @@
     gap: 30px;
     padding-top: 10px;
     padding-bottom: 10px;
+    background-color: #07080a;
+}
+
+.nav-btn.non-active {
+    background-color: #525252;
+}
+
+.nav-btn.active {
+    background-color: #0090D0; /* S4L blue */
 }

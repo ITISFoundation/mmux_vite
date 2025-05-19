@@ -66,7 +66,7 @@ export async function registerCsvValuesAsFunctionJobs(fun: Function, file: File)
             return acc;
         }, {} as Record<string, any>);
         inputValues["csv_file_path"] = file.name
-        let job = await FUNCTION_API.runFunction(
+        const job = await FUNCTION_API.runFunction(
             fun.id as number,
             JSON.stringify(inputValues)// Convert input values to a comma-separated string with key-value pairs
         )
@@ -208,7 +208,7 @@ export function FunctionList(props: { functions: Function[] } = { functions: [] 
 
     async function showJobList(fun: Function) {
         if (typeof fun.id === "number") {
-            let jobList = await JOB_API.getFunctionJobs(fun.id);
+            const jobList = await JOB_API.getFunctionJobs(fun.id);
             if (jobList.length === 0) {
                 window.alert(`No jobs available for function "${fun.name}" with id "${fun.id}".`);
             }
@@ -231,7 +231,14 @@ export function FunctionList(props: { functions: Function[] } = { functions: [] 
 
     // Maybe modularize as Cards (instead of Table) ?
     return (
-        <Table component={Paper}>
+        <Table
+            component={Paper}
+            sx={{
+                backgroundColor: "#07080a",
+                '& th, & td': { color: '#eee', borderColor: '#eee' },
+                '& th': { fontWeight: 'bold' },
+            }}
+        >
             <TableHead>
                 <TableRow>
                     <TableCell>ID</TableCell>
@@ -244,7 +251,7 @@ export function FunctionList(props: { functions: Function[] } = { functions: [] 
                 {functions.map(fun => (
                     <TableRow
                         key={fun.id}
-                        sx={{ fontWeight: fun.id === context?.selectedFunction?.id ? 'bold' : 'normal', backgroundColor: fun.id === context?.selectedFunction?.id ? '#f0f0f0' : 'inherit' }}
+                        sx={{ fontWeight: fun.id === context?.selectedFunction?.id ? 'bold' : 'normal', backgroundColor: fun.id === context?.selectedFunction?.id ? '#343839' : 'inherit' }}
                     >
                         <TableCell>{fun.id}</TableCell>
                         <TableCell>{fun.name}</TableCell>

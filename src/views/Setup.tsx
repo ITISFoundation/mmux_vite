@@ -223,7 +223,7 @@ export default function Setup() {
     const context = useContext(MMUXContext)
 
     return (
-        < MetaModelingUX tabTitle="Base Function Selection" headerType="setup-header">
+        <MetaModelingUX tabTitle="Base Function Selection" headerType="header">
             {/* TODO convert into a toggle? and move the "Next" to the bottom? */}
             <div style={{ display: "flex", justifyContent: "space-between", margin: "10px" }}>
                 <Button onClick={() => setShowFunctionIndex(!showFunctionIndex)}>
@@ -231,7 +231,7 @@ export default function Setup() {
                 </Button>
                 <Button disabled={context?.selectedFunction === undefined}
                     onClick={() => context?.setCurrentView(context.currentView + 1)}>
-                    Next Screen
+                    Next Step
                 </Button>
             </div>
             {showFunctionIndex && <FunctionList functions={[]} />}
