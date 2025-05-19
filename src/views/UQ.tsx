@@ -93,7 +93,7 @@ export default function UQ() {
     // Copy the structure from SuMo building; refactor the PY script as a Flask callback. 
     // Fixed Means & Stds (inside Python), will make that customizable later on.
     return (
-        <MetaModelingUX tabTitle="Uncertainty Quantification" headerType="application-header">
+        <MetaModelingUX tabTitle="Uncertainty Quantification" headerType="header">
             {/* // 1 - Function is selected; tickbox to "use SuMo" ? */}
             < Container >
                 <Box sx={{ justifySelf: 'left', flex: 1, display: 'flex', flexDirection: 'column', gap: "10px", justifyContent: 'space-between' }}>
