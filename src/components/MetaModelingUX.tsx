@@ -1,6 +1,6 @@
 import { Card } from "@mui/material";
 import Header from "./Header";
-import './Content.css';
+import './MetaModelingUX.css';
 
 
 export default function MetaModelingUX(props) {
