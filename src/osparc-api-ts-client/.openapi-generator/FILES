@@ -1,5 +1,6 @@
 .gitattributes
 .gitignore
+.openapi-generator-ignore
 CreditsApi.md
 FilesApi.md
 FunctionJobCollectionsApi.md
@@ -51,7 +52,6 @@ models/FunctionJobStatus.ts
 models/GetCreditPriceLegacy.ts
 models/Groups.ts
 models/HTTPValidationError.ts
-models/InputSchema.ts
 models/JSONFunctionInputSchema.ts
 models/JSONFunctionOutputSchema.ts
 models/Job.ts
@@ -77,7 +77,6 @@ models/ModelFile.ts
 models/ObjectSerializer.ts
 models/OnePageSolverPort.ts
 models/OnePageStudyPort.ts
-models/OutputSchema.ts
 models/PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass.ts
 models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass.ts
 models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner.ts
@@ -103,9 +102,7 @@ models/RegisteredPythonCodeFunctionJob.ts
 models/RegisteredSolverFunction.ts
 models/RegisteredSolverFunctionJob.ts
 models/Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet.ts
-models/ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet.ts
 models/ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet.ts
-models/ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet.ts
 models/ResponseGetFunctionV0FunctionsFunctionIdGet.ts
 models/ResponseRegisterFunctionJobV0FunctionJobsPost.ts
 models/ResponseRegisterFunctionV0FunctionsPost.ts

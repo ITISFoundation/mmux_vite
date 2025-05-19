@@ -15,7 +15,6 @@ export * from '../models/FunctionJobStatus';
 export * from '../models/GetCreditPriceLegacy';
 export * from '../models/Groups';
 export * from '../models/HTTPValidationError';
-export * from '../models/InputSchema';
 export * from '../models/JSONFunctionInputSchema';
 export * from '../models/JSONFunctionOutputSchema';
 export * from '../models/Job';
@@ -40,7 +39,6 @@ export * from '../models/MetadataValue';
 export * from '../models/ModelFile';
 export * from '../models/OnePageSolverPort';
 export * from '../models/OnePageStudyPort';
-export * from '../models/OutputSchema';
 export * from '../models/PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
 export * from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
 export * from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner';
@@ -66,9 +64,7 @@ export * from '../models/RegisteredPythonCodeFunctionJob';
 export * from '../models/RegisteredSolverFunction';
 export * from '../models/RegisteredSolverFunctionJob';
 export * from '../models/Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet';
-export * from '../models/ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet';
 export * from '../models/ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet';
-export * from '../models/ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet';
 export * from '../models/ResponseGetFunctionV0FunctionsFunctionIdGet';
 export * from '../models/ResponseRegisterFunctionJobV0FunctionJobsPost';
 export * from '../models/ResponseRegisterFunctionV0FunctionsPost';
@@ -113,7 +109,6 @@ import { FunctionJobStatus } from '../models/FunctionJobStatus';
 import { GetCreditPriceLegacy } from '../models/GetCreditPriceLegacy';
 import { Groups } from '../models/Groups';
 import { HTTPValidationError } from '../models/HTTPValidationError';
-import { InputSchemaClass } from '../models/InputSchema';
 import { JSONFunctionInputSchema , JSONFunctionInputSchemaSchemaClassEnum   } from '../models/JSONFunctionInputSchema';
 import { JSONFunctionOutputSchema , JSONFunctionOutputSchemaSchemaClassEnum   } from '../models/JSONFunctionOutputSchema';
 import { Job } from '../models/Job';
@@ -138,7 +133,6 @@ import { MetadataValue } from '../models/MetadataValue';
 import { ModelFile } from '../models/ModelFile';
 import { OnePageSolverPort } from '../models/OnePageSolverPort';
 import { OnePageStudyPort } from '../models/OnePageStudyPort';
-import { OutputSchemaClass } from '../models/OutputSchema';
 import { PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
 import { PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
 import { PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInnerClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner';
@@ -164,9 +158,7 @@ import { RegisteredPythonCodeFunctionJob     , RegisteredPythonCodeFunctionJobFu
 import { RegisteredSolverFunction, RegisteredSolverFunctionFunctionClassEnum           } from '../models/RegisteredSolverFunction';
 import { RegisteredSolverFunctionJob     , RegisteredSolverFunctionJobFunctionClassEnum     } from '../models/RegisteredSolverFunctionJob';
 import { Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet } from '../models/Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet';
-import { ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGetClass } from '../models/ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet';
 import { ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGetClass } from '../models/ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet';
-import { ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGetClass } from '../models/ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet';
 import { ResponseGetFunctionV0FunctionsFunctionIdGetClass } from '../models/ResponseGetFunctionV0FunctionsFunctionIdGet';
 import { ResponseRegisterFunctionJobV0FunctionJobsPostClass } from '../models/ResponseRegisterFunctionJobV0FunctionJobsPost';
 import { ResponseRegisterFunctionV0FunctionsPostClass } from '../models/ResponseRegisterFunctionV0FunctionsPost';
@@ -210,12 +202,10 @@ let enumsMap: Set<string> = new Set<string>([
     "FunctionFunctionClassEnum",
     "FunctionJobFunctionClassEnum",
     "FunctionJobCollectionListFunctionJobs200ResponseInnerFunctionClassEnum",
-    "InputSchemaSchemaClassEnum",
     "JSONFunctionInputSchemaSchemaClassEnum",
     "JSONFunctionOutputSchemaSchemaClassEnum",
     "LicensedResourceSourceProtectionEnum",
     "LicensedResourceType",
-    "OutputSchemaSchemaClassEnum",
     "PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInnerFunctionClassEnum",
     "PricingPlanClassification",
     "ProjectFunctionFunctionClassEnum",
@@ -228,9 +218,7 @@ let enumsMap: Set<string> = new Set<string>([
     "RegisteredPythonCodeFunctionJobFunctionClassEnum",
     "RegisteredSolverFunctionFunctionClassEnum",
     "RegisteredSolverFunctionJobFunctionClassEnum",
-    "ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGetSchemaClassEnum",
     "ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGetFunctionClassEnum",
-    "ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGetSchemaClassEnum",
     "ResponseGetFunctionV0FunctionsFunctionIdGetFunctionClassEnum",
     "ResponseRegisterFunctionJobV0FunctionJobsPostFunctionClassEnum",
     "ResponseRegisterFunctionV0FunctionsPostFunctionClassEnum",
@@ -264,7 +252,6 @@ let typeMap: {[index: string]: any} = {
     "GetCreditPriceLegacy": GetCreditPriceLegacy,
     "Groups": Groups,
     "HTTPValidationError": HTTPValidationError,
-    "InputSchema": InputSchemaClass,
     "JSONFunctionInputSchema": JSONFunctionInputSchema,
     "JSONFunctionOutputSchema": JSONFunctionOutputSchema,
     "Job": Job,
@@ -288,7 +275,6 @@ let typeMap: {[index: string]: any} = {
     "ModelFile": ModelFile,
     "OnePageSolverPort": OnePageSolverPort,
     "OnePageStudyPort": OnePageStudyPort,
-    "OutputSchema": OutputSchemaClass,
     "PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass": PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass,
     "PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass": PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass,
     "PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner": PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInnerClass,
@@ -313,9 +299,7 @@ let typeMap: {[index: string]: any} = {
     "RegisteredSolverFunction": RegisteredSolverFunction,
     "RegisteredSolverFunctionJob": RegisteredSolverFunctionJob,
     "Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet": Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet,
-    "ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet": ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGetClass,
     "ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet": ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGetClass,
-    "ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet": ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGetClass,
     "ResponseGetFunctionV0FunctionsFunctionIdGet": ResponseGetFunctionV0FunctionsFunctionIdGetClass,
     "ResponseRegisterFunctionJobV0FunctionJobsPost": ResponseRegisterFunctionJobV0FunctionJobsPostClass,
     "ResponseRegisterFunctionV0FunctionsPost": ResponseRegisterFunctionV0FunctionsPostClass,

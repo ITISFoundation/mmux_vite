@@ -19,7 +19,6 @@ import { FunctionJobStatus } from '../models/FunctionJobStatus';
 import { GetCreditPriceLegacy } from '../models/GetCreditPriceLegacy';
 import { Groups } from '../models/Groups';
 import { HTTPValidationError } from '../models/HTTPValidationError';
-import { InputSchema } from '../models/InputSchema';
 import { JSONFunctionInputSchema } from '../models/JSONFunctionInputSchema';
 import { JSONFunctionOutputSchema } from '../models/JSONFunctionOutputSchema';
 import { Job } from '../models/Job';
@@ -44,7 +43,6 @@ import { MetadataValue } from '../models/MetadataValue';
 import { ModelFile } from '../models/ModelFile';
 import { OnePageSolverPort } from '../models/OnePageSolverPort';
 import { OnePageStudyPort } from '../models/OnePageStudyPort';
-import { OutputSchema } from '../models/OutputSchema';
 import { PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
 import { PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
 import { PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner } from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner';
@@ -70,9 +68,7 @@ import { RegisteredPythonCodeFunctionJob } from '../models/RegisteredPythonCodeF
 import { RegisteredSolverFunction } from '../models/RegisteredSolverFunction';
 import { RegisteredSolverFunctionJob } from '../models/RegisteredSolverFunctionJob';
 import { Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet } from '../models/Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet';
-import { ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet } from '../models/ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet';
 import { ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet } from '../models/ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet';
-import { ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet } from '../models/ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet';
 import { ResponseGetFunctionV0FunctionsFunctionIdGet } from '../models/ResponseGetFunctionV0FunctionsFunctionIdGet';
 import { ResponseRegisterFunctionJobV0FunctionJobsPost } from '../models/ResponseRegisterFunctionJobV0FunctionJobsPost';
 import { ResponseRegisterFunctionV0FunctionsPost } from '../models/ResponseRegisterFunctionV0FunctionsPost';
@@ -1040,7 +1036,7 @@ export class ObjectFunctionsApi {
      * Get Function Inputschema
      * @param param the request object
      */
-    public getFunctionInputschemaWithHttpInfo(param: FunctionsApiGetFunctionInputschemaRequest, options?: ConfigurationOptions): Promise<HttpInfo<ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet>> {
+    public getFunctionInputschemaWithHttpInfo(param: FunctionsApiGetFunctionInputschemaRequest, options?: ConfigurationOptions): Promise<HttpInfo<JSONFunctionInputSchema>> {
         return this.api.getFunctionInputschemaWithHttpInfo(param.functionId,  options).toPromise();
     }
 
@@ -1049,7 +1045,7 @@ export class ObjectFunctionsApi {
      * Get Function Inputschema
      * @param param the request object
      */
-    public getFunctionInputschema(param: FunctionsApiGetFunctionInputschemaRequest, options?: ConfigurationOptions): Promise<ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet> {
+    public getFunctionInputschema(param: FunctionsApiGetFunctionInputschemaRequest, options?: ConfigurationOptions): Promise<JSONFunctionInputSchema> {
         return this.api.getFunctionInputschema(param.functionId,  options).toPromise();
     }
 
@@ -1058,7 +1054,7 @@ export class ObjectFunctionsApi {
      * Get Function Outputschema
      * @param param the request object
      */
-    public getFunctionOutputschemaWithHttpInfo(param: FunctionsApiGetFunctionOutputschemaRequest, options?: ConfigurationOptions): Promise<HttpInfo<ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet>> {
+    public getFunctionOutputschemaWithHttpInfo(param: FunctionsApiGetFunctionOutputschemaRequest, options?: ConfigurationOptions): Promise<HttpInfo<JSONFunctionInputSchema>> {
         return this.api.getFunctionOutputschemaWithHttpInfo(param.functionId,  options).toPromise();
     }
 
@@ -1067,7 +1063,7 @@ export class ObjectFunctionsApi {
      * Get Function Outputschema
      * @param param the request object
      */
-    public getFunctionOutputschema(param: FunctionsApiGetFunctionOutputschemaRequest, options?: ConfigurationOptions): Promise<ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet> {
+    public getFunctionOutputschema(param: FunctionsApiGetFunctionOutputschemaRequest, options?: ConfigurationOptions): Promise<JSONFunctionInputSchema> {
         return this.api.getFunctionOutputschema(param.functionId,  options).toPromise();
     }
 

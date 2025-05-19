@@ -1,5 +1,5 @@
 import { ResponseContext, RequestContext, HttpFile, HttpInfo } from '../http/http';
-import { Configuration, ConfigurationOptions, PromiseConfigurationOptions } from '../configuration'
+import { Configuration, PromiseConfigurationOptions, wrapOptions } from '../configuration'
 import { PromiseMiddleware, Middleware, PromiseMiddlewareWrapper } from '../middleware';
 
 import { BodyAbortMultipartUploadV0FilesFileIdAbortPost } from '../models/BodyAbortMultipartUploadV0FilesFileIdAbortPost';
@@ -19,7 +19,6 @@ import { FunctionJobStatus } from '../models/FunctionJobStatus';
 import { GetCreditPriceLegacy } from '../models/GetCreditPriceLegacy';
 import { Groups } from '../models/Groups';
 import { HTTPValidationError } from '../models/HTTPValidationError';
-import { InputSchema } from '../models/InputSchema';
 import { JSONFunctionInputSchema } from '../models/JSONFunctionInputSchema';
 import { JSONFunctionOutputSchema } from '../models/JSONFunctionOutputSchema';
 import { Job } from '../models/Job';
@@ -44,7 +43,6 @@ import { MetadataValue } from '../models/MetadataValue';
 import { ModelFile } from '../models/ModelFile';
 import { OnePageSolverPort } from '../models/OnePageSolverPort';
 import { OnePageStudyPort } from '../models/OnePageStudyPort';
-import { OutputSchema } from '../models/OutputSchema';
 import { PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
 import { PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
 import { PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner } from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClassItemsInner';
@@ -70,9 +68,7 @@ import { RegisteredPythonCodeFunctionJob } from '../models/RegisteredPythonCodeF
 import { RegisteredSolverFunction } from '../models/RegisteredSolverFunction';
 import { RegisteredSolverFunctionJob } from '../models/RegisteredSolverFunctionJob';
 import { Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet } from '../models/Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet';
-import { ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet } from '../models/ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet';
 import { ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet } from '../models/ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet';
-import { ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet } from '../models/ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet';
 import { ResponseGetFunctionV0FunctionsFunctionIdGet } from '../models/ResponseGetFunctionV0FunctionsFunctionIdGet';
 import { ResponseRegisterFunctionJobV0FunctionJobsPost } from '../models/ResponseRegisterFunctionJobV0FunctionJobsPost';
 import { ResponseRegisterFunctionV0FunctionsPost } from '../models/ResponseRegisterFunctionV0FunctionsPost';
@@ -118,18 +114,7 @@ export class PromiseCreditsApi {
      * Get Credits Price
      */
     public getCreditsPriceWithHttpInfo(_options?: PromiseConfigurationOptions): Promise<HttpInfo<GetCreditPriceLegacy>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getCreditsPriceWithHttpInfo(observableOptions);
         return result.toPromise();
     }
@@ -139,18 +124,7 @@ export class PromiseCreditsApi {
      * Get Credits Price
      */
     public getCreditsPrice(_options?: PromiseConfigurationOptions): Promise<GetCreditPriceLegacy> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getCreditsPrice(observableOptions);
         return result.toPromise();
     }
@@ -180,18 +154,7 @@ export class PromiseFilesApi {
      * @param bodyAbortMultipartUploadV0FilesFileIdAbortPost
      */
     public abortMultipartUploadWithHttpInfo(fileId: string, bodyAbortMultipartUploadV0FilesFileIdAbortPost: BodyAbortMultipartUploadV0FilesFileIdAbortPost, _options?: PromiseConfigurationOptions): Promise<HttpInfo<any>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.abortMultipartUploadWithHttpInfo(fileId, bodyAbortMultipartUploadV0FilesFileIdAbortPost, observableOptions);
         return result.toPromise();
     }
@@ -202,18 +165,7 @@ export class PromiseFilesApi {
      * @param bodyAbortMultipartUploadV0FilesFileIdAbortPost
      */
     public abortMultipartUpload(fileId: string, bodyAbortMultipartUploadV0FilesFileIdAbortPost: BodyAbortMultipartUploadV0FilesFileIdAbortPost, _options?: PromiseConfigurationOptions): Promise<any> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.abortMultipartUpload(fileId, bodyAbortMultipartUploadV0FilesFileIdAbortPost, observableOptions);
         return result.toPromise();
     }
@@ -224,18 +176,7 @@ export class PromiseFilesApi {
      * @param bodyCompleteMultipartUploadV0FilesFileIdCompletePost
      */
     public completeMultipartUploadWithHttpInfo(fileId: string, bodyCompleteMultipartUploadV0FilesFileIdCompletePost: BodyCompleteMultipartUploadV0FilesFileIdCompletePost, _options?: PromiseConfigurationOptions): Promise<HttpInfo<any>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.completeMultipartUploadWithHttpInfo(fileId, bodyCompleteMultipartUploadV0FilesFileIdCompletePost, observableOptions);
         return result.toPromise();
     }
@@ -246,18 +187,7 @@ export class PromiseFilesApi {
      * @param bodyCompleteMultipartUploadV0FilesFileIdCompletePost
      */
     public completeMultipartUpload(fileId: string, bodyCompleteMultipartUploadV0FilesFileIdCompletePost: BodyCompleteMultipartUploadV0FilesFileIdCompletePost, _options?: PromiseConfigurationOptions): Promise<any> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.completeMultipartUpload(fileId, bodyCompleteMultipartUploadV0FilesFileIdCompletePost, observableOptions);
         return result.toPromise();
     }
@@ -267,18 +197,7 @@ export class PromiseFilesApi {
      * @param fileId
      */
     public deleteFileWithHttpInfo(fileId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<any>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.deleteFileWithHttpInfo(fileId, observableOptions);
         return result.toPromise();
     }
@@ -288,18 +207,7 @@ export class PromiseFilesApi {
      * @param fileId
      */
     public deleteFile(fileId: string, _options?: PromiseConfigurationOptions): Promise<any> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.deleteFile(fileId, observableOptions);
         return result.toPromise();
     }
@@ -309,18 +217,7 @@ export class PromiseFilesApi {
      * @param fileId
      */
     public downloadFileWithHttpInfo(fileId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<HttpFile>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.downloadFileWithHttpInfo(fileId, observableOptions);
         return result.toPromise();
     }
@@ -330,18 +227,7 @@ export class PromiseFilesApi {
      * @param fileId
      */
     public downloadFile(fileId: string, _options?: PromiseConfigurationOptions): Promise<HttpFile> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.downloadFile(fileId, observableOptions);
         return result.toPromise();
     }
@@ -352,18 +238,7 @@ export class PromiseFilesApi {
      * @param fileId
      */
     public getFileWithHttpInfo(fileId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<any>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFileWithHttpInfo(fileId, observableOptions);
         return result.toPromise();
     }
@@ -374,18 +249,7 @@ export class PromiseFilesApi {
      * @param fileId
      */
     public getFile(fileId: string, _options?: PromiseConfigurationOptions): Promise<any> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFile(fileId, observableOptions);
         return result.toPromise();
     }
@@ -396,18 +260,7 @@ export class PromiseFilesApi {
      * @param [offset] Page offset
      */
     public getFilesPageWithHttpInfo(limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<void>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFilesPageWithHttpInfo(limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -418,18 +271,7 @@ export class PromiseFilesApi {
      * @param [offset] Page offset
      */
     public getFilesPage(limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<void> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFilesPage(limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -440,18 +282,7 @@ export class PromiseFilesApi {
      * @param clientFile
      */
     public getUploadLinksWithHttpInfo(clientFile: ClientFile, _options?: PromiseConfigurationOptions): Promise<HttpInfo<ClientFileUploadData>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getUploadLinksWithHttpInfo(clientFile, observableOptions);
         return result.toPromise();
     }
@@ -462,18 +293,7 @@ export class PromiseFilesApi {
      * @param clientFile
      */
     public getUploadLinks(clientFile: ClientFile, _options?: PromiseConfigurationOptions): Promise<ClientFileUploadData> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getUploadLinks(clientFile, observableOptions);
         return result.toPromise();
     }
@@ -483,18 +303,7 @@ export class PromiseFilesApi {
      * List Files
      */
     public listFilesWithHttpInfo(_options?: PromiseConfigurationOptions): Promise<HttpInfo<Array<any>>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listFilesWithHttpInfo(observableOptions);
         return result.toPromise();
     }
@@ -504,18 +313,7 @@ export class PromiseFilesApi {
      * List Files
      */
     public listFiles(_options?: PromiseConfigurationOptions): Promise<Array<any>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listFiles(observableOptions);
         return result.toPromise();
     }
@@ -529,18 +327,7 @@ export class PromiseFilesApi {
      * @param [offset] Page offset
      */
     public searchFilesPageWithHttpInfo(sha256Checksum?: string, fileId?: string, limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<PageFile>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.searchFilesPageWithHttpInfo(sha256Checksum, fileId, limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -554,18 +341,7 @@ export class PromiseFilesApi {
      * @param [offset] Page offset
      */
     public searchFilesPage(sha256Checksum?: string, fileId?: string, limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<PageFile> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.searchFilesPage(sha256Checksum, fileId, limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -577,18 +353,7 @@ export class PromiseFilesApi {
      * @param [contentLength]
      */
     public uploadFileWithHttpInfo(file: HttpFile, contentLength?: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<any>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.uploadFileWithHttpInfo(file, contentLength, observableOptions);
         return result.toPromise();
     }
@@ -600,18 +365,7 @@ export class PromiseFilesApi {
      * @param [contentLength]
      */
     public uploadFile(file: HttpFile, contentLength?: string, _options?: PromiseConfigurationOptions): Promise<any> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.uploadFile(file, contentLength, observableOptions);
         return result.toPromise();
     }
@@ -641,18 +395,7 @@ export class PromiseFunctionJobCollectionsApi {
      * @param functionJobCollectionId
      */
     public deleteFunctionJobCollectionWithHttpInfo(functionJobCollectionId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<any>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.deleteFunctionJobCollectionWithHttpInfo(functionJobCollectionId, observableOptions);
         return result.toPromise();
     }
@@ -663,18 +406,7 @@ export class PromiseFunctionJobCollectionsApi {
      * @param functionJobCollectionId
      */
     public deleteFunctionJobCollection(functionJobCollectionId: string, _options?: PromiseConfigurationOptions): Promise<any> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.deleteFunctionJobCollection(functionJobCollectionId, observableOptions);
         return result.toPromise();
     }
@@ -685,18 +417,7 @@ export class PromiseFunctionJobCollectionsApi {
      * @param functionJobCollectionId
      */
     public functionJobCollectionListFunctionJobsWithHttpInfo(functionJobCollectionId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Array<FunctionJobCollectionListFunctionJobs200ResponseInner>>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.functionJobCollectionListFunctionJobsWithHttpInfo(functionJobCollectionId, observableOptions);
         return result.toPromise();
     }
@@ -707,18 +428,7 @@ export class PromiseFunctionJobCollectionsApi {
      * @param functionJobCollectionId
      */
     public functionJobCollectionListFunctionJobs(functionJobCollectionId: string, _options?: PromiseConfigurationOptions): Promise<Array<FunctionJobCollectionListFunctionJobs200ResponseInner>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.functionJobCollectionListFunctionJobs(functionJobCollectionId, observableOptions);
         return result.toPromise();
     }
@@ -729,18 +439,7 @@ export class PromiseFunctionJobCollectionsApi {
      * @param functionJobCollectionId
      */
     public functionJobCollectionStatusWithHttpInfo(functionJobCollectionId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<FunctionJobCollectionStatus>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.functionJobCollectionStatusWithHttpInfo(functionJobCollectionId, observableOptions);
         return result.toPromise();
     }
@@ -751,18 +450,7 @@ export class PromiseFunctionJobCollectionsApi {
      * @param functionJobCollectionId
      */
     public functionJobCollectionStatus(functionJobCollectionId: string, _options?: PromiseConfigurationOptions): Promise<FunctionJobCollectionStatus> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.functionJobCollectionStatus(functionJobCollectionId, observableOptions);
         return result.toPromise();
     }
@@ -773,18 +461,7 @@ export class PromiseFunctionJobCollectionsApi {
      * @param functionJobCollectionId
      */
     public getFunctionJobCollectionWithHttpInfo(functionJobCollectionId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<RegisteredFunctionJobCollection>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFunctionJobCollectionWithHttpInfo(functionJobCollectionId, observableOptions);
         return result.toPromise();
     }
@@ -795,18 +472,7 @@ export class PromiseFunctionJobCollectionsApi {
      * @param functionJobCollectionId
      */
     public getFunctionJobCollection(functionJobCollectionId: string, _options?: PromiseConfigurationOptions): Promise<RegisteredFunctionJobCollection> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFunctionJobCollection(functionJobCollectionId, observableOptions);
         return result.toPromise();
     }
@@ -818,18 +484,7 @@ export class PromiseFunctionJobCollectionsApi {
      * @param [offset] Page offset
      */
     public listFunctionJobCollectionsWithHttpInfo(limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<PageRegisteredFunctionJobCollection>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listFunctionJobCollectionsWithHttpInfo(limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -841,18 +496,7 @@ export class PromiseFunctionJobCollectionsApi {
      * @param [offset] Page offset
      */
     public listFunctionJobCollections(limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<PageRegisteredFunctionJobCollection> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listFunctionJobCollections(limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -863,18 +507,7 @@ export class PromiseFunctionJobCollectionsApi {
      * @param functionJobCollection
      */
     public registerFunctionJobCollectionWithHttpInfo(functionJobCollection: FunctionJobCollection, _options?: PromiseConfigurationOptions): Promise<HttpInfo<RegisteredFunctionJobCollection>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.registerFunctionJobCollectionWithHttpInfo(functionJobCollection, observableOptions);
         return result.toPromise();
     }
@@ -885,18 +518,7 @@ export class PromiseFunctionJobCollectionsApi {
      * @param functionJobCollection
      */
     public registerFunctionJobCollection(functionJobCollection: FunctionJobCollection, _options?: PromiseConfigurationOptions): Promise<RegisteredFunctionJobCollection> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.registerFunctionJobCollection(functionJobCollection, observableOptions);
         return result.toPromise();
     }
@@ -926,18 +548,7 @@ export class PromiseFunctionJobsApi {
      * @param functionJobId
      */
     public deleteFunctionJobWithHttpInfo(functionJobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<any>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.deleteFunctionJobWithHttpInfo(functionJobId, observableOptions);
         return result.toPromise();
     }
@@ -948,18 +559,7 @@ export class PromiseFunctionJobsApi {
      * @param functionJobId
      */
     public deleteFunctionJob(functionJobId: string, _options?: PromiseConfigurationOptions): Promise<any> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.deleteFunctionJob(functionJobId, observableOptions);
         return result.toPromise();
     }
@@ -970,18 +570,7 @@ export class PromiseFunctionJobsApi {
      * @param functionJobId
      */
     public functionJobOutputsWithHttpInfo(functionJobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<any>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.functionJobOutputsWithHttpInfo(functionJobId, observableOptions);
         return result.toPromise();
     }
@@ -992,18 +581,7 @@ export class PromiseFunctionJobsApi {
      * @param functionJobId
      */
     public functionJobOutputs(functionJobId: string, _options?: PromiseConfigurationOptions): Promise<any> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.functionJobOutputs(functionJobId, observableOptions);
         return result.toPromise();
     }
@@ -1014,18 +592,7 @@ export class PromiseFunctionJobsApi {
      * @param functionJobId
      */
     public functionJobStatusWithHttpInfo(functionJobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<FunctionJobStatus>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.functionJobStatusWithHttpInfo(functionJobId, observableOptions);
         return result.toPromise();
     }
@@ -1036,18 +603,7 @@ export class PromiseFunctionJobsApi {
      * @param functionJobId
      */
     public functionJobStatus(functionJobId: string, _options?: PromiseConfigurationOptions): Promise<FunctionJobStatus> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.functionJobStatus(functionJobId, observableOptions);
         return result.toPromise();
     }
@@ -1058,18 +614,7 @@ export class PromiseFunctionJobsApi {
      * @param functionJobId
      */
     public getFunctionJobWithHttpInfo(functionJobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFunctionJobWithHttpInfo(functionJobId, observableOptions);
         return result.toPromise();
     }
@@ -1080,18 +625,7 @@ export class PromiseFunctionJobsApi {
      * @param functionJobId
      */
     public getFunctionJob(functionJobId: string, _options?: PromiseConfigurationOptions): Promise<ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFunctionJob(functionJobId, observableOptions);
         return result.toPromise();
     }
@@ -1103,18 +637,7 @@ export class PromiseFunctionJobsApi {
      * @param [offset] Page offset
      */
     public listFunctionJobsWithHttpInfo(limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listFunctionJobsWithHttpInfo(limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -1126,18 +649,7 @@ export class PromiseFunctionJobsApi {
      * @param [offset] Page offset
      */
     public listFunctionJobs(limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listFunctionJobs(limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -1148,18 +660,7 @@ export class PromiseFunctionJobsApi {
      * @param functionJob
      */
     public registerFunctionJobWithHttpInfo(functionJob: FunctionJob, _options?: PromiseConfigurationOptions): Promise<HttpInfo<ResponseRegisterFunctionJobV0FunctionJobsPost>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.registerFunctionJobWithHttpInfo(functionJob, observableOptions);
         return result.toPromise();
     }
@@ -1170,18 +671,7 @@ export class PromiseFunctionJobsApi {
      * @param functionJob
      */
     public registerFunctionJob(functionJob: FunctionJob, _options?: PromiseConfigurationOptions): Promise<ResponseRegisterFunctionJobV0FunctionJobsPost> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.registerFunctionJob(functionJob, observableOptions);
         return result.toPromise();
     }
@@ -1211,18 +701,7 @@ export class PromiseFunctionsApi {
      * @param functionId
      */
     public deleteFunctionWithHttpInfo(functionId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<any>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.deleteFunctionWithHttpInfo(functionId, observableOptions);
         return result.toPromise();
     }
@@ -1233,18 +712,7 @@ export class PromiseFunctionsApi {
      * @param functionId
      */
     public deleteFunction(functionId: string, _options?: PromiseConfigurationOptions): Promise<any> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.deleteFunction(functionId, observableOptions);
         return result.toPromise();
     }
@@ -1255,18 +723,7 @@ export class PromiseFunctionsApi {
      * @param functionId
      */
     public getFunctionWithHttpInfo(functionId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<ResponseGetFunctionV0FunctionsFunctionIdGet>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFunctionWithHttpInfo(functionId, observableOptions);
         return result.toPromise();
     }
@@ -1277,18 +734,7 @@ export class PromiseFunctionsApi {
      * @param functionId
      */
     public getFunction(functionId: string, _options?: PromiseConfigurationOptions): Promise<ResponseGetFunctionV0FunctionsFunctionIdGet> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFunction(functionId, observableOptions);
         return result.toPromise();
     }
@@ -1298,19 +744,8 @@ export class PromiseFunctionsApi {
      * Get Function Inputschema
      * @param functionId
      */
-    public getFunctionInputschemaWithHttpInfo(functionId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+    public getFunctionInputschemaWithHttpInfo(functionId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JSONFunctionInputSchema>> {
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFunctionInputschemaWithHttpInfo(functionId, observableOptions);
         return result.toPromise();
     }
@@ -1320,19 +755,8 @@ export class PromiseFunctionsApi {
      * Get Function Inputschema
      * @param functionId
      */
-    public getFunctionInputschema(functionId: string, _options?: PromiseConfigurationOptions): Promise<ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+    public getFunctionInputschema(functionId: string, _options?: PromiseConfigurationOptions): Promise<JSONFunctionInputSchema> {
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFunctionInputschema(functionId, observableOptions);
         return result.toPromise();
     }
@@ -1342,19 +766,8 @@ export class PromiseFunctionsApi {
      * Get Function Outputschema
      * @param functionId
      */
-    public getFunctionOutputschemaWithHttpInfo(functionId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+    public getFunctionOutputschemaWithHttpInfo(functionId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JSONFunctionInputSchema>> {
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFunctionOutputschemaWithHttpInfo(functionId, observableOptions);
         return result.toPromise();
     }
@@ -1364,19 +777,8 @@ export class PromiseFunctionsApi {
      * Get Function Outputschema
      * @param functionId
      */
-    public getFunctionOutputschema(functionId: string, _options?: PromiseConfigurationOptions): Promise<ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+    public getFunctionOutputschema(functionId: string, _options?: PromiseConfigurationOptions): Promise<JSONFunctionInputSchema> {
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getFunctionOutputschema(functionId, observableOptions);
         return result.toPromise();
     }
@@ -1388,18 +790,7 @@ export class PromiseFunctionsApi {
      * @param [offset] Page offset
      */
     public listFunctionsWithHttpInfo(limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listFunctionsWithHttpInfo(limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -1411,18 +802,7 @@ export class PromiseFunctionsApi {
      * @param [offset] Page offset
      */
     public listFunctions(limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listFunctions(limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -1434,18 +814,7 @@ export class PromiseFunctionsApi {
      * @param requestBody
      */
     public mapFunctionWithHttpInfo(functionId: string, requestBody: Array<any | null>, _options?: PromiseConfigurationOptions): Promise<HttpInfo<RegisteredFunctionJobCollection>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.mapFunctionWithHttpInfo(functionId, requestBody, observableOptions);
         return result.toPromise();
     }
@@ -1457,18 +826,7 @@ export class PromiseFunctionsApi {
      * @param requestBody
      */
     public mapFunction(functionId: string, requestBody: Array<any | null>, _options?: PromiseConfigurationOptions): Promise<RegisteredFunctionJobCollection> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.mapFunction(functionId, requestBody, observableOptions);
         return result.toPromise();
     }
@@ -1479,18 +837,7 @@ export class PromiseFunctionsApi {
      * @param _function
      */
     public registerFunctionWithHttpInfo(_function: Function, _options?: PromiseConfigurationOptions): Promise<HttpInfo<ResponseRegisterFunctionV0FunctionsPost>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.registerFunctionWithHttpInfo(_function, observableOptions);
         return result.toPromise();
     }
@@ -1501,18 +848,7 @@ export class PromiseFunctionsApi {
      * @param _function
      */
     public registerFunction(_function: Function, _options?: PromiseConfigurationOptions): Promise<ResponseRegisterFunctionV0FunctionsPost> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.registerFunction(_function, observableOptions);
         return result.toPromise();
     }
@@ -1524,18 +860,7 @@ export class PromiseFunctionsApi {
      * @param body
      */
     public runFunctionWithHttpInfo(functionId: string, body: any, _options?: PromiseConfigurationOptions): Promise<HttpInfo<ResponseRunFunctionV0FunctionsFunctionIdRunPost>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.runFunctionWithHttpInfo(functionId, body, observableOptions);
         return result.toPromise();
     }
@@ -1547,18 +872,7 @@ export class PromiseFunctionsApi {
      * @param body
      */
     public runFunction(functionId: string, body: any, _options?: PromiseConfigurationOptions): Promise<ResponseRunFunctionV0FunctionsFunctionIdRunPost> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.runFunction(functionId, body, observableOptions);
         return result.toPromise();
     }
@@ -1570,18 +884,7 @@ export class PromiseFunctionsApi {
      * @param description
      */
     public updateFunctionDescriptionWithHttpInfo(functionId: string, description: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<ResponseUpdateFunctionDescriptionV0FunctionsFunctionIdDescriptionPatch>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.updateFunctionDescriptionWithHttpInfo(functionId, description, observableOptions);
         return result.toPromise();
     }
@@ -1593,18 +896,7 @@ export class PromiseFunctionsApi {
      * @param description
      */
     public updateFunctionDescription(functionId: string, description: string, _options?: PromiseConfigurationOptions): Promise<ResponseUpdateFunctionDescriptionV0FunctionsFunctionIdDescriptionPatch> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.updateFunctionDescription(functionId, description, observableOptions);
         return result.toPromise();
     }
@@ -1616,18 +908,7 @@ export class PromiseFunctionsApi {
      * @param title
      */
     public updateFunctionTitleWithHttpInfo(functionId: string, title: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<ResponseUpdateFunctionTitleV0FunctionsFunctionIdTitlePatch>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.updateFunctionTitleWithHttpInfo(functionId, title, observableOptions);
         return result.toPromise();
     }
@@ -1639,18 +920,7 @@ export class PromiseFunctionsApi {
      * @param title
      */
     public updateFunctionTitle(functionId: string, title: string, _options?: PromiseConfigurationOptions): Promise<ResponseUpdateFunctionTitleV0FunctionsFunctionIdTitlePatch> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.updateFunctionTitle(functionId, title, observableOptions);
         return result.toPromise();
     }
@@ -1662,18 +932,7 @@ export class PromiseFunctionsApi {
      * @param body
      */
     public validateFunctionInputsWithHttpInfo(functionId: string, body: any, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Array<any>>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.validateFunctionInputsWithHttpInfo(functionId, body, observableOptions);
         return result.toPromise();
     }
@@ -1685,18 +944,7 @@ export class PromiseFunctionsApi {
      * @param body
      */
     public validateFunctionInputs(functionId: string, body: any, _options?: PromiseConfigurationOptions): Promise<Array<any>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.validateFunctionInputs(functionId, body, observableOptions);
         return result.toPromise();
     }
@@ -1727,18 +975,7 @@ export class PromiseLicensedItemsApi {
      * @param [offset] Page offset
      */
     public getLicensedItemsWithHttpInfo(limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<PageLicensedItemGet>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getLicensedItemsWithHttpInfo(limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -1750,18 +987,7 @@ export class PromiseLicensedItemsApi {
      * @param [offset] Page offset
      */
     public getLicensedItems(limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<PageLicensedItemGet> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getLicensedItems(limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -1773,18 +999,7 @@ export class PromiseLicensedItemsApi {
      * @param licensedItemCheckoutId
      */
     public releaseLicensedItemWithHttpInfo(licensedItemId: string, licensedItemCheckoutId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<LicensedItemCheckoutGet>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.releaseLicensedItemWithHttpInfo(licensedItemId, licensedItemCheckoutId, observableOptions);
         return result.toPromise();
     }
@@ -1796,18 +1011,7 @@ export class PromiseLicensedItemsApi {
      * @param licensedItemCheckoutId
      */
     public releaseLicensedItem(licensedItemId: string, licensedItemCheckoutId: string, _options?: PromiseConfigurationOptions): Promise<LicensedItemCheckoutGet> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.releaseLicensedItem(licensedItemId, licensedItemCheckoutId, observableOptions);
         return result.toPromise();
     }
@@ -1835,18 +1039,7 @@ export class PromiseMetaApi {
      * Get Service Metadata
      */
     public getServiceMetadataWithHttpInfo(_options?: PromiseConfigurationOptions): Promise<HttpInfo<Meta>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getServiceMetadataWithHttpInfo(observableOptions);
         return result.toPromise();
     }
@@ -1855,18 +1048,7 @@ export class PromiseMetaApi {
      * Get Service Metadata
      */
     public getServiceMetadata(_options?: PromiseConfigurationOptions): Promise<Meta> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getServiceMetadata(observableOptions);
         return result.toPromise();
     }
@@ -1900,18 +1082,7 @@ export class PromiseProgramsApi {
      * @param [bodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost]
      */
     public createProgramJobWithHttpInfo(programKey: string, version: string, xSimcoreParentProjectUuid?: string, xSimcoreParentNodeId?: string, bodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost?: BodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Job>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.createProgramJobWithHttpInfo(programKey, version, xSimcoreParentProjectUuid, xSimcoreParentNodeId, bodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost, observableOptions);
         return result.toPromise();
     }
@@ -1926,18 +1097,7 @@ export class PromiseProgramsApi {
      * @param [bodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost]
      */
     public createProgramJob(programKey: string, version: string, xSimcoreParentProjectUuid?: string, xSimcoreParentNodeId?: string, bodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost?: BodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost, _options?: PromiseConfigurationOptions): Promise<Job> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.createProgramJob(programKey, version, xSimcoreParentProjectUuid, xSimcoreParentNodeId, bodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost, observableOptions);
         return result.toPromise();
     }
@@ -1949,18 +1109,7 @@ export class PromiseProgramsApi {
      * @param version
      */
     public getProgramReleaseWithHttpInfo(programKey: string, version: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Program>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getProgramReleaseWithHttpInfo(programKey, version, observableOptions);
         return result.toPromise();
     }
@@ -1972,18 +1121,7 @@ export class PromiseProgramsApi {
      * @param version
      */
     public getProgramRelease(programKey: string, version: string, _options?: PromiseConfigurationOptions): Promise<Program> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getProgramRelease(programKey, version, observableOptions);
         return result.toPromise();
     }
@@ -2018,18 +1156,7 @@ export class PromiseSolversApi {
      * @param [xSimcoreParentNodeId]
      */
     public createSolverJobWithHttpInfo(solverKey: string, version: string, jobInputs: JobInputs, hidden?: boolean, xSimcoreParentProjectUuid?: string, xSimcoreParentNodeId?: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Job>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.createSolverJobWithHttpInfo(solverKey, version, jobInputs, hidden, xSimcoreParentProjectUuid, xSimcoreParentNodeId, observableOptions);
         return result.toPromise();
     }
@@ -2045,18 +1172,7 @@ export class PromiseSolversApi {
      * @param [xSimcoreParentNodeId]
      */
     public createSolverJob(solverKey: string, version: string, jobInputs: JobInputs, hidden?: boolean, xSimcoreParentProjectUuid?: string, xSimcoreParentNodeId?: string, _options?: PromiseConfigurationOptions): Promise<Job> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.createSolverJob(solverKey, version, jobInputs, hidden, xSimcoreParentProjectUuid, xSimcoreParentNodeId, observableOptions);
         return result.toPromise();
     }
@@ -2069,18 +1185,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public deleteJobWithHttpInfo(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<void>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.deleteJobWithHttpInfo(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2093,18 +1198,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public deleteJob(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<void> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.deleteJob(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2117,18 +1211,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getJobWithHttpInfo(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Job>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobWithHttpInfo(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2141,18 +1224,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getJob(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<Job> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJob(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2165,18 +1237,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getJobCustomMetadataWithHttpInfo(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobMetadata>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobCustomMetadataWithHttpInfo(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2189,18 +1250,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getJobCustomMetadata(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<JobMetadata> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobCustomMetadata(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2213,18 +1263,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getJobOutputLogfileWithHttpInfo(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<HttpFile>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobOutputLogfileWithHttpInfo(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2237,18 +1276,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getJobOutputLogfile(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpFile> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobOutputLogfile(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2260,18 +1288,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getJobOutputsWithHttpInfo(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobOutputs>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobOutputsWithHttpInfo(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2283,18 +1300,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getJobOutputs(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<JobOutputs> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobOutputs(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2307,18 +1313,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getJobPricingUnitWithHttpInfo(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<PricingUnitGetLegacy>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobPricingUnitWithHttpInfo(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2331,18 +1326,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getJobPricingUnit(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<PricingUnitGetLegacy> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobPricingUnit(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2355,18 +1339,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getJobWalletWithHttpInfo(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<WalletGetWithAvailableCreditsLegacy>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobWalletWithHttpInfo(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2379,18 +1352,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getJobWallet(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<WalletGetWithAvailableCreditsLegacy> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobWallet(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2404,18 +1366,7 @@ export class PromiseSolversApi {
      * @param [offset] Page offset
      */
     public getJobsPageWithHttpInfo(solverKey: string, version: string, limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<PageJob>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobsPageWithHttpInfo(solverKey, version, limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -2429,18 +1380,7 @@ export class PromiseSolversApi {
      * @param [offset] Page offset
      */
     public getJobsPage(solverKey: string, version: string, limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<PageJob> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getJobsPage(solverKey, version, limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -2452,18 +1392,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getLogStreamWithHttpInfo(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getLogStreamWithHttpInfo(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2475,18 +1404,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public getLogStream(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<Response200GetLogStreamV0SolversSolverKeyReleasesVersionJobsJobIdLogstreamGet> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getLogStream(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2497,18 +1415,7 @@ export class PromiseSolversApi {
      * @param solverKey
      */
     public getSolverWithHttpInfo(solverKey: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Solver>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getSolverWithHttpInfo(solverKey, observableOptions);
         return result.toPromise();
     }
@@ -2519,18 +1426,7 @@ export class PromiseSolversApi {
      * @param solverKey
      */
     public getSolver(solverKey: string, _options?: PromiseConfigurationOptions): Promise<Solver> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getSolver(solverKey, observableOptions);
         return result.toPromise();
     }
@@ -2542,18 +1438,7 @@ export class PromiseSolversApi {
      * @param version
      */
     public getSolverPricingPlanWithHttpInfo(solverKey: string, version: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<ServicePricingPlanGetLegacy>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getSolverPricingPlanWithHttpInfo(solverKey, version, observableOptions);
         return result.toPromise();
     }
@@ -2565,18 +1450,7 @@ export class PromiseSolversApi {
      * @param version
      */
     public getSolverPricingPlan(solverKey: string, version: string, _options?: PromiseConfigurationOptions): Promise<ServicePricingPlanGetLegacy> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getSolverPricingPlan(solverKey, version, observableOptions);
         return result.toPromise();
     }
@@ -2588,18 +1462,7 @@ export class PromiseSolversApi {
      * @param version
      */
     public getSolverReleaseWithHttpInfo(solverKey: string, version: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Solver>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getSolverReleaseWithHttpInfo(solverKey, version, observableOptions);
         return result.toPromise();
     }
@@ -2611,18 +1474,7 @@ export class PromiseSolversApi {
      * @param version
      */
     public getSolverRelease(solverKey: string, version: string, _options?: PromiseConfigurationOptions): Promise<Solver> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getSolverRelease(solverKey, version, observableOptions);
         return result.toPromise();
     }
@@ -2634,18 +1486,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public inspectJobWithHttpInfo(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobStatus>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.inspectJobWithHttpInfo(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2657,18 +1498,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public inspectJob(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<JobStatus> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.inspectJob(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -2680,18 +1510,7 @@ export class PromiseSolversApi {
      * @param version
      */
     public listJobsWithHttpInfo(solverKey: string, version: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Array<Job>>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listJobsWithHttpInfo(solverKey, version, observableOptions);
         return result.toPromise();
     }
@@ -2703,18 +1522,7 @@ export class PromiseSolversApi {
      * @param version
      */
     public listJobs(solverKey: string, version: string, _options?: PromiseConfigurationOptions): Promise<Array<Job>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listJobs(solverKey, version, observableOptions);
         return result.toPromise();
     }
@@ -2726,18 +1534,7 @@ export class PromiseSolversApi {
      * @param version
      */
     public listSolverPortsWithHttpInfo(solverKey: string, version: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<OnePageSolverPort>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listSolverPortsWithHttpInfo(solverKey, version, observableOptions);
         return result.toPromise();
     }
@@ -2749,18 +1546,7 @@ export class PromiseSolversApi {
      * @param version
      */
     public listSolverPorts(solverKey: string, version: string, _options?: PromiseConfigurationOptions): Promise<OnePageSolverPort> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listSolverPorts(solverKey, version, observableOptions);
         return result.toPromise();
     }
@@ -2771,18 +1557,7 @@ export class PromiseSolversApi {
      * @param solverKey
      */
     public listSolverReleasesWithHttpInfo(solverKey: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Array<Solver>>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listSolverReleasesWithHttpInfo(solverKey, observableOptions);
         return result.toPromise();
     }
@@ -2793,18 +1568,7 @@ export class PromiseSolversApi {
      * @param solverKey
      */
     public listSolverReleases(solverKey: string, _options?: PromiseConfigurationOptions): Promise<Array<Solver>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listSolverReleases(solverKey, observableOptions);
         return result.toPromise();
     }
@@ -2814,18 +1578,7 @@ export class PromiseSolversApi {
      * List Solvers
      */
     public listSolversWithHttpInfo(_options?: PromiseConfigurationOptions): Promise<HttpInfo<Array<Solver>>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listSolversWithHttpInfo(observableOptions);
         return result.toPromise();
     }
@@ -2835,18 +1588,7 @@ export class PromiseSolversApi {
      * List Solvers
      */
     public listSolvers(_options?: PromiseConfigurationOptions): Promise<Array<Solver>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listSolvers(observableOptions);
         return result.toPromise();
     }
@@ -2856,18 +1598,7 @@ export class PromiseSolversApi {
      * Lists All Releases
      */
     public listSolversReleasesWithHttpInfo(_options?: PromiseConfigurationOptions): Promise<HttpInfo<Array<Solver>>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listSolversReleasesWithHttpInfo(observableOptions);
         return result.toPromise();
     }
@@ -2877,18 +1608,7 @@ export class PromiseSolversApi {
      * Lists All Releases
      */
     public listSolversReleases(_options?: PromiseConfigurationOptions): Promise<Array<Solver>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listSolversReleases(observableOptions);
         return result.toPromise();
     }
@@ -2902,18 +1622,7 @@ export class PromiseSolversApi {
      * @param jobMetadataUpdate
      */
     public replaceJobCustomMetadataWithHttpInfo(solverKey: string, version: string, jobId: string, jobMetadataUpdate: JobMetadataUpdate, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobMetadata>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.replaceJobCustomMetadataWithHttpInfo(solverKey, version, jobId, jobMetadataUpdate, observableOptions);
         return result.toPromise();
     }
@@ -2927,18 +1636,7 @@ export class PromiseSolversApi {
      * @param jobMetadataUpdate
      */
     public replaceJobCustomMetadata(solverKey: string, version: string, jobId: string, jobMetadataUpdate: JobMetadataUpdate, _options?: PromiseConfigurationOptions): Promise<JobMetadata> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.replaceJobCustomMetadata(solverKey, version, jobId, jobMetadataUpdate, observableOptions);
         return result.toPromise();
     }
@@ -2952,18 +1650,7 @@ export class PromiseSolversApi {
      * @param [clusterId]
      */
     public startJobWithHttpInfo(solverKey: string, version: string, jobId: string, clusterId?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobStatus>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.startJobWithHttpInfo(solverKey, version, jobId, clusterId, observableOptions);
         return result.toPromise();
     }
@@ -2977,18 +1664,7 @@ export class PromiseSolversApi {
      * @param [clusterId]
      */
     public startJob(solverKey: string, version: string, jobId: string, clusterId?: number, _options?: PromiseConfigurationOptions): Promise<JobStatus> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.startJob(solverKey, version, jobId, clusterId, observableOptions);
         return result.toPromise();
     }
@@ -3000,18 +1676,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public stopJobWithHttpInfo(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobStatus>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.stopJobWithHttpInfo(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3023,18 +1688,7 @@ export class PromiseSolversApi {
      * @param jobId
      */
     public stopJob(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<JobStatus> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.stopJob(solverKey, version, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3065,18 +1719,7 @@ export class PromiseStudiesApi {
      * @param [xSimcoreParentNodeId]
      */
     public cloneStudyWithHttpInfo(studyId: string, xSimcoreParentProjectUuid?: string, xSimcoreParentNodeId?: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Study>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.cloneStudyWithHttpInfo(studyId, xSimcoreParentProjectUuid, xSimcoreParentNodeId, observableOptions);
         return result.toPromise();
     }
@@ -3088,18 +1731,7 @@ export class PromiseStudiesApi {
      * @param [xSimcoreParentNodeId]
      */
     public cloneStudy(studyId: string, xSimcoreParentProjectUuid?: string, xSimcoreParentNodeId?: string, _options?: PromiseConfigurationOptions): Promise<Study> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.cloneStudy(studyId, xSimcoreParentProjectUuid, xSimcoreParentNodeId, observableOptions);
         return result.toPromise();
     }
@@ -3114,18 +1746,7 @@ export class PromiseStudiesApi {
      * @param [xSimcoreParentNodeId]
      */
     public createStudyJobWithHttpInfo(studyId: string, jobInputs: JobInputs, hidden?: boolean, xSimcoreParentProjectUuid?: string, xSimcoreParentNodeId?: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Job>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.createStudyJobWithHttpInfo(studyId, jobInputs, hidden, xSimcoreParentProjectUuid, xSimcoreParentNodeId, observableOptions);
         return result.toPromise();
     }
@@ -3140,18 +1761,7 @@ export class PromiseStudiesApi {
      * @param [xSimcoreParentNodeId]
      */
     public createStudyJob(studyId: string, jobInputs: JobInputs, hidden?: boolean, xSimcoreParentProjectUuid?: string, xSimcoreParentNodeId?: string, _options?: PromiseConfigurationOptions): Promise<Job> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.createStudyJob(studyId, jobInputs, hidden, xSimcoreParentProjectUuid, xSimcoreParentNodeId, observableOptions);
         return result.toPromise();
     }
@@ -3163,18 +1773,7 @@ export class PromiseStudiesApi {
      * @param jobId
      */
     public deleteStudyJobWithHttpInfo(studyId: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<void>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.deleteStudyJobWithHttpInfo(studyId, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3186,18 +1785,7 @@ export class PromiseStudiesApi {
      * @param jobId
      */
     public deleteStudyJob(studyId: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<void> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.deleteStudyJob(studyId, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3208,18 +1796,7 @@ export class PromiseStudiesApi {
      * @param studyId
      */
     public getStudyWithHttpInfo(studyId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Study>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getStudyWithHttpInfo(studyId, observableOptions);
         return result.toPromise();
     }
@@ -3230,18 +1807,7 @@ export class PromiseStudiesApi {
      * @param studyId
      */
     public getStudy(studyId: string, _options?: PromiseConfigurationOptions): Promise<Study> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getStudy(studyId, observableOptions);
         return result.toPromise();
     }
@@ -3253,18 +1819,7 @@ export class PromiseStudiesApi {
      * @param jobId
      */
     public getStudyJobCustomMetadataWithHttpInfo(studyId: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobMetadata>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getStudyJobCustomMetadataWithHttpInfo(studyId, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3276,18 +1831,7 @@ export class PromiseStudiesApi {
      * @param jobId
      */
     public getStudyJobCustomMetadata(studyId: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<JobMetadata> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getStudyJobCustomMetadata(studyId, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3298,18 +1842,7 @@ export class PromiseStudiesApi {
      * @param jobId
      */
     public getStudyJobOutputLogfileWithHttpInfo(studyId: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobLogsMap>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getStudyJobOutputLogfileWithHttpInfo(studyId, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3320,18 +1853,7 @@ export class PromiseStudiesApi {
      * @param jobId
      */
     public getStudyJobOutputLogfile(studyId: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<JobLogsMap> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getStudyJobOutputLogfile(studyId, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3342,18 +1864,7 @@ export class PromiseStudiesApi {
      * @param jobId
      */
     public getStudyJobOutputsWithHttpInfo(studyId: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobOutputs>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getStudyJobOutputsWithHttpInfo(studyId, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3364,18 +1875,7 @@ export class PromiseStudiesApi {
      * @param jobId
      */
     public getStudyJobOutputs(studyId: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<JobOutputs> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getStudyJobOutputs(studyId, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3386,18 +1886,7 @@ export class PromiseStudiesApi {
      * @param jobId
      */
     public inspectStudyJobWithHttpInfo(studyId: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobStatus>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.inspectStudyJobWithHttpInfo(studyId, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3408,18 +1897,7 @@ export class PromiseStudiesApi {
      * @param jobId
      */
     public inspectStudyJob(studyId: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<JobStatus> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.inspectStudyJob(studyId, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3431,18 +1909,7 @@ export class PromiseStudiesApi {
      * @param [offset] Page offset
      */
     public listStudiesWithHttpInfo(limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<PageStudy>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listStudiesWithHttpInfo(limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -3454,18 +1921,7 @@ export class PromiseStudiesApi {
      * @param [offset] Page offset
      */
     public listStudies(limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<PageStudy> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listStudies(limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -3476,18 +1932,7 @@ export class PromiseStudiesApi {
      * @param studyId
      */
     public listStudyPortsWithHttpInfo(studyId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<OnePageStudyPort>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listStudyPortsWithHttpInfo(studyId, observableOptions);
         return result.toPromise();
     }
@@ -3498,18 +1943,7 @@ export class PromiseStudiesApi {
      * @param studyId
      */
     public listStudyPorts(studyId: string, _options?: PromiseConfigurationOptions): Promise<OnePageStudyPort> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.listStudyPorts(studyId, observableOptions);
         return result.toPromise();
     }
@@ -3522,18 +1956,7 @@ export class PromiseStudiesApi {
      * @param jobMetadataUpdate
      */
     public replaceStudyJobCustomMetadataWithHttpInfo(studyId: string, jobId: string, jobMetadataUpdate: JobMetadataUpdate, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobMetadata>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.replaceStudyJobCustomMetadataWithHttpInfo(studyId, jobId, jobMetadataUpdate, observableOptions);
         return result.toPromise();
     }
@@ -3546,18 +1969,7 @@ export class PromiseStudiesApi {
      * @param jobMetadataUpdate
      */
     public replaceStudyJobCustomMetadata(studyId: string, jobId: string, jobMetadataUpdate: JobMetadataUpdate, _options?: PromiseConfigurationOptions): Promise<JobMetadata> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.replaceStudyJobCustomMetadata(studyId, jobId, jobMetadataUpdate, observableOptions);
         return result.toPromise();
     }
@@ -3570,18 +1982,7 @@ export class PromiseStudiesApi {
      * @param [clusterId]
      */
     public startStudyJobWithHttpInfo(studyId: string, jobId: string, clusterId?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobStatus>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.startStudyJobWithHttpInfo(studyId, jobId, clusterId, observableOptions);
         return result.toPromise();
     }
@@ -3594,18 +1995,7 @@ export class PromiseStudiesApi {
      * @param [clusterId]
      */
     public startStudyJob(studyId: string, jobId: string, clusterId?: number, _options?: PromiseConfigurationOptions): Promise<JobStatus> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.startStudyJob(studyId, jobId, clusterId, observableOptions);
         return result.toPromise();
     }
@@ -3616,18 +2006,7 @@ export class PromiseStudiesApi {
      * @param jobId
      */
     public stopStudyJobWithHttpInfo(studyId: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobStatus>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.stopStudyJobWithHttpInfo(studyId, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3638,18 +2017,7 @@ export class PromiseStudiesApi {
      * @param jobId
      */
     public stopStudyJob(studyId: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<JobStatus> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.stopStudyJob(studyId, jobId, observableOptions);
         return result.toPromise();
     }
@@ -3677,18 +2045,7 @@ export class PromiseUsersApi {
      * Get My Profile
      */
     public getMyProfileWithHttpInfo(_options?: PromiseConfigurationOptions): Promise<HttpInfo<Profile>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getMyProfileWithHttpInfo(observableOptions);
         return result.toPromise();
     }
@@ -3697,18 +2054,7 @@ export class PromiseUsersApi {
      * Get My Profile
      */
     public getMyProfile(_options?: PromiseConfigurationOptions): Promise<Profile> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getMyProfile(observableOptions);
         return result.toPromise();
     }
@@ -3718,18 +2064,7 @@ export class PromiseUsersApi {
      * @param profileUpdate
      */
     public updateMyProfileWithHttpInfo(profileUpdate: ProfileUpdate, _options?: PromiseConfigurationOptions): Promise<HttpInfo<Profile>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.updateMyProfileWithHttpInfo(profileUpdate, observableOptions);
         return result.toPromise();
     }
@@ -3739,18 +2074,7 @@ export class PromiseUsersApi {
      * @param profileUpdate
      */
     public updateMyProfile(profileUpdate: ProfileUpdate, _options?: PromiseConfigurationOptions): Promise<Profile> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.updateMyProfile(profileUpdate, observableOptions);
         return result.toPromise();
     }
@@ -3782,18 +2106,7 @@ export class PromiseWalletsApi {
      * @param licensedItemCheckoutData
      */
     public checkoutLicensedItemWithHttpInfo(walletId: number, licensedItemId: string, licensedItemCheckoutData: LicensedItemCheckoutData, _options?: PromiseConfigurationOptions): Promise<HttpInfo<LicensedItemCheckoutGet>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.checkoutLicensedItemWithHttpInfo(walletId, licensedItemId, licensedItemCheckoutData, observableOptions);
         return result.toPromise();
     }
@@ -3806,18 +2119,7 @@ export class PromiseWalletsApi {
      * @param licensedItemCheckoutData
      */
     public checkoutLicensedItem(walletId: number, licensedItemId: string, licensedItemCheckoutData: LicensedItemCheckoutData, _options?: PromiseConfigurationOptions): Promise<LicensedItemCheckoutGet> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.checkoutLicensedItem(walletId, licensedItemId, licensedItemCheckoutData, observableOptions);
         return result.toPromise();
     }
@@ -3830,18 +2132,7 @@ export class PromiseWalletsApi {
      * @param [offset] Page offset
      */
     public getAvailableLicensedItemsForWalletWithHttpInfo(walletId: number, limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<PageLicensedItemGet>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getAvailableLicensedItemsForWalletWithHttpInfo(walletId, limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -3854,18 +2145,7 @@ export class PromiseWalletsApi {
      * @param [offset] Page offset
      */
     public getAvailableLicensedItemsForWallet(walletId: number, limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<PageLicensedItemGet> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getAvailableLicensedItemsForWallet(walletId, limit, offset, observableOptions);
         return result.toPromise();
     }
@@ -3875,18 +2155,7 @@ export class PromiseWalletsApi {
      * Get Default Wallet
      */
     public getDefaultWalletWithHttpInfo(_options?: PromiseConfigurationOptions): Promise<HttpInfo<WalletGetWithAvailableCreditsLegacy>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getDefaultWalletWithHttpInfo(observableOptions);
         return result.toPromise();
     }
@@ -3896,18 +2165,7 @@ export class PromiseWalletsApi {
      * Get Default Wallet
      */
     public getDefaultWallet(_options?: PromiseConfigurationOptions): Promise<WalletGetWithAvailableCreditsLegacy> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getDefaultWallet(observableOptions);
         return result.toPromise();
     }
@@ -3918,18 +2176,7 @@ export class PromiseWalletsApi {
      * @param walletId
      */
     public getWalletWithHttpInfo(walletId: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<WalletGetWithAvailableCreditsLegacy>> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getWalletWithHttpInfo(walletId, observableOptions);
         return result.toPromise();
     }
@@ -3940,18 +2187,7 @@ export class PromiseWalletsApi {
      * @param walletId
      */
     public getWallet(walletId: number, _options?: PromiseConfigurationOptions): Promise<WalletGetWithAvailableCreditsLegacy> {
-        let observableOptions: undefined | ConfigurationOptions
-        if (_options){
-	    observableOptions = {
-                baseServer: _options.baseServer,
-                httpApi: _options.httpApi,
-                middleware: _options.middleware?.map(
-                    m => new PromiseMiddlewareWrapper(m)
-		),
-		middlewareMergeStrategy: _options.middlewareMergeStrategy,
-                authMethods: _options.authMethods
-	    }
-	}
+        const observableOptions = wrapOptions(_options);
         const result = this.api.getWallet(walletId, observableOptions);
         return result.toPromise();
     }

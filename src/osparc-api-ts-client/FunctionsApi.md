@@ -128,7 +128,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
 
 # **getFunctionInputschema**
-> ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet getFunctionInputschema()
+> JSONFunctionInputSchema getFunctionInputschema()
 
 Get function input schema
 
@@ -161,7 +161,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-**ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet**
+**JSONFunctionInputSchema**
 
 ### Authorization
 
@@ -183,7 +183,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
 
 # **getFunctionOutputschema**
-> ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet getFunctionOutputschema()
+> JSONFunctionInputSchema getFunctionOutputschema()
 
 Get function input schema
 
@@ -216,7 +216,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-**ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet**
+**JSONFunctionInputSchema**
 
 ### Authorization
 

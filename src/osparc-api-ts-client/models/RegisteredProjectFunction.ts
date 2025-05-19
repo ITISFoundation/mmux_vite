@@ -10,16 +10,16 @@
  * Do not edit the class manually.
  */
 
-import { InputSchema } from '../models/InputSchema';
-import { OutputSchema } from '../models/OutputSchema';
+import { JSONFunctionInputSchema } from '../models/JSONFunctionInputSchema';
+import { JSONFunctionOutputSchema } from '../models/JSONFunctionOutputSchema';
 import { HttpFile } from '../http/http';
 
 export class RegisteredProjectFunction {
     'functionClass'?: RegisteredProjectFunctionFunctionClassEnum;
     'title'?: string;
     'description'?: string;
-    'inputSchema': InputSchema;
-    'outputSchema': OutputSchema;
+    'inputSchema': JSONFunctionInputSchema;
+    'outputSchema': JSONFunctionOutputSchema;
     'defaultInputs': any | null;
     'uid': string;
     'projectId': string;
@@ -50,13 +50,13 @@ export class RegisteredProjectFunction {
         {
             "name": "inputSchema",
             "baseName": "input_schema",
-            "type": "InputSchema",
+            "type": "JSONFunctionInputSchema",
             "format": ""
         },
         {
             "name": "outputSchema",
             "baseName": "output_schema",
-            "type": "OutputSchema",
+            "type": "JSONFunctionOutputSchema",
             "format": ""
         },
         {

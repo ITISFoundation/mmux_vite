@@ -11,10 +11,9 @@ import {SecurityAuthentication} from '../auth/auth';
 import { ErrorGet } from '../models/ErrorGet';
 import { Function } from '../models/Function';
 import { HTTPValidationError } from '../models/HTTPValidationError';
+import { JSONFunctionInputSchema } from '../models/JSONFunctionInputSchema';
 import { PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
 import { RegisteredFunctionJobCollection } from '../models/RegisteredFunctionJobCollection';
-import { ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet } from '../models/ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet';
-import { ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet } from '../models/ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet';
 import { ResponseGetFunctionV0FunctionsFunctionIdGet } from '../models/ResponseGetFunctionV0FunctionsFunctionIdGet';
 import { ResponseRegisterFunctionV0FunctionsPost } from '../models/ResponseRegisterFunctionV0FunctionsPost';
 import { ResponseRunFunctionV0FunctionsFunctionIdRunPost } from '../models/ResponseRunFunctionV0FunctionsFunctionIdRunPost';
@@ -581,13 +580,13 @@ export class FunctionsApiResponseProcessor {
      * @params response Response returned by the server for a request to getFunctionInputschema
      * @throws ApiException if the response code was not in [200, 299]
      */
-     public async getFunctionInputschemaWithHttpInfo(response: ResponseContext): Promise<HttpInfo<ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet >> {
+     public async getFunctionInputschemaWithHttpInfo(response: ResponseContext): Promise<HttpInfo<JSONFunctionInputSchema >> {
         const contentType = ObjectSerializer.normalizeMediaType(response.headers["content-type"]);
         if (isCodeInRange("200", response.httpStatusCode)) {
-            const body: ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet = ObjectSerializer.deserialize(
+            const body: JSONFunctionInputSchema = ObjectSerializer.deserialize(
                 ObjectSerializer.parse(await response.body.text(), contentType),
-                "ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet", ""
-            ) as ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet;
+                "JSONFunctionInputSchema", ""
+            ) as JSONFunctionInputSchema;
             return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
         }
         if (isCodeInRange("404", response.httpStatusCode)) {
@@ -607,10 +606,10 @@ export class FunctionsApiResponseProcessor {
 
         // Work around for missing responses in specification, e.g. for petstore.yaml
         if (response.httpStatusCode >= 200 && response.httpStatusCode <= 299) {
-            const body: ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet = ObjectSerializer.deserialize(
+            const body: JSONFunctionInputSchema = ObjectSerializer.deserialize(
                 ObjectSerializer.parse(await response.body.text(), contentType),
-                "ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet", ""
-            ) as ResponseGetFunctionInputschemaV0FunctionsFunctionIdInputSchemaGet;
+                "JSONFunctionInputSchema", ""
+            ) as JSONFunctionInputSchema;
             return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
         }
 
@@ -624,13 +623,13 @@ export class FunctionsApiResponseProcessor {
      * @params response Response returned by the server for a request to getFunctionOutputschema
      * @throws ApiException if the response code was not in [200, 299]
      */
-     public async getFunctionOutputschemaWithHttpInfo(response: ResponseContext): Promise<HttpInfo<ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet >> {
+     public async getFunctionOutputschemaWithHttpInfo(response: ResponseContext): Promise<HttpInfo<JSONFunctionInputSchema >> {
         const contentType = ObjectSerializer.normalizeMediaType(response.headers["content-type"]);
         if (isCodeInRange("200", response.httpStatusCode)) {
-            const body: ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet = ObjectSerializer.deserialize(
+            const body: JSONFunctionInputSchema = ObjectSerializer.deserialize(
                 ObjectSerializer.parse(await response.body.text(), contentType),
-                "ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet", ""
-            ) as ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet;
+                "JSONFunctionInputSchema", ""
+            ) as JSONFunctionInputSchema;
             return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
         }
         if (isCodeInRange("404", response.httpStatusCode)) {
@@ -650,10 +649,10 @@ export class FunctionsApiResponseProcessor {
 
         // Work around for missing responses in specification, e.g. for petstore.yaml
         if (response.httpStatusCode >= 200 && response.httpStatusCode <= 299) {
-            const body: ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet = ObjectSerializer.deserialize(
+            const body: JSONFunctionInputSchema = ObjectSerializer.deserialize(
                 ObjectSerializer.parse(await response.body.text(), contentType),
-                "ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet", ""
-            ) as ResponseGetFunctionOutputschemaV0FunctionsFunctionIdOutputSchemaGet;
+                "JSONFunctionInputSchema", ""
+            ) as JSONFunctionInputSchema;
             return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
         }
 
