@@ -3,7 +3,7 @@ import config from '../../osparc-master.conf.json';
 // Function API server
 const CONFIGURATION_FUNCTION_API = createConfiguration(
     {
-        baseServer: new ServerConfiguration(config.apiUrl, {}),
+        baseServer: new ServerConfiguration(config.host, {}),
         authMethods: {
             "HTTPBasic": {
                 username: config.username,

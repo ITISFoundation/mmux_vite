@@ -1,5 +1,5 @@
 import { FUNCTION_API, JOB_API } from './api_objects';
-import { Function, FunctionJob, FunctionJobCollection } from '../functions-api-ts-client';
+import { Function, FunctionJob, FunctionJobCollection } from '../osparc-api-ts-client';
 
 export function createInputOutputSchema(vars: string[]) {
     return {
@@ -11,26 +11,27 @@ export function createInputOutputSchema(vars: string[]) {
         "required": vars,
     }
 }
-export async function findFunction(name: string): Promise<Function> {
-    // FIXME avoid registering duplicate functions should be in the API
-    // this is a temporary patch
-    const funs = await FUNCTION_API.searchFunctionsByName(name)
-    if (funs.length !== 1) {
-        console.error(`Expected exactly 1 function, but found ${funs.length}`);
-    }
-    const fun = funs[0]
-    console.log("funId: ", fun.id);
-    console.log("fun: ", fun)
-    return fun
-}
+// export async function findFunction(name: string): Promise<Function> {
+//     // FIXME avoid registering duplicate functions should be in the API
+//     // this is a temporary patch
+//     const funs = await FUNCTION_API.searchFunctionsByName(name)
+//     if (funs.length !== 1) {
+//         console.error(`Expected exactly 1 function, but found ${funs.length}`);
+//     }
+//     const fun = funs[0]
+//     console.log("funId: ", fun.id);
+//     console.log("fun: ", fun)
+//     return fun
+// }
 
 export async function getJobStatus(job: FunctionJob | FunctionJobCollection): Promise<string> {
-    const jobId = job.id
+    const jobId = job.uid
     if (!jobId) {
         console.log("jobId not found")
         throw new Error("Job ID not found in the provided job object.");
     }
-    let response = await JOB_API.getJobsStatus([jobId])
+    let response = await JOB_API.functionJobStatus(jobId)
+    console.log("Job status response: ", response)
     let jobStatus = response[0]?.status ?? "UNKNOWN";
     console.log("Job status: ", jobStatus)
     return jobStatus

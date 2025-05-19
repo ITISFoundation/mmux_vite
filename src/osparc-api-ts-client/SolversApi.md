@@ -14,7 +14,7 @@ Method | HTTP request | Description
 [**getJobWallet**](SolversApi.md#getJobWallet) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}/wallet | Get Job Wallet
 [**getJobsPage**](SolversApi.md#getJobsPage) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/page | Get Jobs Page
 [**getLogStream**](SolversApi.md#getLogStream) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}/logstream | Get Log Stream
-[**getSolver**](SolversApi.md#getSolver) | **GET** /v0/solvers/{solver_key}/latest | Get Latest Release of a Solver
+[**getSolver**](SolversApi.md#getSolver) | **GET** /v0/solvers/{solver_key}/latest | Get Solver
 [**getSolverPricingPlan**](SolversApi.md#getSolverPricingPlan) | **GET** /v0/solvers/{solver_key}/releases/{version}/pricing_plan | Get Solver Pricing Plan
 [**getSolverRelease**](SolversApi.md#getSolverRelease) | **GET** /v0/solvers/{solver_key}/releases/{version} | Get Solver Release
 [**inspectJob**](SolversApi.md#inspectJob) | **POST** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}:inspect | Inspect Job
@@ -712,7 +712,7 @@ Name | Type | Description  | Notes
 # **getSolver**
 > Solver getSolver()
 
-Gets latest release of a solver
+Gets latest release of a solver  Added in *version 0.7.1*: `version_display` field in the response
 
 ### Example
 
@@ -772,7 +772,7 @@ Name | Type | Description  | Notes
 # **getSolverPricingPlan**
 > ServicePricingPlanGetLegacy getSolverPricingPlan()
 
-Gets solver pricing plan  New in *version 0.7*
+Gets solver pricing plan  New in *version 0.7*  Added in *version 0.7.1*: `version_display` field in the response
 
 ### Example
 
@@ -835,7 +835,7 @@ Name | Type | Description  | Notes
 # **getSolverRelease**
 > Solver getSolverRelease()
 
-Gets a specific release of a solver
+Gets a specific release of a solver  Added in *version 0.7.1*: `version_display` field in the response
 
 ### Example
 
@@ -1028,7 +1028,7 @@ Name | Type | Description  | Notes
 # **listSolverPorts**
 > OnePageSolverPort listSolverPorts()
 
-Lists inputs and outputs of a given solver  New in *version 0.5.0*
+Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
 
 ### Example
 
@@ -1091,7 +1091,7 @@ Name | Type | Description  | Notes
 # **listSolverReleases**
 > Array<Solver> listSolverReleases()
 
-Lists all releases of a given (one) solver  SEE get_solver_releases_page for a paginated version of this function
+Lists all releases of a given (one) solver  Added in *version 0.7.1*: `version_display` field in the response
 
 ### Example
 
@@ -1151,7 +1151,7 @@ Name | Type | Description  | Notes
 # **listSolvers**
 > Array<Solver> listSolvers()
 
-🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*  Removed in *version 0.7*: This endpoint is deprecated and will be removed in a future version
+🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
 
 ### Example
 
@@ -1203,7 +1203,7 @@ This endpoint does not need any parameter.
 # **listSolversReleases**
 > Array<Solver> listSolversReleases()
 
-🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*  Removed in *version 0.7*: This endpoint is deprecated and will be removed in a future version
+🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
 
 ### Example
 

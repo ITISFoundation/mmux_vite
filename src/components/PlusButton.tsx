@@ -1,4 +1,4 @@
-import React, { JSX , useState} from 'react';
+import { JSX, useState } from 'react';
 import { Button, Box } from '@mui/material';
 
 // This element is a generic + button with a few extra elements

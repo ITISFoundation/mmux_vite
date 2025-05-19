@@ -3370,8 +3370,8 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Gets latest release of a solver
-     * Get Latest Release of a Solver
+     * Gets latest release of a solver  Added in *version 0.7.1*: `version_display` field in the response
+     * Get Solver
      * @param solverKey
      */
     public getSolverWithHttpInfo(solverKey: string, _options?: ConfigurationOptions): Observable<HttpInfo<Solver>> {
@@ -3423,8 +3423,8 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Gets latest release of a solver
-     * Get Latest Release of a Solver
+     * Gets latest release of a solver  Added in *version 0.7.1*: `version_display` field in the response
+     * Get Solver
      * @param solverKey
      */
     public getSolver(solverKey: string, _options?: ConfigurationOptions): Observable<Solver> {
@@ -3432,7 +3432,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Gets solver pricing plan  New in *version 0.7*
+     * Gets solver pricing plan  New in *version 0.7*  Added in *version 0.7.1*: `version_display` field in the response
      * Get Solver Pricing Plan
      * @param solverKey
      * @param version
@@ -3486,7 +3486,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Gets solver pricing plan  New in *version 0.7*
+     * Gets solver pricing plan  New in *version 0.7*  Added in *version 0.7.1*: `version_display` field in the response
      * Get Solver Pricing Plan
      * @param solverKey
      * @param version
@@ -3496,7 +3496,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Gets a specific release of a solver
+     * Gets a specific release of a solver  Added in *version 0.7.1*: `version_display` field in the response
      * Get Solver Release
      * @param solverKey
      * @param version
@@ -3550,7 +3550,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Gets a specific release of a solver
+     * Gets a specific release of a solver  Added in *version 0.7.1*: `version_display` field in the response
      * Get Solver Release
      * @param solverKey
      * @param version
@@ -3688,7 +3688,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Lists inputs and outputs of a given solver  New in *version 0.5.0*
+     * Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Ports
      * @param solverKey
      * @param version
@@ -3742,7 +3742,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Lists inputs and outputs of a given solver  New in *version 0.5.0*
+     * Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Ports
      * @param solverKey
      * @param version
@@ -3752,7 +3752,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Lists all releases of a given (one) solver  SEE get_solver_releases_page for a paginated version of this function
+     * Lists all releases of a given (one) solver  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Releases
      * @param solverKey
      */
@@ -3805,7 +3805,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Lists all releases of a given (one) solver  SEE get_solver_releases_page for a paginated version of this function
+     * Lists all releases of a given (one) solver  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Releases
      * @param solverKey
      */
@@ -3814,7 +3814,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*  Removed in *version 0.7*: This endpoint is deprecated and will be removed in a future version
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
      * List Solvers
      */
     public listSolversWithHttpInfo(_options?: ConfigurationOptions): Observable<HttpInfo<Array<Solver>>> {
@@ -3866,7 +3866,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*  Removed in *version 0.7*: This endpoint is deprecated and will be removed in a future version
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
      * List Solvers
      */
     public listSolvers(_options?: ConfigurationOptions): Observable<Array<Solver>> {
@@ -3874,7 +3874,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*  Removed in *version 0.7*: This endpoint is deprecated and will be removed in a future version
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
      * Lists All Releases
      */
     public listSolversReleasesWithHttpInfo(_options?: ConfigurationOptions): Observable<HttpInfo<Array<Solver>>> {
@@ -3926,7 +3926,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*  Removed in *version 0.7*: This endpoint is deprecated and will be removed in a future version
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
      * Lists All Releases
      */
     public listSolversReleases(_options?: ConfigurationOptions): Observable<Array<Solver>> {
