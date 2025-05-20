@@ -13,6 +13,7 @@
 import { HttpFile } from '../http/http';
 
 export class ProjectFunctionJob {
+    'uid': string; // added to TypeScript  
     'title'?: string;
     'description'?: string;
     'functionUid': string;
@@ -20,6 +21,7 @@ export class ProjectFunctionJob {
     'outputs': any | null;
     'functionClass'?: ProjectFunctionJobFunctionClassEnum;
     'projectJobId': string;
+    'status': string; // added to TypeScript stubs for consistency. Being fetched in the Python backend.
 
     static readonly discriminator: string | undefined = undefined;
 

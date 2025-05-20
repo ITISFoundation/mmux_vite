@@ -13,12 +13,14 @@
 import { HttpFile } from '../http/http';
 
 export class PythonCodeFunctionJob {
+    'uid': string; // added to TypeScript  
     'title'?: string;
     'description'?: string;
     'functionUid': string;
     'inputs': any | null;
     'outputs': any | null;
     'functionClass'?: PythonCodeFunctionJobFunctionClassEnum;
+    'status': string; // added to TypeScript stubs for consistency. Being fetched in the Python backend.
 
     static readonly discriminator: string | undefined = undefined;
 

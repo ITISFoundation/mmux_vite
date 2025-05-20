@@ -15,6 +15,7 @@ import { JSONFunctionOutputSchema } from '../models/JSONFunctionOutputSchema';
 import { HttpFile } from '../http/http';
 
 export class ProjectFunction {
+    'uid': string; // added to TypeScript  
     'functionClass'?: ProjectFunctionFunctionClassEnum;
     'title'?: string;
     'description'?: string;

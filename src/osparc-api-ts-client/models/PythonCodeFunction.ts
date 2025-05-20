@@ -15,6 +15,7 @@ import { JSONFunctionOutputSchema } from '../models/JSONFunctionOutputSchema';
 import { HttpFile } from '../http/http';
 
 export class PythonCodeFunction {
+    'uid': string; // added to TypeScript  
     'functionClass'?: PythonCodeFunctionFunctionClassEnum;
     'title'?: string;
     'description'?: string;

@@ -15,6 +15,7 @@ import { JSONFunctionOutputSchema } from '../models/JSONFunctionOutputSchema';
 import { HttpFile } from '../http/http';
 
 export class SolverFunction {
+    'uid': string; // added to TypeScript  
     'functionClass'?: SolverFunctionFunctionClassEnum;
     'title'?: string;
     'description'?: string;
