@@ -4,8 +4,6 @@ import Setup from './views/Setup';
 import SuMoBuildingValidation from './views/SuMoBuilding';
 import Navigation from './components/Navigation';
 import { useState } from 'react';
-import osparc_logo from "./assets/osparc-logo.png"
-// import osparc_loading_symbol from "./assets/osparc-loading-symbol.png"
 import MMUXContext from './views/MMUXContext';
 import { Function } from './osparc-api-ts-client';
 
@@ -51,16 +49,6 @@ function App() {
           <UQ />
         </div>
 
-        {/* osparc logo on bottom left; access to runner status wheel on bottom right */}
-        <div style={{
-          display: 'flex',
-          // justifyContent: "space-between",
-          placeContent: "center",
-          marginLeft: "5px", marginRight: "5px",
-          marginBottom: "3px", marginTop: "10px"
-        }}>
-          <img src={osparc_logo} style={{ height: "35px" }} />
-        </div>
       </div>
     </MMUXContext.Provider >
   );
