@@ -125,15 +125,17 @@ def flask_get_function_jobs():
     logger.info("Cwd: " + str(Path.cwd()))
     function_uid = request.args["functionUid"]
     logger.info(f"Function ID: {function_uid}")
-    jobs = job_api_instance.list_function_jobs() ## FIXME this endpoint is not ready - for now, filter here
-    ## this is a list of items of Paginated object -- deserialize into a list of function objects
+    # jobs = job_api_instance.list_function_jobs() ## FIXME this endpoint is not ready - for now, filter here
+    # ## this is a list of items of Paginated object -- deserialize into a list of function objects
+    # jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in jobs.items]
+    # logger.info(f"N Jobs: {len(jobs)}")
+    # jobs = [j for j in jobs if j["functionUid"] == function_uid]
+    jobs = functions_api_instance.list_function_jobs_for_functionid(function_uid)
     jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in jobs.items]
-    logger.info(f"N Jobs: {len(jobs)}")
-    jobs = [j for j in jobs if j["functionUid"] == function_uid]
+    logger.info(f"N Jobs for function {function_uid}: {len(jobs)}")
     for j in jobs:
         status : FunctionJobStatus = job_api_instance.function_job_status(j["uid"]) 
         j["status"] = status.status
-    logger.info(f"N Jobs for function {function_uid}: {len(jobs)}")
     return jsonify(jobs)
 
 

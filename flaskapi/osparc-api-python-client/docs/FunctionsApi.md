@@ -8,6 +8,7 @@ Method | HTTP request | Description
 [**get_function**](FunctionsApi.md#get_function) | **GET** /v0/functions/{function_id} | Get Function
 [**get_function_inputschema**](FunctionsApi.md#get_function_inputschema) | **GET** /v0/functions/{function_id}/input_schema | Get Function Inputschema
 [**get_function_outputschema**](FunctionsApi.md#get_function_outputschema) | **GET** /v0/functions/{function_id}/output_schema | Get Function Outputschema
+[**list_function_jobs_for_functionid**](FunctionsApi.md#list_function_jobs_for_functionid) | **GET** /v0/functions/{function_id}/jobs | List Function Jobs For Functionid
 [**list_functions**](FunctionsApi.md#list_functions) | **GET** /v0/functions | List Functions
 [**map_function**](FunctionsApi.md#map_function) | **POST** /v0/functions/{function_id}:map | Map Function
 [**register_function**](FunctionsApi.md#register_function) | **POST** /v0/functions | Register Function
@@ -23,6 +24,8 @@ Method | HTTP request | Description
 Delete Function
 
 Delete function
+
+New in *version 0.8.0*
 
 ### Example
 
@@ -92,6 +95,8 @@ No authorization required
 Get Function
 
 Get function
+
+New in *version 0.8.0*
 
 ### Example
 
@@ -163,6 +168,8 @@ Get Function Inputschema
 
 Get function input schema
 
+New in *version 0.8.0*
+
 ### Example
 
 
@@ -231,7 +238,9 @@ No authorization required
 
 Get Function Outputschema
 
-Get function input schema
+Get function output schema
+
+New in *version 0.8.0*
 
 ### Example
 
@@ -296,12 +305,89 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **list_function_jobs_for_functionid**
+> PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass list_function_jobs_for_functionid(function_id, limit=limit, offset=offset)
+
+List Function Jobs For Functionid
+
+List function jobs for a function
+
+New in *version 0.8.0*
+
+### Example
+
+
+```python
+import osparc_client
+from osparc_client.models.page_annotated_union_registered_project_function_job_registered_python_code_function_job_registered_solver_function_job_field_info_annotation_none_type_required_true_discriminator_function_class import PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass
+from osparc_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = osparc_client.Configuration(
+    host = "http://localhost"
+)
+
+
+# Enter a context with an instance of the API client
+with osparc_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = osparc_client.FunctionsApi(api_client)
+    function_id = 'function_id_example' # str | 
+    limit = 20 # int | Page size limit (optional) (default to 20)
+    offset = 0 # int | Page offset (optional) (default to 0)
+
+    try:
+        # List Function Jobs For Functionid
+        api_response = api_instance.list_function_jobs_for_functionid(function_id, limit=limit, offset=offset)
+        print("The response of FunctionsApi->list_function_jobs_for_functionid:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling FunctionsApi->list_function_jobs_for_functionid: %s\n" % e)
+```
+
+
+
+### Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **function_id** | **str**|  | 
+ **limit** | **int**| Page size limit | [optional] [default to 20]
+ **offset** | **int**| Page offset | [optional] [default to 0]
+
+### Return type
+
+[**PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass**](PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | Successful Response |  -  |
+**422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **list_functions**
 > PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass list_functions(limit=limit, offset=offset)
 
 List Functions
 
 List functions
+
+New in *version 0.8.0*
 
 ### Example
 
@@ -373,6 +459,8 @@ No authorization required
 Map Function
 
 Map function over input parameters
+
+New in *version 0.8.0*
 
 ### Example
 
@@ -457,6 +545,8 @@ Register Function
 
 Create function
 
+New in *version 0.8.0*
+
 ### Example
 
 
@@ -527,6 +617,8 @@ No authorization required
 Run Function
 
 Run function
+
+New in *version 0.8.0*
 
 ### Example
 
@@ -611,6 +703,8 @@ Update Function Description
 
 Update function
 
+New in *version 0.8.0*
+
 ### Example
 
 
@@ -683,6 +777,8 @@ Update Function Title
 
 Update function
 
+New in *version 0.8.0*
+
 ### Example
 
 
@@ -754,6 +850,8 @@ No authorization required
 Validate Function Inputs
 
 Validate inputs against the function's input schema
+
+New in *version 0.8.0*
 
 ### Example
 

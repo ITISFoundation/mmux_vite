@@ -35,15 +35,8 @@ ts-client: client-generator
 		-o ./src/osparc-api-ts-client \
 		--package-name osparc_client
 
-python-client: 
-# 	curl https://api.osparc-master.speag.com/api/v0/openapi.json -o openapi.json
-# # npm install @openapitools/openapi-generator-cli -g
-# 	openapi-generator-cli generate \
-# 		-i openapi.json \
-# 		-g python \
-# 		-o ./flaskapi/functions-api-python-client \
-# 		--package-name osparc_client
-# 	$(VENV_DIR)/bin/python -m pip install ./flaskapi/functions-api-python-client
+python-client: client-generator
+	curl https://api.osparc-master.speag.com/api/v0/openapi.json -o openapi.json
 	uv run openapi-generator-cli generate \
 		-i openapi.json \
 		-g python \
