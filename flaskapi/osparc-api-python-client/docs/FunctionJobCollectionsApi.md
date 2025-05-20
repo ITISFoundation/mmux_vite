@@ -19,6 +19,8 @@ Delete Function Job Collection
 
 Delete function job collection
 
+New in *version 0.8.0*
+
 ### Example
 
 
@@ -239,6 +241,8 @@ Get Function Job Collection
 
 Get function job collection
 
+New in *version 0.8.0*
+
 ### Example
 
 
@@ -308,6 +312,8 @@ No authorization required
 List Function Job Collections
 
 List function job collections
+
+New in *version 0.8.0*
 
 ### Example
 
@@ -379,6 +385,8 @@ No authorization required
 Register Function Job Collection
 
 Register function job collection
+
+New in *version 0.8.0*
 
 ### Example
 

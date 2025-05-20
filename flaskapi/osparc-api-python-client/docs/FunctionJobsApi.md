@@ -19,6 +19,8 @@ Delete Function Job
 
 Delete function job
 
+New in *version 0.8.0*
+
 ### Example
 
 
@@ -87,6 +89,8 @@ No authorization required
 Function Job Outputs
 
 Get function job outputs
+
+New in *version 0.8.0*
 
 ### Example
 
@@ -167,6 +171,8 @@ Name | Type | Description  | Notes
 Function Job Status
 
 Get function job status
+
+New in *version 0.8.0*
 
 ### Example
 
@@ -249,6 +255,8 @@ Get Function Job
 
 Get function job
 
+New in *version 0.8.0*
+
 ### Example
 
 
@@ -318,6 +326,8 @@ No authorization required
 List Function Jobs
 
 List function jobs
+
+New in *version 0.8.0*
 
 ### Example
 
@@ -389,6 +399,8 @@ No authorization required
 Register Function Job
 
 Create function job
+
+New in *version 0.8.0*
 
 ### Example
 
