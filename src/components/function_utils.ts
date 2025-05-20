@@ -1,4 +1,4 @@
-import { FUNCTION_API, JOB_API } from './api_objects';
+import { PYTHON_DAKOTA_BACKEND } from './api_objects';
 import { Function, FunctionJob, FunctionJobCollection } from '../osparc-api-ts-client';
 
 export function createInputOutputSchema(vars: string[]) {
@@ -11,6 +11,31 @@ export function createInputOutputSchema(vars: string[]) {
         "required": vars,
     }
 }
+
+export async function listFunctions(): Promise<Function[]> {
+    return await fetch(
+        PYTHON_DAKOTA_BACKEND + '/flask/list_functions',
+    ).then(function (response) {
+        return response.json()
+    })
+}
+
+export async function listJobs(): Promise<FunctionJob[]> {
+    return await fetch(
+        PYTHON_DAKOTA_BACKEND + '/flask/list_jobs',
+    ).then(function (response) {
+        return response.json()
+    })
+}
+
+export async function getFunctionJobs(functionUid: number): Promise<FunctionJob[]> {
+    return await fetch(
+        PYTHON_DAKOTA_BACKEND + '/flask/get_function_jobs/' + functionUid,
+    ).then(function (response) {
+        return response.json()
+    })
+}
+
 // export async function findFunction(name: string): Promise<Function> {
 //     // FIXME avoid registering duplicate functions should be in the API
 //     // this is a temporary patch

@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import { Function } from '../functions-api-ts-client';
+import { Function } from '../osparc-api-ts-client';
 
 interface MMUXContextType {
     selectedFunction: Function | undefined;
