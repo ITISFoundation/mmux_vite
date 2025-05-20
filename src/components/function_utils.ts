@@ -30,7 +30,7 @@ export async function listJobs(): Promise<FunctionJob[]> {
 
 export async function getFunctionJobs(functionUid: number): Promise<FunctionJob[]> {
     return await fetch(
-        PYTHON_DAKOTA_BACKEND + '/flask/get_function_jobs/' + functionUid,
+        PYTHON_DAKOTA_BACKEND + '/flask/get_function_jobs?functionUid=' + functionUid,
     ).then(function (response) {
         return response.json()
     })

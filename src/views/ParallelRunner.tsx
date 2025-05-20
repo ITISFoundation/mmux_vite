@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useContext } from 'react'
-import { FunctionJob } from '../functions-api-ts-client';
-import { JOB_API } from '../components/api_objects';
+import type { FunctionJob } from '../osparc-api-ts-client';
 import MMUXContext from './MMUXContext';
+import { getFunctionJobs } from '../components/function_utils';
 
 const statusColors = {
     PENDING: 'bg-gray-300',
@@ -103,7 +103,7 @@ type JobCardProps = {
 };
 function JobCard(props: JobCardProps) {
     const job = props.job
-    if (!job.status) {
+    if (!job) {
         return (
             <text>
                 JobCard could not be rendered
@@ -111,7 +111,7 @@ function JobCard(props: JobCardProps) {
         )
     }
     else {
-        const jobtitle = job.id?.toString() + ": " + JSON.stringify(job.inputs)
+        const jobtitle = job.uid?.toString() + ": " + JSON.stringify(job.inputs)
         return (
             <div className="relative mb-2 group">
                 <div className={`p-3 rounded shadow ${statusColors[job.status]} transition-all duration-300 ease-in-out`}>
@@ -184,7 +184,7 @@ function Dashboard() {
 
     const fetchJobs = useCallback(async () => {
         try {
-            let jobList = await JOB_API.getFunctionJobs(context?.selectedFunction?.id as number);
+            let jobList = await getFunctionJobs(context?.selectedFunction?.uid as number);
             console.log("Fetched jobs:", jobList);
             setJobs(jobList);
             // setTotalETA(data.totalETA);
@@ -198,7 +198,7 @@ function Dashboard() {
 
     useEffect(() => {
         fetchJobs();
-        const intervalId = setInterval(fetchJobs, 1000); // Refresh every 1 second
+        const intervalId = setInterval(fetchJobs, 5000); // Refresh every 5 seconds
         return () => clearInterval(intervalId);
     }, [fetchJobs]);
 

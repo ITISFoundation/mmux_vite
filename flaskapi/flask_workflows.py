@@ -25,7 +25,7 @@ from flask_cors import CORS
 from osparc_client.configuration import Configuration as OsparcConfiguration
 from osparc_client.api_client import ApiClient
 from osparc_client.api.functions_api import FunctionsApi
-from osparc_client.api.function_jobs_api import FunctionJobsApi
+from osparc_client.api.function_jobs_api import FunctionJobsApi, FunctionJobStatus
 from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi
 
 
@@ -123,13 +123,16 @@ def flask_list_jobs():
 def flask_get_function_jobs():
     logger.info("Starting flask function: flask_get_function_jobs")
     logger.info("Cwd: " + str(Path.cwd()))
-    function_uid = request.args["functionUod"]
+    function_uid = request.args["functionUid"]
     logger.info(f"Function ID: {function_uid}")
     jobs = job_api_instance.list_function_jobs() ## FIXME this endpoint is not ready - for now, filter here
     ## this is a list of items of Paginated object -- deserialize into a list of function objects
     jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in jobs.items]
     logger.info(f"N Jobs: {len(jobs)}")
     jobs = [j for j in jobs if j["functionUid"] == function_uid]
+    for j in jobs:
+        status : FunctionJobStatus = job_api_instance.function_job_status(j["uid"]) 
+        j["status"] = status.status
     logger.info(f"N Jobs for function {function_uid}: {len(jobs)}")
     return jsonify(jobs)
 
