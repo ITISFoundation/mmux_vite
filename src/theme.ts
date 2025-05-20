@@ -1,30 +1,32 @@
 import { createTheme } from "@mui/material";
-import { deepPurple } from '@mui/material/colors';
 
 export function setupTheme() {
     return createTheme({
-        palette: { primary: deepPurple },
         // shape: { borderRadius: 10 }
         components: {
             MuiButton: {
                 styleOverrides: {
                     root: {
+                        color: '#eee', // almost white text in buttons
+                        backgroundColor: '#343839',
                         variants: [{
                             props: {
                                 variant: "contained",
                             },
                             style: {
-                                // backgroundColor works but disableElevation doesnt...
+                                // backgroundColor works but disableElevation doesn't...
                                 // disableElevation: true,
                                 // disableRipple: true,
                                 // backgroundColor : "red",
                                 // boxShadow: "200px",
-                                
                             }
                         }
                         ],
                         '&:hover': {
-                            backgroundColor: deepPurple[300], // Slightly darker on hover
+                            backgroundColor: '#0090D0', /* S4L blue */
+                        },
+                        '&:disabled': {
+                            color: '#bbb',
                         },
                     },
                 },

@@ -1,12 +1,12 @@
 import { useState, useContext, useEffect } from 'react';
 import MetaModelingUX from '../components/MetaModelingUX';
 import { Button, Input } from '@mui/material';
-import { FunctionList } from '../components/FunctionIndex';
+import { FunctionList } from '../components/FunctionList';
 import MMUXContext from './MMUXContext';
 import PlusButton from '../components/PlusButton';
 import usePersistentJSONState from '../hooks/usePersistentJSONState';
-import { FUNCTION_API, PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
-import { Function, FunctionJob } from '../functions-api-ts-client';
+import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
+import { Function, FunctionJob } from '../osparc-api-ts-client';
 import ParallelRunner from './ParallelRunner';
 
 function runGridSearchSampling(config: any[]) {
@@ -120,10 +120,9 @@ async function runLhsSampling(fun: Function, config: any[], seed: number = 0) {
     console.log("Jobs created: ", jobs);
 }
 
-
-
 async function runFunctionJob(fun: Function, row: Record<string, any>): Promise<FunctionJob> {
-    var inputValues = Object.keys(fun.inputSchema.properties).reduce((acc, key) => {
+    console.log("Input schema: ", fun.inputSchema);
+    var inputValues = Object.keys(fun.inputSchema).reduce((acc, key) => {
         if (key in row) {
             acc[key] = row[key];
         } else {
@@ -132,17 +131,15 @@ async function runFunctionJob(fun: Function, row: Record<string, any>): Promise<
         return acc;
     }, {} as Record<string, any>);
     let job = await FUNCTION_API.runFunction(
-        fun.id as number,
+        fun.uid as number,
         JSON.stringify(inputValues)// Convert input values to a comma-separated string with key-value pairs
     )
     return job
 }
 
-// TODO include the PR viewer for current running jobs!! :)
-
 function LHSSampling() {
     const context = useContext(MMUXContext);
-    const inputVars = context?.selectedFunction?.inputSchema.required as string[];
+    const inputVars = context?.selectedFunction?.inputSchema.schemaContent.required as string[];
     const [JSONStateFilePath, setJSONStateFilePath] = useState("");
     // Needed to move the filePath outside of the PersistentJSONState hook to avoid triggering infinite loops
     // Now it works and I have persistence even across sessions :)
@@ -151,14 +148,14 @@ function LHSSampling() {
             variable: inputVar,
             start: 0.0,
             end: 1.0,
-            points: 50,
+            points: 5,
         })),
         filePath: JSONStateFilePath
     });
 
     useEffect(() => {
         if (context?.selectedFunction) {
-            const funname = context?.selectedFunction?.name.replace(/\s+/g, "_");
+            const funname = context?.selectedFunction?.title?.replace(/\s+/g, "_");
             setJSONStateFilePath(`src/assets/LhsInputs_${funname}.json`);
         }
     }, [context?.selectedFunction]);
@@ -214,6 +211,7 @@ function LHSSampling() {
             </form>
             <p>Note: The LHS sampling will be run in the background, and you can check the status of the jobs in the Parallel Runner.</p>
             <ParallelRunner />
+            {/* TODO have a nicer way to display ParallelRUnner (just bar to start with; allow toggle of the detailed cards?) */}
         </>
     );
 }
@@ -223,7 +221,7 @@ export default function Setup() {
     const context = useContext(MMUXContext)
 
     return (
-        < MetaModelingUX tabTitle="Base Function Selection" headerType="setup-header">
+        <MetaModelingUX tabTitle="Base Function Selection" headerType="header">
             {/* TODO convert into a toggle? and move the "Next" to the bottom? */}
             <div style={{ display: "flex", justifyContent: "space-between", margin: "10px" }}>
                 <Button onClick={() => setShowFunctionIndex(!showFunctionIndex)}>
@@ -231,7 +229,7 @@ export default function Setup() {
                 </Button>
                 <Button disabled={context?.selectedFunction === undefined}
                     onClick={() => context?.setCurrentView(context.currentView + 1)}>
-                    Next Screen
+                    Next Step
                 </Button>
             </div>
             {showFunctionIndex && <FunctionList functions={[]} />}

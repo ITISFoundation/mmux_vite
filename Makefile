@@ -7,12 +7,12 @@ base-install:
 	curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
 	nvm install 22 ## gets node v22 (latest)
 	npm install # install all dependencies
-	apt install python3.10 python3.10-venv # install python venv
+	apt install python3.11 python3.11-venv # install python venv
 
 install-mmux-python:
 	git clone https://github.com/ITISFoundation/mmux_python $(MMUX_PYTHON_DIR)
 	cd $(MMUX_PYTHON_DIR) && git checkout $(MMUX_PYTHON_BRANCH)
-	python3.10 -m venv $(VENV_DIR)
+	python3.11 -m venv $(VENV_DIR)
 	$(VENV_DIR)/bin/python -m pip install flask python-dotenv
 	$(VENV_DIR)/bin/python -m pip install -r $(MMUX_PYTHON_DIR)/requirements.txt
 
@@ -22,13 +22,29 @@ start-backend:
 start-frontend:
 	npm run dev
 
-ts-client: ## requires serving from FunctionsAPI already active
-	curl http://localhost:8087/generate-openapi -o openapi.json
-	npm install @openapitools/openapi-generator-cli -g
-	openapi-generator-cli generate \
+client-generator:
+	rm -rf .uv_venv
+	uv venv .uv_venv
+	uv pip install openapi-generator-cli
+
+ts-client: client-generator
+	curl https://api.osparc-master.speag.com/api/v0/openapi.json -o openapi.json
+	uv run openapi-generator-cli generate \
 		-i openapi.json \
 		-g typescript \
-		-o ./src/functions-api-ts-client
+		-o ./src/osparc-api-ts-client \
+		--package-name osparc_client
+
+python-client: client-generator
+	curl https://api.osparc-master.speag.com/api/v0/openapi.json -o openapi.json
+	uv run openapi-generator-cli generate \
+		-i openapi.json \
+		-g python \
+		-o ./flaskapi/osparc-api-python-client \
+		--package-name osparc_client
+	$(VENV_DIR)/bin/python -m  pip install ./flaskapi/osparc-api-python-client
+
+# uv run python solver_functions.py
 
 test:
 	npm run test

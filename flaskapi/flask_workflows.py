@@ -17,31 +17,41 @@ from pathlib import Path
 import shutil
 import json
 import logging
-from typing import List, Dict, Callable
+from typing import List, Dict
 import numpy as np
 import pandas as pd
 from flask import Flask, request, jsonify 
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
+from osparc_client.configuration import Configuration as OsparcConfiguration
+from osparc_client.api_client import ApiClient
+from osparc_client.api.functions_api import FunctionsApi
+from osparc_client.api.function_jobs_api import FunctionJobsApi, FunctionJobStatus
+from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi
 
 
 from mmux_python.utils.funs_data_processing import (
-    get_variable_names,
     process_input_file,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
 from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq
 
-#########################################################################
-# NIH-in-Silico specific logic -- ideally, we would eventually remove it, have agnostic
-# (but useful) workflows, and some way to do / pass the normalization, relabeling...
-from mmux_python.scripts.NIHinSilico.sumo_visualization_nih import (
-    nih_label_conversion,
-    normalize_nih_results,
-)
-NORMALIZING_FUNCTION: Callable = normalize_nih_results
-LABEL_CONVERSION_FUNCTION: Callable = nih_label_conversion
-#########################################################################
-#########################################################################
+### TypeScript expects camelCase, but Python API is getting snake_case. 
+# Convert before sending to frontend.
+import re   
+def camel_to_snake(s: str) -> str:
+    res = re.sub(r'_([a-z])', lambda match: match.group(1).upper(),s)
+    return res
+
+def dict_keys_camel_to_snake(d: dict) -> dict:
+    return {camel_to_snake(k): v for k, v in d.items()}
+
+def recursive_dict_keys_camel_to_snake(d: dict) -> dict:
+    for k, v in d.items():
+        if isinstance(v, dict):
+            d[k] = recursive_dict_keys_camel_to_snake(v)
+        elif isinstance(v, list):
+            d[k] = [recursive_dict_keys_camel_to_snake(i) if isinstance(i, dict) else i for i in v]
+    return {camel_to_snake(k): v for k, v in d.items()}
 
 
 ### Logger configuration ####################################
@@ -55,6 +65,7 @@ logging.basicConfig(
 logger.info("Logging started")
 #############################################################
 
+
 ### Flask app configuration #################################
 app = Flask(__name__)
 base_dir = Path(__file__).parent # this is the flaskapi directory
@@ -63,29 +74,69 @@ cors = CORS(app, origins=["*"], methods=["*"], allow_headers=["*"], resources=["
 app.config['CORS_HEADERS'] = 'Content-Type'
 #############################################################
 
-## custom functionality while the FunctionsAPI is not yet available
-# ideally we would register that function; and available datapoints as an existing JobCollection
-@app.route("/flask/get_nih_inputs_outputs")
-@cross_origin()
-def flask_get_nih_inputs_outputs() -> Dict[str, List[str]]:
-    logger.info("Starting flask function: flask_get_nih_inputs_outputs")
+### osparc client configuration #############################    
+os.chdir(os.path.dirname(__file__))
+conf_path = Path("./../osparc-master.conf.json")
+conf_dict = json.loads(conf_path.read_text("utf-8"))
+configuration = OsparcConfiguration(**conf_dict)
+api_client = ApiClient(configuration)
+functions_api_instance = FunctionsApi(api_client)
+job_api_instance = FunctionJobsApi(api_client)
+job_collection_api_instance = FunctionJobCollectionsApi(api_client)
+#############################################################
+
+@app.route("/flask/hello")
+def hello_world():
+    logger.info("Starting flask function: hello_world")
     logger.info("Cwd: " + str(Path.cwd()))
-    filename = request.args["filename"]
-    logger.info("Inputs of the request: ", request.args)
-    TRAINING_FILE = base_dir / "mmux_python" / "data" / filename
-    logger.info(f"TRAINING_FILE: {TRAINING_FILE} does exist: {TRAINING_FILE.exists()}")
-    var_names = get_variable_names(TRAINING_FILE)
-    logger.info(f"var_names: {var_names}")
+    return "Hello, World!"
 
-    ## NIH-in-Silico specific logic
-    from mmux_python.scripts.NIHinSilico.nih_utils import get_nih_inputs_outputs
-    input_vars, output_vars = get_nih_inputs_outputs(TRAINING_FILE)
-    logger.info(f"input_vars: {input_vars}")
-    logger.info(f"output_vars: {output_vars}")
-    return {"input_vars": input_vars, "output_vars": output_vars}
 
-#########################################################################
-#########################################################################
+@app.route("/flask/list_functions", methods=["GET"])
+def flask_list_functions():
+    logger.info("Starting flask function: flask_list_functions")
+    logger.info("Cwd: " + str(Path.cwd()))
+    functions = functions_api_instance.list_functions()
+    ## this is a list of items of Paginated object -- deserialize into a list of function objects
+    functions = [recursive_dict_keys_camel_to_snake(f.to_dict()) for f in functions_api_instance.list_functions().items] # type: ignore
+    functions = functions[::-1] # put last-created first? FIXME still need to expose "created_at" in the response
+    logger.info(f"N Functions: {len(functions)}")
+
+    ## TODO temporal - filter out those without input & output schema
+    functions = [f for f in functions if len(f["inputSchema"]["schemaContent"]) > 0 and len(f["outputSchema"]["schemaContent"]) > 0]
+    logger.info(f"N Functions after filtering: {len(functions)}")
+
+    return jsonify(functions)
+
+@app.route("/flask/list_jobs", methods=["GET"])
+def flask_list_jobs():
+    logger.info("Starting flask function: flask_list_jobs")
+    logger.info("Cwd: " + str(Path.cwd()))
+    jobs = job_api_instance.list_function_jobs()
+    ## this is a list of items of Paginated object -- deserialize into a list of function objects
+    jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in job_api_instance.list_function_jobs().items] # type: ignore
+    logger.info(f"N Jobs: {len(jobs)}")
+
+    return jsonify(jobs)
+
+@app.route("/flask/get_function_jobs", methods=["GET"])
+def flask_get_function_jobs():
+    logger.info("Starting flask function: flask_get_function_jobs")
+    logger.info("Cwd: " + str(Path.cwd()))
+    function_uid = request.args["functionUid"]
+    logger.info(f"Function ID: {function_uid}")
+    # jobs = job_api_instance.list_function_jobs() ## FIXME this endpoint is not ready - for now, filter here
+    # ## this is a list of items of Paginated object -- deserialize into a list of function objects
+    # jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in jobs.items]
+    # logger.info(f"N Jobs: {len(jobs)}")
+    # jobs = [j for j in jobs if j["functionUid"] == function_uid]
+    jobs = functions_api_instance.list_function_jobs_for_functionid(function_uid)
+    jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in jobs.items]
+    logger.info(f"N Jobs for function {function_uid}: {len(jobs)}")
+    for j in jobs:
+        status : FunctionJobStatus = job_api_instance.function_job_status(j["uid"]) 
+        j["status"] = status.status
+    return jsonify(jobs)
 
 
 @app.route("/flask/sumo_along_axes", methods=["POST"])
@@ -119,7 +170,6 @@ def flask_evaluate_sumo_along_axes():
         TRAINING_FILE,
         make_log=make_log,
         columns_to_keep=input_vars + [output_response], # type: ignore
-        custom_operations=NORMALIZING_FUNCTION,
     )
     if make_log:  # FIXME for now log applies to all inputs & the output
         input_vars = [f"log_{var}" for var in input_vars]
@@ -130,7 +180,6 @@ def flask_evaluate_sumo_along_axes():
         PROCESSED_TRAINING_FILE,
         input_vars,
         output_response, # type: ignore
-        label_converter=LABEL_CONVERSION_FUNCTION,
     )
     logger.info("Done!!")
     return jsonify(results) # check if jsonify is needed
@@ -160,36 +209,10 @@ def flask_uq_propagation() -> Dict[str, str]:
         TRAINING_FILE,
         make_log=make_log,
         columns_to_keep=input_vars + [output_response],
-        custom_operations=NORMALIZING_FUNCTION,
     )
 
-    # TODO make available as JSON from the training data to React? To display as defaults?
-    means = {
-        "SigmaMuscle": 0.46,
-        "SigmaEpineurium": 0.0826,
-        "SigmaPerineurium": 0.0021,
-        "SigmaAlongFascicles": 0.571,
-        "SigmaTransverseFascicles": 0.0826,
-        "ThermalConductivity_Saline": 0.49,
-        "ThermalConductivity_Fascicles": 0.48,
-        "ThermalConductivity_Connective_Tissue": 0.39,
-        "HeatTransferRate_Fascicles": 14896,
-        "HeatTransferRate_Saline": 2722,
-        "HeatTransferRate_Connective_Tissue": 2565,
-    }
-    stds = {
-        "SigmaMuscle": 1.4,
-        "SigmaEpineurium": 1.4,
-        "SigmaPerineurium": 1.4,
-        "SigmaAlongFascicles": 1.4,
-        "SigmaTransverseFascicles": 1.4,
-        "ThermalConductivity_Fascicles": 1.1,
-        "ThermalConductivity_Saline": 1.08,
-        "ThermalConductivity_Connective_Tissue": 1.128,
-        "HeatTransferRate_Fascicles": 1.4,
-        "HeatTransferRate_Saline": 1.35,
-        "HeatTransferRate_Connective_Tissue": 1.4,
-    }
+    ## TODO get means & stds from frontend
+    means, stds = {}, {}
 
     if make_log:  # FIXME for now log applies to all inputs & the output
         input_vars = [f"log_{var}" for var in input_vars]
@@ -205,10 +228,9 @@ def flask_uq_propagation() -> Dict[str, str]:
         means,
         stds,
         xscale="linear",
-        label_converter=LABEL_CONVERSION_FUNCTION,
     )
     # _save_in_react_public_folder(savepath)
-    return {"imagePath": savepath.name}
+    return {"imagePath": savepath.name} ## TODO return data instead
 
 @app.route("/flask/save_json", methods=["POST"])
 def flask_save_json():

@@ -1,3 +1,8 @@
+body {
+  color: #d8d8d8;
+  background-color: #202426;
+}
+
 .non-active {
   width: 100%;
   height: 100%;
@@ -11,7 +16,7 @@
 .background-card {
     /* min-height: 20vh; */
     max-width: 1000px;
-    border: 15px solid purple;
+    /* border: 15px solid purple; */
     /* padding: 10px; */
     /* align-items: top;  */
     /* text-align: left; */
