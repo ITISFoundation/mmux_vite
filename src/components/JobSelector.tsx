@@ -12,94 +12,117 @@ import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { Function, FunctionJob, FunctionJobCollection } from '../functions-api-ts-client';
-import { JOB_API } from './api_objects';
+import { Function, FunctionJob, FunctionJobCollection } from '../osparc-api-ts-client';
 import MMUXContext from '../views/MMUXContext';
+import { getFunctionJob, getFunctionJobsFromFunctionUid, getFunctionJobCollections } from './function_utils';
 
 // A priori, jobs from a single function (already selected & filtered)
 // TODO include tick to select it (and all the completed jobs in the collection)
-// TODO fix -- only for JobCOllections -- retrieve jobs from the collection (or do in main table?)
-// async function CollectionRow(props: { jobCollection: FunctionJobCollection }) {
-//     const { jobCollection } = props;
-//     const [open, setOpen] = React.useState(false);
 
-//     if (jobList.length === 0) {
-//         return (
-//             <TableRow>
-//                 <TableCell colSpan={6}>
-//                     <Typography variant="h6" gutterBottom component="div">
-//                         No jobs found for this function.
-//                     </Typography>
-//                 </TableCell>
-//             </TableRow>
-//         );
+async function CollectionRow(props: { jobCollection: FunctionJobCollection }) {
+    const { jobCollection } = props;
+    const jobUidList = jobCollection.jobIds
+    const [open, setOpen] = React.useState(false);
 
-//     } else {
-//         return (
-//             <React.Fragment>
-//                 <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
-//                     <TableCell>
-//                         <IconButton
-//                             aria-label="expand row"
-//                             size="small"
-//                             onClick={() => setOpen(!open)}
-//                         >
-//                             {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-//                         </IconButton>
-//                     </TableCell>
-//                     <TableCell component="th" scope="row">
-//                         {jobCollection.name}
-//                     </TableCell>
-//                     <TableCell align="right">{jobCollection.status}</TableCell>
-//                     <TableCell align="right">{jobCollection.jobIds.length}</TableCell>
-//                 </TableRow>
-//                 <TableRow>
-//                     <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-//                         <Collapse in={open} timeout="auto" unmountOnExit>
-//                             <Box sx={{ margin: 1 }}>
-//                                 <Typography variant="h6" gutterBottom component="div">
-//                                     Jobs
-//                                 </Typography>
-//                                 <Table size="small" aria-label="jobs">
-//                                     <TableHead>
-//                                         <TableRow>
-//                                             <TableCell />
-//                                             <TableCell>Job ID</TableCell>
-//                                             <TableCell align="right">Status</TableCell>
-//                                         </TableRow>
-//                                     </TableHead>
-//                                     <TableBody>
-//                                         {jobList.map((job) => (
-//                                             <JobRow key={job.id} job={job} />
-//                                         ))}
-//                                     </TableBody>
-//                                 </Table>
-//                             </Box>
-//                         </Collapse>
-//                     </TableCell>
-//                 </TableRow>
-//             </React.Fragment>
-//         );
-//     }
-// }
+    if (jobUidList?.length === 0) {
+        return (
+            <TableRow>
+                <TableCell colSpan={6}>
+                    <Typography variant="h6" gutterBottom component="div">
+                        No jobs in JobCollection {jobCollection.title}.
+                    </Typography>
+                </TableCell>
+            </TableRow>
+        );
+    } else {
+        return (
+            <React.Fragment>
+                <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
+                    <TableCell>
+                        <IconButton
+                            aria-label="expand row"
+                            size="small"
+                            onClick={() => setOpen(!open)}
+                        >
+                            {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                        </IconButton>
+                    </TableCell>
+                    <TableCell component="th" scope="row">
+                        {jobCollection.title}
+                    </TableCell>
+                    <TableCell align="right">{jobCollection.status}</TableCell>
+                    <TableCell align="right">{jobCollection.jobIds?.length}</TableCell>
+                </TableRow>
+                <TableRow>
+                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+                        <Collapse in={open} timeout="auto" unmountOnExit>
+                            <Box sx={{ margin: 1 }}>
+                                <Typography variant="h6" gutterBottom component="div">
+                                    Jobs
+                                </Typography>
+                                <Table size="small" aria-label="jobs">
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell />
+                                            <TableCell>Job ID</TableCell>
+                                            <TableCell align="right">Status</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {jobUidList?.map((jobUid) => (
+                                            <JobRow key={jobUid} jobUid={jobUid} />
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </Box>
+                        </Collapse>
+                    </TableCell>
+                </TableRow>
+            </React.Fragment>
+        );
+    }
+}
+
 // TODO include tick to select it
-function JobRow(props: { job: FunctionJob }) {
-    const { job } = props;
-    return (
-        <TableRow
-            key={job.id}
+function JobRow(props: { jobUid: string }) {
+    const { jobUid } = props;
+    const [job, setJob] = React.useState<FunctionJob | null>(null);
+
+    React.useEffect(() => {
+        (async () => {
+            const j = await getFunctionJob(jobUid);
+            setJob(j);
+        })();
+    }, [jobUid]);
+
+    if (job === null) {
+        return (
+            <TableRow>
+                <TableCell colSpan={6}>
+                    <Typography variant="h6" gutterBottom component="div">
+                        Loading job {jobUid}...
+                    </Typography>
+                </TableCell>
+            </TableRow>
+        );
+    } else {
+
+        return (
+            <TableRow
+                key={job.uid}
             sx={{ backgroundColor: job.status !== "COMPLETED" ? '#f0f0f0' : 'inherit' }}>
             <TableCell />
             <TableCell component="th" scope="row">
-                {job.id}
+                    {job.uid}
             </TableCell>
             <TableCell align="right">{job.status}</TableCell>
         </TableRow>
     );
 }
+}
 
 export default function JobsSelector() {
-    const [jobList, setJobList] = React.useState<FunctionJob[]>([]);
+    const [jobCollections, setJobCollections] = React.useState<FunctionJobCollection[]>([]);
     const context = React.useContext(MMUXContext);
 
     React.useEffect(() => {
@@ -108,12 +131,17 @@ export default function JobsSelector() {
             console.log("No function selected");
             return;
         } else {
-            console.log("Function selected: ", context?.selectedFunction?.id);
+            console.log("Function selected: ", context?.selectedFunction?.uid);
             (async () => {
-                console.log("Fetching jobs for function: ", context?.selectedFunction?.id);
-                const jobs = await JOB_API.getFunctionJobs(context?.selectedFunction?.id as number);
-                console.log("Jobs: ", jobs);
-                setJobList(jobs);
+                console.log("Fetching jobCollections for function: ", context?.selectedFunction?.uid);
+                const jc = await getFunctionJobCollections(context?.selectedFunction?.uid as string);
+                const j = await getFunctionJobsFromFunctionUid(context?.selectedFunction?.uid as string);
+                console.log("Fetched jobCollections: ", jc);
+                console.log("Fetched jobs: ", j);
+                jc.push(...j); // append both lists
+                console.log("Combined jobCollections: ", jc);
+                // TEMP just jobs, let's see -- This works!! :)
+                setJobCollections(j); // append both lists
             })();
         }
     }, [context?.selectedFunction]);
@@ -131,18 +159,18 @@ export default function JobsSelector() {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {jobList.map((item) => {
+                    {jobCollections.map((item) => {
                         // for now, focus on list of jobs (not job)
                         // TODO include FunctionJobCollection
 
-                        // // It's a FunctionJobCollection
-                        // if ('jobIds' in item) {
-                        //     return <CollectionRow key={item.name} jobCollection={item} />;
-                        // }
-                        // // It's a FunctionJob
-                        // else {
-                        return <JobRow job={item} />;
-                        // }
+                        // It's a FunctionJobCollection
+                        if ('jobIds' in item) {
+                            return <CollectionRow key={(item as FunctionJobCollection).uid} jobCollection={item} />;
+                        }
+                        // It's a FunctionJob
+                        else {
+                            return <JobRow key={(item as FunctionJob).uid} jobUid={(item as FunctionJob).uid} />;
+                        }
                     })}
                 </TableBody>
             </Table>

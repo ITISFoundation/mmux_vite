@@ -28,9 +28,26 @@ export async function listJobs(): Promise<FunctionJob[]> {
     })
 }
 
-export async function getFunctionJobs(functionUid: number): Promise<FunctionJob[]> {
+export async function getFunctionJob(jobUid: string): Promise<FunctionJob> {
     return await fetch(
-        PYTHON_DAKOTA_BACKEND + '/flask/get_function_jobs?functionUid=' + functionUid,
+        PYTHON_DAKOTA_BACKEND + '/flask/get_function_job?jobUid=' + jobUid,
+    ).then(function (response) {
+        return response.json()
+    })
+}
+
+export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<FunctionJob[]> {
+    return await fetch(
+        PYTHON_DAKOTA_BACKEND + '/flask/list_function_jobs_for_functionid?functionUid=' + functionUid,
+    ).then(function (response) {
+        return response.json()
+    })
+}
+
+export async function getFunctionJobCollections(functionUid: string): Promise<FunctionJobCollection[]> {
+    return await fetch(
+        // PYTHON_DAKOTA_BACKEND + '/flask/list_function_job_collections_for_functionid?functionUid=' + functionUid,
+        PYTHON_DAKOTA_BACKEND + '/flask/list_function_job_collections',
     ).then(function (response) {
         return response.json()
     })
@@ -49,18 +66,19 @@ export async function getFunctionJobs(functionUid: number): Promise<FunctionJob[
 //     return fun
 // }
 
-export async function getJobStatus(job: FunctionJob | FunctionJobCollection): Promise<string> {
-    const jobId = job.uid
-    if (!jobId) {
-        console.log("jobId not found")
-        throw new Error("Job ID not found in the provided job object.");
-    }
-    let response = await JOB_API.functionJobStatus(jobId)
-    console.log("Job status response: ", response)
-    let jobStatus = response[0]?.status ?? "UNKNOWN";
-    console.log("Job status: ", jobStatus)
-    return jobStatus
-}
+// this is now directly done in the Python Backend when retrieving jobs
+// export async function getJobStatus(job: FunctionJob | FunctionJobCollection): Promise<string> {
+//     const jobId = job.uid
+//     if (!jobId) {
+//         console.log("jobId not found")
+//         throw new Error("Job ID not found in the provided job object.");
+//     }
+//     let response = await JOB_API.functionJobStatus(jobId)
+//     console.log("Job status response: ", response)
+//     let jobStatus = response[0]?.status ?? "UNKNOWN";
+//     console.log("Job status: ", jobStatus)
+//     return jobStatus
+// }
 
 export async function waitJobCompletion(job: FunctionJob | FunctionJobCollection): Promise<string> {
     let jobStatus = await getJobStatus(job)

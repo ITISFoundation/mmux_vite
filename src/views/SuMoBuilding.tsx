@@ -4,13 +4,15 @@ import JobSelector from '../components/JobSelector';
 import { Button, Box, Container } from '@mui/material';
 import MMUXContext from './MMUXContext';
 import PlotDataTogether from '../components/PlotDataTogether'
-import { JOB_API, PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
+import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
 import PlusButton from '../components/PlusButton';
+import { getFunctionJobsFromFunctionUid, getFunctionJobCollections } from '../components/function_utils';
+
 
 function SuMoBuildingValidation() {
     const context = useContext(MMUXContext)
-    const inputVars = context?.selectedFunction?.inputSchema.required as string[]
-    const outputVars = context?.selectedFunction?.outputSchema.required as string[]
+    const inputVars = context?.selectedFunction?.inputSchema?.schemaContent.required as string[]
+    const outputVars = context?.selectedFunction?.outputSchema?.schemaContent.required as string[]
     const [isSuMoGenerated, setIsSuMoGenerated] = useState(false)
 
     const [selectedResponse, setSelectedResponse] = useState(outputVars ? outputVars[0] : '');
@@ -23,8 +25,10 @@ function SuMoBuildingValidation() {
     }, [context?.selectedFunction])
 
     async function RunPlotCentralSuMoInterpolations() {
+        // TODO get only those selected in the JobSelector (pass as status??)
+        let jobList = await getFunctionJobsFromFunctionUid(context?.selectedFunction?.uid as string);
+        console.log("Fetched jobs:", jobList);
         console.log("Running SuMo...");
-        const jobs = await JOB_API.getFunctionJobs(context?.selectedFunction?.id as number)
         fetch(
             PYTHON_DAKOTA_BACKEND + '/flask/sumo_along_axes',
             {
@@ -34,7 +38,7 @@ function SuMoBuildingValidation() {
                         inputs: inputVars,
                         output: selectedResponse,
                         log: isLogEnabled,
-                        FunctionJobs: jobs,
+                        FunctionJobs: jobList,
                     }
                 ),
             }).then(function (response) {
