@@ -32,7 +32,7 @@ const CollectionRow = (props: CollectionRowProps) => {
       <TableRow>
         <TableCell colSpan={6}>
           <Typography variant="h6" gutterBottom component="div">
-            No jobs in JobCollection {jobCollection.title}.
+            No jobs in Job Campaign {jobCollection.title}.
           </Typography>
         </TableCell>
       </TableRow>
@@ -54,15 +54,14 @@ const CollectionRow = (props: CollectionRowProps) => {
           {jobCollection.title}
         </TableCell>
         {/* <TableCell align="right">{jobCollection.status}</TableCell> */}
+        <TableCell align="right"> TODO </TableCell>
         <TableCell align="right">{jobCollection.jobIds?.length}</TableCell>
+        <TableCell align="right"> TODO </TableCell>
       </TableRow>
       <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 1 }}>
-              <Typography variant="h6" gutterBottom component="div">
-                Jobs
-              </Typography>
               <Table size="small" aria-label="jobs">
                 <TableHead>
                   <TableRow>
@@ -121,8 +120,10 @@ function JobRow(props: { jobUid: string }) {
         <TableCell component="th" scope="row">
           {job.uid ? job.uid.slice(0, 5) : ""}...
         </TableCell>
-        <TableCell>{job.inputs}</TableCell>
-        <TableCell>{job.outputs}</TableCell>
+        {/* <TableCell>{job.inputs}</TableCell>  // TODO need realistic-format inputs 
+        <TableCell>{job.outputs}</TableCell> */}
+        <TableCell> TODO </TableCell>
+        <TableCell> TODO </TableCell>
         <TableCell align="right">{job.status}</TableCell>
       </TableRow>
     );

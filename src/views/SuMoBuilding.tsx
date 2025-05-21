@@ -100,7 +100,7 @@ function SuMoBuildingValidation() {
     }
 
     return (
-        < MetaModelingUX tabTitle="Surrogate Model Building & Validation" headerType="header">
+        < MetaModelingUX tabTitle="Surrogate Model Building & Validation" headerType="sumo">
             <Container>
                 <Box sx={{
                     justifySelf: 'left',
@@ -111,7 +111,7 @@ function SuMoBuildingValidation() {
                     justifyContent: 'space-between',
                     color: '#eee',
                 }}>
-                    <span>Selected Function: <b>{context?.selectedFunction?.name}</b> </span>
+                    <span>Selected Function: <b>{context?.selectedFunction?.title}</b> </span>
                     <JobSelector />
                     <QoISelector />
                     <PlusButton

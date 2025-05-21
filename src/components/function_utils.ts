@@ -31,6 +31,7 @@ function jobGenerator(fun: Function, uuid: string): FunctionJob {
     j.inputs = { "x": 0.0, "y": 0.0 }
     j.outputs = { "result": 0.0 }
     j.solverJobId = uuid
+    j.uid = uuid // TODO diff types of jobs have different UID fields?? problematic
     j.status = "COMPLETED"
     return j
 }
@@ -46,7 +47,7 @@ const MOCKUP_JOBS: FunctionJob[] = [
 const MOCKUP_JOB_COLLECTIONS: FunctionJobCollection[] = [
     new FunctionJobCollection(),
 ] // TODO fill up the first JobCOllection w the MOCKUP_JOBS
-MOCKUP_JOB_COLLECTIONS[0].title = "Mockup Job Collection 1"
+MOCKUP_JOB_COLLECTIONS[0].title = "Mockup Job Campaign 1"
 MOCKUP_JOB_COLLECTIONS[0].description = "A simple mockup for a Job Collection of a Solver Function"
 MOCKUP_JOB_COLLECTIONS[0].jobIds = MOCKUP_JOBS.map(j => j.uid)
 
@@ -88,15 +89,12 @@ export async function getFunctionJob(jobUid: string): Promise<FunctionJob> {
     // })
 
     // get the MOCKUP_JOB with the right UID
-    const j = MOCKUP_JOBS.map(j => {
-        if (j.uid == jobUid) return j
-    }
-    )
-    if (j === undefined) {
-        console.log("Job with ID " + jobUid + " not found")
-        return MOCKUP_JOBS[0]
+    const j = MOCKUP_JOBS.find(j => j.uid === jobUid);
+    if (!j) {
+        console.log("Job with ID " + jobUid + " not found");
+        return MOCKUP_JOBS[0];
     } else {
-        return j
+        return j;
     }
 }
 
