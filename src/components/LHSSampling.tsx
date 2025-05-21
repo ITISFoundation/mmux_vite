@@ -2,60 +2,41 @@ import { useContext, useEffect, useState } from 'react';
 import MMUXContext from '../views/MMUXContext';
 import usePersistentJSONState from '../hooks/usePersistentJSONState';
 import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
-import ParallelRunner from '../views/ParallelRunner';
+import JobsDashboard from '../views/ParallelRunner';
 import { Button, Input, Typography } from '@mui/material';
-import { Function, FunctionJob } from '../osparc-api-ts-client';
+import { Function, FunctionJob, FunctionJobCollection, RegisteredFunctionJobCollection } from '../osparc-api-ts-client';
 
 
-async function runFunctionJob(fun: Function, row: Record<string, any>): Promise<FunctionJob> {
-    console.log("Input schema: ", fun.inputSchema);
-    const inputValues = Object.keys(fun.inputSchema).reduce((acc, key) => {
-        if (key in row) {
-            acc[key] = row[key];
-        } else {
-            console.warn(`Missing value for input key: ${key}`);
-        }
-        return acc;
-    }, {} as Record<string, any>);
-    // TODO: FIX FUNCTION_API CALL from the API
-    const job: FunctionJob = {} as unknown as FunctionJob;
-    // const job = await FUNCTION_API.runFunction(
-    //     fun.uid as number,
-    //     JSON.stringify(inputValues)// Convert input values to a comma-separated string with key-value pairs
-    // )
-    return job
-}
 
-async function runLhsSampling(fun: Function, config: any[], seed: number = 0) {
+async function runLhsSampling(fun: Function, config: any[], seed: number = 0, N: number = 5) {
     // send config to Python backend to create LHS
     console.log("Running LHS Sampling with config: ", config);
-    const samples = await fetch(
+    const jc = await fetch(
         PYTHON_DAKOTA_BACKEND + '/flask/lhs_sampling',
         {
             method: "POST",
             body: JSON.stringify(
                 {
+                    funUid: fun.uid,
                     config: config,
                     seed: seed,
+                    N: N,
                 }
             ),
         }).then(function (response) {
             return response.json()
-        }).then(function (points) {
-            console.log("LHS Sampling points: ", points);
-            return points
+        }).then(function (jc: RegisteredFunctionJobCollection) {
+            console.log("JobCollection Uid: ", jc.uid);
+            return jc
         }).catch(function (error) {
             console.error("Error running LHS sampling: ", error);
         })
-
-    // run jobs of the selected function based on the API
-    // const context = useContext(MMUXContext);
-    console.log("Running jobs for LHS samples: ", samples);
-    const jobs = await Promise.all(samples.map((jobInput: any) => {
-        return runFunctionJob(fun, jobInput);
-    }));
-    console.log("Jobs created: ", jobs);
-}
+    return jc
+} // Now the LHS is both created & submitted to OSPARC API through the Python Backend. Implement. 
+// What should I return here? 
+// would be nice to have an "spinning" symbol while everything is getting done in the backend
+// also, in the ParallelRunner dashboard, would be nice to see only that one JobCollection - how? simply get latest for the selected function (and only render when click "Run")
+// ParallelRunner bar should show only when running something; clicking on it allows to "toggle down" the dashboard itself.
 
 const LHSSampling = () => {
     const context = useContext(MMUXContext);
@@ -68,7 +49,8 @@ const LHSSampling = () => {
             variable: inputVar,
             start: 0.0,
             end: 1.0,
-            points: 5,
+            points: 5, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
+            seed: 0,  // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
         })),
         filePath: JSONStateFilePath
     });
@@ -94,8 +76,8 @@ const LHSSampling = () => {
 
     return (
         <>
-            <Typography variant='h4' marginBottom={1}>LHS Sampling</Typography>
-            <Typography variant='body1' marginBottom={1}>Specify total number of points, as well as the ranges of each parameter.</Typography>
+            <Typography variant='h6' marginBottom={1}>Latin Hypercube Sampling</Typography>
+            <Typography variant='body1' marginBottom={1}>Specify total number of sample points that will be computed, as well as the ranges of each parameter.</Typography>
             {lhsInputs?.map((inputVar, index) => (
                 <form key={index} style={{ display: "flex", alignItems: "center", marginBottom: "8px", gap: "16px", }}>
                     <Typography variant='h6'>{inputVar.variable}:</Typography>
@@ -127,11 +109,18 @@ const LHSSampling = () => {
                     sx={{ width: 100 }}
                     onChange={(e) => handleInputChange(0, "points", e.target.value)}
                 />
+                <Typography variant='body1'>Seed: </Typography>
+                <Input
+                    type="number"
+                    placeholder="seed"
+                    value={lhsInputs[0].seed.toString()}
+                    sx={{ width: 100 }}
+                    onChange={(e) => handleInputChange(0, "seed", e.target.value)}
+                />
                 <Button variant="contained" onClick={() => runLhsSampling(context?.selectedFunction as Function, lhsInputs)}>Run LHS Sampling</Button>
+                {/* TODO should we have a "cancel run" option? */}
+                {/* TODO make a "loading" symbol while the callback executes, as in SuMo creation */}
             </form>
-            <Typography variant='body1' marginTop={2}>Note: The LHS sampling will be run in the background, and you can check the status of the jobs in the Parallel Runner.</Typography>
-            <ParallelRunner />
-            {/* TODO have a nicer way to display ParallelRUnner (just bar to start with; allow toggle of the detailed cards?) */}
         </>
     );
 }

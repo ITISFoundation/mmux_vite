@@ -4,10 +4,11 @@ type Step = {
 }
 
 type PersistentState = {
-    variable: string;
-    start: number;
-    end: number;
-    points: number;
+  variable: string;
+  start: number;
+  end: number;
+  points: number;
+  seed: number;
 }
 
 interface NavigationProps {
@@ -23,6 +24,6 @@ interface MetaModelingUXProps {
 }
 
 interface HeaderProps {
-    headerType: 'setup' | 'sumo' | 'uq';
-    tabTitle?: string;
+  headerType: 'setup' | 'sumo' | 'uq';
+  tabTitle?: string;
 }

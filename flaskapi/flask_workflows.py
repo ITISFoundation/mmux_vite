@@ -301,11 +301,10 @@ def flask_lhs():
     # Convert request data into a Python dictionary
     request_data: dict = json.loads(request.data.decode("utf-8"))
     config = request_data["config"]
-    logger.info("LHS config: ")
-    logger.info(config)
+    k = len(config) # number of variables i.e. dimensions
     seed = request_data["seed"]
-    n = config[0]["points"]
-    k = len(config)
+    n = request_data["N"]
+    function_uid = request_data["funUid"]
     
     from mmux_python.utils.lhs import lhs
     logger.info(f"config: {config} \n n: {n}, k: {k}, seed: {seed}")
@@ -319,4 +318,7 @@ def flask_lhs():
         )
     logger.info(f"Samples: {samples}")
 
-    return jsonify(samples)
+    # Now, the running of jobs through the OSPARC API has been moved to the Python backend
+    ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
+    jc = functions_api_instance.map_function(function_uid, samples) ## TODO samples will need to adhere to a specific format
+    return jsonify(jc) ## this now returns a JobCollection
