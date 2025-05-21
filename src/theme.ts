@@ -34,12 +34,7 @@ export function setupTheme() {
             MuiCard: {
                 styleOverrides: {
                     root: {
-                        variants: [
-                            {
-                                props: {variant: "plain"},
-                                style: {}
-                            }
-                        ]
+                      backgroundColor: 'transparent',
                     }
                 }
             }

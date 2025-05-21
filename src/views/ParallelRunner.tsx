@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useContext } from 'react'
 import type { FunctionJob } from '../osparc-api-ts-client';
 import MMUXContext from './MMUXContext';
-import { getFunctionJobs } from '../components/function_utils';
+import { getFunctionJobsFromFunctionUid } from '../components/function_utils';
 
 const statusColors = {
     PENDING: 'bg-gray-300',
@@ -105,9 +105,9 @@ function JobCard(props: JobCardProps) {
     const job = props.job
     if (!job) {
         return (
-            <text>
+            <span>
                 JobCard could not be rendered
-            </text>
+            </span>
         )
     }
     else {
@@ -184,7 +184,7 @@ function Dashboard() {
 
     const fetchJobs = useCallback(async () => {
         try {
-            let jobList = await getFunctionJobs(context?.selectedFunction?.uid as number);
+            let jobList = await getFunctionJobsFromFunctionUid(context?.selectedFunction?.uid as string);
             console.log("Fetched jobs:", jobList);
             setJobs(jobList);
             // setTotalETA(data.totalETA);
