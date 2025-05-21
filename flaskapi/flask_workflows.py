@@ -127,7 +127,7 @@ def flask_list_function_jobs_for_functionid():
     logger.info(f"Function ID: {function_uid}")
     ## this is a list of items of Paginated object -- deserialize into a list of function objects
     jobs = functions_api_instance.list_function_jobs_for_functionid(function_uid)
-    jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in jobs.items]
+    jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in jobs.items] # type: ignore
     logger.info(f"N Jobs for function {function_uid}: {len(jobs)}")
     for j in jobs:
         status : FunctionJobStatus = job_api_instance.function_job_status(j["uid"]) 
