@@ -3,7 +3,7 @@ import MMUXContext from '../views/MMUXContext';
 import usePersistentJSONState from '../hooks/usePersistentJSONState';
 import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
 import ParallelRunner from '../views/ParallelRunner';
-import { Button, Input } from '@mui/material';
+import { Button, Input, Typography } from '@mui/material';
 import { Function, FunctionJob } from '../osparc-api-ts-client';
 
 
@@ -94,12 +94,12 @@ const LHSSampling = () => {
 
     return (
         <>
-            <h4>LHS Sampling</h4>
-            <p>Specify total number of points, as well as the ranges of each parameter.</p>
+            <Typography variant='h4' marginBottom={1}>LHS Sampling</Typography>
+            <Typography variant='body1' marginBottom={1}>Specify total number of points, as well as the ranges of each parameter.</Typography>
             {lhsInputs?.map((inputVar, index) => (
-                <form key={index} style={{ display: "flex", alignItems: "center", marginBottom: "20px", gap: "20px", }}>
-                    <h5 style={{ marginLeft: 10, marginRight: 20, marginBottom: 0, marginTop: 0, fontSize: 18 }}>{inputVar.variable}</h5>
-                    <span>Start: </span>
+                <form key={index} style={{ display: "flex", alignItems: "center", marginBottom: "8px", gap: "16px", }}>
+                    <Typography variant='h6'>{inputVar.variable}:</Typography>
+                    <Typography variant='caption'>Start: </Typography>
                     <Input
                         type="number"
                         placeholder="Start"
@@ -107,7 +107,7 @@ const LHSSampling = () => {
                         sx={{ width: 100 }}
                         onChange={(e) => handleInputChange(index, "start", e.target.value)}
                     />
-                    <span>End: </span>
+                    <Typography variant='caption'>End: </Typography>
                     <Input
                         type="number"
                         placeholder="End"
@@ -118,8 +118,8 @@ const LHSSampling = () => {
                 </form>
             ))}
 
-            <form style={{ display: "flex", alignItems: "center", marginBottom: "20px", gap: "40px", }}>
-                <span>Number of sampling points: </span>
+            <form style={{ display: "flex", alignItems: "center", gap: "40px", }}>
+                <Typography variant='body1'>Number of sampling points: </Typography>
                 <Input
                     type="number"
                     placeholder="N"
@@ -129,7 +129,7 @@ const LHSSampling = () => {
                 />
                 <Button variant="contained" onClick={() => runLhsSampling(context?.selectedFunction as Function, lhsInputs)}>Run LHS Sampling</Button>
             </form>
-            <p>Note: The LHS sampling will be run in the background, and you can check the status of the jobs in the Parallel Runner.</p>
+            <Typography variant='body1' marginTop={2}>Note: The LHS sampling will be run in the background, and you can check the status of the jobs in the Parallel Runner.</Typography>
             <ParallelRunner />
             {/* TODO have a nicer way to display ParallelRUnner (just bar to start with; allow toggle of the detailed cards?) */}
         </>
