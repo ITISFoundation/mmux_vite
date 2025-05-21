@@ -26,3 +26,8 @@ interface HeaderProps {
     headerType: 'setup' | 'sumo' | 'uq';
     tabTitle?: string;
 }
+
+interface SelectedJobCollection {
+  jobCollection: FunctionJobCollection;
+  selected: boolean;
+}

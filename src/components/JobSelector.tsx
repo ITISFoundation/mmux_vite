@@ -1,148 +1,53 @@
 import * as React from "react";
-import Box from "@mui/material/Box";
-import Collapse from "@mui/material/Collapse";
-import IconButton from "@mui/material/IconButton";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import { FunctionJob, FunctionJobCollection } from "../osparc-api-ts-client";
 import MMUXContext from "../views/MMUXContext";
-import { getFunctionJob, getFunctionJobCollections } from "./function_utils";
-
-interface CollectionRowProps {
-  jobCollection: FunctionJobCollection;
-}
-
-// A priori, jobs from a single function (already selected & filtered)
-// TODO include tick to select it (and all the completed jobs in the collection)
-const CollectionRow = (props: CollectionRowProps) => {
-  const { jobCollection } = props;
-  const jobUidList = jobCollection.jobIds;
-  const [open, setOpen] = React.useState(false);
-
-  if (jobUidList?.length === 0) {
-    return (
-      <TableRow>
-        <TableCell colSpan={6}>
-          <Typography variant="h6" gutterBottom component="div">
-            No jobs in Job Campaign {jobCollection.title}.
-          </Typography>
-        </TableCell>
-      </TableRow>
-    );
-  }
-  return (
-    <React.Fragment>
-      <TableRow sx={{ "& > *": { borderBottom: "unset" } }}>
-        <TableCell>
-          <IconButton
-            aria-label="expand row"
-            size="small"
-            onClick={() => setOpen(!open)}
-          >
-            {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-          </IconButton>
-        </TableCell>
-        <TableCell component="th" scope="row">
-          {jobCollection.title}
-        </TableCell>
-        {/* <TableCell align="right">{jobCollection.status}</TableCell> */}
-        <TableCell align="right"> TODO </TableCell>
-        <TableCell align="right">{jobCollection.jobIds?.length}</TableCell>
-        <TableCell align="right"> TODO </TableCell>
-      </TableRow>
-      <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-          <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: 1 }}>
-              <Table size="small" aria-label="jobs">
-                <TableHead>
-                  <TableRow>
-                    <TableCell />
-                    <TableCell>Job ID</TableCell>
-                    <TableCell>Inputs</TableCell>
-                    <TableCell>Outputs</TableCell>
-                    <TableCell align="right">Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {jobUidList?.map((jobUid) => (
-                    <JobRow key={jobUid} jobUid={jobUid} />
-                  ))}
-                </TableBody>
-              </Table>
-            </Box>
-          </Collapse>
-        </TableCell>
-      </TableRow>
-    </React.Fragment>
-  );
-};
-
-// TODO include tick to select it
-function JobRow(props: { jobUid: string }) {
-  const { jobUid } = props;
-  const [job, setJob] = React.useState<FunctionJob | null>(null);
-
-  React.useEffect(() => {
-    (async () => {
-      const j = await getFunctionJob(jobUid);
-      setJob(j);
-    })();
-  }, [jobUid]);
-
-  if (job === null) {
-    return (
-      <TableRow>
-        <TableCell colSpan={6}>
-          <Typography variant="h6" gutterBottom component="div">
-            Loading job {jobUid}...
-          </Typography>
-        </TableCell>
-      </TableRow>
-    );
-  } else {
-    return (
-      <TableRow
-        key={job.uid}
-        sx={{
-          backgroundColor: job.status !== "COMPLETED" ? "#f0f0f0" : "inherit",
-        }}
-      >
-        <TableCell />
-        <TableCell component="th" scope="row">
-          {job.uid ? job.uid.slice(0, 5) : ""}...
-        </TableCell>
-        {/* <TableCell>{job.inputs}</TableCell>  // TODO need realistic-format inputs 
-        <TableCell>{job.outputs}</TableCell> */}
-        <TableCell> TODO </TableCell>
-        <TableCell> TODO </TableCell>
-        <TableCell align="right">{job.status}</TableCell>
-      </TableRow>
-    );
-  }
-}
+import { getFunctionJobCollections } from "./function_utils";
+import { Checkbox } from "@mui/material";
+import CollectionRow from "./CollectionRow";
 
 export default function JobsSelector() {
-  const [jobCollections, setJobCollections] = React.useState<
-    FunctionJobCollection[]
-  >([]);
+  const [jobCollections, setJobCollections] = React.useState<SelectedJobCollection[]>([]);
   const context = React.useContext(MMUXContext);
+
+  const onSelectJob = (index: number, selected: boolean) => {
+    setJobCollections(jobCollections.map((jc, idx) => {
+      if (idx === index) {
+        return {
+          ...jc,
+          selected,
+        };
+      }
+      return jc;
+    }));
+  }
+
+  const onSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = event.target.checked;
+    const newJobCollections = jobCollections.map((jc) => ({
+      ...jc,
+      selected: checked,
+    }));
+    setJobCollections(newJobCollections);
+  };
 
   async function updateJobCollections(functionUid: string) {
     console.log("Fetching jobCollections for function: ", functionUid);
     const jc = await getFunctionJobCollections(functionUid as string);
     console.log("Fetched jobCollections: ", jc);
     // NB: all Jobs must belong to a JobCollection (only those will be displayed here)
-    setJobCollections(jc);
+    const newJobs: SelectedJobCollection[] = jc.map((jc) => ({
+      jobCollection: jc,
+      selected: false,
+    }));
+    setJobCollections(newJobs);
   }
+
   React.useEffect(() => {
     console.log("useEffect in JobsSelector triggered");
     if (context?.selectedFunction === undefined) {
@@ -163,8 +68,14 @@ export default function JobsSelector() {
       <Table aria-label="collapsible table">
         <TableHead>
           <TableRow>
-            <TableCell />
-            {/* <TableCell>Campaign</TableCell> */}
+            <TableCell padding="checkbox">
+              <Checkbox
+                color="primary"
+                indeterminate={jobCollections.some((jc) => jc.selected) && jobCollections.some((jc) => !jc.selected)}
+                checked={!jobCollections.find((jc) => jc.selected === false)}
+                onChange={onSelectAllClick}
+              />
+            </TableCell>
             <TableCell>Job Run</TableCell>
             <TableCell align="right">Status</TableCell>
             <TableCell align="right">N Jobs</TableCell>
@@ -173,19 +84,10 @@ export default function JobsSelector() {
         </TableHead>
         <TableBody>
           {jobCollections.map((item, idx) => {
-            return <CollectionRow key={idx} jobCollection={item} />;
+            return <CollectionRow key={idx} jobs={item} selectJob={(selected: boolean)=>onSelectJob(idx, selected)}/>;
           })}
         </TableBody>
       </Table>
     </TableContainer>
   );
 }
-// function JobSelector() {
-//     return (
-//         <div>
-//             <h1>Job Selector</h1>
-//             <p>Select a job to view details.</p>
-//         </div>
-//     );
-// }
-// export default JobSelector;
