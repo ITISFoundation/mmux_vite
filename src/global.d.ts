@@ -31,3 +31,15 @@ interface SelectedJobCollection {
   jobCollection: FunctionJobCollection;
   selected: boolean;
 }
+
+type CollectionRowProps = {
+  jobs: SelectedJobCollection;
+  allSelected: boolean;
+  selectJob: (selected: boolean) => void;
+};
+
+interface JobRowProps  {
+  jobUid: string
+  setSelected: (selected: boolean) => void;
+  jobList: {[key: string]: boolean}
+}

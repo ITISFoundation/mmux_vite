@@ -13,19 +13,40 @@ import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { Checkbox } from "@mui/material";
 import JobRow from "./JobRow";
 
-type CollectionRowProps = {
-  jobs: SelectedJobCollection;
-  selectJob: (selected: boolean) => void;
-};
-
 // A priori, jobs from a single function (already selected & filtered)
 // TODO include tick to select it (and all the completed jobs in the collection)
 const CollectionRow = (props: CollectionRowProps) => {
-  const { jobs, selectJob } = props;
-  const jobCol = jobs.jobCollection;
+  const { jobs, allSelected, selectJob } = props;
   const [open, setOpen] = React.useState(false);
+  const jobCol = jobs.jobCollection;
+  const [jobIds, setJobIds] = React.useState<{[key: string]: boolean}>(jobCol.jobIds.reduce((acc:{[key: string]: boolean}, jobUid: string) => ({
+    ...acc,
+    [jobUid]: allSelected,
+  }), { }));
 
-  if (jobCol.jobIds?.length === 0) {
+  const handleJobSelection = (jobUid: string, selected: boolean) => {
+    jobIds[jobUid] = selected;
+    setJobIds(jobIds);
+
+    console.log("JobIds: ", Object.keys(jobIds).map((id) => jobIds[id] === true), Object.keys(jobIds).every((id) => jobIds[id] === true), jobIds);
+
+    if(Object.keys(jobIds).every((id) => jobIds[id] === true)) {
+      selectJob(true);
+    } else {
+      selectJob(false);
+    }
+  };
+
+  React.useEffect(() => {
+    setJobIds(jobCol.jobIds.reduce((acc:{[key: string]: boolean}, jobUid: string) => ({
+      ...acc,
+      [jobUid]: allSelected,
+    }), { }));
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  , [allSelected]);
+
+  if (Object.keys(jobIds).length === 0) {
     return (
       <TableRow>
         <TableCell colSpan={6}>
@@ -58,7 +79,7 @@ const CollectionRow = (props: CollectionRowProps) => {
             }}
           />
         </TableCell>
-        <TableCell component="th" scope="row">
+        <TableCell component="th" scope="row" align="right">
           {jobCol.title}
         </TableCell>
         {/* <TableCell align="right">{jobCollection.status}</TableCell> */}
@@ -69,7 +90,7 @@ const CollectionRow = (props: CollectionRowProps) => {
       <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ marginLeft: 6 }}>
+            <Box sx={{ marginLeft: 12 }}>
               <Table size="small" aria-label="jobs">
                 <TableHead>
                   <TableRow>
@@ -82,7 +103,7 @@ const CollectionRow = (props: CollectionRowProps) => {
                 </TableHead>
                 <TableBody>
                   {jobCol.jobIds?.map((jobUid: string) => (
-                    <JobRow key={jobUid} jobUid={jobUid} />
+                    <JobRow key={jobUid} jobUid={jobUid} jobList={jobIds} setSelected={(selected: boolean) => handleJobSelection(jobUid, selected)} />
                   ))}
                 </TableBody>
               </Table>

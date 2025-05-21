@@ -68,6 +68,7 @@ export default function JobsSelector() {
       <Table aria-label="collapsible table">
         <TableHead>
           <TableRow>
+            <TableCell />
             <TableCell padding="checkbox">
               <Checkbox
                 color="primary"
@@ -76,7 +77,7 @@ export default function JobsSelector() {
                 onChange={onSelectAllClick}
               />
             </TableCell>
-            <TableCell>Job Run</TableCell>
+            <TableCell align="right">Job Run</TableCell>
             <TableCell align="right">Status</TableCell>
             <TableCell align="right">N Jobs</TableCell>
             <TableCell align="right">Created At</TableCell>
@@ -84,7 +85,7 @@ export default function JobsSelector() {
         </TableHead>
         <TableBody>
           {jobCollections.map((item, idx) => {
-            return <CollectionRow key={idx} jobs={item} selectJob={(selected: boolean)=>onSelectJob(idx, selected)}/>;
+            return <CollectionRow key={idx} jobs={item} allSelected={item.selected} selectJob={(selected: boolean)=>onSelectJob(idx, selected)}/>;
           })}
         </TableBody>
       </Table>

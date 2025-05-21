@@ -4,23 +4,23 @@ import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import { getFunctionJob } from "./function_utils";
 import { FunctionJob } from "../osparc-api-ts-client";
-import { Checkbox } from "@mui/material";
-
-type SelectedFunctionJob = FunctionJob & {
-  selected: boolean;
-};
+import { Box, Checkbox } from "@mui/material";
 
 // TODO include tick to select it
-const JobRow = (props: { jobUid: string }) => {
-  const { jobUid } = props;
-  const [job, setJob] = React.useState<SelectedFunctionJob | undefined>(
+const JobRow = (props: JobRowProps) => {
+  const { jobUid, jobList, setSelected } = props;
+  const [job, setJob] = React.useState<FunctionJob | undefined>(
     undefined
   );
+
+  const handleSetJob = (selected: boolean) => {
+    setSelected(selected);
+  };
 
   React.useEffect(() => {
     (async () => {
       const job = await getFunctionJob(jobUid);
-      setJob({ ...job, selected: false });
+      setJob(job);
     })();
   }, [jobUid]);
 
@@ -46,10 +46,10 @@ const JobRow = (props: { jobUid: string }) => {
         <TableCell padding="checkbox">
           <Checkbox
             color="primary"
-            checked={job.selected}
+            checked={jobList[job.uid] ? jobList[job.uid] : false}
             onChange={(event) => {
               const checked = event.target.checked;
-              setJob({ ...job, selected: checked });
+              handleSetJob(checked);
             }}
           />
         </TableCell>
@@ -59,23 +59,21 @@ const JobRow = (props: { jobUid: string }) => {
         <TableCell>
           {Object.entries(job.inputs).map(([key, value], idx) => {
             return (
-              <div key={idx}>
-                {key} : {(value as number).toString()}
-              </div>
+              <Box key={idx} display={'inline'}>
+                {key} : {(value as number).toString()}{" "}
+              </Box>
             );
           })}
         </TableCell>
         <TableCell>
           {Object.entries(job.outputs).map(([key, value], idx) => {
             return (
-              <div key={idx}>
+              <Box key={idx} display={'inline'}>
                 {key} : {(value as number).toString()}
-              </div>
+              </Box>
             );
           })}
         </TableCell>
-        {/* <TableCell> TODO </TableCell>
-        <TableCell> TODO </TableCell> */}
         <TableCell align="right">{job.status}</TableCell>
       </TableRow>
     );
