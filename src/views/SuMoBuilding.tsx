@@ -52,7 +52,7 @@ function SuMoBuildingValidation() {
         return (
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: "10px" }}>
-                <text>Quantity of Interest (QoI) to inspect: </text>
+                <span>Quantity of Interest (QoI) to inspect: </span>
                 <select
                     value={selectedResponse}
                     onChange={(e) => {
@@ -111,7 +111,7 @@ function SuMoBuildingValidation() {
                     justifyContent: 'space-between',
                     color: '#eee',
                 }}>
-                    <text>Selected Function: <b>{context?.selectedFunction?.name}</b> </text>
+                    <span>Selected Function: <b>{context?.selectedFunction?.name}</b> </span>
                     <JobSelector />
                     <QoISelector />
                     <PlusButton
@@ -127,19 +127,19 @@ function SuMoBuildingValidation() {
 
                     <PlusButton
                         onClickFun={() => null}
-                        PlotFunComponent={() => <text>Not implemented yet</text>}
+                        PlotFunComponent={() => <span>Not implemented yet</span>}
                         text="Add SuMo CrossValidation accuracy metrics"
                         enabled={isSuMoGenerated}
                     />
                     <PlusButton
                         onClickFun={() => null}
-                        PlotFunComponent={() => <text>Not implemented yet</text>}
+                        PlotFunComponent={() => <span>Not implemented yet</span>}
                         text="Add SuMo 2D visualization"
                         enabled={isSuMoGenerated}
                     />
                     <PlusButton
                         onClickFun={() => null}
-                        PlotFunComponent={() => <text>Not implemented yet</text>}
+                        PlotFunComponent={() => <span>Not implemented yet</span>}
                         text="Add SuMo 3D visualization"
                         enabled={isSuMoGenerated}
                     />

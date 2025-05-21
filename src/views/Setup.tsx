@@ -57,7 +57,7 @@ function GridSearchSampling() {
             {gridSearchInputs?.map((inputVar, index) => (
                 <form key={index} style={{ display: "flex", alignItems: "center", marginBottom: "20px", gap: "20px", }}>
                     <h5 style={{ marginLeft: 10, marginRight: 20, marginBottom: 0, marginTop: 0, fontSize: 18 }}>{inputVar.variable}</h5>
-                    <text>Start: </text>
+                    <span>Start: </span>
                     <Input
                         type="number"
                         placeholder="Start"
@@ -65,7 +65,7 @@ function GridSearchSampling() {
                         sx={{ width: 100 }}
                         onChange={(e) => handleInputChange(index, "start", e.target.value)}
                     />
-                    <text>End: </text>
+                    <span>End: </span>
                     <Input
                         type="number"
                         placeholder="End"
@@ -73,7 +73,7 @@ function GridSearchSampling() {
                         sx={{ width: 100 }}
                         onChange={(e) => handleInputChange(index, "end", e.target.value)}
                     />
-                    <text>Number of points: </text>
+                    <span>Number of points: </span>
                     <Input
                         type="number"
                         placeholder="Points"
@@ -179,7 +179,7 @@ function LHSSampling() {
             {lhsInputs?.map((inputVar, index) => (
                 <form key={index} style={{ display: "flex", alignItems: "center", marginBottom: "20px", gap: "20px", }}>
                     <h5 style={{ marginLeft: 10, marginRight: 20, marginBottom: 0, marginTop: 0, fontSize: 18 }}>{inputVar.variable}</h5>
-                    <text>Start: </text>
+                    <span>Start: </span>
                     <Input
                         type="number"
                         placeholder="Start"
@@ -187,7 +187,7 @@ function LHSSampling() {
                         sx={{ width: 100 }}
                         onChange={(e) => handleInputChange(index, "start", e.target.value)}
                     />
-                    <text>End: </text>
+                    <span>End: </span>
                     <Input
                         type="number"
                         placeholder="End"
@@ -199,7 +199,7 @@ function LHSSampling() {
             ))}
 
             <form style={{ display: "flex", alignItems: "center", marginBottom: "20px", gap: "40px", }}>
-                <text>Number of sampling points: </text>
+                <span>Number of sampling points: </span>
                 <Input
                     type="number"
                     placeholder="N"

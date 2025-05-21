@@ -105,9 +105,9 @@ function JobCard(props: JobCardProps) {
     const job = props.job
     if (!job) {
         return (
-            <text>
+            <span>
                 JobCard could not be rendered
-            </text>
+            </span>
         )
     }
     else {
