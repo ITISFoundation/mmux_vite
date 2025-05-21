@@ -1,5 +1,4 @@
 import { Card, Typography, styled } from "@mui/material";
-import './Header.css';
 
 const HeaderCard = styled(Card, { shouldForwardProp: (props) => props !== 'type'})<{ type: 'setup' | 'sumo' | 'uq' }>(({ type }) => `
   background-color: ${type === 'setup' ? '#202427' : ''};
