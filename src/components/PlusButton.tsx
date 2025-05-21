@@ -36,11 +36,10 @@ function PlusButton(props: PlusButtonProps) {
                 >
                     <h3>{!showElement ? "+" : "-"}</h3>
                 </Button>
-                <text style={{ margin: 5, color: props.enabled && !showElement ? '#bbb' : '#eee' }} >
+                <span style={{ margin: 5, color: props.enabled && !showElement ? '#bbb' : '#eee' }} >
                     {props.text ? props.text : ''}
-                </text>
+                </span>
             </Box >
-            
             <Box sx={{ display: 'flex', width: '100%', overflowX: 'auto' }}>
                 {
                     showElement && 

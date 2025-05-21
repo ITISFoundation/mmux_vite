@@ -16,7 +16,7 @@ const PlotDataTogether = (props: PlotDataType) => {
     let xAxes = [];
 
     if (data === undefined || inputVars === undefined) {
-        return <text>Loading...</text>;
+        return <span>Loading...</span>;
     } else {
         for (let i = 0; i < inputVars.length; i++) {
             plotData.push({

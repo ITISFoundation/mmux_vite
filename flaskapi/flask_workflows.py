@@ -119,25 +119,58 @@ def flask_list_jobs():
 
     return jsonify(jobs)
 
-@app.route("/flask/get_function_jobs", methods=["GET"])
-def flask_get_function_jobs():
+@app.route("/flask/list_function_jobs_for_functionid", methods=["GET"])
+def flask_list_function_jobs_for_functionid():
     logger.info("Starting flask function: flask_get_function_jobs")
     logger.info("Cwd: " + str(Path.cwd()))
     function_uid = request.args["functionUid"]
     logger.info(f"Function ID: {function_uid}")
-    # jobs = job_api_instance.list_function_jobs() ## FIXME this endpoint is not ready - for now, filter here
-    # ## this is a list of items of Paginated object -- deserialize into a list of function objects
-    # jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in jobs.items]
-    # logger.info(f"N Jobs: {len(jobs)}")
-    # jobs = [j for j in jobs if j["functionUid"] == function_uid]
+    ## this is a list of items of Paginated object -- deserialize into a list of function objects
     jobs = functions_api_instance.list_function_jobs_for_functionid(function_uid)
-    jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in jobs.items]
+    jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in jobs.items] # type: ignore
     logger.info(f"N Jobs for function {function_uid}: {len(jobs)}")
     for j in jobs:
         status : FunctionJobStatus = job_api_instance.function_job_status(j["uid"]) 
         j["status"] = status.status
     return jsonify(jobs)
 
+@app.route("/flask/list_function_job_collections", methods=["GET"])
+def flask_get_function_job_collections():
+    logger.info("Starting flask function: flask_get_function_job_collections")
+    logger.info("Cwd: " + str(Path.cwd()))
+    ## this is a list of items of Paginated object -- deserialize into a list of JobCollection objects
+    job_collections = job_collection_api_instance.list_function_job_collections()
+    job_collections = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in job_collections.items]
+    logger.info(f"N Job collections: {len(job_collections)}")
+    return jsonify(job_collections)
+
+## TODO this does not work; FUnctionJobCOllection does not have functionUid property (??) (include it)
+@app.route("/flask/list_function_job_collections_for_functionid", methods=["GET"])
+def flask_get_function_job_collections_for_functionid():
+    logger.info("Starting flask function: flask_get_function_job_collections")
+    logger.info("Cwd: " + str(Path.cwd()))
+    function_uid = request.args["functionUid"]
+    logger.info(f"Function ID: {function_uid}")
+    ## this is a list of items of Paginated object -- deserialize into a list of JobCollection objects
+    job_collections = job_collection_api_instance.list_function_job_collections()
+    job_collections = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in job_collections.items]
+    logger.info(f"N Job collections: {len(job_collections)}")
+    job_collections = [j for j in job_collections if j["functionUid"] == function_uid]
+    logger.info(f"N Job collections for function {function_uid}: {len(job_collections)}")
+    return jsonify(job_collections)
+
+@app.route("/flask/get_function_job", methods=["GET"])
+def flask_get_function_job():
+    logger.info("Starting flask function: flask_get_function_job")
+    logger.info("Cwd: " + str(Path.cwd()))
+    job_uid = request.args["jobUid"]
+    logger.info(f"Job ID: {job_uid}")
+    ## this is a list of items of Paginated object -- deserialize into a list of function objects
+    job = job_api_instance.get_function_job(job_uid).to_dict()
+    job = recursive_dict_keys_camel_to_snake(job)
+    job["status"] = job_api_instance.function_job_status(job_uid).status
+    logger.info(f"Job: {job}")
+    return jsonify(job)
 
 @app.route("/flask/sumo_along_axes", methods=["POST"])
 def flask_evaluate_sumo_along_axes():

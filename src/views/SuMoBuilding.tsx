@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useContext, JSX } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import MetaModelingUX from '../components/MetaModelingUX';
+import JobSelector from '../components/JobSelector';
 import { Button, Box, Container } from '@mui/material';
 import MMUXContext from './MMUXContext';
 import PlotDataTogether from '../components/PlotDataTogether'
-import { JOB_API, PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
+import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
 import PlusButton from '../components/PlusButton';
+import { getFunctionJobsFromFunctionUid, getFunctionJobCollections } from '../components/function_utils';
+
 
 function SuMoBuildingValidation() {
     const context = useContext(MMUXContext)
-    const inputVars = context?.selectedFunction?.inputSchema.required as string[]
-    const outputVars = context?.selectedFunction?.outputSchema.required as string[]
+    const inputVars = context?.selectedFunction?.inputSchema.schemaContent.required as string[]
+    const outputVars = context?.selectedFunction?.outputSchema.schemaContent.required as string[]
     const [isSuMoGenerated, setIsSuMoGenerated] = useState(false)
 
     const [selectedResponse, setSelectedResponse] = useState(outputVars ? outputVars[0] : '');
@@ -22,8 +25,10 @@ function SuMoBuildingValidation() {
     }, [context?.selectedFunction])
 
     async function RunPlotCentralSuMoInterpolations() {
+        // TODO get only those selected in the JobSelector (pass as status??)
+        let jobList = await getFunctionJobsFromFunctionUid(context?.selectedFunction?.uid as string);
+        console.log("Fetched jobs:", jobList);
         console.log("Running SuMo...");
-        const jobs = await JOB_API.getFunctionJobs(context?.selectedFunction?.id as number)
         fetch(
             PYTHON_DAKOTA_BACKEND + '/flask/sumo_along_axes',
             {
@@ -33,7 +38,7 @@ function SuMoBuildingValidation() {
                         inputs: inputVars,
                         output: selectedResponse,
                         log: isLogEnabled,
-                        FunctionJobs: jobs,
+                        FunctionJobs: jobList,
                     }
                 ),
             }).then(function (response) {
@@ -47,7 +52,7 @@ function SuMoBuildingValidation() {
         return (
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: "10px" }}>
-                <text>Quantity of Interest (QoI) to inspect: </text>
+                <span>Quantity of Interest (QoI) to inspect: </span>
                 <select
                     value={selectedResponse}
                     onChange={(e) => {
@@ -94,19 +99,6 @@ function SuMoBuildingValidation() {
         );
     }
 
-
-    // TODO update plots when data arrives / changes
-    <PlusButton
-        onClickFun={RunPlotCentralSuMoInterpolations}
-        PlotFunComponent={() => <PlotDataTogether
-            data={plotDataSumoCentralCurves}
-            inputVars={inputVars}
-            qoi={selectedResponse}
-        />}
-        text="Visualize central SuMo interpolations"
-        enabled={isSuMoGenerated && plotDataSumoCentralCurves !== undefined}
-    />
-
     return (
         < MetaModelingUX tabTitle="Surrogate Model Building & Validation" headerType="header">
             <Container>
@@ -119,7 +111,8 @@ function SuMoBuildingValidation() {
                     justifyContent: 'space-between',
                     color: '#eee',
                 }}>
-                    <text>Selected Function: <b>{context?.selectedFunction?.name}</b> </text>
+                    <span>Selected Function: <b>{context?.selectedFunction?.name}</b> </span>
+                    <JobSelector />
                     <QoISelector />
                     <PlusButton
                         onClickFun={RunPlotCentralSuMoInterpolations}
@@ -134,19 +127,19 @@ function SuMoBuildingValidation() {
 
                     <PlusButton
                         onClickFun={() => null}
-                        PlotFunComponent={() => <text>Not implemented yet</text>}
+                        PlotFunComponent={() => <span>Not implemented yet</span>}
                         text="Add SuMo CrossValidation accuracy metrics"
                         enabled={isSuMoGenerated}
                     />
                     <PlusButton
                         onClickFun={() => null}
-                        PlotFunComponent={() => <text>Not implemented yet</text>}
+                        PlotFunComponent={() => <span>Not implemented yet</span>}
                         text="Add SuMo 2D visualization"
                         enabled={isSuMoGenerated}
                     />
                     <PlusButton
                         onClickFun={() => null}
-                        PlotFunComponent={() => <text>Not implemented yet</text>}
+                        PlotFunComponent={() => <span>Not implemented yet</span>}
                         text="Add SuMo 3D visualization"
                         enabled={isSuMoGenerated}
                     />

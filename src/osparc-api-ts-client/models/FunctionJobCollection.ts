@@ -16,9 +16,11 @@ import { HttpFile } from '../http/http';
 * Model for a collection of function jobs
 */
 export class FunctionJobCollection {
+    'uid': string;
     'title'?: string;
     'description'?: string;
-    'jobIds'?: Array<string>;
+    'jobIds': Array<string>;
+    'status': string; // added manually to typestubs; included in the Python backend
 
     static readonly discriminator: string | undefined = undefined;
 

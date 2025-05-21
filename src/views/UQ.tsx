@@ -105,7 +105,7 @@ export default function UQ() {
                     justifyContent: 'space-between',
                     color: '#eee',
                 }}>
-                    <text>Selected Function: <b>{context?.selectedFunction?.name}</b> </text>
+                    <span>Selected Function: <b>{context?.selectedFunction?.name}</b> </span>
                     <label htmlFor="useSuMo">Use Surrogate Model to perform Uncertainty Quantification</label>
                     <input
                         type="checkbox"
