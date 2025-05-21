@@ -3,13 +3,18 @@ VENV_DIR := $(FLASKAPI_DIR)/.venv
 MMUX_PYTHON_DIR := $(FLASKAPI_DIR)/mmux_python
 MMUX_PYTHON_BRANCH := "work/jgo/flask_mmux_nih"
 
-base-install:
+## Front-end
+install-node:
 	curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
 	nvm install 22 ## gets node v22 (latest)
 	npm install # install all dependencies
-	apt install python3.11 python3.11-venv # install python venv
 
+start-frontend:
+	npm run dev
+
+## Python Backend
 install-mmux-python:
+	apt install python3.11 python3.11-venv # install python venv
 	git clone https://github.com/ITISFoundation/mmux_python $(MMUX_PYTHON_DIR)
 	cd $(MMUX_PYTHON_DIR) && git checkout $(MMUX_PYTHON_BRANCH)
 	python3.11 -m venv $(VENV_DIR)
@@ -19,21 +24,21 @@ install-mmux-python:
 start-backend: 
 	cd $(FLASKAPI_DIR) && .venv/bin/flask run --no-debugger
 
-start-frontend:
-	npm run dev
 
+## OSPARC API client generation
 client-generator:
 	rm -rf .uv_venv
 	uv venv .uv_venv
 	uv pip install openapi-generator-cli
 
-ts-client: client-generator
-	curl https://api.osparc-master.speag.com/api/v0/openapi.json -o openapi.json
-	uv run openapi-generator-cli generate \
-		-i openapi.json \
-		-g typescript \
-		-o ./src/osparc-api-ts-client \
-		--package-name osparc_client
+## No longer used
+# ts-client: client-generator
+# 	curl https://api.osparc-master.speag.com/api/v0/openapi.json -o openapi.json
+# 	uv run openapi-generator-cli generate \
+# 		-i openapi.json \
+# 		-g typescript \
+# 		-o ./src/osparc-api-ts-client \
+# 		--package-name osparc_client
 
 python-client: client-generator
 	curl https://api.osparc-master.speag.com/api/v0/openapi.json -o openapi.json
@@ -43,8 +48,3 @@ python-client: client-generator
 		-o ./flaskapi/osparc-api-python-client \
 		--package-name osparc_client
 	$(VENV_DIR)/bin/python -m  pip install ./flaskapi/osparc-api-python-client
-
-# uv run python solver_functions.py
-
-test:
-	npm run test
