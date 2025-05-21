@@ -6,7 +6,11 @@ interface MMUXContextType {
     setSelectedFunction: (F: Function) => void;
     currentView: number;
     setCurrentView: (i: number) => void;
-    // previousView: number[]
+    launchingSampling: boolean,
+    setLaunchingSampling: (b: boolean) => void;
+    runningSampling: boolean,
+    setRunningSampling: (b: boolean) => void;
+    // TODO should I also store here the (Registered)JobCollection (uid) itself?
 }
 
 const MMUXContext = createContext<MMUXContextType | undefined>(undefined)

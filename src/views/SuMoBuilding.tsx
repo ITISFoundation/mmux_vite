@@ -95,6 +95,7 @@ function SuMoBuildingValidation() {
                     {loading ? "Creating..." : isSuMoGenerated ? "SuMo created!" : "Create SuMo"}
                 </Button>
                 {loading && <Box className="spinner" />}
+                {/* FIXME the spinner ddoes not work anymore */}
             </Box>
         );
     }

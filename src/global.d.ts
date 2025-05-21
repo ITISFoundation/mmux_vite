@@ -7,8 +7,8 @@ type PersistentState = {
   variable: string;
   start: number;
   end: number;
-  points: number;
-  seed: number;
+  points: number; // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
+  seed?: number; // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
 }
 
 interface NavigationProps {

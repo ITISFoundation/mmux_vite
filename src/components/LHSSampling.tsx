@@ -3,14 +3,16 @@ import MMUXContext from '../views/MMUXContext';
 import usePersistentJSONState from '../hooks/usePersistentJSONState';
 import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
 import JobsDashboard from '../views/ParallelRunner';
-import { Button, Input, Typography } from '@mui/material';
+import { Box, Button, Input, Typography } from '@mui/material';
 import { Function, FunctionJob, FunctionJobCollection, RegisteredFunctionJobCollection } from '../osparc-api-ts-client';
 
 
 
 async function runLhsSampling(fun: Function, config: any[], seed: number = 0, N: number = 5) {
+    const context = useContext(MMUXContext);
     // send config to Python backend to create LHS
     console.log("Running LHS Sampling with config: ", config);
+    context?.setLaunchingSampling(true)
     const jc = await fetch(
         PYTHON_DAKOTA_BACKEND + '/flask/lhs_sampling',
         {
@@ -31,6 +33,8 @@ async function runLhsSampling(fun: Function, config: any[], seed: number = 0, N:
         }).catch(function (error) {
             console.error("Error running LHS sampling: ", error);
         })
+    context?.setLaunchingSampling(false)
+    context?.setRunningSampling(true)
     return jc
 } // Now the LHS is both created & submitted to OSPARC API through the Python Backend. Implement. 
 // What should I return here? 
@@ -55,6 +59,7 @@ const LHSSampling = () => {
         filePath: JSONStateFilePath
     });
 
+
     useEffect(() => {
         if (context?.selectedFunction) {
             const funname = context?.selectedFunction?.title?.replace(/\s+/g, "_");
@@ -62,6 +67,33 @@ const LHSSampling = () => {
         }
     }, [context?.selectedFunction]);
 
+    function CreateSamplingButton() {
+        const handleRunSampling = () => {
+            context?.setLaunchingSampling(true)
+            runLhsSampling(context?.selectedFunction as Function, lhsInputs)
+            setTimeout(() => {
+                // for now the request fails very quickly
+                context?.setLaunchingSampling(false)
+                context?.setRunningSampling(true)
+            }, 3000);
+            // TODO have some way to detect that it finished running; and set the corresponding context variable to False
+        };
+
+        return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: "10px" }}>
+                {/* <Button variant="contained" onClick={() => }>Run LHS Sampling</Button> */}
+
+                <Button
+                    onClick={handleRunSampling}
+                    disabled={(context?.launchingSampling || context?.runningSampling)}
+                >
+                    {context?.launchingSampling ? "Launching..." : context?.runningSampling ? "Running..." : "Run Sampling"}
+                </Button>
+                {context?.launchingSampling && <Box className="spinner" />}
+                {/* FIXME the spinner ddoes not work anymore */}
+            </Box>
+        );
+    }
 
     function handleInputChange(index: number, field: string, value: string) {
         setLhsInputs((prevInputs) => {
@@ -113,16 +145,19 @@ const LHSSampling = () => {
                 <Input
                     type="number"
                     placeholder="seed"
-                    value={lhsInputs[0].seed.toString()}
+                    value={lhsInputs[0].seed?.toString()}
                     sx={{ width: 100 }}
                     onChange={(e) => handleInputChange(0, "seed", e.target.value)}
                 />
-                <Button variant="contained" onClick={() => runLhsSampling(context?.selectedFunction as Function, lhsInputs)}>Run LHS Sampling</Button>
+                < CreateSamplingButton />
                 {/* TODO should we have a "cancel run" option? */}
                 {/* TODO make a "loading" symbol while the callback executes, as in SuMo creation */}
             </form>
+            {context?.runningSampling ? <JobsDashboard progressBarOnly={true} /> : undefined}
         </>
     );
 }
+
+
 
 export default LHSSampling;

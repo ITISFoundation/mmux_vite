@@ -12,11 +12,7 @@ type PlusButtonProps = {
     enabled: boolean,
 }
 function PlusButton(props: PlusButtonProps) {
-        // TODO showElement should be possible to change from here (?) so that the "-" works
-        // function toggleAndOnClickFun = () => {
-        //     onClickFun();
-        //     setShowElement(!showElement);
-        // }
+    // TODO would like + / - to be on the left of everything else, and on the middle height-wise
         const [showElement, setShowElement] = useState(false);
         return (<>
             <Box sx={{ justifySelf: 'left', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: "10px" }}>
@@ -36,16 +32,17 @@ function PlusButton(props: PlusButtonProps) {
                 >
                     <h3>{!showElement ? "+" : "-"}</h3>
                 </Button>
-                <span style={{ margin: 5, color: props.enabled && !showElement ? '#bbb' : '#eee' }} >
-                    {props.text ? props.text : ''}
-                </span>
-            </Box >
-            <Box sx={{ display: 'flex', width: '100%', overflowX: 'auto' }}>
-                {
+                <Box sx={{ display: 'flex', width: '100%', overflowX: 'auto' }}>
+                    {/* TODO need to introduce new active / inactive colors */}
+                    <span style={{ margin: 5, color: props.enabled && !showElement ? '#bbb' : '#eee' }} >
+                        {(props.text != '' && !showElement) ? props.text : ''}
+                    </span>
+                    {
                     showElement && 
                     <props.PlotFunComponent/>
                 }
             </Box>
+            </Box >
         </>)
 }
 
