@@ -12,13 +12,12 @@ import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { Function, FunctionJob, FunctionJobCollection } from '../osparc-api-ts-client';
+import { FunctionJob, FunctionJobCollection } from '../osparc-api-ts-client';
 import MMUXContext from '../views/MMUXContext';
-import { getFunctionJob, getFunctionJobsFromFunctionUid, getFunctionJobCollections } from './function_utils';
+import { getFunctionJob, getFunctionJobCollections } from './function_utils';
 
 // A priori, jobs from a single function (already selected & filtered)
 // TODO include tick to select it (and all the completed jobs in the collection)
-
 async function CollectionRow(props: { jobCollection: FunctionJobCollection }) {
     const { jobCollection } = props;
     const jobUidList = jobCollection.jobIds
@@ -65,6 +64,8 @@ async function CollectionRow(props: { jobCollection: FunctionJobCollection }) {
                                         <TableRow>
                                             <TableCell />
                                             <TableCell>Job ID</TableCell>
+                                            <TableCell>Inputs</TableCell>
+                                            <TableCell>Outputs</TableCell>
                                             <TableCell align="right">Status</TableCell>
                                         </TableRow>
                                     </TableHead>
@@ -106,15 +107,14 @@ function JobRow(props: { jobUid: string }) {
             </TableRow>
         );
     } else {
-
         return (
             <TableRow
                 key={job.uid}
             sx={{ backgroundColor: job.status !== "COMPLETED" ? '#f0f0f0' : 'inherit' }}>
             <TableCell />
-            <TableCell component="th" scope="row">
-                    {job.uid}
-            </TableCell>
+                <TableCell component="th" scope="row">{job.uid.slice(0, 5)}...</TableCell>
+                <TableCell>{job.inputs}</TableCell>
+                <TableCell>{job.outputs}</TableCell>
             <TableCell align="right">{job.status}</TableCell>
         </TableRow>
     );
@@ -125,6 +125,13 @@ export default function JobsSelector() {
     const [jobCollections, setJobCollections] = React.useState<FunctionJobCollection[]>([]);
     const context = React.useContext(MMUXContext);
 
+    async function updateJobCollections(functionUid: string) {
+        console.log("Fetching jobCollections for function: ", functionUid);
+        const jc = await getFunctionJobCollections(functionUid as string);
+        console.log("Fetched jobCollections: ", jc);
+        // NB: all Jobs must belong to a JobCollection (only those will be displayed here)
+        setJobCollections(jc);
+    }
     React.useEffect(() => {
         console.log("useEffect in JobsSelector triggered");
         if (context?.selectedFunction === undefined) {
@@ -133,18 +140,12 @@ export default function JobsSelector() {
         } else {
             console.log("Function selected: ", context?.selectedFunction?.uid);
             (async () => {
-                console.log("Fetching jobCollections for function: ", context?.selectedFunction?.uid);
-                const jc = await getFunctionJobCollections(context?.selectedFunction?.uid as string);
-                const j = await getFunctionJobsFromFunctionUid(context?.selectedFunction?.uid as string);
-                console.log("Fetched jobCollections: ", jc);
-                console.log("Fetched jobs: ", j);
-                jc.push(...j); // append both lists
-                console.log("Combined jobCollections: ", jc);
-                // TEMP just jobs, let's see -- This works!! :)
-                setJobCollections(j); // append both lists
+                await updateJobCollections(context?.selectedFunction?.uid as string)
+                console.log("Updated JobCollections")
             })();
         }
     }, [context?.selectedFunction]);
+    // TODO include button to "refresh" job collections using the function above
 
     return (
         <TableContainer component={Paper}>
@@ -153,25 +154,17 @@ export default function JobsSelector() {
                     <TableRow>
                         <TableCell />
                         {/* <TableCell>Campaign</TableCell> */}
-                        <TableCell>Job</TableCell>
+                        <TableCell>Job Run</TableCell>
                         <TableCell align="right">Status</TableCell>
-                        {/* <TableCell align="right">N Jobs</TableCell> */}
+                        <TableCell align="right">N Jobs</TableCell>
+                        <TableCell align="right">Created At</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
                     {jobCollections.map((item) => {
-                        // for now, focus on list of jobs (not job)
-                        // TODO include FunctionJobCollection
-
-                        // It's a FunctionJobCollection
-                        if ('jobIds' in item) {
-                            return <CollectionRow key={(item as FunctionJobCollection).uid} jobCollection={item} />;
+                        return <CollectionRow key={item.uid} jobCollection={item} />;
                         }
-                        // It's a FunctionJob
-                        else {
-                            return <JobRow key={(item as FunctionJob).uid} jobUid={(item as FunctionJob).uid} />;
-                        }
-                    })}
+                    )}
                 </TableBody>
             </Table>
         </TableContainer>

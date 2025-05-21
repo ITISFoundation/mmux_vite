@@ -11,8 +11,8 @@ import { getFunctionJobsFromFunctionUid, getFunctionJobCollections } from '../co
 
 function SuMoBuildingValidation() {
     const context = useContext(MMUXContext)
-    const inputVars = context?.selectedFunction?.inputSchema?.schemaContent.required as string[]
-    const outputVars = context?.selectedFunction?.outputSchema?.schemaContent.required as string[]
+    const inputVars = context?.selectedFunction?.inputSchema.schemaContent.required as string[]
+    const outputVars = context?.selectedFunction?.outputSchema.schemaContent.required as string[]
     const [isSuMoGenerated, setIsSuMoGenerated] = useState(false)
 
     const [selectedResponse, setSelectedResponse] = useState(outputVars ? outputVars[0] : '');
