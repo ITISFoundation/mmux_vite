@@ -65,7 +65,7 @@ type ProgressBarProps = {
     totalETA?: number;
 };
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ jobsByStatus, totalETA = 0 }) => {
+export const ProgressBar: React.FC<ProgressBarProps> = ({ jobsByStatus, totalETA = 0 }) => {
     const total: number = Object.values(jobsByStatus).reduce((acc, jobs) => acc + Object.keys(jobs).length, 0);
     const widths = {
         COMPLETED: (Object.keys(jobsByStatus.COMPLETED).length / total) * 100,
@@ -173,8 +173,11 @@ function StatusColumn(props: StatusColumnProps) {
     );
 }
 
-
-function Dashboard() {
+interface JobDashboardProps {
+    progressBarOnly?: boolean;
+}
+export function Dashboard(props: JobDashboardProps) {
+    const { progressBarOnly } = props;
     const [jobs, setJobs] = useState<FunctionJob[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -227,22 +230,16 @@ function Dashboard() {
     return (
         <div className="flex flex-col h-screen bg-gray-900 text-white">
             <ProgressBar jobsByStatus={jobsByStatus} /> {/* totalETA={totalETA} /> */}
-            <div className="flex-1 flex flex-row overflow-hidden">
+            {!progressBarOnly && (
+                <div className="flex-1 flex flex-row overflow-hidden">
                 <StatusColumn title="To Do" jobs={jobsByStatus.PENDING} />
                 <StatusColumn title="Running" jobs={jobsByStatus.RUNNING} />
                 <StatusColumn title="Done" jobs={jobsByStatus.COMPLETED} />
                 <StatusColumn title="Failed" jobs={jobsByStatus.FAILED} />
             </div>
+            )}
         </div>
     );
 };
 
-const App = () => {
-    return (
-        <div className="App">
-            <Dashboard />
-        </div>
-    );
-}
-
-export default App;
+export default Dashboard;
