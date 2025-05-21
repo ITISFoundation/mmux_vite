@@ -12,7 +12,7 @@ export default function Setup() {
     const context = useContext(MMUXContext)
 
     return (
-        <MetaModelingUX tabTitle="Base Function Selection" headerType="header">
+        <MetaModelingUX tabTitle="Base Function Selection" headerType="setup">
             {/* TODO convert into a toggle? and move the "Next" to the bottom? */}
             <div style={{ display: "flex", justifyContent: "space-between", margin: "10px" }}>
                 <Button onClick={() => setShowFunctionIndex(!showFunctionIndex)}>
