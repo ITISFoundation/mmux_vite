@@ -1,14 +1,19 @@
-import './App.css';
+import { useState } from 'react';
+import { styled } from '@mui/material/styles';
 import UQ from './views/UQ';
 import Setup from './views/Setup';
-import SuMoBuildingValidation from './views/SuMoBuilding';
 import Navigation from './components/Navigation';
-import { useState } from 'react';
 import MMUXContext from './views/MMUXContext';
 import { Function } from './osparc-api-ts-client';
+import SuMoBuildingValidation from './views/SuMoBuilding';
 
-function App() {
-  const steps = [
+const Container = styled('div')`
+max-width: 1000px;
+margin: 0 auto; /* center alignment of the app*/
+`;
+
+const App = () => {
+  const steps: Step[] = [
     { id: 1, label: "Setup" },
     { id: 2, label: "SuMo" },
     { id: 3, label: "UQ" },
@@ -33,23 +38,13 @@ function App() {
 
   return (
     <MMUXContext.Provider value={defaultMMUXContext} >
-      <div className="background-card">
+      <Container>
         {/* Top, it shows the different "tabs" as if it were AppMode */}
-        <div className='navigation'>
-          <Navigation steps={steps} activeStep={activeStep} setActiveStep={setActiveStep} />
-        </div>
-
-        <div className={activeStep === 1 ? "active" : "non-active"}>
-          <Setup />
-        </div>
-        <div className={activeStep === 2 ? "active" : "non-active"}>
-          <SuMoBuildingValidation />
-        </div>
-        <div className={activeStep === 3 ? "active" : "non-active"}>
-          <UQ />
-        </div>
-
-      </div>
+        <Navigation steps={steps} activeStep={activeStep} setActiveStep={setActiveStep} />
+        { activeStep === 1 ? <Setup /> : undefined}
+        { activeStep === 2 ? <SuMoBuildingValidation /> : undefined}
+        { activeStep === 3 ? <UQ /> : undefined}
+      </Container>
     </MMUXContext.Provider >
   );
 }

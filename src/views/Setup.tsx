@@ -9,8 +9,8 @@ import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
 import { Function, FunctionJob } from '../osparc-api-ts-client';
 import ParallelRunner from './ParallelRunner';
 
-function runGridSearchSampling(config: any[]) {
-    console.log("Grid Search Sampling not implemented yet!")
+function runGridSearchSampling(config: unknown[]) {
+    console.log("Grid Search Sampling not implemented yet!", config)
 }
 
 
@@ -40,7 +40,7 @@ function GridSearchSampling() {
 
 
     function handleInputChange(index: number, field: string, value: string) {
-        setGridSearchInputs((prevInputs: any) => {
+        setGridSearchInputs((prevInputs: PersistentState[]) => {
             const newInputs = [...prevInputs];
             newInputs[index] = {
                 ...newInputs[index],
@@ -143,7 +143,7 @@ function LHSSampling() {
     const [JSONStateFilePath, setJSONStateFilePath] = useState("");
     // Needed to move the filePath outside of the PersistentJSONState hook to avoid triggering infinite loops
     // Now it works and I have persistence even across sessions :)
-    const [lhsInputs, setLhsInputs] = usePersistentJSONState({
+    const [lhsInputs, setLhsInputs] = usePersistentJSONState<PersistentState[]>({
         defaultState: inputVars.map((inputVar) => ({
             variable: inputVar,
             start: 0.0,
@@ -162,7 +162,7 @@ function LHSSampling() {
 
 
     function handleInputChange(index: number, field: string, value: string) {
-        setLhsInputs((prevInputs: any) => {
+        setLhsInputs((prevInputs) => {
             const newInputs = [...prevInputs];
             newInputs[index] = {
                 ...newInputs[index],
