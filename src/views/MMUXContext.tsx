@@ -1,5 +1,5 @@
-import { createContext } from 'react';
-import { Function } from '../osparc-api-ts-client';
+import { createContext } from "react";
+import { Function } from "../osparc-api-ts-client";
 
 export interface MMUXContextType {
     selectedFunction: Function | undefined;
@@ -11,8 +11,10 @@ export interface MMUXContextType {
     runningSampling: boolean,
     setRunningSampling: (b: boolean) => void;
     // TODO should I also store here the (Registered)JobCollection (uid) itself?
+  selectedJobs: string[];
+  setSelectedJobs: (selectedJobs: string[]) => void;
 }
 
-const MMUXContext = createContext<MMUXContextType | undefined>(undefined)
+const MMUXContext = createContext<MMUXContextType | undefined>(undefined);
 
 export default MMUXContext;
