@@ -90,6 +90,8 @@ Function Job Collection List Function Jobs
 
 Get the function jobs in function job collection
 
+New in *version 0.8.0*
+
 ### Example
 
 
@@ -159,6 +161,8 @@ No authorization required
 Function Job Collection Status
 
 Get function job collection status
+
+New in *version 0.8.0*
 
 ### Example
 

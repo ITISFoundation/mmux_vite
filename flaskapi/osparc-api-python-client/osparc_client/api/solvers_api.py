@@ -75,7 +75,7 @@ class SolversApi:
     ) -> Job:
         """Create Solver Job
 
-        Creates a job in a specific release with given inputs.  NOTE: This operation does **not** start the job
+        Creates a job in a specific release with given inputs. This operation does not start the job.  New in *version 0.5*
 
         :param solver_key: (required)
         :type solver_key: str
@@ -170,7 +170,7 @@ class SolversApi:
     ) -> ApiResponse[Job]:
         """Create Solver Job
 
-        Creates a job in a specific release with given inputs.  NOTE: This operation does **not** start the job
+        Creates a job in a specific release with given inputs. This operation does not start the job.  New in *version 0.5*
 
         :param solver_key: (required)
         :type solver_key: str
@@ -265,7 +265,7 @@ class SolversApi:
     ) -> RESTResponseType:
         """Create Solver Job
 
-        Creates a job in a specific release with given inputs.  NOTE: This operation does **not** start the job
+        Creates a job in a specific release with given inputs. This operation does not start the job.  New in *version 0.5*
 
         :param solver_key: (required)
         :type solver_key: str
@@ -1389,7 +1389,7 @@ class SolversApi:
     ) -> bytearray:
         """Get Job Output Logfile
 
-        Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done.  New in *version 0.4.0*
+        Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done  New in *version 0.4*
 
         :param solver_key: (required)
         :type solver_key: str
@@ -1472,7 +1472,7 @@ class SolversApi:
     ) -> ApiResponse[bytearray]:
         """Get Job Output Logfile
 
-        Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done.  New in *version 0.4.0*
+        Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done  New in *version 0.4*
 
         :param solver_key: (required)
         :type solver_key: str
@@ -1555,7 +1555,7 @@ class SolversApi:
     ) -> RESTResponseType:
         """Get Job Output Logfile
 
-        Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done.  New in *version 0.4.0*
+        Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done  New in *version 0.4*
 
         :param solver_key: (required)
         :type solver_key: str
@@ -2610,340 +2610,6 @@ class SolversApi:
         return self.api_client.param_serialize(
             method='GET',
             resource_path='/v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}/wallet',
-            path_params=_path_params,
-            query_params=_query_params,
-            header_params=_header_params,
-            body=_body_params,
-            post_params=_form_params,
-            files=_files,
-            auth_settings=_auth_settings,
-            collection_formats=_collection_formats,
-            _host=_host,
-            _request_auth=_request_auth
-        )
-
-
-
-
-    @validate_call
-    def get_jobs_page(
-        self,
-        solver_key: Annotated[str, Field(strict=True)],
-        version: Annotated[str, Field(strict=True)],
-        limit: Annotated[Optional[Annotated[int, Field(le=50, strict=True, ge=1)]], Field(description="Page size limit")] = None,
-        offset: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Page offset")] = None,
-        _request_timeout: Union[
-            None,
-            Annotated[StrictFloat, Field(gt=0)],
-            Tuple[
-                Annotated[StrictFloat, Field(gt=0)],
-                Annotated[StrictFloat, Field(gt=0)]
-            ]
-        ] = None,
-        _request_auth: Optional[Dict[StrictStr, Any]] = None,
-        _content_type: Optional[StrictStr] = None,
-        _headers: Optional[Dict[StrictStr, Any]] = None,
-        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> PageJob:
-        """Get Jobs Page
-
-        List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
-
-        :param solver_key: (required)
-        :type solver_key: str
-        :param version: (required)
-        :type version: str
-        :param limit: Page size limit
-        :type limit: int
-        :param offset: Page offset
-        :type offset: int
-        :param _request_timeout: timeout setting for this request. If one
-                                 number provided, it will be total request
-                                 timeout. It can also be a pair (tuple) of
-                                 (connection, read) timeouts.
-        :type _request_timeout: int, tuple(int, int), optional
-        :param _request_auth: set to override the auth_settings for an a single
-                              request; this effectively ignores the
-                              authentication in the spec for a single request.
-        :type _request_auth: dict, optional
-        :param _content_type: force content-type for the request.
-        :type _content_type: str, Optional
-        :param _headers: set to override the headers for a single
-                         request; this effectively ignores the headers
-                         in the spec for a single request.
-        :type _headers: dict, optional
-        :param _host_index: set to override the host_index for a single
-                            request; this effectively ignores the host_index
-                            in the spec for a single request.
-        :type _host_index: int, optional
-        :return: Returns the result object.
-        """ # noqa: E501
-
-        _param = self._get_jobs_page_serialize(
-            solver_key=solver_key,
-            version=version,
-            limit=limit,
-            offset=offset,
-            _request_auth=_request_auth,
-            _content_type=_content_type,
-            _headers=_headers,
-            _host_index=_host_index
-        )
-
-        _response_types_map: Dict[str, Optional[str]] = {
-            '200': "PageJob",
-            '402': "ErrorGet",
-            '404': "ErrorGet",
-            '429': "ErrorGet",
-            '500': "ErrorGet",
-            '502': "ErrorGet",
-            '503': "ErrorGet",
-            '504': "ErrorGet",
-            '422': "HTTPValidationError",
-        }
-        response_data = self.api_client.call_api(
-            *_param,
-            _request_timeout=_request_timeout
-        )
-        response_data.read()
-        return self.api_client.response_deserialize(
-            response_data=response_data,
-            response_types_map=_response_types_map,
-        ).data
-
-
-    @validate_call
-    def get_jobs_page_with_http_info(
-        self,
-        solver_key: Annotated[str, Field(strict=True)],
-        version: Annotated[str, Field(strict=True)],
-        limit: Annotated[Optional[Annotated[int, Field(le=50, strict=True, ge=1)]], Field(description="Page size limit")] = None,
-        offset: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Page offset")] = None,
-        _request_timeout: Union[
-            None,
-            Annotated[StrictFloat, Field(gt=0)],
-            Tuple[
-                Annotated[StrictFloat, Field(gt=0)],
-                Annotated[StrictFloat, Field(gt=0)]
-            ]
-        ] = None,
-        _request_auth: Optional[Dict[StrictStr, Any]] = None,
-        _content_type: Optional[StrictStr] = None,
-        _headers: Optional[Dict[StrictStr, Any]] = None,
-        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[PageJob]:
-        """Get Jobs Page
-
-        List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
-
-        :param solver_key: (required)
-        :type solver_key: str
-        :param version: (required)
-        :type version: str
-        :param limit: Page size limit
-        :type limit: int
-        :param offset: Page offset
-        :type offset: int
-        :param _request_timeout: timeout setting for this request. If one
-                                 number provided, it will be total request
-                                 timeout. It can also be a pair (tuple) of
-                                 (connection, read) timeouts.
-        :type _request_timeout: int, tuple(int, int), optional
-        :param _request_auth: set to override the auth_settings for an a single
-                              request; this effectively ignores the
-                              authentication in the spec for a single request.
-        :type _request_auth: dict, optional
-        :param _content_type: force content-type for the request.
-        :type _content_type: str, Optional
-        :param _headers: set to override the headers for a single
-                         request; this effectively ignores the headers
-                         in the spec for a single request.
-        :type _headers: dict, optional
-        :param _host_index: set to override the host_index for a single
-                            request; this effectively ignores the host_index
-                            in the spec for a single request.
-        :type _host_index: int, optional
-        :return: Returns the result object.
-        """ # noqa: E501
-
-        _param = self._get_jobs_page_serialize(
-            solver_key=solver_key,
-            version=version,
-            limit=limit,
-            offset=offset,
-            _request_auth=_request_auth,
-            _content_type=_content_type,
-            _headers=_headers,
-            _host_index=_host_index
-        )
-
-        _response_types_map: Dict[str, Optional[str]] = {
-            '200': "PageJob",
-            '402': "ErrorGet",
-            '404': "ErrorGet",
-            '429': "ErrorGet",
-            '500': "ErrorGet",
-            '502': "ErrorGet",
-            '503': "ErrorGet",
-            '504': "ErrorGet",
-            '422': "HTTPValidationError",
-        }
-        response_data = self.api_client.call_api(
-            *_param,
-            _request_timeout=_request_timeout
-        )
-        response_data.read()
-        return self.api_client.response_deserialize(
-            response_data=response_data,
-            response_types_map=_response_types_map,
-        )
-
-
-    @validate_call
-    def get_jobs_page_without_preload_content(
-        self,
-        solver_key: Annotated[str, Field(strict=True)],
-        version: Annotated[str, Field(strict=True)],
-        limit: Annotated[Optional[Annotated[int, Field(le=50, strict=True, ge=1)]], Field(description="Page size limit")] = None,
-        offset: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Page offset")] = None,
-        _request_timeout: Union[
-            None,
-            Annotated[StrictFloat, Field(gt=0)],
-            Tuple[
-                Annotated[StrictFloat, Field(gt=0)],
-                Annotated[StrictFloat, Field(gt=0)]
-            ]
-        ] = None,
-        _request_auth: Optional[Dict[StrictStr, Any]] = None,
-        _content_type: Optional[StrictStr] = None,
-        _headers: Optional[Dict[StrictStr, Any]] = None,
-        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> RESTResponseType:
-        """Get Jobs Page
-
-        List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
-
-        :param solver_key: (required)
-        :type solver_key: str
-        :param version: (required)
-        :type version: str
-        :param limit: Page size limit
-        :type limit: int
-        :param offset: Page offset
-        :type offset: int
-        :param _request_timeout: timeout setting for this request. If one
-                                 number provided, it will be total request
-                                 timeout. It can also be a pair (tuple) of
-                                 (connection, read) timeouts.
-        :type _request_timeout: int, tuple(int, int), optional
-        :param _request_auth: set to override the auth_settings for an a single
-                              request; this effectively ignores the
-                              authentication in the spec for a single request.
-        :type _request_auth: dict, optional
-        :param _content_type: force content-type for the request.
-        :type _content_type: str, Optional
-        :param _headers: set to override the headers for a single
-                         request; this effectively ignores the headers
-                         in the spec for a single request.
-        :type _headers: dict, optional
-        :param _host_index: set to override the host_index for a single
-                            request; this effectively ignores the host_index
-                            in the spec for a single request.
-        :type _host_index: int, optional
-        :return: Returns the result object.
-        """ # noqa: E501
-
-        _param = self._get_jobs_page_serialize(
-            solver_key=solver_key,
-            version=version,
-            limit=limit,
-            offset=offset,
-            _request_auth=_request_auth,
-            _content_type=_content_type,
-            _headers=_headers,
-            _host_index=_host_index
-        )
-
-        _response_types_map: Dict[str, Optional[str]] = {
-            '200': "PageJob",
-            '402': "ErrorGet",
-            '404': "ErrorGet",
-            '429': "ErrorGet",
-            '500': "ErrorGet",
-            '502': "ErrorGet",
-            '503': "ErrorGet",
-            '504': "ErrorGet",
-            '422': "HTTPValidationError",
-        }
-        response_data = self.api_client.call_api(
-            *_param,
-            _request_timeout=_request_timeout
-        )
-        return response_data.response
-
-
-    def _get_jobs_page_serialize(
-        self,
-        solver_key,
-        version,
-        limit,
-        offset,
-        _request_auth,
-        _content_type,
-        _headers,
-        _host_index,
-    ) -> RequestSerialized:
-
-        _host = None
-
-        _collection_formats: Dict[str, str] = {
-        }
-
-        _path_params: Dict[str, str] = {}
-        _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
-        _form_params: List[Tuple[str, str]] = []
-        _files: Dict[
-            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
-        ] = {}
-        _body_params: Optional[bytes] = None
-
-        # process the path parameters
-        if solver_key is not None:
-            _path_params['solver_key'] = solver_key
-        if version is not None:
-            _path_params['version'] = version
-        # process the query parameters
-        if limit is not None:
-            
-            _query_params.append(('limit', limit))
-            
-        if offset is not None:
-            
-            _query_params.append(('offset', offset))
-            
-        # process the header parameters
-        # process the form parameters
-        # process the body parameter
-
-
-        # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
-            _header_params['Accept'] = self.api_client.select_header_accept(
-                [
-                    'application/json'
-                ]
-            )
-
-
-        # authentication setting
-        _auth_settings: List[str] = [
-            'HTTPBasic'
-        ]
-
-        return self.api_client.param_serialize(
-            method='GET',
-            resource_path='/v0/solvers/{solver_key}/releases/{version}/jobs/page',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,
@@ -4166,6 +3832,7 @@ class SolversApi:
     ) -> JobStatus:
         """Inspect Job
 
+        Inspects the current status of a job  New in *version 0.5*
 
         :param solver_key: (required)
         :type solver_key: str
@@ -4248,6 +3915,7 @@ class SolversApi:
     ) -> ApiResponse[JobStatus]:
         """Inspect Job
 
+        Inspects the current status of a job  New in *version 0.5*
 
         :param solver_key: (required)
         :type solver_key: str
@@ -4330,6 +3998,7 @@ class SolversApi:
     ) -> RESTResponseType:
         """Inspect Job
 
+        Inspects the current status of a job  New in *version 0.5*
 
         :param solver_key: (required)
         :type solver_key: str
@@ -4758,6 +4427,340 @@ class SolversApi:
 
 
     @validate_call
+    def list_jobs_paginated(
+        self,
+        solver_key: Annotated[str, Field(strict=True)],
+        version: Annotated[str, Field(strict=True)],
+        limit: Annotated[Optional[Annotated[int, Field(le=50, strict=True, ge=1)]], Field(description="Page size limit")] = None,
+        offset: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Page offset")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> PageJob:
+        """List Jobs Paginated
+
+        List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
+
+        :param solver_key: (required)
+        :type solver_key: str
+        :param version: (required)
+        :type version: str
+        :param limit: Page size limit
+        :type limit: int
+        :param offset: Page offset
+        :type offset: int
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._list_jobs_paginated_serialize(
+            solver_key=solver_key,
+            version=version,
+            limit=limit,
+            offset=offset,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PageJob",
+            '402': "ErrorGet",
+            '404': "ErrorGet",
+            '429': "ErrorGet",
+            '500': "ErrorGet",
+            '502': "ErrorGet",
+            '503': "ErrorGet",
+            '504': "ErrorGet",
+            '422': "HTTPValidationError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def list_jobs_paginated_with_http_info(
+        self,
+        solver_key: Annotated[str, Field(strict=True)],
+        version: Annotated[str, Field(strict=True)],
+        limit: Annotated[Optional[Annotated[int, Field(le=50, strict=True, ge=1)]], Field(description="Page size limit")] = None,
+        offset: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Page offset")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[PageJob]:
+        """List Jobs Paginated
+
+        List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
+
+        :param solver_key: (required)
+        :type solver_key: str
+        :param version: (required)
+        :type version: str
+        :param limit: Page size limit
+        :type limit: int
+        :param offset: Page offset
+        :type offset: int
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._list_jobs_paginated_serialize(
+            solver_key=solver_key,
+            version=version,
+            limit=limit,
+            offset=offset,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PageJob",
+            '402': "ErrorGet",
+            '404': "ErrorGet",
+            '429': "ErrorGet",
+            '500': "ErrorGet",
+            '502': "ErrorGet",
+            '503': "ErrorGet",
+            '504': "ErrorGet",
+            '422': "HTTPValidationError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def list_jobs_paginated_without_preload_content(
+        self,
+        solver_key: Annotated[str, Field(strict=True)],
+        version: Annotated[str, Field(strict=True)],
+        limit: Annotated[Optional[Annotated[int, Field(le=50, strict=True, ge=1)]], Field(description="Page size limit")] = None,
+        offset: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Page offset")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """List Jobs Paginated
+
+        List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
+
+        :param solver_key: (required)
+        :type solver_key: str
+        :param version: (required)
+        :type version: str
+        :param limit: Page size limit
+        :type limit: int
+        :param offset: Page offset
+        :type offset: int
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._list_jobs_paginated_serialize(
+            solver_key=solver_key,
+            version=version,
+            limit=limit,
+            offset=offset,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PageJob",
+            '402': "ErrorGet",
+            '404': "ErrorGet",
+            '429': "ErrorGet",
+            '500': "ErrorGet",
+            '502': "ErrorGet",
+            '503': "ErrorGet",
+            '504': "ErrorGet",
+            '422': "HTTPValidationError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _list_jobs_paginated_serialize(
+        self,
+        solver_key,
+        version,
+        limit,
+        offset,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if solver_key is not None:
+            _path_params['solver_key'] = solver_key
+        if version is not None:
+            _path_params['version'] = version
+        # process the query parameters
+        if limit is not None:
+            
+            _query_params.append(('limit', limit))
+            
+        if offset is not None:
+            
+            _query_params.append(('offset', offset))
+            
+        # process the header parameters
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'HTTPBasic'
+        ]
+
+        return self.api_client.param_serialize(
+            method='GET',
+            resource_path='/v0/solvers/{solver_key}/releases/{version}/jobs/page',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def list_solver_ports(
         self,
         solver_key: Annotated[str, Field(strict=True)],
@@ -4777,7 +4780,7 @@ class SolversApi:
     ) -> OnePageSolverPort:
         """List Solver Ports
 
-        Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
+        Lists inputs and outputs of a given solver  New in *version 0.5*  Added in *version 0.7.1*: `version_display` field in the response
 
         :param solver_key: (required)
         :type solver_key: str
@@ -4855,7 +4858,7 @@ class SolversApi:
     ) -> ApiResponse[OnePageSolverPort]:
         """List Solver Ports
 
-        Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
+        Lists inputs and outputs of a given solver  New in *version 0.5*  Added in *version 0.7.1*: `version_display` field in the response
 
         :param solver_key: (required)
         :type solver_key: str
@@ -4933,7 +4936,7 @@ class SolversApi:
     ) -> RESTResponseType:
         """List Solver Ports
 
-        Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
+        Lists inputs and outputs of a given solver  New in *version 0.5*  Added in *version 0.7.1*: `version_display` field in the response
 
         :param solver_key: (required)
         :type solver_key: str
@@ -5354,7 +5357,7 @@ class SolversApi:
     ) -> List[Solver]:
         """List Solvers
 
-        🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
+        🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5*
 
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
@@ -5423,7 +5426,7 @@ class SolversApi:
     ) -> ApiResponse[List[Solver]]:
         """List Solvers
 
-        🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
+        🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5*
 
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
@@ -5492,7 +5495,7 @@ class SolversApi:
     ) -> RESTResponseType:
         """List Solvers
 
-        🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
+        🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5*
 
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
@@ -5618,7 +5621,7 @@ class SolversApi:
     ) -> List[Solver]:
         """Lists All Releases
 
-        🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
+        🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists **all** released solvers (not just latest version)  New in *version 0.5*
 
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
@@ -5687,7 +5690,7 @@ class SolversApi:
     ) -> ApiResponse[List[Solver]]:
         """Lists All Releases
 
-        🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
+        🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists **all** released solvers (not just latest version)  New in *version 0.5*
 
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
@@ -5756,7 +5759,7 @@ class SolversApi:
     ) -> RESTResponseType:
         """Lists All Releases
 
-        🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
+        🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists **all** released solvers (not just latest version)  New in *version 0.5*
 
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
@@ -6226,7 +6229,7 @@ class SolversApi:
     ) -> JobStatus:
         """Start Job
 
-        Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id` Added in *version 0.6*: responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+        Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id`  Added in *version 0.6*: responds with a 202 when successfully starting a computation  Changed in *version 0.7*: query parameter `cluster_id` deprecated
 
         :param solver_key: (required)
         :type solver_key: str
@@ -6315,7 +6318,7 @@ class SolversApi:
     ) -> ApiResponse[JobStatus]:
         """Start Job
 
-        Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id` Added in *version 0.6*: responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+        Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id`  Added in *version 0.6*: responds with a 202 when successfully starting a computation  Changed in *version 0.7*: query parameter `cluster_id` deprecated
 
         :param solver_key: (required)
         :type solver_key: str
@@ -6404,7 +6407,7 @@ class SolversApi:
     ) -> RESTResponseType:
         """Start Job
 
-        Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id` Added in *version 0.6*: responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+        Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id`  Added in *version 0.6*: responds with a 202 when successfully starting a computation  Changed in *version 0.7*: query parameter `cluster_id` deprecated
 
         :param solver_key: (required)
         :type solver_key: str
@@ -6563,6 +6566,7 @@ class SolversApi:
     ) -> JobStatus:
         """Stop Job
 
+        Stops a running job  New in *version 0.5*
 
         :param solver_key: (required)
         :type solver_key: str
@@ -6645,6 +6649,7 @@ class SolversApi:
     ) -> ApiResponse[JobStatus]:
         """Stop Job
 
+        Stops a running job  New in *version 0.5*
 
         :param solver_key: (required)
         :type solver_key: str
@@ -6727,6 +6732,7 @@ class SolversApi:
     ) -> RESTResponseType:
         """Stop Job
 
+        Stops a running job  New in *version 0.5*
 
         :param solver_key: (required)
         :type solver_key: str

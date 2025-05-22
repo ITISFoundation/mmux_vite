@@ -276,7 +276,9 @@ void (empty response body)
 
 Get Study
 
-New in *version 0.5.0*
+Get study by ID
+
+New in *version 0.5*
 
 ### Example
 
@@ -681,7 +683,9 @@ Name | Type | Description  | Notes
 
 List Studies
 
-New in *version 0.5.0*
+List all studies
+
+New in *version 0.5*
 
 ### Example
 
@@ -765,7 +769,7 @@ List Study Ports
 
 Lists metadata on ports of a given study
 
-New in *version 0.5.0*
+New in *version 0.5*
 
 ### Example
 
@@ -933,8 +937,7 @@ Name | Type | Description  | Notes
 
 Start Study Job
 
-Changed in *version 0.6.0*: Now responds with a 202 when successfully starting a computation
-Changed in *version 0.8*: query parameter `cluster_id` deprecated
+Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
 
 ### Example
 
@@ -969,7 +972,7 @@ with osparc_client.ApiClient(configuration) as api_client:
     api_instance = osparc_client.StudiesApi(api_client)
     study_id = 'study_id_example' # str | 
     job_id = 'job_id_example' # str | 
-    cluster_id = 56 # int |  (optional)
+    cluster_id = 56 # int | Changed in *version 0.7*: query parameter `cluster_id` deprecated  (optional)
 
     try:
         # Start Study Job
@@ -989,7 +992,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **study_id** | **str**|  | 
  **job_id** | **str**|  | 
- **cluster_id** | **int**|  | [optional] 
+ **cluster_id** | **int**| Changed in *version 0.7*: query parameter &#x60;cluster_id&#x60; deprecated  | [optional] 
 
 ### Return type
 

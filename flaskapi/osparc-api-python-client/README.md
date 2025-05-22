@@ -142,13 +142,13 @@ Class | Method | HTTP request | Description
 *SolversApi* | [**get_job_outputs**](docs/SolversApi.md#get_job_outputs) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}/outputs | Get Job Outputs
 *SolversApi* | [**get_job_pricing_unit**](docs/SolversApi.md#get_job_pricing_unit) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}/pricing_unit | Get Job Pricing Unit
 *SolversApi* | [**get_job_wallet**](docs/SolversApi.md#get_job_wallet) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}/wallet | Get Job Wallet
-*SolversApi* | [**get_jobs_page**](docs/SolversApi.md#get_jobs_page) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/page | Get Jobs Page
 *SolversApi* | [**get_log_stream**](docs/SolversApi.md#get_log_stream) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}/logstream | Get Log Stream
 *SolversApi* | [**get_solver**](docs/SolversApi.md#get_solver) | **GET** /v0/solvers/{solver_key}/latest | Get Solver
 *SolversApi* | [**get_solver_pricing_plan**](docs/SolversApi.md#get_solver_pricing_plan) | **GET** /v0/solvers/{solver_key}/releases/{version}/pricing_plan | Get Solver Pricing Plan
 *SolversApi* | [**get_solver_release**](docs/SolversApi.md#get_solver_release) | **GET** /v0/solvers/{solver_key}/releases/{version} | Get Solver Release
 *SolversApi* | [**inspect_job**](docs/SolversApi.md#inspect_job) | **POST** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}:inspect | Inspect Job
 *SolversApi* | [**list_jobs**](docs/SolversApi.md#list_jobs) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs | List Jobs
+*SolversApi* | [**list_jobs_paginated**](docs/SolversApi.md#list_jobs_paginated) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/page | List Jobs Paginated
 *SolversApi* | [**list_solver_ports**](docs/SolversApi.md#list_solver_ports) | **GET** /v0/solvers/{solver_key}/releases/{version}/ports | List Solver Ports
 *SolversApi* | [**list_solver_releases**](docs/SolversApi.md#list_solver_releases) | **GET** /v0/solvers/{solver_key}/releases | List Solver Releases
 *SolversApi* | [**list_solvers**](docs/SolversApi.md#list_solvers) | **GET** /v0/solvers | List Solvers

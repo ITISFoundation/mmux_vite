@@ -110,7 +110,7 @@ export class PromiseCreditsApi {
     }
 
     /**
-     * New in *version 0.6.0*
+     * New in *version 0.6*
      * Get Credits Price
      */
     public getCreditsPriceWithHttpInfo(_options?: PromiseConfigurationOptions): Promise<HttpInfo<GetCreditPriceLegacy>> {
@@ -120,7 +120,7 @@ export class PromiseCreditsApi {
     }
 
     /**
-     * New in *version 0.6.0*
+     * New in *version 0.6*
      * Get Credits Price
      */
     public getCreditsPrice(_options?: PromiseConfigurationOptions): Promise<GetCreditPriceLegacy> {
@@ -390,7 +390,7 @@ export class PromiseFunctionJobCollectionsApi {
     }
 
     /**
-     * Delete function job collection
+     * Delete function job collection  New in *version 0.8.0*
      * Delete Function Job Collection
      * @param functionJobCollectionId
      */
@@ -401,7 +401,7 @@ export class PromiseFunctionJobCollectionsApi {
     }
 
     /**
-     * Delete function job collection
+     * Delete function job collection  New in *version 0.8.0*
      * Delete Function Job Collection
      * @param functionJobCollectionId
      */
@@ -412,7 +412,7 @@ export class PromiseFunctionJobCollectionsApi {
     }
 
     /**
-     * Get the function jobs in function job collection
+     * Get the function jobs in function job collection  New in *version 0.8.0*
      * Function Job Collection List Function Jobs
      * @param functionJobCollectionId
      */
@@ -423,7 +423,7 @@ export class PromiseFunctionJobCollectionsApi {
     }
 
     /**
-     * Get the function jobs in function job collection
+     * Get the function jobs in function job collection  New in *version 0.8.0*
      * Function Job Collection List Function Jobs
      * @param functionJobCollectionId
      */
@@ -434,7 +434,7 @@ export class PromiseFunctionJobCollectionsApi {
     }
 
     /**
-     * Get function job collection status
+     * Get function job collection status  New in *version 0.8.0*
      * Function Job Collection Status
      * @param functionJobCollectionId
      */
@@ -445,7 +445,7 @@ export class PromiseFunctionJobCollectionsApi {
     }
 
     /**
-     * Get function job collection status
+     * Get function job collection status  New in *version 0.8.0*
      * Function Job Collection Status
      * @param functionJobCollectionId
      */
@@ -456,7 +456,7 @@ export class PromiseFunctionJobCollectionsApi {
     }
 
     /**
-     * Get function job collection
+     * Get function job collection  New in *version 0.8.0*
      * Get Function Job Collection
      * @param functionJobCollectionId
      */
@@ -467,7 +467,7 @@ export class PromiseFunctionJobCollectionsApi {
     }
 
     /**
-     * Get function job collection
+     * Get function job collection  New in *version 0.8.0*
      * Get Function Job Collection
      * @param functionJobCollectionId
      */
@@ -478,7 +478,7 @@ export class PromiseFunctionJobCollectionsApi {
     }
 
     /**
-     * List function job collections
+     * List function job collections  New in *version 0.8.0*
      * List Function Job Collections
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -490,7 +490,7 @@ export class PromiseFunctionJobCollectionsApi {
     }
 
     /**
-     * List function job collections
+     * List function job collections  New in *version 0.8.0*
      * List Function Job Collections
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -502,7 +502,7 @@ export class PromiseFunctionJobCollectionsApi {
     }
 
     /**
-     * Register function job collection
+     * Register function job collection  New in *version 0.8.0*
      * Register Function Job Collection
      * @param functionJobCollection
      */
@@ -513,7 +513,7 @@ export class PromiseFunctionJobCollectionsApi {
     }
 
     /**
-     * Register function job collection
+     * Register function job collection  New in *version 0.8.0*
      * Register Function Job Collection
      * @param functionJobCollection
      */
@@ -543,7 +543,7 @@ export class PromiseFunctionJobsApi {
     }
 
     /**
-     * Delete function job
+     * Delete function job  New in *version 0.8.0*
      * Delete Function Job
      * @param functionJobId
      */
@@ -554,7 +554,7 @@ export class PromiseFunctionJobsApi {
     }
 
     /**
-     * Delete function job
+     * Delete function job  New in *version 0.8.0*
      * Delete Function Job
      * @param functionJobId
      */
@@ -565,7 +565,7 @@ export class PromiseFunctionJobsApi {
     }
 
     /**
-     * Get function job outputs
+     * Get function job outputs  New in *version 0.8.0*
      * Function Job Outputs
      * @param functionJobId
      */
@@ -576,7 +576,7 @@ export class PromiseFunctionJobsApi {
     }
 
     /**
-     * Get function job outputs
+     * Get function job outputs  New in *version 0.8.0*
      * Function Job Outputs
      * @param functionJobId
      */
@@ -587,7 +587,7 @@ export class PromiseFunctionJobsApi {
     }
 
     /**
-     * Get function job status
+     * Get function job status  New in *version 0.8.0*
      * Function Job Status
      * @param functionJobId
      */
@@ -598,7 +598,7 @@ export class PromiseFunctionJobsApi {
     }
 
     /**
-     * Get function job status
+     * Get function job status  New in *version 0.8.0*
      * Function Job Status
      * @param functionJobId
      */
@@ -609,7 +609,7 @@ export class PromiseFunctionJobsApi {
     }
 
     /**
-     * Get function job
+     * Get function job  New in *version 0.8.0*
      * Get Function Job
      * @param functionJobId
      */
@@ -620,7 +620,7 @@ export class PromiseFunctionJobsApi {
     }
 
     /**
-     * Get function job
+     * Get function job  New in *version 0.8.0*
      * Get Function Job
      * @param functionJobId
      */
@@ -631,7 +631,7 @@ export class PromiseFunctionJobsApi {
     }
 
     /**
-     * List function jobs
+     * List function jobs  New in *version 0.8.0*
      * List Function Jobs
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -643,7 +643,7 @@ export class PromiseFunctionJobsApi {
     }
 
     /**
-     * List function jobs
+     * List function jobs  New in *version 0.8.0*
      * List Function Jobs
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -655,7 +655,7 @@ export class PromiseFunctionJobsApi {
     }
 
     /**
-     * Create function job
+     * Create function job  New in *version 0.8.0*
      * Register Function Job
      * @param functionJob
      */
@@ -666,7 +666,7 @@ export class PromiseFunctionJobsApi {
     }
 
     /**
-     * Create function job
+     * Create function job  New in *version 0.8.0*
      * Register Function Job
      * @param functionJob
      */
@@ -696,7 +696,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Delete function
+     * Delete function  New in *version 0.8.0*
      * Delete Function
      * @param functionId
      */
@@ -707,7 +707,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Delete function
+     * Delete function  New in *version 0.8.0*
      * Delete Function
      * @param functionId
      */
@@ -718,7 +718,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Get function
+     * Get function  New in *version 0.8.0*
      * Get Function
      * @param functionId
      */
@@ -729,7 +729,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Get function
+     * Get function  New in *version 0.8.0*
      * Get Function
      * @param functionId
      */
@@ -740,7 +740,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Get function input schema
+     * Get function input schema  New in *version 0.8.0*
      * Get Function Inputschema
      * @param functionId
      */
@@ -751,7 +751,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Get function input schema
+     * Get function input schema  New in *version 0.8.0*
      * Get Function Inputschema
      * @param functionId
      */
@@ -762,7 +762,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Get function input schema
+     * Get function output schema  New in *version 0.8.0*
      * Get Function Outputschema
      * @param functionId
      */
@@ -773,7 +773,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Get function input schema
+     * Get function output schema  New in *version 0.8.0*
      * Get Function Outputschema
      * @param functionId
      */
@@ -784,7 +784,33 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * List functions
+     * List function jobs for a function  New in *version 0.8.0*
+     * List Function Jobs For Functionid
+     * @param functionId
+     * @param [limit] Page size limit
+     * @param [offset] Page offset
+     */
+    public listFunctionJobsForFunctionidWithHttpInfo(functionId: string, limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass>> {
+        const observableOptions = wrapOptions(_options);
+        const result = this.api.listFunctionJobsForFunctionidWithHttpInfo(functionId, limit, offset, observableOptions);
+        return result.toPromise();
+    }
+
+    /**
+     * List function jobs for a function  New in *version 0.8.0*
+     * List Function Jobs For Functionid
+     * @param functionId
+     * @param [limit] Page size limit
+     * @param [offset] Page offset
+     */
+    public listFunctionJobsForFunctionid(functionId: string, limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass> {
+        const observableOptions = wrapOptions(_options);
+        const result = this.api.listFunctionJobsForFunctionid(functionId, limit, offset, observableOptions);
+        return result.toPromise();
+    }
+
+    /**
+     * List functions  New in *version 0.8.0*
      * List Functions
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -796,7 +822,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * List functions
+     * List functions  New in *version 0.8.0*
      * List Functions
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -808,7 +834,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Map function over input parameters
+     * Map function over input parameters  New in *version 0.8.0*
      * Map Function
      * @param functionId
      * @param requestBody
@@ -820,7 +846,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Map function over input parameters
+     * Map function over input parameters  New in *version 0.8.0*
      * Map Function
      * @param functionId
      * @param requestBody
@@ -832,7 +858,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Create function
+     * Create function  New in *version 0.8.0*
      * Register Function
      * @param _function
      */
@@ -843,7 +869,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Create function
+     * Create function  New in *version 0.8.0*
      * Register Function
      * @param _function
      */
@@ -854,7 +880,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Run function
+     * Run function  New in *version 0.8.0*
      * Run Function
      * @param functionId
      * @param body
@@ -866,7 +892,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Run function
+     * Run function  New in *version 0.8.0*
      * Run Function
      * @param functionId
      * @param body
@@ -878,7 +904,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Description
      * @param functionId
      * @param description
@@ -890,7 +916,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Description
      * @param functionId
      * @param description
@@ -902,7 +928,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Title
      * @param functionId
      * @param title
@@ -914,7 +940,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Title
      * @param functionId
      * @param title
@@ -926,7 +952,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Validate inputs against the function\'s input schema
+     * Validate inputs against the function\'s input schema  New in *version 0.8.0*
      * Validate Function Inputs
      * @param functionId
      * @param body
@@ -938,7 +964,7 @@ export class PromiseFunctionsApi {
     }
 
     /**
-     * Validate inputs against the function\'s input schema
+     * Validate inputs against the function\'s input schema  New in *version 0.8.0*
      * Validate Function Inputs
      * @param functionId
      * @param body
@@ -1146,7 +1172,7 @@ export class PromiseSolversApi {
     }
 
     /**
-     * Creates a job in a specific release with given inputs.  NOTE: This operation does **not** start the job
+     * Creates a job in a specific release with given inputs. This operation does not start the job.  New in *version 0.5*
      * Create Solver Job
      * @param solverKey
      * @param version
@@ -1162,7 +1188,7 @@ export class PromiseSolversApi {
     }
 
     /**
-     * Creates a job in a specific release with given inputs.  NOTE: This operation does **not** start the job
+     * Creates a job in a specific release with given inputs. This operation does not start the job.  New in *version 0.5*
      * Create Solver Job
      * @param solverKey
      * @param version
@@ -1256,7 +1282,7 @@ export class PromiseSolversApi {
     }
 
     /**
-     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done.  New in *version 0.4.0*
+     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done  New in *version 0.4*
      * Get Job Output Logfile
      * @param solverKey
      * @param version
@@ -1269,7 +1295,7 @@ export class PromiseSolversApi {
     }
 
     /**
-     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done.  New in *version 0.4.0*
+     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done  New in *version 0.4*
      * Get Job Output Logfile
      * @param solverKey
      * @param version
@@ -1354,34 +1380,6 @@ export class PromiseSolversApi {
     public getJobWallet(solverKey: string, version: string, jobId: string, _options?: PromiseConfigurationOptions): Promise<WalletGetWithAvailableCreditsLegacy> {
         const observableOptions = wrapOptions(_options);
         const result = this.api.getJobWallet(solverKey, version, jobId, observableOptions);
-        return result.toPromise();
-    }
-
-    /**
-     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
-     * Get Jobs Page
-     * @param solverKey
-     * @param version
-     * @param [limit] Page size limit
-     * @param [offset] Page offset
-     */
-    public getJobsPageWithHttpInfo(solverKey: string, version: string, limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<PageJob>> {
-        const observableOptions = wrapOptions(_options);
-        const result = this.api.getJobsPageWithHttpInfo(solverKey, version, limit, offset, observableOptions);
-        return result.toPromise();
-    }
-
-    /**
-     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
-     * Get Jobs Page
-     * @param solverKey
-     * @param version
-     * @param [limit] Page size limit
-     * @param [offset] Page offset
-     */
-    public getJobsPage(solverKey: string, version: string, limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<PageJob> {
-        const observableOptions = wrapOptions(_options);
-        const result = this.api.getJobsPage(solverKey, version, limit, offset, observableOptions);
         return result.toPromise();
     }
 
@@ -1480,6 +1478,7 @@ export class PromiseSolversApi {
     }
 
     /**
+     * Inspects the current status of a job  New in *version 0.5*
      * Inspect Job
      * @param solverKey
      * @param version
@@ -1492,6 +1491,7 @@ export class PromiseSolversApi {
     }
 
     /**
+     * Inspects the current status of a job  New in *version 0.5*
      * Inspect Job
      * @param solverKey
      * @param version
@@ -1528,7 +1528,35 @@ export class PromiseSolversApi {
     }
 
     /**
-     * Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
+     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
+     * List Jobs Paginated
+     * @param solverKey
+     * @param version
+     * @param [limit] Page size limit
+     * @param [offset] Page offset
+     */
+    public listJobsPaginatedWithHttpInfo(solverKey: string, version: string, limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<PageJob>> {
+        const observableOptions = wrapOptions(_options);
+        const result = this.api.listJobsPaginatedWithHttpInfo(solverKey, version, limit, offset, observableOptions);
+        return result.toPromise();
+    }
+
+    /**
+     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
+     * List Jobs Paginated
+     * @param solverKey
+     * @param version
+     * @param [limit] Page size limit
+     * @param [offset] Page offset
+     */
+    public listJobsPaginated(solverKey: string, version: string, limit?: number, offset?: number, _options?: PromiseConfigurationOptions): Promise<PageJob> {
+        const observableOptions = wrapOptions(_options);
+        const result = this.api.listJobsPaginated(solverKey, version, limit, offset, observableOptions);
+        return result.toPromise();
+    }
+
+    /**
+     * Lists inputs and outputs of a given solver  New in *version 0.5*  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Ports
      * @param solverKey
      * @param version
@@ -1540,7 +1568,7 @@ export class PromiseSolversApi {
     }
 
     /**
-     * Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
+     * Lists inputs and outputs of a given solver  New in *version 0.5*  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Ports
      * @param solverKey
      * @param version
@@ -1574,7 +1602,7 @@ export class PromiseSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5*
      * List Solvers
      */
     public listSolversWithHttpInfo(_options?: PromiseConfigurationOptions): Promise<HttpInfo<Array<Solver>>> {
@@ -1584,7 +1612,7 @@ export class PromiseSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5*
      * List Solvers
      */
     public listSolvers(_options?: PromiseConfigurationOptions): Promise<Array<Solver>> {
@@ -1594,7 +1622,7 @@ export class PromiseSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists **all** released solvers (not just latest version)  New in *version 0.5*
      * Lists All Releases
      */
     public listSolversReleasesWithHttpInfo(_options?: PromiseConfigurationOptions): Promise<HttpInfo<Array<Solver>>> {
@@ -1604,7 +1632,7 @@ export class PromiseSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists **all** released solvers (not just latest version)  New in *version 0.5*
      * Lists All Releases
      */
     public listSolversReleases(_options?: PromiseConfigurationOptions): Promise<Array<Solver>> {
@@ -1642,7 +1670,7 @@ export class PromiseSolversApi {
     }
 
     /**
-     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id` Added in *version 0.6*: responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id`  Added in *version 0.6*: responds with a 202 when successfully starting a computation  Changed in *version 0.7*: query parameter `cluster_id` deprecated
      * Start Job
      * @param solverKey
      * @param version
@@ -1656,7 +1684,7 @@ export class PromiseSolversApi {
     }
 
     /**
-     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id` Added in *version 0.6*: responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id`  Added in *version 0.6*: responds with a 202 when successfully starting a computation  Changed in *version 0.7*: query parameter `cluster_id` deprecated
      * Start Job
      * @param solverKey
      * @param version
@@ -1670,6 +1698,7 @@ export class PromiseSolversApi {
     }
 
     /**
+     * Stops a running job  New in *version 0.5*
      * Stop Job
      * @param solverKey
      * @param version
@@ -1682,6 +1711,7 @@ export class PromiseSolversApi {
     }
 
     /**
+     * Stops a running job  New in *version 0.5*
      * Stop Job
      * @param solverKey
      * @param version
@@ -1791,7 +1821,7 @@ export class PromiseStudiesApi {
     }
 
     /**
-     * New in *version 0.5.0*
+     * Get study by ID  New in *version 0.5*
      * Get Study
      * @param studyId
      */
@@ -1802,7 +1832,7 @@ export class PromiseStudiesApi {
     }
 
     /**
-     * New in *version 0.5.0*
+     * Get study by ID  New in *version 0.5*
      * Get Study
      * @param studyId
      */
@@ -1903,7 +1933,7 @@ export class PromiseStudiesApi {
     }
 
     /**
-     * New in *version 0.5.0*
+     * List all studies  New in *version 0.5*
      * List Studies
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -1915,7 +1945,7 @@ export class PromiseStudiesApi {
     }
 
     /**
-     * New in *version 0.5.0*
+     * List all studies  New in *version 0.5*
      * List Studies
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -1927,7 +1957,7 @@ export class PromiseStudiesApi {
     }
 
     /**
-     * Lists metadata on ports of a given study  New in *version 0.5.0*
+     * Lists metadata on ports of a given study  New in *version 0.5*
      * List Study Ports
      * @param studyId
      */
@@ -1938,7 +1968,7 @@ export class PromiseStudiesApi {
     }
 
     /**
-     * Lists metadata on ports of a given study  New in *version 0.5.0*
+     * Lists metadata on ports of a given study  New in *version 0.5*
      * List Study Ports
      * @param studyId
      */
@@ -1975,11 +2005,11 @@ export class PromiseStudiesApi {
     }
 
     /**
-     * Changed in *version 0.6.0*: Now responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
      * Start Study Job
      * @param studyId
      * @param jobId
-     * @param [clusterId]
+     * @param [clusterId] Changed in *version 0.7*: query parameter &#x60;cluster_id&#x60; deprecated 
      */
     public startStudyJobWithHttpInfo(studyId: string, jobId: string, clusterId?: number, _options?: PromiseConfigurationOptions): Promise<HttpInfo<JobStatus>> {
         const observableOptions = wrapOptions(_options);
@@ -1988,11 +2018,11 @@ export class PromiseStudiesApi {
     }
 
     /**
-     * Changed in *version 0.6.0*: Now responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
      * Start Study Job
      * @param studyId
      * @param jobId
-     * @param [clusterId]
+     * @param [clusterId] Changed in *version 0.7*: query parameter &#x60;cluster_id&#x60; deprecated 
      */
     public startStudyJob(studyId: string, jobId: string, clusterId?: number, _options?: PromiseConfigurationOptions): Promise<JobStatus> {
         const observableOptions = wrapOptions(_options);
@@ -2125,7 +2155,7 @@ export class PromiseWalletsApi {
     }
 
     /**
-     * Get all available licensed items for a given wallet
+     * Get all available licensed items for a given wallet  New in *version 0.6*
      * Get Available Licensed Items For Wallet
      * @param walletId
      * @param [limit] Page size limit
@@ -2138,7 +2168,7 @@ export class PromiseWalletsApi {
     }
 
     /**
-     * Get all available licensed items for a given wallet
+     * Get all available licensed items for a given wallet  New in *version 0.6*
      * Get Available Licensed Items For Wallet
      * @param walletId
      * @param [limit] Page size limit

@@ -30,7 +30,7 @@ import { WalletGetWithAvailableCreditsLegacy } from '../models/WalletGetWithAvai
 export class SolversApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
-     * Creates a job in a specific release with given inputs.  NOTE: This operation does **not** start the job
+     * Creates a job in a specific release with given inputs. This operation does not start the job.  New in *version 0.5*
      * Create Solver Job
      * @param solverKey 
      * @param version 
@@ -273,7 +273,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done.  New in *version 0.4.0*
+     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done  New in *version 0.4*
      * Get Job Output Logfile
      * @param solverKey 
      * @param version 
@@ -488,66 +488,6 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
-     * Get Jobs Page
-     * @param solverKey 
-     * @param version 
-     * @param limit Page size limit
-     * @param offset Page offset
-     */
-    public async getJobsPage(solverKey: string, version: string, limit?: number, offset?: number, _options?: Configuration): Promise<RequestContext> {
-        let _config = _options || this.configuration;
-
-        // verify required parameter 'solverKey' is not null or undefined
-        if (solverKey === null || solverKey === undefined) {
-            throw new RequiredError("SolversApi", "getJobsPage", "solverKey");
-        }
-
-
-        // verify required parameter 'version' is not null or undefined
-        if (version === null || version === undefined) {
-            throw new RequiredError("SolversApi", "getJobsPage", "version");
-        }
-
-
-
-
-        // Path Params
-        const localVarPath = '/v0/solvers/{solver_key}/releases/{version}/jobs/page'
-            .replace('{' + 'solver_key' + '}', encodeURIComponent(String(solverKey)))
-            .replace('{' + 'version' + '}', encodeURIComponent(String(version)));
-
-        // Make Request Context
-        const requestContext = _config.baseServer.makeRequestContext(localVarPath, HttpMethod.GET);
-        requestContext.setHeaderParam("Accept", "application/json, */*;q=0.8")
-
-        // Query Params
-        if (limit !== undefined) {
-            requestContext.setQueryParam("limit", ObjectSerializer.serialize(limit, "number", ""));
-        }
-
-        // Query Params
-        if (offset !== undefined) {
-            requestContext.setQueryParam("offset", ObjectSerializer.serialize(offset, "number", ""));
-        }
-
-
-        let authMethod: SecurityAuthentication | undefined;
-        // Apply auth methods
-        authMethod = _config.authMethods["HTTPBasic"]
-        if (authMethod?.applySecurityAuthentication) {
-            await authMethod?.applySecurityAuthentication(requestContext);
-        }
-        
-        const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
-        if (defaultAuth?.applySecurityAuthentication) {
-            await defaultAuth?.applySecurityAuthentication(requestContext);
-        }
-
-        return requestContext;
-    }
-
-    /**
      * Get Log Stream
      * @param solverKey 
      * @param version 
@@ -731,6 +671,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
+     * Inspects the current status of a job  New in *version 0.5*
      * Inspect Job
      * @param solverKey 
      * @param version 
@@ -830,7 +771,67 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
+     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
+     * List Jobs Paginated
+     * @param solverKey 
+     * @param version 
+     * @param limit Page size limit
+     * @param offset Page offset
+     */
+    public async listJobsPaginated(solverKey: string, version: string, limit?: number, offset?: number, _options?: Configuration): Promise<RequestContext> {
+        let _config = _options || this.configuration;
+
+        // verify required parameter 'solverKey' is not null or undefined
+        if (solverKey === null || solverKey === undefined) {
+            throw new RequiredError("SolversApi", "listJobsPaginated", "solverKey");
+        }
+
+
+        // verify required parameter 'version' is not null or undefined
+        if (version === null || version === undefined) {
+            throw new RequiredError("SolversApi", "listJobsPaginated", "version");
+        }
+
+
+
+
+        // Path Params
+        const localVarPath = '/v0/solvers/{solver_key}/releases/{version}/jobs/page'
+            .replace('{' + 'solver_key' + '}', encodeURIComponent(String(solverKey)))
+            .replace('{' + 'version' + '}', encodeURIComponent(String(version)));
+
+        // Make Request Context
+        const requestContext = _config.baseServer.makeRequestContext(localVarPath, HttpMethod.GET);
+        requestContext.setHeaderParam("Accept", "application/json, */*;q=0.8")
+
+        // Query Params
+        if (limit !== undefined) {
+            requestContext.setQueryParam("limit", ObjectSerializer.serialize(limit, "number", ""));
+        }
+
+        // Query Params
+        if (offset !== undefined) {
+            requestContext.setQueryParam("offset", ObjectSerializer.serialize(offset, "number", ""));
+        }
+
+
+        let authMethod: SecurityAuthentication | undefined;
+        // Apply auth methods
+        authMethod = _config.authMethods["HTTPBasic"]
+        if (authMethod?.applySecurityAuthentication) {
+            await authMethod?.applySecurityAuthentication(requestContext);
+        }
+        
+        const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
+        if (defaultAuth?.applySecurityAuthentication) {
+            await defaultAuth?.applySecurityAuthentication(requestContext);
+        }
+
+        return requestContext;
+    }
+
+    /**
+     * Lists inputs and outputs of a given solver  New in *version 0.5*  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Ports
      * @param solverKey 
      * @param version 
@@ -914,7 +915,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5*
      * List Solvers
      */
     public async listSolvers(_options?: Configuration): Promise<RequestContext> {
@@ -944,7 +945,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists **all** released solvers (not just latest version)  New in *version 0.5*
      * Lists All Releases
      */
     public async listSolversReleases(_options?: Configuration): Promise<RequestContext> {
@@ -1046,7 +1047,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id` Added in *version 0.6*: responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id`  Added in *version 0.6*: responds with a 202 when successfully starting a computation  Changed in *version 0.7*: query parameter `cluster_id` deprecated
      * Start Job
      * @param solverKey 
      * @param version 
@@ -1107,6 +1108,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
+     * Stops a running job  New in *version 0.5*
      * Stop Job
      * @param solverKey 
      * @param version 
@@ -1818,91 +1820,6 @@ export class SolversApiResponseProcessor {
      * Unwraps the actual response sent by the server from the response context and deserializes the response content
      * to the expected objects
      *
-     * @params response Response returned by the server for a request to getJobsPage
-     * @throws ApiException if the response code was not in [200, 299]
-     */
-     public async getJobsPageWithHttpInfo(response: ResponseContext): Promise<HttpInfo<PageJob >> {
-        const contentType = ObjectSerializer.normalizeMediaType(response.headers["content-type"]);
-        if (isCodeInRange("200", response.httpStatusCode)) {
-            const body: PageJob = ObjectSerializer.deserialize(
-                ObjectSerializer.parse(await response.body.text(), contentType),
-                "PageJob", ""
-            ) as PageJob;
-            return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
-        }
-        if (isCodeInRange("402", response.httpStatusCode)) {
-            const body: ErrorGet = ObjectSerializer.deserialize(
-                ObjectSerializer.parse(await response.body.text(), contentType),
-                "ErrorGet", ""
-            ) as ErrorGet;
-            throw new ApiException<ErrorGet>(response.httpStatusCode, "Payment required", body, response.headers);
-        }
-        if (isCodeInRange("404", response.httpStatusCode)) {
-            const body: ErrorGet = ObjectSerializer.deserialize(
-                ObjectSerializer.parse(await response.body.text(), contentType),
-                "ErrorGet", ""
-            ) as ErrorGet;
-            throw new ApiException<ErrorGet>(response.httpStatusCode, "Job/wallet/pricing details not found", body, response.headers);
-        }
-        if (isCodeInRange("429", response.httpStatusCode)) {
-            const body: ErrorGet = ObjectSerializer.deserialize(
-                ObjectSerializer.parse(await response.body.text(), contentType),
-                "ErrorGet", ""
-            ) as ErrorGet;
-            throw new ApiException<ErrorGet>(response.httpStatusCode, "Too many requests", body, response.headers);
-        }
-        if (isCodeInRange("500", response.httpStatusCode)) {
-            const body: ErrorGet = ObjectSerializer.deserialize(
-                ObjectSerializer.parse(await response.body.text(), contentType),
-                "ErrorGet", ""
-            ) as ErrorGet;
-            throw new ApiException<ErrorGet>(response.httpStatusCode, "Internal server error", body, response.headers);
-        }
-        if (isCodeInRange("502", response.httpStatusCode)) {
-            const body: ErrorGet = ObjectSerializer.deserialize(
-                ObjectSerializer.parse(await response.body.text(), contentType),
-                "ErrorGet", ""
-            ) as ErrorGet;
-            throw new ApiException<ErrorGet>(response.httpStatusCode, "Unexpected error when communicating with backend service", body, response.headers);
-        }
-        if (isCodeInRange("503", response.httpStatusCode)) {
-            const body: ErrorGet = ObjectSerializer.deserialize(
-                ObjectSerializer.parse(await response.body.text(), contentType),
-                "ErrorGet", ""
-            ) as ErrorGet;
-            throw new ApiException<ErrorGet>(response.httpStatusCode, "Service unavailable", body, response.headers);
-        }
-        if (isCodeInRange("504", response.httpStatusCode)) {
-            const body: ErrorGet = ObjectSerializer.deserialize(
-                ObjectSerializer.parse(await response.body.text(), contentType),
-                "ErrorGet", ""
-            ) as ErrorGet;
-            throw new ApiException<ErrorGet>(response.httpStatusCode, "Request to a backend service timed out.", body, response.headers);
-        }
-        if (isCodeInRange("422", response.httpStatusCode)) {
-            const body: HTTPValidationError = ObjectSerializer.deserialize(
-                ObjectSerializer.parse(await response.body.text(), contentType),
-                "HTTPValidationError", ""
-            ) as HTTPValidationError;
-            throw new ApiException<HTTPValidationError>(response.httpStatusCode, "Validation Error", body, response.headers);
-        }
-
-        // Work around for missing responses in specification, e.g. for petstore.yaml
-        if (response.httpStatusCode >= 200 && response.httpStatusCode <= 299) {
-            const body: PageJob = ObjectSerializer.deserialize(
-                ObjectSerializer.parse(await response.body.text(), contentType),
-                "PageJob", ""
-            ) as PageJob;
-            return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
-        }
-
-        throw new ApiException<string | Blob | undefined>(response.httpStatusCode, "Unknown API Status Code!", await response.getBodyAsAny(), response.headers);
-    }
-
-    /**
-     * Unwraps the actual response sent by the server from the response context and deserializes the response content
-     * to the expected objects
-     *
      * @params response Response returned by the server for a request to getLogStream
      * @throws ApiException if the response code was not in [200, 299]
      */
@@ -2375,6 +2292,91 @@ export class SolversApiResponseProcessor {
                 ObjectSerializer.parse(await response.body.text(), contentType),
                 "Array<Job>", ""
             ) as Array<Job>;
+            return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
+        }
+
+        throw new ApiException<string | Blob | undefined>(response.httpStatusCode, "Unknown API Status Code!", await response.getBodyAsAny(), response.headers);
+    }
+
+    /**
+     * Unwraps the actual response sent by the server from the response context and deserializes the response content
+     * to the expected objects
+     *
+     * @params response Response returned by the server for a request to listJobsPaginated
+     * @throws ApiException if the response code was not in [200, 299]
+     */
+     public async listJobsPaginatedWithHttpInfo(response: ResponseContext): Promise<HttpInfo<PageJob >> {
+        const contentType = ObjectSerializer.normalizeMediaType(response.headers["content-type"]);
+        if (isCodeInRange("200", response.httpStatusCode)) {
+            const body: PageJob = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "PageJob", ""
+            ) as PageJob;
+            return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
+        }
+        if (isCodeInRange("402", response.httpStatusCode)) {
+            const body: ErrorGet = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ErrorGet", ""
+            ) as ErrorGet;
+            throw new ApiException<ErrorGet>(response.httpStatusCode, "Payment required", body, response.headers);
+        }
+        if (isCodeInRange("404", response.httpStatusCode)) {
+            const body: ErrorGet = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ErrorGet", ""
+            ) as ErrorGet;
+            throw new ApiException<ErrorGet>(response.httpStatusCode, "Job/wallet/pricing details not found", body, response.headers);
+        }
+        if (isCodeInRange("429", response.httpStatusCode)) {
+            const body: ErrorGet = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ErrorGet", ""
+            ) as ErrorGet;
+            throw new ApiException<ErrorGet>(response.httpStatusCode, "Too many requests", body, response.headers);
+        }
+        if (isCodeInRange("500", response.httpStatusCode)) {
+            const body: ErrorGet = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ErrorGet", ""
+            ) as ErrorGet;
+            throw new ApiException<ErrorGet>(response.httpStatusCode, "Internal server error", body, response.headers);
+        }
+        if (isCodeInRange("502", response.httpStatusCode)) {
+            const body: ErrorGet = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ErrorGet", ""
+            ) as ErrorGet;
+            throw new ApiException<ErrorGet>(response.httpStatusCode, "Unexpected error when communicating with backend service", body, response.headers);
+        }
+        if (isCodeInRange("503", response.httpStatusCode)) {
+            const body: ErrorGet = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ErrorGet", ""
+            ) as ErrorGet;
+            throw new ApiException<ErrorGet>(response.httpStatusCode, "Service unavailable", body, response.headers);
+        }
+        if (isCodeInRange("504", response.httpStatusCode)) {
+            const body: ErrorGet = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ErrorGet", ""
+            ) as ErrorGet;
+            throw new ApiException<ErrorGet>(response.httpStatusCode, "Request to a backend service timed out.", body, response.headers);
+        }
+        if (isCodeInRange("422", response.httpStatusCode)) {
+            const body: HTTPValidationError = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "HTTPValidationError", ""
+            ) as HTTPValidationError;
+            throw new ApiException<HTTPValidationError>(response.httpStatusCode, "Validation Error", body, response.headers);
+        }
+
+        // Work around for missing responses in specification, e.g. for petstore.yaml
+        if (response.httpStatusCode >= 200 && response.httpStatusCode <= 299) {
+            const body: PageJob = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "PageJob", ""
+            ) as PageJob;
             return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
         }
 

@@ -391,7 +391,7 @@ class WalletsApi:
     ) -> PageLicensedItemGet:
         """Get Available Licensed Items For Wallet
 
-        Get all available licensed items for a given wallet
+        Get all available licensed items for a given wallet  New in *version 0.6*
 
         :param wallet_id: (required)
         :type wallet_id: int
@@ -474,7 +474,7 @@ class WalletsApi:
     ) -> ApiResponse[PageLicensedItemGet]:
         """Get Available Licensed Items For Wallet
 
-        Get all available licensed items for a given wallet
+        Get all available licensed items for a given wallet  New in *version 0.6*
 
         :param wallet_id: (required)
         :type wallet_id: int
@@ -557,7 +557,7 @@ class WalletsApi:
     ) -> RESTResponseType:
         """Get Available Licensed Items For Wallet
 
-        Get all available licensed items for a given wallet
+        Get all available licensed items for a given wallet  New in *version 0.6*
 
         :param wallet_id: (required)
         :type wallet_id: int

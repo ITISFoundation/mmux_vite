@@ -210,7 +210,7 @@ Name | Type | Description  | Notes
 # **getStudy**
 > Study getStudy()
 
-New in *version 0.5.0*
+Get study by ID  New in *version 0.5*
 
 ### Example
 
@@ -490,7 +490,7 @@ Name | Type | Description  | Notes
 # **listStudies**
 > PageStudy listStudies()
 
-New in *version 0.5.0*
+List all studies  New in *version 0.5*
 
 ### Example
 
@@ -547,7 +547,7 @@ Name | Type | Description  | Notes
 # **listStudyPorts**
 > OnePageStudyPort listStudyPorts()
 
-Lists metadata on ports of a given study  New in *version 0.5.0*
+Lists metadata on ports of a given study  New in *version 0.5*
 
 ### Example
 
@@ -666,7 +666,7 @@ Name | Type | Description  | Notes
 # **startStudyJob**
 > JobStatus startStudyJob()
 
-Changed in *version 0.6.0*: Now responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
 
 ### Example
 
@@ -683,7 +683,7 @@ const request: StudiesApiStartStudyJobRequest = {
   studyId: "study_id_example",
   
   jobId: "job_id_example",
-  
+    // Changed in *version 0.7*: query parameter `cluster_id` deprecated  (optional)
   clusterId: 0,
 };
 
@@ -698,7 +698,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **studyId** | [**string**] |  | defaults to undefined
  **jobId** | [**string**] |  | defaults to undefined
- **clusterId** | [**number**] |  | (optional) defaults to undefined
+ **clusterId** | [**number**] | Changed in *version 0.7*: query parameter &#x60;cluster_id&#x60; deprecated  | (optional) defaults to undefined
 
 
 ### Return type

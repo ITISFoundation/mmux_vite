@@ -15,7 +15,7 @@ Method | HTTP request | Description
 # **deleteFunctionJobCollection**
 > any deleteFunctionJobCollection()
 
-Delete function job collection
+Delete function job collection  New in *version 0.8.0*
 
 ### Example
 
@@ -70,7 +70,7 @@ No authorization required
 # **functionJobCollectionListFunctionJobs**
 > Array<FunctionJobCollectionListFunctionJobs200ResponseInner> functionJobCollectionListFunctionJobs()
 
-Get the function jobs in function job collection
+Get the function jobs in function job collection  New in *version 0.8.0*
 
 ### Example
 
@@ -125,7 +125,7 @@ No authorization required
 # **functionJobCollectionStatus**
 > FunctionJobCollectionStatus functionJobCollectionStatus()
 
-Get function job collection status
+Get function job collection status  New in *version 0.8.0*
 
 ### Example
 
@@ -180,7 +180,7 @@ Name | Type | Description  | Notes
 # **getFunctionJobCollection**
 > RegisteredFunctionJobCollection getFunctionJobCollection()
 
-Get function job collection
+Get function job collection  New in *version 0.8.0*
 
 ### Example
 
@@ -235,7 +235,7 @@ No authorization required
 # **listFunctionJobCollections**
 > PageRegisteredFunctionJobCollection listFunctionJobCollections()
 
-List function job collections
+List function job collections  New in *version 0.8.0*
 
 ### Example
 
@@ -292,7 +292,7 @@ No authorization required
 # **registerFunctionJobCollection**
 > RegisteredFunctionJobCollection registerFunctionJobCollection(functionJobCollection)
 
-Register function job collection
+Register function job collection  New in *version 0.8.0*
 
 ### Example
 

@@ -8,6 +8,7 @@ Method | HTTP request | Description
 [**getFunction**](FunctionsApi.md#getFunction) | **GET** /v0/functions/{function_id} | Get Function
 [**getFunctionInputschema**](FunctionsApi.md#getFunctionInputschema) | **GET** /v0/functions/{function_id}/input_schema | Get Function Inputschema
 [**getFunctionOutputschema**](FunctionsApi.md#getFunctionOutputschema) | **GET** /v0/functions/{function_id}/output_schema | Get Function Outputschema
+[**listFunctionJobsForFunctionid**](FunctionsApi.md#listFunctionJobsForFunctionid) | **GET** /v0/functions/{function_id}/jobs | List Function Jobs For Functionid
 [**listFunctions**](FunctionsApi.md#listFunctions) | **GET** /v0/functions | List Functions
 [**mapFunction**](FunctionsApi.md#mapFunction) | **POST** /v0/functions/{function_id}:map | Map Function
 [**registerFunction**](FunctionsApi.md#registerFunction) | **POST** /v0/functions | Register Function
@@ -20,7 +21,7 @@ Method | HTTP request | Description
 # **deleteFunction**
 > any deleteFunction()
 
-Delete function
+Delete function  New in *version 0.8.0*
 
 ### Example
 
@@ -75,7 +76,7 @@ No authorization required
 # **getFunction**
 > ResponseGetFunctionV0FunctionsFunctionIdGet getFunction()
 
-Get function
+Get function  New in *version 0.8.0*
 
 ### Example
 
@@ -130,7 +131,7 @@ No authorization required
 # **getFunctionInputschema**
 > JSONFunctionInputSchema getFunctionInputschema()
 
-Get function input schema
+Get function input schema  New in *version 0.8.0*
 
 ### Example
 
@@ -185,7 +186,7 @@ No authorization required
 # **getFunctionOutputschema**
 > JSONFunctionInputSchema getFunctionOutputschema()
 
-Get function input schema
+Get function output schema  New in *version 0.8.0*
 
 ### Example
 
@@ -237,10 +238,70 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
 
+# **listFunctionJobsForFunctionid**
+> PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass listFunctionJobsForFunctionid()
+
+List function jobs for a function  New in *version 0.8.0*
+
+### Example
+
+
+```typescript
+import { createConfiguration, FunctionsApi } from '';
+import type { FunctionsApiListFunctionJobsForFunctionidRequest } from '';
+
+const configuration = createConfiguration();
+const apiInstance = new FunctionsApi(configuration);
+
+const request: FunctionsApiListFunctionJobsForFunctionidRequest = {
+  
+  functionId: "function_id_example",
+    // Page size limit (optional)
+  limit: 20,
+    // Page offset (optional)
+  offset: 0,
+};
+
+const data = await apiInstance.listFunctionJobsForFunctionid(request);
+console.log('API called successfully. Returned data:', data);
+```
+
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **functionId** | [**string**] |  | defaults to undefined
+ **limit** | [**number**] | Page size limit | (optional) defaults to 20
+ **offset** | [**number**] | Page offset | (optional) defaults to 0
+
+
+### Return type
+
+**PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | Successful Response |  -  |
+**422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
+
 # **listFunctions**
 > PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass listFunctions()
 
-List functions
+List functions  New in *version 0.8.0*
 
 ### Example
 
@@ -297,7 +358,7 @@ No authorization required
 # **mapFunction**
 > RegisteredFunctionJobCollection mapFunction(requestBody)
 
-Map function over input parameters
+Map function over input parameters  New in *version 0.8.0*
 
 ### Example
 
@@ -357,7 +418,7 @@ Name | Type | Description  | Notes
 # **registerFunction**
 > ResponseRegisterFunctionV0FunctionsPost registerFunction(_function)
 
-Create function
+Create function  New in *version 0.8.0*
 
 ### Example
 
@@ -412,7 +473,7 @@ No authorization required
 # **runFunction**
 > ResponseRunFunctionV0FunctionsFunctionIdRunPost runFunction(body)
 
-Run function
+Run function  New in *version 0.8.0*
 
 ### Example
 
@@ -470,7 +531,7 @@ Name | Type | Description  | Notes
 # **updateFunctionDescription**
 > ResponseUpdateFunctionDescriptionV0FunctionsFunctionIdDescriptionPatch updateFunctionDescription()
 
-Update function
+Update function  New in *version 0.8.0*
 
 ### Example
 
@@ -528,7 +589,7 @@ No authorization required
 # **updateFunctionTitle**
 > ResponseUpdateFunctionTitleV0FunctionsFunctionIdTitlePatch updateFunctionTitle()
 
-Update function
+Update function  New in *version 0.8.0*
 
 ### Example
 
@@ -586,7 +647,7 @@ No authorization required
 # **validateFunctionInputs**
 > Array<any> validateFunctionInputs(body)
 
-Validate inputs against the function\'s input schema
+Validate inputs against the function\'s input schema  New in *version 0.8.0*
 
 ### Example
 

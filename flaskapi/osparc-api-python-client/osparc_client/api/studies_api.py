@@ -982,7 +982,7 @@ class StudiesApi:
     ) -> Study:
         """Get Study
 
-        New in *version 0.5.0*
+        Get study by ID  New in *version 0.5*
 
         :param study_id: (required)
         :type study_id: str
@@ -1051,7 +1051,7 @@ class StudiesApi:
     ) -> ApiResponse[Study]:
         """Get Study
 
-        New in *version 0.5.0*
+        Get study by ID  New in *version 0.5*
 
         :param study_id: (required)
         :type study_id: str
@@ -1120,7 +1120,7 @@ class StudiesApi:
     ) -> RESTResponseType:
         """Get Study
 
-        New in *version 0.5.0*
+        Get study by ID  New in *version 0.5*
 
         :param study_id: (required)
         :type study_id: str
@@ -2357,7 +2357,7 @@ class StudiesApi:
     ) -> PageStudy:
         """List Studies
 
-        New in *version 0.5.0*
+        List all studies  New in *version 0.5*
 
         :param limit: Page size limit
         :type limit: int
@@ -2429,7 +2429,7 @@ class StudiesApi:
     ) -> ApiResponse[PageStudy]:
         """List Studies
 
-        New in *version 0.5.0*
+        List all studies  New in *version 0.5*
 
         :param limit: Page size limit
         :type limit: int
@@ -2501,7 +2501,7 @@ class StudiesApi:
     ) -> RESTResponseType:
         """List Studies
 
-        New in *version 0.5.0*
+        List all studies  New in *version 0.5*
 
         :param limit: Page size limit
         :type limit: int
@@ -2639,7 +2639,7 @@ class StudiesApi:
     ) -> OnePageStudyPort:
         """List Study Ports
 
-        Lists metadata on ports of a given study  New in *version 0.5.0*
+        Lists metadata on ports of a given study  New in *version 0.5*
 
         :param study_id: (required)
         :type study_id: str
@@ -2708,7 +2708,7 @@ class StudiesApi:
     ) -> ApiResponse[OnePageStudyPort]:
         """List Study Ports
 
-        Lists metadata on ports of a given study  New in *version 0.5.0*
+        Lists metadata on ports of a given study  New in *version 0.5*
 
         :param study_id: (required)
         :type study_id: str
@@ -2777,7 +2777,7 @@ class StudiesApi:
     ) -> RESTResponseType:
         """List Study Ports
 
-        Lists metadata on ports of a given study  New in *version 0.5.0*
+        Lists metadata on ports of a given study  New in *version 0.5*
 
         :param study_id: (required)
         :type study_id: str
@@ -3199,7 +3199,7 @@ class StudiesApi:
         self,
         study_id: StrictStr,
         job_id: StrictStr,
-        cluster_id: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
+        cluster_id: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Changed in *version 0.7*: query parameter `cluster_id` deprecated ")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -3215,13 +3215,13 @@ class StudiesApi:
     ) -> JobStatus:
         """Start Study Job
 
-        Changed in *version 0.6.0*: Now responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+        Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
 
         :param study_id: (required)
         :type study_id: str
         :param job_id: (required)
         :type job_id: str
-        :param cluster_id:
+        :param cluster_id: Changed in *version 0.7*: query parameter `cluster_id` deprecated 
         :type cluster_id: int
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
@@ -3284,7 +3284,7 @@ class StudiesApi:
         self,
         study_id: StrictStr,
         job_id: StrictStr,
-        cluster_id: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
+        cluster_id: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Changed in *version 0.7*: query parameter `cluster_id` deprecated ")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -3300,13 +3300,13 @@ class StudiesApi:
     ) -> ApiResponse[JobStatus]:
         """Start Study Job
 
-        Changed in *version 0.6.0*: Now responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+        Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
 
         :param study_id: (required)
         :type study_id: str
         :param job_id: (required)
         :type job_id: str
-        :param cluster_id:
+        :param cluster_id: Changed in *version 0.7*: query parameter `cluster_id` deprecated 
         :type cluster_id: int
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
@@ -3369,7 +3369,7 @@ class StudiesApi:
         self,
         study_id: StrictStr,
         job_id: StrictStr,
-        cluster_id: Optional[Annotated[int, Field(strict=True, ge=0)]] = None,
+        cluster_id: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Changed in *version 0.7*: query parameter `cluster_id` deprecated ")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -3385,13 +3385,13 @@ class StudiesApi:
     ) -> RESTResponseType:
         """Start Study Job
 
-        Changed in *version 0.6.0*: Now responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+        Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
 
         :param study_id: (required)
         :type study_id: str
         :param job_id: (required)
         :type job_id: str
-        :param cluster_id:
+        :param cluster_id: Changed in *version 0.7*: query parameter `cluster_id` deprecated 
         :type cluster_id: int
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request

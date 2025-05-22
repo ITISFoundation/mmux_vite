@@ -54,7 +54,7 @@ class CreditsApi:
     ) -> GetCreditPriceLegacy:
         """Get Credits Price
 
-        New in *version 0.6.0*
+        New in *version 0.6*
 
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
@@ -117,7 +117,7 @@ class CreditsApi:
     ) -> ApiResponse[GetCreditPriceLegacy]:
         """Get Credits Price
 
-        New in *version 0.6.0*
+        New in *version 0.6*
 
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
@@ -180,7 +180,7 @@ class CreditsApi:
     ) -> RESTResponseType:
         """Get Credits Price
 
-        New in *version 0.6.0*
+        New in *version 0.6*
 
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request

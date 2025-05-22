@@ -12,7 +12,7 @@ Method | HTTP request | Description
 
 Get Credits Price
 
-New in *version 0.6.0*
+New in *version 0.6*
 
 ### Example
 

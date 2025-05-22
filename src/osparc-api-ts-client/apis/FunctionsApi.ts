@@ -12,6 +12,7 @@ import { ErrorGet } from '../models/ErrorGet';
 import { Function } from '../models/Function';
 import { HTTPValidationError } from '../models/HTTPValidationError';
 import { JSONFunctionInputSchema } from '../models/JSONFunctionInputSchema';
+import { PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
 import { PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass } from '../models/PageAnnotatedUnionRegisteredProjectFunctionRegisteredPythonCodeFunctionRegisteredSolverFunctionFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass';
 import { RegisteredFunctionJobCollection } from '../models/RegisteredFunctionJobCollection';
 import { ResponseGetFunctionV0FunctionsFunctionIdGet } from '../models/ResponseGetFunctionV0FunctionsFunctionIdGet';
@@ -26,7 +27,7 @@ import { ResponseUpdateFunctionTitleV0FunctionsFunctionIdTitlePatch } from '../m
 export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
-     * Delete function
+     * Delete function  New in *version 0.8.0*
      * Delete Function
      * @param functionId 
      */
@@ -58,7 +59,7 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Get function
+     * Get function  New in *version 0.8.0*
      * Get Function
      * @param functionId 
      */
@@ -90,7 +91,7 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Get function input schema
+     * Get function input schema  New in *version 0.8.0*
      * Get Function Inputschema
      * @param functionId 
      */
@@ -122,7 +123,7 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Get function input schema
+     * Get function output schema  New in *version 0.8.0*
      * Get Function Outputschema
      * @param functionId 
      */
@@ -154,7 +155,53 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * List functions
+     * List function jobs for a function  New in *version 0.8.0*
+     * List Function Jobs For Functionid
+     * @param functionId 
+     * @param limit Page size limit
+     * @param offset Page offset
+     */
+    public async listFunctionJobsForFunctionid(functionId: string, limit?: number, offset?: number, _options?: Configuration): Promise<RequestContext> {
+        let _config = _options || this.configuration;
+
+        // verify required parameter 'functionId' is not null or undefined
+        if (functionId === null || functionId === undefined) {
+            throw new RequiredError("FunctionsApi", "listFunctionJobsForFunctionid", "functionId");
+        }
+
+
+
+
+        // Path Params
+        const localVarPath = '/v0/functions/{function_id}/jobs'
+            .replace('{' + 'function_id' + '}', encodeURIComponent(String(functionId)));
+
+        // Make Request Context
+        const requestContext = _config.baseServer.makeRequestContext(localVarPath, HttpMethod.GET);
+        requestContext.setHeaderParam("Accept", "application/json, */*;q=0.8")
+
+        // Query Params
+        if (limit !== undefined) {
+            requestContext.setQueryParam("limit", ObjectSerializer.serialize(limit, "number", ""));
+        }
+
+        // Query Params
+        if (offset !== undefined) {
+            requestContext.setQueryParam("offset", ObjectSerializer.serialize(offset, "number", ""));
+        }
+
+
+        
+        const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
+        if (defaultAuth?.applySecurityAuthentication) {
+            await defaultAuth?.applySecurityAuthentication(requestContext);
+        }
+
+        return requestContext;
+    }
+
+    /**
+     * List functions  New in *version 0.8.0*
      * List Functions
      * @param limit Page size limit
      * @param offset Page offset
@@ -192,7 +239,7 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Map function over input parameters
+     * Map function over input parameters  New in *version 0.8.0*
      * Map Function
      * @param functionId 
      * @param requestBody 
@@ -248,7 +295,7 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Create function
+     * Create function  New in *version 0.8.0*
      * Register Function
      * @param _function 
      */
@@ -290,7 +337,7 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Run function
+     * Run function  New in *version 0.8.0*
      * Run Function
      * @param functionId 
      * @param body 
@@ -346,7 +393,7 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Description
      * @param functionId 
      * @param description 
@@ -390,7 +437,7 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Title
      * @param functionId 
      * @param title 
@@ -434,7 +481,7 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Validate inputs against the function\'s input schema
+     * Validate inputs against the function\'s input schema  New in *version 0.8.0*
      * Validate Function Inputs
      * @param functionId 
      * @param body 
@@ -653,6 +700,42 @@ export class FunctionsApiResponseProcessor {
                 ObjectSerializer.parse(await response.body.text(), contentType),
                 "JSONFunctionInputSchema", ""
             ) as JSONFunctionInputSchema;
+            return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
+        }
+
+        throw new ApiException<string | Blob | undefined>(response.httpStatusCode, "Unknown API Status Code!", await response.getBodyAsAny(), response.headers);
+    }
+
+    /**
+     * Unwraps the actual response sent by the server from the response context and deserializes the response content
+     * to the expected objects
+     *
+     * @params response Response returned by the server for a request to listFunctionJobsForFunctionid
+     * @throws ApiException if the response code was not in [200, 299]
+     */
+     public async listFunctionJobsForFunctionidWithHttpInfo(response: ResponseContext): Promise<HttpInfo<PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass >> {
+        const contentType = ObjectSerializer.normalizeMediaType(response.headers["content-type"]);
+        if (isCodeInRange("200", response.httpStatusCode)) {
+            const body: PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass", ""
+            ) as PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass;
+            return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
+        }
+        if (isCodeInRange("422", response.httpStatusCode)) {
+            const body: HTTPValidationError = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "HTTPValidationError", ""
+            ) as HTTPValidationError;
+            throw new ApiException<HTTPValidationError>(response.httpStatusCode, "Validation Error", body, response.headers);
+        }
+
+        // Work around for missing responses in specification, e.g. for petstore.yaml
+        if (response.httpStatusCode >= 200 && response.httpStatusCode <= 299) {
+            const body: PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass", ""
+            ) as PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass;
             return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
         }
 

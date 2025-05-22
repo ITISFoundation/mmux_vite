@@ -114,7 +114,7 @@ export class ObservableCreditsApi {
     }
 
     /**
-     * New in *version 0.6.0*
+     * New in *version 0.6*
      * Get Credits Price
      */
     public getCreditsPriceWithHttpInfo(_options?: ConfigurationOptions): Observable<HttpInfo<GetCreditPriceLegacy>> {
@@ -138,7 +138,7 @@ export class ObservableCreditsApi {
     }
 
     /**
-     * New in *version 0.6.0*
+     * New in *version 0.6*
      * Get Credits Price
      */
     public getCreditsPrice(_options?: ConfigurationOptions): Observable<GetCreditPriceLegacy> {
@@ -524,7 +524,7 @@ export class ObservableFunctionJobCollectionsApi {
     }
 
     /**
-     * Delete function job collection
+     * Delete function job collection  New in *version 0.8.0*
      * Delete Function Job Collection
      * @param functionJobCollectionId
      */
@@ -549,7 +549,7 @@ export class ObservableFunctionJobCollectionsApi {
     }
 
     /**
-     * Delete function job collection
+     * Delete function job collection  New in *version 0.8.0*
      * Delete Function Job Collection
      * @param functionJobCollectionId
      */
@@ -558,7 +558,7 @@ export class ObservableFunctionJobCollectionsApi {
     }
 
     /**
-     * Get the function jobs in function job collection
+     * Get the function jobs in function job collection  New in *version 0.8.0*
      * Function Job Collection List Function Jobs
      * @param functionJobCollectionId
      */
@@ -583,7 +583,7 @@ export class ObservableFunctionJobCollectionsApi {
     }
 
     /**
-     * Get the function jobs in function job collection
+     * Get the function jobs in function job collection  New in *version 0.8.0*
      * Function Job Collection List Function Jobs
      * @param functionJobCollectionId
      */
@@ -592,7 +592,7 @@ export class ObservableFunctionJobCollectionsApi {
     }
 
     /**
-     * Get function job collection status
+     * Get function job collection status  New in *version 0.8.0*
      * Function Job Collection Status
      * @param functionJobCollectionId
      */
@@ -617,7 +617,7 @@ export class ObservableFunctionJobCollectionsApi {
     }
 
     /**
-     * Get function job collection status
+     * Get function job collection status  New in *version 0.8.0*
      * Function Job Collection Status
      * @param functionJobCollectionId
      */
@@ -626,7 +626,7 @@ export class ObservableFunctionJobCollectionsApi {
     }
 
     /**
-     * Get function job collection
+     * Get function job collection  New in *version 0.8.0*
      * Get Function Job Collection
      * @param functionJobCollectionId
      */
@@ -651,7 +651,7 @@ export class ObservableFunctionJobCollectionsApi {
     }
 
     /**
-     * Get function job collection
+     * Get function job collection  New in *version 0.8.0*
      * Get Function Job Collection
      * @param functionJobCollectionId
      */
@@ -660,7 +660,7 @@ export class ObservableFunctionJobCollectionsApi {
     }
 
     /**
-     * List function job collections
+     * List function job collections  New in *version 0.8.0*
      * List Function Job Collections
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -686,7 +686,7 @@ export class ObservableFunctionJobCollectionsApi {
     }
 
     /**
-     * List function job collections
+     * List function job collections  New in *version 0.8.0*
      * List Function Job Collections
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -696,7 +696,7 @@ export class ObservableFunctionJobCollectionsApi {
     }
 
     /**
-     * Register function job collection
+     * Register function job collection  New in *version 0.8.0*
      * Register Function Job Collection
      * @param functionJobCollection
      */
@@ -721,7 +721,7 @@ export class ObservableFunctionJobCollectionsApi {
     }
 
     /**
-     * Register function job collection
+     * Register function job collection  New in *version 0.8.0*
      * Register Function Job Collection
      * @param functionJobCollection
      */
@@ -748,7 +748,7 @@ export class ObservableFunctionJobsApi {
     }
 
     /**
-     * Delete function job
+     * Delete function job  New in *version 0.8.0*
      * Delete Function Job
      * @param functionJobId
      */
@@ -773,7 +773,7 @@ export class ObservableFunctionJobsApi {
     }
 
     /**
-     * Delete function job
+     * Delete function job  New in *version 0.8.0*
      * Delete Function Job
      * @param functionJobId
      */
@@ -782,7 +782,7 @@ export class ObservableFunctionJobsApi {
     }
 
     /**
-     * Get function job outputs
+     * Get function job outputs  New in *version 0.8.0*
      * Function Job Outputs
      * @param functionJobId
      */
@@ -807,7 +807,7 @@ export class ObservableFunctionJobsApi {
     }
 
     /**
-     * Get function job outputs
+     * Get function job outputs  New in *version 0.8.0*
      * Function Job Outputs
      * @param functionJobId
      */
@@ -816,7 +816,7 @@ export class ObservableFunctionJobsApi {
     }
 
     /**
-     * Get function job status
+     * Get function job status  New in *version 0.8.0*
      * Function Job Status
      * @param functionJobId
      */
@@ -841,7 +841,7 @@ export class ObservableFunctionJobsApi {
     }
 
     /**
-     * Get function job status
+     * Get function job status  New in *version 0.8.0*
      * Function Job Status
      * @param functionJobId
      */
@@ -850,7 +850,7 @@ export class ObservableFunctionJobsApi {
     }
 
     /**
-     * Get function job
+     * Get function job  New in *version 0.8.0*
      * Get Function Job
      * @param functionJobId
      */
@@ -875,7 +875,7 @@ export class ObservableFunctionJobsApi {
     }
 
     /**
-     * Get function job
+     * Get function job  New in *version 0.8.0*
      * Get Function Job
      * @param functionJobId
      */
@@ -884,7 +884,7 @@ export class ObservableFunctionJobsApi {
     }
 
     /**
-     * List function jobs
+     * List function jobs  New in *version 0.8.0*
      * List Function Jobs
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -910,7 +910,7 @@ export class ObservableFunctionJobsApi {
     }
 
     /**
-     * List function jobs
+     * List function jobs  New in *version 0.8.0*
      * List Function Jobs
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -920,7 +920,7 @@ export class ObservableFunctionJobsApi {
     }
 
     /**
-     * Create function job
+     * Create function job  New in *version 0.8.0*
      * Register Function Job
      * @param functionJob
      */
@@ -945,7 +945,7 @@ export class ObservableFunctionJobsApi {
     }
 
     /**
-     * Create function job
+     * Create function job  New in *version 0.8.0*
      * Register Function Job
      * @param functionJob
      */
@@ -972,7 +972,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Delete function
+     * Delete function  New in *version 0.8.0*
      * Delete Function
      * @param functionId
      */
@@ -997,7 +997,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Delete function
+     * Delete function  New in *version 0.8.0*
      * Delete Function
      * @param functionId
      */
@@ -1006,7 +1006,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Get function
+     * Get function  New in *version 0.8.0*
      * Get Function
      * @param functionId
      */
@@ -1031,7 +1031,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Get function
+     * Get function  New in *version 0.8.0*
      * Get Function
      * @param functionId
      */
@@ -1040,7 +1040,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Get function input schema
+     * Get function input schema  New in *version 0.8.0*
      * Get Function Inputschema
      * @param functionId
      */
@@ -1065,7 +1065,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Get function input schema
+     * Get function input schema  New in *version 0.8.0*
      * Get Function Inputschema
      * @param functionId
      */
@@ -1074,7 +1074,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Get function input schema
+     * Get function output schema  New in *version 0.8.0*
      * Get Function Outputschema
      * @param functionId
      */
@@ -1099,7 +1099,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Get function input schema
+     * Get function output schema  New in *version 0.8.0*
      * Get Function Outputschema
      * @param functionId
      */
@@ -1108,7 +1108,45 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * List functions
+     * List function jobs for a function  New in *version 0.8.0*
+     * List Function Jobs For Functionid
+     * @param functionId
+     * @param [limit] Page size limit
+     * @param [offset] Page offset
+     */
+    public listFunctionJobsForFunctionidWithHttpInfo(functionId: string, limit?: number, offset?: number, _options?: ConfigurationOptions): Observable<HttpInfo<PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass>> {
+        const _config = mergeConfiguration(this.configuration, _options);
+
+        const requestContextPromise = this.requestFactory.listFunctionJobsForFunctionid(functionId, limit, offset, _config);
+        // build promise chain
+        let middlewarePreObservable = from<RequestContext>(requestContextPromise);
+        for (const middleware of _config.middleware) {
+            middlewarePreObservable = middlewarePreObservable.pipe(mergeMap((ctx: RequestContext) => middleware.pre(ctx)));
+        }
+
+        return middlewarePreObservable.pipe(mergeMap((ctx: RequestContext) => _config.httpApi.send(ctx))).
+            pipe(mergeMap((response: ResponseContext) => {
+                let middlewarePostObservable = of(response);
+                for (const middleware of _config.middleware.reverse()) {
+                    middlewarePostObservable = middlewarePostObservable.pipe(mergeMap((rsp: ResponseContext) => middleware.post(rsp)));
+                }
+                return middlewarePostObservable.pipe(map((rsp: ResponseContext) => this.responseProcessor.listFunctionJobsForFunctionidWithHttpInfo(rsp)));
+            }));
+    }
+
+    /**
+     * List function jobs for a function  New in *version 0.8.0*
+     * List Function Jobs For Functionid
+     * @param functionId
+     * @param [limit] Page size limit
+     * @param [offset] Page offset
+     */
+    public listFunctionJobsForFunctionid(functionId: string, limit?: number, offset?: number, _options?: ConfigurationOptions): Observable<PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass> {
+        return this.listFunctionJobsForFunctionidWithHttpInfo(functionId, limit, offset, _options).pipe(map((apiResponse: HttpInfo<PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass>) => apiResponse.data));
+    }
+
+    /**
+     * List functions  New in *version 0.8.0*
      * List Functions
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -1134,7 +1172,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * List functions
+     * List functions  New in *version 0.8.0*
      * List Functions
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -1144,7 +1182,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Map function over input parameters
+     * Map function over input parameters  New in *version 0.8.0*
      * Map Function
      * @param functionId
      * @param requestBody
@@ -1170,7 +1208,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Map function over input parameters
+     * Map function over input parameters  New in *version 0.8.0*
      * Map Function
      * @param functionId
      * @param requestBody
@@ -1180,7 +1218,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Create function
+     * Create function  New in *version 0.8.0*
      * Register Function
      * @param _function
      */
@@ -1205,7 +1243,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Create function
+     * Create function  New in *version 0.8.0*
      * Register Function
      * @param _function
      */
@@ -1214,7 +1252,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Run function
+     * Run function  New in *version 0.8.0*
      * Run Function
      * @param functionId
      * @param body
@@ -1240,7 +1278,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Run function
+     * Run function  New in *version 0.8.0*
      * Run Function
      * @param functionId
      * @param body
@@ -1250,7 +1288,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Description
      * @param functionId
      * @param description
@@ -1276,7 +1314,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Description
      * @param functionId
      * @param description
@@ -1286,7 +1324,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Title
      * @param functionId
      * @param title
@@ -1312,7 +1350,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Title
      * @param functionId
      * @param title
@@ -1322,7 +1360,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Validate inputs against the function\'s input schema
+     * Validate inputs against the function\'s input schema  New in *version 0.8.0*
      * Validate Function Inputs
      * @param functionId
      * @param body
@@ -1348,7 +1386,7 @@ export class ObservableFunctionsApi {
     }
 
     /**
-     * Validate inputs against the function\'s input schema
+     * Validate inputs against the function\'s input schema  New in *version 0.8.0*
      * Validate Function Inputs
      * @param functionId
      * @param body
@@ -1610,7 +1648,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Creates a job in a specific release with given inputs.  NOTE: This operation does **not** start the job
+     * Creates a job in a specific release with given inputs. This operation does not start the job.  New in *version 0.5*
      * Create Solver Job
      * @param solverKey
      * @param version
@@ -1640,7 +1678,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Creates a job in a specific release with given inputs.  NOTE: This operation does **not** start the job
+     * Creates a job in a specific release with given inputs. This operation does not start the job.  New in *version 0.5*
      * Create Solver Job
      * @param solverKey
      * @param version
@@ -1768,7 +1806,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done.  New in *version 0.4.0*
+     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done  New in *version 0.4*
      * Get Job Output Logfile
      * @param solverKey
      * @param version
@@ -1795,7 +1833,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done.  New in *version 0.4.0*
+     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done  New in *version 0.4*
      * Get Job Output Logfile
      * @param solverKey
      * @param version
@@ -1915,46 +1953,6 @@ export class ObservableSolversApi {
      */
     public getJobWallet(solverKey: string, version: string, jobId: string, _options?: ConfigurationOptions): Observable<WalletGetWithAvailableCreditsLegacy> {
         return this.getJobWalletWithHttpInfo(solverKey, version, jobId, _options).pipe(map((apiResponse: HttpInfo<WalletGetWithAvailableCreditsLegacy>) => apiResponse.data));
-    }
-
-    /**
-     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
-     * Get Jobs Page
-     * @param solverKey
-     * @param version
-     * @param [limit] Page size limit
-     * @param [offset] Page offset
-     */
-    public getJobsPageWithHttpInfo(solverKey: string, version: string, limit?: number, offset?: number, _options?: ConfigurationOptions): Observable<HttpInfo<PageJob>> {
-        const _config = mergeConfiguration(this.configuration, _options);
-
-        const requestContextPromise = this.requestFactory.getJobsPage(solverKey, version, limit, offset, _config);
-        // build promise chain
-        let middlewarePreObservable = from<RequestContext>(requestContextPromise);
-        for (const middleware of _config.middleware) {
-            middlewarePreObservable = middlewarePreObservable.pipe(mergeMap((ctx: RequestContext) => middleware.pre(ctx)));
-        }
-
-        return middlewarePreObservable.pipe(mergeMap((ctx: RequestContext) => _config.httpApi.send(ctx))).
-            pipe(mergeMap((response: ResponseContext) => {
-                let middlewarePostObservable = of(response);
-                for (const middleware of _config.middleware.reverse()) {
-                    middlewarePostObservable = middlewarePostObservable.pipe(mergeMap((rsp: ResponseContext) => middleware.post(rsp)));
-                }
-                return middlewarePostObservable.pipe(map((rsp: ResponseContext) => this.responseProcessor.getJobsPageWithHttpInfo(rsp)));
-            }));
-    }
-
-    /**
-     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
-     * Get Jobs Page
-     * @param solverKey
-     * @param version
-     * @param [limit] Page size limit
-     * @param [offset] Page offset
-     */
-    public getJobsPage(solverKey: string, version: string, limit?: number, offset?: number, _options?: ConfigurationOptions): Observable<PageJob> {
-        return this.getJobsPageWithHttpInfo(solverKey, version, limit, offset, _options).pipe(map((apiResponse: HttpInfo<PageJob>) => apiResponse.data));
     }
 
     /**
@@ -2100,6 +2098,7 @@ export class ObservableSolversApi {
     }
 
     /**
+     * Inspects the current status of a job  New in *version 0.5*
      * Inspect Job
      * @param solverKey
      * @param version
@@ -2126,6 +2125,7 @@ export class ObservableSolversApi {
     }
 
     /**
+     * Inspects the current status of a job  New in *version 0.5*
      * Inspect Job
      * @param solverKey
      * @param version
@@ -2172,7 +2172,47 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
+     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
+     * List Jobs Paginated
+     * @param solverKey
+     * @param version
+     * @param [limit] Page size limit
+     * @param [offset] Page offset
+     */
+    public listJobsPaginatedWithHttpInfo(solverKey: string, version: string, limit?: number, offset?: number, _options?: ConfigurationOptions): Observable<HttpInfo<PageJob>> {
+        const _config = mergeConfiguration(this.configuration, _options);
+
+        const requestContextPromise = this.requestFactory.listJobsPaginated(solverKey, version, limit, offset, _config);
+        // build promise chain
+        let middlewarePreObservable = from<RequestContext>(requestContextPromise);
+        for (const middleware of _config.middleware) {
+            middlewarePreObservable = middlewarePreObservable.pipe(mergeMap((ctx: RequestContext) => middleware.pre(ctx)));
+        }
+
+        return middlewarePreObservable.pipe(mergeMap((ctx: RequestContext) => _config.httpApi.send(ctx))).
+            pipe(mergeMap((response: ResponseContext) => {
+                let middlewarePostObservable = of(response);
+                for (const middleware of _config.middleware.reverse()) {
+                    middlewarePostObservable = middlewarePostObservable.pipe(mergeMap((rsp: ResponseContext) => middleware.post(rsp)));
+                }
+                return middlewarePostObservable.pipe(map((rsp: ResponseContext) => this.responseProcessor.listJobsPaginatedWithHttpInfo(rsp)));
+            }));
+    }
+
+    /**
+     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
+     * List Jobs Paginated
+     * @param solverKey
+     * @param version
+     * @param [limit] Page size limit
+     * @param [offset] Page offset
+     */
+    public listJobsPaginated(solverKey: string, version: string, limit?: number, offset?: number, _options?: ConfigurationOptions): Observable<PageJob> {
+        return this.listJobsPaginatedWithHttpInfo(solverKey, version, limit, offset, _options).pipe(map((apiResponse: HttpInfo<PageJob>) => apiResponse.data));
+    }
+
+    /**
+     * Lists inputs and outputs of a given solver  New in *version 0.5*  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Ports
      * @param solverKey
      * @param version
@@ -2198,7 +2238,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
+     * Lists inputs and outputs of a given solver  New in *version 0.5*  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Ports
      * @param solverKey
      * @param version
@@ -2242,7 +2282,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5*
      * List Solvers
      */
     public listSolversWithHttpInfo(_options?: ConfigurationOptions): Observable<HttpInfo<Array<Solver>>> {
@@ -2266,7 +2306,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5*
      * List Solvers
      */
     public listSolvers(_options?: ConfigurationOptions): Observable<Array<Solver>> {
@@ -2274,7 +2314,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists **all** released solvers (not just latest version)  New in *version 0.5*
      * Lists All Releases
      */
     public listSolversReleasesWithHttpInfo(_options?: ConfigurationOptions): Observable<HttpInfo<Array<Solver>>> {
@@ -2298,7 +2338,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists **all** released solvers (not just latest version)  New in *version 0.5*
      * Lists All Releases
      */
     public listSolversReleases(_options?: ConfigurationOptions): Observable<Array<Solver>> {
@@ -2346,7 +2386,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id` Added in *version 0.6*: responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id`  Added in *version 0.6*: responds with a 202 when successfully starting a computation  Changed in *version 0.7*: query parameter `cluster_id` deprecated
      * Start Job
      * @param solverKey
      * @param version
@@ -2374,7 +2414,7 @@ export class ObservableSolversApi {
     }
 
     /**
-     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id` Added in *version 0.6*: responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id`  Added in *version 0.6*: responds with a 202 when successfully starting a computation  Changed in *version 0.7*: query parameter `cluster_id` deprecated
      * Start Job
      * @param solverKey
      * @param version
@@ -2386,6 +2426,7 @@ export class ObservableSolversApi {
     }
 
     /**
+     * Stops a running job  New in *version 0.5*
      * Stop Job
      * @param solverKey
      * @param version
@@ -2412,6 +2453,7 @@ export class ObservableSolversApi {
     }
 
     /**
+     * Stops a running job  New in *version 0.5*
      * Stop Job
      * @param solverKey
      * @param version
@@ -2554,7 +2596,7 @@ export class ObservableStudiesApi {
     }
 
     /**
-     * New in *version 0.5.0*
+     * Get study by ID  New in *version 0.5*
      * Get Study
      * @param studyId
      */
@@ -2579,7 +2621,7 @@ export class ObservableStudiesApi {
     }
 
     /**
-     * New in *version 0.5.0*
+     * Get study by ID  New in *version 0.5*
      * Get Study
      * @param studyId
      */
@@ -2726,7 +2768,7 @@ export class ObservableStudiesApi {
     }
 
     /**
-     * New in *version 0.5.0*
+     * List all studies  New in *version 0.5*
      * List Studies
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -2752,7 +2794,7 @@ export class ObservableStudiesApi {
     }
 
     /**
-     * New in *version 0.5.0*
+     * List all studies  New in *version 0.5*
      * List Studies
      * @param [limit] Page size limit
      * @param [offset] Page offset
@@ -2762,7 +2804,7 @@ export class ObservableStudiesApi {
     }
 
     /**
-     * Lists metadata on ports of a given study  New in *version 0.5.0*
+     * Lists metadata on ports of a given study  New in *version 0.5*
      * List Study Ports
      * @param studyId
      */
@@ -2787,7 +2829,7 @@ export class ObservableStudiesApi {
     }
 
     /**
-     * Lists metadata on ports of a given study  New in *version 0.5.0*
+     * Lists metadata on ports of a given study  New in *version 0.5*
      * List Study Ports
      * @param studyId
      */
@@ -2834,11 +2876,11 @@ export class ObservableStudiesApi {
     }
 
     /**
-     * Changed in *version 0.6.0*: Now responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
      * Start Study Job
      * @param studyId
      * @param jobId
-     * @param [clusterId]
+     * @param [clusterId] Changed in *version 0.7*: query parameter &#x60;cluster_id&#x60; deprecated 
      */
     public startStudyJobWithHttpInfo(studyId: string, jobId: string, clusterId?: number, _options?: ConfigurationOptions): Observable<HttpInfo<JobStatus>> {
         const _config = mergeConfiguration(this.configuration, _options);
@@ -2861,11 +2903,11 @@ export class ObservableStudiesApi {
     }
 
     /**
-     * Changed in *version 0.6.0*: Now responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
      * Start Study Job
      * @param studyId
      * @param jobId
-     * @param [clusterId]
+     * @param [clusterId] Changed in *version 0.7*: query parameter &#x60;cluster_id&#x60; deprecated 
      */
     public startStudyJob(studyId: string, jobId: string, clusterId?: number, _options?: ConfigurationOptions): Observable<JobStatus> {
         return this.startStudyJobWithHttpInfo(studyId, jobId, clusterId, _options).pipe(map((apiResponse: HttpInfo<JobStatus>) => apiResponse.data));
@@ -3042,7 +3084,7 @@ export class ObservableWalletsApi {
     }
 
     /**
-     * Get all available licensed items for a given wallet
+     * Get all available licensed items for a given wallet  New in *version 0.6*
      * Get Available Licensed Items For Wallet
      * @param walletId
      * @param [limit] Page size limit
@@ -3069,7 +3111,7 @@ export class ObservableWalletsApi {
     }
 
     /**
-     * Get all available licensed items for a given wallet
+     * Get all available licensed items for a given wallet  New in *version 0.6*
      * Get Available Licensed Items For Wallet
      * @param walletId
      * @param [limit] Page size limit
