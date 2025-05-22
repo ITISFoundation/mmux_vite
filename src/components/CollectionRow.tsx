@@ -16,43 +16,18 @@ import JobRow from "./JobRow";
 // A priori, jobs from a single function (already selected & filtered)
 // TODO include tick to select it (and all the completed jobs in the collection)
 const CollectionRow = (props: CollectionRowProps) => {
-  const { jobs, allSelected, selectJob } = props;
+  const { job, selectMainJob, selectJob } = props;
   const [open, setOpen] = React.useState(false);
-  const jobCol = jobs.jobCollection;
-  const [jobIds, setJobIds] = React.useState<{[key: string]: boolean}>(jobCol.jobIds.reduce((acc:{[key: string]: boolean}, jobUid: string) => ({
-    ...acc,
-    [jobUid]: allSelected,
-  }), { }));
-
-  const handleJobSelection = (jobUid: string, selected: boolean) => {
-    jobIds[jobUid] = selected;
-    setJobIds(jobIds);
+  const jobData = job.jobCollection;
+  const subJobs = job.subJobs;
 
 
-    if(Object.keys(jobIds).every((id) => jobIds[id] === true)) {
-      selectJob(true);
-    } else {
-      selectJob(false);
-    }
-  };
-
-  React.useEffect(() => {
-    if(Object.keys(jobIds).every((uid: string) => jobIds[uid] === true) || Object.keys(jobIds).every((uid: string) => jobIds[uid] === false)){
-      setJobIds(jobCol.jobIds.reduce((acc:{[key: string]: boolean}, jobUid: string) => ({
-        ...acc,
-        [jobUid]: allSelected,
-      }), { }));
-    }
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  , [allSelected]);
-
-  if (Object.keys(jobIds).length === 0) {
+  if (Object.keys(subJobs).length === 0) {
     return (
       <TableRow>
         <TableCell colSpan={6}>
           <Typography variant="h6" gutterBottom component="div">
-            No jobs in Job Campaign {jobCol.title}.
+            No jobs in Job Campaign {jobData.title}.
           </Typography>
         </TableCell>
       </TableRow>
@@ -73,19 +48,20 @@ const CollectionRow = (props: CollectionRowProps) => {
         <TableCell padding="checkbox">
           <Checkbox
             color="primary"
-            checked={jobs.selected}
+            checked={job.selected}
+            indeterminate={Object.keys(job.subJobs).some((id) => job.subJobs[id] === true) && Object.keys(job.subJobs).some((id) => job.subJobs[id] === false)}
             onChange={(event) => {
               const checked = event.target.checked;
-              selectJob(checked);
+              selectMainJob(checked);
             }}
           />
         </TableCell>
         <TableCell component="th" scope="row" align="right">
-          {jobCol.title}
+          {jobData.title}
         </TableCell>
         {/* <TableCell align="right">{jobCollection.status}</TableCell> */}
         <TableCell align="right"> TODO </TableCell>
-        <TableCell align="right">{jobCol.jobIds?.length}</TableCell>
+        <TableCell align="right">{jobData.jobIds?.length}</TableCell>
         <TableCell align="right"> TODO </TableCell>
       </TableRow>
       <TableRow>
@@ -103,8 +79,8 @@ const CollectionRow = (props: CollectionRowProps) => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {jobCol.jobIds?.map((jobUid: string) => (
-                    <JobRow key={jobUid} jobUid={jobUid} jobList={jobIds} setSelected={(selected: boolean) => handleJobSelection(jobUid, selected)} />
+                  {jobData.jobIds?.map((jobUid: string) => (
+                    <JobRow key={jobUid} jobUid={jobUid} jobList={subJobs} setSelected={(selected: boolean) => selectJob(selected, jobUid)} />
                   ))}
                 </TableBody>
               </Table>

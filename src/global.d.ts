@@ -30,12 +30,13 @@ interface HeaderProps {
 interface SelectedJobCollection {
   jobCollection: FunctionJobCollection;
   selected: boolean;
+  subJobs: {[key: string]: boolean}
 }
 
 type CollectionRowProps = {
-  jobs: SelectedJobCollection;
-  allSelected: boolean;
-  selectJob: (selected: boolean) => void;
+  job: SelectedJobCollection;
+  selectMainJob: (selected: boolean) => void;
+  selectJob: (selected: boolean, subJob: string) => void;
 };
 
 interface JobRowProps  {

@@ -15,16 +15,36 @@ export default function JobsSelector() {
   const [jobCollections, setJobCollections] = React.useState<SelectedJobCollection[]>([]);
   const context = React.useContext(MMUXContext);
 
-  const onSelectJob = (index: number, selected: boolean) => {
-    setJobCollections(jobCollections.map((jc, idx) => {
-      if (idx === index) {
-        return {
-          ...jc,
-          selected,
-        };
+  const selectMainJob = (index: number, selected: boolean) => {
+    const newJobCollections: SelectedJobCollection[] = jobCollections.map((jc, idx) => {
+      const auxJob = jc
+      if(idx === index) {
+        auxJob.selected = selected;
+        auxJob.subJobs = Object.keys(auxJob.subJobs).reduce((acc:{[key: string]: boolean}, jobUid: string) => ({
+          ...acc,
+          [jobUid]: selected,
+        }), { })
       }
-      return jc;
-    }));
+      return auxJob
+    });
+
+    setJobCollections(newJobCollections);
+  }
+
+  const onSelectJob = (index: number, selected: boolean, subJob: string) => {
+    const newJobCollections: SelectedJobCollection[] = jobCollections.map((jc, idx) => {
+      const auxJob = jc
+      if(idx === index) {
+        auxJob.subJobs[subJob] = selected;
+        const subJobState = Object.keys(auxJob.subJobs).map((uid: string) => auxJob.subJobs[uid]);
+        if(subJobState.every((j: boolean) => j === true) || subJobState.every((j: boolean) => j === false)) {
+          auxJob.selected = subJobState[0];
+        }
+      }
+      return auxJob
+    });
+
+    setJobCollections(newJobCollections);
   }
 
   const onSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,7 +52,12 @@ export default function JobsSelector() {
     const newJobCollections = jobCollections.map((jc) => ({
       ...jc,
       selected: checked,
+      subJobs: jc.jobCollection.jobIds.reduce((acc:{[key: string]: boolean}, jobUid: string) => ({
+        ...acc,
+        [jobUid]: checked,
+      }), { })
     }));
+
     setJobCollections(newJobCollections);
   };
 
@@ -44,6 +69,10 @@ export default function JobsSelector() {
     const newJobs: SelectedJobCollection[] = jc.map((jc) => ({
       jobCollection: jc,
       selected: false,
+      subJobs: jc.jobIds.reduce((acc:{[key: string]: boolean}, jobUid: string) => ({
+        ...acc,
+        [jobUid]: false,
+      }), { })
     }));
     setJobCollections(newJobs);
   }
@@ -72,8 +101,8 @@ export default function JobsSelector() {
             <TableCell padding="checkbox">
               <Checkbox
                 color="primary"
-                indeterminate={jobCollections.some((jc) => jc.selected) && jobCollections.some((jc) => !jc.selected)}
-                checked={!jobCollections.find((jc) => jc.selected === false)}
+                indeterminate={jobCollections.some((jc) => jc.selected === true) && jobCollections.some((jc) => jc.selected === false)}
+                checked={jobCollections.some((jc) => jc.selected === true)}
                 onChange={onSelectAllClick}
               />
             </TableCell>
@@ -85,7 +114,7 @@ export default function JobsSelector() {
         </TableHead>
         <TableBody>
           {jobCollections.map((item, idx) => {
-            return <CollectionRow key={idx} jobs={item} allSelected={item.selected} selectJob={(selected: boolean)=>onSelectJob(idx, selected)}/>;
+            return <CollectionRow key={idx} job={item} selectMainJob={(selected: boolean)=> selectMainJob(idx, selected)} selectJob={(selected: boolean, subJob: string)=>onSelectJob(idx, selected, subJob)}/>;
           })}
         </TableBody>
       </Table>
