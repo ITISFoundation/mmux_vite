@@ -1,13 +1,14 @@
 import { useState, useEffect, useContext } from "react";
 import MetaModelingUX from "../components/MetaModelingUX";
 import JobSelector from "../components/JobSelector";
-import { Button, Box, Container, IconButton } from "@mui/material";
+import { Button, Box, Container } from "@mui/material";
 import MMUXContext from "./MMUXContext";
 import PlotDataTogether from "../components/PlotDataTogether";
 import { PYTHON_DAKOTA_BACKEND } from "../components/api_objects";
 import PlusButton from "../components/PlusButton";
 import { getFunctionJobsFromFunctionUid } from "../components/function_utils";
-import { Refresh } from "@mui/icons-material";
+import Surface3DPlot from "../components/Surface3DPlot";
+import IsoSurface3DPlot from "../components/IsoSurface3DPlot";
 
 function SuMoBuildingValidation() {
   const context = useContext(MMUXContext);
@@ -160,14 +161,14 @@ function SuMoBuildingValidation() {
               />
               <PlusButton
                 onClickFun={() => null}
-                PlotFunComponent={() => <span>Not implemented yet</span>}
-                text="Add SuMo 2D visualization"
+                PlotFunComponent={() => <Surface3DPlot />}
+                text="Add SuMo 3D Surface visualization"
                 enabled={isSuMoGenerated}
               />
               <PlusButton
                 onClickFun={() => null}
-                PlotFunComponent={() => <span>Not implemented yet</span>}
-                text="Add SuMo 3D visualization"
+                PlotFunComponent={() => <IsoSurface3DPlot />}
+                text="Add SuMo 3D IsoSurface visualization"
                 enabled={isSuMoGenerated}
               />
             </>
