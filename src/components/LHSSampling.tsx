@@ -1,16 +1,16 @@
 import { useContext, useEffect, useState } from 'react';
-import MMUXContext from '../views/MMUXContext';
+import MMUXContext, { MMUXContextType } from '../views/MMUXContext';
 import usePersistentJSONState from '../hooks/usePersistentJSONState';
 import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
 import JobsDashboard from '../views/ParallelRunner';
 import { Box, Button, Input, Typography } from '@mui/material';
-import { Function, FunctionJob, FunctionJobCollection, RegisteredFunctionJobCollection } from '../osparc-api-ts-client';
+import { Function, RegisteredFunctionJobCollection } from '../osparc-api-ts-client';
 
 
 
-async function runLhsSampling(fun: Function, config: any[], seed: number = 0, N: number = 5) {
-    const context = useContext(MMUXContext);
-    // send config to Python backend to create LHS
+async function runLhsSampling(context: MMUXContextType|undefined, config: any[], seed: number = 0, N: number = 5) {
+  const fun = context?.selectedFunction as Function;
+  // send config to Python backend to create LHS
     console.log("Running LHS Sampling with config: ", config);
     context?.setLaunchingSampling(true)
     const jc = await fetch(
@@ -70,7 +70,7 @@ const LHSSampling = () => {
     function CreateSamplingButton() {
         const handleRunSampling = () => {
             context?.setLaunchingSampling(true)
-            runLhsSampling(context?.selectedFunction as Function, lhsInputs)
+            runLhsSampling(context, lhsInputs)
             setTimeout(() => {
                 // for now the request fails very quickly
                 context?.setLaunchingSampling(false)
