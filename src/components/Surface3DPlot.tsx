@@ -747,6 +747,7 @@ const Surface3DPlot = () => {
       text: "Mt Bruno Elevation",
     },
     autosize: false,
+    willReadFrequently: true,
     width: 920,
     height: 500,
     margin: {

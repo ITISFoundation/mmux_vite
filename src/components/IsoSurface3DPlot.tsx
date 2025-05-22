@@ -22,6 +22,7 @@ const IsoSurface3DPlot = () => {
 
   const layout = {
     autosize: false,
+    willReadFrequently: true,
     width: 930,
     height: 500,
     margin: { t: 0, l: 0, b: 0 },
