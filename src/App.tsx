@@ -1,15 +1,15 @@
-import { useState } from 'react';
-import { styled } from '@mui/material/styles';
-import UQ from './views/UQ';
-import Setup from './views/Setup';
-import Navigation from './components/Navigation';
-import MMUXContext from './views/MMUXContext';
-import { Function } from './osparc-api-ts-client';
-import SuMoBuildingValidation from './views/SuMoBuilding';
+import { useState } from "react";
+import { styled } from "@mui/material/styles";
+import UQ from "./views/UQ";
+import Setup from "./views/Setup";
+import Navigation from "./components/Navigation";
+import MMUXContext from "./views/MMUXContext";
+import { Function } from "./osparc-api-ts-client";
+import SuMoBuildingValidation from "./views/SuMoBuilding";
 
-const Container = styled('div')`
-max-width: 1000px;
-margin: 0 auto; /* center alignment of the app*/
+const Container = styled("div")`
+  max-width: 1000px;
+  margin: 0 auto; /* center alignment of the app*/
 `;
 
 const App = () => {
@@ -21,32 +21,36 @@ const App = () => {
     // { id: 98, label: "FunctionIndex" },
     // { id: 99, label: "JobIndex" },
   ];
-  const [activeStep, setActiveStep] = useState(steps[0].id)
+  const [activeStep, setActiveStep] = useState(steps[0].id);
   // const [previousViews, setPreviousViews] = useState<number[]>([])
-  const [funct, setFunct] = useState<Function | undefined>(undefined)
+  const [funct, setFunct] = useState<Function | undefined>(undefined);
+  const [selectedJobs, setSelectedJobs] = useState<Array<string>>([]);
   const defaultMMUXContext = {
     selectedFunction: funct,
     setSelectedFunction: setFunct,
     currentView: activeStep,
-    setCurrentView: (i: number) => {
-      // setPreviousViews(prev => [...prev, i])
-      setActiveStep(i)
-    },
+    setCurrentView: setActiveStep,
+    selectedJobs: selectedJobs,
+    setSelectedJobs: setSelectedJobs,
     // previousViews: previousViews;
     // setPreviousViews: setPreviousViews;
-  }
+  };
 
   return (
-    <MMUXContext.Provider value={defaultMMUXContext} >
+    <MMUXContext.Provider value={defaultMMUXContext}>
       <Container>
         {/* Top, it shows the different "tabs" as if it were AppMode */}
-        <Navigation steps={steps} activeStep={activeStep} setActiveStep={setActiveStep} />
-        { activeStep === 1 ? <Setup /> : undefined}
-        { activeStep === 2 ? <SuMoBuildingValidation /> : undefined}
-        { activeStep === 3 ? <UQ /> : undefined}
+        <Navigation
+          steps={steps}
+          activeStep={activeStep}
+          setActiveStep={setActiveStep}
+        />
+        {activeStep === 1 ? <Setup /> : undefined}
+        {activeStep === 2 ? <SuMoBuildingValidation /> : undefined}
+        {activeStep === 3 ? <UQ /> : undefined}
       </Container>
-    </MMUXContext.Provider >
+    </MMUXContext.Provider>
   );
-}
+};
 
 export default App;
