@@ -6,6 +6,8 @@ interface MMUXContextType {
     setSelectedFunction: (F: Function) => void;
     currentView: number;
     setCurrentView: (i: number) => void;
+    selectedJobs: string[];
+    setSelectedJobs: (selectedJobs: string[]) => void;
     // previousView: number[]
 }
 

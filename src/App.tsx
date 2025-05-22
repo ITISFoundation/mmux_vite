@@ -24,14 +24,14 @@ const App = () => {
   const [activeStep, setActiveStep] = useState(steps[0].id)
   // const [previousViews, setPreviousViews] = useState<number[]>([])
   const [funct, setFunct] = useState<Function | undefined>(undefined)
+  const [selectedJobs, setSelectedJobs] = useState<Array<string>>([])
   const defaultMMUXContext = {
     selectedFunction: funct,
     setSelectedFunction: setFunct,
     currentView: activeStep,
-    setCurrentView: (i: number) => {
-      // setPreviousViews(prev => [...prev, i])
-      setActiveStep(i)
-    },
+    setCurrentView: setActiveStep,
+    selectedJobs: selectedJobs,
+    setSelectedJobs: setSelectedJobs
     // previousViews: previousViews;
     // setPreviousViews: setPreviousViews;
   }
