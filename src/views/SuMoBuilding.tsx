@@ -4,20 +4,26 @@ import JobSelector from '../components/JobSelector';
 import { Button, Box, Container } from '@mui/material';
 import MMUXContext from './MMUXContext';
 import PlotDataTogether from '../components/PlotDataTogether'
+import ShowCvMetrics from '../components/ShowCvMetrics';
 import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
 import PlusButton from '../components/PlusButton';
 import { getFunctionJobsFromFunctionUid, getFunctionJobCollections } from '../components/function_utils';
 
+// TODO in general, I would like the full state to be permanent 
+// e.g. if coming back into a MMUX study, everything should look like when you left
+// Brainstorm with Alex. 
 
 function SuMoBuildingValidation() {
     const context = useContext(MMUXContext)
     const inputVars = context?.selectedFunction?.inputSchema.schemaContent.required as string[]
     const outputVars = context?.selectedFunction?.outputSchema.schemaContent.required as string[]
-    const [isSuMoGenerated, setIsSuMoGenerated] = useState(false)
 
+    // TODO: this should go to the MMUXContext -- necessary for UQ
+    const [isSuMoGenerated, setIsSuMoGenerated] = useState(false)
     const [selectedResponse, setSelectedResponse] = useState(outputVars ? outputVars[0] : '');
+
     const [isLogEnabled, setIsLogEnabled] = useState(false);
-    const [plotDataSumoCentralCurves, setPlotDataSumoCentralCurves] = useState(undefined);
+    const [dataSumoCentralCurves, setDataSumoCentralCurves] = useState(undefined);
 
 
     useEffect(() => {
@@ -44,37 +50,36 @@ function SuMoBuildingValidation() {
             }).then(function (response) {
                 return response.json()
             }).then(function (data) {
-                setPlotDataSumoCentralCurves(data)
-            })
+                setDataSumoCentralCurves(data)
+            }).catch(error => console.debug('Error:', error));
     }
 
     function QoISelector() {
         return (
-
+            // TODO show only when jobs have already been selected
             <Box sx={{ display: 'flex', alignItems: 'center', gap: "10px" }}>
                 <span>Quantity of Interest (QoI) to inspect: </span>
                 <select
                     value={selectedResponse}
                     onChange={(e) => {
+                        // TODO make this more visible & prominent
                         setIsSuMoGenerated(false)
                         setSelectedResponse(e.target.value)
                         console.log(selectedResponse)
                     }}
-                >// TODO issue: onlly creating DF w inputs + QoI, and NIH is trying to normalize...
-                    // How do I solve that in general (given that I wanna give users chance to do operations, etc w custom code)?
-                    // Pass evth to function and then leave only inputs + qoi right before saving?
+                >
                     {outputVars?.map((qoi) => (
                         <option key={qoi} value={qoi}>
                             {qoi}
                         </option>
                     ))}
                 </select>
-                <CreateSuMo />
+                <CreateSuMoButton />
             </Box>
         )
     }
 
-    function CreateSuMo() {
+    function CreateSuMoButton() {
         // eventually, we will actually register a SuMo. For now, this is just a placeholder
         const [loading, setLoading] = useState(false);
 
@@ -115,9 +120,36 @@ function SuMoBuildingValidation() {
                     <JobSelector />
                     <QoISelector />
                     <PlusButton
+                        onClickFun={() => null} // TODO need to execute this
+                        PlotFunComponent={() => {
+                            const sumoCvMetrics = {
+                                "cv_metrics": { // mockup
+                                    'RMSE': 0.0122742,
+                                    'Sum Absolute Error': 0.637624,
+                                    'Mean Absolute Error': 0.00850166,
+                                    'Maximal Absolute Error': 0.065424
+                                },
+                                "statistics": { // mockup
+                                    'Mean': 0.0122742,
+                                    'Standard Deviation': 0.637624,
+                                    'Minimum': 0.00850166,
+                                    'Maximum': 0.065424
+                                }
+                            }
+                            return <ShowCvMetrics
+                                data={sumoCvMetrics}
+                                inputVars={inputVars}
+                                qoi={selectedResponse}
+                            />
+                        }
+                        }
+                        text="Add SuMo CrossValidation accuracy metrics"
+                        enabled={isSuMoGenerated}
+                    />
+                    <PlusButton
                         onClickFun={RunPlotCentralSuMoInterpolations}
                         PlotFunComponent={() => <PlotDataTogether
-                            data={plotDataSumoCentralCurves}
+                            data={dataSumoCentralCurves}
                             inputVars={inputVars}
                             qoi={selectedResponse}
                         />}
@@ -125,12 +157,6 @@ function SuMoBuildingValidation() {
                         enabled={isSuMoGenerated}
                     />
 
-                    <PlusButton
-                        onClickFun={() => null}
-                        PlotFunComponent={() => <span>Not implemented yet</span>}
-                        text="Add SuMo CrossValidation accuracy metrics"
-                        enabled={isSuMoGenerated}
-                    />
                     <PlusButton
                         onClickFun={() => null}
                         PlotFunComponent={() => <span>Not implemented yet</span>}

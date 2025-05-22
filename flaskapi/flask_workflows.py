@@ -27,13 +27,13 @@ from osparc_client.api_client import ApiClient
 from osparc_client.api.functions_api import FunctionsApi
 from osparc_client.api.function_jobs_api import FunctionJobsApi, FunctionJobStatus
 from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi
-
+from osparc_client.models.function_job import FunctionJob
 
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
-from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq
+from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo_crossvalidation
 
 ### TypeScript expects camelCase, but Python API is getting snake_case. 
 # Convert before sending to frontend.
@@ -167,24 +167,13 @@ def flask_get_function_job():
     logger.info(f"Job ID: {job_uid}")
     ## this is a list of items of Paginated object -- deserialize into a list of function objects
     job = job_api_instance.get_function_job(job_uid).to_dict()
-    job = recursive_dict_keys_camel_to_snake(job)
+    job = recursive_dict_keys_camel_to_snake(job) # type: ignore
     job["status"] = job_api_instance.function_job_status(job_uid).status
     logger.info(f"Job: {job}")
     return jsonify(job)
 
-@app.route("/flask/sumo_along_axes", methods=["POST"])
-def flask_evaluate_sumo_along_axes():
-    os.chdir(Path(__file__).parent)
-    logger.info("Starting flask function: flask_evaluate_sumo_along_axes")
-    logger.info("Cwd: " + str(Path.cwd()))
-
-    # Convert request data into a Python dictionary
-    request_data: dict = json.loads(request.data.decode("utf-8"))
-    output_response = request_data["output"]
-    input_vars: List[str] = request_data["inputs"]
-    make_log = request_data.get("log", False)
-    jobs = request_data["FunctionJobs"]
-    completed_jobs = [job for job in jobs if job["status"].lower() == "completed"]
+def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str) -> Path:
+    completed_jobs = [job for job in jobs if job["status"].lower() == "completed"]  # type: ignore
     logger.info(f"N Completed jobs: {len(completed_jobs)}")
     def get_job_dict(job):
         d = {key: job["inputs"][key] for key in input_vars}
@@ -198,6 +187,22 @@ def flask_evaluate_sumo_along_axes():
     run_dir = create_run_dir(Path("."), "evaluate")
     TRAINING_FILE = run_dir/  "df_jobs.csv"
     df_jobs.to_csv(TRAINING_FILE, index=False)
+    return TRAINING_FILE
+
+@app.route("/flask/sumo_along_axes", methods=["POST"])
+def flask_evaluate_sumo_along_axes():
+    os.chdir(Path(__file__).parent)
+    logger.info("Starting flask function: flask_evaluate_sumo_along_axes")
+    logger.info("Cwd: " + str(Path.cwd()))
+
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    output_response = request_data["output"]
+    input_vars: List[str] = request_data["inputs"]
+    make_log: bool = request_data.get("log", False)
+    jobs: List[FunctionJob] = request_data["FunctionJobs"]
+    TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
+    run_dir = TRAINING_FILE.parent
 
     PROCESSED_TRAINING_FILE = process_input_file(
         TRAINING_FILE,
@@ -320,3 +325,34 @@ def flask_lhs():
     logger.info(f"Samples: {samples}")
 
     return jsonify(samples)
+
+@app.route("/flask/get_sumo_cv_accuracy_metrics")
+def flask_get_sumo_cv_accuracy_metrics():
+    logger.info("Starting flask function: flask/get_sumo_cv_accuracy_metrics")
+    logger.info("Cwd: " + str(Path.cwd()))
+
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    output_response = request_data["output"]
+    input_vars: List[str] = request_data["inputs"]
+    make_log = request_data.get("log", False)
+    jobs = request_data["FunctionJobs"]
+    
+    TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
+    run_dir = TRAINING_FILE.parent
+
+    PROCESSED_TRAINING_FILE = process_input_file(
+        TRAINING_FILE,
+        make_log=make_log,
+        columns_to_keep=input_vars + [output_response], # type: ignore
+    )
+
+    results = evaluate_sumo_crossvalidation(
+        run_dir,
+        PROCESSED_TRAINING_FILE,
+        input_vars,
+        output_response, # type: ignore
+    )
+    logger.info("Done!!")
+    
+    return jsonify(results)
