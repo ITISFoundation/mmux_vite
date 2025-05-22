@@ -19,6 +19,8 @@ export class PythonCodeFunctionJob {
     'inputs': any | null;
     'outputs': any | null;
     'functionClass'?: PythonCodeFunctionJobFunctionClassEnum;
+    'uid': string; // manually added
+    'status': string; // manually added
 
     static readonly discriminator: string | undefined = undefined;
 

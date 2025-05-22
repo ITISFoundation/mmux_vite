@@ -20,6 +20,8 @@ export class SolverFunctionJob {
     'outputs': any | null;
     'functionClass'?: SolverFunctionJobFunctionClassEnum;
     'solverJobId': string;
+    'status': string; // manually added
+    'uid': string; // manually added
 
     static readonly discriminator: string | undefined = undefined;
 

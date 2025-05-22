@@ -321,4 +321,4 @@ def flask_lhs():
     # Now, the running of jobs through the OSPARC API has been moved to the Python backend
     ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
     jc = functions_api_instance.map_function(function_uid, samples) ## TODO samples will need to adhere to a specific format
-    return jsonify(jc) ## this now returns a JobCollection
+    return jsonify(jc.to_dict()) ## this now returns a JobCollection

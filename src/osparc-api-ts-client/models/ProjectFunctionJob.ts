@@ -20,6 +20,8 @@ export class ProjectFunctionJob {
     'outputs': any | null;
     'functionClass'?: ProjectFunctionJobFunctionClassEnum;
     'projectJobId': string;
+    'uid': string; // manually added
+    'status': string; // manually added
 
     static readonly discriminator: string | undefined = undefined;
 

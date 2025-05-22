@@ -8,9 +8,9 @@ import { Function, RegisteredFunctionJobCollection } from '../osparc-api-ts-clie
 
 
 
-async function runLhsSampling(context: MMUXContextType|undefined, config: any[], seed: number = 0, N: number = 5) {
-  const fun = context?.selectedFunction as Function;
-  // send config to Python backend to create LHS
+async function runLhsSampling(context: MMUXContextType | undefined, config: any[], seed: number = 0, N: number = 5) {
+    const fun = context?.selectedFunction as Function;
+    // send config to Python backend to create LHS
     console.log("Running LHS Sampling with config: ", config);
     context?.setLaunchingSampling(true)
     const jc = await fetch(
@@ -153,7 +153,7 @@ const LHSSampling = () => {
                 {/* TODO should we have a "cancel run" option? */}
                 {/* TODO make a "loading" symbol while the callback executes, as in SuMo creation */}
             </form>
-            {context?.runningSampling ? <JobsDashboard progressBarOnly={true} /> : undefined}
+            {context?.runningSampling ? <JobsDashboard progressBarOnly={false} /> : undefined}
         </>
     );
 }

@@ -13,6 +13,8 @@ const statusColors = {
 type StatusIconProps = {
     status: string;
 }
+// "RunningState": {
+// "type": "string", "enum": ["UNKNOWN", "PUBLISHED", "NOT_STARTED", "PENDING", "WAITING_FOR_RESOURCES", "STARTED", "SUCCESS", "FAILED", "ABORTED", "WAITING_FOR_CLUSTER"]
 type jobsByStatusType = {
     PENDING: Record<string, FunctionJob>;
     RUNNING: Record<string, FunctionJob>;
@@ -205,12 +207,42 @@ export function Dashboard(props: JobDashboardProps) {
         return () => clearInterval(intervalId);
     }, [fetchJobs]);
 
+    const classifyJobStatus = (job_status: string) => {
+        switch (job_status) {
+            case 'UNKNOWN':
+                return undefined
+            case 'PUBLISHED':
+                return "PENDING"
+            case 'NOT_STARTED':
+                return "PENDING"
+            case 'PENDING':
+                return "PENDING"
+            case 'WAITING_FOR_RESOURCES':
+                return "PENDING"
+            case 'STARTED':
+                return "RUNNING"
+            case 'SUCCESS':
+                return "COMPLETED"
+            case 'FAILED':
+                return "FAILED"
+            case 'ABORTED':
+                return "FAILED"
+            case 'WAITING_FOR_CLUSTER':
+                return "PENDING"
+            default:
+                return undefined;
+        }
+
+    }
 
 
     const jobsByStatus: jobsByStatusType = Object.entries(jobs).reduce((acc: jobsByStatusType, [id, job]) => {
         if (job.status) {
-            if (!acc[job.status]) acc[job.status] = {};
-            acc[job.status][id] = job;
+            const s = classifyJobStatus(job.status)
+            if (s !== undefined) {
+                if (!acc[s]) acc[s] = {};
+                acc[s][id] = job;
+            }
             return acc;
         }
         else {
@@ -232,11 +264,11 @@ export function Dashboard(props: JobDashboardProps) {
             <ProgressBar jobsByStatus={jobsByStatus} /> {/* totalETA={totalETA} /> */}
             {!progressBarOnly && (
                 <div className="flex-1 flex flex-row overflow-hidden">
-                <StatusColumn title="To Do" jobs={jobsByStatus.PENDING} />
-                <StatusColumn title="Running" jobs={jobsByStatus.RUNNING} />
-                <StatusColumn title="Done" jobs={jobsByStatus.COMPLETED} />
-                <StatusColumn title="Failed" jobs={jobsByStatus.FAILED} />
-            </div>
+                    <StatusColumn title="Pending" jobs={jobsByStatus.PENDING} />
+                    <StatusColumn title="Running" jobs={jobsByStatus.RUNNING} />
+                    <StatusColumn title="Done" jobs={jobsByStatus.COMPLETED} />
+                    <StatusColumn title="Failed" jobs={jobsByStatus.FAILED} />
+                </div>
             )}
         </div>
     );
