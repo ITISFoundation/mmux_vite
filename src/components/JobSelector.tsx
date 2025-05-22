@@ -113,6 +113,8 @@ export default function JobsSelector() {
         {}
       ),
     }));
+
+    updateJobContext(newJobs);
     setJobCollections(newJobs);
   }
 
