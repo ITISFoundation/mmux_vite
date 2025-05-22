@@ -8,8 +8,9 @@ import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import MMUXContext from "../views/MMUXContext";
 import { getFunctionJobCollections } from "./function_utils";
-import { Checkbox } from "@mui/material";
+import { Checkbox, IconButton } from "@mui/material";
 import CollectionRow from "./CollectionRow";
+import { Refresh } from "@mui/icons-material";
 
 export default function JobsSelector() {
   const [jobCollections, setJobCollections] = React.useState<
@@ -135,7 +136,22 @@ export default function JobsSelector() {
       <Table aria-label="collapsible table">
         <TableHead>
           <TableRow>
-            <TableCell />
+            <TableCell>
+              <IconButton
+                sx={{
+                  padding: "8px",
+                  alignSelf: "right",
+                  backgroundColor: "#ddd",
+                }}
+                onClick={async () => {
+                  await updateJobCollections(
+                    context?.selectedFunction?.uid as string
+                  );
+                }}
+              >
+                <Refresh />
+              </IconButton>
+            </TableCell>
             <TableCell padding="checkbox">
               <Checkbox
                 color="primary"

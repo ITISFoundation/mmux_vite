@@ -21,7 +21,6 @@ const CollectionRow = (props: CollectionRowProps) => {
   const jobData = job.jobCollection;
   const subJobs = job.subJobs;
 
-
   if (Object.keys(subJobs).length === 0) {
     return (
       <TableRow>
@@ -49,7 +48,10 @@ const CollectionRow = (props: CollectionRowProps) => {
           <Checkbox
             color="primary"
             checked={job.selected}
-            indeterminate={Object.keys(job.subJobs).some((id) => job.subJobs[id] === true) && Object.keys(job.subJobs).some((id) => job.subJobs[id] === false)}
+            indeterminate={
+              Object.keys(job.subJobs).some((id) => job.subJobs[id] === true) &&
+              Object.keys(job.subJobs).some((id) => job.subJobs[id] === false)
+            }
             onChange={(event) => {
               const checked = event.target.checked;
               selectMainJob(checked);
@@ -80,7 +82,14 @@ const CollectionRow = (props: CollectionRowProps) => {
                 </TableHead>
                 <TableBody>
                   {jobData.jobIds?.map((jobUid: string) => (
-                    <JobRow key={jobUid} jobUid={jobUid} jobList={subJobs} setSelected={(selected: boolean) => selectJob(selected, jobUid)} />
+                    <JobRow
+                      key={jobUid}
+                      jobUid={jobUid}
+                      jobList={subJobs}
+                      setSelected={(selected: boolean) =>
+                        selectJob(selected, jobUid)
+                      }
+                    />
                   ))}
                 </TableBody>
               </Table>

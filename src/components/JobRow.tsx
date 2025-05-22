@@ -9,9 +9,7 @@ import { Box, Checkbox } from "@mui/material";
 // TODO include tick to select it
 const JobRow = (props: JobRowProps) => {
   const { jobUid, jobList, setSelected } = props;
-  const [job, setJob] = React.useState<FunctionJob | undefined>(
-    undefined
-  );
+  const [job, setJob] = React.useState<FunctionJob | undefined>(undefined);
 
   const handleSetJob = (selected: boolean) => {
     setSelected(selected);
@@ -58,7 +56,7 @@ const JobRow = (props: JobRowProps) => {
         <TableCell>
           {Object.entries(job.inputs).map(([key, value], idx) => {
             return (
-              <Box key={idx} display={'inline'}>
+              <Box key={idx} display={"inline"}>
                 {key} : {(value as number).toString()}{" "}
               </Box>
             );
@@ -67,7 +65,7 @@ const JobRow = (props: JobRowProps) => {
         <TableCell>
           {Object.entries(job.outputs).map(([key, value], idx) => {
             return (
-              <Box key={idx} display={'inline'}>
+              <Box key={idx} display={"inline"}>
                 {key} : {(value as number).toString()}
               </Box>
             );
@@ -77,6 +75,6 @@ const JobRow = (props: JobRowProps) => {
       </TableRow>
     );
   }
-}
+};
 
 export default JobRow;

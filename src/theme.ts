@@ -26,7 +26,9 @@ export function setupTheme() {
                             backgroundColor: '#0090D0', /* S4L blue */
                         },
                         '&:disabled': {
-                            color: '#bbb',
+                            color: '#555',
+                            backgroundColor: 'transparent',
+                            border: '1px solid #555',
                         },
                     },
                 },

@@ -1,12 +1,13 @@
 import { useState, useEffect, useContext } from "react";
 import MetaModelingUX from "../components/MetaModelingUX";
 import JobSelector from "../components/JobSelector";
-import { Button, Box, Container } from "@mui/material";
+import { Button, Box, Container, IconButton } from "@mui/material";
 import MMUXContext from "./MMUXContext";
 import PlotDataTogether from "../components/PlotDataTogether";
 import { PYTHON_DAKOTA_BACKEND } from "../components/api_objects";
 import PlusButton from "../components/PlusButton";
 import { getFunctionJobsFromFunctionUid } from "../components/function_utils";
+import { Refresh } from "@mui/icons-material";
 
 function SuMoBuildingValidation() {
   const context = useContext(MMUXContext);
@@ -26,6 +27,10 @@ function SuMoBuildingValidation() {
   useEffect(() => {
     if (Array.isArray(outputVars)) setSelectedResponse(outputVars[0]);
   }, [context?.selectedFunction, outputVars]);
+
+  useEffect(() => {
+    setIsSuMoGenerated(false);
+  }, [context?.selectedJobs]);
 
   async function RunPlotCentralSuMoInterpolations() {
     // TODO get only those selected in the JobSelector (pass as status??)
@@ -94,7 +99,9 @@ function SuMoBuildingValidation() {
       <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
         <Button
           onClick={handleCreateSuMo}
-          disabled={loading || isSuMoGenerated}
+          disabled={
+            loading || isSuMoGenerated || context?.selectedJobs.length === 0
+          }
         >
           {loading
             ? "Creating..."
@@ -130,37 +137,41 @@ function SuMoBuildingValidation() {
           </span>
           <JobSelector />
           <QoISelector />
-          <PlusButton
-            onClickFun={RunPlotCentralSuMoInterpolations}
-            PlotFunComponent={() => (
-              <PlotDataTogether
-                data={plotDataSumoCentralCurves}
-                inputVars={inputVars}
-                qoi={selectedResponse}
+          {isSuMoGenerated && (
+            <>
+              <PlusButton
+                onClickFun={RunPlotCentralSuMoInterpolations}
+                PlotFunComponent={() => (
+                  <PlotDataTogether
+                    data={plotDataSumoCentralCurves}
+                    inputVars={inputVars}
+                    qoi={selectedResponse}
+                  />
+                )}
+                text="Visualize central SuMo interpolations"
+                enabled={isSuMoGenerated}
               />
-            )}
-            text="Visualize central SuMo interpolations"
-            enabled={isSuMoGenerated}
-          />
 
-          <PlusButton
-            onClickFun={() => null}
-            PlotFunComponent={() => <span>Not implemented yet</span>}
-            text="Add SuMo CrossValidation accuracy metrics"
-            enabled={isSuMoGenerated}
-          />
-          <PlusButton
-            onClickFun={() => null}
-            PlotFunComponent={() => <span>Not implemented yet</span>}
-            text="Add SuMo 2D visualization"
-            enabled={isSuMoGenerated}
-          />
-          <PlusButton
-            onClickFun={() => null}
-            PlotFunComponent={() => <span>Not implemented yet</span>}
-            text="Add SuMo 3D visualization"
-            enabled={isSuMoGenerated}
-          />
+              <PlusButton
+                onClickFun={() => null}
+                PlotFunComponent={() => <span>Not implemented yet</span>}
+                text="Add SuMo CrossValidation accuracy metrics"
+                enabled={isSuMoGenerated}
+              />
+              <PlusButton
+                onClickFun={() => null}
+                PlotFunComponent={() => <span>Not implemented yet</span>}
+                text="Add SuMo 2D visualization"
+                enabled={isSuMoGenerated}
+              />
+              <PlusButton
+                onClickFun={() => null}
+                PlotFunComponent={() => <span>Not implemented yet</span>}
+                text="Add SuMo 3D visualization"
+                enabled={isSuMoGenerated}
+              />
+            </>
+          )}
         </Box>
       </Container>
     </MetaModelingUX>
