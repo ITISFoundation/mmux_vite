@@ -28,7 +28,6 @@ const CollectionRow = (props: CollectionRowProps) => {
     jobIds[jobUid] = selected;
     setJobIds(jobIds);
 
-    console.log("JobIds: ", Object.keys(jobIds).map((id) => jobIds[id] === true), Object.keys(jobIds).every((id) => jobIds[id] === true), jobIds);
 
     if(Object.keys(jobIds).every((id) => jobIds[id] === true)) {
       selectJob(true);
@@ -38,10 +37,12 @@ const CollectionRow = (props: CollectionRowProps) => {
   };
 
   React.useEffect(() => {
-    setJobIds(jobCol.jobIds.reduce((acc:{[key: string]: boolean}, jobUid: string) => ({
-      ...acc,
-      [jobUid]: allSelected,
-    }), { }));
+    if(Object.keys(jobIds).every((uid: string) => jobIds[uid] === true) || Object.keys(jobIds).every((uid: string) => jobIds[uid] === false)){
+      setJobIds(jobCol.jobIds.reduce((acc:{[key: string]: boolean}, jobUid: string) => ({
+        ...acc,
+        [jobUid]: allSelected,
+      }), { }));
+    }
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   , [allSelected]);

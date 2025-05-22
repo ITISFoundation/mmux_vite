@@ -24,7 +24,6 @@ const JobRow = (props: JobRowProps) => {
     })();
   }, [jobUid]);
 
-  console.log("JobRow: ", jobUid, job);
   if (job === undefined) {
     return (
       <TableRow>
