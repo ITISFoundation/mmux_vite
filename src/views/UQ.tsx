@@ -5,53 +5,55 @@ import React, { useState, useContext, useEffect } from 'react';
 import MMUXContext from './MMUXContext';
 import MetaModelingUX from '../components/MetaModelingUX';
 import { Button, Box, Container } from '@mui/material';
+import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
+import { getFunctionJobsFromFunctionUid, getFunctionJobCollections } from '../components/function_utils';
 
 export default function UQ() {
     // Similar to Sumo building
     const context = useContext(MMUXContext)
-    const inputVars = context?.selectedFunction?.inputSchema.required as string[]
-    const outputVars = context?.selectedFunction?.outputSchema.required as string[]
     const [useSuMo, setUseSuMo] = useState(true);
+    const inputVars = context?.selectedFunction?.inputSchema.schemaContent.required as string[]
     const [numSamples, setNumSamples] = useState(10000);
+    const [dataUQHistogram, setDataUQHistogram] = useState(undefined)
 
-    function runUQ() {
+    async function runUQ(config: any) {
         console.log("Running UQ...");
-        // const url = new URL("/flask/query_data", "http://localhost:3001")
-        // url.searchParams.append("filename", "asdf")
-        // url.searchParams.append("output", selectedResponse)
-        const url = '/flask/uq_propagation' + "?filename=" + fileName + "&output=" + selectedResponse + "&inputs=" + inputVars + "&log=" + isLogEnabled
-        console.log(url)
-        fetch(url)
-            .then(response => {
-                console.log(response)
+        // TODO get only those selected in the JobSelector (pass as status??)
+        let jobList = await getFunctionJobsFromFunctionUid(context?.selectedFunction?.uid as string);
+        console.log("Fetched jobs:", jobList);
+        fetch(
+            PYTHON_DAKOTA_BACKEND + '/flask/uq_propagation',
+            {
+                method: "POST",
+                body: JSON.stringify(
+                    {
+                        inputs: inputVars,
+                        output: selectedResponse, // TODO this will be in MMUXcontext
+                        FunctionJobs: jobList,
+                        numSamples: numSamples
+                    }
+                ),
+            }).then(function (response) {
                 return response.json()
-            })
-            .then(data => {
-            })
-            .catch(error => console.debug('Error:', error));
+            }).then(function (data) {
+                setDataUQHistogram(data)
+            }).catch(error => console.debug('Error:', error));
     }
 
+    // TODO check how I did in the LHS sampling; also use persistent state
     function InputVariableDistributions() {
         // 2 - GUI to select the distribution of each input
         // (auto-save / load of that distribution)
         const [distribution, setDistribution] = useState("normal");
-        const [param1, setParam1] = useState("");
-        const [param2, setParam2] = useState("");
-        const distributionParams = {
-            normal: ["Mean", "Standard Deviation"],
-            uniform: ["Min", "Max"],
-            exponential: ["Rate", ""],
-        };
         return (
-            <Box sx={{ marginTop: "20px" }}>
+            <Box sx={{ marginTop: "20px", backgroundColor: "grey", padding: "20px" }}>
                 <h3>Input Variable Distributions</h3>
+
                 {inputVars.map((inputVar, index) => {
                     const handleDistributionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                         setDistribution(e.target.value);
-                        setParam1("");
-                        setParam2("");
                     };
-                    const params = distributionParams[distribution] as string[]
+                    // const params = distributionParams[distribution] as string[]
 
                     return (
                         <Box key={index} sx={{ marginBottom: "15px" }}>
@@ -64,24 +66,11 @@ export default function UQ() {
                                 </select>
                             </label>
                             <Box sx={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-                                <label>
-                                    {params[0]}:
-                                    <input
-                                        type="number"
-                                        value={param1}
-                                        onChange={(e) => setParam1(e.target.value)}
-                                    />
-                                </label>
-                                {params[1] && (
-                                    <label>
-                                        {params[1]}:
-                                        <input
-                                            type="number"
-                                            value={param2}
-                                            onChange={(e) => setParam2(e.target.value)}
-                                        />
-                                    </label>
-                                )}
+                                {distribution === "normal" ? <NormalInputDistribution inputVar={inputVar} /> :
+                                    distribution === "uniform" ? <UniformInputDistribution inputVar={inputVar} /> :
+                                        distribution === "log-normal" ? <LogNormalInputDistribution inputVar={inputVar} /> :
+                                            distribution === "exponential" ? <ExponentialInputDistribution inputVar={inputVar} /> : "not found"}
+
                             </Box>
                         </Box>
                     );
@@ -90,11 +79,69 @@ export default function UQ() {
         );
     }
 
+    // TODO want to save for each fucntionId & inputVar (or maybe just inputVar)
+    // the state so it is preserved across runs, or even when coming back to an old function
+    // you used days or months ago. 
+    // probably doing by inputVar is best - so modifications of the pipeline (and thus a new function)
+    // can keep the same inputs and it is as smooth as possible
+    function NormalInputDistribution(inputVar: string) {
+        const [mean, setMean] = useState(0.0)
+        const [std, setStd] = useState(1.0)
+
+        // TODO save to JSON file? Brainstorm with Alex
+
+        return (
+            <div>
+                <label>
+                    {"Mean: "}:
+                    <input
+                        type="number"
+                        value={mean}
+                        onChange={(e) => setMean(parseFloat(e.target.value))}
+                    />
+                </label>
+                <label>
+                    {"Standard Deviation: "}:
+                    <input
+                        type="number"
+                        value={std}
+                        onChange={(e) => setStd(parseFloat(e.target.value))}
+                    />
+                </label>
+            </div>
+        )
+    }
+
+    function UniformInputDistribution(inputVar: string) {
+        const [mean, setMean] = useState(0.0)
+        const [std, setStd] = useState(1.0)
+
+        return (
+            <div>
+                <label>
+                    {"Mean: "}:
+                    <input
+                        type="number"
+                        value={mean}
+                        onChange={(e) => setMean(parseFloat(e.target.value))}
+                    />
+                </label>
+                <label>
+                    {"Standard Deviation: "}:
+                    <input
+                        type="number"
+                        value={std}
+                        onChange={(e) => setStd(parseFloat(e.target.value))}
+                    />
+                </label>
+            </div>
+        )
+    }
+
     // Copy the structure from SuMo building; refactor the PY script as a Flask callback. 
     // Fixed Means & Stds (inside Python), will make that customizable later on.
     return (
-        <MetaModelingUX tabTitle="Uncertainty Quantification" headerType="header">
-            {/* // 1 - Function is selected; tickbox to "use SuMo" ? */}
+        <MetaModelingUX tabTitle="Uncertainty Quantification" headerType="uq">
             < Container >
                 <Box sx={{
                     justifySelf: 'left',
@@ -105,14 +152,18 @@ export default function UQ() {
                     justifyContent: 'space-between',
                     color: '#eee',
                 }}>
-                    <span>Selected Function: <b>{context?.selectedFunction?.name}</b> </span>
+                    <span>Selected Function: <b>{context?.selectedFunction?.title}</b> </span>
+                    <span>Selected Job Campaign(s): <b>TODO</b> </span>
+                    <span>Selected QoI: <b>{context?.selectedResponse}</b> </span>
+                    {/*
                     <label htmlFor="useSuMo">Use Surrogate Model to perform Uncertainty Quantification</label>
                     <input
                         type="checkbox"
                         id="useSuMo"
                         checked={useSuMo}
                         onChange={(e) => setUseSuMo(e.target.checked)}
-                    />
+                    /> */}
+
                     <label htmlFor="numSamples">Number of Samples:</label>
                     <input
                         type="number"
@@ -120,7 +171,7 @@ export default function UQ() {
                         defaultValue={10000}
                         onChange={(e) => setNumSamples(Number(e.target.value))}
                     />
-                    {/* <InputVariableDistributions /> */}
+                    <InputVariableDistributions />
 
 
                 </Box>
