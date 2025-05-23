@@ -2,15 +2,17 @@ FLASKAPI_DIR := ./flaskapi
 VENV_DIR := $(FLASKAPI_DIR)/.venv
 MMUX_PYTHON_DIR := $(FLASKAPI_DIR)/mmux_python
 MMUX_PYTHON_BRANCH := "work/jgo/flask_mmux_nih"
+#
+NODE_DIR := ./node
 
 ## Front-end
 install-node:
-	curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-	nvm install 22 ## gets node v22 (latest)
-	npm install # install all dependencies
+# curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
+# nvm install 22 ## gets node v22 (latest)
+	cd ${NODE_DIR} && npm install # install all dependencies
 
 start-frontend:
-	npm run dev
+	cd ${NODE_DIR} && npm run dev
 
 ## Python Backend
 install-mmux-python:
