@@ -33,7 +33,7 @@ from mmux_python.utils.funs_data_processing import (
     process_input_file,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
-from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo_crossvalidation
+from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq #, evaluate_sumo_crossvalidation
 
 ### TypeScript expects camelCase, but Python API is getting snake_case. 
 # Convert before sending to frontend.
