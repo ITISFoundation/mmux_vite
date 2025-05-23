@@ -109,6 +109,8 @@ Get Available Licensed Items For Wallet
 
 Get all available licensed items for a given wallet
 
+New in *version 0.6*
+
 ### Example
 
 * Basic Authentication (HTTPBasic):

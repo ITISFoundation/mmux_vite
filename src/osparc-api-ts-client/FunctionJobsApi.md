@@ -15,7 +15,7 @@ Method | HTTP request | Description
 # **deleteFunctionJob**
 > any deleteFunctionJob()
 
-Delete function job
+Delete function job  New in *version 0.8.0*
 
 ### Example
 
@@ -70,7 +70,7 @@ No authorization required
 # **functionJobOutputs**
 > any functionJobOutputs()
 
-Get function job outputs
+Get function job outputs  New in *version 0.8.0*
 
 ### Example
 
@@ -125,7 +125,7 @@ Name | Type | Description  | Notes
 # **functionJobStatus**
 > FunctionJobStatus functionJobStatus()
 
-Get function job status
+Get function job status  New in *version 0.8.0*
 
 ### Example
 
@@ -180,7 +180,7 @@ Name | Type | Description  | Notes
 # **getFunctionJob**
 > ResponseGetFunctionJobV0FunctionJobsFunctionJobIdGet getFunctionJob()
 
-Get function job
+Get function job  New in *version 0.8.0*
 
 ### Example
 
@@ -235,7 +235,7 @@ No authorization required
 # **listFunctionJobs**
 > PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass listFunctionJobs()
 
-List function jobs
+List function jobs  New in *version 0.8.0*
 
 ### Example
 
@@ -292,7 +292,7 @@ No authorization required
 # **registerFunctionJob**
 > ResponseRegisterFunctionJobV0FunctionJobsPost registerFunctionJob(functionJob)
 
-Create function job
+Create function job  New in *version 0.8.0*
 
 ### Example
 

@@ -13,6 +13,8 @@ const statusColors = {
 type StatusIconProps = {
     status: string;
 }
+// "RunningState": {
+// "type": "string", "enum": ["UNKNOWN", "PUBLISHED", "NOT_STARTED", "PENDING", "WAITING_FOR_RESOURCES", "STARTED", "SUCCESS", "FAILED", "ABORTED", "WAITING_FOR_CLUSTER"]
 type jobsByStatusType = {
     PENDING: Record<string, FunctionJob>;
     RUNNING: Record<string, FunctionJob>;
@@ -65,7 +67,7 @@ type ProgressBarProps = {
     totalETA?: number;
 };
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ jobsByStatus, totalETA = 0 }) => {
+export const ProgressBar: React.FC<ProgressBarProps> = ({ jobsByStatus, totalETA = 0 }) => {
     const total: number = Object.values(jobsByStatus).reduce((acc, jobs) => acc + Object.keys(jobs).length, 0);
     const widths = {
         COMPLETED: (Object.keys(jobsByStatus.COMPLETED).length / total) * 100,
@@ -173,8 +175,11 @@ function StatusColumn(props: StatusColumnProps) {
     );
 }
 
-
-function Dashboard() {
+interface JobDashboardProps {
+    progressBarOnly?: boolean;
+}
+export function Dashboard(props: JobDashboardProps) {
+    const { progressBarOnly } = props;
     const [jobs, setJobs] = useState<FunctionJob[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -202,12 +207,42 @@ function Dashboard() {
         return () => clearInterval(intervalId);
     }, [fetchJobs]);
 
+    const classifyJobStatus = (job_status: string) => {
+        switch (job_status) {
+            case 'UNKNOWN':
+                return undefined
+            case 'PUBLISHED':
+                return "PENDING"
+            case 'NOT_STARTED':
+                return "PENDING"
+            case 'PENDING':
+                return "PENDING"
+            case 'WAITING_FOR_RESOURCES':
+                return "PENDING"
+            case 'STARTED':
+                return "RUNNING"
+            case 'SUCCESS':
+                return "COMPLETED"
+            case 'FAILED':
+                return "FAILED"
+            case 'ABORTED':
+                return "FAILED"
+            case 'WAITING_FOR_CLUSTER':
+                return "PENDING"
+            default:
+                return undefined;
+        }
+
+    }
 
 
     const jobsByStatus: jobsByStatusType = Object.entries(jobs).reduce((acc: jobsByStatusType, [id, job]) => {
         if (job.status) {
-            if (!acc[job.status]) acc[job.status] = {};
-            acc[job.status][id] = job;
+            const s = classifyJobStatus(job.status)
+            if (s !== undefined) {
+                if (!acc[s]) acc[s] = {};
+                acc[s][id] = job;
+            }
             return acc;
         }
         else {
@@ -227,22 +262,16 @@ function Dashboard() {
     return (
         <div className="flex flex-col h-screen bg-gray-900 text-white">
             <ProgressBar jobsByStatus={jobsByStatus} /> {/* totalETA={totalETA} /> */}
-            <div className="flex-1 flex flex-row overflow-hidden">
-                <StatusColumn title="To Do" jobs={jobsByStatus.PENDING} />
-                <StatusColumn title="Running" jobs={jobsByStatus.RUNNING} />
-                <StatusColumn title="Done" jobs={jobsByStatus.COMPLETED} />
-                <StatusColumn title="Failed" jobs={jobsByStatus.FAILED} />
-            </div>
+            {!progressBarOnly && (
+                <div className="flex-1 flex flex-row overflow-hidden">
+                    <StatusColumn title="Pending" jobs={jobsByStatus.PENDING} />
+                    <StatusColumn title="Running" jobs={jobsByStatus.RUNNING} />
+                    <StatusColumn title="Done" jobs={jobsByStatus.COMPLETED} />
+                    <StatusColumn title="Failed" jobs={jobsByStatus.FAILED} />
+                </div>
+            )}
         </div>
     );
 };
 
-const App = () => {
-    return (
-        <div className="App">
-            <Dashboard />
-        </div>
-    );
-}
-
-export default App;
+export default Dashboard;

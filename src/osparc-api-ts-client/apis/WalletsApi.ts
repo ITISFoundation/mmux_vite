@@ -85,7 +85,7 @@ export class WalletsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Get all available licensed items for a given wallet
+     * Get all available licensed items for a given wallet  New in *version 0.6*
      * Get Available Licensed Items For Wallet
      * @param walletId 
      * @param limit Page size limit

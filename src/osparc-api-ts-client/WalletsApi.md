@@ -83,7 +83,7 @@ Name | Type | Description  | Notes
 # **getAvailableLicensedItemsForWallet**
 > PageLicensedItemGet getAvailableLicensedItemsForWallet()
 
-Get all available licensed items for a given wallet
+Get all available licensed items for a given wallet  New in *version 0.6*
 
 ### Example
 

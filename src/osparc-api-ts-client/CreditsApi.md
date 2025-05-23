@@ -10,7 +10,7 @@ Method | HTTP request | Description
 # **getCreditsPrice**
 > GetCreditPriceLegacy getCreditsPrice()
 
-New in *version 0.6.0*
+New in *version 0.6*
 
 ### Example
 

@@ -22,7 +22,7 @@ import { RegisteredFunctionJobCollection } from '../models/RegisteredFunctionJob
 export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
-     * Delete function job collection
+     * Delete function job collection  New in *version 0.8.0*
      * Delete Function Job Collection
      * @param functionJobCollectionId 
      */
@@ -54,7 +54,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
     }
 
     /**
-     * Get the function jobs in function job collection
+     * Get the function jobs in function job collection  New in *version 0.8.0*
      * Function Job Collection List Function Jobs
      * @param functionJobCollectionId 
      */
@@ -86,7 +86,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
     }
 
     /**
-     * Get function job collection status
+     * Get function job collection status  New in *version 0.8.0*
      * Function Job Collection Status
      * @param functionJobCollectionId 
      */
@@ -124,7 +124,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
     }
 
     /**
-     * Get function job collection
+     * Get function job collection  New in *version 0.8.0*
      * Get Function Job Collection
      * @param functionJobCollectionId 
      */
@@ -156,7 +156,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
     }
 
     /**
-     * List function job collections
+     * List function job collections  New in *version 0.8.0*
      * List Function Job Collections
      * @param limit Page size limit
      * @param offset Page offset
@@ -194,7 +194,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
     }
 
     /**
-     * Register function job collection
+     * Register function job collection  New in *version 0.8.0*
      * Register Function Job Collection
      * @param functionJobCollection 
      */

@@ -12,13 +12,13 @@ Method | HTTP request | Description
 [**get_job_outputs**](SolversApi.md#get_job_outputs) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}/outputs | Get Job Outputs
 [**get_job_pricing_unit**](SolversApi.md#get_job_pricing_unit) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}/pricing_unit | Get Job Pricing Unit
 [**get_job_wallet**](SolversApi.md#get_job_wallet) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}/wallet | Get Job Wallet
-[**get_jobs_page**](SolversApi.md#get_jobs_page) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/page | Get Jobs Page
 [**get_log_stream**](SolversApi.md#get_log_stream) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}/logstream | Get Log Stream
 [**get_solver**](SolversApi.md#get_solver) | **GET** /v0/solvers/{solver_key}/latest | Get Solver
 [**get_solver_pricing_plan**](SolversApi.md#get_solver_pricing_plan) | **GET** /v0/solvers/{solver_key}/releases/{version}/pricing_plan | Get Solver Pricing Plan
 [**get_solver_release**](SolversApi.md#get_solver_release) | **GET** /v0/solvers/{solver_key}/releases/{version} | Get Solver Release
 [**inspect_job**](SolversApi.md#inspect_job) | **POST** /v0/solvers/{solver_key}/releases/{version}/jobs/{job_id}:inspect | Inspect Job
 [**list_jobs**](SolversApi.md#list_jobs) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs | List Jobs
+[**list_jobs_paginated**](SolversApi.md#list_jobs_paginated) | **GET** /v0/solvers/{solver_key}/releases/{version}/jobs/page | List Jobs Paginated
 [**list_solver_ports**](SolversApi.md#list_solver_ports) | **GET** /v0/solvers/{solver_key}/releases/{version}/ports | List Solver Ports
 [**list_solver_releases**](SolversApi.md#list_solver_releases) | **GET** /v0/solvers/{solver_key}/releases | List Solver Releases
 [**list_solvers**](SolversApi.md#list_solvers) | **GET** /v0/solvers | List Solvers
@@ -33,9 +33,9 @@ Method | HTTP request | Description
 
 Create Solver Job
 
-Creates a job in a specific release with given inputs.
+Creates a job in a specific release with given inputs. This operation does not start the job.
 
-NOTE: This operation does **not** start the job
+New in *version 0.5*
 
 ### Example
 
@@ -409,9 +409,9 @@ Get Job Output Logfile
 Special extra output with persistent logs file for the solver run.
 
 **NOTE**: this is not a log stream but a predefined output that is only
-available after the job is done.
+available after the job is done
 
-New in *version 0.4.0*
+New in *version 0.4*
 
 ### Example
 
@@ -761,101 +761,6 @@ Name | Type | Description  | Notes
 **200** | Successful Response |  -  |
 **404** | Wallet not found |  -  |
 **403** | Access to wallet is not allowed |  -  |
-**429** | Too many requests |  -  |
-**500** | Internal server error |  -  |
-**502** | Unexpected error when communicating with backend service |  -  |
-**503** | Service unavailable |  -  |
-**504** | Request to a backend service timed out. |  -  |
-**422** | Validation Error |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **get_jobs_page**
-> PageJob get_jobs_page(solver_key, version, limit=limit, offset=offset)
-
-Get Jobs Page
-
-List of jobs on a specific released solver (includes pagination)
-
-New in *version 0.7*
-
-### Example
-
-* Basic Authentication (HTTPBasic):
-
-```python
-import osparc_client
-from osparc_client.models.page_job import PageJob
-from osparc_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to http://localhost
-# See configuration.py for a list of all supported configuration parameters.
-configuration = osparc_client.Configuration(
-    host = "http://localhost"
-)
-
-# The client must configure the authentication and authorization parameters
-# in accordance with the API server security policy.
-# Examples for each auth method are provided below, use the example that
-# satisfies your auth use case.
-
-# Configure HTTP basic authorization: HTTPBasic
-configuration = osparc_client.Configuration(
-    username = os.environ["USERNAME"],
-    password = os.environ["PASSWORD"]
-)
-
-# Enter a context with an instance of the API client
-with osparc_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = osparc_client.SolversApi(api_client)
-    solver_key = 'solver_key_example' # str | 
-    version = 'version_example' # str | 
-    limit = 20 # int | Page size limit (optional) (default to 20)
-    offset = 0 # int | Page offset (optional) (default to 0)
-
-    try:
-        # Get Jobs Page
-        api_response = api_instance.get_jobs_page(solver_key, version, limit=limit, offset=offset)
-        print("The response of SolversApi->get_jobs_page:\n")
-        pprint(api_response)
-    except Exception as e:
-        print("Exception when calling SolversApi->get_jobs_page: %s\n" % e)
-```
-
-
-
-### Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **solver_key** | **str**|  | 
- **version** | **str**|  | 
- **limit** | **int**| Page size limit | [optional] [default to 20]
- **offset** | **int**| Page offset | [optional] [default to 0]
-
-### Return type
-
-[**PageJob**](PageJob.md)
-
-### Authorization
-
-[HTTPBasic](../README.md#HTTPBasic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | Successful Response |  -  |
-**402** | Payment required |  -  |
-**404** | Job/wallet/pricing details not found |  -  |
 **429** | Too many requests |  -  |
 **500** | Internal server error |  -  |
 **502** | Unexpected error when communicating with backend service |  -  |
@@ -1228,6 +1133,10 @@ Name | Type | Description  | Notes
 
 Inspect Job
 
+Inspects the current status of a job
+
+New in *version 0.5*
+
 ### Example
 
 * Basic Authentication (HTTPBasic):
@@ -1410,6 +1319,101 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **list_jobs_paginated**
+> PageJob list_jobs_paginated(solver_key, version, limit=limit, offset=offset)
+
+List Jobs Paginated
+
+List of jobs on a specific released solver (includes pagination)
+
+New in *version 0.7*
+
+### Example
+
+* Basic Authentication (HTTPBasic):
+
+```python
+import osparc_client
+from osparc_client.models.page_job import PageJob
+from osparc_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = osparc_client.Configuration(
+    host = "http://localhost"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure HTTP basic authorization: HTTPBasic
+configuration = osparc_client.Configuration(
+    username = os.environ["USERNAME"],
+    password = os.environ["PASSWORD"]
+)
+
+# Enter a context with an instance of the API client
+with osparc_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = osparc_client.SolversApi(api_client)
+    solver_key = 'solver_key_example' # str | 
+    version = 'version_example' # str | 
+    limit = 20 # int | Page size limit (optional) (default to 20)
+    offset = 0 # int | Page offset (optional) (default to 0)
+
+    try:
+        # List Jobs Paginated
+        api_response = api_instance.list_jobs_paginated(solver_key, version, limit=limit, offset=offset)
+        print("The response of SolversApi->list_jobs_paginated:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling SolversApi->list_jobs_paginated: %s\n" % e)
+```
+
+
+
+### Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **solver_key** | **str**|  | 
+ **version** | **str**|  | 
+ **limit** | **int**| Page size limit | [optional] [default to 20]
+ **offset** | **int**| Page offset | [optional] [default to 0]
+
+### Return type
+
+[**PageJob**](PageJob.md)
+
+### Authorization
+
+[HTTPBasic](../README.md#HTTPBasic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | Successful Response |  -  |
+**402** | Payment required |  -  |
+**404** | Job/wallet/pricing details not found |  -  |
+**429** | Too many requests |  -  |
+**500** | Internal server error |  -  |
+**502** | Unexpected error when communicating with backend service |  -  |
+**503** | Service unavailable |  -  |
+**504** | Request to a backend service timed out. |  -  |
+**422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **list_solver_ports**
 > OnePageSolverPort list_solver_ports(solver_key, version)
 
@@ -1417,7 +1421,7 @@ List Solver Ports
 
 Lists inputs and outputs of a given solver
 
-New in *version 0.5.0*
+New in *version 0.5*
 
 Added in *version 0.7.1*: `version_display` field in the response
 
@@ -1602,7 +1606,7 @@ Please use `GET /v0/solvers/page` instead.
 
 Lists all available solvers (latest version)
 
-New in *version 0.5.0*
+New in *version 0.5*
 
 ### Example
 
@@ -1688,9 +1692,9 @@ Please use `GET /v0/solvers/{solver_key}/releases/page` instead.
 
 
 
-Lists all released solvers (not just latest version)
+Lists **all** released solvers (not just latest version)
 
-New in *version 0.5.0*
+New in *version 0.5*
 
 ### Example
 
@@ -1869,8 +1873,10 @@ Start Job
 Starts job job_id created with the solver solver_key:version
 
 Added in *version 0.4.3*: query parameter `cluster_id`
+
 Added in *version 0.6*: responds with a 202 when successfully starting a computation
-Changed in *version 0.8*: query parameter `cluster_id` deprecated
+
+Changed in *version 0.7*: query parameter `cluster_id` deprecated
 
 ### Example
 
@@ -1964,6 +1970,10 @@ Name | Type | Description  | Notes
 > JobStatus stop_job(solver_key, version, job_id)
 
 Stop Job
+
+Stops a running job
+
+New in *version 0.5*
 
 ### Example
 

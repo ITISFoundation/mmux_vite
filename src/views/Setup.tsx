@@ -18,25 +18,28 @@ export default function Setup() {
                 <Button onClick={() => setShowFunctionIndex(!showFunctionIndex)}>
                     <h5> Select Function</h5>
                 </Button>
-                <Button disabled={context?.selectedFunction === undefined}
-                    onClick={() => context?.setCurrentView(context.currentView + 1)}>
-                    Next Step
-                </Button>
+                {(context?.selectedFunction !== undefined) ? 
+                    <Button disabled={context?.selectedFunction === undefined}
+                    // TODO need to make the "disabled" condition much more visible (right now, no visual change)
+                        onClick={() => context?.setCurrentView(context.currentView + 1)}>
+                        Next Step
+                    </Button>
+                    : undefined}
             </div>
             {showFunctionIndex && <FunctionList functions={[]} />}
 
-            {/* Include grid / LHS runner here (specify ranges, N points...) */}
-            <PlusButton
+            {/* TODO Include some vertical spacing between the components */}
+
+            {(context?.selectedFunction !== undefined) ? <PlusButton
                 onClickFun={() => null}
                 PlotFunComponent={() => {
-                    // ONGOING implement LHS / grid sampling setup & Run as an ELement (or bunch of them)
                     return (
                       <Sampling />
                     );
                 }}
                 text="Create new sampling campaign"
                 enabled={context?.selectedFunction !== undefined}
-            />
+            /> : undefined}
         </MetaModelingUX >
     );
 }

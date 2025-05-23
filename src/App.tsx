@@ -23,17 +23,22 @@ const App = () => {
   ];
   const [activeStep, setActiveStep] = useState(steps[0].id);
   // const [previousViews, setPreviousViews] = useState<number[]>([])
-  const [funct, setFunct] = useState<Function | undefined>(undefined);
+  const [funct, setFunct] = useState<Function | undefined>(undefined)
+  const [launchingSampling, setLaunchingSampling] = useState<boolean>(false)
+  const [runningSampling, setRunningSampling] = useState<boolean>(false)
   const [selectedJobs, setSelectedJobs] = useState<Array<string>>([]);
+
   const defaultMMUXContext = {
     selectedFunction: funct,
     setSelectedFunction: setFunct,
     currentView: activeStep,
     setCurrentView: setActiveStep,
+    launchingSampling: launchingSampling,
+    setLaunchingSampling: setLaunchingSampling,
+    runningSampling: runningSampling,
+    setRunningSampling: setRunningSampling,
     selectedJobs: selectedJobs,
     setSelectedJobs: setSelectedJobs,
-    // previousViews: previousViews;
-    // setPreviousViews: setPreviousViews;
   };
 
   return (

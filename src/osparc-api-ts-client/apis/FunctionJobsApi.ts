@@ -22,7 +22,7 @@ import { ResponseRegisterFunctionJobV0FunctionJobsPost } from '../models/Respons
 export class FunctionJobsApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
-     * Delete function job
+     * Delete function job  New in *version 0.8.0*
      * Delete Function Job
      * @param functionJobId 
      */
@@ -54,7 +54,7 @@ export class FunctionJobsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Get function job outputs
+     * Get function job outputs  New in *version 0.8.0*
      * Function Job Outputs
      * @param functionJobId 
      */
@@ -92,7 +92,7 @@ export class FunctionJobsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Get function job status
+     * Get function job status  New in *version 0.8.0*
      * Function Job Status
      * @param functionJobId 
      */
@@ -130,7 +130,7 @@ export class FunctionJobsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Get function job
+     * Get function job  New in *version 0.8.0*
      * Get Function Job
      * @param functionJobId 
      */
@@ -162,7 +162,7 @@ export class FunctionJobsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * List function jobs
+     * List function jobs  New in *version 0.8.0*
      * List Function Jobs
      * @param limit Page size limit
      * @param offset Page offset
@@ -200,7 +200,7 @@ export class FunctionJobsApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Create function job
+     * Create function job  New in *version 0.8.0*
      * Register Function Job
      * @param functionJob 
      */

@@ -83,6 +83,7 @@ function SuMoBuildingValidation() {
     // eventually, we will actually register a SuMo. For now, this is just a placeholder
     const [loading, setLoading] = useState(false);
 
+
     const handleCreateSuMo = () => {
       setLoading(true);
       setTimeout(() => {

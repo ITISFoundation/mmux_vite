@@ -193,7 +193,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * New in *version 0.5.0*
+     * Get study by ID  New in *version 0.5*
      * Get Study
      * @param studyId 
      */
@@ -412,7 +412,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * New in *version 0.5.0*
+     * List all studies  New in *version 0.5*
      * List Studies
      * @param limit Page size limit
      * @param offset Page offset
@@ -456,7 +456,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Lists metadata on ports of a given study  New in *version 0.5.0*
+     * Lists metadata on ports of a given study  New in *version 0.5*
      * List Study Ports
      * @param studyId 
      */
@@ -558,11 +558,11 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
     }
 
     /**
-     * Changed in *version 0.6.0*: Now responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
      * Start Study Job
      * @param studyId 
      * @param jobId 
-     * @param clusterId 
+     * @param clusterId Changed in *version 0.7*: query parameter &#x60;cluster_id&#x60; deprecated 
      */
     public async startStudyJob(studyId: string, jobId: string, clusterId?: number, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;

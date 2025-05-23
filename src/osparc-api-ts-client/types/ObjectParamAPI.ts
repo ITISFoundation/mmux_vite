@@ -110,7 +110,7 @@ export class ObjectCreditsApi {
     }
 
     /**
-     * New in *version 0.6.0*
+     * New in *version 0.6*
      * Get Credits Price
      * @param param the request object
      */
@@ -119,7 +119,7 @@ export class ObjectCreditsApi {
     }
 
     /**
-     * New in *version 0.6.0*
+     * New in *version 0.6*
      * Get Credits Price
      * @param param the request object
      */
@@ -536,7 +536,7 @@ export class ObjectFunctionJobCollectionsApi {
     }
 
     /**
-     * Delete function job collection
+     * Delete function job collection  New in *version 0.8.0*
      * Delete Function Job Collection
      * @param param the request object
      */
@@ -545,7 +545,7 @@ export class ObjectFunctionJobCollectionsApi {
     }
 
     /**
-     * Delete function job collection
+     * Delete function job collection  New in *version 0.8.0*
      * Delete Function Job Collection
      * @param param the request object
      */
@@ -554,7 +554,7 @@ export class ObjectFunctionJobCollectionsApi {
     }
 
     /**
-     * Get the function jobs in function job collection
+     * Get the function jobs in function job collection  New in *version 0.8.0*
      * Function Job Collection List Function Jobs
      * @param param the request object
      */
@@ -563,7 +563,7 @@ export class ObjectFunctionJobCollectionsApi {
     }
 
     /**
-     * Get the function jobs in function job collection
+     * Get the function jobs in function job collection  New in *version 0.8.0*
      * Function Job Collection List Function Jobs
      * @param param the request object
      */
@@ -572,7 +572,7 @@ export class ObjectFunctionJobCollectionsApi {
     }
 
     /**
-     * Get function job collection status
+     * Get function job collection status  New in *version 0.8.0*
      * Function Job Collection Status
      * @param param the request object
      */
@@ -581,7 +581,7 @@ export class ObjectFunctionJobCollectionsApi {
     }
 
     /**
-     * Get function job collection status
+     * Get function job collection status  New in *version 0.8.0*
      * Function Job Collection Status
      * @param param the request object
      */
@@ -590,7 +590,7 @@ export class ObjectFunctionJobCollectionsApi {
     }
 
     /**
-     * Get function job collection
+     * Get function job collection  New in *version 0.8.0*
      * Get Function Job Collection
      * @param param the request object
      */
@@ -599,7 +599,7 @@ export class ObjectFunctionJobCollectionsApi {
     }
 
     /**
-     * Get function job collection
+     * Get function job collection  New in *version 0.8.0*
      * Get Function Job Collection
      * @param param the request object
      */
@@ -608,7 +608,7 @@ export class ObjectFunctionJobCollectionsApi {
     }
 
     /**
-     * List function job collections
+     * List function job collections  New in *version 0.8.0*
      * List Function Job Collections
      * @param param the request object
      */
@@ -617,7 +617,7 @@ export class ObjectFunctionJobCollectionsApi {
     }
 
     /**
-     * List function job collections
+     * List function job collections  New in *version 0.8.0*
      * List Function Job Collections
      * @param param the request object
      */
@@ -626,7 +626,7 @@ export class ObjectFunctionJobCollectionsApi {
     }
 
     /**
-     * Register function job collection
+     * Register function job collection  New in *version 0.8.0*
      * Register Function Job Collection
      * @param param the request object
      */
@@ -635,7 +635,7 @@ export class ObjectFunctionJobCollectionsApi {
     }
 
     /**
-     * Register function job collection
+     * Register function job collection  New in *version 0.8.0*
      * Register Function Job Collection
      * @param param the request object
      */
@@ -725,7 +725,7 @@ export class ObjectFunctionJobsApi {
     }
 
     /**
-     * Delete function job
+     * Delete function job  New in *version 0.8.0*
      * Delete Function Job
      * @param param the request object
      */
@@ -734,7 +734,7 @@ export class ObjectFunctionJobsApi {
     }
 
     /**
-     * Delete function job
+     * Delete function job  New in *version 0.8.0*
      * Delete Function Job
      * @param param the request object
      */
@@ -743,7 +743,7 @@ export class ObjectFunctionJobsApi {
     }
 
     /**
-     * Get function job outputs
+     * Get function job outputs  New in *version 0.8.0*
      * Function Job Outputs
      * @param param the request object
      */
@@ -752,7 +752,7 @@ export class ObjectFunctionJobsApi {
     }
 
     /**
-     * Get function job outputs
+     * Get function job outputs  New in *version 0.8.0*
      * Function Job Outputs
      * @param param the request object
      */
@@ -761,7 +761,7 @@ export class ObjectFunctionJobsApi {
     }
 
     /**
-     * Get function job status
+     * Get function job status  New in *version 0.8.0*
      * Function Job Status
      * @param param the request object
      */
@@ -770,7 +770,7 @@ export class ObjectFunctionJobsApi {
     }
 
     /**
-     * Get function job status
+     * Get function job status  New in *version 0.8.0*
      * Function Job Status
      * @param param the request object
      */
@@ -779,7 +779,7 @@ export class ObjectFunctionJobsApi {
     }
 
     /**
-     * Get function job
+     * Get function job  New in *version 0.8.0*
      * Get Function Job
      * @param param the request object
      */
@@ -788,7 +788,7 @@ export class ObjectFunctionJobsApi {
     }
 
     /**
-     * Get function job
+     * Get function job  New in *version 0.8.0*
      * Get Function Job
      * @param param the request object
      */
@@ -797,7 +797,7 @@ export class ObjectFunctionJobsApi {
     }
 
     /**
-     * List function jobs
+     * List function jobs  New in *version 0.8.0*
      * List Function Jobs
      * @param param the request object
      */
@@ -806,7 +806,7 @@ export class ObjectFunctionJobsApi {
     }
 
     /**
-     * List function jobs
+     * List function jobs  New in *version 0.8.0*
      * List Function Jobs
      * @param param the request object
      */
@@ -815,7 +815,7 @@ export class ObjectFunctionJobsApi {
     }
 
     /**
-     * Create function job
+     * Create function job  New in *version 0.8.0*
      * Register Function Job
      * @param param the request object
      */
@@ -824,7 +824,7 @@ export class ObjectFunctionJobsApi {
     }
 
     /**
-     * Create function job
+     * Create function job  New in *version 0.8.0*
      * Register Function Job
      * @param param the request object
      */
@@ -875,6 +875,33 @@ export interface FunctionsApiGetFunctionOutputschemaRequest {
      * @memberof FunctionsApigetFunctionOutputschema
      */
     functionId: string
+}
+
+export interface FunctionsApiListFunctionJobsForFunctionidRequest {
+    /**
+     * 
+     * Defaults to: undefined
+     * @type string
+     * @memberof FunctionsApilistFunctionJobsForFunctionid
+     */
+    functionId: string
+    /**
+     * Page size limit
+     * Minimum: 1
+     * Maximum: 50
+     * Defaults to: 20
+     * @type number
+     * @memberof FunctionsApilistFunctionJobsForFunctionid
+     */
+    limit?: number
+    /**
+     * Page offset
+     * Minimum: 0
+     * Defaults to: 0
+     * @type number
+     * @memberof FunctionsApilistFunctionJobsForFunctionid
+     */
+    offset?: number
 }
 
 export interface FunctionsApiListFunctionsRequest {
@@ -996,7 +1023,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Delete function
+     * Delete function  New in *version 0.8.0*
      * Delete Function
      * @param param the request object
      */
@@ -1005,7 +1032,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Delete function
+     * Delete function  New in *version 0.8.0*
      * Delete Function
      * @param param the request object
      */
@@ -1014,7 +1041,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Get function
+     * Get function  New in *version 0.8.0*
      * Get Function
      * @param param the request object
      */
@@ -1023,7 +1050,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Get function
+     * Get function  New in *version 0.8.0*
      * Get Function
      * @param param the request object
      */
@@ -1032,7 +1059,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Get function input schema
+     * Get function input schema  New in *version 0.8.0*
      * Get Function Inputschema
      * @param param the request object
      */
@@ -1041,7 +1068,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Get function input schema
+     * Get function input schema  New in *version 0.8.0*
      * Get Function Inputschema
      * @param param the request object
      */
@@ -1050,7 +1077,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Get function input schema
+     * Get function output schema  New in *version 0.8.0*
      * Get Function Outputschema
      * @param param the request object
      */
@@ -1059,7 +1086,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Get function input schema
+     * Get function output schema  New in *version 0.8.0*
      * Get Function Outputschema
      * @param param the request object
      */
@@ -1068,7 +1095,25 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * List functions
+     * List function jobs for a function  New in *version 0.8.0*
+     * List Function Jobs For Functionid
+     * @param param the request object
+     */
+    public listFunctionJobsForFunctionidWithHttpInfo(param: FunctionsApiListFunctionJobsForFunctionidRequest, options?: ConfigurationOptions): Promise<HttpInfo<PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass>> {
+        return this.api.listFunctionJobsForFunctionidWithHttpInfo(param.functionId, param.limit, param.offset,  options).toPromise();
+    }
+
+    /**
+     * List function jobs for a function  New in *version 0.8.0*
+     * List Function Jobs For Functionid
+     * @param param the request object
+     */
+    public listFunctionJobsForFunctionid(param: FunctionsApiListFunctionJobsForFunctionidRequest, options?: ConfigurationOptions): Promise<PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass> {
+        return this.api.listFunctionJobsForFunctionid(param.functionId, param.limit, param.offset,  options).toPromise();
+    }
+
+    /**
+     * List functions  New in *version 0.8.0*
      * List Functions
      * @param param the request object
      */
@@ -1077,7 +1122,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * List functions
+     * List functions  New in *version 0.8.0*
      * List Functions
      * @param param the request object
      */
@@ -1086,7 +1131,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Map function over input parameters
+     * Map function over input parameters  New in *version 0.8.0*
      * Map Function
      * @param param the request object
      */
@@ -1095,7 +1140,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Map function over input parameters
+     * Map function over input parameters  New in *version 0.8.0*
      * Map Function
      * @param param the request object
      */
@@ -1104,7 +1149,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Create function
+     * Create function  New in *version 0.8.0*
      * Register Function
      * @param param the request object
      */
@@ -1113,7 +1158,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Create function
+     * Create function  New in *version 0.8.0*
      * Register Function
      * @param param the request object
      */
@@ -1122,7 +1167,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Run function
+     * Run function  New in *version 0.8.0*
      * Run Function
      * @param param the request object
      */
@@ -1131,7 +1176,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Run function
+     * Run function  New in *version 0.8.0*
      * Run Function
      * @param param the request object
      */
@@ -1140,7 +1185,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Description
      * @param param the request object
      */
@@ -1149,7 +1194,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Description
      * @param param the request object
      */
@@ -1158,7 +1203,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Title
      * @param param the request object
      */
@@ -1167,7 +1212,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Update function
+     * Update function  New in *version 0.8.0*
      * Update Function Title
      * @param param the request object
      */
@@ -1176,7 +1221,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Validate inputs against the function\'s input schema
+     * Validate inputs against the function\'s input schema  New in *version 0.8.0*
      * Validate Function Inputs
      * @param param the request object
      */
@@ -1185,7 +1230,7 @@ export class ObjectFunctionsApi {
     }
 
     /**
-     * Validate inputs against the function\'s input schema
+     * Validate inputs against the function\'s input schema  New in *version 0.8.0*
      * Validate Function Inputs
      * @param param the request object
      */
@@ -1628,40 +1673,6 @@ export interface SolversApiGetJobWalletRequest {
     jobId: string
 }
 
-export interface SolversApiGetJobsPageRequest {
-    /**
-     * 
-     * Defaults to: undefined
-     * @type string
-     * @memberof SolversApigetJobsPage
-     */
-    solverKey: string
-    /**
-     * 
-     * Defaults to: undefined
-     * @type string
-     * @memberof SolversApigetJobsPage
-     */
-    version: string
-    /**
-     * Page size limit
-     * Minimum: 1
-     * Maximum: 50
-     * Defaults to: 20
-     * @type number
-     * @memberof SolversApigetJobsPage
-     */
-    limit?: number
-    /**
-     * Page offset
-     * Minimum: 0
-     * Defaults to: 0
-     * @type number
-     * @memberof SolversApigetJobsPage
-     */
-    offset?: number
-}
-
 export interface SolversApiGetLogStreamRequest {
     /**
      * 
@@ -1769,6 +1780,40 @@ export interface SolversApiListJobsRequest {
      * @memberof SolversApilistJobs
      */
     version: string
+}
+
+export interface SolversApiListJobsPaginatedRequest {
+    /**
+     * 
+     * Defaults to: undefined
+     * @type string
+     * @memberof SolversApilistJobsPaginated
+     */
+    solverKey: string
+    /**
+     * 
+     * Defaults to: undefined
+     * @type string
+     * @memberof SolversApilistJobsPaginated
+     */
+    version: string
+    /**
+     * Page size limit
+     * Minimum: 1
+     * Maximum: 50
+     * Defaults to: 20
+     * @type number
+     * @memberof SolversApilistJobsPaginated
+     */
+    limit?: number
+    /**
+     * Page offset
+     * Minimum: 0
+     * Defaults to: 0
+     * @type number
+     * @memberof SolversApilistJobsPaginated
+     */
+    offset?: number
 }
 
 export interface SolversApiListSolverPortsRequest {
@@ -1898,7 +1943,7 @@ export class ObjectSolversApi {
     }
 
     /**
-     * Creates a job in a specific release with given inputs.  NOTE: This operation does **not** start the job
+     * Creates a job in a specific release with given inputs. This operation does not start the job.  New in *version 0.5*
      * Create Solver Job
      * @param param the request object
      */
@@ -1907,7 +1952,7 @@ export class ObjectSolversApi {
     }
 
     /**
-     * Creates a job in a specific release with given inputs.  NOTE: This operation does **not** start the job
+     * Creates a job in a specific release with given inputs. This operation does not start the job.  New in *version 0.5*
      * Create Solver Job
      * @param param the request object
      */
@@ -1970,7 +2015,7 @@ export class ObjectSolversApi {
     }
 
     /**
-     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done.  New in *version 0.4.0*
+     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done  New in *version 0.4*
      * Get Job Output Logfile
      * @param param the request object
      */
@@ -1979,7 +2024,7 @@ export class ObjectSolversApi {
     }
 
     /**
-     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done.  New in *version 0.4.0*
+     * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done  New in *version 0.4*
      * Get Job Output Logfile
      * @param param the request object
      */
@@ -2037,24 +2082,6 @@ export class ObjectSolversApi {
      */
     public getJobWallet(param: SolversApiGetJobWalletRequest, options?: ConfigurationOptions): Promise<WalletGetWithAvailableCreditsLegacy> {
         return this.api.getJobWallet(param.solverKey, param.version, param.jobId,  options).toPromise();
-    }
-
-    /**
-     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
-     * Get Jobs Page
-     * @param param the request object
-     */
-    public getJobsPageWithHttpInfo(param: SolversApiGetJobsPageRequest, options?: ConfigurationOptions): Promise<HttpInfo<PageJob>> {
-        return this.api.getJobsPageWithHttpInfo(param.solverKey, param.version, param.limit, param.offset,  options).toPromise();
-    }
-
-    /**
-     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
-     * Get Jobs Page
-     * @param param the request object
-     */
-    public getJobsPage(param: SolversApiGetJobsPageRequest, options?: ConfigurationOptions): Promise<PageJob> {
-        return this.api.getJobsPage(param.solverKey, param.version, param.limit, param.offset,  options).toPromise();
     }
 
     /**
@@ -2128,6 +2155,7 @@ export class ObjectSolversApi {
     }
 
     /**
+     * Inspects the current status of a job  New in *version 0.5*
      * Inspect Job
      * @param param the request object
      */
@@ -2136,6 +2164,7 @@ export class ObjectSolversApi {
     }
 
     /**
+     * Inspects the current status of a job  New in *version 0.5*
      * Inspect Job
      * @param param the request object
      */
@@ -2162,7 +2191,25 @@ export class ObjectSolversApi {
     }
 
     /**
-     * Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
+     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
+     * List Jobs Paginated
+     * @param param the request object
+     */
+    public listJobsPaginatedWithHttpInfo(param: SolversApiListJobsPaginatedRequest, options?: ConfigurationOptions): Promise<HttpInfo<PageJob>> {
+        return this.api.listJobsPaginatedWithHttpInfo(param.solverKey, param.version, param.limit, param.offset,  options).toPromise();
+    }
+
+    /**
+     * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
+     * List Jobs Paginated
+     * @param param the request object
+     */
+    public listJobsPaginated(param: SolversApiListJobsPaginatedRequest, options?: ConfigurationOptions): Promise<PageJob> {
+        return this.api.listJobsPaginated(param.solverKey, param.version, param.limit, param.offset,  options).toPromise();
+    }
+
+    /**
+     * Lists inputs and outputs of a given solver  New in *version 0.5*  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Ports
      * @param param the request object
      */
@@ -2171,7 +2218,7 @@ export class ObjectSolversApi {
     }
 
     /**
-     * Lists inputs and outputs of a given solver  New in *version 0.5.0*  Added in *version 0.7.1*: `version_display` field in the response
+     * Lists inputs and outputs of a given solver  New in *version 0.5*  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Ports
      * @param param the request object
      */
@@ -2198,7 +2245,7 @@ export class ObjectSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5*
      * List Solvers
      * @param param the request object
      */
@@ -2207,7 +2254,7 @@ export class ObjectSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/page` instead.    Lists all available solvers (latest version)  New in *version 0.5*
      * List Solvers
      * @param param the request object
      */
@@ -2216,7 +2263,7 @@ export class ObjectSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists **all** released solvers (not just latest version)  New in *version 0.5*
      * Lists All Releases
      * @param param the request object
      */
@@ -2225,7 +2272,7 @@ export class ObjectSolversApi {
     }
 
     /**
-     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists all released solvers (not just latest version)  New in *version 0.5.0*
+     * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /v0/solvers/{solver_key}/releases/page` instead.    Lists **all** released solvers (not just latest version)  New in *version 0.5*
      * Lists All Releases
      * @param param the request object
      */
@@ -2252,7 +2299,7 @@ export class ObjectSolversApi {
     }
 
     /**
-     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id` Added in *version 0.6*: responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id`  Added in *version 0.6*: responds with a 202 when successfully starting a computation  Changed in *version 0.7*: query parameter `cluster_id` deprecated
      * Start Job
      * @param param the request object
      */
@@ -2261,7 +2308,7 @@ export class ObjectSolversApi {
     }
 
     /**
-     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id` Added in *version 0.6*: responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id`  Added in *version 0.6*: responds with a 202 when successfully starting a computation  Changed in *version 0.7*: query parameter `cluster_id` deprecated
      * Start Job
      * @param param the request object
      */
@@ -2270,6 +2317,7 @@ export class ObjectSolversApi {
     }
 
     /**
+     * Stops a running job  New in *version 0.5*
      * Stop Job
      * @param param the request object
      */
@@ -2278,6 +2326,7 @@ export class ObjectSolversApi {
     }
 
     /**
+     * Stops a running job  New in *version 0.5*
      * Stop Job
      * @param param the request object
      */
@@ -2515,7 +2564,7 @@ export interface StudiesApiStartStudyJobRequest {
      */
     jobId: string
     /**
-     * 
+     * Changed in *version 0.7*: query parameter &#x60;cluster_id&#x60; deprecated 
      * Minimum: 0
      * Defaults to: undefined
      * @type number
@@ -2601,7 +2650,7 @@ export class ObjectStudiesApi {
     }
 
     /**
-     * New in *version 0.5.0*
+     * Get study by ID  New in *version 0.5*
      * Get Study
      * @param param the request object
      */
@@ -2610,7 +2659,7 @@ export class ObjectStudiesApi {
     }
 
     /**
-     * New in *version 0.5.0*
+     * Get study by ID  New in *version 0.5*
      * Get Study
      * @param param the request object
      */
@@ -2685,7 +2734,7 @@ export class ObjectStudiesApi {
     }
 
     /**
-     * New in *version 0.5.0*
+     * List all studies  New in *version 0.5*
      * List Studies
      * @param param the request object
      */
@@ -2694,7 +2743,7 @@ export class ObjectStudiesApi {
     }
 
     /**
-     * New in *version 0.5.0*
+     * List all studies  New in *version 0.5*
      * List Studies
      * @param param the request object
      */
@@ -2703,7 +2752,7 @@ export class ObjectStudiesApi {
     }
 
     /**
-     * Lists metadata on ports of a given study  New in *version 0.5.0*
+     * Lists metadata on ports of a given study  New in *version 0.5*
      * List Study Ports
      * @param param the request object
      */
@@ -2712,7 +2761,7 @@ export class ObjectStudiesApi {
     }
 
     /**
-     * Lists metadata on ports of a given study  New in *version 0.5.0*
+     * Lists metadata on ports of a given study  New in *version 0.5*
      * List Study Ports
      * @param param the request object
      */
@@ -2739,7 +2788,7 @@ export class ObjectStudiesApi {
     }
 
     /**
-     * Changed in *version 0.6.0*: Now responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
      * Start Study Job
      * @param param the request object
      */
@@ -2748,7 +2797,7 @@ export class ObjectStudiesApi {
     }
 
     /**
-     * Changed in *version 0.6.0*: Now responds with a 202 when successfully starting a computation Changed in *version 0.8*: query parameter `cluster_id` deprecated
+     * Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
      * Start Study Job
      * @param param the request object
      */
@@ -2922,7 +2971,7 @@ export class ObjectWalletsApi {
     }
 
     /**
-     * Get all available licensed items for a given wallet
+     * Get all available licensed items for a given wallet  New in *version 0.6*
      * Get Available Licensed Items For Wallet
      * @param param the request object
      */
@@ -2931,7 +2980,7 @@ export class ObjectWalletsApi {
     }
 
     /**
-     * Get all available licensed items for a given wallet
+     * Get all available licensed items for a given wallet  New in *version 0.6*
      * Get Available Licensed Items For Wallet
      * @param param the request object
      */

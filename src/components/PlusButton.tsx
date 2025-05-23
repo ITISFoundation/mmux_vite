@@ -12,11 +12,6 @@ type PlusButtonProps = {
   enabled: boolean;
 };
 function PlusButton(props: PlusButtonProps) {
-  // TODO showElement should be possible to change from here (?) so that the "-" works
-  // function toggleAndOnClickFun = () => {
-  //     onClickFun();
-  //     setShowElement(!showElement);
-  // }
   const [showElement, setShowElement] = useState(false);
   return (
     <>

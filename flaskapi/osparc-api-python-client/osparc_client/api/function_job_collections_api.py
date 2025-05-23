@@ -328,7 +328,7 @@ class FunctionJobCollectionsApi:
     ) -> List[FunctionJobCollectionListFunctionJobs200ResponseInner]:
         """Function Job Collection List Function Jobs
 
-        Get the function jobs in function job collection
+        Get the function jobs in function job collection  New in *version 0.8.0*
 
         :param function_job_collection_id: (required)
         :type function_job_collection_id: str
@@ -397,7 +397,7 @@ class FunctionJobCollectionsApi:
     ) -> ApiResponse[List[FunctionJobCollectionListFunctionJobs200ResponseInner]]:
         """Function Job Collection List Function Jobs
 
-        Get the function jobs in function job collection
+        Get the function jobs in function job collection  New in *version 0.8.0*
 
         :param function_job_collection_id: (required)
         :type function_job_collection_id: str
@@ -466,7 +466,7 @@ class FunctionJobCollectionsApi:
     ) -> RESTResponseType:
         """Function Job Collection List Function Jobs
 
-        Get the function jobs in function job collection
+        Get the function jobs in function job collection  New in *version 0.8.0*
 
         :param function_job_collection_id: (required)
         :type function_job_collection_id: str
@@ -594,7 +594,7 @@ class FunctionJobCollectionsApi:
     ) -> FunctionJobCollectionStatus:
         """Function Job Collection Status
 
-        Get function job collection status
+        Get function job collection status  New in *version 0.8.0*
 
         :param function_job_collection_id: (required)
         :type function_job_collection_id: str
@@ -663,7 +663,7 @@ class FunctionJobCollectionsApi:
     ) -> ApiResponse[FunctionJobCollectionStatus]:
         """Function Job Collection Status
 
-        Get function job collection status
+        Get function job collection status  New in *version 0.8.0*
 
         :param function_job_collection_id: (required)
         :type function_job_collection_id: str
@@ -732,7 +732,7 @@ class FunctionJobCollectionsApi:
     ) -> RESTResponseType:
         """Function Job Collection Status
 
-        Get function job collection status
+        Get function job collection status  New in *version 0.8.0*
 
         :param function_job_collection_id: (required)
         :type function_job_collection_id: str

@@ -16,7 +16,7 @@ import { GetCreditPriceLegacy } from '../models/GetCreditPriceLegacy';
 export class CreditsApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
-     * New in *version 0.6.0*
+     * New in *version 0.6*
      * Get Credits Price
      */
     public async getCreditsPrice(_options?: Configuration): Promise<RequestContext> {
