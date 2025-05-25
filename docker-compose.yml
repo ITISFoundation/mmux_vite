@@ -1,0 +1,10 @@
+services:
+  mmux-vite:
+    image: mmux-vite
+    build:
+      context: .
+      dockerfile: ./node/Dockerfile
+    environment:
+      NODE_ENV: development # ??
+    ports:
+      - 3000:3000 ## wrong port?
