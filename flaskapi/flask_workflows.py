@@ -17,7 +17,7 @@ from pathlib import Path
 import shutil
 import json
 import logging
-from typing import List, Dict
+from typing import List, Dict, Callable
 import numpy as np
 import pandas as pd
 from flask import Flask, request, jsonify 
@@ -91,6 +91,40 @@ def hello_world():
     logger.info("Cwd: " + str(Path.cwd()))
     return "Hello, World!"
 
+def get_all_items(api_call: Callable):
+    """Helper function to get all items from a paginated API call."""
+    list_len = api_call(limit=1).total
+    retrieved = 0
+    items = []
+    page = 1
+    while retrieved < list_len:
+        logger.info(f"Retrieving page {page} of {api_call.__name__} (offset: {retrieved})")
+        response = api_call(offset = retrieved)
+        retrieved += len(response.items)  # type: ignore
+        items += [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
+    return items
+
+def get_first_N_items(api_call: Callable, N: int):
+    """Helper function to get first N items from a paginated API call."""
+    list_len = api_call(limit=1).total
+    if list_len < N:
+        logger.warning(f"Requested {N} items, but only {list_len} are available.")
+        N = list_len
+    response = api_call(limit = N)
+    items = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
+    assert len(items) == N, f"Expected {N} items, but got {len(items)}"
+    return items
+
+def get_last_N_items(api_call: Callable, N: int):
+    """Helper function to get last N items from a paginated API call."""
+    list_len = api_call(limit=1).total
+    if list_len < N:
+        logger.warning(f"Requested {N} items, but only {list_len} are available.")
+        N = list_len
+    response = api_call(offset = list_len - N)
+    items = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
+    assert len(items) == N, f"Expected {N} items, but got {len(items)}"
+    return items
 
 @app.route("/flask/list_functions", methods=["GET"])
 def flask_list_functions():
