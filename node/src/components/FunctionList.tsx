@@ -5,10 +5,24 @@ import { SolverFunction, ProjectFunction, PythonCodeFunction } from '../osparc-a
 import MMUXContext from '../views/MMUXContext.tsx';
 import { listFunctions } from './function_utils.ts';
 import { JSONFunctionInputSchema, JSONFunctionOutputSchema } from '../osparc-api-ts-client';
+import TablePagination from '@mui/material/TablePagination';
+import Box from '@mui/material/Box';
+import TableContainer from '@mui/material/TableContainer';
 
 export function FunctionList(props: { functions: Function[] } = { functions: [] }) {
     const [functions, setFunctions] = useState<Function[]>([]);
     const context = useContext(MMUXContext);
+    const [rowsPerPage, setRowsPerPage] = React.useState(5);
+    const [page, setPage] = React.useState(0);
+
+    const handleChangePage = (event: unknown, newPage: number) => {
+        setPage(newPage);
+    };
+
+    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
+    };
 
     useEffect(() => {
         if (props.functions.length === 0) {
@@ -69,33 +83,66 @@ export function FunctionList(props: { functions: Function[] } = { functions: [] 
 
     // Maybe modularize as Cards (instead of Table) ?
     return (
-        <Table component={Paper}>
-            <TableHead>
-                <TableRow>
-                    <TableCell>Title</TableCell>
-                    <TableCell>Description</TableCell>
-                    <TableCell>Inputs</TableCell>
-                    <TableCell>Outputs</TableCell>
-                    <TableCell>Solver / Template</TableCell>
-                </TableRow>
-            </TableHead>
-            <TableBody>
-                {functions.map(fun => (
-                    <TableRow
-                        key={fun.uid}
-                        sx={{ fontWeight: fun.uid === context?.selectedFunction?.uid ? 'bold' : 'normal', backgroundColor: fun.uid === context?.selectedFunction?.uid ? '#f0f0f0' : 'inherit' }}
-                    >
-                        <TableCell>{fun.title}</TableCell>
-                        <TableCell>{fun.description}</TableCell>
-                        <TableCell>{showInputOutputSchema(fun.inputSchema)}</TableCell>
-                        <TableCell>{showInputOutputSchema(fun.outputSchema)}</TableCell>
-                        {/* <TableCell>{<Button variant="contained" onClick={() => showJobList(fun)}>Show Jobs</Button>}</TableCell> */}
-                        <TableCell>{getFunctionSolver(fun)}</TableCell>
-                        <TableCell align='right'>{<Button variant="contained" onClick={() => context?.setSelectedFunction(fun)}>Select</Button>}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
+        <Box sx={{ width: '100%' }}>
+            <Paper sx={{ width: '100%', mb: 2 }}>
+                <TableContainer>
+                    <Table component={Paper}>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Title</TableCell>
+                                <TableCell>Description</TableCell>
+                                <TableCell>Inputs</TableCell>
+                                <TableCell>Outputs</TableCell>
+                                <TableCell>Solver / Template</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {functions.map(fun => (
+                                <TableRow
+                                    key={fun.uid}
+                                    sx={{ fontWeight: fun.uid === context?.selectedFunction?.uid ? 'bold' : 'normal', backgroundColor: fun.uid === context?.selectedFunction?.uid ? '#f0f0f0' : 'inherit' }}
+                                >
+                                    <TableCell>{fun.title}</TableCell>
+                                    <TableCell>{fun.description}</TableCell>
+                                    <TableCell>{showInputOutputSchema(fun.inputSchema)}</TableCell>
+                                    <TableCell>{showInputOutputSchema(fun.outputSchema)}</TableCell>
+                                    {/* <TableCell>{<Button variant="contained" onClick={() => showJobList(fun)}>Show Jobs</Button>}</TableCell> */}
+                                    <TableCell>{getFunctionSolver(fun)}</TableCell>
+                                    <Button
+                                        variant="contained"
+                                        onClick={() => {
+                                            context?.setSelectedFunction(fun);
+                                            context?.setInputVars(
+                                                fun.inputSchema?.schemaContent?.properties
+                                                    ? Object.keys(fun.inputSchema.schemaContent.properties)
+                                                    : []
+                                            );
+                                            console.log("inputVars registered:", Object.keys(fun.inputSchema.schemaContent.properties))
+                                            context?.setOutputVars(
+                                                fun.outputSchema?.schemaContent?.properties
+                                                    ? Object.keys(fun.outputSchema.schemaContent.properties)
+                                                    : []
+                                            );
+                                        }}
+                                    >
+                                        Select
+                                    </Button>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+                <TablePagination
+                    rowsPerPageOptions={[5, 10, 25]}
+                    component="div"
+                    count={functions.length}
+                    rowsPerPage={rowsPerPage}
+                    page={page}
+                    onPageChange={handleChangePage}
+                    onRowsPerPageChange={handleChangeRowsPerPage}
+                />
+            </Paper>
+        </Box >
     );
 }
 
