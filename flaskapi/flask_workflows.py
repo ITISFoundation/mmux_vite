@@ -25,9 +25,10 @@ from flask_cors import CORS
 from osparc_client.configuration import Configuration as OsparcConfiguration
 from osparc_client.api_client import ApiClient
 from osparc_client.api.functions_api import FunctionsApi
-from osparc_client.api.function_jobs_api import FunctionJobsApi, FunctionJobStatus
+from osparc_client.api.function_jobs_api import FunctionJobsApi
 from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi
 from osparc_client.models.function_job import FunctionJob
+from osparc_client.models.function_job_status import FunctionJobStatus
 
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
@@ -91,37 +92,37 @@ def hello_world():
     logger.info("Cwd: " + str(Path.cwd()))
     return "Hello, World!"
 
-def get_all_items(api_call: Callable):
+def get_all_items(api_call: Callable, *args, **kwargs):
     """Helper function to get all items from a paginated API call."""
-    list_len = api_call(limit=1).total
+    list_len = api_call(limit=1,*args, **kwargs).total
     retrieved = 0
     items = []
     page = 1
     while retrieved < list_len:
         logger.info(f"Retrieving page {page} of {api_call.__name__} (offset: {retrieved})")
-        response = api_call(offset = retrieved)
+        response = api_call(offset = retrieved, *args, **kwargs)
         retrieved += len(response.items)  # type: ignore
         items += [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
     return items
 
-def get_first_N_items(api_call: Callable, N: int):
+def get_first_N_items(api_call: Callable, N: int, **kwargs):
     """Helper function to get first N items from a paginated API call."""
-    list_len = api_call(limit=1).total
+    list_len = api_call(limit=1, **kwargs).total
     if list_len < N:
         logger.warning(f"Requested {N} items, but only {list_len} are available.")
         N = list_len
-    response = api_call(limit = N)
+    response = api_call(limit = N, **kwargs)
     items = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
     assert len(items) == N, f"Expected {N} items, but got {len(items)}"
     return items
 
-def get_last_N_items(api_call: Callable, N: int):
+def get_last_N_items(api_call: Callable, N: int, **kwargs):
     """Helper function to get last N items from a paginated API call."""
-    list_len = api_call(limit=1).total
+    list_len = api_call(limit=1, **kwargs).total
     if list_len < N:
         logger.warning(f"Requested {N} items, but only {list_len} are available.")
         N = list_len
-    response = api_call(offset = list_len - N)
+    response = api_call(offset=list_len - N, limit=N, **kwargs)
     items = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
     assert len(items) == N, f"Expected {N} items, but got {len(items)}"
     return items
@@ -130,9 +131,8 @@ def get_last_N_items(api_call: Callable, N: int):
 def flask_list_functions():
     logger.info("Starting flask function: flask_list_functions")
     logger.info("Cwd: " + str(Path.cwd()))
-    functions = functions_api_instance.list_functions()
-    ## this is a list of items of Paginated object -- deserialize into a list of function objects
-    functions = [recursive_dict_keys_camel_to_snake(f.to_dict()) for f in functions_api_instance.list_functions().items] # type: ignore
+    # functions = get_all_items(functions_api_instance.list_functions)
+    functions = get_first_N_items(functions_api_instance.list_functions, N=5)
     functions = functions[::-1] # put last-created first? FIXME still need to expose "created_at" in the response
     logger.info(f"N Functions: {len(functions)}")
 
@@ -146,26 +146,33 @@ def flask_list_functions():
 def flask_list_jobs():
     logger.info("Starting flask function: flask_list_jobs")
     logger.info("Cwd: " + str(Path.cwd()))
-    jobs = job_api_instance.list_function_jobs()
-    ## this is a list of items of Paginated object -- deserialize into a list of function objects
-    jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in job_api_instance.list_function_jobs().items] # type: ignore
+    jobs = get_all_items(job_api_instance.list_function_jobs)
     logger.info(f"N Jobs: {len(jobs)}")
 
     return jsonify(jobs)
 
 @app.route("/flask/list_function_jobs_for_functionid", methods=["GET"])
 def flask_list_function_jobs_for_functionid():
-    logger.info("Starting flask function: flask_get_function_jobs")
+    logger.info("Starting flask function: flask_list_function_jobs_for_functionid")
     logger.info("Cwd: " + str(Path.cwd()))
     function_uid = request.args["functionUid"]
     logger.info(f"Function ID: {function_uid}")
-    ## this is a list of items of Paginated object -- deserialize into a list of function objects
-    jobs = functions_api_instance.list_function_jobs_for_functionid(function_uid)
-    jobs = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in jobs.items] # type: ignore
+    jobs = get_all_items(functions_api_instance.list_function_jobs_for_functionid, function_uid)
     logger.info(f"N Jobs for function {function_uid}: {len(jobs)}")
     for j in jobs:
         status : FunctionJobStatus = job_api_instance.function_job_status(j["uid"]) 
         j["status"] = status.status
+    return jsonify(jobs)
+
+@app.route("/flask/list_function_jobs_for_jobcollectionid", methods=["GET"])
+def flask_list_function_jobs_for_jobcollectionid():
+    logger.info("Starting flask function: flask_list_function_jobs_for_jobcollectionid")
+    logger.info("Cwd: " + str(Path.cwd()))
+    jc_uid = request.args["JobCollectionUid"]
+    logger.info(f"jc ID: {jc_uid}")
+    jc = job_collection_api_instance.get_function_job_collection(jc_uid)
+    jobs = [get_function_job_from_uid(job_uid) for job_uid in jc.job_ids] # type: ignore
+    logger.info(f"N Jobs for job collection {jc_uid}: {len(jobs)}")
     return jsonify(jobs)
 
 @app.route("/flask/list_function_job_collections", methods=["GET"])
@@ -173,8 +180,7 @@ def flask_get_function_job_collections():
     logger.info("Starting flask function: flask_get_function_job_collections")
     logger.info("Cwd: " + str(Path.cwd()))
     ## this is a list of items of Paginated object -- deserialize into a list of JobCollection objects
-    job_collections = job_collection_api_instance.list_function_job_collections()
-    job_collections = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in job_collections.items]
+    job_collections = get_all_items(job_collection_api_instance.list_function_job_collections)
     logger.info(f"N Job collections: {len(job_collections)}")
     return jsonify(job_collections)
 
@@ -185,11 +191,9 @@ def flask_get_function_job_collections_for_functionid():
     logger.info("Cwd: " + str(Path.cwd()))
     function_uid = request.args["functionUid"]
     logger.info(f"Function ID: {function_uid}")
-    ## this is a list of items of Paginated object -- deserialize into a list of JobCollection objects
-    job_collections = job_collection_api_instance.list_function_job_collections()
-    job_collections = [recursive_dict_keys_camel_to_snake(j.to_dict()) for j in job_collections.items]
-    logger.info(f"N Job collections: {len(job_collections)}")
-    job_collections = [j for j in job_collections if j["functionUid"] == function_uid]
+    # job_collections = get_all_items(job_collection_api_instance.list_function_job_collections, has_function_id=function_uid)
+    response = job_collection_api_instance.list_function_job_collections(has_function_id=function_uid)
+    job_collections = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
     logger.info(f"N Job collections for function {function_uid}: {len(job_collections)}")
     return jsonify(job_collections)
 
@@ -197,14 +201,16 @@ def flask_get_function_job_collections_for_functionid():
 def flask_get_function_job():
     logger.info("Starting flask function: flask_get_function_job")
     logger.info("Cwd: " + str(Path.cwd()))
-    job_uid = request.args["jobUid"]
+    return jsonify(get_function_job_from_uid(request.args["jobUid"]))
+    
+def get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
+    """Helper function to get a Job information (including status) from its UID."""
     logger.info(f"Job ID: {job_uid}")
-    ## this is a list of items of Paginated object -- deserialize into a list of function objects
-    job = job_api_instance.get_function_job(job_uid).to_dict()
-    job = recursive_dict_keys_camel_to_snake(job) # type: ignore
-    job["status"] = job_api_instance.function_job_status(job_uid).status
-    logger.info(f"Job: {job}")
-    return jsonify(job)
+    job = job_api_instance.get_function_job(job_uid)
+    job_dict = recursive_dict_keys_camel_to_snake(job.to_dict()) # type: ignore
+    job_dict["status"] = job_api_instance.function_job_status(job_uid).status
+    logger.info(f"Job: {job_dict}")
+    return job_dict
 
 def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str) -> Path:
     completed_jobs = [job for job in jobs if job["status"].lower() == "completed"]  # type: ignore
