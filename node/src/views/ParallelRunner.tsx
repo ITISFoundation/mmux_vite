@@ -189,6 +189,7 @@ export function Dashboard(props: JobDashboardProps) {
 
     const fetchJobs = useCallback(async () => {
         try {
+            // TODO get jobs for JobCollection (instead of all related to that function) when Werner exposes that
             let jobList = await getFunctionJobsFromFunctionUid(context?.selectedFunction?.uid as string);
             console.log("Fetched jobs:", jobList);
             setJobs(jobList);
