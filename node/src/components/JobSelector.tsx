@@ -30,7 +30,7 @@ export default function JobsSelector() {
       )
       .flat();
     console.log("Selected jobs for context: ", newList);
-    context?.setSelectedJobs(newList);
+    context?.setSelectedJobUids(newList);
   };
 
   const selectMainJob = (index: number, selected: boolean) => {
@@ -105,7 +105,7 @@ export default function JobsSelector() {
     const newJobs: SelectedJobCollection[] = jc.map((jc) => ({
       jobCollection: jc,
       selected: false,
-      subJobs: jc.jobIds.reduce(
+      subJobs: jc.jobIds?.reduce(
         (acc: { [key: string]: boolean }, jobUid: string) => ({
           ...acc,
           [jobUid]: false,

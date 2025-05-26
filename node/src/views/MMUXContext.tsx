@@ -15,7 +15,7 @@ export interface MMUXContextType {
   runningSampling: boolean,
   setRunningSampling: (b: boolean) => void;
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
-  setRunningJobCollection: (jc: RegisteredFunctionJobCollection) => void;
+  setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void;
   selectedJobUids: string[];
   setSelectedJobUids: (selectedJobs: string[]) => void;
 }

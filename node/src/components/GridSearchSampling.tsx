@@ -14,11 +14,7 @@ function GridSearchSampling() {
 
     // TODO: Review this calls and apply the try/catch pattern to all API calls that can fail, this can even be moved to the setJSONStateFilePath function
     try {
-        // TODO: FIX TS ERRRORS
-        // @ts-expect-error TS(2322): Type 'string[]' is not assignable to type 'never[]'.
-        const inputVars = context?.selectedFunction?.inputSchema.required as string[];
-        // Needed to move the filePath outside of the PersistentJSONState hook to avoid triggering infinite loops
-        // Now it works and I have persistence even across sessions :)
+        const inputVars = context?.inputVars as string[];
 
         [gridSearchInputs, setGridSearchInputs] = useState(
             inputVars?.map((inputVar) => ({

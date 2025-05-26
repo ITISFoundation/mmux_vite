@@ -35,16 +35,14 @@ async function runLhsSampling(context: MMUXContextType | undefined, config: any[
         })
     context?.setLaunchingSampling(false)
     context?.setRunningSampling(true)
+    context?.setRunningJobCollection(jc ? jc : undefined)
     return jc
-} // Now the LHS is both created & submitted to OSPARC API through the Python Backend. Implement. 
-// What should I return here? 
-// would be nice to have an "spinning" symbol while everything is getting done in the backend
-// also, in the ParallelRunner dashboard, would be nice to see only that one JobCollection - how? simply get latest for the selected function (and only render when click "Run")
-// ParallelRunner bar should show only when running something; clicking on it allows to "toggle down" the dashboard itself.
+}
+
 
 const LHSSampling = () => {
     const context = useContext(MMUXContext);
-    const inputVars = context?.selectedFunction?.inputSchema.schemaContent.required as string[];
+    const inputVars = context?.inputVars as string[];
     const [lhsInputs, setLhsInputs] = useState(
         inputVars.map((inputVar) => ({
             variable: inputVar,
@@ -78,7 +76,6 @@ const LHSSampling = () => {
                     {context?.launchingSampling ? "Launching..." : context?.runningSampling ? "Running..." : "Run Sampling"}
                 </Button>
                 {context?.launchingSampling && <Box className="spinner" />}
-                {/* FIXME the spinner ddoes not work anymore */}
             </Box>
         );
     }
