@@ -5,8 +5,8 @@ import React, { useState, useContext, useEffect } from 'react';
 import MMUXContext from './MMUXContext';
 import MetaModelingUX from '../components/MetaModelingUX';
 import { Button, Box, Container } from '@mui/material';
-import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
-import { getFunctionJobsFromFunctionUid, getFunctionJobCollections } from '../components/function_utils';
+import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
+import { getFunctionJobsFromFunctionUid, getFunctionJobCollections } from '../utils/function_utils';
 
 export default function UQ() {
     // Similar to Sumo building

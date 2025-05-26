@@ -5,9 +5,9 @@ import { Button, Box, Container } from '@mui/material';
 import MMUXContext from './MMUXContext';
 import PlotDataTogether from '../components/PlotDataTogether'
 import ShowCvMetrics from '../components/ShowCvMetrics';
-import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
+import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import PlusButton from '../components/PlusButton';
-import { getFunctionJobsFromFunctionUid } from "../components/function_utils";
+import { getFunctionJobsFromFunctionUid } from "../utils/function_utils";
 import Surface3DPlot from "../components/Surface3DPlot";
 import IsoSurface3DPlot from "../components/IsoSurface3DPlot";
 

@@ -7,7 +7,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import MMUXContext from "../views/MMUXContext";
-import { getFunctionJobCollections } from "./function_utils";
+import { getFunctionJobCollections } from "../utils/function_utils";
 import { Checkbox, IconButton } from "@mui/material";
 import CollectionRow from "./CollectionRow";
 import { Refresh } from "@mui/icons-material";

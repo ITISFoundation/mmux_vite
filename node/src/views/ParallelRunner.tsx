@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useContext } from 'react'
 import type { FunctionJob } from '../osparc-api-ts-client';
 import MMUXContext from './MMUXContext';
-import { getFunctionJobsFromFunctionUid } from '../components/function_utils';
+import { getFunctionJobsFromFunctionUid } from '../utils/function_utils';
 
 const statusColors = {
     PENDING: 'bg-gray-300',

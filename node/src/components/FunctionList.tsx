@@ -18,7 +18,7 @@ import {
   PythonCodeFunction,
 } from "../osparc-api-ts-client/index.ts";
 import MMUXContext from "../views/MMUXContext.tsx";
-import { listFunctions } from "./function_utils.ts";
+import { listFunctions } from "../utils/function_utils.ts";
 import {
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,

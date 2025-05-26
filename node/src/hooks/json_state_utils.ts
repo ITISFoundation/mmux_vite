@@ -1,4 +1,4 @@
-import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
+import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 
 async function saveJSONState(state: any, filePath: string) {
     return await fetch(

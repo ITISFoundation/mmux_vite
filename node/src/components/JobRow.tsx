@@ -2,7 +2,7 @@ import * as React from "react";
 import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
-import { getFunctionJob } from "./function_utils";
+import { getFunctionJob } from "../utils/function_utils";
 import { FunctionJob } from "../osparc-api-ts-client";
 import { Box, Checkbox } from "@mui/material";
 

@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
 import MMUXContext, { MMUXContextType } from '../views/MMUXContext';
 import usePersistentJSONState from '../hooks/usePersistentJSONState';
-import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
+import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import { Box, Button, Input, Typography } from '@mui/material';
 import { Function, RegisteredFunctionJobCollection } from '../osparc-api-ts-client';
 
