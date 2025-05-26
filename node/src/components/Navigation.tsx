@@ -1,4 +1,4 @@
-import { Button, styled } from '@mui/material';
+import { Step, StepLabel, Stepper, styled } from '@mui/material';
 
 const NavBar = styled('div')`
 display: flex;
@@ -7,32 +7,40 @@ align-items: center;
 gap: 30px;
 padding-top: 10px;
 padding-bottom: 10px;
-background-color: #07080a;
-& .nav-btn.non-active {
-  background-color: #525252;
-}
-& .nav-btn.active {
-  background-color: #0090D0; /* S4L blue */
-}`;
+`;
 
-const NavButton = styled(Button, { shouldForwardProp: (props) => props !== 'active'})<{ active: boolean }>(({ active }) => `
-  background-color: ${active ? '#0090D0' : '#525252'};
-`)
+const Navi = styled(NavBar)(({ theme }) => `
+  width: 100%;
+  height: 64px;
+  padding: 2em 2em;
+  & .stepper{
+    flex: 1;
+    & > .MuiStepConnector-root.Mui-active {
+      & .MuiStepConnector-line {
+        border-color: ${theme.palette.primary.main};
+      }
+    }
+  }
+`);
 
 function Navigation(props: NavigationProps) {
+  const { steps, activeStep, ...rest } = props;
   return (
-    <NavBar>
-      {props.steps.map((step) => (
-        <NavButton
-          active={props.activeStep === step.id}
-          key={step.id}
-          variant={props.activeStep === step.id ? "contained" : "outlined"}
-          onClick={() => props.setActiveStep(step.id)}
-        >
-          {step.id}: {step.label}
-        </NavButton>
-      ))}
-    </NavBar>
+    <Navi {...rest}>
+      <Stepper activeStep={activeStep} className='stepper'>
+        {steps.map((step) => {
+          const stepProps: { completed?: boolean } = {};
+          const labelProps: {
+            optional?: React.ReactNode;
+          } = {};
+          return (
+            <Step key={step.id} {...stepProps}>
+              <StepLabel {...labelProps}>{step.label}</StepLabel>
+            </Step>
+          );
+        })}
+      </Stepper>
+    </Navi>
   );
 }
-export default Navigation;
+export default Navigation

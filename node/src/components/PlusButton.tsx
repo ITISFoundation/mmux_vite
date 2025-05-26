@@ -1,5 +1,6 @@
 import { JSX, useState } from "react";
-import { Button, Box } from "@mui/material";
+import { Box, IconButton } from "@mui/material";
+import { AddBox, IndeterminateCheckBox } from "@mui/icons-material";
 
 // This element is a generic + button with a few extra elements
 // - Shows a text specifying what will be added
@@ -12,6 +13,7 @@ type PlusButtonProps = {
   enabled: boolean;
 };
 function PlusButton(props: PlusButtonProps) {
+  const { enabled, text, onClickFun, PlotFunComponent } = props;
   const [showElement, setShowElement] = useState(false);
   return (
     <>
@@ -21,40 +23,26 @@ function PlusButton(props: PlusButtonProps) {
           display: "flex",
           flexDirection: "row",
           alignItems: "center",
-          gap: "10px",
+          gap: "8px",
+          marginTop: "16px",
         }}
       >
-        <Button
-          sx={{
-            color: "secondary",
-            variant: "contained",
-            minWidth: "30px",
-            height: "30px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+        <IconButton
           onClick={() => {
             setShowElement(!showElement);
             if (showElement) {
-              props.onClickFun();
+              onClickFun();
             }
           }}
-          disabled={!props.enabled}
+          disabled={!enabled}
+          color="primary"
         >
-          <h3>{!showElement ? "+" : "-"}</h3>
-        </Button>
-        <span
-          style={{
-            margin: 5,
-            color: props.enabled && !showElement ? "#bbb" : "#eee",
-          }}
-        >
-          {props.text ? props.text : ""}
-        </span>
+          {!showElement ? <AddBox /> : <IndeterminateCheckBox />}
+        </IconButton>
+        <span>{text}</span>
       </Box>
-      <Box sx={{ display: "flex", width: "100%", overflowX: "auto" }}>
-        {showElement && <props.PlotFunComponent />}
+      <Box sx={{ display: "flex", width: "100%", overflowX: "auto", marginTop: showElement ? "16px" : '' }}>
+        {showElement && <PlotFunComponent />}
       </Box>
     </>
   );

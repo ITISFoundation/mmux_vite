@@ -14,7 +14,6 @@ type PersistentState = {
 interface NavigationProps {
   steps: Step[];
   activeStep: number;
-  setActiveStep: (step: number) => void;
 }
 
 interface MetaModelingUXProps {
@@ -44,4 +43,23 @@ interface JobRowProps  {
   jobUid: string
   setSelected: (selected: boolean) => void;
   jobList: {[key: string]: boolean}
+}
+
+interface FooterProps {
+  mode: 'light' | 'dark' | 'system' | undefined;
+  setMode: ( mode: 'light' | 'dark' ) => void;
+  activeStep: number;
+  setActiveStep: (step: number) => void;
+}
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+interface PersistentJSONStateOptions<T> {
+    defaultState: T;
+    filePath: string;
+    onStateLoaded?: (state: T) => void;
 }

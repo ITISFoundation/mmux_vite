@@ -3,15 +3,14 @@ import { Box, Tabs, Tab, styled} from '@mui/material';
 import LHSSampling from './LHSSampling';
 import GridSearchSampling from './GridSearchSampling';
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-const Container = styled('div')`
+const Container = styled('div')(({ theme }) => `
   width: 100%;
-  background-color: #f5f5f5;
+  background-color: ${theme.palette.background.default};
+`);
+
+const TabContainer = styled(Box)`
+  border-bottom: 1px solid;
+  border-color: ${({ theme }) => theme.palette.divider};
 `;
 
 function CustomTabPanel(props: TabPanelProps) {
@@ -46,24 +45,18 @@ export const Sampling = () => {
 
   return (
     <Container>
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+      <TabContainer>
         <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
           <Tab label="LHS Sampling" {...a11yProps(0)} />
           <Tab label="Grid Search Sampling" {...a11yProps(1)} />
-          <Tab label="New Sampling" {...a11yProps(2)} />
         </Tabs>
-      </Box>
+      </TabContainer>
       <CustomTabPanel value={value} index={0}>
         {<LHSSampling />}
       </CustomTabPanel>
       <CustomTabPanel value={value} index={1}>
         {<GridSearchSampling />}
       </CustomTabPanel>
-      <CustomTabPanel value={value} index={2}>
-        New Sampling item!
-      </CustomTabPanel>
-      <div>
-      </div>
     </Container>
   )
 }

@@ -1,24 +1,18 @@
-import { Card, Typography, styled } from "@mui/material";
+import { Typography, styled } from "@mui/material";
 
-const HeaderCard = styled(Card, { shouldForwardProp: (props) => props !== 'type'})<{ type: 'setup' | 'sumo' | 'uq' }>(({ type }) => `
-  background-color: ${type === 'setup' ? '#202427' : ''};
-  background-color: ${type === 'sumo' ? '#202427' : ''};
-  background-color: ${type === 'uq' ? '#202427' : ''};
-  border: none;
-  border-radius: 0px;
-  text-align: center;
-  color: white;
-  padding: 16px;
-`);
+const HeaderContainer = styled('div')`
+  text-align: left;
+  margin-bottom: 16px;
+`;
 
 function Header(props: HeaderProps) {
-  const { headerType, tabTitle } = props;
+  const { tabTitle } = props;
     return (
-        <HeaderCard type={headerType} variant="outlined">
-            <Typography variant="h5" component="div">
+        <HeaderContainer>
+            <Typography variant="h5" component="p" fontWeight={100} fontFamily={'inherit'}>
                 {tabTitle}
             </Typography>
-        </HeaderCard>
+        </HeaderContainer>
     );
 };
 

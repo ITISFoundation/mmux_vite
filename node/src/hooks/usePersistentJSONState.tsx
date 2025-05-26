@@ -1,12 +1,6 @@
 import { useState, useEffect } from "react";
 import { loadJSONState, saveJSONState } from "./json_state_utils";
 
-interface PersistentJSONStateOptions<T> {
-    defaultState: T;
-    filePath: string;
-    onStateLoaded?: (state: T) => void;
-}
-
 export function usePersistentJSONState<T>({
     defaultState,
     filePath,

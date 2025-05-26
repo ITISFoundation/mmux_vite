@@ -105,13 +105,13 @@ export default function JobsSelector() {
     const newJobs: SelectedJobCollection[] = jc.map((jc) => ({
       jobCollection: jc,
       selected: false,
-      subJobs: jc.jobIds.reduce(
+      subJobs: jc.jobIds ? jc.jobIds.reduce(
         (acc: { [key: string]: boolean }, jobUid: string) => ({
           ...acc,
           [jobUid]: false,
         }),
         {}
-      ),
+      ) : {},
     }));
 
     updateJobContext(newJobs);
@@ -140,11 +140,11 @@ export default function JobsSelector() {
           <TableRow>
             <TableCell>
               <IconButton
-                sx={{
+                sx={(theme) => ({
                   padding: "8px",
                   alignSelf: "right",
-                  backgroundColor: "#ddd",
-                }}
+                  color: theme.palette.primary.contrastText
+                })}
                 onClick={async () => {
                   await updateJobCollections(
                     context?.selectedFunction?.uid as string

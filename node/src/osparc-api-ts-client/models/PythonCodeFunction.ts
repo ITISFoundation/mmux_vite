@@ -22,6 +22,7 @@ export class PythonCodeFunction {
     'outputSchema': JSONFunctionOutputSchema;
     'defaultInputs': any | null;
     'codeUrl': string;
+    'uid'?: string;
 
     static readonly discriminator: string | undefined = undefined;
 
