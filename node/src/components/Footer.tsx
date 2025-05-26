@@ -1,5 +1,7 @@
-import React from 'react'
-import { Box, Button, Container, Paper, styled } from '@mui/material'
+import React, { useContext } from 'react'
+import { Box, Button, Container, Modal, Paper, styled } from '@mui/material'
+import MMUXContext, { MMUXContextType } from '../views/MMUXContext';
+import JobsDashboard from '../views/ParallelRunner';
 import { DarkMode, LightMode } from '@mui/icons-material';
 
 const Cont = styled(Container)`
@@ -16,15 +18,11 @@ padding: 0 !important;
 }
 `
 
-interface FooterProps {
-  mode: 'light' | 'dark' | 'system' | undefined;
-  setMode: ( mode: 'light' | 'dark' ) => void;
-  activeStep: number;
-  setActiveStep: (step: number) => void;
-}
-
 export const Footer = (props: FooterProps) => {
   const { mode, setMode, activeStep, setActiveStep } = props;
+  const [modal, setModal] = React.useState(false);
+  const context: MMUXContextType | undefined = useContext(MMUXContext);
+  const isJobsRunning = context?.runningSampling;
 
   const handleModeChange = () => {
     console.log('Changing mode from', mode);
@@ -32,15 +30,25 @@ export const Footer = (props: FooterProps) => {
   }
 
   return (
+    <>
     <Cont>
         <Paper className='footerBox' variant="outlined">
           <Button className='footerBtn footerBtnFirst' onClick={()=>setActiveStep(activeStep <= 0 ? 0 : activeStep -1)} disabled={activeStep <= 0}>Previous</Button>
           <Box>
-            <Button className='footerBtn'>Tasks running</Button>
+            <Button className='footerBtn' onClick={() => setModal(!modal)} disabled={!isJobsRunning}>Tasks running</Button>
             <Button className='footerBtn' onClick={handleModeChange}>{mode === 'light' ? <LightMode/> : <DarkMode/>}</Button>
           </Box>
           <Button className='footerBtn footerBtnLast' onClick={()=>setActiveStep(activeStep >= 2 ? 2 : activeStep +1)} disabled={activeStep >= 2}>Next</Button>
         </Paper>
     </Cont>
+    <Modal
+      open={modal}
+      onClose={() => setModal(false)}
+      aria-labelledby="modal-modal-title"
+      aria-describedby="modal-modal-description"
+      >
+        { isJobsRunning && isJobsRunning === true ? <JobsDashboard progressBarOnly={false} /> : <></>}
+      </Modal>
+    </>
   )
 }

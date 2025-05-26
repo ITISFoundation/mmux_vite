@@ -8,7 +8,8 @@ import {
   Paper,
   Button,
   CircularProgress,
-  styled
+  styled,
+  Box
 } from "@mui/material";
 import type { Function } from "../osparc-api-ts-client/models/Function";
 import {
@@ -98,7 +99,7 @@ export function FunctionList() {
   };
 
   if(loading) {
-    return <CircularProgress />
+    return <Box textAlign={'center'}><CircularProgress /></Box>
   }
   // Maybe modularize as Cards (instead of Table) ?
   return (

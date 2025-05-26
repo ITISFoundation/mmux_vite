@@ -41,8 +41,8 @@ export function setupTheme(mode: "light" | "dark") {
               backgroundColor: mode === "light" ? "#fff" : "#444",
             },
             "&:disabled": {
-              color: mode === "light" ? "#999" : "#777",
-              backgroundColor: mode === "light" ? "#bbb" : "#555",
+              color: mode === "light" ? "#999" : "#888",
+              backgroundColor: mode === "light" ? "#bbb" : "#666",
             },
           },
         },
