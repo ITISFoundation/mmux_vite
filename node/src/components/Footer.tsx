@@ -38,7 +38,7 @@ export const Footer = (props: FooterProps) => {
             <Button className='footerBtn' onClick={() => setModal(!modal)} disabled={!isJobsRunning}>Tasks running</Button>
             <Button className='footerBtn' onClick={handleModeChange}>{mode === 'light' ? <LightMode/> : <DarkMode/>}</Button>
           </Box>
-          <Button className='footerBtn footerBtnLast' onClick={()=>setActiveStep(activeStep >= 2 ? 2 : activeStep +1)} disabled={activeStep >= 2}>Next</Button>
+          <Button className='footerBtn footerBtnLast' onClick={()=>setActiveStep(activeStep >= 3 ? 3 : activeStep +1)} disabled={activeStep >= 3}>Next</Button>
         </Paper>
     </Cont>
     <Modal

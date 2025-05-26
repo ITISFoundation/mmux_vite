@@ -5,24 +5,25 @@ import { setupTheme } from "./theme";
 import { Function } from "./osparc-api-ts-client";
 import Navigation from "./components/Navigation";
 import { Footer } from "./components/Footer";
-import UQ from "./views/UQ";
-import Setup from "./views/Setup";
 import MMUXContext from "./views/MMUXContext";
+import Setup from "./views/Setup";
+import JobSetup from "./views/JobSetup";
 import SuMoBuildingValidation from "./views/SuMoBuilding";
+import UQ from "./views/UQ";
 
 const FakeRoot = styled("div")(
   ({ theme }) => `
   min-height: 100vh;
   height: 100%;
-
   background-color: ${theme.palette.background.default};
 `);
 
 const App = () => {
   const steps: Step[] = [
     { id: 0, label: "Setup" },
-    { id: 1, label: "SuMo" },
-    { id: 2, label: "UQ" },
+    { id: 1, label: "Job Setup" },
+    { id: 2, label: "SuMo" },
+    { id: 3, label: "UQ" },
     // Do not include the ones below - this is for the navigation bar
     // { id: 98, label: "FunctionIndex" },
     // { id: 99, label: "JobIndex" },
@@ -75,8 +76,9 @@ const App = () => {
             />
             <>
               {activeStep === 0 ? <Setup /> : undefined}
-              {activeStep === 1 ? <SuMoBuildingValidation /> : undefined}
-              {activeStep === 2 ? <UQ /> : undefined}
+              {activeStep === 1 ? <JobSetup /> : undefined}
+              {activeStep === 2 ? <SuMoBuildingValidation /> : undefined}
+              {activeStep === 3 ? <UQ /> : undefined}
             </>
             <Footer mode={themeMode} setMode={setThemeModeHandler} activeStep={activeStep} setActiveStep={setActiveStep} />
           </Container>

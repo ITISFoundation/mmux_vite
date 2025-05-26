@@ -13,8 +13,16 @@ const Navi = styled(NavBar)(({ theme }) => `
   width: 100%;
   height: 64px;
   padding: 2em 2em;
+  & .MuiStepLabel-label {
+    font-family: inherit;
+    font-size: 1.2em;
+    font-weight: 100;
+  }
   & .stepper{
     flex: 1;
+    & .MuiSvgIcon-root:not(.Mui-active):not(.Mui-completed) {
+      color: ${theme.palette.background.paper};
+    }
     & > .MuiStepConnector-root.Mui-active {
       & .MuiStepConnector-line {
         border-color: ${theme.palette.primary.main};
