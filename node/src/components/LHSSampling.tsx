@@ -2,7 +2,6 @@ import { useContext, useEffect, useState } from 'react';
 import MMUXContext, { MMUXContextType } from '../views/MMUXContext';
 import usePersistentJSONState from '../hooks/usePersistentJSONState';
 import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
-import JobsDashboard from '../views/ParallelRunner';
 import { Box, Button, Input, Typography } from '@mui/material';
 import { Function, RegisteredFunctionJobCollection } from '../osparc-api-ts-client';
 
@@ -153,7 +152,6 @@ const LHSSampling = () => {
                 {/* TODO should we have a "cancel run" option? */}
                 {/* TODO make a "loading" symbol while the callback executes, as in SuMo creation */}
             </form>
-            {context?.runningSampling ? <JobsDashboard progressBarOnly={false} /> : undefined}
         </>
     );
 }
