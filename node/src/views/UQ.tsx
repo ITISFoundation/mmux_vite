@@ -12,7 +12,7 @@ export default function UQ() {
     // Similar to Sumo building
     const context = useContext(MMUXContext)
     const [useSuMo, setUseSuMo] = useState(true);
-    const inputVars = context?.selectedFunction?.inputSchema.schemaContent.required as string[]
+    const inputVars = context?.inputVars as string[]
     const [numSamples, setNumSamples] = useState(10000);
     const [dataUQHistogram, setDataUQHistogram] = useState(undefined)
 

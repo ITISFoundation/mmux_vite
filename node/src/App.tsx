@@ -4,7 +4,7 @@ import UQ from "./views/UQ";
 import Setup from "./views/Setup";
 import Navigation from "./components/Navigation";
 import MMUXContext from "./views/MMUXContext";
-import { Function } from "./osparc-api-ts-client";
+import { Function, RegisteredFunctionJobCollection } from "./osparc-api-ts-client";
 import SuMoBuildingValidation from "./views/SuMoBuilding";
 
 const Container = styled("div")`
@@ -26,19 +26,28 @@ const App = () => {
   const [funct, setFunct] = useState<Function | undefined>(undefined)
   const [launchingSampling, setLaunchingSampling] = useState<boolean>(false)
   const [runningSampling, setRunningSampling] = useState<boolean>(false)
-  const [selectedJobs, setSelectedJobs] = useState<Array<string>>([]);
+  const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
+  const [inputVars, setInputVars] = useState<string[] | undefined>(undefined);
+  const [outputVars, setOutputVars] = useState<string[] | undefined>(undefined);
+  const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
 
   const defaultMMUXContext = {
     selectedFunction: funct,
     setSelectedFunction: setFunct,
+    inputVars: inputVars,
+    setInputVars: setInputVars,
+    outputVars: outputVars,
+    setOutputVars: setOutputVars,
     currentView: activeStep,
     setCurrentView: setActiveStep,
     launchingSampling: launchingSampling,
     setLaunchingSampling: setLaunchingSampling,
     runningSampling: runningSampling,
     setRunningSampling: setRunningSampling,
-    selectedJobs: selectedJobs,
-    setSelectedJobs: setSelectedJobs,
+    runningJobCollection: runningJobCollection,
+    setRunningJobCollection: setRunningJobCollection,
+    selectedJobUids: selectedJobUids,
+    setSelectedJobUids: setSelectedJobUids,
   };
 
   return (
