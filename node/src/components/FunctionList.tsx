@@ -9,7 +9,9 @@ import {
   Button,
   CircularProgress,
   styled,
-  Box
+  Box,
+  IconButton,
+  Typography,
 } from "@mui/material";
 import type { Function } from "../osparc-api-ts-client/models/Function";
 import {
@@ -24,20 +26,35 @@ import {
   JSONFunctionOutputSchema,
 } from "../osparc-api-ts-client";
 import { toast } from "react-toastify";
+import { Refresh } from "@mui/icons-material";
 
-const ActiveRow = styled(TableRow, { shouldForwardProp: (props) => props !== 'active'})<{ active: boolean }>(({ theme, active }) => `
+const ActiveRow = styled(TableRow, {
+  shouldForwardProp: (props) => props !== "active",
+})<{ active: boolean }>(
+  ({ theme, active }) => `
   font-family: inherit;
   font-weight: 900;
-  background-color: ${active ? theme.palette.secondary.main : theme.palette.background.default};
-`);
+  background-color: ${
+    active ? theme.palette.secondary.main : theme.palette.background.default
+  };
+`
+);
 
-const ActiveCell = styled(TableCell, { shouldForwardProp: (props) => props !== 'active'})<{ active: boolean }>(({ theme, active }) => `
-  color: ${active ? theme.palette.secondary.contrastText : theme.palette.text.primary};
-`);
+const ActiveCell = styled(TableCell, {
+  shouldForwardProp: (props) => props !== "active",
+})<{ active: boolean }>(
+  ({ theme, active }) => `
+  color: ${
+    active ? theme.palette.secondary.contrastText : theme.palette.text.primary
+  };
+`
+);
 
-const TableButton = styled(Button)(({ theme }) => `
+const TableButton = styled(Button)(
+  ({ theme }) => `
   color: ${theme.palette.primary.main};
-`);
+`
+);
 
 const VarsHolder = styled("div")`
   max-width: 150px;
@@ -50,26 +67,31 @@ const VarsHolder = styled("div")`
 
 export function FunctionList() {
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<boolean>(true);
+  const [error, setError] = useState<boolean>(false);
   const [functions, setFunctions] = useState<Function[]>([]);
   const context = useContext(MMUXContext);
 
-  useEffect(() => {
-      (async () => {
-        try {
-          const funs = await listFunctions();
-          console.debug("Functions obtained: ", funs);
-          setFunctions(funs);
-        } catch (error) {
-          console.error("Error fetching functions:", error);
-          setError(true);
-          toast.error("Error fetching functions. Please try again later.");
-        }
-        setLoading(false);
-      })();
-  }, []);
+  const fetchFunctions = async () => {
+    try {
+      setLoading(true);
+      const funs = await listFunctions();
+      console.debug("Functions obtained: ", funs);
+      setFunctions(funs);
+      if(funs.length === 0) {
+        toast.info("No functions available. Please create a function first.");
+      }
+      setError(false);
+    } catch (error) {
+      console.error("Error fetching functions:", error);
+      setError(true);
+      toast.error("Error fetching functions. Please try again later.");
+    }
+    setLoading(false);
+  };
 
-  const showInputOutputSchema = (schema: JSONFunctionInputSchema | JSONFunctionOutputSchema) => {
+  const showInputOutputSchema = (
+    schema: JSONFunctionInputSchema | JSONFunctionOutputSchema
+  ) => {
     if (!schema) {
       console.error("Invalid schema:", schema);
       return [];
@@ -87,7 +109,7 @@ export function FunctionList() {
         {display_vars}
       </VarsHolder>
     );
-  }
+  };
 
   const getFunctionSolver = (fun: Function) => {
     console.log(fun);
@@ -106,12 +128,29 @@ export function FunctionList() {
     }
   };
 
-  if(loading) {
-    return <Box textAlign={'center'}><CircularProgress /></Box>
+    useEffect(() => {
+    (async () => {fetchFunctions()})();
+  }, []);
+
+  if (loading) {
+    return (
+      <Box textAlign={"center"}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
-  if(error) {
-    return <Box textAlign={'center'}>No jobs available. Please try again later.</Box>
+  if (error) {
+    return (
+      <Box textAlign={"center"}>
+        <Typography variant="body1" fontFamily={'inherit'} fontSize={'1.2em'} fontWeight={300} display="inline" mr={1}>
+          No functions available.
+        </Typography>
+        <IconButton size="small" onClick={async () => await fetchFunctions()}>
+          <Refresh color="primary" />
+        </IconButton>
+      </Box>
+    );
   }
 
   // Maybe modularize as Cards (instead of Table) ?
@@ -124,20 +163,39 @@ export function FunctionList() {
           <TableCell>Inputs</TableCell>
           <TableCell>Outputs</TableCell>
           <TableCell>Solver / Template</TableCell>
-          <TableCell/>
+          <TableCell />
         </TableRow>
       </TableHead>
       <TableBody>
         {functions.map((fun) => (
-          <ActiveRow key={fun.uid} active={context?.selectedFunction?.uid === fun.uid}>
-            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>{fun.title}</ActiveCell>
-            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>{fun.description}</ActiveCell>
-            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>{showInputOutputSchema(fun.inputSchema)}</ActiveCell>
-            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>{showInputOutputSchema(fun.outputSchema)}</ActiveCell>
-            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>{getFunctionSolver(fun)}</ActiveCell>
-            <ActiveCell align='right' active={context?.selectedFunction?.uid === fun.uid}>
-              <TableButton variant="contained" onClick={() => context?.setSelectedFunction(fun)}>
-                  Select
+          <ActiveRow
+            key={fun.uid}
+            active={context?.selectedFunction?.uid === fun.uid}
+          >
+            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>
+              {fun.title}
+            </ActiveCell>
+            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>
+              {fun.description}
+            </ActiveCell>
+            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>
+              {showInputOutputSchema(fun.inputSchema)}
+            </ActiveCell>
+            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>
+              {showInputOutputSchema(fun.outputSchema)}
+            </ActiveCell>
+            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>
+              {getFunctionSolver(fun)}
+            </ActiveCell>
+            <ActiveCell
+              align="right"
+              active={context?.selectedFunction?.uid === fun.uid}
+            >
+              <TableButton
+                variant="contained"
+                onClick={() => context?.setSelectedFunction(fun)}
+              >
+                Select
               </TableButton>
             </ActiveCell>
           </ActiveRow>
