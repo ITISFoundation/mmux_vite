@@ -3,6 +3,7 @@ import { Box, Button, Container, Modal, Paper, styled } from '@mui/material'
 import MMUXContext, { MMUXContextType } from '../views/MMUXContext';
 import JobsDashboard from '../views/ParallelRunner';
 import { DarkMode, LightMode } from '@mui/icons-material';
+import { stepValidator } from '../utils/stepValidator';
 
 const Cont = styled(Container)`
 padding: 0 !important;
@@ -38,7 +39,13 @@ export const Footer = (props: FooterProps) => {
             <Button className='footerBtn' onClick={() => setModal(!modal)} disabled={!isJobsRunning}>Tasks running</Button>
             <Button className='footerBtn' onClick={handleModeChange}>{mode === 'light' ? <LightMode/> : <DarkMode/>}</Button>
           </Box>
-          <Button className='footerBtn footerBtnLast' onClick={()=>setActiveStep(activeStep >= 3 ? 3 : activeStep +1)} disabled={activeStep >= 3}>Next</Button>
+          <Button
+            className='footerBtn footerBtnLast'
+            onClick={()=>setActiveStep(activeStep >= 3 ? 3 : activeStep +1)}
+            disabled={activeStep >= 3 || !stepValidator(context, activeStep)}
+          >
+            Next
+          </Button>
         </Paper>
     </Cont>
     <Modal
