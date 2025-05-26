@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useContext } from 'react'
 import type { FunctionJob } from '../osparc-api-ts-client';
 import MMUXContext from './MMUXContext';
-import { getFunctionJobsFromFunctionUid } from '../components/function_utils';
+import { getFunctionJob, getFunctionJobsFromFunctionJobCollection } from '../components/function_utils';
 
 const statusColors = {
     PENDING: 'bg-gray-300',
@@ -190,9 +190,17 @@ export function Dashboard(props: JobDashboardProps) {
     const fetchJobs = useCallback(async () => {
         try {
             // TODO get jobs for JobCollection (instead of all related to that function) when Werner exposes that
-            let jobList = await getFunctionJobsFromFunctionUid(context?.selectedFunction?.uid as string);
+            let jobList = await getFunctionJobsFromFunctionJobCollection(context?.runningJobCollection?.uid as string);
+            // let jobList = context?.runningJobCollection?.jobIds?.map(async (job_uid) => {
+            //     return await getFunctionJob(job_uid)
+            // }
+            // )
             console.log("Fetched jobs:", jobList);
-            setJobs(jobList);
+            if (jobList !== undefined) {
+                setJobs(jobList);
+            } else {
+                // TODO add warning to be displayed
+            }
             // setTotalETA(data.totalETA);
             setLoading(false);
         } catch (e) {
