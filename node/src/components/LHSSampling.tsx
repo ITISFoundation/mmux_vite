@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 import MMUXContext, { MMUXContextType } from '../views/MMUXContext';
-import usePersistentJSONState from '../hooks/usePersistentJSONState';
+// import usePersistentJSONState from '../hooks/usePersistentJSONState';
 import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
 import JobsDashboard from '../views/ParallelRunner';
 import { Box, Button, Input, Typography } from '@mui/material';
@@ -45,27 +45,15 @@ async function runLhsSampling(context: MMUXContextType | undefined, config: any[
 const LHSSampling = () => {
     const context = useContext(MMUXContext);
     const inputVars = context?.selectedFunction?.inputSchema.schemaContent.required as string[];
-    const [JSONStateFilePath, setJSONStateFilePath] = useState("");
-    // Needed to move the filePath outside of the PersistentJSONState hook to avoid triggering infinite loops
-    // Now it works and I have persistence even across sessions :)
-    const [lhsInputs, setLhsInputs] = usePersistentJSONState<PersistentState[]>({
-        defaultState: inputVars.map((inputVar) => ({
+    const [lhsInputs, setLhsInputs] = useState(
+        inputVars.map((inputVar) => ({
             variable: inputVar,
             start: 0.0,
             end: 1.0,
             points: 5, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
             seed: 0,  // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
         })),
-        filePath: JSONStateFilePath
-    });
-
-
-    useEffect(() => {
-        if (context?.selectedFunction) {
-            const funname = context?.selectedFunction?.title?.replace(/\s+/g, "_");
-            setJSONStateFilePath(`src/assets/LhsInputs_${funname}.json`);
-        }
-    }, [context?.selectedFunction]);
+    )
 
     function CreateSamplingButton() {
         const handleRunSampling = () => {

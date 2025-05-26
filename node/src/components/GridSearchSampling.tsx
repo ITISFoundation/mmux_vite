@@ -1,6 +1,5 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useState } from 'react';
 import MMUXContext from '../views/MMUXContext';
-import usePersistentJSONState from '../hooks/usePersistentJSONState';
 import { Button, Input } from '@mui/material';
 
 
@@ -12,36 +11,26 @@ function runGridSearchSampling(config: unknown[]) {
 function GridSearchSampling() {
     const context = useContext(MMUXContext);
     let [gridSearchInputs, setGridSearchInputs] = [] as unknown as [PersistentState[], (state: PersistentState[]) => void];
-    const [JSONStateFilePath, setJSONStateFilePath] = useState("");
 
     // TODO: Review this calls and apply the try/catch pattern to all API calls that can fail, this can even be moved to the setJSONStateFilePath function
     try {
-      // TODO: FIX TS ERRRORS
-      // @ts-expect-error TS(2322): Type 'string[]' is not assignable to type 'never[]'.
-      const inputVars = context?.selectedFunction?.inputSchema.required as string[];
-      // Needed to move the filePath outside of the PersistentJSONState hook to avoid triggering infinite loops
-      // Now it works and I have persistence even across sessions :)
+        // TODO: FIX TS ERRRORS
+        // @ts-expect-error TS(2322): Type 'string[]' is not assignable to type 'never[]'.
+        const inputVars = context?.selectedFunction?.inputSchema.required as string[];
+        // Needed to move the filePath outside of the PersistentJSONState hook to avoid triggering infinite loops
+        // Now it works and I have persistence even across sessions :)
 
-      [gridSearchInputs, setGridSearchInputs] = usePersistentJSONState<PersistentState[]>({
-          defaultState: inputVars?.map((inputVar) => ({
-              variable: inputVar,
-              start: 0.0,
-              end: 1.0,
-              points: 10,
-          })),
-          filePath: JSONStateFilePath
-      });
+        [gridSearchInputs, setGridSearchInputs] = useState(
+            inputVars?.map((inputVar) => ({
+                variable: inputVar,
+                start: 0.0,
+                end: 1.0,
+                points: 10,
+            }))
+        );
     } catch (error) {
-      console.warn("Error in GridSearchSampling: ", error);
+        console.warn("Error in GridSearchSampling: ", error);
     }
-
-    useEffect(() => {
-        if (context?.selectedFunction) {
-            // @ts-expect-error TS(2322): Type 'string[]' is not assignable to type 'never[]'.
-            const funname = context?.selectedFunction?.name?.replace(/\s+/g, "_");
-            setJSONStateFilePath(`src/assets/gridSearchInputs_${funname}.json`);
-        }
-    }, [context?.selectedFunction]);
 
 
     function handleInputChange(index: number, field: string, value: string) {
