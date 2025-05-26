@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { styled, ThemeProvider } from "@mui/material/styles";
 import { Container, useColorScheme } from "@mui/material";
+import { ToastContainer } from 'react-toastify';
 import { setupTheme } from "./theme";
 import { Function } from "./osparc-api-ts-client";
 import Navigation from "./components/Navigation";
@@ -82,6 +83,18 @@ const App = () => {
             </>
             <Footer mode={themeMode} setMode={setThemeModeHandler} activeStep={activeStep} setActiveStep={setActiveStep} />
           </Container>
+          <ToastContainer
+            theme={themeMode}
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable={false}
+            pauseOnHover
+          />
         </FakeRoot>
       </ThemeProvider>
     </MMUXContext.Provider>

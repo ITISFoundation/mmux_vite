@@ -23,6 +23,7 @@ import {
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,
 } from "../osparc-api-ts-client";
+import { toast } from "react-toastify";
 
 const ActiveRow = styled(TableRow, { shouldForwardProp: (props) => props !== 'active'})<{ active: boolean }>(({ theme, active }) => `
   font-family: inherit;
@@ -49,14 +50,21 @@ const VarsHolder = styled("div")`
 
 export function FunctionList() {
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<boolean>(true);
   const [functions, setFunctions] = useState<Function[]>([]);
   const context = useContext(MMUXContext);
 
   useEffect(() => {
       (async () => {
-        const funs = await listFunctions();
-        console.debug("Functions obtained: ", funs);
-        setFunctions(funs);
+        try {
+          const funs = await listFunctions();
+          console.debug("Functions obtained: ", funs);
+          setFunctions(funs);
+        } catch (error) {
+          console.error("Error fetching functions:", error);
+          setError(true);
+          toast.error("Error fetching functions. Please try again later.");
+        }
         setLoading(false);
       })();
   }, []);
@@ -101,6 +109,11 @@ export function FunctionList() {
   if(loading) {
     return <Box textAlign={'center'}><CircularProgress /></Box>
   }
+
+  if(error) {
+    return <Box textAlign={'center'}>No jobs available. Please try again later.</Box>
+  }
+
   // Maybe modularize as Cards (instead of Table) ?
   return (
     <Table component={Paper}>
