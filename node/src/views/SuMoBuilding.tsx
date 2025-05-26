@@ -1,6 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
 import MetaModelingUX from '../components/MetaModelingUX';
-import JobSelector from '../components/JobSelector';
 import { Button, Box, Container } from '@mui/material';
 import MMUXContext from './MMUXContext';
 import PlotDataTogether from '../components/PlotDataTogether'
@@ -130,7 +129,6 @@ function SuMoBuildingValidation() {
           <span>
             Selected Function: <b>{context?.selectedFunction?.title}</b>
           </span>
-          <JobSelector />
           <QoISelector />
           {isSuMoGenerated && (
             <>

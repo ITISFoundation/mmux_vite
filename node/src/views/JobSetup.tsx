@@ -1,16 +1,16 @@
 import { useContext } from "react";
 import MetaModelingUX from "../components/MetaModelingUX";
-import { FunctionList } from "../components/FunctionList";
 import MMUXContext from "./MMUXContext";
 import PlusButton from "../components/PlusButton";
 import { Sampling } from "../components/Sampling";
+import JobSelector from "../components/JobSelector";
 
 export default function Setup() {
   const context = useContext(MMUXContext);
 
   return (
     <MetaModelingUX tabTitle="Base Function Selection" headerType="setup">
-      <FunctionList />
+      <JobSelector />
       {context?.selectedFunction !== undefined ? (
         <PlusButton
           onClickFun={() => null}
