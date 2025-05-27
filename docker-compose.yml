@@ -8,3 +8,13 @@ services:
       NODE_ENV: development # ??
     ports:
       - 3000:3000 ## wrong port?
+
+  flaskapi:
+    image: flaskapi
+    build:
+      context: .
+      dockerfile: ./flaskapi/Dockerfile
+    environment:
+      - FLASK_ENV=development
+    ports:
+      - 5000:5000
