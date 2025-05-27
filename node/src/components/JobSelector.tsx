@@ -105,7 +105,7 @@ export default function JobsSelector() {
     const newJobs: SelectedJobCollection[] = jc.map((jc) => ({
       jobCollection: jc,
       selected: false,
-      subJobs: jc.jobIds?.reduce(
+      subJobs: (jc.jobIds || []).reduce(
         (acc: { [key: string]: boolean }, jobUid: string) => ({
           ...acc,
           [jobUid]: false,
