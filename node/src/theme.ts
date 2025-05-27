@@ -25,7 +25,6 @@ export function setupTheme(mode: "light" | "dark") {
   });
 
   return createTheme(theme, {
-    // shape: { borderRadius: 10 }
     components: {
       MuiButton: {
         styleOverrides: {

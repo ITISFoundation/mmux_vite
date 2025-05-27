@@ -53,6 +53,11 @@ export const Footer = (props: FooterProps) => {
       onClose={() => setModal(false)}
       aria-labelledby="modal-modal-title"
       aria-describedby="modal-modal-description"
+      sx={{
+        margin: 'auto',
+        width: '80vw',
+        height: '80vh',
+      }}
       >
         { isJobsRunning && isJobsRunning === true ? <JobsDashboard progressBarOnly={false} /> : <></>}
       </Modal>

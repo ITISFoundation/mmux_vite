@@ -101,8 +101,9 @@ export function FunctionList() {
   }
 
   useEffect(() => {
+    console.log("FunctionList mounted, fetching functions...");
     (async () => {
-      fetchFunctions();
+      await fetchFunctions();
     })();
   }, []);
 

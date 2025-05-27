@@ -14,11 +14,10 @@ export function createInputOutputSchema(vars: string[]) {
 }
 
 export async function listFunctions(): Promise<Function[]> {
-    return await fetch(
+    const result = await fetch(
         PYTHON_DAKOTA_BACKEND + '/flask/list_functions',
-    ).then(function (response) {
-        return response.json()
-    })
+    )
+    return result.json()
 }
 
 export async function listJobs(): Promise<FunctionJob[]> {

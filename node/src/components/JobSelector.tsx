@@ -193,6 +193,7 @@ export default function JobsSelector() {
                   color: theme.palette.primary.contrastText,
                 })}
                 onClick={async () => {
+                  console.log("Refreshing job collections...", context);
                   await updateJobCollections(
                     context?.selectedFunction?.uid as string
                   );
@@ -301,7 +302,6 @@ export default function JobsSelector() {
             backgroundColor: (theme) => theme.palette.background.paper,
           },
         }}
-        onRowClick={(params) => context?.setSelectedFunction(params.row)}
         getRowId={getRowId}
         showToolbar
         initialState={{
