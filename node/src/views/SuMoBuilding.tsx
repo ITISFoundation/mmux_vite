@@ -14,7 +14,7 @@ import IsoSurface3DPlot from "../components/IsoSurface3DPlot";
 
 function SuMoBuildingValidation() {
   const context = useContext(MMUXContext)
-  const inputVars = context?.inputVars as string[]
+  const inputVars = context?.inputVars ?? [] as string[]
   const outputVars = context?.outputVars as string[]
   const [isSuMoGenerated, setIsSuMoGenerated] = useState(false)
 
