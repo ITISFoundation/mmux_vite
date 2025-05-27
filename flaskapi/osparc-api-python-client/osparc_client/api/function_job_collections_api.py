@@ -16,7 +16,7 @@ from pydantic import validate_call, Field, StrictFloat, StrictStr, StrictInt
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
-from pydantic import Field, StrictStr
+from pydantic import Field, StrictStr, field_validator
 from typing import Any, List, Optional
 from typing_extensions import Annotated
 from osparc_client.models.function_job_collection import FunctionJobCollection
@@ -1113,6 +1113,7 @@ class FunctionJobCollectionsApi:
         self,
         limit: Annotated[Optional[Annotated[int, Field(le=50, strict=True, ge=1)]], Field(description="Page size limit")] = None,
         offset: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Page offset")] = None,
+        has_function_id: Optional[Annotated[str, Field(strict=True)]] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1134,6 +1135,8 @@ class FunctionJobCollectionsApi:
         :type limit: int
         :param offset: Page offset
         :type offset: int
+        :param has_function_id:
+        :type has_function_id: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1159,6 +1162,7 @@ class FunctionJobCollectionsApi:
         _param = self._list_function_job_collections_serialize(
             limit=limit,
             offset=offset,
+            has_function_id=has_function_id,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1185,6 +1189,7 @@ class FunctionJobCollectionsApi:
         self,
         limit: Annotated[Optional[Annotated[int, Field(le=50, strict=True, ge=1)]], Field(description="Page size limit")] = None,
         offset: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Page offset")] = None,
+        has_function_id: Optional[Annotated[str, Field(strict=True)]] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1206,6 +1211,8 @@ class FunctionJobCollectionsApi:
         :type limit: int
         :param offset: Page offset
         :type offset: int
+        :param has_function_id:
+        :type has_function_id: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1231,6 +1238,7 @@ class FunctionJobCollectionsApi:
         _param = self._list_function_job_collections_serialize(
             limit=limit,
             offset=offset,
+            has_function_id=has_function_id,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1257,6 +1265,7 @@ class FunctionJobCollectionsApi:
         self,
         limit: Annotated[Optional[Annotated[int, Field(le=50, strict=True, ge=1)]], Field(description="Page size limit")] = None,
         offset: Annotated[Optional[Annotated[int, Field(strict=True, ge=0)]], Field(description="Page offset")] = None,
+        has_function_id: Optional[Annotated[str, Field(strict=True)]] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1278,6 +1287,8 @@ class FunctionJobCollectionsApi:
         :type limit: int
         :param offset: Page offset
         :type offset: int
+        :param has_function_id:
+        :type has_function_id: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1303,6 +1314,7 @@ class FunctionJobCollectionsApi:
         _param = self._list_function_job_collections_serialize(
             limit=limit,
             offset=offset,
+            has_function_id=has_function_id,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1324,6 +1336,7 @@ class FunctionJobCollectionsApi:
         self,
         limit,
         offset,
+        has_function_id,
         _request_auth,
         _content_type,
         _headers,
@@ -1353,6 +1366,10 @@ class FunctionJobCollectionsApi:
         if offset is not None:
             
             _query_params.append(('offset', offset))
+            
+        if has_function_id is not None:
+            
+            _query_params.append(('has_function_id', has_function_id))
             
         # process the header parameters
         # process the form parameters

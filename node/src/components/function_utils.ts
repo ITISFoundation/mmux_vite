@@ -50,7 +50,15 @@ export async function getFunctionJobsFromFunctionUid(functionUid: string): Promi
 export async function getFunctionJobCollections(functionUid: string): Promise<FunctionJobCollection[]> {
     return await fetch(
         // PYTHON_DAKOTA_BACKEND + '/flask/list_function_job_collections_for_functionid?functionUid=' + functionUid,
-        PYTHON_DAKOTA_BACKEND + '/flask/list_function_job_collections',
+        PYTHON_DAKOTA_BACKEND + '/flask/list_function_job_collections_for_functionid?functionUid=' + functionUid,
+    ).then(function (response) {
+        return response.json()
+    })
+}
+
+export async function getFunctionJobsFromFunctionJobCollection(JobCollectionUid: string): Promise<FunctionJob[]> {
+    return await fetch(
+        PYTHON_DAKOTA_BACKEND + '/flask/list_function_jobs_for_jobcollectionid?JobCollectionUid=' + JobCollectionUid,
     ).then(function (response) {
         return response.json()
     })
