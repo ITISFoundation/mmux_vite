@@ -1,18 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import {
-  Table,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableHead,
-  Paper,
-  Button,
-  CircularProgress,
-  styled,
-  Box,
-  IconButton,
-  Typography,
-} from "@mui/material";
+import { Button, styled, Box, IconButton, Typography } from "@mui/material";
 import type { Function } from "../osparc-api-ts-client/models/Function";
 import {
   SolverFunction,
@@ -27,28 +14,7 @@ import {
 } from "../osparc-api-ts-client";
 import { toast } from "react-toastify";
 import { Refresh } from "@mui/icons-material";
-
-const ActiveRow = styled(TableRow, {
-  shouldForwardProp: (props) => props !== "active",
-})<{ active: boolean }>(
-  ({ theme, active }) => `
-  font-family: inherit;
-  font-weight: 900;
-  background-color: ${
-    active ? theme.palette.secondary.main : theme.palette.background.default
-  };
-`
-);
-
-const ActiveCell = styled(TableCell, {
-  shouldForwardProp: (props) => props !== "active",
-})<{ active: boolean }>(
-  ({ theme, active }) => `
-  color: ${
-    active ? theme.palette.secondary.contrastText : theme.palette.text.primary
-  };
-`
-);
+import { DataGrid } from "@mui/x-data-grid";
 
 const TableButton = styled(Button)(
   ({ theme }) => `
@@ -63,6 +29,8 @@ const VarsHolder = styled("div")`
   text-overflow: ellipsis;
   white-space: nowrap;
   position: relative;
+  display: flex;
+  gap: 16px;
 `;
 
 export function FunctionList() {
@@ -77,7 +45,7 @@ export function FunctionList() {
       const funs = await listFunctions();
       console.debug("Functions obtained: ", funs);
       setFunctions(funs);
-      if(funs.length === 0) {
+      if (funs.length === 0) {
         toast.info("No functions available. Please create a function first.");
       }
       setError(false);
@@ -128,22 +96,27 @@ export function FunctionList() {
     }
   };
 
-    useEffect(() => {
-    (async () => {fetchFunctions()})();
-  }, []);
-
-  if (loading) {
-    return (
-      <Box textAlign={"center"}>
-        <CircularProgress />
-      </Box>
-    );
+  function getRowId(row: Function) {
+    return row.uid ? row.uid : "" + row.title + row.description;
   }
+
+  useEffect(() => {
+    (async () => {
+      fetchFunctions();
+    })();
+  }, []);
 
   if (error) {
     return (
       <Box textAlign={"center"}>
-        <Typography variant="body1" fontFamily={'inherit'} fontSize={'1.2em'} fontWeight={300} display="inline" mr={1}>
+        <Typography
+          variant="body1"
+          fontFamily={"inherit"}
+          fontSize={"1.2em"}
+          fontWeight={300}
+          display="inline"
+          mr={1}
+        >
           No functions available.
         </Typography>
         <IconButton size="small" onClick={async () => await fetchFunctions()}>
@@ -153,54 +126,100 @@ export function FunctionList() {
     );
   }
 
-  // Maybe modularize as Cards (instead of Table) ?
   return (
-    <Table component={Paper}>
-      <TableHead>
-        <TableRow>
-          <TableCell>Title</TableCell>
-          <TableCell>Description</TableCell>
-          <TableCell>Inputs</TableCell>
-          <TableCell>Outputs</TableCell>
-          <TableCell>Solver / Template</TableCell>
-          <TableCell />
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {functions.map((fun) => (
-          <ActiveRow
-            key={fun.uid}
-            active={context?.selectedFunction?.uid === fun.uid}
-          >
-            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>
-              {fun.title}
-            </ActiveCell>
-            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>
-              {fun.description}
-            </ActiveCell>
-            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>
-              {showInputOutputSchema(fun.inputSchema)}
-            </ActiveCell>
-            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>
-              {showInputOutputSchema(fun.outputSchema)}
-            </ActiveCell>
-            <ActiveCell active={context?.selectedFunction?.uid === fun.uid}>
-              {getFunctionSolver(fun)}
-            </ActiveCell>
-            <ActiveCell
-              align="right"
-              active={context?.selectedFunction?.uid === fun.uid}
+    <DataGrid
+      rows={functions}
+      columns={[
+        { field: "title", headerName: "Title", flex: 1, maxWidth: 200 },
+        {
+          field: "description",
+          headerName: "Description",
+          flex: 1,
+          maxWidth: 400,
+        },
+        {
+          field: "inputSchema",
+          headerName: "Inputs",
+          flex: 1,
+          maxWidth: 100,
+          renderCell: (params) => showInputOutputSchema(params.row.inputSchema),
+        },
+        {
+          field: "outputSchema",
+          headerName: "Outputs",
+          flex: 1,
+          maxWidth: 100,
+          renderCell: (params) =>
+            showInputOutputSchema(params.row.outputSchema),
+        },
+        {
+          field: "solverKey",
+          headerName: "Solver / Template",
+          flex: 1,
+          minWidth: 200,
+          renderCell: (params) => getFunctionSolver(params.row),
+        },
+        {
+          field: "actions",
+          headerName: "",
+          sortable: false,
+          flex: 0.5,
+          maxWidth: 100,
+          minWidth: 100,
+          renderCell: (params) => (
+            <TableButton
+              variant="contained"
+              onClick={() => context?.setSelectedFunction(params.row)}
             >
-              <TableButton
-                variant="contained"
-                onClick={() => context?.setSelectedFunction(fun)}
-              >
-                Select
-              </TableButton>
-            </ActiveCell>
-          </ActiveRow>
-        ))}
-      </TableBody>
-    </Table>
+              Select
+            </TableButton>
+          ),
+        },
+      ]}
+      sx={{
+        borderRadius: "8px",
+        overflow: "hidden",
+        fontFamily: "inherit",
+        padding: "0px 8px",
+        "& .MuiDataGrid-cell": {
+          fontWeight: 400,
+        },
+        "& .MuiDataGrid-row:hover": {
+          backgroundColor: (theme) =>
+            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+              theme.palette.mode === "dark" ? "black" : "white"
+            })`,
+        },
+        "& .MuiDataGrid-row.Mui-selected": {
+          backgroundColor: (theme) => theme.palette.primary.main,
+        },
+        "& .MuiDataGrid-row.Mui-selected:hover": {
+          backgroundColor: (theme) => theme.palette.primary.main,
+        },
+        "& .MuiDataGrid-sortButton": {
+          backgroundColor: (theme) => theme.palette.background.paper,
+        },
+      }}
+      onRowClick={(params) => context?.setSelectedFunction(params.row)}
+      getRowId={getRowId}
+      showToolbar
+      initialState={{
+        pagination: {
+          paginationModel: { pageSize: 10 },
+        },
+        sorting: {
+          sortModel: [{ field: "title", sort: "asc" }],
+        },
+        filter: {
+          filterModel: {
+            items: [],
+          },
+        },
+      }}
+      pageSizeOptions={[5, 10, 20, 50]}
+      loading={loading}
+      disableColumnMenu
+      disableColumnSelector
+    ></DataGrid>
   );
 }

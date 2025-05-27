@@ -3,8 +3,9 @@ import { createTheme } from "@mui/material";
 export function setupTheme(mode: "light" | "dark") {
   const theme = createTheme({
     palette: {
+      mode: mode,
       primary: {
-        main: mode === "light" ? "#FF5733" : "#FF8166",
+        main: mode === "light" ? "#FF7C60" : "#FF8166",
         contrastText: mode === "light" ? "#000" : "#fff",
       },
       secondary: {
@@ -86,7 +87,7 @@ export function setupTheme(mode: "light" | "dark") {
           iconContainer: {
             color: mode === "light" ? "#333" : "#eee",
             "&.Mui-active": {
-              color: mode === "light" ? "#FF5733" : "#FF8166",
+              color: theme.palette.primary.main,
             },
             "&.Mui-completed": {
               color: mode === "light" ? "#4CAF50" : "#FF8166",

@@ -41,7 +41,7 @@ type CollectionRowProps = {
 
 interface JobRowProps  {
   jobUid: string
-  setSelected: (selected: boolean) => void;
+  setSelected: (selected: boolean, subJob: string) => void;
   jobList: {[key: string]: boolean}
 }
 
@@ -62,4 +62,11 @@ interface PersistentJSONStateOptions<T> {
     defaultState: T;
     filePath: string;
     onStateLoaded?: (state: T) => void;
+}
+
+interface FunctionJobCollection {
+  title: string;
+  description: string;
+  jobIds: Array<string>;
+  uid: string;
 }

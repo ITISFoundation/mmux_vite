@@ -12,7 +12,7 @@ const JobRow = (props: JobRowProps) => {
   const [job, setJob] = React.useState<FunctionJob | undefined>(undefined);
 
   const handleSetJob = (selected: boolean) => {
-    setSelected(selected);
+    setSelected(selected, jobUid);
   };
 
   React.useEffect(() => {
