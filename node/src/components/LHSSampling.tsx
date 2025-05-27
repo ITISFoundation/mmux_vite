@@ -1,6 +1,5 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useState } from 'react';
 import MMUXContext, { MMUXContextType } from '../views/MMUXContext';
-import usePersistentJSONState from '../hooks/usePersistentJSONState';
 import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import { Box, Button, Input, Typography } from '@mui/material';
 import { Function, RegisteredFunctionJobCollection } from '../osparc-api-ts-client';
@@ -34,37 +33,23 @@ async function runLhsSampling(context: MMUXContextType | undefined, config: any[
         })
     context?.setLaunchingSampling(false)
     context?.setRunningSampling(true)
+    context?.setRunningJobCollection(jc ? jc : undefined)
     return jc
-} // Now the LHS is both created & submitted to OSPARC API through the Python Backend. Implement. 
-// What should I return here? 
-// would be nice to have an "spinning" symbol while everything is getting done in the backend
-// also, in the ParallelRunner dashboard, would be nice to see only that one JobCollection - how? simply get latest for the selected function (and only render when click "Run")
-// ParallelRunner bar should show only when running something; clicking on it allows to "toggle down" the dashboard itself.
+}
+
 
 const LHSSampling = () => {
     const context = useContext(MMUXContext);
-    const inputVars = context?.selectedFunction?.inputSchema.schemaContent.required as string[];
-    const [JSONStateFilePath, setJSONStateFilePath] = useState("");
-    // Needed to move the filePath outside of the PersistentJSONState hook to avoid triggering infinite loops
-    // Now it works and I have persistence even across sessions :)
-    const [lhsInputs, setLhsInputs] = usePersistentJSONState<PersistentState[]>({
-        defaultState: inputVars.map((inputVar) => ({
+    const inputVars = context?.inputVars as string[];
+    const [lhsInputs, setLhsInputs] = useState(
+        inputVars.map((inputVar) => ({
             variable: inputVar,
             start: 0.0,
             end: 1.0,
             points: 5, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
             seed: 0,  // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
         })),
-        filePath: JSONStateFilePath
-    });
-
-
-    useEffect(() => {
-        if (context?.selectedFunction) {
-            const funname = context?.selectedFunction?.title?.replace(/\s+/g, "_");
-            setJSONStateFilePath(`src/assets/LhsInputs_${funname}.json`);
-        }
-    }, [context?.selectedFunction]);
+    )
 
     function CreateSamplingButton() {
         const handleRunSampling = () => {
@@ -89,7 +74,6 @@ const LHSSampling = () => {
                     {context?.launchingSampling ? "Launching..." : context?.runningSampling ? "Running..." : "Run Sampling"}
                 </Button>
                 {context?.launchingSampling && <Box className="spinner" />}
-                {/* FIXME the spinner ddoes not work anymore */}
             </Box>
         );
     }

@@ -311,7 +311,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **list_function_job_collections**
-> PageRegisteredFunctionJobCollection list_function_job_collections(limit=limit, offset=offset)
+> PageRegisteredFunctionJobCollection list_function_job_collections(limit=limit, offset=offset, has_function_id=has_function_id)
 
 List Function Job Collections
 
@@ -341,10 +341,11 @@ with osparc_client.ApiClient(configuration) as api_client:
     api_instance = osparc_client.FunctionJobCollectionsApi(api_client)
     limit = 20 # int | Page size limit (optional) (default to 20)
     offset = 0 # int | Page offset (optional) (default to 0)
+    has_function_id = 'has_function_id_example' # str |  (optional)
 
     try:
         # List Function Job Collections
-        api_response = api_instance.list_function_job_collections(limit=limit, offset=offset)
+        api_response = api_instance.list_function_job_collections(limit=limit, offset=offset, has_function_id=has_function_id)
         print("The response of FunctionJobCollectionsApi->list_function_job_collections:\n")
         pprint(api_response)
     except Exception as e:
@@ -360,6 +361,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **limit** | **int**| Page size limit | [optional] [default to 20]
  **offset** | **int**| Page offset | [optional] [default to 0]
+ **has_function_id** | **str**|  | [optional] 
 
 ### Return type
 

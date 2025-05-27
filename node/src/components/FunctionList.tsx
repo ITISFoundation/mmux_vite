@@ -169,7 +169,20 @@ export function FunctionList() {
           renderCell: (params) => (
             <TableButton
               variant="contained"
-              onClick={() => context?.setSelectedFunction(params.row)}
+              onClick={() => {
+                context?.setSelectedFunction(params.row);
+                context?.setInputVars(
+                    params.row.inputSchema?.schemaContent?.properties
+                        ? Object.keys(params.row.inputSchema.schemaContent.properties)
+                        : []
+                );
+                console.log("inputVars registered:", Object.keys(params.row.inputSchema.schemaContent.properties))
+                context?.setOutputVars(
+                    params.row.outputSchema?.schemaContent?.properties
+                        ? Object.keys(params.row.outputSchema.schemaContent.properties)
+                        : []
+                );
+              }}
             >
               Select
             </TableButton>

@@ -23,7 +23,7 @@ export class SolverFunction {
     'defaultInputs': any | null;
     'solverKey': string;
     'solverVersion': string;
-    'uid'?: string;
+    'uid': string; // manually added
 
     static readonly discriminator: string | undefined = undefined;
 

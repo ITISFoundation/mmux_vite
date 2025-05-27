@@ -45,7 +45,7 @@ export default function JobsSelector() {
       )
       .flat();
     console.log("Selected jobs for context: ", newList);
-    context?.setSelectedJobs(newList);
+    context?.setSelectedJobUids(newList);
   };
 
   const selectMainJob = (uid: string, selected: boolean) => {

@@ -22,7 +22,7 @@ export class ProjectFunction {
     'outputSchema': JSONFunctionOutputSchema;
     'defaultInputs': any | null;
     'projectId': string;
-    'uid'?: string;
+    'uid': string; // manually added
 
     static readonly discriminator: string | undefined = undefined;
 
