@@ -6,6 +6,7 @@ FROM ubuntu:22.04
 RUN apt update && apt install -y \
   git \
   curl \
+  make \
   python3.11 \
   python3.11-venv \
   pip \
@@ -13,15 +14,23 @@ RUN apt update && apt install -y \
 
 WORKDIR /app
 
-COPY flask_workflows.py /app/flask_workflows.py
+COPY flask_workflows.py ./flask_workflows.py
+COPY . .
 
-RUN git clone https://github.com/ITISFoundation/mmux_python &&\
-  cd ./mmux_python && git checkout $(MMUX_PYTHON_BRANCH)
-RUN python3.11 -m venv .venv &&\
-  .venv/bin/python -m pip install --upgrade pip &&\
+RUN git clone https://github.com/ITISFoundation/mmux_python
+RUN echo $(ls -l)
+WORKDIR /app/mmux_python
+RUN echo $(ls -l)
+RUN git checkout work/jgo/flask_mmux_nih
+
+WORKDIR /app
+RUN python3.11 -m venv .venv
+RUN .venv/bin/python -m pip install --upgrade pip &&\
   .venv/bin/python -m pip install itis-dakota && \
   .venv/bin/python -m pip install flask python-dotenv && \
   .venv/bin/python -m pip install -r ./mmux_python/requirements.txt
+
+RUN cd /app
 
 ## OSPARC API client generator; uses UV (I dont know why it doesnt work with the .venv python)
 RUN echo 1
@@ -34,4 +43,4 @@ RUN .uv_env/bin/openapi-generator-cli generate -i openapi.json -g python -o ./os
   .venv/bin/python -m pip install ./osparc-api-python-client
 
 EXPOSE 5000
-CMD [".venv/bin/flask", "run", "--no-debugger"]
+CMD [".venv/bin/flask", "run", "--host=localhost", "--port=5000", "--no-debugger" ]

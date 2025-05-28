@@ -20,7 +20,7 @@ import logging
 from typing import List, Dict, Callable
 import numpy as np
 import pandas as pd
-from flask import Flask, request, jsonify 
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from osparc_client.configuration import Configuration as OsparcConfiguration
 from osparc_client.api_client import ApiClient
@@ -34,7 +34,7 @@ from mmux_python.utils.funs_data_processing import (
     process_input_file,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
-from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo_crossvalidation
+from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq#, evaluate_sumo_crossvalidation
 
 ### TypeScript expects camelCase, but Python API is getting snake_case. 
 # Convert before sending to frontend.
@@ -77,7 +77,7 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 ### osparc client configuration #############################    
 os.chdir(os.path.dirname(__file__))
-conf_path = Path("./../osparc-master.conf.json")
+conf_path = Path("./osparc-master.conf.json")
 conf_dict = json.loads(conf_path.read_text("utf-8"))
 configuration = OsparcConfiguration(**conf_dict)
 api_client = ApiClient(configuration)
