@@ -2,32 +2,10 @@ import { Box, Chip, InputLabel, MenuItem, Select, TextField, Typography } from "
 import React, { useContext, useEffect, useState } from "react";
 import MMUXContext from "../views/MMUXContext";
 
-interface InputBlockProps {
-  name: string,
-  value: number,
-  onChange: (value: number) => void
-}
-
-type distribution = 'constant' | 'normal' | 'uniform' | 'log-normal' | 'exponential';
-type variables = 'value' | 'mean' | 'std' | 'min' | 'max' | 'location' | 'scale';
-
-interface VarSelection {
-  distribution: distribution;
-  value?: number;
-  mean?: number;
-  std?: number;
-  min?: number;
-  max?: number;
-  location?: number;
-  scale?: number;
-}
-
-interface InputVarSelection {[x: string]: VarSelection}
-
 export const InputVariableDist = () => {
   const context = useContext(MMUXContext);
   const inputVars = (context?.inputVars ?? []) as string[];
-  const [inputVarSelection, setInputVarSelection] = useState<InputVarSelection>({});
+  const [inputVarSelection, setInputVarSelection] = useState<InputVarSelection>(context?.distribution || {});
 
   const handleSetValue = (inputVar: string, type: string, value: number) => {
     console.log("Setting values in INPUTVARS!", inputVarSelection);
@@ -37,6 +15,7 @@ export const InputVariableDist = () => {
     }
     newInputVars[inputVar][type as variables] = value;
     setInputVarSelection(newInputVars);
+    context?.setDistribution(newInputVars);
   }
 
   const InputBlock = (props: InputBlockProps) => {
@@ -53,6 +32,16 @@ export const InputVariableDist = () => {
             onChange={(e) => onChange(parseFloat(e.target.value))}
           />
       </InputLabel>
+    );
+  }
+
+  const ConstantInputDistribution = ({inputVar}: {inputVar: string}) => {
+    return (
+      <InputBlock
+        name="Value"
+        value={inputVarSelection[inputVar].value ? inputVarSelection[inputVar].value : 0}
+        onChange={(value) => handleSetValue(inputVar, 'value', value)}
+      />
     );
   }
 
@@ -74,38 +63,39 @@ export const InputVariableDist = () => {
   }
 
   const UniformInputDistribution = ({inputVar}: {inputVar: string}) => {
-    const [mean, setMean] = useState(0.0);
-    const [std, setStd] = useState(1.0);
-
     return (
       <>
-        <InputBlock name="Mean" value={mean} onChange={setMean} />
-        <InputBlock name="Standard Deviation" value={std} onChange={setStd} />
+        <InputBlock
+          name="Min"
+          value={inputVarSelection[inputVar].min ? inputVarSelection[inputVar].min : 0}
+          onChange={(value) => handleSetValue(inputVar, 'min', value)}
+        />
+        <InputBlock
+          name="Max"
+          value={inputVarSelection[inputVar].max ? inputVarSelection[inputVar].max : 0}
+          onChange={(value) => handleSetValue(inputVar, 'max', value)}
+        />
       </>
     );
   }
 
-  const ExponentialInputDistribution = ({inputVar}: {inputVar: string}) => {
-    const [mean, setMean] = useState(1.0);
-    const [std, setStd] = useState(1.0);
-
-    return (
-      <>
-        <InputBlock name="Mean" value={mean} onChange={setMean} />
-        <InputBlock name="Standard Deviation" value={std} onChange={setStd} />
-      </>
-    );
-  }
   const LogNormalInputDistribution = ({inputVar}: {inputVar: string}) => {
-    const [mean, setMean] = useState(0.0);
-    const [std, setStd] = useState(1.0);
     return (
       <>
-        <InputBlock name="Mean" value={mean} onChange={setMean} />
-        <InputBlock name="Standard Deviation" value={std} onChange={setStd} />
+        <InputBlock
+          name="Log Location"
+          value={inputVarSelection[inputVar].location ? inputVarSelection[inputVar].location : 0}
+          onChange={(value) => handleSetValue(inputVar, 'location', value)}
+        />
+        <InputBlock
+          name='Log Scale'
+          value={inputVarSelection[inputVar].scale ? inputVarSelection[inputVar].scale : 1}
+          onChange={(value) => handleSetValue(inputVar, 'scale', value)}
+        />
       </>
     );
   }
+
 
   const handleDistributionChange = (inputVar: string, value: distribution) => {
     const newInputVars = {...inputVarSelection};
@@ -113,6 +103,13 @@ export const InputVariableDist = () => {
     newInputVars[inputVar] = newDist;
     setInputVarSelection(newInputVars);
   };
+
+  useEffect(() => {
+    console.log("InputVariableDist useEffect", context?.distribution);
+    if (context?.distribution) {
+      setInputVarSelection(context.distribution);
+    }
+  }, [context?.distribution]);
 
   useEffect(() => {
     if (inputVars.length > 0 && Object.keys(inputVarSelection).length === 0) {
@@ -134,7 +131,7 @@ export const InputVariableDist = () => {
         Input Variable Distributions
       </Typography>
       <Box sx={{ display: "flex", overflowX: "auto"}}>
-        {inputVars.map((inputVar, index) => {
+        {Object.keys(inputVarSelection).map((inputVar, index) => {
           return (
             <Box
               key={index}
@@ -161,21 +158,21 @@ export const InputVariableDist = () => {
                   sx={{ minWidth: 132 }}
                   onChange={(e) => handleDistributionChange(inputVar, e.target.value as distribution)}
                 >
+                  <MenuItem value="constant">Constant</MenuItem>
                   <MenuItem value="normal">Normal</MenuItem>
                   <MenuItem value="uniform">Uniform</MenuItem>
                   <MenuItem value="log-normal">LogNormal</MenuItem>
-                  <MenuItem value="exponential">Exponential</MenuItem>
                 </Select>
               </InputLabel>
               <>
-                {inputVarSelection[inputVar]?.distribution === "normal" ? (
+                {inputVarSelection[inputVar]?.distribution === "constant" ? (
+                  <ConstantInputDistribution inputVar={inputVar} />
+                ) : inputVarSelection[inputVar]?.distribution === "normal" ? (
                   <NormalInputDistribution inputVar={inputVar} />
                 ) : inputVarSelection[inputVar]?.distribution === "uniform" ? (
                   <UniformInputDistribution inputVar={inputVar} />
                 ) : inputVarSelection[inputVar]?.distribution === "log-normal" ? (
                   <LogNormalInputDistribution inputVar={inputVar} />
-                ) : inputVarSelection[inputVar]?.distribution === "exponential" ? (
-                  <ExponentialInputDistribution inputVar={inputVar} />
                 ) : (
                   "not found"
                 )}

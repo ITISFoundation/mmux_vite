@@ -70,3 +70,25 @@ interface FunctionJobCollection {
   jobIds: Array<string>;
   uid: string;
 }
+
+interface InputBlockProps {
+  name: string,
+  value: number,
+  onChange: (value: number) => void
+}
+
+type distribution = 'constant' | 'normal' | 'uniform' | 'log-normal' | 'exponential';
+type variables = 'value' | 'mean' | 'std' | 'min' | 'max' | 'location' | 'scale';
+
+interface VarSelection {
+  distribution: distribution;
+  value?: number;
+  mean?: number;
+  std?: number;
+  min?: number;
+  max?: number;
+  location?: number;
+  scale?: number;
+}
+
+interface InputVarSelection {[x: string]: VarSelection}

@@ -4,6 +4,8 @@ import { Function, RegisteredFunctionJobCollection } from "../osparc-api-ts-clie
 export interface MMUXContextType {
   selectedFunction: Function | undefined;
   setSelectedFunction: (F: Function) => void;
+  distribution: InputVarSelection;
+  setDistribution: (d: InputVarSelection) => void;
   inputVars: string[] | undefined;
   setInputVars: (vars: string[]) => void;
   outputVars: string[] | undefined;

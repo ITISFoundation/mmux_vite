@@ -5,7 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import { setupTheme } from "./theme";
 import Navigation from "./components/Navigation";
 import { Footer } from "./components/Footer";
-import MMUXContext from "./views/MMUXContext";
+import MMUXContext, { MMUXContextType } from "./views/MMUXContext";
 import Setup from "./views/Setup";
 import JobSetup from "./views/JobSetup";
 import { Function, RegisteredFunctionJobCollection } from "./osparc-api-ts-client";
@@ -36,6 +36,7 @@ const App = () => {
   const [runningSampling, setRunningSampling] = useState<boolean>(false);
   const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
   const [inputVars, setInputVars] = useState<string[] | undefined>(undefined);
+  const [distribution, setDistribution] = useState<InputVarSelection>({});
   const [outputVars, setOutputVars] = useState<string[] | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
 
@@ -56,9 +57,11 @@ const App = () => {
     setMode(newMode);
   };
 
-  const defaultMMUXContext = {
+  const defaultMMUXContext: MMUXContextType = {
     selectedFunction: funct,
     setSelectedFunction: setFunct,
+    distribution: distribution,
+    setDistribution: setDistribution,
     inputVars: inputVars,
     setInputVars: setInputVars,
     outputVars: outputVars,
