@@ -27,10 +27,15 @@ interface HeaderProps {
     tabTitle?: string;
 }
 
+interface SubJob {
+  selected: boolean;
+  job: FunctionJob | undefined;
+}
+
 interface SelectedJobCollection {
   jobCollection: FunctionJobCollection;
   selected: boolean;
-  subJobs: {[key: string]: boolean}
+  subJobs: SubJob[];
 }
 
 type CollectionRowProps = {
@@ -42,7 +47,7 @@ type CollectionRowProps = {
 interface JobRowProps  {
   jobUid: string
   setSelected: (selected: boolean, subJob: string) => void;
-  jobList: {[key: string]: boolean}
+  jobList: SubJob[];
 }
 
 interface FooterProps {

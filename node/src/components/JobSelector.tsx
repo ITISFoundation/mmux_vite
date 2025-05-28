@@ -6,7 +6,8 @@ import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import { useMMUXContext } from "../context/MMUXContext";
-import { getFunctionJobCollections } from "../utils/function_utils";
+import { FunctionJob } from "../osparc-api-ts-client";
+import { getFunctionJobCollections, getFunctionJob } from "../utils/function_utils";
 import {
   Box,
   Card,
@@ -19,24 +20,14 @@ import { DataGrid } from "@mui/x-data-grid";
 import JobRow from "./JobRow";
 
 export default function JobsSelector() {
+  const { selectedFunction, setSelectedJobUids } = useMMUXContext();
   const [jobCollections, setJobCollections] = useState<SelectedJobCollection[]>([]);
   const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
   const [poperID, setPopperID] = useState<number>(-1);
   const [loading, setLoading] = useState<boolean>(true);
-  const { selectedFunction, setSelectedJobUids } = useMMUXContext();
 
   const updateJobContext = (jobs: SelectedJobCollection[]) => {
-    const newList = jobs
-      .map((j) =>
-        Object.keys(j.subJobs).reduce((acc: string[], uid: string) => {
-          if (j.subJobs[uid] === true) {
-            acc.push(uid);
-          }
-          return acc;
-        }, [])
-      )
-      .flat();
-    console.log("Selected jobs for context: ", newList);
+    const newList = jobs.map((j) =>j.subJobs.filter((j) => j.selected).map((j)=>j.job.uid)).flat();
     setSelectedJobUids(newList);
   };
 
@@ -46,13 +37,10 @@ export default function JobsSelector() {
         const auxJob = jc;
         if (jc.jobCollection.uid === uid) {
           auxJob.selected = selected;
-          auxJob.subJobs = Object.keys(auxJob.subJobs).reduce(
-            (acc: { [key: string]: boolean }, jobUid: string) => ({
-              ...acc,
-              [jobUid]: selected,
-            }),
-            {}
-          );
+          auxJob.subJobs = auxJob.subJobs.map(j => ({
+            selected: selected,
+            job: j.job,
+          }));
         }
         return auxJob;
       }
@@ -63,17 +51,19 @@ export default function JobsSelector() {
   };
 
   const onSelectJob = (index: number, selected: boolean, subJob: string) => {
+    console.log("Selecting subJob: ", subJob, " at index: ", index, " with selected: ", selected);
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(
       (jc, idx) => {
         const auxJob = jc;
         if (idx === index) {
-          auxJob.subJobs[subJob] = selected;
-          const subJobState = Object.keys(auxJob.subJobs).map(
-            (uid: string) => auxJob.subJobs[uid]
+          const jobId = jc.subJobs.findIndex(j => j.job.uid === subJob);
+          auxJob.subJobs[jobId].selected = selected;
+          const subJobState = auxJob.subJobs.map(
+            (j) => j.selected
           );
           if (
-            subJobState.every((j: boolean) => j === true) ||
-            subJobState.every((j: boolean) => j === false)
+            subJobState.every((j) => j === true) ||
+            subJobState.every((j) => j === false)
           ) {
             auxJob.selected = subJobState[0];
           }
@@ -88,20 +78,22 @@ export default function JobsSelector() {
 
   const onSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
     const checked = event.target.checked;
-    const newJobCollections = jobCollections.map((jc) => ({
-      ...jc,
-      selected: checked,
-      subJobs: jc.jobCollection.jobIds
-        ? jc.jobCollection.jobIds.reduce(
-            (acc: { [key: string]: boolean }, jobUid: string) => ({
-              ...acc,
-              [jobUid]: checked,
-            }),
-            {}
-          )
-        : {},
-    }));
-
+    const newSubJobs = jobCollections[poperID].subJobs.map(
+      (subJob) => ({
+        selected: checked,
+        job: subJob.job,
+      }
+    ))
+    const newJobCollections: SelectedJobCollection[] = jobCollections.map(
+      (jc, idx) => {
+        const auxJob = jc;
+        if (idx === poperID) {
+          auxJob.selected = checked;
+          auxJob.subJobs = newSubJobs;
+        }
+        return auxJob;
+      }
+    );
     updateJobContext(newJobCollections);
     setJobCollections(newJobCollections);
   };
@@ -112,21 +104,15 @@ export default function JobsSelector() {
       functionUid as string
     )) as FunctionJobCollection[];
     console.log("Fetched jobCollections: ", jc);
-    // NB: all Jobs must belong to a JobCollection (only those will be displayed here)
-    const newJobs: SelectedJobCollection[] = jc.map((jc) => ({
+
+    const newJobs: SelectedJobCollection[] = await Promise.all(jc.map(async (jc) => ({
       jobCollection: jc,
       selected: false,
-      open: false,
-      subJobs: jc.jobIds
-        ? jc.jobIds.reduce(
-            (acc: { [key: string]: boolean }, jobUid: string) => ({
-              ...acc,
-              [jobUid]: false,
-            }),
-            {}
-          )
-        : {},
-    }));
+      subJobs: await Promise.all(jc.jobIds.map(async (id) => ({
+        selected: false,
+        job: await getFunctionJob(id) as FunctionJob
+      }))),
+    })));
 
     updateJobContext(newJobs);
     setJobCollections(newJobs);
@@ -218,6 +204,10 @@ export default function JobsSelector() {
             renderCell: (params) => (
               <Checkbox
                 checked={params.row.selected}
+                indeterminate={
+                  params.row.subJobs.some((j) => j.selected) &&
+                  !params.row.subJobs.every((j) => j.selected)
+                }
                 onChange={(event) =>
                   selectMainJob(
                     params.row.jobCollection.uid,
@@ -317,13 +307,18 @@ export default function JobsSelector() {
         anchorEl={anchorEl}
         placement="right"
       >
-        { poperID !== -1 && jobCollections[poperID] &&
-          <Card>
-          <Box style={{ padding: "20px" }}>
-              <Table size="small" aria-label="jobs">
+      { poperID !== -1 && jobCollections[poperID] &&
+        <Card sx={{ borderRadius: '8px' }}>
+          <Box style={{ padding: '16px' }}>
+              <Table size="small" aria-label="jobs" sx={{ borderRadius: '8px', padding: '16px'}}>
                 <TableHead>
                   <TableRow>
-                    <TableCell />
+                    <TableCell>
+                      <Checkbox
+                        checked={jobCollections[poperID].subJobs.every(j => j.selected)}
+                        onChange={onSelectAllClick}
+                      />
+                    </TableCell>
                     <TableCell>Job ID</TableCell>
                     <TableCell>Inputs</TableCell>
                     <TableCell>Outputs</TableCell>
