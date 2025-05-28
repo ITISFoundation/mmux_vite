@@ -18,6 +18,7 @@ const JobRow = (props: JobRowProps) => {
   React.useEffect(() => {
     (async () => {
       const job = await getFunctionJob(jobUid);
+      console.log("Fetched job for JobRow: ", job)
       setJob(job);
     })();
   }, [jobUid]);
@@ -63,13 +64,13 @@ const JobRow = (props: JobRowProps) => {
           })}
         </TableCell>
         <TableCell>
-          {Object.entries(job.outputs).map(([key, value], idx) => {
+          {job.outputs ? Object.entries(job.outputs).map(([key, value], idx) => {
             return (
               <Box key={idx} display={"inline"}>
                 {key} : {(value as number).toString()}
               </Box>
             );
-          })}
+          }) : "No outputs"}
         </TableCell>
         <TableCell align="right">{job.status}</TableCell>
       </TableRow>
