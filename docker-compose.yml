@@ -1,0 +1,39 @@
+services:
+  node:
+    image: node
+    build:
+      context: ./node
+      dockerfile: ./Dockerfile
+    environment:
+      NODE_ENV: development # ??
+      PYTHON_DAKOTA_BACKEND: 'http://172.18.0.3:5000'
+    networks:
+      mmux_network:
+        ipv4_address: 172.18.0.2
+    ports:
+      - 8080:8080
+
+  flaskapi:
+    image: flaskapi
+    build:
+      context: ./flaskapi
+      dockerfile: ./Dockerfile
+    environment:
+      FLASK_ENV: development
+      MMUX_PYTHON_BRANCH: work/jgo/flask_mmux_nih
+      OSPARC_HOST:
+      OSPARC_USER:
+      OSPARC_PASSWORD:
+    networks:
+      mmux_network:
+        ipv4_address: 172.18.0.3
+    ports:
+      - 5000:5000
+
+networks:
+  mmux_network:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 172.18.0.0/16
+         gateway: 172.18.0.1
