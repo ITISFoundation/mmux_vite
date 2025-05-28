@@ -46,7 +46,6 @@ const IsoSurface3DPlot = () => {
           defaultValue={"x1"}
           value={key1}
           onChange={(e) => setKey1(e.target.value)}
-          sx={{ backgroundColor: "white" }}
         >
           {Object.keys({'x1': 'a', 'x2': 'b'}).map((key) => {
             if (key.includes("x"))
@@ -63,7 +62,6 @@ const IsoSurface3DPlot = () => {
           defaultValue={"x2"}
           value={key2}
           onChange={(e) => setKey2(e.target.value)}
-          sx={{ backgroundColor: "white" }}
         >
           {Object.keys({'x1': 'a', 'x2': 'b'}).map((key) => {
             if (key.includes("x"))

@@ -40,6 +40,7 @@ const CollectionRow = (props: CollectionRowProps) => {
             aria-label="expand row"
             size="small"
             onClick={() => setOpen(!open)}
+            sx={(theme) => ({ color: theme.palette.primary.contrastText })}
           >
             {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
           </IconButton>

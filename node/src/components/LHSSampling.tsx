@@ -1,7 +1,6 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useState } from 'react';
 import MMUXContext, { MMUXContextType } from '../views/MMUXContext';
-import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
-import JobsDashboard from '../views/ParallelRunner';
+import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import { Box, Button, Input, Typography } from '@mui/material';
 import { Function, RegisteredFunctionJobCollection } from '../osparc-api-ts-client';
 
@@ -102,7 +101,7 @@ const LHSSampling = () => {
                         type="number"
                         placeholder="Start"
                         value={inputVar.start.toString()}
-                        sx={{ width: 100 }}
+                        sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}`})}
                         onChange={(e) => handleInputChange(index, "start", e.target.value)}
                     />
                     <Typography variant='caption'>End: </Typography>
@@ -110,7 +109,7 @@ const LHSSampling = () => {
                         type="number"
                         placeholder="End"
                         value={inputVar.end.toString()}
-                        sx={{ width: 100 }}
+                        sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}`})}
                         onChange={(e) => handleInputChange(index, "end", e.target.value)}
                     />
                 </form>
@@ -122,7 +121,7 @@ const LHSSampling = () => {
                     type="number"
                     placeholder="N"
                     value={lhsInputs[0].points.toString()}
-                    sx={{ width: 100 }}
+                    sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}`})}
                     onChange={(e) => handleInputChange(0, "points", e.target.value)}
                 />
                 <Typography variant='body1'>Seed: </Typography>
@@ -130,14 +129,13 @@ const LHSSampling = () => {
                     type="number"
                     placeholder="seed"
                     value={lhsInputs[0].seed?.toString()}
-                    sx={{ width: 100 }}
+                    sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}`})}
                     onChange={(e) => handleInputChange(0, "seed", e.target.value)}
                 />
                 < CreateSamplingButton />
                 {/* TODO should we have a "cancel run" option? */}
                 {/* TODO make a "loading" symbol while the callback executes, as in SuMo creation */}
             </form>
-            {context?.runningSampling ? <JobsDashboard progressBarOnly={false} /> : undefined}
         </>
     );
 }

@@ -1,148 +1,239 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Table, TableRow, TableCell, TableBody, TableHead, Paper, Button } from "@mui/material";
-import type { Function } from '../osparc-api-ts-client/models/Function';
-import { SolverFunction, ProjectFunction, PythonCodeFunction } from '../osparc-api-ts-client/index.ts';
-import MMUXContext from '../views/MMUXContext.tsx';
-import { listFunctions } from './function_utils.ts';
-import { JSONFunctionInputSchema, JSONFunctionOutputSchema } from '../osparc-api-ts-client';
-import TablePagination from '@mui/material/TablePagination';
-import Box from '@mui/material/Box';
-import TableContainer from '@mui/material/TableContainer';
+import { useState, useEffect, useContext } from "react";
+import { Button, styled, Box, IconButton, Typography } from "@mui/material";
+import type { Function } from "../osparc-api-ts-client/models/Function";
+import {
+  SolverFunction,
+  ProjectFunction,
+  PythonCodeFunction,
+} from "../osparc-api-ts-client/index.ts";
+import MMUXContext from "../views/MMUXContext.tsx";
+import { listFunctions } from "../utils/function_utils.ts";
+import {
+  JSONFunctionInputSchema,
+  JSONFunctionOutputSchema,
+} from "../osparc-api-ts-client";
+import { toast } from "react-toastify";
+import { Refresh } from "@mui/icons-material";
+import { DataGrid } from "@mui/x-data-grid";
 
-export function FunctionList(props: { functions: Function[] } = { functions: [] }) {
-    const [functions, setFunctions] = useState<Function[]>([]);
-    const context = useContext(MMUXContext);
-    const [rowsPerPage, setRowsPerPage] = React.useState(5);
-    const [page, setPage] = React.useState(0);
+const TableButton = styled(Button)(
+  ({ theme }) => `
+  color: ${theme.palette.primary.main};
+`
+);
 
-    const handleChangePage = (event: unknown, newPage: number) => {
-        setPage(newPage);
-    };
+const VarsHolder = styled("div")`
+  max-width: 150px;
+  max-height: 50px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  position: relative;
+  display: flex;
+  gap: 16px;
+`;
 
-    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
-    };
+export function FunctionList() {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<boolean>(false);
+  const [functions, setFunctions] = useState<Function[]>([]);
+  const context = useContext(MMUXContext);
 
-    useEffect(() => {
-        if (props.functions.length === 0) {
-            // Fetch functions only if none are passed in props
-            (async () => {
-                // let funs2 = await FUNCTION_API.listFunctions();
-                console.debug("Fetching functions through Python API");
-                const funs = await listFunctions();
-                console.debug("Functions obtained: ", funs);
-                setFunctions(funs);
-            })();
-        } else {
-            console.debug("Functions passed in", props.functions);
-            setFunctions(props.functions);
-        }
-    }, [props.functions]); // Dependency array ensures this runs only when props.functions changes
-
-    function showInputOutputSchema(schema: JSONFunctionInputSchema | JSONFunctionOutputSchema) {
-
-        if (!schema) {
-            console.error("Invalid schema:", schema);
-            return [];
-        }
-
-        const vars = Object.keys(schema.schemaContent.properties);
-        const display_vars = vars.map((variable, index) => (
-            <React.Fragment key={index}>
-                {variable}
-                <br />
-            </React.Fragment>
-        ));
-        return <div
-            style={{
-                maxWidth: "150px",
-                maxHeight: "50px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                position: "relative"
-            }}
-            title={schema ? vars.join(", ") : ""}>
-            {display_vars}
-        </div>
-
+  const fetchFunctions = async () => {
+    try {
+      setLoading(true);
+      const funs = await listFunctions();
+      console.debug("Functions obtained: ", funs);
+      setFunctions(funs);
+      if (funs.length === 0) {
+        toast.info("No functions available. Please create a function first.");
+      }
+      setError(false);
+    } catch (error) {
+      console.error("Error fetching functions:", error);
+      setError(true);
+      toast.error("Error fetching functions. Please try again later.");
     }
-    const getFunctionSolver = (fun: Function) => {
-        console.log(fun)
-        if ((fun as SolverFunction).solverKey) {
-            return (fun as SolverFunction).solverKey.split("/").slice(-1)[0] + ":" + (fun as SolverFunction).solverVersion;
-        } else if ((fun as ProjectFunction).projectId) {
-            return "Template " + (fun as ProjectFunction).projectId;
-        } else if ((fun as PythonCodeFunction).codeUrl) {
-            return (fun as PythonCodeFunction).codeUrl;
-        } else {
-            return "Unknown";
-        }
-    };
+    setLoading(false);
+  };
 
-    // Maybe modularize as Cards (instead of Table) ?
+  const showInputOutputSchema = (
+    schema: JSONFunctionInputSchema | JSONFunctionOutputSchema
+  ) => {
+    if (!schema) {
+      console.error("Invalid schema:", schema);
+      return [];
+    }
+
+    const vars = Object.keys(schema.schemaContent.properties);
+    const display_vars = vars.map((variable, index) => (
+      <span key={index}>
+        {variable}
+        <br />
+      </span>
+    ));
     return (
-        <Box sx={{ width: '100%' }}>
-            <Paper sx={{ width: '100%', mb: 2 }}>
-                <TableContainer>
-                    <Table component={Paper}>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Title</TableCell>
-                                <TableCell>Description</TableCell>
-                                <TableCell>Inputs</TableCell>
-                                <TableCell>Outputs</TableCell>
-                                <TableCell>Solver / Template</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {functions.map(fun => (
-                                <TableRow
-                                    key={fun.uid}
-                                    sx={{ fontWeight: fun.uid === context?.selectedFunction?.uid ? 'bold' : 'normal', backgroundColor: fun.uid === context?.selectedFunction?.uid ? '#f0f0f0' : 'inherit' }}
-                                >
-                                    <TableCell>{fun.title}</TableCell>
-                                    <TableCell>{fun.description}</TableCell>
-                                    <TableCell>{showInputOutputSchema(fun.inputSchema)}</TableCell>
-                                    <TableCell>{showInputOutputSchema(fun.outputSchema)}</TableCell>
-                                    {/* <TableCell>{<Button variant="contained" onClick={() => showJobList(fun)}>Show Jobs</Button>}</TableCell> */}
-                                    <TableCell>{getFunctionSolver(fun)}</TableCell>
-                                    <Button
-                                        variant="contained"
-                                        onClick={() => {
-                                            context?.setSelectedFunction(fun);
-                                            context?.setInputVars(
-                                                fun.inputSchema?.schemaContent?.properties
-                                                    ? Object.keys(fun.inputSchema.schemaContent.properties)
-                                                    : []
-                                            );
-                                            console.log("inputVars registered:", Object.keys(fun.inputSchema.schemaContent.properties))
-                                            context?.setOutputVars(
-                                                fun.outputSchema?.schemaContent?.properties
-                                                    ? Object.keys(fun.outputSchema.schemaContent.properties)
-                                                    : []
-                                            );
-                                        }}
-                                    >
-                                        Select
-                                    </Button>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    component="div"
-                    count={functions.length}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                />
-            </Paper>
-        </Box >
+      <VarsHolder title={schema ? vars.join(", ") : ""}>
+        {display_vars}
+      </VarsHolder>
     );
-}
+  };
 
+  const getFunctionSolver = (fun: Function) => {
+    console.log(fun);
+    if ((fun as SolverFunction).solverKey) {
+      return (
+        (fun as SolverFunction).solverKey.split("/").slice(-1)[0] +
+        ":" +
+        (fun as SolverFunction).solverVersion
+      );
+    } else if ((fun as ProjectFunction).projectId) {
+      return "Template " + (fun as ProjectFunction).projectId;
+    } else if ((fun as PythonCodeFunction).codeUrl) {
+      return (fun as PythonCodeFunction).codeUrl;
+    } else {
+      return "Unknown";
+    }
+  };
+
+  function getRowId(row: Function) {
+    return row.uid ? row.uid : "" + row.title + row.description;
+  }
+
+  useEffect(() => {
+    console.log("FunctionList mounted, fetching functions...");
+    (async () => {
+      await fetchFunctions();
+    })();
+  }, []);
+
+  if (error) {
+    return (
+      <Box textAlign={"center"}>
+        <Typography
+          variant="body1"
+          fontFamily={"inherit"}
+          fontSize={"1.2em"}
+          fontWeight={300}
+          display="inline"
+          mr={1}
+        >
+          No functions available.
+        </Typography>
+        <IconButton size="small" onClick={async () => await fetchFunctions()}>
+          <Refresh color="primary" />
+        </IconButton>
+      </Box>
+    );
+  }
+
+  return (
+    <DataGrid
+      rows={functions}
+      columns={[
+        { field: "title", headerName: "Title", flex: 1, maxWidth: 200 },
+        {
+          field: "description",
+          headerName: "Description",
+          flex: 1,
+          maxWidth: 400,
+        },
+        {
+          field: "inputSchema",
+          headerName: "Inputs",
+          flex: 1,
+          maxWidth: 100,
+          renderCell: (params) => showInputOutputSchema(params.row.inputSchema),
+        },
+        {
+          field: "outputSchema",
+          headerName: "Outputs",
+          flex: 1,
+          maxWidth: 100,
+          renderCell: (params) =>
+            showInputOutputSchema(params.row.outputSchema),
+        },
+        {
+          field: "solverKey",
+          headerName: "Solver / Template",
+          flex: 1,
+          minWidth: 200,
+          renderCell: (params) => getFunctionSolver(params.row),
+        },
+        {
+          field: "actions",
+          headerName: "",
+          sortable: false,
+          flex: 0.5,
+          maxWidth: 100,
+          minWidth: 100,
+          renderCell: (params) => (
+            <TableButton
+              variant="contained"
+              onClick={() => {
+                context?.setSelectedFunction(params.row);
+                context?.setInputVars(
+                    params.row.inputSchema?.schemaContent?.properties
+                        ? Object.keys(params.row.inputSchema.schemaContent.properties)
+                        : []
+                );
+                console.log("inputVars registered:", Object.keys(params.row.inputSchema.schemaContent.properties))
+                context?.setOutputVars(
+                    params.row.outputSchema?.schemaContent?.properties
+                        ? Object.keys(params.row.outputSchema.schemaContent.properties)
+                        : []
+                );
+              }}
+            >
+              Select
+            </TableButton>
+          ),
+        },
+      ]}
+      sx={{
+        borderRadius: "8px",
+        overflow: "hidden",
+        fontFamily: "inherit",
+        padding: "0px 8px",
+        "& .MuiDataGrid-cell": {
+          fontWeight: 400,
+        },
+        "& .MuiDataGrid-row:hover": {
+          backgroundColor: (theme) =>
+            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+              theme.palette.mode === "dark" ? "black" : "white"
+            })`,
+        },
+        "& .MuiDataGrid-row.Mui-selected": {
+          backgroundColor: (theme) => theme.palette.primary.main,
+        },
+        "& .MuiDataGrid-row.Mui-selected:hover": {
+          backgroundColor: (theme) => theme.palette.primary.main,
+        },
+        "& .MuiDataGrid-sortButton": {
+          backgroundColor: (theme) => theme.palette.background.paper,
+        },
+      }}
+      onRowClick={(params) => context?.setSelectedFunction(params.row)}
+      getRowId={getRowId}
+      showToolbar
+      initialState={{
+        pagination: {
+          paginationModel: { pageSize: 10 },
+        },
+        sorting: {
+          sortModel: [{ field: "title", sort: "asc" }],
+        },
+        filter: {
+          filterModel: {
+            items: [],
+          },
+        },
+      }}
+      pageSizeOptions={[5, 10, 20, 50]}
+      loading={loading}
+      disableColumnMenu
+      disableColumnSelector
+    ></DataGrid>
+  );
+}

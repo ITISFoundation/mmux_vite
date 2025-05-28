@@ -17,11 +17,13 @@
     "@mui/icons-material": "^7.0.2",
     "@mui/material": "^7.0.2",
     "@mui/styled-engine-sc": "^7.0.2",
+    "@mui/x-data-grid": "^8.4.0",
     "@tailwindcss/vite": "^4.1.6",
     "plotly.js": "^3.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-plotly.js": "^2.6.0",
+    "react-toastify": "^11.0.5",
     "styled-components": "^6.1.17",
     "superagent": "^10.2.0",
     "whatwg-fetch": "^3.6.20"

@@ -19,6 +19,7 @@ export class FunctionJobCollection {
     'title'?: string;
     'description'?: string;
     'jobIds'?: Array<string>;
+    'uid'?: string;
 
     static readonly discriminator: string | undefined = undefined;
 

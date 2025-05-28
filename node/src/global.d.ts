@@ -14,7 +14,6 @@ type PersistentState = {
 interface NavigationProps {
   steps: Step[];
   activeStep: number;
-  setActiveStep: (step: number) => void;
 }
 
 interface MetaModelingUXProps {
@@ -42,6 +41,54 @@ type CollectionRowProps = {
 
 interface JobRowProps  {
   jobUid: string
-  setSelected: (selected: boolean) => void;
+  setSelected: (selected: boolean, subJob: string) => void;
   jobList: {[key: string]: boolean}
 }
+
+interface FooterProps {
+  mode: 'light' | 'dark' | 'system' | undefined;
+  setMode: ( mode: 'light' | 'dark' ) => void;
+  activeStep: number;
+  setActiveStep: (step: number) => void;
+}
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+interface PersistentJSONStateOptions<T> {
+    defaultState: T;
+    filePath: string;
+    onStateLoaded?: (state: T) => void;
+}
+
+interface FunctionJobCollection {
+  title: string;
+  description: string;
+  jobIds: Array<string>;
+  uid: string;
+}
+
+interface InputBlockProps {
+  name: string,
+  value: number,
+  onChange: (value: number) => void
+}
+
+type distribution = 'constant' | 'normal' | 'uniform' | 'log-normal' | 'exponential';
+type variables = 'value' | 'mean' | 'std' | 'min' | 'max' | 'location' | 'scale';
+
+interface VarSelection {
+  distribution: distribution;
+  value?: number;
+  mean?: number;
+  std?: number;
+  min?: number;
+  max?: number;
+  location?: number;
+  scale?: number;
+}
+
+interface InputVarSelection {[x: string]: VarSelection}

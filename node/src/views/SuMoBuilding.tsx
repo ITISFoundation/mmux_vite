@@ -1,13 +1,12 @@
 import { useState, useEffect, useContext } from 'react';
 import MetaModelingUX from '../components/MetaModelingUX';
-import JobSelector from '../components/JobSelector';
 import { Button, Box, Container } from '@mui/material';
 import MMUXContext from './MMUXContext';
 import PlotDataTogether from '../components/PlotDataTogether'
 import ShowCvMetrics from '../components/ShowCvMetrics';
-import { PYTHON_DAKOTA_BACKEND } from '../components/api_objects';
+import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import PlusButton from '../components/PlusButton';
-import { getFunctionJobsFromFunctionUid } from "../components/function_utils";
+import { getFunctionJobsFromFunctionUid } from "../utils/function_utils";
 import Surface3DPlot from "../components/Surface3DPlot";
 import IsoSurface3DPlot from "../components/IsoSurface3DPlot";
 
@@ -19,7 +18,6 @@ function SuMoBuildingValidation() {
   const [isSuMoGenerated, setIsSuMoGenerated] = useState(false)
 
   const [selectedResponse, setSelectedResponse] = useState(outputVars ? outputVars[0] : '');
-  const [isLogEnabled, setIsLogEnabled] = useState(false);
   const [dataSumoCentralCurves, setDataSumoCentralCurves] = useState(undefined);
 
   useEffect(() => {
@@ -32,7 +30,7 @@ function SuMoBuildingValidation() {
 
   async function RunPlotCentralSuMoInterpolations() {
     // TODO get only those selected in the JobSelector (pass as status??)
-    let jobList = await getFunctionJobsFromFunctionUid(context?.selectedFunction?.uid as string);
+    const jobList = await getFunctionJobsFromFunctionUid(context?.selectedFunction?.uid as string);
     console.log("Fetched jobs:", jobList);
     console.log("Running SuMo...");
     fetch(
@@ -43,7 +41,7 @@ function SuMoBuildingValidation() {
           {
             inputs: inputVars,
             output: selectedResponse,
-            log: isLogEnabled,
+            log: false,
             FunctionJobs: jobList,
           }
         ),
@@ -125,14 +123,12 @@ function SuMoBuildingValidation() {
             flexDirection: "column",
             gap: "10px",
             justifyContent: "space-between",
-            color: "#eee",
             width: "100%",
           }}
         >
           <span>
             Selected Function: <b>{context?.selectedFunction?.title}</b>
           </span>
-          <JobSelector />
           <QoISelector />
           {isSuMoGenerated && (
             <>
