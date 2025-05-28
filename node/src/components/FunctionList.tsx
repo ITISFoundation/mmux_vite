@@ -1,20 +1,20 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { Button, styled, Box, IconButton, Typography } from "@mui/material";
+import { toast } from "react-toastify";
+import { Refresh } from "@mui/icons-material";
+import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
 import type { Function } from "../osparc-api-ts-client/models/Function";
 import {
   SolverFunction,
   ProjectFunction,
   PythonCodeFunction,
 } from "../osparc-api-ts-client/index.ts";
-import MMUXContext from "../views/MMUXContext.tsx";
 import { listFunctions } from "../utils/function_utils.ts";
 import {
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,
 } from "../osparc-api-ts-client";
-import { toast } from "react-toastify";
-import { Refresh } from "@mui/icons-material";
-import { DataGrid } from "@mui/x-data-grid";
+import { useMMUXContext } from "../context/MMUXContext.tsx";
 
 const TableButton = styled(Button)(
   ({ theme }) => `
@@ -34,10 +34,11 @@ const VarsHolder = styled("div")`
 `;
 
 export function FunctionList() {
+  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars} = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [functions, setFunctions] = useState<Function[]>([]);
-  const context = useContext(MMUXContext);
+  const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
 
   const fetchFunctions = async () => {
     try {
@@ -107,6 +108,13 @@ export function FunctionList() {
     })();
   }, []);
 
+  useEffect(() => {
+    console.log("Selected function changed:", selectedFunction);
+    if (selectedFunction) {
+      rowSelectionModel.ids.add(getRowId(selectedFunction));
+    }
+  }, [rowSelectionModel.ids, selectedFunction]);
+
   if (error) {
     return (
       <Box textAlign={"center"}>
@@ -129,6 +137,10 @@ export function FunctionList() {
 
   return (
     <DataGrid
+      onRowSelectionModelChange={(newRowSelectionModel) => {
+        setRowSelectionModel(newRowSelectionModel);
+      }}
+      rowSelectionModel={rowSelectionModel}
       rows={functions}
       columns={[
         { field: "title", headerName: "Title", flex: 1, maxWidth: 200 },
@@ -171,14 +183,14 @@ export function FunctionList() {
             <TableButton
               variant="contained"
               onClick={() => {
-                context?.setSelectedFunction(params.row);
-                context?.setInputVars(
+                setSelectedFunction(params.row);
+                setInputVars(
                     params.row.inputSchema?.schemaContent?.properties
                         ? Object.keys(params.row.inputSchema.schemaContent.properties)
                         : []
                 );
                 console.log("inputVars registered:", Object.keys(params.row.inputSchema.schemaContent.properties))
-                context?.setOutputVars(
+                setOutputVars(
                     params.row.outputSchema?.schemaContent?.properties
                         ? Object.keys(params.row.outputSchema.schemaContent.properties)
                         : []
@@ -214,7 +226,7 @@ export function FunctionList() {
           backgroundColor: (theme) => theme.palette.background.paper,
         },
       }}
-      onRowClick={(params) => context?.setSelectedFunction(params.row)}
+      onRowClick={(params) => setSelectedFunction(params.row)}
       getRowId={getRowId}
       showToolbar
       initialState={{

@@ -3,7 +3,7 @@ type Step = {
   label: string
 }
 
-type PersistentState = {
+type gridSearchInputsState = {
   variable: string;
   start: number;
   end: number;
