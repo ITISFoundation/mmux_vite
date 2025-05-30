@@ -12,6 +12,7 @@ DONE - implement a mock function
 FIXME crashing error when I already have SuMo plots open & went back to setup & choose Sinc Python function
 """
 
+import re
 import os
 from pathlib import Path
 import shutil
@@ -36,9 +37,23 @@ from mmux_python.utils.funs_data_processing import (
 from mmux_python.utils.funs_evaluate import create_run_dir
 from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq#, evaluate_sumo_crossvalidation
 
+### Logger configuration ####################################
+_logger = logging.getLogger(__name__)
+
+# Set up basic configuration for the logger
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+
+_logger.info("Logging started")
+#############################################################
+
 ### TypeScript expects camelCase, but Python API is getting snake_case. 
 # Convert before sending to frontend.
-import re   
+ 
 def camel_to_snake(s: str) -> str:
     res = re.sub(r'_([a-z])', lambda match: match.group(1).upper(),s)
     return res
@@ -54,17 +69,6 @@ def recursive_dict_keys_camel_to_snake(d: dict) -> dict:
             d[k] = [recursive_dict_keys_camel_to_snake(i) if isinstance(i, dict) else i for i in v]
     return {camel_to_snake(k): v for k, v in d.items()}
 
-
-### Logger configuration ####################################
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    filename="flask_workflows.log",
-    encoding="utf-8",
-    level=logging.INFO,
-    filemode="w",
-)
-logger.info("Logging started")
-#############################################################
 
 
 ### Flask app configuration #################################
@@ -83,6 +87,10 @@ configuration = OsparcConfiguration(
     password=os.environ["OSPARC_PASSWORD"],
 )
 
+_logger.error(f"OSPARC_HOST environment variable found, using '{configuration.host}' as API URL")
+_logger.error(f"OSPARC_USER environment variable found, using '{configuration.username}' as username")
+_logger.error(f"OSPARC_PASSWORD environment variable found, using '***' as password")
+
 api_client = ApiClient(configuration)
 functions_api_instance = FunctionsApi(api_client)
 job_api_instance = FunctionJobsApi(api_client)
@@ -91,8 +99,8 @@ job_collection_api_instance = FunctionJobCollectionsApi(api_client)
 
 @app.route("/flask/hello")
 def hello_world():
-    logger.info("Starting flask function: hello_world")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: hello_world")
+    _logger.debug("Cwd: " + str(Path.cwd()))
     return "Hello, World!"
 
 def get_all_items(api_call: Callable, *args, **kwargs):
@@ -102,7 +110,7 @@ def get_all_items(api_call: Callable, *args, **kwargs):
     items = []
     page = 1
     while retrieved < list_len:
-        logger.info(f"Retrieving page {page} of {api_call.__name__} (offset: {retrieved})")
+        _logger.info(f"Retrieving page {page} of {api_call.__name__} (offset: {retrieved})")
         response = api_call(offset = retrieved, *args, **kwargs)
         retrieved += len(response.items)  # type: ignore
         items += [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
@@ -112,9 +120,9 @@ def get_first_N_items(api_call: Callable, N: int, **kwargs):
     """Helper function to get first N items from a paginated API call."""
     list_len = api_call(limit=1, **kwargs).total
     if list_len < N:
-        logger.warning(f"Requested {N} items, but only {list_len} are available.")
+        _logger.warning(f"Requested {N} items, but only {list_len} are available.")
         N = list_len
-    response = api_call(limit = N, **kwargs)
+    response = api_call(limit = max(1, N), **kwargs)
     items = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
     assert len(items) == N, f"Expected {N} items, but got {len(items)}"
     return items
@@ -123,7 +131,7 @@ def get_last_N_items(api_call: Callable, N: int, **kwargs):
     """Helper function to get last N items from a paginated API call."""
     list_len = api_call(limit=1, **kwargs).total
     if list_len < N:
-        logger.warning(f"Requested {N} items, but only {list_len} are available.")
+        _logger.warning(f"Requested {N} items, but only {list_len} are available.")
         N = list_len
     response = api_call(offset=list_len - N, limit=N, **kwargs)
     items = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
@@ -132,36 +140,36 @@ def get_last_N_items(api_call: Callable, N: int, **kwargs):
 
 @app.route("/flask/list_functions", methods=["GET"])
 def flask_list_functions():
-    logger.info("Starting flask function: flask_list_functions")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Starting flask function: flask_list_functions")
+    _logger.info("Cwd: " + str(Path.cwd()))
     # functions = get_all_items(functions_api_instance.list_functions)
     functions = get_first_N_items(functions_api_instance.list_functions, N=5)
     functions = functions[::-1] # put last-created first? FIXME still need to expose "created_at" in the response
-    logger.info(f"N Functions: {len(functions)}")
+    _logger.info(f"N Functions: {len(functions)}")
 
     ## TODO temporal - filter out those without input & output schema
     functions = [f for f in functions if len(f["inputSchema"]["schemaContent"]) > 0 and len(f["outputSchema"]["schemaContent"]) > 0]
-    logger.info(f"N Functions after filtering: {len(functions)}")
+    _logger.info(f"N Functions after filtering: {len(functions)}")
 
     return jsonify(functions)
 
 @app.route("/flask/list_jobs", methods=["GET"])
 def flask_list_jobs():
-    logger.info("Starting flask function: flask_list_jobs")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Starting flask function: flask_list_jobs")
+    _logger.info("Cwd: " + str(Path.cwd()))
     jobs = get_all_items(job_api_instance.list_function_jobs)
-    logger.info(f"N Jobs: {len(jobs)}")
+    _logger.info(f"N Jobs: {len(jobs)}")
 
     return jsonify(jobs)
 
 @app.route("/flask/list_function_jobs_for_functionid", methods=["GET"])
 def flask_list_function_jobs_for_functionid():
-    logger.info("Starting flask function: flask_list_function_jobs_for_functionid")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Starting flask function: flask_list_function_jobs_for_functionid")
+    _logger.info("Cwd: " + str(Path.cwd()))
     function_uid = request.args["functionUid"]
-    logger.info(f"Function ID: {function_uid}")
+    _logger.info(f"Function ID: {function_uid}")
     jobs = get_all_items(functions_api_instance.list_function_jobs_for_functionid, function_uid)
-    logger.info(f"N Jobs for function {function_uid}: {len(jobs)}")
+    _logger.info(f"N Jobs for function {function_uid}: {len(jobs)}")
     for j in jobs:
         status : FunctionJobStatus = job_api_instance.function_job_status(j["uid"]) 
         j["status"] = status.status
@@ -169,55 +177,55 @@ def flask_list_function_jobs_for_functionid():
 
 @app.route("/flask/list_function_jobs_for_jobcollectionid", methods=["GET"])
 def flask_list_function_jobs_for_jobcollectionid():
-    logger.info("Starting flask function: flask_list_function_jobs_for_jobcollectionid")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Starting flask function: flask_list_function_jobs_for_jobcollectionid")
+    _logger.info("Cwd: " + str(Path.cwd()))
     jc_uid = request.args["JobCollectionUid"]
-    logger.info(f"jc ID: {jc_uid}")
+    _logger.info(f"jc ID: {jc_uid}")
     jc = job_collection_api_instance.get_function_job_collection(jc_uid)
     jobs = [get_function_job_from_uid(job_uid) for job_uid in jc.job_ids] # type: ignore
-    logger.info(f"N Jobs for job collection {jc_uid}: {len(jobs)}")
+    _logger.info(f"N Jobs for job collection {jc_uid}: {len(jobs)}")
     return jsonify(jobs)
 
 @app.route("/flask/list_function_job_collections", methods=["GET"])
 def flask_get_function_job_collections():
-    logger.info("Starting flask function: flask_get_function_job_collections")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Starting flask function: flask_get_function_job_collections")
+    _logger.info("Cwd: " + str(Path.cwd()))
     ## this is a list of items of Paginated object -- deserialize into a list of JobCollection objects
     job_collections = get_all_items(job_collection_api_instance.list_function_job_collections)
-    logger.info(f"N Job collections: {len(job_collections)}")
+    _logger.info(f"N Job collections: {len(job_collections)}")
     return jsonify(job_collections)
 
 ## TODO this does not work; FUnctionJobCOllection does not have functionUid property (??) (include it)
 @app.route("/flask/list_function_job_collections_for_functionid", methods=["GET"])
 def flask_get_function_job_collections_for_functionid():
-    logger.info("Starting flask function: flask_get_function_job_collections")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Starting flask function: flask_get_function_job_collections")
+    _logger.info("Cwd: " + str(Path.cwd()))
     function_uid = request.args["functionUid"]
-    logger.info(f"Function ID: {function_uid}")
+    _logger.info(f"Function ID: {function_uid}")
     # job_collections = get_all_items(job_collection_api_instance.list_function_job_collections, has_function_id=function_uid)
     response = job_collection_api_instance.list_function_job_collections(has_function_id=function_uid)
     job_collections = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
-    logger.info(f"N Job collections for function {function_uid}: {len(job_collections)}")
+    _logger.info(f"N Job collections for function {function_uid}: {len(job_collections)}")
     return jsonify(job_collections)
 
 @app.route("/flask/get_function_job", methods=["GET"])
 def flask_get_function_job():
-    logger.info("Starting flask function: flask_get_function_job")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Starting flask function: flask_get_function_job")
+    _logger.info("Cwd: " + str(Path.cwd()))
     return jsonify(get_function_job_from_uid(request.args["jobUid"]))
     
 def get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
     """Helper function to get a Job information (including status) from its UID."""
-    logger.info(f"Job ID: {job_uid}")
+    _logger.info(f"Job ID: {job_uid}")
     job = job_api_instance.get_function_job(job_uid)
     job_dict = recursive_dict_keys_camel_to_snake(job.to_dict()) # type: ignore
     job_dict["status"] = job_api_instance.function_job_status(job_uid).status
-    logger.info(f"Job: {job_dict}")
+    _logger.info(f"Job: {job_dict}")
     return job_dict
 
 def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str) -> Path:
     completed_jobs = [job for job in jobs if job["status"].lower() == "completed"]  # type: ignore
-    logger.info(f"N Completed jobs: {len(completed_jobs)}")
+    _logger.info(f"N Completed jobs: {len(completed_jobs)}")
     def get_job_dict(job):
         d = {key: job["inputs"][key] for key in input_vars}
         assert "outputs" in job.keys(), f"Outputs not in job: {job}"
@@ -235,8 +243,8 @@ def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str
 @app.route("/flask/sumo_along_axes", methods=["POST"])
 def flask_evaluate_sumo_along_axes():
     os.chdir(Path(__file__).parent)
-    logger.info("Starting flask function: flask_evaluate_sumo_along_axes")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Starting flask function: flask_evaluate_sumo_along_axes")
+    _logger.info("Cwd: " + str(Path.cwd()))
 
     # Convert request data into a Python dictionary
     request_data: dict = json.loads(request.data.decode("utf-8"))
@@ -262,7 +270,7 @@ def flask_evaluate_sumo_along_axes():
         input_vars,
         output_response, # type: ignore
     )
-    logger.info("Done!!")
+    _logger.info("Done!!")
     return jsonify(results) # check if jsonify is needed
 
 
@@ -270,17 +278,17 @@ def flask_evaluate_sumo_along_axes():
 def flask_uq_propagation() -> Dict[str, str]:
     ## TODO change to new scheme (jobs are passed here, not a filename)
     os.chdir(Path(__file__).parent)
-    logger.info("Starting flask function: flask_uq_propagation")
-    logger.info("Cwd: " + str(Path.cwd()))
-    logger.info("Inputs of the request: ", request.args)
+    _logger.info("Starting flask function: flask_uq_propagation")
+    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Inputs of the request: ", request.args)
     TRAINING_FILE = base_dir / "mmux_python" / "data" / request.args["filename"]
-    logger.info(f"TRAINING_FILE: {TRAINING_FILE} does exist: {TRAINING_FILE.exists()}")
+    _logger.info(f"TRAINING_FILE: {TRAINING_FILE} does exist: {TRAINING_FILE.exists()}")
     output_response = request.args["output"]
     input_vars = request.args["inputs"].split(",")
     make_log = False if request.args["log"].lower() == "false" else True
-    logger.info(f"output_response: {output_response}")
-    logger.info(f"input_vars: {input_vars}")
-    logger.info(
+    _logger.info(f"output_response: {output_response}")
+    _logger.info(f"input_vars: {input_vars}")
+    _logger.info(
         f"make_log: {make_log} (input {request.args['log']}) type: {type(make_log)}"
     )
     run_dir = create_run_dir(Path("."), "uq")
@@ -315,15 +323,15 @@ def flask_uq_propagation() -> Dict[str, str]:
 
 @app.route("/flask/save_json", methods=["POST"])
 def flask_save_json():
-    logger.info("Starting flask function: flask_save_json")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Starting flask function: flask_save_json")
+    _logger.info("Cwd: " + str(Path.cwd()))
     # Convert request data into a Python dictionary
     request_data: dict = json.loads(request.data.decode("utf-8"))
     filepath = base_dir.parent / request_data["filePath"]
     data = request_data["data"]
-    logger.info(f"Inputs of the request: {request_data}")
-    logger.info(f"filename: {filepath}")
-    logger.info(f"data: {data}")
+    _logger.info(f"Inputs of the request: {request_data}")
+    _logger.info(f"filename: {filepath}")
+    _logger.info(f"data: {data}")
     assert Path(filepath).parent.exists(), f"The directory {Path(filepath).parent} were the file should be created does not exist."
     with open(filepath, "w+") as f:
         json.dump(data, f)
@@ -331,21 +339,21 @@ def flask_save_json():
 
 @app.route("/flask/load_json", methods=["GET"])
 def flask_load_json():
-    logger.info("Starting flask function: flask_load_json")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Starting flask function: flask_load_json")
+    _logger.info("Cwd: " + str(Path.cwd()))
     filePath = base_dir.parent / request.args["filePath"]
-    logger.info(f"Inputs of the request: {request.args}")
-    logger.info(f"filepath: {filePath}")
+    _logger.info(f"Inputs of the request: {request.args}")
+    _logger.info(f"filepath: {filePath}")
     assert Path(filePath).exists(), f"The file {filePath} does not exist."
     with open(filePath, "r") as f:
         data = json.load(f)
-    logger.info(f"data: {data}")
+    _logger.info(f"data: {data}")
     return jsonify(data)
 
 @app.route("/flask/lhs_sampling", methods=["POST"])
 def flask_lhs():
-    logger.info("Starting flask function: flask/lhs_sampling")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Starting flask function: flask/lhs_sampling")
+    _logger.info("Cwd: " + str(Path.cwd()))
     # Convert request data into a Python dictionary
     request_data: dict = json.loads(request.data.decode("utf-8"))
     config = request_data["config"]
@@ -355,16 +363,16 @@ def flask_lhs():
     function_uid = request_data["funUid"]
     
     from mmux_python.utils.lhs import lhs
-    logger.info(f"config: {config} \n n: {n}, k: {k}, seed: {seed}")
+    _logger.info(f"config: {config} \n n: {n}, k: {k}, seed: {seed}")
     H = lhs(n, k, seed=seed)
-    logger.info(f"H: {H.shape}")
+    _logger.info(f"H: {H.shape}")
 
     samples = []
     for j in range(n):
         samples.append(
             {config[i]["variable"] : H[i, j] * (config[i]["end"] - config[i]["start"]) + config[i]["start"] for i in range(k)}
         )
-    logger.info(f"Samples: {samples}")
+    _logger.info(f"Samples: {samples}")
 
 
     # Now, the running of jobs through the OSPARC API has been moved to the Python backend
@@ -374,8 +382,8 @@ def flask_lhs():
 
 @app.route("/flask/get_sumo_cv_accuracy_metrics")
 def flask_get_sumo_cv_accuracy_metrics():
-    logger.info("Starting flask function: flask/get_sumo_cv_accuracy_metrics")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.info("Starting flask function: flask/get_sumo_cv_accuracy_metrics")
+    _logger.info("Cwd: " + str(Path.cwd()))
 
     # Convert request data into a Python dictionary
     request_data: dict = json.loads(request.data.decode("utf-8"))
@@ -399,6 +407,6 @@ def flask_get_sumo_cv_accuracy_metrics():
         input_vars,
         output_response, # type: ignore
     )
-    logger.info("Done!!")
+    _logger.info("Done!!")
     
     return jsonify(results)
