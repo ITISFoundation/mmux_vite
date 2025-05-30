@@ -1,5 +1,3 @@
-ARG MMUX_PYTHON_BRANCH="work/jgo/flask_mmux_nih"
-
 FROM ubuntu:22.04
 
 # Install git and curl
@@ -43,4 +41,4 @@ RUN .uv_env/bin/openapi-generator-cli generate -i openapi.json -g python -o ./os
   .venv/bin/python -m pip install ./osparc-api-python-client
 
 EXPOSE 5000
-CMD [".venv/bin/flask", "run", "--host=localhost", "--port=5000", "--no-debugger" ]
+CMD [".venv/bin/flask", "run", "--host=0.0.0.0", "--port=5000", "--no-debugger" ]
