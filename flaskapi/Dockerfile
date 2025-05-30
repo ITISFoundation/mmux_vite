@@ -1,5 +1,3 @@
-ARG MMUX_PYTHON_BRANCH="work/jgo/flask_mmux_nih"
-
 FROM ubuntu:22.04
 
 # Install git and curl
@@ -19,19 +17,16 @@ COPY . .
 
 # TODO: why is this not pinned from master?
 # checkout mmux_python
-ARG MMUX_PYTHON_BRANCH=work/jgo/flask_mmux_nih
-RUN git clone https://github.com/ITISFoundation/mmux_python
-WORKDIR /app/mmux_python
-RUN git checkout ${MMUX_PYTHON_BRANCH}
+ARG MMUX_PYTHON_BRANCH="work/jgo/flask_mmux_nih"
+RUN git clone --single-branch \
+  --branch ${MMUX_PYTHON_BRANCH} \
+  https://github.com/ITISFoundation/mmux_python
 
-WORKDIR /app
 # Install Python packages directly with system Python
 RUN python3.11 -m pip install --upgrade pip &&\
   python3.11 -m pip install itis-dakota && \
   python3.11 -m pip install flask python-dotenv && \
   python3.11 -m pip install -r ./mmux_python/requirements.txt
-
-RUN cd /app
 
 ## OSPARC API client generator
 # Install openapi-generator-cli directly with system Python
