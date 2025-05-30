@@ -64,7 +64,7 @@ const JobRow = (props: JobRowProps) => {
           })}
         </TableCell>
         <TableCell>
-          {job.outputs ? Object.entries(job.outputs).map(([key, value], idx) => {
+          {(job.outputs && job.outputs.output_1 !== null) ? Object.entries(job.outputs).map(([key, value], idx) => {
             return (
               <Box key={idx} display={"inline"}>
                 {key} : {(value as number).toExponential(3)}{", "}
