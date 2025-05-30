@@ -1,3 +1,7 @@
+SHELL 				 			:= /bin/sh
+.DEFAULT_GOAL 		 			:= help
+
+
 FLASKAPI_DIR := ./flaskapi
 VENV_DIR := $(FLASKAPI_DIR)/.venv
 MMUX_PYTHON_DIR := $(FLASKAPI_DIR)/mmux_python
@@ -50,3 +54,27 @@ python-client: client-generator
 		-o ./flaskapi/osparc-api-python-client \
 		--package-name osparc_client
 	$(VENV_DIR)/bin/python -m  pip install ./flaskapi/osparc-api-python-client
+
+
+
+.PHONY: compose-spec
+compose-spec: ## runs ooil to assemble the docker-compose.yml file
+	@docker run -it --rm -v $(PWD):/ml-lab \
+		-u $(shell id -u):$(shell id -g) \
+		itisfoundation/ci-service-integration-library:v2.0.12 \
+		sh -c "cd /ml-lab && ooil compose"
+
+.PHONY: build
+build: compose-spec ## build docker images
+	docker compose build
+
+.PHONY: run-local
+run-local: ## runs image with local configuration (dataset X)
+	docker compose --file docker-compose-local.yml up
+
+.PHONY: help
+help: ## this colorful help
+	@echo "Recipes for '$(notdir $(CURDIR))':"
+	@echo ""
+	@awk --posix 'BEGIN {FS = ":.*?## "} /^[[:alpha:][:space:]_-]+:.*?## / {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo ""
