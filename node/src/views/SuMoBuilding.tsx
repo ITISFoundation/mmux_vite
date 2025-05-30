@@ -16,7 +16,7 @@ function SuMoBuildingValidation() {
   const [isSuMoGenerated, setIsSuMoGenerated] = useState(false)
 
   const [selectedResponse, setSelectedResponse] = useState(outputVars ? outputVars[0] : '');
-  const [dataSumoCentralCurves, setDataSumoCentralCurves] = useState(undefined);
+  const [dataSumoCentralCurves, setDataSumoCentralCurves] = useState({});
 
   useEffect(() => {
     if (Array.isArray(outputVars)) setSelectedResponse(outputVars[0]);
