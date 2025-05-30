@@ -50,8 +50,8 @@ const CollectionRow = (props: CollectionRowProps) => {
             color="primary"
             checked={job.selected}
             indeterminate={
-              Object.keys(job.subJobs).some((id) => job.subJobs[id] === true) &&
-              Object.keys(job.subJobs).some((id) => job.subJobs[id] === false)
+              job.subJobs.some((job) => job.selected === true) &&
+              job.subJobs.some((job) => job.selected === false)
             }
             onChange={(event) => {
               const checked = event.target.checked;
