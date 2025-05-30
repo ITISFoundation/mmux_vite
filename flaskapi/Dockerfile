@@ -43,7 +43,7 @@ RUN openapi-generator-cli generate -i openapi.json -g python -o ./osparc-api-pyt
 EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:5000/flask/hello || exit 1
+  CMD curl -f http://localhost:5000/flask/health || exit 1
 
 # TODO: pin requirements
 # TODO: add entrypoint script to use debug mode or something else

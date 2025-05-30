@@ -2,7 +2,7 @@
     # Flask backend API paths
     handle /flask/* {
         reverse_proxy {$BACKEND_SERVICE} {
-            health_uri /flask/hello
+            health_uri /flask/health
         }
     }
 

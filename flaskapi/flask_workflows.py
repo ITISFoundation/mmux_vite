@@ -97,11 +97,10 @@ job_api_instance = FunctionJobsApi(api_client)
 job_collection_api_instance = FunctionJobCollectionsApi(api_client)
 #############################################################
 
-@app.route("/flask/hello")
-def hello_world():
-    _logger.debug("Starting flask function: hello_world")
-    _logger.debug("Cwd: " + str(Path.cwd()))
-    return "Hello, World!"
+@app.route("/flask/health")
+def health_check():
+    """Used by docker to check the health of the Flask app."""
+    return jsonify({'status': 'healthy'}), 200
 
 def get_all_items(api_call: Callable, *args, **kwargs):
     """Helper function to get all items from a paginated API call."""
