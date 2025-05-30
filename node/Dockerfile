@@ -13,6 +13,6 @@ RUN echo 'VITE_PYTHON_DAKOTA_BACKEND=http://172.18.0.3:5000' > ./.env
 
 RUN echo $(ls -lan)
 
-EXPOSE 8080
+EXPOSE 8888
 
 CMD [ "npm", "run", "dev" ]
