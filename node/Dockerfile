@@ -1,18 +1,24 @@
-
-FROM node:24-alpine
-
+# Build stage
+FROM node:24-alpine AS builder
 WORKDIR /app
-
-COPY package.json .
-
+COPY package.json package-lock.json ./
 RUN npm install
-
 COPY . .
+RUN npm run build
 
-RUN echo 'VITE_PYTHON_DAKOTA_BACKEND=http://172.18.0.3:5000' > ./.env
+# Production stage
+FROM alpine AS runner
+WORKDIR /app
+COPY --from=builder /app/dist .
 
-RUN echo $(ls -lan)
+# Install curl for healthcheck and thttpd for serving static files
+RUN apk add --no-cache curl thttpd
 
 EXPOSE 8080
 
-CMD [ "npm", "run", "dev" ]
+RUN echo 'VITE_PYTHON_DAKOTA_BACKEND=' > ./.env
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl -f http://localhost:8080/ || exit 1
+
+CMD ["thttpd", "-D", "-h", "0.0.0.0", "-p", "8080", "-d", "/app", "-u", "nobody", "-l", "-"]
