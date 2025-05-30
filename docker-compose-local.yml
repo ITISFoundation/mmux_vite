@@ -6,6 +6,7 @@ services:
       - OSPARC_HOST=${OSPARC_HOST}
       - OSPARC_USER=${OSPARC_USER}
       - OSPARC_PASSWORD=${OSPARC_PASSWORD}
+      - DEBUG_MODE=true
   mmux-vite-web:
     image: simcore/services/dynamic/mmux-vite-web:1.0.0
   mmux-vite-app:
