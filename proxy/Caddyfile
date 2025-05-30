@@ -13,9 +13,4 @@
         }
     }
 
-    # Enable logging
-    log {
-        output stdout
-        format json
-    }
 }
