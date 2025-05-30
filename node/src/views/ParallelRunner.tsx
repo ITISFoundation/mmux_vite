@@ -168,15 +168,13 @@ function JobCard(props: JobCardProps) {
     return (
       <div className="relative mb-2 group">
         <div
-          className={`p-3 rounded shadow ${
-            statusColors[job.status]
-          } transition-all duration-300 ease-in-out`}
+          className={`p-3 rounded shadow ${statusColors[job.status]
+            } transition-all duration-300 ease-in-out`}
         >
           <div className="flex justify-between items-center">
             <h3
-              className={`font-bold ${
-                job.status === "PENDING" ? "text-gray-800" : "text-white"
-              } truncate`}
+              className={`font-bold ${job.status === "PENDING" ? "text-gray-800" : "text-white"
+                } truncate`}
             >
               {jobtitle}
             </h3>
@@ -195,15 +193,13 @@ function JobCard(props: JobCardProps) {
           )}
         </div>
         <div
-          className={`absolute top-0 left-0 w-full p-3 rounded shadow ${
-            statusColors[job.status]
-          } opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out z-10`}
+          className={`absolute top-0 left-0 w-full p-3 rounded shadow ${statusColors[job.status]
+            } opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out z-10`}
         >
           <div className="flex justify-between items-center mb-2">
             <h3
-              className={`font-bold ${
-                job.status === "PENDING" ? "text-gray-800" : "text-white"
-              }`}
+              className={`font-bold ${job.status === "PENDING" ? "text-gray-800" : "text-white"
+                }`}
             >
               {jobtitle}
             </h3>
@@ -348,6 +344,22 @@ export function Dashboard(props: JobDashboardProps) {
     );
   }
 
+  const checkIfFinished = () => {
+    // Check if all jobs are either COMPLETED or FAILED, and none are PENDING or RUNNING
+    if (
+      (Object.keys(jobsByStatus.COMPLETED).length > 0 || Object.keys(jobsByStatus.FAILED).length > 0) &&
+      Object.keys(jobsByStatus.PENDING).length === 0 &&
+      Object.keys(jobsByStatus.RUNNING).length === 0
+    ) {
+      context?.setRunningSampling(false);
+    }
+  }
+
+  useEffect(() => {
+    checkIfFinished()
+  }, [jobsByStatus]);
+
+  console.log("Error: ", error)
   if (error) {
     <ProgressBar jobsByStatus={jobsByStatus} />;
   }
