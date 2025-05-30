@@ -23,5 +23,4 @@ RUN uv pip install --system -r ./mmux_python/requirements.txt \
 
 COPY . .
 
-# TODO: add entrypoint script to use debug mode or something else
-CMD ["python3.11", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000", "--debug", "--debugger", "--no-reload"]
+ENTRYPOINT ["./entrypoint.sh"]
