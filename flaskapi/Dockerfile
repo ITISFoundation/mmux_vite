@@ -1,14 +1,8 @@
-FROM ubuntu:22.04
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
 
-# Install git and curl
 RUN apt update && apt install -y \
-  git \
-  curl \
-  make \
-  python3.11 \
-  python3.11-venv \
-  pip \
-  default-jre
+  curl \  
+  git 
 
 EXPOSE 5000
 
@@ -24,11 +18,10 @@ RUN git clone --single-branch \
   https://github.com/ITISFoundation/mmux_python
 
 # Install Python packages directly with system Python
-RUN python3.11 -m pip install --upgrade pip \
-  && sed 's/ota==1.5.9/itis-dakota==1.5.9/g' ./mmux_python/requirements.txt > ./modified_requirements.txt \
-  && python3.11 -m pip install -r ./modified_requirements.txt \
-  && python3.11 -m pip install osparc==0.8.3.post0.dev26
+RUN uv pip install --system -r ./mmux_python/requirements.txt \
+  && uv pip install --system --prerelease=allow osparc==0.8.3.post0.dev26
 
 COPY . .
+
 # TODO: add entrypoint script to use debug mode or something else
 CMD ["python3.11", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000", "--debug", "--debugger", "--no-reload"]
