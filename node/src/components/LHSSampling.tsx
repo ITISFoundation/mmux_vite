@@ -46,7 +46,7 @@ const LHSSampling = () => {
             variable: inputVar,
             start: 0.0,
             end: 1.0,
-            points: 5, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
+            points: 50, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
             seed: 0,  // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
         })),
     )
@@ -101,7 +101,7 @@ const LHSSampling = () => {
                         type="number"
                         placeholder="Start"
                         value={inputVar.start.toString()}
-                        sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}`})}
+                        sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}` })}
                         onChange={(e) => handleInputChange(index, "start", e.target.value)}
                     />
                     <Typography variant='caption'>End: </Typography>
@@ -109,7 +109,7 @@ const LHSSampling = () => {
                         type="number"
                         placeholder="End"
                         value={inputVar.end.toString()}
-                        sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}`})}
+                        sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}` })}
                         onChange={(e) => handleInputChange(index, "end", e.target.value)}
                     />
                 </form>
@@ -121,7 +121,7 @@ const LHSSampling = () => {
                     type="number"
                     placeholder="N"
                     value={lhsInputs[0].points.toString()}
-                    sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}`})}
+                    sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}` })}
                     onChange={(e) => handleInputChange(0, "points", e.target.value)}
                 />
                 <Typography variant='body1'>Seed: </Typography>
@@ -129,7 +129,7 @@ const LHSSampling = () => {
                     type="number"
                     placeholder="seed"
                     value={lhsInputs[0].seed?.toString()}
-                    sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}`})}
+                    sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}` })}
                     onChange={(e) => handleInputChange(0, "seed", e.target.value)}
                 />
                 < CreateSamplingButton />
