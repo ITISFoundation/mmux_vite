@@ -77,7 +77,7 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 ### osparc client configuration #############################    
 os.chdir(os.path.dirname(__file__))
-conf_path = Path("./osparc-master.conf.json")
+conf_path = Path("./osparc-staging-speag.conf.json")
 conf_dict = json.loads(conf_path.read_text("utf-8"))
 configuration = OsparcConfiguration(**conf_dict)
 # environment variables can override the configuration
