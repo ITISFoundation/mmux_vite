@@ -1,6 +1,6 @@
-import { MMUXContextType } from "../views/MMUXContext";
+import { MMUXContextType } from "../context/MMUXContext";
 
-export function stepValidator(context: MMUXContextType | undefined, step: number): boolean {
+export function stepValidator(context: MMUXContextType, step: number): boolean {
   if (step === 0) {
     // Step 0: Check if a function is selected
     return context?.selectedFunction !== undefined

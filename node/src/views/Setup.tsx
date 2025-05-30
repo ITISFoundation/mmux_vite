@@ -1,4 +1,3 @@
-import React from "react";
 import MetaModelingUX from "../components/MetaModelingUX";
 import { FunctionList } from "../components/FunctionList";
 import { InputVariableDist } from "../components/InputVariableDist";
