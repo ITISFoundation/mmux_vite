@@ -58,7 +58,7 @@ const JobRow = (props: JobRowProps) => {
           {Object.entries(job.inputs).map(([key, value], idx) => {
             return (
               <Box key={idx} display={"inline"}>
-                {key} : {(value as number).toString()}{" "}
+                {key} : {(value as number).toString()}{", "}
               </Box>
             );
           })}
@@ -67,7 +67,7 @@ const JobRow = (props: JobRowProps) => {
           {job.outputs ? Object.entries(job.outputs).map(([key, value], idx) => {
             return (
               <Box key={idx} display={"inline"}>
-                {key} : {(value as number).toString()}
+                {key} : {(value as number).toString()}{", "}
               </Box>
             );
           }) : "No outputs"}

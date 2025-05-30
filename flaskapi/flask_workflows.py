@@ -221,6 +221,9 @@ def get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
     job = job_api_instance.get_function_job(job_uid)
     job_dict = recursive_dict_keys_camel_to_snake(job.to_dict()) # type: ignore
     job_dict["status"] = job_api_instance.function_job_status(job_uid).status
+    outputs = job_api_instance.function_job_outputs(job_uid)
+    logger.info(f"Outputs: {outputs}")
+    job_dict["outputs"] = outputs
     logger.info(f"Job: {job_dict}")
     return job_dict
 
@@ -380,6 +383,10 @@ def flask_test_job():
     if status.status != "SUCCESS":
         logger.error(f"Job {job['uid']} did not complete successfully. Status: {status.status}")
         return jsonify({"error": f"Job {job['uid']} did not complete successfully. Status: {status.status}"})
+    else:
+        outputs = job_api_instance.function_job_outputs(job["uid"])
+        logger.info(f"Job {job['uid']} completed successfully. Outputs: {outputs}")
+        job["outputs"] = outputs.to_dict()  # type: ignore
     ###
 
     return jsonify(job)  # return the job details as a dictionary
