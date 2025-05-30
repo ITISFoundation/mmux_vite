@@ -43,4 +43,8 @@ RUN .uv_env/bin/openapi-generator-cli generate -i openapi.json -g python -o ./os
   .venv/bin/python -m pip install ./osparc-api-python-client
 
 EXPOSE 5000
-CMD [".venv/bin/flask", "run", "--host=localhost", "--port=5000", "--no-debugger" ]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl -f http://localhost:5000/flask/hello || exit 1
+
+CMD [".venv/bin/flask", "run", "--host=0.0.0.0", "--port=5000", "--no-debugger" ]

@@ -77,19 +77,11 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 ### osparc client configuration #############################    
 os.chdir(os.path.dirname(__file__))
-conf_path = Path("./osparc-master.conf.json")
-conf_dict = json.loads(conf_path.read_text("utf-8"))
-configuration = OsparcConfiguration(**conf_dict)
-# environment variables can override the configuration
-if "OSPARC_HOST" in os.environ:
-    configuration.host = os.environ["OSPARC_HOST"]
-    logger.info(f"OSPARC_HOST environment variable found, using {configuration.host} as API URL")
-if "OSPARC_USER" in os.environ:
-    configuration.username = os.environ["OSPARC_USER"]
-    logger.info(f"OSPARC_USER environment variable found, using {configuration.username} as username")
-if "OSPARC_PASSWORD" in os.environ:
-    configuration.password = os.environ["OSPARC_PASSWORD"]
-    logger.info(f"OSPARC_PASSWORD environment variable found, using it as password")
+configuration = OsparcConfiguration(
+    host=os.environ["OSPARC_HOST"],
+    username=os.environ["OSPARC_USER"],
+    password=os.environ["OSPARC_PASSWORD"],
+)
 
 api_client = ApiClient(configuration)
 functions_api_instance = FunctionsApi(api_client)
