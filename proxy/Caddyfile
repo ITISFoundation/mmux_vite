@@ -1,0 +1,17 @@
+:8888 {
+    # Root path handling for Node.js frontend/main app
+    handle / {
+        reverse_proxy mmux-vite-web:80
+    }
+
+    # Flask backend API paths
+    handle /flask/* {
+        reverse_proxy mmux-vite-backend:5000
+    }
+
+    # Enable logging
+    log {
+        output stdout
+        format json
+    }
+}
