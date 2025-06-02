@@ -34,7 +34,7 @@ const VarsHolder = styled("div")`
 `;
 
 export function FunctionList() {
-  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars} = useMMUXContext();
+  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [functions, setFunctions] = useState<Function[]>([]);
@@ -88,7 +88,21 @@ export function FunctionList() {
         (fun as SolverFunction).solverVersion
       );
     } else if ((fun as ProjectFunction).projectId) {
-      return "Template " + (fun as ProjectFunction).projectId;
+      return (
+        <>
+          Template{" "}
+          <a
+            href={`https://osparc-master.speag.com/#/study/${(fun as ProjectFunction).projectId}`}
+            // TODO need to fetch which deployment we are at
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "#1976d2", textDecoration: "underline" }}
+          >
+            {(fun as ProjectFunction).projectId}
+            {/* TODO ideally fetch project information (e.g. name & creation date) by the endpoint created by Odei */}
+          </a>
+        </>
+      );
     } else if ((fun as PythonCodeFunction).codeUrl) {
       return (fun as PythonCodeFunction).codeUrl;
     } else {
@@ -184,15 +198,15 @@ export function FunctionList() {
               onClick={() => {
                 setSelectedFunction(params.row);
                 setInputVars(
-                    params.row.inputSchema?.schemaContent?.properties
-                        ? Object.keys(params.row.inputSchema.schemaContent.properties)
-                        : []
+                  params.row.inputSchema?.schemaContent?.properties
+                    ? Object.keys(params.row.inputSchema.schemaContent.properties)
+                    : []
                 );
                 console.log("inputVars registered:", Object.keys(params.row.inputSchema.schemaContent.properties))
                 setOutputVars(
-                    params.row.outputSchema?.schemaContent?.properties
-                        ? Object.keys(params.row.outputSchema.schemaContent.properties)
-                        : []
+                  params.row.outputSchema?.schemaContent?.properties
+                    ? Object.keys(params.row.outputSchema.schemaContent.properties)
+                    : []
                 );
               }}
             >
@@ -211,8 +225,7 @@ export function FunctionList() {
         },
         "& .MuiDataGrid-row:hover": {
           backgroundColor: (theme) =>
-            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
-              theme.palette.mode === "dark" ? "black" : "white"
+            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
             })`,
         },
         "& .MuiDataGrid-row.Mui-selected": {

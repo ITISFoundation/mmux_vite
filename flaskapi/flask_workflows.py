@@ -77,7 +77,7 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 ### osparc client configuration #############################    
 os.chdir(os.path.dirname(__file__))
-conf_path = Path("./osparc-master.conf.json")
+conf_path = Path("./osparc-staging-speag.conf.json")
 conf_dict = json.loads(conf_path.read_text("utf-8"))
 configuration = OsparcConfiguration(**conf_dict)
 # environment variables can override the configuration
@@ -143,7 +143,8 @@ def flask_list_functions():
     logger.info("Starting flask function: flask_list_functions")
     logger.info("Cwd: " + str(Path.cwd()))
     # functions = get_all_items(functions_api_instance.list_functions)
-    functions = get_first_N_items(functions_api_instance.list_functions, N=5)
+    # functions = get_first_N_items(functions_api_instance.list_functions, N=5)
+    functions = get_last_N_items(functions_api_instance.list_functions, N=50)
     functions = functions[::-1] # put last-created first? FIXME still need to expose "created_at" in the response
     logger.info(f"N Functions: {len(functions)}")
 
@@ -220,6 +221,9 @@ def get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
     job = job_api_instance.get_function_job(job_uid)
     job_dict = recursive_dict_keys_camel_to_snake(job.to_dict()) # type: ignore
     job_dict["status"] = job_api_instance.function_job_status(job_uid).status
+    outputs = job_api_instance.function_job_outputs(job_uid)
+    logger.info(f"Outputs: {outputs}")
+    job_dict["outputs"] = outputs
     logger.info(f"Job: {job_dict}")
     return job_dict
 
@@ -350,6 +354,45 @@ def flask_load_json():
     logger.info(f"data: {data}")
     return jsonify(data)
 
+
+@app.route("/flask/test_job", methods=["POST"])
+def flask_test_job():
+    logger.info("Starting flask function: flask/test_job")
+    logger.info("Cwd: " + str(Path.cwd()))
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    config = request_data["config"]
+    function_uid = request_data["funUid"]
+
+    logger.info(f"Function UID: {function_uid}")
+    logger.info(f"Config: {config}")
+    sample = {config[i]["variable"]: config[i]["value"] for i in range(len(config))} 
+
+    ## DEBUGGING
+    logger.info("Input to validate_function_inputs:" , sample)
+    val = functions_api_instance.validate_function_inputs(function_uid, sample)  # this is working - changing the name of the variable does return a validation error
+    logger.info(f"Validated function inputs for function {function_uid} with sample {sample}: {val}")
+    job = functions_api_instance.run_function(function_uid, sample) # type: ignore
+    job: dict = job.to_dict()  # convert to dictionary for easier logging # type:ignore
+    logger.info(f"Created job: {job}")
+    status = job_api_instance.function_job_status(job["uid"])  # type: ignore
+    logger.info(f"Job status: {status.status}")
+    while status.status not in ("SUCCESS", "FAILED"):
+        logger.info(f"Job {job['uid']} is still running, status: {status.status}")
+        status = job_api_instance.function_job_status(job["uid"])
+    if status.status != "SUCCESS":
+        logger.error(f"Job {job['uid']} did not complete successfully. Status: {status.status}")
+        return jsonify({"error": f"Job {job['uid']} did not complete successfully. Status: {status.status}"})
+    else:
+        outputs = job_api_instance.function_job_outputs(job["uid"])
+        logger.info(f"Job {job['uid']} completed successfully. Outputs: {outputs}")
+        job["outputs"] = outputs.to_dict()  # type: ignore
+    ###
+
+    return jsonify(job)  # return the job details as a dictionary
+
+    
+
 @app.route("/flask/lhs_sampling", methods=["POST"])
 def flask_lhs():
     logger.info("Starting flask function: flask/lhs_sampling")
@@ -370,10 +413,9 @@ def flask_lhs():
     samples = []
     for j in range(n):
         samples.append(
-            {config[i]["variable"] : H[i, j] * (config[i]["end"] - config[i]["start"]) + config[i]["start"] for i in range(k)}
+            {config[i]["variable"] : float(H[i, j] * (config[i]["end"] - config[i]["start"]) + config[i]["start"]) for i in range(k)}
         )
     logger.info(f"Samples: {samples}")
-
 
     # Now, the running of jobs through the OSPARC API has been moved to the Python backend
     ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
