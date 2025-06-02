@@ -19,8 +19,8 @@ async function runLhsSampling(context: MMUXContextType | undefined, config: any[
                 {
                     funUid: fun.uid,
                     config: config,
-                    seed: seed,
-                    N: N,
+                    seed: config[0].seed, // TODO should be kept somewhere else in the state
+                    N: config[0].points, // TODO should be kept somewhere else in the state
                 }
             ),
         }).then(function (response) {
@@ -52,15 +52,8 @@ const LHSSampling = () => {
     )
 
     function CreateSamplingButton() {
-        const handleRunSampling = () => {
-            context?.setLaunchingSampling(true)
-            runLhsSampling(context, lhsInputs)
-            setTimeout(() => {
-                // for now the request fails very quickly
-                context?.setLaunchingSampling(false)
-                context?.setRunningSampling(true)
-            }, 3000);
-            // TODO have some way to detect that it finished running; and set the corresponding context variable to False
+        const handleRunSampling = async () => {
+            await runLhsSampling(context, lhsInputs)
         };
 
         return (
