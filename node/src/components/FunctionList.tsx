@@ -140,7 +140,7 @@ export function FunctionList() {
           display="inline"
           mr={1}
         >
-          No functions available.
+          Error fetching functions from the server. Please try again after some time.
         </Typography>
         <IconButton size="small" onClick={async () => await fetchFunctions()}>
           <Refresh color="primary" />
