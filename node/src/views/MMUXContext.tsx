@@ -20,6 +20,10 @@ export interface MMUXContextType {
   setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void;
   selectedJobUids: string[];
   setSelectedJobUids: (selectedJobs: string[]) => void;
+  selectedQoI: string;
+  setSelectedQoI: (qoi: string) => void;
+  isSuMoGenerated: boolean;
+  setIsSuMoGenerated: (is: boolean) => void;
 }
 
 const MMUXContext = createContext<MMUXContextType | undefined>(undefined);
