@@ -59,7 +59,20 @@ python-client: client-generator
 
 
 
-### dynamic serice utils
+# Builds new service version ----------------------------------------------------------------------------
+define _bumpversion
+	# upgrades as $(subst $(1),,$@) version, commits and tags
+	@docker run -it --rm -v $(PWD):/ml-lab \
+		-u $(shell id -u):$(shell id -g) \
+		itisfoundation/ci-service-integration-library:v2.0.12 \
+		sh -c "cd /ml-lab && bump2version --verbose --list --config-file $(1) $(subst $(2),,$@)"
+endef
+
+.PHONY: version-patch version-minor version-major
+version-patch version-minor version-major: .bumpversion.cfg ## increases service's version
+	@make compose-spec
+	@$(call _bumpversion,$<,version-)
+	@make compose-spec
 
 
 .PHONY: compose-spec
