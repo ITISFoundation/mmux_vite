@@ -59,6 +59,9 @@ python-client: client-generator
 
 
 
+### dynamic serice utils
+
+
 .PHONY: compose-spec
 compose-spec: ## runs ooil to assemble the docker-compose.yml file
 	@docker run -it --rm -v $(PWD):/ml-lab \
@@ -70,8 +73,8 @@ compose-spec: ## runs ooil to assemble the docker-compose.yml file
 build: compose-spec ## build docker images
 	docker compose build
 
-.PHONY: run-local
-run-local: ## runs image with local configuration (dataset X)
+.PHONY: run-prod-local
+run-prod-local: ## runs image with local configuration (dataset X)
 	docker compose --file docker-compose-local.yml up
 
 .PHONY: publish-local
