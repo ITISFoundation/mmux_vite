@@ -27,9 +27,11 @@ from osparc_client.configuration import Configuration as OsparcConfiguration
 from osparc_client.api_client import ApiClient
 from osparc_client.api.functions_api import FunctionsApi
 from osparc_client.api.function_jobs_api import FunctionJobsApi
+from osparc_client.api.users_api import UsersApi
 from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi
 from osparc_client.models.function_job import FunctionJob
 from osparc_client.models.function_job_status import FunctionJobStatus
+from osparc_client.configuration import Configuration as OsparcConfiguration
 
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
@@ -76,6 +78,32 @@ def recursive_dict_keys_camel_to_snake(d: dict) -> dict:
     return {camel_to_snake(k): v for k, v in d.items()}
 
 
+### osparc client configuration #############################    
+os.chdir(os.path.dirname(__file__))
+
+configuration = OsparcConfiguration(
+        host=os.environ["OSPARC_API_BASE_URL"].rstrip("/"),  # Ensure no trailing slash
+        username=os.environ["OSPARC_API_KEY"],
+        password=os.environ["OSPARC_API_SECRET"],
+)
+_logger.debug("Detected osparc_client configuration: host=%s, username=%s, password=%s",
+    configuration.host,
+    configuration.username,
+    configuration.password
+)
+
+api_client = ApiClient(configuration)
+functions_api_instance = FunctionsApi(api_client)
+job_api_instance = FunctionJobsApi(api_client)
+job_collection_api_instance = FunctionJobCollectionsApi(api_client)
+
+
+# check that API is responsive
+users_api = UsersApi(api_client)
+profile = users_api.get_my_profile()
+_logger.debug("User profile info:\n%s", profile.model_dump_json(indent=2))
+
+#############################################################
 
 ### Flask app configuration #################################
 app = Flask(__name__)
@@ -85,23 +113,6 @@ cors = CORS(app, origins=["*"], methods=["*"], allow_headers=["*"], resources=["
 app.config['CORS_HEADERS'] = 'Content-Type'
 #############################################################
 
-### osparc client configuration #############################    
-os.chdir(os.path.dirname(__file__))
-configuration = OsparcConfiguration(
-    host=os.environ["OSPARC_API_BASE_URL"],
-    username=os.environ["OSPARC_API_KEY"],
-    password=os.environ["OSPARC_API_SECRET"],
-)
-
-_logger.info(f"OSPARC_HOST environment variable found, using '{configuration.host}' as API URL")
-_logger.info(f"OSPARC_USER environment variable found, using '{configuration.username}' as username")
-_logger.info(f"OSPARC_PASSWORD environment variable found, using '***' as password")
-
-api_client = ApiClient(configuration)
-functions_api_instance = FunctionsApi(api_client)
-job_api_instance = FunctionJobsApi(api_client)
-job_collection_api_instance = FunctionJobCollectionsApi(api_client)
-#############################################################
 
 @app.route("/flask/health")
 def health_check():
