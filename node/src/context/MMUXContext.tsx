@@ -20,6 +20,8 @@ export interface MMUXContextType {
   setRunningSampling: (b: boolean) => void;
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
   setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void;
+  fetchedJobCollections: SelectedJobCollection[];
+  setFetchedJobCollections: (jc: SelectedJobCollection[]) => void;
   selectedJobUids: string[];
   setSelectedJobUids: (selectedJobs: string[]) => void;
 }
@@ -36,6 +38,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
   const [launchingSampling, setLaunchingSampling] = useState<boolean>(false);
   const [runningSampling, setRunningSampling] = useState<boolean>(false);
   const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
+  const [fetchedJobCollections, setFetchedJobCollections] = useState<SelectedJobCollection[]>([]);
   const [inputVars, setInputVars] = useState<string[]>([]);
   const [distribution, setDistribution] = useState<InputVarSelection>({});
   const [outputVars, setOutputVars] = useState<string[] | undefined>(undefined);
@@ -63,7 +66,9 @@ export const MMUXContextProvider = ({ children }: Props) => {
     setRunningJobCollection: setRunningJobCollection,
     selectedJobUids: selectedJobUids,
     setSelectedJobUids: setSelectedJobUids,
-  }), [funct, distribution, inputVars, outputVars, currentView, launchingSampling, runningSampling, selectedResponse, runningJobCollection, selectedJobUids]);
+    fetchedJobCollections: fetchedJobCollections,
+    setFetchedJobCollections: setFetchedJobCollections
+  }), [funct, distribution, inputVars, outputVars, currentView, launchingSampling, runningSampling, selectedResponse, runningJobCollection, selectedJobUids, fetchedJobCollections]);
 
   return <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>;
 }
