@@ -3,10 +3,9 @@ services:
   mmux-vite-backend:
     image: simcore/services/dynamic/mmux-vite-backend:1.0.0
     environment:
-      - OSPARC_API_BASE_URL=${OSPARC_HOST}
-      - OSPARC_API_KEY=${OSPARC_USER}
-      - OSPARC_API_SECRET=${OSPARC_PASSWORD}
-      - DEBUG_MODE=true
+      - OSPARC_API_BASE_URL=${OSPARC_API_BASE_URL}
+      - OSPARC_API_KEY=${OSPARC_API_KEY}
+      - OSPARC_API_SECRET=${OSPARC_API_SECRET}
   mmux-vite-web:
     image: simcore/services/dynamic/mmux-vite-web:1.0.0
   mmux-vite-app:
@@ -17,7 +16,5 @@ services:
     ports:
       - "8888:8888"
     depends_on:
-      mmux-vite-backend:
-        condition: service_healthy
-      mmux-vite-web:
-        condition: service_healthy
+      - mmux-vite-backend
+      - mmux-vite-web
