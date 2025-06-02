@@ -5,10 +5,9 @@ import { ToastContainer } from 'react-toastify';
 import { setupTheme } from "./theme";
 import Navigation from "./components/Navigation";
 import { Footer } from "./components/Footer";
-import MMUXContext, { MMUXContextType } from "./views/MMUXContext";
+import { useMMUXContext } from "./context/MMUXContext";
 import Setup from "./views/Setup";
 import JobSetup from "./views/JobSetup";
-import { Function, RegisteredFunctionJobCollection } from "./osparc-api-ts-client";
 import SuMoBuildingValidation from "./views/SuMoBuilding";
 import UQ from "./views/UQ";
 
@@ -29,17 +28,7 @@ const App = () => {
     // { id: 98, label: "FunctionIndex" },
     // { id: 99, label: "JobIndex" },
   ];
-  const [activeStep, setActiveStep] = useState(steps[0].id);
-  // const [previousViews, setPreviousViews] = useState<number[]>([])
-  const [funct, setFunct] = useState<Function | undefined>(undefined);
-  const [launchingSampling, setLaunchingSampling] = useState<boolean>(false);
-  const [runningSampling, setRunningSampling] = useState<boolean>(false);
-  const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
-  const [inputVars, setInputVars] = useState<string[] | undefined>(undefined);
-  const [distribution, setDistribution] = useState<InputVarSelection>({});
-  const [outputVars, setOutputVars] = useState<string[] | undefined>(undefined);
-  const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
-
+  const { currentView, setCurrentView } = useMMUXContext();
   const { mode, systemMode, setMode } = useColorScheme();
   const finalMode = mode
   ? mode === "system"
@@ -57,59 +46,38 @@ const App = () => {
     setMode(newMode);
   };
 
-  const defaultMMUXContext: MMUXContextType = {
-    selectedFunction: funct,
-    setSelectedFunction: setFunct,
-    distribution: distribution,
-    setDistribution: setDistribution,
-    inputVars: inputVars,
-    setInputVars: setInputVars,
-    outputVars: outputVars,
-    setOutputVars: setOutputVars,
-    currentView: activeStep,
-    setCurrentView: setActiveStep,
-    launchingSampling: launchingSampling,
-    setLaunchingSampling: setLaunchingSampling,
-    runningSampling: runningSampling,
-    setRunningSampling: setRunningSampling,
-    runningJobCollection: runningJobCollection,
-    setRunningJobCollection: setRunningJobCollection,
-    selectedJobUids: selectedJobUids,
-    setSelectedJobUids: setSelectedJobUids,
-  };
+
 
   return (
-    <MMUXContext.Provider value={defaultMMUXContext}>
-      <ThemeProvider theme={theme}>
-        <FakeRoot>
-          <Container>
-            <Navigation
-              steps={steps}
-              activeStep={activeStep}
-            />
-            <>
-              {activeStep === 0 ? <Setup /> : undefined}
-              {activeStep === 1 ? <JobSetup /> : undefined}
-              {activeStep === 2 ? <SuMoBuildingValidation /> : undefined}
-              {activeStep === 3 ? <UQ /> : undefined}
-            </>
-            <Footer mode={themeMode} setMode={setThemeModeHandler} activeStep={activeStep} setActiveStep={setActiveStep} />
-          </Container>
-          <ToastContainer
-            theme={themeMode}
-            position="top-right"
-            autoClose={5000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable={false}
-            pauseOnHover
+    <ThemeProvider theme={theme}>
+      <FakeRoot>
+        <Container>
+          <Navigation
+            steps={steps}
+            activeStep={currentView}
           />
-        </FakeRoot>
-      </ThemeProvider>
-    </MMUXContext.Provider>
+          <>
+            {currentView === 0 ? <Setup /> : undefined}
+            {currentView === 1 ? <JobSetup /> : undefined}
+            {currentView === 2 ? <SuMoBuildingValidation /> : undefined}
+            {currentView === 3 ? <UQ /> : undefined}
+          </>
+          <Footer mode={themeMode} setMode={setThemeModeHandler} activeStep={currentView} setActiveStep={setCurrentView} />
+        </Container>
+        <ToastContainer
+          theme={themeMode}
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable={false}
+          pauseOnHover
+        />
+      </FakeRoot>
+    </ThemeProvider>
   );
 };
 

@@ -1,16 +1,16 @@
-import { useContext, useState } from 'react';
-import MMUXContext, { MMUXContextType } from '../views/MMUXContext';
+import { useState } from 'react';
+import { MMUXContextType, useMMUXContext } from '../context/MMUXContext';
 import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import { Box, Button, Input, Typography } from '@mui/material';
 import { Function, RegisteredFunctionJobCollection } from '../osparc-api-ts-client';
 
 
 
-async function runLhsSampling(context: MMUXContextType | undefined, config: any[], seed: number = 0, N: number = 5) {
+async function runLhsSampling(context: MMUXContextType, config: any[], seed: number = 0, N: number = 5) {
     const fun = context?.selectedFunction as Function;
     // send config to Python backend to create LHS
     console.log("Running LHS Sampling with config: ", config);
-    context?.setLaunchingSampling(true)
+    context.setLaunchingSampling(true)
     const jc = await fetch(
         PYTHON_DAKOTA_BACKEND + '/flask/lhs_sampling',
         {
@@ -31,16 +31,16 @@ async function runLhsSampling(context: MMUXContextType | undefined, config: any[
         }).catch(function (error) {
             console.error("Error running LHS sampling: ", error);
         })
-    context?.setLaunchingSampling(false)
-    context?.setRunningSampling(true)
-    context?.setRunningJobCollection(jc ? jc : undefined)
+    context.setLaunchingSampling(false)
+    context.setRunningSampling(true)
+    context.setRunningJobCollection(jc ? jc : undefined)
     return jc
 }
 
 
 const LHSSampling = () => {
-    const context = useContext(MMUXContext);
-    const inputVars = context?.inputVars as string[];
+    const context = useMMUXContext();
+    const { inputVars, launchingSampling, setLaunchingSampling, runningSampling, setRunningSampling } = context;
     const [lhsInputs, setLhsInputs] = useState(
         inputVars.map((inputVar) => ({
             variable: inputVar,
@@ -62,9 +62,9 @@ const LHSSampling = () => {
 
                 <Button
                     onClick={handleRunSampling}
-                    disabled={(context?.launchingSampling || context?.runningSampling)}
+                    disabled={(launchingSampling || runningSampling)}
                 >
-                    {context?.launchingSampling ? "Launching..." : context?.runningSampling ? "Running..." : "Run Sampling"}
+                    {launchingSampling ? "Launching..." : context?.runningSampling ? "Running..." : "Run Sampling"}
                 </Button>
                 {context?.launchingSampling && <Box className="spinner" />}
             </Box>

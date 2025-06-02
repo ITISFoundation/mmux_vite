@@ -1,9 +1,14 @@
 import Plot from 'react-plotly.js';
 
+type DataEntry = {
+    x: number[];
+    y_hat: number[];
+};
+
 type PlotDataType = {
-    data: any,
-    inputVars: string[],
-    qoi: string,
+    data: { [key: string]: DataEntry };
+    inputVars: string[];
+    qoi: string;
 };
 
 const PlotDataTogether = (props: PlotDataType) => {
@@ -12,8 +17,8 @@ const PlotDataTogether = (props: PlotDataType) => {
     console.log("PlotDataTogether data", data)
     console.log("PlotDataTogether inputVars", inputVars)
     console.log("PlotDataTogether qoi", qoi)
-    let plotData = [];
-    let xAxes = [];
+    const plotData = [];
+    const xAxes = [];
 
     if (data === undefined || inputVars === undefined) {
         return <span>Loading...</span>;
@@ -40,7 +45,7 @@ const PlotDataTogether = (props: PlotDataType) => {
             });
         }
     
-        let subplot_config = [inputVars.map((_, i) => `x${i + 1}y`)]
+        const subplot_config = inputVars.map((_, i) => `x${i + 1}y`);
         return <Plot
                 data={plotData}
                 layout={{
@@ -50,7 +55,7 @@ const PlotDataTogether = (props: PlotDataType) => {
                     grid: { rows: 1, columns: inputVars.length, subplots: subplot_config },
                     yaxis: {
                         // title: { text: qoi }, 
-                        showgrid: true, anchor: 'x1'
+                        showgrid: true, anchor: 'x'
                     },
                     ...xAxes.reduce((acc, axis, i) => ({ ...acc, [`xaxis${i + 1}`]: axis }), {}),
                     showlegend: false,

@@ -1,6 +1,6 @@
-import React, { useContext } from 'react'
+import React from 'react'
 import { Box, Button, Container, Modal, Paper, styled } from '@mui/material'
-import MMUXContext, { MMUXContextType } from '../views/MMUXContext';
+import { useMMUXContext } from '../context/MMUXContext';
 import JobsDashboard from '../views/ParallelRunner';
 import { DarkMode, LightMode } from '@mui/icons-material';
 import { stepValidator } from '../utils/stepValidator';
@@ -20,10 +20,11 @@ padding: 0 !important;
 `
 
 export const Footer = (props: FooterProps) => {
-  const { mode, setMode, activeStep, setActiveStep } = props;
+  const { mode, setMode } = props;
+  const context = useMMUXContext();
+  const { currentView, setCurrentView, runningSampling } = context;
   const [modal, setModal] = React.useState(false);
-  const context: MMUXContextType | undefined = useContext(MMUXContext);
-  const isJobsRunning = context?.runningSampling;
+  const isJobsRunning = runningSampling;
 
   const handleModeChange = () => {
     console.log('Changing mode from', mode);
@@ -34,15 +35,15 @@ export const Footer = (props: FooterProps) => {
     <>
     <Cont>
         <Paper className='footerBox' variant="outlined">
-          <Button className='footerBtn footerBtnFirst' onClick={()=>setActiveStep(activeStep <= 0 ? 0 : activeStep -1)} disabled={activeStep <= 0}>Previous</Button>
+          <Button className='footerBtn footerBtnFirst' onClick={()=>setCurrentView(currentView <= 0 ? 0 : currentView -1)} disabled={currentView <= 0}>Previous</Button>
           <Box>
             <Button className='footerBtn' onClick={() => setModal(!modal)} disabled={!isJobsRunning}>Tasks running</Button>
             <Button className='footerBtn' onClick={handleModeChange}>{mode === 'light' ? <LightMode/> : <DarkMode/>}</Button>
           </Box>
           <Button
             className='footerBtn footerBtnLast'
-            onClick={()=>setActiveStep(activeStep >= 3 ? 3 : activeStep +1)}
-            disabled={activeStep >= 3 || !stepValidator(context, activeStep)}
+            onClick={()=>setCurrentView(currentView >= 3 ? 3 : currentView +1)}
+            disabled={currentView >= 3 || !stepValidator(context, currentView)}
           >
             Next
           </Button>

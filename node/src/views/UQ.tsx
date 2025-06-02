@@ -1,35 +1,31 @@
-import React, { useState, useContext } from "react";
+import { useState } from "react";
 // import FileSelector from '../components/FileSelector';
 // import SuMoTypeSelector from '../components/SuMoTypeSelector';
 // import OutputResponseSelector from '../components/OutputResponseSelector';
-import MMUXContext from "./MMUXContext";
+import { useMMUXContext } from "../context/MMUXContext";
 import MetaModelingUX from "../components/MetaModelingUX";
 import { Box, Container } from "@mui/material";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
-import {
-  getFunctionJobsFromFunctionUid,
-  getFunctionJobCollections,
-} from "../utils/function_utils";
+import { getFunctionJobsFromFunctionUid } from "../utils/function_utils";
 
 export default function UQ() {
   // Similar to Sumo building
-  const context = useContext(MMUXContext);
-  const inputVars = (context?.inputVars ?? []) as string[];
+  const { inputVars, selectedFunction, selectedResponse } = useMMUXContext();
   const [numSamples, setNumSamples] = useState(10000);
   const [dataUQHistogram, setDataUQHistogram] = useState(undefined);
 
   async function runUQ(config: any) {
     console.log("Running UQ...");
     // TODO get only those selected in the JobSelector (pass as status??)
-    let jobList = await getFunctionJobsFromFunctionUid(
-      context?.selectedFunction?.uid as string
+    const jobList = await getFunctionJobsFromFunctionUid(
+      selectedFunction?.uid as string
     );
     console.log("Fetched jobs:", jobList);
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/uq_propagation", {
       method: "POST",
       body: JSON.stringify({
         inputs: inputVars,
-        output: selectedResponse, // TODO this will be in MMUXcontext
+        output: selectedResponse,
         FunctionJobs: jobList,
         numSamples: numSamples,
       }),
@@ -61,13 +57,13 @@ export default function UQ() {
           }}
         >
           <span>
-            Selected Function: <b>{context?.selectedFunction?.title}</b>{" "}
+            Selected Function: <b>{selectedFunction?.title}</b>{" "}
           </span>
           <span>
             Selected Job Campaign(s): <b>TODO</b>{" "}
           </span>
           <span>
-            Selected QoI: <b>{context?.selectedResponse}</b>{" "}
+            Selected QoI: <b>{selectedResponse}</b>{" "}
           </span>
           {/*
             <label htmlFor="useSuMo">Use Surrogate Model to perform Uncertainty Quantification</label>

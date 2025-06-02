@@ -7,15 +7,13 @@ const IsoSurface3DPlot = () => {
   const [key1, setKey1] = useState("x1");
   const [key2, setKey2] = useState("x2");
 
-  const data = [
+  const data: Plotly.Data[] = [
     {
       type: "isosurface",
       x: [0, 0, 0, 0, 1, 1, 1, 1],
       y: [0, 1, 0, 1, 0, 1, 0, 1],
       z: [1, 1, 0, 0, 1, 1, 0, 0],
-      value: [1, 2, 3, 4, 5, 6, 7, 8],
-      isomin: 2,
-      isomax: 6,
+      value: 1,
       colorscale: "Reds",
     },
   ];

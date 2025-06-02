@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useContext } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { FunctionJob } from "../osparc-api-ts-client";
-import MMUXContext from "./MMUXContext";
+import { useMMUXContext } from "../context/MMUXContext";
 import { getFunctionJobsFromFunctionJobCollection } from "../utils/function_utils";
 
 const statusColors = {
@@ -20,6 +20,11 @@ type jobsByStatusType = {
   RUNNING: Record<string, FunctionJob>;
   COMPLETED: Record<string, FunctionJob>;
   FAILED: Record<string, FunctionJob>;
+};
+
+type ProgressBarProps = {
+  jobsByStatus: jobsByStatusType;
+  totalETA?: number;
 };
 
 const StatusIcon = (props: StatusIconProps) => {
@@ -108,11 +113,6 @@ const formatDuration = (seconds: number) => {
     .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
-type ProgressBarProps = {
-  jobsByStatus: jobsByStatusType;
-  totalETA?: number;
-};
-
 export const ProgressBar: React.FC<ProgressBarProps> = ({
   jobsByStatus,
   totalETA = 0,
@@ -168,7 +168,7 @@ function JobCard(props: JobCardProps) {
     return (
       <div className="relative mb-2 group">
         <div
-          className={`p-3 rounded shadow ${statusColors[job.status]
+          className={`p-3 rounded shadow ${statusColors[job.status as keyof typeof statusColors]
             } transition-all duration-300 ease-in-out`}
         >
           <div className="flex justify-between items-center">
@@ -193,7 +193,7 @@ function JobCard(props: JobCardProps) {
           )}
         </div>
         <div
-          className={`absolute top-0 left-0 w-full p-3 rounded shadow ${statusColors[job.status]
+          className={`absolute top-0 left-0 w-full p-3 rounded shadow ${statusColors[job.status as keyof typeof statusColors]
             } opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out z-10`}
         >
           <div className="flex justify-between items-center mb-2">
@@ -259,18 +259,14 @@ export function Dashboard(props: JobDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   // const [totalETA, setTotalETA] = useState(null);
-  const context = useContext(MMUXContext);
+  const { runningJobCollection } = useMMUXContext();
 
   const fetchJobs = useCallback(async () => {
     try {
       // TODO get jobs for JobCollection (instead of all related to that function) when Werner exposes that
-      let jobList = await getFunctionJobsFromFunctionJobCollection(
-        context?.runningJobCollection?.uid as string
+      const jobList = await getFunctionJobsFromFunctionJobCollection(
+        runningJobCollection?.uid as string
       );
-      // let jobList = context?.runningJobCollection?.jobIds?.map(async (job_uid) => {
-      //     return await getFunctionJob(job_uid)
-      // }
-      // )
       console.log("Fetched jobs:", jobList);
       if (jobList !== undefined) {
         setJobs(jobList);

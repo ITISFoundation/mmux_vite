@@ -1,21 +1,17 @@
 import { Box, Chip, InputLabel, MenuItem, Select, TextField, Typography } from "@mui/material";
-import React, { useContext, useEffect, useState } from "react";
-import MMUXContext from "../views/MMUXContext";
+import { useEffect } from "react";
+import { useMMUXContext } from "../context/MMUXContext";
 
 export const InputVariableDist = () => {
-  const context = useContext(MMUXContext);
-  const inputVars = (context?.inputVars ?? []) as string[];
-  const [inputVarSelection, setInputVarSelection] = useState<InputVarSelection>(context?.distribution || {});
+  const { inputVars, distribution, setDistribution} = useMMUXContext();
 
   const handleSetValue = (inputVar: string, type: string, value: number) => {
-    console.log("Setting values in INPUTVARS!", inputVarSelection);
-    const newInputVars = {...inputVarSelection};
+    const newInputVars = {...distribution};
     if (!newInputVars[inputVar]) {
       newInputVars[inputVar] = { distribution: "normal" };
     }
     newInputVars[inputVar][type as variables] = value;
-    setInputVarSelection(newInputVars);
-    context?.setDistribution(newInputVars);
+    setDistribution(newInputVars);
   }
 
   const InputBlock = (props: InputBlockProps) => {
@@ -39,7 +35,7 @@ export const InputVariableDist = () => {
     return (
       <InputBlock
         name="Value"
-        value={inputVarSelection[inputVar].value ? inputVarSelection[inputVar].value : 0}
+        value={distribution[inputVar].value ? distribution[inputVar].value : 0}
         onChange={(value) => handleSetValue(inputVar, 'value', value)}
       />
     );
@@ -50,12 +46,12 @@ export const InputVariableDist = () => {
       <>
         <InputBlock
           name="Mean"
-          value={inputVarSelection[inputVar].mean ? inputVarSelection[inputVar].mean : 0}
+          value={distribution[inputVar].mean ? distribution[inputVar].mean : 0}
           onChange={(value) => handleSetValue(inputVar, 'mean', value)}
         />
         <InputBlock
           name="Standard Deviation"
-          value={inputVarSelection[inputVar].std ? inputVarSelection[inputVar].std : 0}
+          value={distribution[inputVar].std ? distribution[inputVar].std : 0}
           onChange={(value) => handleSetValue(inputVar, 'std', value)}
         />
       </>
@@ -67,12 +63,12 @@ export const InputVariableDist = () => {
       <>
         <InputBlock
           name="Min"
-          value={inputVarSelection[inputVar].min ? inputVarSelection[inputVar].min : 0}
+          value={distribution[inputVar].min ? distribution[inputVar].min : 0}
           onChange={(value) => handleSetValue(inputVar, 'min', value)}
         />
         <InputBlock
           name="Max"
-          value={inputVarSelection[inputVar].max ? inputVarSelection[inputVar].max : 0}
+          value={distribution[inputVar].max ? distribution[inputVar].max : 0}
           onChange={(value) => handleSetValue(inputVar, 'max', value)}
         />
       </>
@@ -84,12 +80,12 @@ export const InputVariableDist = () => {
       <>
         <InputBlock
           name="Log Location"
-          value={inputVarSelection[inputVar].location ? inputVarSelection[inputVar].location : 0}
+          value={distribution[inputVar].location ? distribution[inputVar].location : 0}
           onChange={(value) => handleSetValue(inputVar, 'location', value)}
         />
         <InputBlock
           name='Log Scale'
-          value={inputVarSelection[inputVar].scale ? inputVarSelection[inputVar].scale : 1}
+          value={distribution[inputVar].scale ? distribution[inputVar].scale : 1}
           onChange={(value) => handleSetValue(inputVar, 'scale', value)}
         />
       </>
@@ -98,28 +94,28 @@ export const InputVariableDist = () => {
 
 
   const handleDistributionChange = (inputVar: string, value: distribution) => {
-    const newInputVars = {...inputVarSelection};
+    const newInputVars = {...distribution};
     const newDist: VarSelection = {distribution: value};
     newInputVars[inputVar] = newDist;
-    setInputVarSelection(newInputVars);
+    setDistribution(newInputVars);
   };
 
   useEffect(() => {
-    console.log("InputVariableDist useEffect", context?.distribution);
-    if (context?.distribution) {
-      setInputVarSelection(context.distribution);
+    console.log("InputVariableDist useEffect", distribution);
+    if (distribution) {
+      setDistribution(distribution);
     }
-  }, [context?.distribution]);
+  }, [distribution, setDistribution]);
 
   useEffect(() => {
-    if (inputVars.length > 0 && Object.keys(inputVarSelection).length === 0) {
-      const initialInputVars = inputVars.reduce<InputVarSelection>((acc, val) => {
+    if (inputVars.length > 0 && Object.keys(distribution).length === 0) {
+      const initialInputVars = inputVars.reduce((acc, val) => {
         acc[val] = { distribution: "normal" };
         return acc;
-      }, {} as InputVarSelection);
-      setInputVarSelection(initialInputVars);
+      }, {} as typeof distribution);
+      setDistribution(initialInputVars);
     }
-  }, [inputVars, inputVarSelection]);
+  }, [inputVars, distribution, setDistribution]);
 
   if(inputVars.length === 0) {
     return <></>
@@ -131,7 +127,7 @@ export const InputVariableDist = () => {
         Input Variable Distributions
       </Typography>
       <Box sx={{ display: "flex", overflowX: "auto"}}>
-        {Object.keys(inputVarSelection).map((inputVar, index) => {
+        {Object.keys(distribution).map((inputVar, index) => {
           return (
             <Box
               key={index}
@@ -154,7 +150,7 @@ export const InputVariableDist = () => {
                   variant="outlined"
                   size="small"
                   id={index+"selector"}
-                  value={inputVarSelection[inputVar]?.distribution || ""}
+                  value={distribution[inputVar]?.distribution || ""}
                   sx={{ minWidth: 132 }}
                   onChange={(e) => handleDistributionChange(inputVar, e.target.value as distribution)}
                 >
@@ -165,13 +161,13 @@ export const InputVariableDist = () => {
                 </Select>
               </InputLabel>
               <>
-                {inputVarSelection[inputVar]?.distribution === "constant" ? (
+                {distribution[inputVar]?.distribution === "constant" ? (
                   <ConstantInputDistribution inputVar={inputVar} />
-                ) : inputVarSelection[inputVar]?.distribution === "normal" ? (
+                ) : distribution[inputVar]?.distribution === "normal" ? (
                   <NormalInputDistribution inputVar={inputVar} />
-                ) : inputVarSelection[inputVar]?.distribution === "uniform" ? (
+                ) : distribution[inputVar]?.distribution === "uniform" ? (
                   <UniformInputDistribution inputVar={inputVar} />
-                ) : inputVarSelection[inputVar]?.distribution === "log-normal" ? (
+                ) : distribution[inputVar]?.distribution === "log-normal" ? (
                   <LogNormalInputDistribution inputVar={inputVar} />
                 ) : (
                   "not found"

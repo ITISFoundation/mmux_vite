@@ -1,7 +1,7 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import MetaModelingUX from '../components/MetaModelingUX';
 import { Button, Box, Container } from '@mui/material';
-import MMUXContext from './MMUXContext';
+import { useMMUXContext } from '../context/MMUXContext';
 import PlotDataTogether from '../components/PlotDataTogether'
 import ShowCvMetrics from '../components/ShowCvMetrics';
 import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
@@ -12,25 +12,23 @@ import IsoSurface3DPlot from "../components/IsoSurface3DPlot";
 
 
 function SuMoBuildingValidation() {
-  const context = useContext(MMUXContext)
-  const inputVars = context?.inputVars ?? [] as string[]
-  const outputVars = context?.outputVars as string[]
+  const { inputVars, outputVars, selectedFunction, selectedJobUids} = useMMUXContext()
   const [isSuMoGenerated, setIsSuMoGenerated] = useState(false)
 
   const [selectedResponse, setSelectedResponse] = useState(outputVars ? outputVars[0] : '');
-  const [dataSumoCentralCurves, setDataSumoCentralCurves] = useState(undefined);
+  const [dataSumoCentralCurves, setDataSumoCentralCurves] = useState({});
 
   useEffect(() => {
     if (Array.isArray(outputVars)) setSelectedResponse(outputVars[0]);
-  }, [context?.selectedFunction, outputVars]);
+  }, [selectedFunction, outputVars]);
 
   useEffect(() => {
     setIsSuMoGenerated(false);
-  }, [context?.selectedJobUids]);
+  }, [selectedJobUids]);
 
   async function RunPlotCentralSuMoInterpolations() {
     // TODO get only those selected in the JobSelector (pass as status??)
-    const jobList = await getFunctionJobsFromFunctionUid(context?.selectedFunction?.uid as string);
+    const jobList = await getFunctionJobsFromFunctionUid(selectedFunction?.uid as string);
     console.log("Fetched jobs:", jobList);
     console.log("Running SuMo...");
     fetch(
@@ -95,7 +93,7 @@ function SuMoBuildingValidation() {
         <Button
           onClick={handleCreateSuMo}
           disabled={
-            loading || isSuMoGenerated || context?.selectedJobUids.length === 0
+            loading || isSuMoGenerated || selectedJobUids.length === 0
           }
         >
           {loading
@@ -127,7 +125,7 @@ function SuMoBuildingValidation() {
           }}
         >
           <span>
-            Selected Function: <b>{context?.selectedFunction?.title}</b>
+            Selected Function: <b>{selectedFunction?.title}</b>
           </span>
           <QoISelector />
           {isSuMoGenerated && (
