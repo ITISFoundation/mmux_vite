@@ -42,16 +42,16 @@ const JobRow = (props: JobRowProps) => {
           {Object.entries(job.job.inputs).map(([key, value], idx) => {
             return (
               <Box key={idx} display={"inline"}>
-                {key} : {(value as number).toString()}{" "}
+                {key} : {(value as number).toExponential(3)}{", "}
               </Box>
             );
           })}
         </TableCell>
         <TableCell>
-          {job.job.outputs ? Object.entries(job.job.outputs).map(([key, value], idx) => {
+          {(job.job.outputs && job.job.status === "SUCCESS") ? Object.entries(job.job.outputs).map(([key, value], idx) => {
             return (
               <Box key={idx} display={"inline"}>
-                {key} : {(value as number).toString()}
+                {key} : {(value as number).toExponential(3)}{", "}
               </Box>
             );
           }) : "No outputs"}

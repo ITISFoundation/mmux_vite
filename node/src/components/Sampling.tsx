@@ -2,6 +2,7 @@ import React from 'react'
 import { Box, Tabs, Tab, styled} from '@mui/material';
 import LHSSampling from './LHSSampling';
 import GridSearchSampling from './GridSearchSampling';
+import TestJob from './RunSingleJob';
 
 const Container = styled('div')(({ theme }) => `
   width: 100%;
@@ -49,6 +50,7 @@ export const Sampling = () => {
         <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
           <Tab label="LHS Sampling" {...a11yProps(0)} />
           <Tab label="Grid Search Sampling" {...a11yProps(1)} />
+          <Tab label="Test Run" {...a11yProps(2)} />
         </Tabs>
       </TabContainer>
       <CustomTabPanel value={value} index={0}>
@@ -56,6 +58,9 @@ export const Sampling = () => {
       </CustomTabPanel>
       <CustomTabPanel value={value} index={1}>
         {<GridSearchSampling />}
+      </CustomTabPanel>
+      <CustomTabPanel value={value} index={2}>
+        {<TestJob />}
       </CustomTabPanel>
     </Container>
   )
