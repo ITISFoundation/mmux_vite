@@ -1,9 +1,9 @@
-import { useContext, useState } from 'react';
-import MMUXContext, { MMUXContextType } from '../views/MMUXContext';
+import { useState } from 'react';
+import { MMUXContextType } from '../views/MMUXContext';
 import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import { Box, Button, Input, Typography } from '@mui/material';
 import { Function, FunctionJob } from '../osparc-api-ts-client';
-
+import { useMMUXContext } from '../context/MMUXContext';
 
 
 async function runTestJob(context: MMUXContextType | undefined, config: any[]) {
@@ -35,8 +35,7 @@ async function runTestJob(context: MMUXContextType | undefined, config: any[]) {
 
 
 const TestJob = () => {
-    const context = useContext(MMUXContext);
-    const inputVars = context?.inputVars as string[];
+    const { inputVars, launchingSampling, runningSampling } = useMMUXContext();
     const [jobInputs, setJobInputs] = useState(
         inputVars.map((inputVar) => ({
             variable: inputVar,
@@ -46,10 +45,9 @@ const TestJob = () => {
 
     function CreateSamplingButton() {
         const handleRunSampling = () => {
-            context?.setLaunchingSampling(true)
+            const context = useMMUXContext();
             runTestJob(context, jobInputs)
             setTimeout(() => {
-                // for now the request fails very quickly
                 context?.setLaunchingSampling(false)
             }, 3000);
             // TODO have some way to detect that it finished running; and set the corresponding context variable to False
@@ -61,11 +59,11 @@ const TestJob = () => {
 
                 <Button
                     onClick={handleRunSampling}
-                    disabled={(context?.launchingSampling || context?.runningSampling)}
+                    disabled={(launchingSampling || runningSampling)}
                 >
-                    {context?.launchingSampling ? "Launching..." : context?.runningSampling ? "Running..." : "Run Test Job"}
+                    {launchingSampling ? "Launching..." : runningSampling ? "Running..." : "Run Test Job"}
                 </Button>
-                {context?.launchingSampling && <Box className="spinner" />}
+                {launchingSampling && <Box className="spinner" />}
             </Box>
         );
     }

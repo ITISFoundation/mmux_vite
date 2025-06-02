@@ -7,7 +7,7 @@ import { Function, RegisteredFunctionJobCollection } from '../osparc-api-ts-clie
 
 
 async function runLhsSampling(context: MMUXContextType, config: any[], seed: number = 0, N: number = 5) {
-    const fun = context?.selectedFunction as Function;
+    const fun = context.selectedFunction as Function;
     // send config to Python backend to create LHS
     console.log("Running LHS Sampling with config: ", config);
     context.setLaunchingSampling(true)
@@ -39,8 +39,7 @@ async function runLhsSampling(context: MMUXContextType, config: any[], seed: num
 
 
 const LHSSampling = () => {
-    const context = useMMUXContext();
-    const { inputVars, launchingSampling, setLaunchingSampling, runningSampling, setRunningSampling } = context;
+    const { inputVars, launchingSampling, runningSampling } = useMMUXContext();
     const [lhsInputs, setLhsInputs] = useState(
         inputVars.map((inputVar) => ({
             variable: inputVar,
@@ -53,6 +52,7 @@ const LHSSampling = () => {
 
     function CreateSamplingButton() {
         const handleRunSampling = async () => {
+            const context = useMMUXContext();
             await runLhsSampling(context, lhsInputs)
         };
 
@@ -64,9 +64,9 @@ const LHSSampling = () => {
                     onClick={handleRunSampling}
                     disabled={(launchingSampling || runningSampling)}
                 >
-                    {launchingSampling ? "Launching..." : context?.runningSampling ? "Running..." : "Run Sampling"}
+                    {launchingSampling ? "Launching..." : runningSampling ? "Running..." : "Run Sampling"}
                 </Button>
-                {context?.launchingSampling && <Box className="spinner" />}
+                {launchingSampling && <Box className="spinner" />}
             </Box>
         );
     }
@@ -126,8 +126,6 @@ const LHSSampling = () => {
                     onChange={(e) => handleInputChange(0, "seed", e.target.value)}
                 />
                 < CreateSamplingButton />
-                {/* TODO should we have a "cancel run" option? */}
-                {/* TODO make a "loading" symbol while the callback executes, as in SuMo creation */}
             </form>
         </>
     );

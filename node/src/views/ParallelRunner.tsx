@@ -254,12 +254,12 @@ interface JobDashboardProps {
   progressBarOnly?: boolean;
 }
 export function Dashboard(props: JobDashboardProps) {
+  const { runningJobCollection, setRunningSampling } = useMMUXContext();
   const { progressBarOnly } = props;
   const [jobs, setJobs] = useState<FunctionJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   // const [totalETA, setTotalETA] = useState(null);
-  const { runningJobCollection } = useMMUXContext();
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -347,7 +347,7 @@ export function Dashboard(props: JobDashboardProps) {
       Object.keys(jobsByStatus.PENDING).length === 0 &&
       Object.keys(jobsByStatus.RUNNING).length === 0
     ) {
-      context?.setRunningSampling(false);
+      setRunningSampling(false);
     }
   }
 
