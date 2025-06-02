@@ -22,6 +22,7 @@ from typing import List, Dict, Callable
 import numpy as np
 import pandas as pd
 from flask import Flask, request, jsonify
+import osparc_client
 from osparc_client.configuration import Configuration as OsparcConfiguration
 from osparc_client.api_client import ApiClient
 from osparc_client.api.functions_api import FunctionsApi
@@ -99,6 +100,7 @@ job_collection_api_instance = FunctionJobCollectionsApi(api_client)
 
 # check that API is responsive
 _logger.info("Checking if the API is responsive...")
+_logger.info("osparc_client version %s", osparc_client.__version__)
 users_api = UsersApi(api_client)
 profile = users_api.get_my_profile()
 _logger.info("User profile info:\n%s", profile.model_dump_json(indent=2))
