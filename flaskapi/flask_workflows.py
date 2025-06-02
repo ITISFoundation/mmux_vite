@@ -467,3 +467,5 @@ def flask_get_sumo_cv_accuracy_metrics():
     _logger.debug("Done!!")
     
     return jsonify(results)
+
+_logger.info("Flask workflows module loaded successfully!")

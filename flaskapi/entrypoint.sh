@@ -17,12 +17,11 @@ DEBUG_MODE=${DEBUG_MODE:-false}
 export LOG_LEVEL=${LOG_LEVEL:-INFO}
 
 
-
 if [ "$DEBUG_MODE" = "true" ]; then
   # Development mode - use Flask's built-in server
   export FLASK_APP=flask_workflows.py
   export FLASK_DEBUG=1
-  FLASK_ARGS=("--host=$HOST" "--port=$PORT" "--debug" "--debugger")
+  FLASK_ARGS=("--host=$HOST" "--port=$PORT" "--debug" "--debugger" "--reload")
   
   echo "$INFO" "Starting Flask development server with arguments: ${FLASK_ARGS[@]}"
   exec python -m flask run "${FLASK_ARGS[@]}"

@@ -73,8 +73,12 @@ compose-spec: ## runs ooil to assemble the docker-compose.yml file
 build: compose-spec ## build docker images
 	docker compose build
 
+.PHONY: run-develop
+run-develop: ## runs for development
+	docker compose --file docker-compose-development.yml up
+
 .PHONY: run-prod-local
-run-prod-local: ## runs image with local configuration (dataset X)
+run-prod-local: ## runs for validation as it would be in production
 	docker compose --file docker-compose-local.yml up
 
 .PHONY: publish-local
