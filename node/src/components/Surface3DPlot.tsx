@@ -34,7 +34,7 @@ const Surface2DPlot = () => {
   }, [jobs, key1, key2]);
 
 
-  function unpack(rows, key) {
+  function unpack(rows: Record<string, number>[], key: string) {
     return rows.map(function (row) {
       return row[key];
     });
@@ -42,10 +42,10 @@ const Surface2DPlot = () => {
 
   const z_data = [];
   for (let i = 0; i < 24; i++) {
-    z_data.push(unpack(mockdata, i));
+    z_data.push(unpack(mockdata, i.toString()));
   }
 
-  const data = [
+  const data: Partial<Plotly.PlotData>[] = [
     {
       z: z_data,
       type: "surface",

@@ -3,49 +3,32 @@ import { KeyboardArrowUp, KeyboardArrowDown } from "@mui/icons-material";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
-import MMUXContext from "../views/MMUXContext";
-import { getFunctionJobCollections } from "../utils/function_utils";
+import { useMMUXContext } from "../context/MMUXContext";
+import { FunctionJob } from "../osparc-api-ts-client";
+import { getFunctionJobCollections, getFunctionJob } from "../utils/function_utils";
 import {
   Box,
   Card,
   Checkbox,
   IconButton,
   Popper,
-  Typography,
 } from "@mui/material";
-import CollectionRow from "./CollectionRow";
 import { Refresh } from "@mui/icons-material";
 import { DataGrid } from "@mui/x-data-grid";
 import JobRow from "./JobRow";
 
 export default function JobsSelector() {
-  const [jobCollections, setJobCollections] = useState<SelectedJobCollection[]>(
-    []
-  );
-  const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(
-    null
-  );
+  const { selectedFunction, setSelectedJobUids } = useMMUXContext();
+  const [jobCollections, setJobCollections] = useState<SelectedJobCollection[]>([]);
+  const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
   const [poperID, setPopperID] = useState<number>(-1);
   const [loading, setLoading] = useState<boolean>(true);
-  const context = React.useContext(MMUXContext);
 
   const updateJobContext = (jobs: SelectedJobCollection[]) => {
-    const newList = jobs
-      .map((j) =>
-        Object.keys(j.subJobs).reduce((acc: string[], uid: string) => {
-          if (j.subJobs[uid] === true) {
-            acc.push(uid);
-          }
-          return acc;
-        }, [])
-      )
-      .flat();
-    console.log("Selected jobs for context: ", newList);
-    context?.setSelectedJobUids(newList);
+    const newList = jobs.map((j) =>j.subJobs.filter((j) => j.selected).map((j)=>j.job.uid)).flat();
+    setSelectedJobUids(newList);
   };
 
   const selectMainJob = (uid: string, selected: boolean) => {
@@ -54,13 +37,10 @@ export default function JobsSelector() {
         const auxJob = jc;
         if (jc.jobCollection.uid === uid) {
           auxJob.selected = selected;
-          auxJob.subJobs = Object.keys(auxJob.subJobs).reduce(
-            (acc: { [key: string]: boolean }, jobUid: string) => ({
-              ...acc,
-              [jobUid]: selected,
-            }),
-            {}
-          );
+          auxJob.subJobs = auxJob.subJobs.map(j => ({
+            selected: selected,
+            job: j.job,
+          }));
         }
         return auxJob;
       }
@@ -71,17 +51,19 @@ export default function JobsSelector() {
   };
 
   const onSelectJob = (index: number, selected: boolean, subJob: string) => {
+    console.log("Selecting subJob: ", subJob, " at index: ", index, " with selected: ", selected);
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(
       (jc, idx) => {
         const auxJob = jc;
         if (idx === index) {
-          auxJob.subJobs[subJob] = selected;
-          const subJobState = Object.keys(auxJob.subJobs).map(
-            (uid: string) => auxJob.subJobs[uid]
+          const jobId = jc.subJobs.findIndex(j => j.job.uid === subJob);
+          auxJob.subJobs[jobId].selected = selected;
+          const subJobState = auxJob.subJobs.map(
+            (j) => j.selected
           );
           if (
-            subJobState.every((j: boolean) => j === true) ||
-            subJobState.every((j: boolean) => j === false)
+            subJobState.every((j) => j === true) ||
+            subJobState.every((j) => j === false)
           ) {
             auxJob.selected = subJobState[0];
           }
@@ -96,20 +78,22 @@ export default function JobsSelector() {
 
   const onSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
     const checked = event.target.checked;
-    const newJobCollections = jobCollections.map((jc) => ({
-      ...jc,
-      selected: checked,
-      subJobs: jc.jobCollection.jobIds
-        ? jc.jobCollection.jobIds.reduce(
-            (acc: { [key: string]: boolean }, jobUid: string) => ({
-              ...acc,
-              [jobUid]: checked,
-            }),
-            {}
-          )
-        : {},
-    }));
-
+    const newSubJobs = jobCollections[poperID].subJobs.map(
+      (subJob) => ({
+        selected: checked,
+        job: subJob.job,
+      }
+    ))
+    const newJobCollections: SelectedJobCollection[] = jobCollections.map(
+      (jc, idx) => {
+        const auxJob = jc;
+        if (idx === poperID) {
+          auxJob.selected = checked;
+          auxJob.subJobs = newSubJobs;
+        }
+        return auxJob;
+      }
+    );
     updateJobContext(newJobCollections);
     setJobCollections(newJobCollections);
   };
@@ -120,21 +104,15 @@ export default function JobsSelector() {
       functionUid as string
     )) as FunctionJobCollection[];
     console.log("Fetched jobCollections: ", jc);
-    // NB: all Jobs must belong to a JobCollection (only those will be displayed here)
-    const newJobs: SelectedJobCollection[] = jc.map((jc) => ({
+
+    const newJobs: SelectedJobCollection[] = await Promise.all(jc.map(async (jc) => ({
       jobCollection: jc,
       selected: false,
-      open: false,
-      subJobs: jc.jobIds
-        ? jc.jobIds.reduce(
-            (acc: { [key: string]: boolean }, jobUid: string) => ({
-              ...acc,
-              [jobUid]: false,
-            }),
-            {}
-          )
-        : {},
-    }));
+      subJobs: await Promise.all(jc.jobIds.map(async (id) => ({
+        selected: false,
+        job: await getFunctionJob(id) as FunctionJob
+      }))),
+    })));
 
     updateJobContext(newJobs);
     setJobCollections(newJobs);
@@ -161,18 +139,18 @@ export default function JobsSelector() {
 
   useEffect(() => {
     console.log("useEffect in JobsSelector triggered");
-    if (context?.selectedFunction === undefined || jobCollections.length > 0) {
+    if (selectedFunction === undefined || jobCollections.length > 0) {
       return;
     } else {
-      console.log("Function selected: ", context?.selectedFunction?.uid);
+      console.log("Function selected: ", selectedFunction.uid);
       (async () => {
-        await updateJobCollections(context?.selectedFunction?.uid as string);
+        await updateJobCollections(selectedFunction?.uid as string);
         setLoading(false);
         console.log("Updated JobCollections");
       })();
     }
-  }, [context?.selectedFunction]);
-  // TODO include button to "refresh" job collections using the function above
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFunction]);
 
   return (
     <>
@@ -193,10 +171,7 @@ export default function JobsSelector() {
                   color: theme.palette.primary.contrastText,
                 })}
                 onClick={async () => {
-                  console.log("Refreshing job collections...", context);
-                  await updateJobCollections(
-                    context?.selectedFunction?.uid as string
-                  );
+                  await updateJobCollections(selectedFunction?.uid ? selectedFunction.uid : "");
                 }}
               >
                 <Refresh />
@@ -229,6 +204,10 @@ export default function JobsSelector() {
             renderCell: (params) => (
               <Checkbox
                 checked={params.row.selected}
+                indeterminate={
+                  params.row.subJobs.some((j) => j.selected) &&
+                  !params.row.subJobs.every((j) => j.selected)
+                }
                 onChange={(event) =>
                   selectMainJob(
                     params.row.jobCollection.uid,
@@ -323,73 +302,23 @@ export default function JobsSelector() {
         disableColumnSelector
         disableRowSelectionOnClick
       ></DataGrid>
-      {/* <TableContainer component={Paper}>
-        <Table aria-label="collapsible table">
-          <TableHead>
-            <TableRow>
-              <TableCell>
-                <IconButton
-                  sx={(theme) => ({
-                    padding: "8px",
-                    alignSelf: "right",
-                    color: theme.palette.primary.contrastText,
-                  })}
-                  onClick={async () => {
-                    await updateJobCollections(
-                      context?.selectedFunction?.uid as string
-                    );
-                  }}
-                >
-                  <Refresh />
-                </IconButton>
-              </TableCell>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  color="primary"
-                  indeterminate={
-                    jobCollections.some((jc) => jc.selected === true) &&
-                    jobCollections.some((jc) => jc.selected === false)
-                  }
-                  checked={jobCollections.some((jc) => jc.selected === true)}
-                  onChange={onSelectAllClick}
-                />
-              </TableCell>
-              <TableCell align="right">Job Run</TableCell>
-              <TableCell align="right">Status</TableCell>
-              <TableCell align="right">N Jobs</TableCell>
-              <TableCell align="right">Created At</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {jobCollections.map((item, idx) => {
-              return (
-                <CollectionRow
-                  key={idx}
-                  job={item}
-                  selectMainJob={(selected: boolean) =>
-                    selectMainJob(item.jobCollection.uid, selected)
-                  }
-                  selectJob={(selected: boolean, subJob: string) =>
-                    onSelectJob(idx, selected, subJob)
-                  }
-                />
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer> */}
       <Popper
         open={poperID !== -1}
         anchorEl={anchorEl}
         placement="right"
       >
-        { poperID !== -1 && jobCollections[poperID] &&
-          <Card>
-          <Box style={{ padding: "20px" }}>
-              <Table size="small" aria-label="jobs">
+      { poperID !== -1 && jobCollections[poperID] &&
+        <Card sx={{ borderRadius: '8px' }}>
+          <Box style={{ padding: '16px' }}>
+              <Table size="small" aria-label="jobs" sx={{ borderRadius: '8px', padding: '16px'}}>
                 <TableHead>
                   <TableRow>
-                    <TableCell />
+                    <TableCell>
+                      <Checkbox
+                        checked={jobCollections[poperID].subJobs.every(j => j.selected)}
+                        onChange={onSelectAllClick}
+                      />
+                    </TableCell>
                     <TableCell>Job ID</TableCell>
                     <TableCell>Inputs</TableCell>
                     <TableCell>Outputs</TableCell>

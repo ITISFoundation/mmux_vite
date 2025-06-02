@@ -4,7 +4,15 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 
-export default function OutputResponseSelector(props) {
+type OutputResponseSelectorProps = {
+    selectedResponse: string | number;
+    setSelectedResponse: (arg0: string | number) => void;
+    responses: (string | number)[];
+    isLogEnabled: boolean | undefined;
+    setIsLogEnabled: (arg0: boolean) => void;
+};
+
+export default function OutputResponseSelector(props: OutputResponseSelectorProps) {
     return (
 
         <div style={{ display: "flex", flexDirection: "row" }}>
@@ -15,11 +23,16 @@ export default function OutputResponseSelector(props) {
                     value={props.selectedResponse}
                     onChange={(e) => props.setSelectedResponse(e.target.value)}
                 >
-                    {props.responses.map((response, index) => (
-                        <MenuItem key={index} value={response}>
-                            {response}
-                        </MenuItem>
-                    ))}
+                    {props.responses
+                        .filter(
+                            (response): response is string | number =>
+                                typeof response === "string" || typeof response === "number"
+                        )
+                        .map((response, index) => (
+                            <MenuItem key={index} value={response}>
+                                {response}
+                            </MenuItem>
+                        ))}
                 </Select>
             </FormControl>
             <label>

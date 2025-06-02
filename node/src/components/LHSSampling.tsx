@@ -1,16 +1,16 @@
-import { useContext, useState } from 'react';
-import MMUXContext, { MMUXContextType } from '../views/MMUXContext';
+import { useState } from 'react';
+import { MMUXContextType, useMMUXContext } from '../context/MMUXContext';
 import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import { Box, Button, Input, Typography } from '@mui/material';
 import { Function, RegisteredFunctionJobCollection } from '../osparc-api-ts-client';
 
 
 
-async function runLhsSampling(context: MMUXContextType | undefined, config: any[], seed: number = 0, N: number = 5) {
-    const fun = context?.selectedFunction as Function;
+async function runLhsSampling(context: MMUXContextType, config: any[], seed: number = 0, N: number = 5) {
+    const fun = context.selectedFunction as Function;
     // send config to Python backend to create LHS
     console.log("Running LHS Sampling with config: ", config);
-    context?.setLaunchingSampling(true)
+    context.setLaunchingSampling(true)
     const jc = await fetch(
         PYTHON_DAKOTA_BACKEND + '/flask/lhs_sampling',
         {
@@ -31,16 +31,15 @@ async function runLhsSampling(context: MMUXContextType | undefined, config: any[
         }).catch(function (error) {
             console.error("Error running LHS sampling: ", error);
         })
-    context?.setLaunchingSampling(false)
-    context?.setRunningSampling(true)
-    context?.setRunningJobCollection(jc ? jc : undefined)
+    context.setLaunchingSampling(false)
+    context.setRunningSampling(true)
+    context.setRunningJobCollection(jc ? jc : undefined)
     return jc
 }
 
 
 const LHSSampling = () => {
-    const context = useContext(MMUXContext);
-    const inputVars = context?.inputVars as string[];
+    const { inputVars, launchingSampling, runningSampling } = useMMUXContext();
     const [lhsInputs, setLhsInputs] = useState(
         inputVars.map((inputVar) => ({
             variable: inputVar,
@@ -53,6 +52,7 @@ const LHSSampling = () => {
 
     function CreateSamplingButton() {
         const handleRunSampling = async () => {
+            const context = useMMUXContext();
             await runLhsSampling(context, lhsInputs)
         };
 
@@ -62,11 +62,11 @@ const LHSSampling = () => {
 
                 <Button
                     onClick={handleRunSampling}
-                    disabled={(context?.launchingSampling || context?.runningSampling)}
+                    disabled={(launchingSampling || runningSampling)}
                 >
-                    {context?.launchingSampling ? "Launching..." : context?.runningSampling ? "Running..." : "Run Sampling"}
+                    {launchingSampling ? "Launching..." : runningSampling ? "Running..." : "Run Sampling"}
                 </Button>
-                {context?.launchingSampling && <Box className="spinner" />}
+                {launchingSampling && <Box className="spinner" />}
             </Box>
         );
     }
@@ -126,8 +126,6 @@ const LHSSampling = () => {
                     onChange={(e) => handleInputChange(0, "seed", e.target.value)}
                 />
                 < CreateSamplingButton />
-                {/* TODO should we have a "cancel run" option? */}
-                {/* TODO make a "loading" symbol while the callback executes, as in SuMo creation */}
             </form>
         </>
     );

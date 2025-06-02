@@ -1,7 +1,8 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import MetaModelingUX from '../components/MetaModelingUX';
 import { Button, Box, Container } from '@mui/material';
-import MMUXContext from './MMUXContext';
+import { useMMUXContext } from '../context/MMUXContext';
+import PlotDataTogether from '../components/PlotDataTogether'
 import ShowCvMetrics from '../components/ShowCvMetrics';
 import Curves1DPlots from '../components/PlotDataTogether'
 import Surface2DPlot from "../components/Surface3DPlot";
@@ -11,48 +12,30 @@ import { getFunctionJob } from "../utils/function_utils";
 
 
 function SuMoBuildingValidation() {
-  const context = useContext(MMUXContext)
-  const [jobs, setJobs] = useState<FunctionJob[]>([])
+  const { inputVars, outputVars, selectedFunction, selectedJobUids, isSuMoGenerated, setIsSuMoGenerated, selectedQoI, setSelectedQoI } = useMMUXContext()
 
   useEffect(() => {
-    context?.setSelectedQoI("");
-  }, [context?.selectedFunction]);
+    setSelectedQoI("");
+  }, [selectedFunction]);
 
   useEffect(() => {
-    context?.setIsSuMoGenerated(false);
-  }, [context?.selectedJobUids]);
-
-  // Fetch jobs information when isSuMoGenerated changes and is re-generated
-  useEffect(() => {
-    const fetchJobs = async () => {
-      if (context?.isSuMoGenerated) {
-        // Replace this with your actual fetch logic
-        // For demonstration, we just map job UIDs to mock objects
-        const fetchedJobs = await Promise.all(
-          (context?.selectedJobUids ?? []).map(uid => getFunctionJob(uid))
-        );
-        setJobs(fetchedJobs);
-      } else {
-        setJobs([]);
-      }
-    };
-    fetchJobs();
-  }, [context?.isSuMoGenerated]);
+    setIsSuMoGenerated(false);
+  }, [selectedJobUids]);
 
   function QoISelector() {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: "10px" }}>
         <span>Quantity of Interest (QoI) to inspect: </span>
         <select
-          value={context?.selectedQoI}
+          value={selectedQoI}
           onChange={(e) => {
             // TODO make this more visible & prominent
-            context?.setIsSuMoGenerated(false)
-            context?.setSelectedQoI(e.target.value)
-            console.log(context?.selectedQoI)
+            setIsSuMoGenerated(false)
+            setSelectedQoI(e.target.value)
+            console.log(selectedQoI)
           }}
         >
-          {context?.outputVars?.map((qoi) => (
+          {outputVars?.map((qoi) => (
             <option key={qoi} value={qoi}>
               {qoi}
             </option>
@@ -70,7 +53,7 @@ function SuMoBuildingValidation() {
     const handleCreateSuMo = () => {
       setLoading(true);
       setTimeout(() => {
-        context?.setIsSuMoGenerated(true);
+        setIsSuMoGenerated(true);
         setLoading(false);
       }, 1000);
     };
@@ -80,12 +63,12 @@ function SuMoBuildingValidation() {
         <Button
           onClick={handleCreateSuMo}
           disabled={
-            loading || context?.isSuMoGenerated || context?.selectedJobUids.length === 0
+            loading || isSuMoGenerated || selectedJobUids.length === 0
           }
         >
           {loading
             ? "Creating..."
-            : context?.isSuMoGenerated
+            : isSuMoGenerated
               ? "SuMo created!"
               : "Create SuMo"}
         </Button>
@@ -112,7 +95,7 @@ function SuMoBuildingValidation() {
           }}
         >
           <span>
-            Selected Function: <b>{context?.selectedFunction?.title}</b>
+            Selected Function: <b>{selectedFunction?.title}</b>
           </span>
           <QoISelector />
 
