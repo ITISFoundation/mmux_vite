@@ -1,6 +1,9 @@
 SHELL 				 			:= /bin/sh
 .DEFAULT_GOAL 		 			:= help
 
+DOCKER_IMAGE_TAG := 1.0.0
+
+
 FLASKAPI_DIR := ./flaskapi
 VENV_DIR := $(FLASKAPI_DIR)/.venv
 MMUX_PYTHON_DIR := $(FLASKAPI_DIR)/mmux_python
@@ -70,6 +73,17 @@ build: compose-spec ## build docker images
 .PHONY: run-local
 run-local: ## runs image with local configuration (dataset X)
 	docker compose --file docker-compose-local.yml up
+
+.PHONY: publish-local
+publish-local: ## push to local throw away registry to test integration
+	docker tag simcore/services/dynamic/mmux-vite-backend:${DOCKER_IMAGE_TAG} registry:5000/simcore/services/dynamic/mmux-vite-backend:$(DOCKER_IMAGE_TAG)
+	docker push registry:5000/simcore/services/dynamic/mmux-vite-backend:$(DOCKER_IMAGE_TAG)
+	docker tag simcore/services/dynamic/mmux-vite-web:${DOCKER_IMAGE_TAG} registry:5000/simcore/services/dynamic/mmux-vite-web:$(DOCKER_IMAGE_TAG)
+	docker push registry:5000/simcore/services/dynamic/mmux-vite-web:$(DOCKER_IMAGE_TAG)
+	docker tag simcore/services/dynamic/mmux-vite-app:${DOCKER_IMAGE_TAG} registry:5000/simcore/services/dynamic/mmux-vite-app:$(DOCKER_IMAGE_TAG)
+	docker push registry:5000/simcore/services/dynamic/mmux-vite-app:$(DOCKER_IMAGE_TAG)
+	@curl registry:5000/v2/_catalog | jq
+
 
 .env: .env-devel ## creates .env file from defaults in .env-devel
 	$(if $(wildcard $@), \
