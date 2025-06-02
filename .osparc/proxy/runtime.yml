@@ -1,15 +1,15 @@
 settings:
   - name: ports
     type: int
-    value: 80
+    value: 8888
   - name: Resources
     type: Resources
     value:
       Limits:
-        NanoCPUs: 0
+        NanoCPUs: 500000000
         MemoryBytes: 0
       Reservations:
-        NanoCPUs: 0
+        NanoCPUs: 500000000
         MemoryBytes: 0
 paths-mapping:
   inputs_path: /tmp/inputs
@@ -17,6 +17,7 @@ paths-mapping:
   state_paths: []
 
 compose-spec:
+  version: '3.8'
   services:
     mmux-vite-backend:
       image: $${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-backend:$${SERVICE_VERSION}
@@ -32,7 +33,7 @@ compose-spec:
         mmux-vite-web:
           condition: service_healthy
       environment:
-        - ADDRESS_WEB=%%container_name.mmux-vite-web%%
-        - ADDRESS_BACKEND=%%container_name.mmux-vite-backend%%
+        - BACKEND_SERVICE=%%container_name.mmux-vite-backend%%:5000
+        - WEB_SERVICE=%%container_name.mmux-vite-web%%:8080
 
 container-http-entrypoint: mmux-vite-app

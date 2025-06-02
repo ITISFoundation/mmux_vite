@@ -9,5 +9,5 @@ authors:
     email: "ordonez@itis.swiss"
     affiliation: "IT'IS Foundation"
 contact: "ordonez@itis.swiss"
-inputs: null
-outputs: null
+inputs: {}
+outputs: {}

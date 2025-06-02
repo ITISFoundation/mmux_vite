@@ -3,8 +3,8 @@ settings:
     type: Resources
     value:
       Limits:
-        NanoCPUs: 0
+        NanoCPUs: 1000000000
         MemoryBytes: 0
       Reservations:
-        NanoCPUs: 0
+        NanoCPUs: 1000000000
         MemoryBytes: 0
