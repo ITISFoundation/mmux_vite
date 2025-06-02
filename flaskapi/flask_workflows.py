@@ -22,7 +22,6 @@ from typing import List, Dict, Callable
 import numpy as np
 import pandas as pd
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from osparc_client.configuration import Configuration as OsparcConfiguration
 from osparc_client.api_client import ApiClient
 from osparc_client.api.functions_api import FunctionsApi
@@ -37,13 +36,13 @@ from mmux_python.utils.funs_data_processing import (
     process_input_file,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
-from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq#, evaluate_sumo_crossvalidation
+from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo_crossvalidation
 
 ### Logger configuration ####################################
 _logger = logging.getLogger(__name__)
 
 logging.basicConfig(
-    level=getattr(logging, os.environ["LOG_LEVEL"]),
+    level=os.environ["LOG_LEVEL"],
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 # Make Flask propagate its logs to the root logger
@@ -86,7 +85,7 @@ configuration = OsparcConfiguration(
         username=os.environ["OSPARC_API_KEY"],
         password=os.environ["OSPARC_API_SECRET"],
 )
-_logger.debug("Detected osparc_client configuration: host=%s, username=%s, password=%s",
+_logger.info("Detected osparc_client configuration: host=%s, username=%s, password=%s",
     configuration.host,
     configuration.username,
     configuration.password
@@ -99,9 +98,10 @@ job_collection_api_instance = FunctionJobCollectionsApi(api_client)
 
 
 # check that API is responsive
+_logger.info("Checking if the API is responsive...")
 users_api = UsersApi(api_client)
 profile = users_api.get_my_profile()
-_logger.debug("User profile info:\n%s", profile.model_dump_json(indent=2))
+_logger.info("User profile info:\n%s", profile.model_dump_json(indent=2))
 
 #############################################################
 
@@ -109,8 +109,6 @@ _logger.debug("User profile info:\n%s", profile.model_dump_json(indent=2))
 app = Flask(__name__)
 base_dir = Path(__file__).parent # this is the flaskapi directory
 app = Flask(__name__)
-cors = CORS(app, origins=["*"], methods=["*"], allow_headers=["*"], resources=["*"]) # allow CORS for all domains on all routes.
-app.config['CORS_HEADERS'] = 'Content-Type'
 #############################################################
 
 
@@ -126,7 +124,7 @@ def get_all_items(api_call: Callable, *args, **kwargs):
     items = []
     page = 1
     while retrieved < list_len:
-        _logger.info(f"Retrieving page {page} of {api_call.__name__} (offset: {retrieved})")
+        _logger.debug(f"Retrieving page {page} of {api_call.__name__} (offset: {retrieved})")
         response = api_call(offset = retrieved, *args, **kwargs)
         retrieved += len(response.items)  # type: ignore
         items += [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
@@ -156,37 +154,37 @@ def get_last_N_items(api_call: Callable, N: int, **kwargs):
 
 @app.route("/flask/list_functions", methods=["GET"])
 def flask_list_functions():
-    _logger.info("Starting flask function: flask_list_functions")
-    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: flask_list_functions")
+    _logger.debug("Cwd: " + str(Path.cwd()))
     # functions = get_all_items(functions_api_instance.list_functions)
     # functions = get_first_N_items(functions_api_instance.list_functions, N=5)
     functions = get_last_N_items(functions_api_instance.list_functions, N=50)
     functions = functions[::-1] # put last-created first? FIXME still need to expose "created_at" in the response
-    _logger.info(f"N Functions: {len(functions)}")
+    _logger.debug(f"N Functions: {len(functions)}")
 
     ## TODO temporal - filter out those without input & output schema
     functions = [f for f in functions if len(f["inputSchema"]["schemaContent"]) > 0 and len(f["outputSchema"]["schemaContent"]) > 0]
-    _logger.info(f"N Functions after filtering: {len(functions)}")
+    _logger.debug(f"N Functions after filtering: {len(functions)}")
 
     return jsonify(functions)
 
 @app.route("/flask/list_jobs", methods=["GET"])
 def flask_list_jobs():
-    _logger.info("Starting flask function: flask_list_jobs")
-    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: flask_list_jobs")
+    _logger.debug("Cwd: " + str(Path.cwd()))
     jobs = get_all_items(job_api_instance.list_function_jobs)
-    _logger.info(f"N Jobs: {len(jobs)}")
+    _logger.debug(f"N Jobs: {len(jobs)}")
 
     return jsonify(jobs)
 
 @app.route("/flask/list_function_jobs_for_functionid", methods=["GET"])
 def flask_list_function_jobs_for_functionid():
-    _logger.info("Starting flask function: flask_list_function_jobs_for_functionid")
-    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: flask_list_function_jobs_for_functionid")
+    _logger.debug("Cwd: " + str(Path.cwd()))
     function_uid = request.args["functionUid"]
     _logger.info(f"Function ID: {function_uid}")
     jobs = get_all_items(functions_api_instance.list_function_jobs_for_functionid, function_uid)
-    _logger.info(f"N Jobs for function {function_uid}: {len(jobs)}")
+    _logger.debug(f"N Jobs for function {function_uid}: {len(jobs)}")
     for j in jobs:
         status : FunctionJobStatus = job_api_instance.function_job_status(j["uid"]) 
         j["status"] = status.status
@@ -194,59 +192,59 @@ def flask_list_function_jobs_for_functionid():
 
 @app.route("/flask/list_function_jobs_for_jobcollectionid", methods=["GET"])
 def flask_list_function_jobs_for_jobcollectionid():
-    _logger.info("Starting flask function: flask_list_function_jobs_for_jobcollectionid")
-    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: flask_list_function_jobs_for_jobcollectionid")
+    _logger.debug("Cwd: " + str(Path.cwd()))
     jc_uid = request.args["JobCollectionUid"]
-    _logger.info(f"jc ID: {jc_uid}")
+    _logger.debug(f"jc ID: {jc_uid}")
     jc = job_collection_api_instance.get_function_job_collection(jc_uid)
     jobs = [get_function_job_from_uid(job_uid) for job_uid in jc.job_ids] # type: ignore
-    _logger.info(f"N Jobs for job collection {jc_uid}: {len(jobs)}")
+    _logger.debug(f"N Jobs for job collection {jc_uid}: {len(jobs)}")
     return jsonify(jobs)
 
 @app.route("/flask/list_function_job_collections", methods=["GET"])
 def flask_get_function_job_collections():
-    _logger.info("Starting flask function: flask_get_function_job_collections")
-    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: flask_get_function_job_collections")
+    _logger.debug("Cwd: " + str(Path.cwd()))
     ## this is a list of items of Paginated object -- deserialize into a list of JobCollection objects
     job_collections = get_all_items(job_collection_api_instance.list_function_job_collections)
-    _logger.info(f"N Job collections: {len(job_collections)}")
+    _logger.debug(f"N Job collections: {len(job_collections)}")
     return jsonify(job_collections)
 
 ## TODO this does not work; FUnctionJobCOllection does not have functionUid property (??) (include it)
 @app.route("/flask/list_function_job_collections_for_functionid", methods=["GET"])
 def flask_get_function_job_collections_for_functionid():
-    _logger.info("Starting flask function: flask_get_function_job_collections")
-    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: flask_get_function_job_collections")
+    _logger.debug("Cwd: " + str(Path.cwd()))
     function_uid = request.args["functionUid"]
-    _logger.info(f"Function ID: {function_uid}")
+    _logger.debug(f"Function ID: {function_uid}")
     # job_collections = get_all_items(job_collection_api_instance.list_function_job_collections, has_function_id=function_uid)
     response = job_collection_api_instance.list_function_job_collections(has_function_id=function_uid)
     job_collections = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
-    _logger.info(f"N Job collections for function {function_uid}: {len(job_collections)}")
+    _logger.debug(f"N Job collections for function {function_uid}: {len(job_collections)}")
     return jsonify(job_collections)
 
 @app.route("/flask/get_function_job", methods=["GET"])
 def flask_get_function_job():
-    _logger.info("Starting flask function: flask_get_function_job")
-    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: flask_get_function_job")
+    _logger.debug("Cwd: " + str(Path.cwd()))
     return jsonify(get_function_job_from_uid(request.args["jobUid"]))
     
 def get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
     """Helper function to get a Job information (including status) from its UID."""
-    _logger.info(f"Job ID: {job_uid}")
+    _logger.debug(f"Job ID: {job_uid}")
     job = job_api_instance.get_function_job(job_uid)
     job_dict = recursive_dict_keys_camel_to_snake(job.to_dict()) # type: ignore
     job_dict["status"] = job_api_instance.function_job_status(job_uid).status
     outputs = job_api_instance.function_job_outputs(job_uid)
-    _logger.info(f"Job: {job_dict}")
+    _logger.debug(f"Job: {job_dict}")
     job_dict["outputs"] = outputs
-    _logger.info(f"Job: {job_dict}")
+    _logger.debug(f"Job: {job_dict}")
 
     return job_dict
 
 def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str) -> Path:
     completed_jobs = [job for job in jobs if job["status"].lower() == "completed"]  # type: ignore
-    _logger.info(f"N Completed jobs: {len(completed_jobs)}")
+    _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
     def get_job_dict(job):
         d = {key: job["inputs"][key] for key in input_vars}
         assert "outputs" in job.keys(), f"Outputs not in job: {job}"
@@ -264,8 +262,8 @@ def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str
 @app.route("/flask/sumo_along_axes", methods=["POST"])
 def flask_evaluate_sumo_along_axes():
     os.chdir(Path(__file__).parent)
-    _logger.info("Starting flask function: flask_evaluate_sumo_along_axes")
-    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: flask_evaluate_sumo_along_axes")
+    _logger.debug("Cwd: " + str(Path.cwd()))
 
     # Convert request data into a Python dictionary
     request_data: dict = json.loads(request.data.decode("utf-8"))
@@ -299,17 +297,17 @@ def flask_evaluate_sumo_along_axes():
 def flask_uq_propagation() -> Dict[str, str]:
     ## TODO change to new scheme (jobs are passed here, not a filename)
     os.chdir(Path(__file__).parent)
-    _logger.info("Starting flask function: flask_uq_propagation")
-    _logger.info("Cwd: " + str(Path.cwd()))
-    _logger.info("Inputs of the request: ", request.args)
+    _logger.debug("Starting flask function: flask_uq_propagation")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+    _logger.debug("Inputs of the request: %s", request.args)
     TRAINING_FILE = base_dir / "mmux_python" / "data" / request.args["filename"]
-    _logger.info(f"TRAINING_FILE: {TRAINING_FILE} does exist: {TRAINING_FILE.exists()}")
+    _logger.debug(f"TRAINING_FILE: {TRAINING_FILE} does exist: {TRAINING_FILE.exists()}")
     output_response = request.args["output"]
     input_vars = request.args["inputs"].split(",")
     make_log = False if request.args["log"].lower() == "false" else True
-    _logger.info(f"output_response: {output_response}")
-    _logger.info(f"input_vars: {input_vars}")
-    _logger.info(
+    _logger.debug(f"output_response: {output_response}")
+    _logger.debug(f"input_vars: {input_vars}")
+    _logger.debug(
         f"make_log: {make_log} (input {request.args['log']}) type: {type(make_log)}"
     )
     run_dir = create_run_dir(Path("."), "uq")
@@ -345,14 +343,14 @@ def flask_uq_propagation() -> Dict[str, str]:
 @app.route("/flask/save_json", methods=["POST"])
 def flask_save_json():
     _logger.info("Starting flask function: flask_save_json")
-    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Cwd: " + str(Path.cwd()))
     # Convert request data into a Python dictionary
     request_data: dict = json.loads(request.data.decode("utf-8"))
     filepath = base_dir.parent / request_data["filePath"]
     data = request_data["data"]
-    _logger.info(f"Inputs of the request: {request_data}")
-    _logger.info(f"filename: {filepath}")
-    _logger.info(f"data: {data}")
+    _logger.debug(f"Inputs of the request: {request_data}")
+    _logger.debug(f"filename: {filepath}")
+    _logger.debug(f"data: {data}")
     assert Path(filepath).parent.exists(), f"The directory {Path(filepath).parent} were the file should be created does not exist."
     with open(filepath, "w+") as f:
         json.dump(data, f)
@@ -360,49 +358,49 @@ def flask_save_json():
 
 @app.route("/flask/load_json", methods=["GET"])
 def flask_load_json():
-    _logger.info("Starting flask function: flask_load_json")
-    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: flask_load_json")
+    _logger.debug("Cwd: " + str(Path.cwd()))
     filePath = base_dir.parent / request.args["filePath"]
-    _logger.info(f"Inputs of the request: {request.args}")
-    _logger.info(f"filepath: {filePath}")
+    _logger.debug(f"Inputs of the request: {request.args}")
+    _logger.debug(f"filepath: {filePath}")
     assert Path(filePath).exists(), f"The file {filePath} does not exist."
     with open(filePath, "r") as f:
         data = json.load(f)
-    _logger.info(f"data: {data}")
+    _logger.debug(f"data: {data}")
     return jsonify(data)
 
 
 @app.route("/flask/test_job", methods=["POST"])
 def flask_test_job():
-    logger.info("Starting flask function: flask/test_job")
-    logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: flask/test_job")
+    _logger.debug("Cwd: " + str(Path.cwd()))
     # Convert request data into a Python dictionary
     request_data: dict = json.loads(request.data.decode("utf-8"))
     config = request_data["config"]
     function_uid = request_data["funUid"]
 
-    logger.info(f"Function UID: {function_uid}")
-    logger.info(f"Config: {config}")
+    _logger.debug(f"Function UID: {function_uid}")
+    _logger.debug(f"Config: {config}")
     sample = {config[i]["variable"]: config[i]["value"] for i in range(len(config))} 
 
     ## DEBUGGING
-    logger.info("Input to validate_function_inputs:" , sample)
+    _logger.debug("Input to validate_function_inputs:" , sample)
     val = functions_api_instance.validate_function_inputs(function_uid, sample)  # this is working - changing the name of the variable does return a validation error
-    logger.info(f"Validated function inputs for function {function_uid} with sample {sample}: {val}")
+    _logger.debug(f"Validated function inputs for function {function_uid} with sample {sample}: {val}")
     job = functions_api_instance.run_function(function_uid, sample) # type: ignore
     job: dict = job.to_dict()  # convert to dictionary for easier logging # type:ignore
-    logger.info(f"Created job: {job}")
+    _logger.debug(f"Created job: {job}")
     status = job_api_instance.function_job_status(job["uid"])  # type: ignore
-    logger.info(f"Job status: {status.status}")
+    _logger.debug(f"Job status: {status.status}")
     while status.status not in ("SUCCESS", "FAILED"):
-        logger.info(f"Job {job['uid']} is still running, status: {status.status}")
+        _logger.info(f"Job {job['uid']} is still running, status: {status.status}")
         status = job_api_instance.function_job_status(job["uid"])
     if status.status != "SUCCESS":
-        logger.error(f"Job {job['uid']} did not complete successfully. Status: {status.status}")
+        _logger.error(f"Job {job['uid']} did not complete successfully. Status: {status.status}")
         return jsonify({"error": f"Job {job['uid']} did not complete successfully. Status: {status.status}"})
     else:
         outputs = job_api_instance.function_job_outputs(job["uid"])
-        logger.info(f"Job {job['uid']} completed successfully. Outputs: {outputs}")
+        _logger.info(f"Job {job['uid']} completed successfully. Outputs: {outputs}")
         job["outputs"] = outputs.to_dict()  # type: ignore
     ###
 
@@ -412,8 +410,8 @@ def flask_test_job():
 
 @app.route("/flask/lhs_sampling", methods=["POST"])
 def flask_lhs():
-    _logger.info("Starting flask function: flask/lhs_sampling")
-    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: flask/lhs_sampling")
+    _logger.debug("Cwd: " + str(Path.cwd()))
     # Convert request data into a Python dictionary
     request_data: dict = json.loads(request.data.decode("utf-8"))
     config = request_data["config"]
@@ -423,16 +421,16 @@ def flask_lhs():
     function_uid = request_data["funUid"]
     
     from mmux_python.utils.lhs import lhs
-    _logger.info(f"config: {config} \n n: {n}, k: {k}, seed: {seed}")
+    _logger.debug(f"config: {config} \n n: {n}, k: {k}, seed: {seed}")
     H = lhs(n, k, seed=seed)
-    _logger.info(f"H: {H.shape}")
+    _logger.debug(f"H: {H.shape}")
 
     samples = []
     for j in range(n):
         samples.append(
             {config[i]["variable"] : float(H[i, j] * (config[i]["end"] - config[i]["start"]) + config[i]["start"]) for i in range(k)}
         )
-    _logger.info(f"Samples: {samples}")
+    _logger.debug(f"Samples: {samples}")
 
     # Now, the running of jobs through the OSPARC API has been moved to the Python backend
     ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
@@ -441,8 +439,8 @@ def flask_lhs():
 
 @app.route("/flask/get_sumo_cv_accuracy_metrics")
 def flask_get_sumo_cv_accuracy_metrics():
-    _logger.info("Starting flask function: flask/get_sumo_cv_accuracy_metrics")
-    _logger.info("Cwd: " + str(Path.cwd()))
+    _logger.debug("Starting flask function: flask/get_sumo_cv_accuracy_metrics")
+    _logger.debug("Cwd: " + str(Path.cwd()))
 
     # Convert request data into a Python dictionary
     request_data: dict = json.loads(request.data.decode("utf-8"))
@@ -466,6 +464,6 @@ def flask_get_sumo_cv_accuracy_metrics():
         input_vars,
         output_response, # type: ignore
     )
-    _logger.info("Done!!")
+    _logger.debug("Done!!")
     
     return jsonify(results)
