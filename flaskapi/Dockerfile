@@ -19,7 +19,12 @@ RUN git clone --single-branch \
 
 # Install Python packages directly with system Python
 RUN uv pip install --system -r ./mmux_python/requirements.txt \
-  && uv pip install --system --prerelease=allow osparc==0.8.3.post0.dev26
+  && uv pip install --system --prerelease=allow osparc==0.8.3.post0.dev26 \
+  && uv pip install --system \
+  gunicorn==23.0.0 \
+  gevent
+# TODO: add python dependecy mnagement with fetch form other repo before update in makefile
+# TODO: pin gevent
 
 COPY . .
 

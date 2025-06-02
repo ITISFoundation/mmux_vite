@@ -40,12 +40,18 @@ from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_
 ### Logger configuration ####################################
 _logger = logging.getLogger(__name__)
 
-# Set up basic configuration for the logger
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    level=getattr(logging, os.environ["LOG_LEVEL"]),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+# Make Flask propagate its logs to the root logger
+flask_logger = logging.getLogger("flask")
+flask_logger.propagate = True
+
+# Same for Werkzeug (Flask's underlying WSGI library)
+werkzeug_logger = logging.getLogger("werkzeug")
+werkzeug_logger.propagate = True
+
 
 
 _logger.info("Logging started")
@@ -82,14 +88,14 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 ### osparc client configuration #############################    
 os.chdir(os.path.dirname(__file__))
 configuration = OsparcConfiguration(
-    host=os.environ["OSPARC_HOST"],
-    username=os.environ["OSPARC_USER"],
-    password=os.environ["OSPARC_PASSWORD"],
+    host=os.environ["OSPARC_API_BASE_URL"],
+    username=os.environ["OSPARC_API_KEY"],
+    password=os.environ["OSPARC_API_SECRET"],
 )
 
-_logger.error(f"OSPARC_HOST environment variable found, using '{configuration.host}' as API URL")
-_logger.error(f"OSPARC_USER environment variable found, using '{configuration.username}' as username")
-_logger.error(f"OSPARC_PASSWORD environment variable found, using '***' as password")
+_logger.info(f"OSPARC_HOST environment variable found, using '{configuration.host}' as API URL")
+_logger.info(f"OSPARC_USER environment variable found, using '{configuration.username}' as username")
+_logger.info(f"OSPARC_PASSWORD environment variable found, using '***' as password")
 
 api_client = ApiClient(configuration)
 functions_api_instance = FunctionsApi(api_client)
