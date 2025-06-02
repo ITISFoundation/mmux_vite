@@ -7,7 +7,7 @@ import { Function, RegisteredFunctionJobCollection } from '../osparc-api-ts-clie
 
 
 async function runLhsSampling(context: MMUXContextType, config: any[], seed: number = 0, N: number = 5) {
-    const fun = context?.selectedFunction as Function;
+    const fun = context.selectedFunction as Function;
     // send config to Python backend to create LHS
     console.log("Running LHS Sampling with config: ", config);
     context.setLaunchingSampling(true)
@@ -19,8 +19,8 @@ async function runLhsSampling(context: MMUXContextType, config: any[], seed: num
                 {
                     funUid: fun.uid,
                     config: config,
-                    seed: seed,
-                    N: N,
+                    seed: config[0].seed, // TODO should be kept somewhere else in the state
+                    N: config[0].points, // TODO should be kept somewhere else in the state
                 }
             ),
         }).then(function (response) {
@@ -39,28 +39,21 @@ async function runLhsSampling(context: MMUXContextType, config: any[], seed: num
 
 
 const LHSSampling = () => {
-    const context = useMMUXContext();
-    const { inputVars, launchingSampling, setLaunchingSampling, runningSampling, setRunningSampling } = context;
+    const { inputVars, launchingSampling, runningSampling } = useMMUXContext();
     const [lhsInputs, setLhsInputs] = useState(
         inputVars.map((inputVar) => ({
             variable: inputVar,
             start: 0.0,
             end: 1.0,
-            points: 5, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
+            points: 50, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
             seed: 0,  // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
         })),
     )
 
     function CreateSamplingButton() {
-        const handleRunSampling = () => {
-            setLaunchingSampling(true)
-            runLhsSampling(context, lhsInputs)
-            setTimeout(() => {
-                // for now the request fails very quickly
-                setLaunchingSampling(false)
-                setRunningSampling(true)
-            }, 3000);
-            // TODO have some way to detect that it finished running; and set the corresponding context variable to False
+        const handleRunSampling = async () => {
+            const context = useMMUXContext();
+            await runLhsSampling(context, lhsInputs)
         };
 
         return (
@@ -71,9 +64,9 @@ const LHSSampling = () => {
                     onClick={handleRunSampling}
                     disabled={(launchingSampling || runningSampling)}
                 >
-                    {launchingSampling ? "Launching..." : context?.runningSampling ? "Running..." : "Run Sampling"}
+                    {launchingSampling ? "Launching..." : runningSampling ? "Running..." : "Run Sampling"}
                 </Button>
-                {context?.launchingSampling && <Box className="spinner" />}
+                {launchingSampling && <Box className="spinner" />}
             </Box>
         );
     }
@@ -101,7 +94,7 @@ const LHSSampling = () => {
                         type="number"
                         placeholder="Start"
                         value={inputVar.start.toString()}
-                        sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}`})}
+                        sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}` })}
                         onChange={(e) => handleInputChange(index, "start", e.target.value)}
                     />
                     <Typography variant='caption'>End: </Typography>
@@ -109,7 +102,7 @@ const LHSSampling = () => {
                         type="number"
                         placeholder="End"
                         value={inputVar.end.toString()}
-                        sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}`})}
+                        sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}` })}
                         onChange={(e) => handleInputChange(index, "end", e.target.value)}
                     />
                 </form>
@@ -121,7 +114,7 @@ const LHSSampling = () => {
                     type="number"
                     placeholder="N"
                     value={lhsInputs[0].points.toString()}
-                    sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}`})}
+                    sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}` })}
                     onChange={(e) => handleInputChange(0, "points", e.target.value)}
                 />
                 <Typography variant='body1'>Seed: </Typography>
@@ -129,12 +122,10 @@ const LHSSampling = () => {
                     type="number"
                     placeholder="seed"
                     value={lhsInputs[0].seed?.toString()}
-                    sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}`})}
+                    sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}` })}
                     onChange={(e) => handleInputChange(0, "seed", e.target.value)}
                 />
                 < CreateSamplingButton />
-                {/* TODO should we have a "cancel run" option? */}
-                {/* TODO make a "loading" symbol while the callback executes, as in SuMo creation */}
             </form>
         </>
     );
