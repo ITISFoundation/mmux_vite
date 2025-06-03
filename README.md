@@ -30,5 +30,5 @@ NOTE: code will be running inside docker containers.
 When done editing always validate the production build of the app with the below command, since it's the only one giving some minor guarantee on the corectness of your changes.
 
 ```shell
-male run-prod-local
+make run-prod-local
 ```
