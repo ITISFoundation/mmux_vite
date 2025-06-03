@@ -7,16 +7,16 @@ services:
       - OSPARC_API_KEY=${OSPARC_API_KEY}
       - OSPARC_API_SECRET=${OSPARC_API_SECRET}
       - LOG_LEVEL=DEBUG
-      - DEBUG_MODE=true
+      - DEVELOPMENT_MODE=true
     volumes:
       - ./flaskapi:/app
   mmux-vite-web:
-    # Using node:24-alpine for development with auto-reloading
-    image: node:24-alpine
+    image: simcore/services/dynamic/mmux-vite-web:1.0.1
     working_dir: /app
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
-      - ./node:/app  # Mount your local node folder to the container
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+      - ./node:/app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 8080"
     environment:
       - NODE_ENV=development
   mmux-vite-app:
