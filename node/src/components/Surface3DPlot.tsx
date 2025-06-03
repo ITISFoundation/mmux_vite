@@ -4,29 +4,17 @@ import Plot from "react-plotly.js";
 import { useMMUXContext } from "../context/MMUXContext";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
+import { Data } from "plotly.js";
+import { text } from "stream/consumers";
 
 
 const Surface2DPlot = () => {
   const { selectedFunction, inputVars, selectedQoI, filterSelectedJobList } = useMMUXContext();
-  const jobs = filterSelectedJobList()
-
-  if (
-    !Array.isArray(inputVars) ||
-    inputVars.length < 2 ||
-    !inputVars.every((v) => typeof v === "string")
-  ) {
-    return (
-      <Box color="error.main" p={2}>
-        2D surface plot could not be created - as at least two input dimensions are necessary.
-      </Box>
-    );
-  }
   const [key1, setKey1] = useState(inputVars[0]);
   const [key2, setKey2] = useState(inputVars[1]);
-  const [data, setData] = useState(undefined);
-  const [plotData, setPlotData] = useState<Partial<Plotly.PlotData>[] | undefined>(undefined);
+  const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
 
-  async function RunSuMo2DInterpolation(jobs: FunctionJob[], key1: string, key2: string) {
+  const RunSuMo2DInterpolation = async (jobs: FunctionJob[], key1: string, key2: string) => {
     // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...")
     console.info("Jobs to build SuMo: ", jobs)
@@ -47,35 +35,28 @@ const Surface2DPlot = () => {
         return response.json()
       }).then(function (d) {
         console.log("2D retrieved data: ", d)
-        setData(d)
+        reshapePlotData(d)
       }).catch(error => console.debug('Error:', error));
   }
-
-  useEffect(() => {
-    console.log("Running SuMo again")
-    const run = async () => {
-      return await RunSuMo2DInterpolation(jobs, key1, key2)
-    };
-    run();
-    console.log(key1, key2)
-  }, [jobs, key1, key2]);
 
   // Transform backend data to Plotly surface format
   // Expecting backend returns: { x: number[], y: number[], z: number[][] }
   // If not, adjust accordingly.
 
-  function reshapePlotData() {
-    console.log("Executing reshapePlotData")
+  const reshapePlotData = (data: any) => {
     if (data && selectedQoI) {
-      setPlotData(
-        [{
-          x: data[key1],
-          y: data[key2],
-          z: data[selectedQoI],
-          type: "surface",
-        }]
-      )
-      console.log("Registered plotData: ", plotData)
+      console.log("Executing reshapePlotData", data, selectedQoI, data[key1], data[key2], data[selectedQoI])
+      const newData: Data[] = [{
+        x: [0,0,0,0,2,2,2,2],
+        y: [0,2,0,2,0,2,0,2],
+        z: [2,2,0,0,2,2,0,0],
+        value: [1,2,3,4,5,6,7,8],
+          type: "isosurface",
+          colorscale: "Viridis",
+          showscale: true,
+        }];
+      setPlotData(newData);
+      console.log("Registered plotData: ", newData)
     } else {
       setPlotData([{}])
       console.log("Empty plotData")
@@ -83,15 +64,24 @@ const Surface2DPlot = () => {
   }
 
   useEffect(() => {
-    reshapePlotData();
-  }, [data]);
-
+    const run = async () => {
+      const jobs = filterSelectedJobList();
+      return await RunSuMo2DInterpolation(jobs, key1, key2)
+    };
+    run();
+    console.log(key1, key2)
+  }, [key1, key2]);
 
   const layout = {
     title: {
       text: selectedFunction?.title + " Surface Plot",
     },
-    autosize: false,
+    scene: {
+      xaxis: { title: {text: key1}, tickangle: -45, range: [-10, 10] },
+      yaxis: { title: {text: key2}, tickangle: -45, range: [-10, 10] },
+      zaxis: { title: {text: selectedQoI}, tickangle: -45, range: [-10, 10] },
+    },
+    autosize: true,
     willReadFrequently: true,
     width: 920,
     height: 500,
@@ -102,6 +92,20 @@ const Surface2DPlot = () => {
       t: 90,
     },
   };
+
+  if (
+    !Array.isArray(inputVars) ||
+    inputVars.length < 2 ||
+    !inputVars.every((v) => typeof v === "string")
+  ) {
+    return (
+      <Box color="error.main" p={2}>
+        2D surface plot could not be created - as at least two input dimensions are necessary.
+      </Box>
+    );
+  }
+
+  console.log("Rendering 2D surface plot with keys: ", plotData);
 
   return (
     <Box display={"flex"} flexDirection={"column"} gap={2} width={"100%"}>

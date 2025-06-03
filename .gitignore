@@ -29,3 +29,9 @@ dist-ssr
 *.sln
 *.sw?
 */.venv*/
+
+# Run data values
+predictions.dat
+results.dat
+variances.dat
+dakota.rst
