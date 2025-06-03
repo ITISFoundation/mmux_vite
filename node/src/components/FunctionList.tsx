@@ -9,7 +9,7 @@ import {
   ProjectFunction,
   PythonCodeFunction,
 } from "../osparc-api-ts-client/index.ts";
-import { listFunctions } from "../utils/function_utils.ts";
+import { listFunctions, getFunctionJobsFromFunctionUid } from "../utils/function_utils.ts";
 import {
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,
@@ -111,6 +111,28 @@ export function FunctionList() {
     }
   };
 
+  const getFunctionEvaluations = (fun: Function) => {
+    console.log(fun);
+    const [jobCount, setJobCount] = useState<number | null>(null);
+    const fetchJobCount = async () => {
+      try {
+        const jobs = await getFunctionJobsFromFunctionUid(fun.uid);
+        setJobCount(jobs.length)
+      } catch (err) {
+        console.log("Error fetching jobs for Function ", fun.uid)
+      }
+    };
+    fetchJobCount();
+
+    return (
+      <span>
+        {jobCount === null ? "Loading..." : jobCount}
+      </span>
+    );
+  }
+
+
+
   function getRowId(row: Function) {
     return row.uid ? row.uid : "" + row.title + row.description;
   }
@@ -178,6 +200,13 @@ export function FunctionList() {
           maxWidth: 100,
           renderCell: (params) =>
             showInputOutputSchema(params.row.outputSchema),
+        },
+        {
+          field: "n_evaluations",
+          headerName: "Existing Evaluations",
+          flex: 1,
+          minWidth: 200,
+          renderCell: (params) => getFunctionEvaluations(params.row),
         },
         {
           field: "solverKey",
