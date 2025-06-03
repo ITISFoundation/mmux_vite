@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button, styled, Box, IconButton, Typography } from "@mui/material";
 import { toast } from "react-toastify";
 import { Refresh } from "@mui/icons-material";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
 import type { Function } from "../osparc-api-ts-client/models/Function";
 import {
@@ -88,20 +89,27 @@ export function FunctionList() {
         (fun as SolverFunction).solverVersion
       );
     } else if ((fun as ProjectFunction).projectId) {
+      const handleInfoClick = () => {
+        // Send a postMessage to the parent iframe
+        window.parent.postMessage(
+          {
+            "type": "openFunction",
+            "message": {
+              "functionId": (fun as ProjectFunction).projectId,
+            },
+          },
+          "*"
+        );
+      };
+
       return (
-        <>
-          Template{" "}
-          <a
-            href={`https://osparc-master.speag.com/#/study/${(fun as ProjectFunction).projectId}`}
-            // TODO need to fetch which deployment we are at
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "#1976d2", textDecoration: "underline" }}
-          >
-            {(fun as ProjectFunction).projectId}
-            {/* TODO ideally fetch project information (e.g. name & creation date) by the endpoint created by Odei */}
-          </a>
-        </>
+        <IconButton
+          size="small"
+          onClick={handleInfoClick}
+          sx={{ color: "#1976d2" }}
+        >
+          <InfoOutlinedIcon fontSize="small" />
+        </IconButton>
       );
     } else if ((fun as PythonCodeFunction).codeUrl) {
       return (fun as PythonCodeFunction).codeUrl;
