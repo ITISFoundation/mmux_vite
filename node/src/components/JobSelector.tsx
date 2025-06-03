@@ -28,6 +28,8 @@ export default function JobsSelector() {
   const [poperID, setPopperID] = useState<number>(-1);
   const [loading, setLoading] = useState<boolean>(true);
   const [progress, setProgress] = useState<number>(0);
+  const [jobProgress, setJobProgress] = useState<number>(0);
+  const jobCFetched = useRef(0)
   const jobsFetched = useRef(0)
 
   const updateJobContext = (jobs: SelectedJobCollection[]) => {
@@ -116,13 +118,21 @@ export default function JobsSelector() {
     console.log("Fetched jobCollections: ", jobsC);
 
     const newJobs: SelectedJobCollection[] = await Promise.all(jobsC.map(async (jc) => {
-      const subJobs = await Promise.all(jc.jobIds.map(async (id) => ({
+      const subJobs = await Promise.all(jc.jobIds.map(async (id) => {
+        const job = await getFunctionJob(id) as FunctionJob;
+        jobsFetched.current += 1;
+        const upperBound = 30 + ((jobCFetched.current +1)/jobsC.length * 70)
+        const jobsProg = (upperBound - progress) * (jobsFetched.current / jc.jobIds.length);
+        console.log("Job fetched: ", jobsProg, jobsFetched.current, jc.jobIds.length);
+        setJobProgress((jobsProg/100) * progress);
+        return ({
         selected: false,
-        job: await getFunctionJob(id) as FunctionJob
-      })));
-      console.log("Fetched subJobs for jobCollection: ", progress);
-      jobsFetched.current += 1;
-      setProgress(30 + (jobsFetched.current/jobsC.length * 70));
+        job
+      })}));
+      console.log("Fetched subJobs for jobCollection: ", progress, jobProgress, jobsFetched.current);
+      jobCFetched.current += 1;
+      jobsFetched.current = 0;
+      setProgress(30 + (jobCFetched.current/jobsC.length * 70));
       return ({
         jobCollection: jc,
         selected: false,
@@ -132,9 +142,9 @@ export default function JobsSelector() {
 
     updateJobContext(newJobs);
     setJobCollections(newJobs);
-    setFetchedJobCollections(newJobs);
-    jobsFetched.current = 0;
+    jobCFetched.current = 0;
     setProgress(100);
+    setFetchedJobCollections(newJobs);
   }
 
   const handleAnchor = (target: HTMLButtonElement, uid: string) => {
@@ -172,11 +182,11 @@ export default function JobsSelector() {
   }, [selectedFunction]);
 
   if(loading) {
-    console.log("Loading job collections...", jobsFetched.current, " out of ", jobCollections.length);
+    console.log("Loading job collections...", jobCFetched.current, jobsFetched.current);
     return (
       <>
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', width: '100%' }}>
-          <LinearProgress variant="determinate" value={progress} sx={{height: '6px', width: '40%'}} />
+          <LinearProgress variant="buffer" value={progress} valueBuffer={jobProgress} sx={{height: '6px', width: '40%'}} />
         </Box>
         <Typography variant="body1" fontFamily={'inherit'} fontWeight={100} textAlign={'center'} mt={0.5}>
           <span>{progress}%</span>
