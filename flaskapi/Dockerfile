@@ -1,46 +1,35 @@
-ARG MMUX_PYTHON_BRANCH="work/jgo/flask_mmux_nih"
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
 
-FROM ubuntu:22.04
-
-# Install git and curl
 RUN apt update && apt install -y \
-  git \
-  curl \
-  make \
-  python3.11 \
-  python3.11-venv \
-  pip \
-  default-jre
-
-WORKDIR /app
-
-COPY flask_workflows.py ./flask_workflows.py
-COPY . .
-
-RUN git clone https://github.com/ITISFoundation/mmux_python
-RUN echo $(ls -l)
-WORKDIR /app/mmux_python
-RUN echo $(ls -l)
-RUN git checkout work/jgo/flask_mmux_nih
-
-WORKDIR /app
-RUN python3.11 -m venv .venv
-RUN .venv/bin/python -m pip install --upgrade pip &&\
-  .venv/bin/python -m pip install itis-dakota && \
-  .venv/bin/python -m pip install flask python-dotenv && \
-  .venv/bin/python -m pip install -r ./mmux_python/requirements.txt
-
-RUN cd /app
-
-## OSPARC API client generator; uses UV (I dont know why it doesnt work with the .venv python)
-RUN echo 1
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-RUN . /root/.local/bin/env && uv venv .uv_env --python 3.11
-## . = source in Ubuntu
-RUN .uv_env/bin/python -m ensurepip && .uv_env/bin/python -m pip install openapi-generator-cli
-RUN curl https://api.osparc-master.speag.com/api/v0/openapi.json -o openapi.json
-RUN .uv_env/bin/openapi-generator-cli generate -i openapi.json -g python -o ./osparc-api-python-client --package-name osparc_client && \
-  .venv/bin/python -m pip install ./osparc-api-python-client
+  curl \  
+  git 
 
 EXPOSE 5000
-CMD [".venv/bin/flask", "run", "--host=localhost", "--port=5000", "--no-debugger" ]
+
+HEALTHCHECK \
+  --interval=30s \
+  --timeout=5s \
+  --start-period=20s \
+  --retries=3 \
+  CMD curl -f http://localhost:5000/flask/health || exit 1
+
+WORKDIR /app
+
+# clone mmux_python
+ARG MMUX_PYTHON_BRANCH="work/jgo/flask_mmux_nih"
+RUN git clone --single-branch \
+  --branch ${MMUX_PYTHON_BRANCH} \
+  https://github.com/ITISFoundation/mmux_python /mmux_python \
+  && cp -R /mmux_python /app/mmux_python
+
+# Install Python packages directly with system Python
+RUN uv pip install --system -r ./mmux_python/requirements.txt \
+  && uv pip install --system --prerelease=allow osparc==0.8.3.post0.dev27 \
+  && uv pip install --system \
+  # depnendcies usd by production wsgi server
+  gunicorn==23.0.0 \
+  gevent==25.5.1
+
+COPY . .
+
+ENTRYPOINT ["./entrypoint.sh"]

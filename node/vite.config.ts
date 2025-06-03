@@ -10,13 +10,14 @@ export default defineConfig({
     tailwindcss(),
   ],
   preview: {
-    port: 8888,
+    port: 8080,
     strictPort: true,
   },
   server: {
-    port: 8888,
+    port: 8080,
     strictPort: true,
-    host: true,
-    origin: "http://0.0.0.0:8888",
+    host: "0.0.0.0",
+    origin: "http://0.0.0.0:8080",
+    allowedHosts: true,
   },
 });

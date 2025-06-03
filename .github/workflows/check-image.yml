@@ -1,0 +1,33 @@
+name: Build and check image
+
+on:
+  # Run the workflow for pushes to the main branch
+  push:
+    branches:
+      - main
+
+  # Run the workflow for pull requests (from forks or within the repo)
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  verify-image-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v2
+      - name: ooil version
+        uses: docker://itisfoundation/ci-service-integration-library:v2.0.12
+        with:
+          args: ooil --version
+      - name: Assemble docker compose spec
+        uses: docker://itisfoundation/ci-service-integration-library:v2.0.12
+        with:
+          args: ooil compose
+      - name: Build all images if multiple
+        uses: docker://itisfoundation/ci-service-integration-library:v2.0.12
+        with:
+          args: docker compose build

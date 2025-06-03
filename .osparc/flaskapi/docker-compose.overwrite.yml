@@ -1,0 +1,5 @@
+services:
+  mmux-vite-backend:
+    build:
+      context: ./flaskapi
+      dockerfile: Dockerfile
