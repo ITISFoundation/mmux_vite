@@ -44,7 +44,6 @@ export function FunctionList() {
     try {
       setLoading(true);
       const funs = await listFunctions();
-      console.debug("Functions obtained: ", funs);
       setFunctions(funs);
       if (funs.length === 0) {
         toast.info("No functions available. Please create a function first.");

@@ -18,6 +18,8 @@ export interface MMUXContextType {
   setRunningSampling: (b: boolean) => void;
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
   setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void;
+  fetchedJobCollections: SelectedJobCollection[];
+  setFetchedJobCollections: (jc: SelectedJobCollection[]) => void;
   selectedJobUids: string[];
   setSelectedJobUids: (selectedJobs: string[]) => void;
   selectedQoI: string | undefined;
@@ -38,11 +40,13 @@ export const MMUXContextProvider = ({ children }: Props) => {
   const [launchingSampling, setLaunchingSampling] = useState<boolean>(false);
   const [runningSampling, setRunningSampling] = useState<boolean>(false);
   const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
+  const [fetchedJobCollections, setFetchedJobCollections] = useState<SelectedJobCollection[]>([]);
   const [inputVars, setInputVars] = useState<string[]>([]);
   const [distribution, setDistribution] = useState<InputVarSelection>({});
   const [outputVars, setOutputVars] = useState<string[] | undefined>(undefined);
   const [selectedQoI, setSelectedQoI] = useState<string | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
+  const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
 
   const memoState = useMemo(() => ({
     selectedFunction: funct,
@@ -65,7 +69,11 @@ export const MMUXContextProvider = ({ children }: Props) => {
     setRunningJobCollection: setRunningJobCollection,
     selectedJobUids: selectedJobUids,
     setSelectedJobUids: setSelectedJobUids,
-  }), [funct, distribution, inputVars, outputVars, currentView, launchingSampling, runningSampling, selectedQoI, runningJobCollection, selectedJobUids]);
+    fetchedJobCollections: fetchedJobCollections,
+    setFetchedJobCollections: setFetchedJobCollections,
+    isSuMoGenerated: isSuMoGenerated,
+    setIsSuMoGenerated: setIsSuMoGenerated
+  }), [funct, distribution, inputVars, outputVars, currentView, launchingSampling, runningSampling, selectedQoI, runningJobCollection, selectedJobUids, fetchedJobCollections, isSuMoGenerated]);
 
   return <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>;
 }

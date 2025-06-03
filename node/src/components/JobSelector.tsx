@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { KeyboardArrowUp, KeyboardArrowDown } from "@mui/icons-material";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -13,18 +13,22 @@ import {
   Card,
   Checkbox,
   IconButton,
+  LinearProgress,
   Popper,
+  Typography,
 } from "@mui/material";
 import { Refresh } from "@mui/icons-material";
 import { DataGrid } from "@mui/x-data-grid";
 import JobRow from "./JobRow";
 
 export default function JobsSelector() {
-  const { selectedFunction, setSelectedJobUids } = useMMUXContext();
+  const { selectedFunction, setSelectedJobUids, fetchedJobCollections, setFetchedJobCollections } = useMMUXContext();
   const [jobCollections, setJobCollections] = useState<SelectedJobCollection[]>([]);
   const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
   const [poperID, setPopperID] = useState<number>(-1);
   const [loading, setLoading] = useState<boolean>(true);
+  const [progress, setProgress] = useState<number>(0);
+  const jobsFetched = useRef(0)
 
   const updateJobContext = (jobs: SelectedJobCollection[]) => {
     const newList = jobs.map((j) =>j.subJobs.filter((j) => j.selected).map((j)=>j.job.uid)).flat();
@@ -100,22 +104,37 @@ export default function JobsSelector() {
 
   async function updateJobCollections(functionUid: string) {
     console.log("Fetching jobCollections for function: ", functionUid);
-    const jc = (await getFunctionJobCollections(
+    if(fetchedJobCollections.length > 0) {
+      console.log("Job collections already fetched, skipping fetch.");
+      setJobCollections(fetchedJobCollections);
+      setLoading(false);
+      return;
+    }
+    const jobsC = (await getFunctionJobCollections(
       functionUid as string
     )) as FunctionJobCollection[];
-    console.log("Fetched jobCollections: ", jc);
+    console.log("Fetched jobCollections: ", jobsC);
 
-    const newJobs: SelectedJobCollection[] = await Promise.all(jc.map(async (jc) => ({
-      jobCollection: jc,
-      selected: false,
-      subJobs: await Promise.all(jc.jobIds.map(async (id) => ({
+    const newJobs: SelectedJobCollection[] = await Promise.all(jobsC.map(async (jc) => {
+      const subJobs = await Promise.all(jc.jobIds.map(async (id) => ({
         selected: false,
         job: await getFunctionJob(id) as FunctionJob
-      }))),
-    })));
+      })));
+      console.log("Fetched subJobs for jobCollection: ", progress);
+      jobsFetched.current += 1;
+      setProgress(30 + (jobsFetched.current/jobsC.length * 70));
+      return ({
+        jobCollection: jc,
+        selected: false,
+        subJobs: subJobs,
+      });
+    }));
 
     updateJobContext(newJobs);
     setJobCollections(newJobs);
+    setFetchedJobCollections(newJobs);
+    jobsFetched.current = 0;
+    setProgress(100);
   }
 
   const handleAnchor = (target: HTMLButtonElement, uid: string) => {
@@ -151,6 +170,20 @@ export default function JobsSelector() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFunction]);
+
+  if(loading) {
+    console.log("Loading job collections...", jobsFetched.current, " out of ", jobCollections.length);
+    return (
+      <>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', width: '100%' }}>
+          <LinearProgress variant="determinate" value={progress} sx={{height: '6px', width: '40%'}} />
+        </Box>
+        <Typography variant="body1" fontFamily={'inherit'} fontWeight={100} textAlign={'center'} mt={0.5}>
+          <span>{progress}%</span>
+        </Typography>
+      </>
+    );
+  }
 
   return (
     <>
