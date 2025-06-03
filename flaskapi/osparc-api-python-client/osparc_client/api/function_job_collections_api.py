@@ -289,6 +289,7 @@ class FunctionJobCollectionsApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'HTTPBasic'
         ]
 
         return self.api_client.param_serialize(
@@ -555,6 +556,7 @@ class FunctionJobCollectionsApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'HTTPBasic'
         ]
 
         return self.api_client.param_serialize(
@@ -1088,6 +1090,7 @@ class FunctionJobCollectionsApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'HTTPBasic'
         ]
 
         return self.api_client.param_serialize(
@@ -1387,6 +1390,7 @@ class FunctionJobCollectionsApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'HTTPBasic'
         ]
 
         return self.api_client.param_serialize(
@@ -1663,6 +1667,7 @@ class FunctionJobCollectionsApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'HTTPBasic'
         ]
 
         return self.api_client.param_serialize(

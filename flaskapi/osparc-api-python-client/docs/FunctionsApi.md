@@ -29,6 +29,7 @@ New in *version 0.8.0*
 
 ### Example
 
+* Basic Authentication (HTTPBasic):
 
 ```python
 import osparc_client
@@ -41,6 +42,16 @@ configuration = osparc_client.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure HTTP basic authorization: HTTPBasic
+configuration = osparc_client.Configuration(
+    username = os.environ["USERNAME"],
+    password = os.environ["PASSWORD"]
+)
 
 # Enter a context with an instance of the API client
 with osparc_client.ApiClient(configuration) as api_client:
@@ -72,7 +83,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[HTTPBasic](../README.md#HTTPBasic)
 
 ### HTTP request headers
 
@@ -100,6 +111,7 @@ New in *version 0.8.0*
 
 ### Example
 
+* Basic Authentication (HTTPBasic):
 
 ```python
 import osparc_client
@@ -113,6 +125,16 @@ configuration = osparc_client.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure HTTP basic authorization: HTTPBasic
+configuration = osparc_client.Configuration(
+    username = os.environ["USERNAME"],
+    password = os.environ["PASSWORD"]
+)
 
 # Enter a context with an instance of the API client
 with osparc_client.ApiClient(configuration) as api_client:
@@ -144,7 +166,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[HTTPBasic](../README.md#HTTPBasic)
 
 ### HTTP request headers
 
@@ -172,6 +194,7 @@ New in *version 0.8.0*
 
 ### Example
 
+* Basic Authentication (HTTPBasic):
 
 ```python
 import osparc_client
@@ -185,6 +208,16 @@ configuration = osparc_client.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure HTTP basic authorization: HTTPBasic
+configuration = osparc_client.Configuration(
+    username = os.environ["USERNAME"],
+    password = os.environ["PASSWORD"]
+)
 
 # Enter a context with an instance of the API client
 with osparc_client.ApiClient(configuration) as api_client:
@@ -216,7 +249,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[HTTPBasic](../README.md#HTTPBasic)
 
 ### HTTP request headers
 
@@ -244,6 +277,7 @@ New in *version 0.8.0*
 
 ### Example
 
+* Basic Authentication (HTTPBasic):
 
 ```python
 import osparc_client
@@ -257,6 +291,16 @@ configuration = osparc_client.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure HTTP basic authorization: HTTPBasic
+configuration = osparc_client.Configuration(
+    username = os.environ["USERNAME"],
+    password = os.environ["PASSWORD"]
+)
 
 # Enter a context with an instance of the API client
 with osparc_client.ApiClient(configuration) as api_client:
@@ -288,7 +332,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[HTTPBasic](../README.md#HTTPBasic)
 
 ### HTTP request headers
 
@@ -316,6 +360,7 @@ New in *version 0.8.0*
 
 ### Example
 
+* Basic Authentication (HTTPBasic):
 
 ```python
 import osparc_client
@@ -329,6 +374,16 @@ configuration = osparc_client.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure HTTP basic authorization: HTTPBasic
+configuration = osparc_client.Configuration(
+    username = os.environ["USERNAME"],
+    password = os.environ["PASSWORD"]
+)
 
 # Enter a context with an instance of the API client
 with osparc_client.ApiClient(configuration) as api_client:
@@ -364,7 +419,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[HTTPBasic](../README.md#HTTPBasic)
 
 ### HTTP request headers
 
@@ -391,6 +446,7 @@ New in *version 0.8.0*
 
 ### Example
 
+* Basic Authentication (HTTPBasic):
 
 ```python
 import osparc_client
@@ -404,6 +460,16 @@ configuration = osparc_client.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure HTTP basic authorization: HTTPBasic
+configuration = osparc_client.Configuration(
+    username = os.environ["USERNAME"],
+    password = os.environ["PASSWORD"]
+)
 
 # Enter a context with an instance of the API client
 with osparc_client.ApiClient(configuration) as api_client:
@@ -437,7 +503,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[HTTPBasic](../README.md#HTTPBasic)
 
 ### HTTP request headers
 
@@ -549,6 +615,7 @@ New in *version 0.8.0*
 
 ### Example
 
+* Basic Authentication (HTTPBasic):
 
 ```python
 import osparc_client
@@ -563,6 +630,16 @@ configuration = osparc_client.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure HTTP basic authorization: HTTPBasic
+configuration = osparc_client.Configuration(
+    username = os.environ["USERNAME"],
+    password = os.environ["PASSWORD"]
+)
 
 # Enter a context with an instance of the API client
 with osparc_client.ApiClient(configuration) as api_client:
@@ -594,7 +671,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[HTTPBasic](../README.md#HTTPBasic)
 
 ### HTTP request headers
 
@@ -707,6 +784,7 @@ New in *version 0.8.0*
 
 ### Example
 
+* Basic Authentication (HTTPBasic):
 
 ```python
 import osparc_client
@@ -720,6 +798,16 @@ configuration = osparc_client.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure HTTP basic authorization: HTTPBasic
+configuration = osparc_client.Configuration(
+    username = os.environ["USERNAME"],
+    password = os.environ["PASSWORD"]
+)
 
 # Enter a context with an instance of the API client
 with osparc_client.ApiClient(configuration) as api_client:
@@ -753,7 +841,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[HTTPBasic](../README.md#HTTPBasic)
 
 ### HTTP request headers
 
@@ -781,6 +869,7 @@ New in *version 0.8.0*
 
 ### Example
 
+* Basic Authentication (HTTPBasic):
 
 ```python
 import osparc_client
@@ -794,6 +883,16 @@ configuration = osparc_client.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure HTTP basic authorization: HTTPBasic
+configuration = osparc_client.Configuration(
+    username = os.environ["USERNAME"],
+    password = os.environ["PASSWORD"]
+)
 
 # Enter a context with an instance of the API client
 with osparc_client.ApiClient(configuration) as api_client:
@@ -827,7 +926,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[HTTPBasic](../README.md#HTTPBasic)
 
 ### HTTP request headers
 
@@ -855,6 +954,7 @@ New in *version 0.8.0*
 
 ### Example
 
+* Basic Authentication (HTTPBasic):
 
 ```python
 import osparc_client
@@ -867,6 +967,16 @@ configuration = osparc_client.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure HTTP basic authorization: HTTPBasic
+configuration = osparc_client.Configuration(
+    username = os.environ["USERNAME"],
+    password = os.environ["PASSWORD"]
+)
 
 # Enter a context with an instance of the API client
 with osparc_client.ApiClient(configuration) as api_client:
@@ -900,7 +1010,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[HTTPBasic](../README.md#HTTPBasic)
 
 ### HTTP request headers
 
