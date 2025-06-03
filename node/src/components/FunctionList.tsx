@@ -114,19 +114,23 @@ export function FunctionList() {
   const getNFunctionJobCollections = (fun: Function) => {
     console.log(fun);
     const [jobCollectionCount, setJobCollectionCount] = useState<number | null>(null);
-    const fetchJobCollectionCount = async () => {
+    const [jobCount, setJobCount] = useState<number | null>(null);
+    const fetchJobJobCollectionCount = async () => {
       try {
         const jcs = await getFunctionJobCollections(fun.uid);
         setJobCollectionCount(jcs.length)
+        setJobCount(jcs.map(jc => { return jc.jobIds ? jc.jobIds.length : 0 }).reduce((a, b) => a + b, 0));
       } catch (err) {
         console.log("Error fetching jobs for Function ", fun.uid)
       }
     };
-    fetchJobCollectionCount();
+    fetchJobJobCollectionCount();
 
     return (
       <span>
-        {jobCollectionCount === null ? "Loading..." : jobCollectionCount}
+        {jobCollectionCount === null || jobCount === null
+          ? "Loading..."
+          : `${jobCollectionCount} / ${jobCount}`}
       </span>
     );
   }
@@ -203,9 +207,9 @@ export function FunctionList() {
         },
         {
           field: "n_evaluations",
-          headerName: "# Sampling Campaigns",
+          headerName: "# Campaigns / Samples",
           flex: 1,
-          minWidth: 50,
+          minWidth: 250,
           renderCell: (params) => getNFunctionJobCollections(params.row),
         },
         {
