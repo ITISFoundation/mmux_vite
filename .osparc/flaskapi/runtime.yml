@@ -1,0 +1,10 @@
+settings:
+  - name: Resources
+    type: Resources
+    value:
+      Limits:
+        NanoCPUs: 1000000000
+        MemoryBytes: 0
+      Reservations:
+        NanoCPUs: 1000000000
+        MemoryBytes: 0
