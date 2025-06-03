@@ -14,7 +14,7 @@ COPY --from=builder /app/dist .
 # Install curl for healthcheck and thttpd for serving static files
 RUN apk add --no-cache curl thttpd
 
-EXPOSE 8888
+EXPOSE 8080
 
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
