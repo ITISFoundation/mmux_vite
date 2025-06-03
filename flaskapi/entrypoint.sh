@@ -13,11 +13,11 @@ echo "$INFO" "  Workdir :$(pwd)"
 # Default configuration
 HOST=${HOST:-0.0.0.0}
 PORT=${PORT:-5000}
-DEBUG_MODE=${DEBUG_MODE:-false}
+DEVELOPMENT_MODE=${DEVELOPMENT_MODE:-false}
 export LOG_LEVEL=${LOG_LEVEL:-INFO}
 
 
-if [ "$DEBUG_MODE" = "true" ]; then
+if [ "$DEVELOPMENT_MODE" = "true" ]; then
   # Development mode - use Flask's built-in server
 
   # copy library to application directory
