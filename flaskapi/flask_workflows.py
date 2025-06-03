@@ -149,7 +149,7 @@ def get_last_N_items(api_call: Callable, N: int, **kwargs):
     if list_len < N:
         _logger.warning(f"Requested {N} items, but only {list_len} are available.")
         N = list_len
-    response = api_call(offset=list_len - N, limit=N, **kwargs)
+    response = api_call(offset=list_len - N, limit=max(1,N), **kwargs)
     items = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
     assert len(items) == N, f"Expected {N} items, but got {len(items)}"
     return items
