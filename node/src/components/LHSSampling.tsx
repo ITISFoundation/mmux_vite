@@ -42,11 +42,11 @@ const LHSSampling = () => {
     const { inputVars, launchingSampling, runningSampling, distribution } = useMMUXContext();
     const context = useMMUXContext();
 
-    const [lhsInputs, setLhsInputs] = useState(
+    const [lhsInputs, setLhsInputs] = useState<SamplingInputsState[]>(
         inputVars.map((inputVar) => ({
             variable: inputVar,
-            start: getSamplingStartValue(inputVar, distribution),
-            end: getSamplingEndValue(inputVar, distribution),
+            start: getSamplingStartValue(inputVar, distribution) as number,
+            end: getSamplingEndValue(inputVar, distribution) as number,
             points: 50, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
             seed: 0,  // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
         })),
@@ -113,7 +113,7 @@ const LHSSampling = () => {
                 <Typography variant='body1'>Number of sampling points: </Typography>
                 <Input
                     type="number"
-                    placeholder="N"
+                    placeholder="Number of sampling points"
                     value={lhsInputs[0].points.toString()}
                     sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}` })}
                     onChange={(e) => handleInputChange(0, "points", e.target.value)}
