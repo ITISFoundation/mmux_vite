@@ -15,7 +15,8 @@ WORKDIR /app
 ARG MMUX_PYTHON_BRANCH="work/jgo/flask_mmux_nih"
 RUN git clone --single-branch \
   --branch ${MMUX_PYTHON_BRANCH} \
-  https://github.com/ITISFoundation/mmux_python
+  https://github.com/ITISFoundation/mmux_python /mmux_python \
+  && cp -R /mmux_python /app/mmux_python
 
 # Install Python packages directly with system Python
 RUN uv pip install --system -r ./mmux_python/requirements.txt \
