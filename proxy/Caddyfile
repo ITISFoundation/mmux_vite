@@ -8,7 +8,9 @@
 
     # Root path handling for Node.js frontend/main app
     handle * {
-        reverse_proxy {$WEB_SERVICE}
+        reverse_proxy {$WEB_SERVICE} {
+            health_uri /
+        }
     }
 
     # Enable logging
