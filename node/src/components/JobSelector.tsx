@@ -15,6 +15,7 @@ import {
   Box,
   Card,
   Checkbox,
+  ClickAwayListener,
   IconButton,
   LinearProgress,
   Popper,
@@ -40,6 +41,7 @@ export default function JobsSelector() {
     null
   );
   const [poperID, setPopperID] = useState<number>(-1);
+  const poperOpen = useRef(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [progress, setProgress] = useState<number>(0);
   const [jobProgress, setJobProgress] = useState<number>(0);
@@ -189,6 +191,18 @@ export default function JobsSelector() {
       setPopperID(idx);
     } else {
       setPopperID(-1);
+      poperOpen.current = false;
+    }
+  };
+
+  const handleClickAway = (event: React.MouseEvent<Document, MouseEvent>) => {
+    if (poperID !== -1 && anchorEl && poperOpen.current) {
+      console.log("Closing job collection popper", poperID, anchorEl);
+      setAnchorEl(null);
+      setPopperID(-1);
+      poperOpen.current = false;
+    } else {
+      poperOpen.current = true;
     }
   };
 
@@ -234,6 +248,15 @@ export default function JobsSelector() {
     );
     return (
       <>
+        <Typography
+          variant="body1"
+          fontFamily={"inherit"}
+          fontWeight={100}
+          textAlign={"center"}
+          mb={1}
+        >
+          Loading Job Collections...
+        </Typography>
         <Box
           sx={{
             display: "flex",
@@ -255,7 +278,7 @@ export default function JobsSelector() {
           fontFamily={"inherit"}
           fontWeight={100}
           textAlign={"center"}
-          mt={0.5}
+          mt={1}
         >
           <span>{Math.round(progress)}%</span>
         </Typography>
@@ -386,10 +409,16 @@ export default function JobsSelector() {
               })`,
           },
           "& .MuiDataGrid-row.Mui-selected": {
-            backgroundColor: (theme) => theme.palette.primary.main,
+            backgroundColor: (theme) =>
+              `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${
+                theme.palette.mode === "dark" ? "black" : "white"
+              })`,
           },
           "& .MuiDataGrid-row.Mui-selected:hover": {
-            backgroundColor: (theme) => theme.palette.primary.main,
+            backgroundColor: (theme) =>
+              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+                theme.palette.mode === "dark" ? "black" : "white"
+              })`,
           },
           "& .MuiDataGrid-sortButton": {
             backgroundColor: (theme) => theme.palette.background.paper,
@@ -416,61 +445,63 @@ export default function JobsSelector() {
         disableColumnSelector
         disableRowSelectionOnClick
       ></DataGrid>
-      <Popper open={poperID !== -1} anchorEl={anchorEl} placement="right">
-        {poperID !== -1 && jobCollections[poperID] && (
-          <Card sx={{ borderRadius: "8px" }}>
-            <Box style={{ padding: "16px" }}>
-              <TableContainer>
-                <Table
-                  size="small"
-                  aria-label="jobs"
-                  sx={{ borderRadius: "8px", padding: "16px" }}
-                >
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>
-                        <Checkbox
-                          checked={jobCollections[poperID].subJobs.every(
-                            (j) => j.selected
-                          )}
-                          onChange={onSelectAllClick}
+      <ClickAwayListener onClickAway={handleClickAway}>
+        <Popper open={poperID !== -1} anchorEl={anchorEl} placement="right">
+          {poperID !== -1 && jobCollections[poperID] && (
+            <Card sx={{ borderRadius: "8px" }}>
+              <Box style={{ padding: "16px" }}>
+                <TableContainer>
+                  <Table
+                    size="small"
+                    aria-label="jobs"
+                    sx={{ borderRadius: "8px", padding: "16px" }}
+                  >
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>
+                          <Checkbox
+                            checked={jobCollections[poperID].subJobs.every(
+                              (j) => j.selected
+                            )}
+                            onChange={onSelectAllClick}
+                          />
+                        </TableCell>
+                        <TableCell>Job ID</TableCell>
+                        <TableCell>Inputs</TableCell>
+                        <TableCell>Outputs</TableCell>
+                        <TableCell align="right">Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {visibleSubJobs?.map((jobUid: string) => (
+                        <JobRow
+                          key={jobUid}
+                          jobUid={jobUid}
+                          jobList={jobCollections[poperID].subJobs}
+                          setSelected={(selected: boolean, subJob: string) =>
+                            onSelectJob(poperID, selected, subJob)
+                          }
                         />
-                      </TableCell>
-                      <TableCell>Job ID</TableCell>
-                      <TableCell>Inputs</TableCell>
-                      <TableCell>Outputs</TableCell>
-                      <TableCell align="right">Status</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {visibleSubJobs?.map((jobUid: string) => (
-                      <JobRow
-                        key={jobUid}
-                        jobUid={jobUid}
-                        jobList={jobCollections[poperID].subJobs}
-                        setSelected={(selected: boolean, subJob: string) =>
-                          onSelectJob(poperID, selected, subJob)
-                        }
-                      />
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              <TablePagination
-                rowsPerPageOptions={[10, 20, 30]}
-                component="div"
-                count={jobCollections[poperID].jobCollection.jobIds.length}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={(_e, newPage) => setPage(newPage)}
-                onRowsPerPageChange={(e) =>
-                  setRowsPerPage(parseInt(e.target.value, 10))
-                }
-              />
-            </Box>
-          </Card>
-        )}
-      </Popper>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                <TablePagination
+                  rowsPerPageOptions={[10, 20, 30]}
+                  component="div"
+                  count={jobCollections[poperID].jobCollection.jobIds.length}
+                  rowsPerPage={rowsPerPage}
+                  page={page}
+                  onPageChange={(_e, newPage) => setPage(newPage)}
+                  onRowsPerPageChange={(e) =>
+                    setRowsPerPage(parseInt(e.target.value, 10))
+                  }
+                />
+              </Box>
+            </Card>
+          )}
+        </Popper>
+      </ClickAwayListener>
     </>
   );
 }
