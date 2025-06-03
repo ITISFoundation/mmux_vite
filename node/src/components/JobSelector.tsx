@@ -33,7 +33,7 @@ export default function JobsSelector() {
   const jobsFetched = useRef(0)
 
   const updateJobContext = (jobs: SelectedJobCollection[]) => {
-    const newList = jobs.map((j) =>j.subJobs.filter((j) => j.selected).map((j)=>j.job.uid)).flat();
+    const newList = jobs.map((j) => j.subJobs.filter((j) => j.selected).map((j) => j.job.uid)).flat();
     setSelectedJobUids(newList);
   };
 
@@ -89,7 +89,7 @@ export default function JobsSelector() {
         selected: checked,
         job: subJob.job,
       }
-    ))
+      ))
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(
       (jc, idx) => {
         const auxJob = jc;
@@ -106,7 +106,7 @@ export default function JobsSelector() {
 
   async function updateJobCollections(functionUid: string) {
     console.log("Fetching jobCollections for function: ", functionUid);
-    if(fetchedJobCollections.length > 0) {
+    if (fetchedJobCollections.length > 0) {
       console.log("Job collections already fetched, skipping fetch.");
       setJobCollections(fetchedJobCollections);
       setLoading(false);
@@ -121,18 +121,19 @@ export default function JobsSelector() {
       const subJobs = await Promise.all(jc.jobIds.map(async (id) => {
         const job = await getFunctionJob(id) as FunctionJob;
         jobsFetched.current += 1;
-        const upperBound = 30 + ((jobCFetched.current +1)/jobsC.length * 70)
+        const upperBound = 30 + ((jobCFetched.current + 1) / jobsC.length * 70)
         const jobsProg = (upperBound - progress) * (jobsFetched.current / jc.jobIds.length);
         console.log("Job fetched: ", jobsProg, jobsFetched.current, jc.jobIds.length);
-        setJobProgress((jobsProg/100) * progress);
+        setJobProgress((jobsProg / 100) * progress);
         return ({
-        selected: false,
-        job
-      })}));
+          selected: false,
+          job
+        })
+      }));
       console.log("Fetched subJobs for jobCollection: ", progress, jobProgress, jobsFetched.current);
       jobCFetched.current += 1;
       jobsFetched.current = 0;
-      setProgress(30 + (jobCFetched.current/jobsC.length * 70));
+      setProgress(30 + (jobCFetched.current / jobsC.length * 70));
       return ({
         jobCollection: jc,
         selected: false,
@@ -178,15 +179,15 @@ export default function JobsSelector() {
         console.log("Updated JobCollections");
       })();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFunction]);
 
-  if(loading) {
+  if (loading) {
     console.log("Loading job collections...", jobCFetched.current, jobsFetched.current);
     return (
       <>
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', width: '100%' }}>
-          <LinearProgress variant="buffer" value={progress} valueBuffer={jobProgress} sx={{height: '6px', width: '40%'}} />
+          <LinearProgress variant="buffer" value={progress} valueBuffer={jobProgress} sx={{ height: '6px', width: '40%' }} />
         </Box>
         <Typography variant="body1" fontFamily={'inherit'} fontWeight={100} textAlign={'center'} mt={0.5}>
           <span>{progress}%</span>
@@ -194,6 +195,25 @@ export default function JobsSelector() {
       </>
     );
   }
+
+  const getJobCollectionStatus = (subJobs: SubJob[]) => {
+    if (subJobs.length === 0) return "EMPTY";
+    // Assuming job.status exists and can be "COMPLETE" or other statuses
+    const allComplete = subJobs.every(j => j.job && j.job.status === "SUCCESS");
+    if (allComplete) return "COMPLETE";
+    const anyRunning = subJobs.some(j => j.job && j.job.status === "RUNNING");
+    if (anyRunning) return "RUNNING";
+    const anyFailed = subJobs.some(j => j.job && j.job.status === "FAILED");
+    const allFailed = subJobs.every(j => j.job && j.job.status === "FAILED");
+    if (allFailed) return "FAILED";
+    if (anyFailed) {
+      const anyComplete = subJobs.some(j => j.job && j.job.status === "SUCCESS");
+      if (anyComplete) return "FAILED (PARTIALLY)";
+      return "FAILED";
+    }
+    // Default fallback
+    return "INCOMPLETE";
+  };
 
   return (
     <>
@@ -231,7 +251,7 @@ export default function JobsSelector() {
                 sx={(theme) => ({ color: theme.palette.primary.contrastText })}
               >
                 {poperID > -1 && jobCollections[poperID].jobCollection.uid ===
-                params.row.jobCollection.uid ? (
+                  params.row.jobCollection.uid ? (
                   <KeyboardArrowUp />
                 ) : (
                   <KeyboardArrowDown />
@@ -276,8 +296,8 @@ export default function JobsSelector() {
             headerName: "Status",
             align: "right",
             headerAlign: "right",
-            maxWidth: 120,
-            renderCell: (params) => <span>TODO</span>,
+            maxWidth: 220,
+            renderCell: (params) => <span>{getJobCollectionStatus(params.row.subJobs)}</span>,
           },
           {
             field: "nJobs",
@@ -310,8 +330,7 @@ export default function JobsSelector() {
           },
           "& .MuiDataGrid-row:hover": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
-                theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-row.Mui-selected": {
@@ -350,10 +369,10 @@ export default function JobsSelector() {
         anchorEl={anchorEl}
         placement="right"
       >
-      { poperID !== -1 && jobCollections[poperID] &&
-        <Card sx={{ borderRadius: '8px' }}>
-          <Box style={{ padding: '16px' }}>
-              <Table size="small" aria-label="jobs" sx={{ borderRadius: '8px', padding: '16px'}}>
+        {poperID !== -1 && jobCollections[poperID] &&
+          <Card sx={{ borderRadius: '8px' }}>
+            <Box style={{ padding: '16px' }}>
+              <Table size="small" aria-label="jobs" sx={{ borderRadius: '8px', padding: '16px' }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>
@@ -381,8 +400,8 @@ export default function JobsSelector() {
                   ))}
                 </TableBody>
               </Table>
-          </Box>
-        </Card>
+            </Box>
+          </Card>
         }
       </Popper>
     </>
