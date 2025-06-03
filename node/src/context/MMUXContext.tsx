@@ -28,6 +28,7 @@ export interface MMUXContextType {
   setFetchedJobCollections: (jc: SelectedJobCollection[]) => void;
   selectedJobUids: string[];
   setSelectedJobUids: (selectedJobs: string[]) => void;
+  filterSelectedJobList: () => FunctionJob[];
   selectedQoI: string | undefined;
   setSelectedQoI: (response: string | undefined) => void;
   isSuMoGenerated: boolean;
@@ -87,10 +88,10 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setSelectedQoI: setSelectedQoI,
       runningJobCollection: runningJobCollection,
       setRunningJobCollection: setRunningJobCollection,
-      selectedJobUids: selectedJobUids,
-      setSelectedJobUids: setSelectedJobUids,
       fetchedJobCollections: fetchedJobCollections,
       setFetchedJobCollections: setFetchedJobCollections,
+      selectedJobUids: selectedJobUids,
+      setSelectedJobUids: setSelectedJobUids,
       filterSelectedJobList: filterSelectedJobList,
       isSuMoGenerated: isSuMoGenerated,
       setIsSuMoGenerated: setIsSuMoGenerated
@@ -107,6 +108,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
     runningJobCollection,
     selectedJobUids,
     fetchedJobCollections,
+    isSuMoGenerated
   ]);
   return (
     <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>

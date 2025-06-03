@@ -34,7 +34,7 @@ from mmux_python.utils.funs_data_processing import (
     process_input_file,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
-from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq#, evaluate_sumo_crossvalidation
+from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo_crossvalidation, evaluate_sumo_on_grid
 
 ### TypeScript expects camelCase, but Python API is getting snake_case. 
 # Convert before sending to frontend.
@@ -228,7 +228,7 @@ def get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
     return job_dict
 
 def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str) -> Path:
-    completed_jobs = [job for job in jobs if job["status"].lower() == "completed"]  # type: ignore
+    completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
     logger.info(f"N Completed jobs: {len(completed_jobs)}")
     def get_job_dict(job):
         d = {key: job["inputs"][key] for key in input_vars}
@@ -303,13 +303,14 @@ def flask_sumo_2d_surface():
         input_vars = [f"log_{var}" for var in input_vars]
         output_response = f"log_{output_response}"
 
-    results = evaluate_sumo_along_axes(
+    results = evaluate_sumo_on_grid(
         run_dir,
         PROCESSED_TRAINING_FILE,
         input_vars,
         output_response, # type: ignore
     )
     logger.info("Done!!")
+    print(results)
     return jsonify(results) # check if jsonify is needed
 
 @app.route("/flask/uq_propagation")

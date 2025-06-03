@@ -12,7 +12,7 @@ import { getFunctionJob } from "../utils/function_utils";
 
 
 function SuMoBuildingValidation() {
-  const { inputVars, outputVars, selectedFunction, selectedJobUids, isSuMoGenerated, setIsSuMoGenerated, selectedQoI, setSelectedQoI } = useMMUXContext()
+  const { outputVars, selectedFunction, selectedJobUids, isSuMoGenerated, setIsSuMoGenerated, selectedQoI, setSelectedQoI } = useMMUXContext()
 
   useEffect(() => {
     setSelectedQoI("");
@@ -27,14 +27,14 @@ function SuMoBuildingValidation() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: "10px" }}>
         <span>Quantity of Interest (QoI) to inspect: </span>
         <select
-          value={selectedQoI}
+          value={selectedQoI ?? ""}
           onChange={(e) => {
-            // TODO make this more visible & prominent
             setIsSuMoGenerated(false)
             setSelectedQoI(e.target.value)
-            console.log(selectedQoI)
+            console.log(e.target.value)
           }}
         >
+          <option value="">-- Select QoI --</option>
           {outputVars?.map((qoi) => (
             <option key={qoi} value={qoi}>
               {qoi}
@@ -63,7 +63,7 @@ function SuMoBuildingValidation() {
         <Button
           onClick={handleCreateSuMo}
           disabled={
-            loading || isSuMoGenerated || selectedJobUids.length === 0
+            loading || isSuMoGenerated || selectedJobUids.length === 0 || selectedQoI === ""
           }
         >
           {loading
@@ -133,7 +133,8 @@ function SuMoBuildingValidation() {
                 text="Add SuMo CrossValidation accuracy metrics"
                 enabled={context?.isSuMoGenerated}
               /> */}
-              <Curves1DPlots />
+
+              {/* TODO something broke <Curves1DPlots /> */}
               <Surface2DPlot />
               <IsoSurface3DPlot />
             </>
