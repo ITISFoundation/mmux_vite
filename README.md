@@ -6,12 +6,24 @@ It uses Vite (and React) for the front-end, and Python (via Flask) for the backe
 
 ## Development
 
-To add changes with hot reloading for the forntend and backend jus run the following command
+To setup your development environment, you need to fill it with the API access data from your oSPARC's account. Login on a deployment with your account and create a `New API Key` and use that data to fill out the generated `.env` file:
+
+```shell
+make .env
+```
+
+Make sure your images have been build (since they are used as a base for mounting the loca source folders)
+
+```shell
+make build
+```
+
+Start for development mode with
 ```shell
 make run-develop
 ```
 
-NOTE: you will be running in docker containers.
+NOTE: code will be running inside docker containers.
 
 ### Final validation step
 

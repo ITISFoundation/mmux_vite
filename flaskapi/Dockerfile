@@ -22,10 +22,9 @@ RUN git clone --single-branch \
 RUN uv pip install --system -r ./mmux_python/requirements.txt \
   && uv pip install --system --prerelease=allow osparc==0.8.3.post0.dev26 \
   && uv pip install --system \
+  # depnendcies usd by production wsgi server
   gunicorn==23.0.0 \
-  gevent
-# TODO: add python dependecy mnagement with fetch form other repo before update in makefile
-# TODO: pin gevent
+  gevent==25.5.1
 
 COPY . .
 
