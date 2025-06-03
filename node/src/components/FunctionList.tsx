@@ -9,7 +9,7 @@ import {
   ProjectFunction,
   PythonCodeFunction,
 } from "../osparc-api-ts-client/index.ts";
-import { listFunctions, getFunctionJobsFromFunctionUid } from "../utils/function_utils.ts";
+import { listFunctions, getFunctionJobCollections } from "../utils/function_utils.ts";
 import {
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,
@@ -111,22 +111,22 @@ export function FunctionList() {
     }
   };
 
-  const getFunctionEvaluations = (fun: Function) => {
+  const getNFunctionJobCollections = (fun: Function) => {
     console.log(fun);
-    const [jobCount, setJobCount] = useState<number | null>(null);
-    const fetchJobCount = async () => {
+    const [jobCollectionCount, setJobCollectionCount] = useState<number | null>(null);
+    const fetchJobCollectionCount = async () => {
       try {
-        const jobs = await getFunctionJobsFromFunctionUid(fun.uid);
-        setJobCount(jobs.length)
+        const jcs = await getFunctionJobCollections(fun.uid);
+        setJobCollectionCount(jcs.length)
       } catch (err) {
         console.log("Error fetching jobs for Function ", fun.uid)
       }
     };
-    fetchJobCount();
+    fetchJobCollectionCount();
 
     return (
       <span>
-        {jobCount === null ? "Loading..." : jobCount}
+        {jobCollectionCount === null ? "Loading..." : jobCollectionCount}
       </span>
     );
   }
@@ -203,10 +203,10 @@ export function FunctionList() {
         },
         {
           field: "n_evaluations",
-          headerName: "Existing Evaluations",
+          headerName: "# Sampling Campaigns",
           flex: 1,
-          minWidth: 200,
-          renderCell: (params) => getFunctionEvaluations(params.row),
+          minWidth: 50,
+          renderCell: (params) => getNFunctionJobCollections(params.row),
         },
         {
           field: "solverKey",
