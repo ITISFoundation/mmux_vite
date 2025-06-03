@@ -32,3 +32,21 @@ When done editing always validate the production build of the app with the below
 ```shell
 make run-prod-local
 ```
+
+## Updating the ospsarc package
+
+The backend relies on the `osparc` package to interact with the oSPARC's API server. If he API server specs change, you would most likley need to create a new release of this service.
+Instructions:
+
+Fork https://github.com/ITISFoundation/osparc-simcore-clients  and clone your fork locally
+
+```shell
+cd api
+make openapi-osparc-simore-master-branch
+git commit -am "updated specs form osparc-simcore master branch"
+```
+
+Push your changes and create a PR which needs to be merged.
+
+After the PR is merged, the CI will automatically publish a new version of this client which can be found here https://pypi.org/project/osparc/0.8.3.post0.dev27/#history
+Get the latest version and repalce it in `falskapi/Dockerfile`. At the time of writing this it was `osparc==0.8.3.post0.dev27`.
