@@ -42,30 +42,27 @@ const Curves1DPlots = () => {
     }
     // TODO run sumo here, to get data. Use similar workflow as I was doing before.
 
-    if (data === undefined || inputVars === undefined) {
-        return <span>Loading...</span>;
-    } else {
-        for (let i = 0; i < inputVars.length; i++) {
-            plotData.push({
-                x: data[inputVars[i]].x,
-                y: data[inputVars[i]].y_hat,
-                name: inputVars[i],
-                xaxis: `x${i + 1}`,
-                yaxis: `y`,
-            });
+    for (let i = 0; i < inputVars.length; i++) {
+        plotData.push({
+            x: data[inputVars[i]].x,
+            y: data[inputVars[i]].y_hat,
+            name: inputVars[i],
+            xaxis: `x${i + 1}`,
+            yaxis: `y`,
+        });
 
-            const w = 1 / inputVars.length
-            const padding = 0.2 // this means 20% of each figure size
-            const domain = [i * w + padding / 2 * w, (i + 1) * w - padding / 2 * w]
-            xAxes.push({
-                title: { text: inputVars[i] },
-                domain: domain,
-                // for some reason, different x-scales produce different plot sizes? 
-                anchor: 'y',
-                autorange: true,
-                nticks: 4,
-            });
-        }
+        const w = 1 / inputVars.length
+        const padding = 0.2 // this means 20% of each figure size
+        const domain = [i * w + padding / 2 * w, (i + 1) * w - padding / 2 * w]
+        xAxes.push({
+            title: { text: inputVars[i] },
+            domain: domain,
+            // for some reason, different x-scales produce different plot sizes? 
+            anchor: 'y',
+            autorange: true,
+            nticks: 4,
+        });
+
 
         const subplot_config = inputVars.map((_, i) => `x${i + 1}y`);
         return <Plot

@@ -7,9 +7,8 @@ import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 
 
 const Surface2DPlot = () => {
-  const { selectedFunction, inputVars, selectedQoI } = useMMUXContext();
-  console.log("InputVars to 3D surface (e.g. 2D plot): ", inputVars)
-  console.log("QoI  to 3D surface (e.g. 2D plot): ", selectedQoI)
+  const { selectedFunction, inputVars, selectedQoI, filterSelectedJobList } = useMMUXContext();
+  const jobs = filterSelectedJobList()
 
   if (
     !Array.isArray(inputVars) ||
@@ -24,11 +23,13 @@ const Surface2DPlot = () => {
   }
   const [key1, setKey1] = useState(inputVars[0]);
   const [key2, setKey2] = useState(inputVars[1]);
-  const [data, setData] = useState(undefined)
+  const [data, setData] = useState(undefined);
+  const [plotData, setPlotData] = useState<Partial<Plotly.PlotData>[] | undefined>(undefined);
 
   async function RunSuMo2DInterpolation(jobs: FunctionJob[], key1: string, key2: string) {
     // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...")
+    console.info("Jobs to build SuMo: ", jobs)
     fetch(
       PYTHON_DAKOTA_BACKEND + '/flask/sumo_2d_surface',
       {
@@ -50,18 +51,41 @@ const Surface2DPlot = () => {
       }).catch(error => console.debug('Error:', error));
   }
 
+  useEffect(() => {
+    console.log("Running SuMo again")
+    const run = async () => {
+      return await RunSuMo2DInterpolation(jobs, key1, key2)
+    };
+    run();
+    console.log(key1, key2)
+  }, [jobs, key1, key2]);
+
+  // Transform backend data to Plotly surface format
+  // Expecting backend returns: { x: number[], y: number[], z: number[][] }
+  // If not, adjust accordingly.
+
+  function reshapePlotData() {
+    console.log("Executing reshapePlotData")
+    if (data && selectedQoI) {
+      setPlotData(
+        [{
+          x: data[key1],
+          y: data[key2],
+          z: data[selectedQoI],
+          type: "surface",
+        }]
+      )
+      console.log("Registered plotData: ", plotData)
+    } else {
+      setPlotData([{}])
+      console.log("Empty plotData")
+    }
+  }
 
   useEffect(() => {
-    RunSuMo2DInterpolation(jobs, key1, key2)
-  }, [jobs, key1, key2]);
-  // TODO jobs will come from the fetched jobs that Alejandro pushed into the context
+    reshapePlotData();
+  }, [data]);
 
-  const plotData: Partial<Plotly.PlotData>[] = [
-    {
-      z: data,
-      type: "surface",
-    },
-  ];
 
   const layout = {
     title: {
@@ -78,50 +102,48 @@ const Surface2DPlot = () => {
       t: 90,
     },
   };
-  if (data === undefined) {
-    return <span>Loading...</span>;
-  } else {
-    return (
-      <Box display={"flex"} flexDirection={"column"} gap={2} width={"100%"}>
-        <Box display={"flex"} flexDirection={"row"} gap={2} width={"100%"}>
-          <Select
-            labelId="select-key1"
-            id="select-key1"
-            defaultValue={""}
-            value={key1}
-            onChange={(e) => setKey1(e.target.value)}
-          >
-            {inputVars.map((key) => {
-              return (
-                <MenuItem key={key} value={key}>
-                  {key}
-                </MenuItem>
-              );
-            })}
-          </Select>
-          <Select
-            labelId="select-key2"
-            id="select-key2"
-            defaultValue={""}
-            value={key2}
-            onChange={(e) => setKey2(e.target.value)}
-          >
-            {inputVars.map((key) => {
-              return (
-                <MenuItem key={key} value={key}>
-                  {key}
-                </MenuItem>
-              );
-            })}
-          </Select>
-        </Box>
-        <Box width={"100%"}>
-          <Plot data={plotData} layout={layout} />
-        </Box>
+
+  return (
+    <Box display={"flex"} flexDirection={"column"} gap={2} width={"100%"}>
+      <Box display={"flex"} flexDirection={"row"} gap={2} width={"100%"}>
+        <Select
+          labelId="select-key1"
+          id="select-key1"
+          defaultValue={""}
+          value={key1}
+          onChange={(e) => setKey1(e.target.value)}
+        >
+          {inputVars.map((key) => {
+            return (
+              <MenuItem key={key} value={key}>
+                {key}
+              </MenuItem>
+            );
+          })}
+        </Select>
+        <Select
+          labelId="select-key2"
+          id="select-key2"
+          defaultValue={""}
+          value={key2}
+          onChange={(e) => setKey2(e.target.value)}
+        >
+          {inputVars.map((key) => {
+            return (
+              <MenuItem key={key} value={key}>
+                {key}
+              </MenuItem>
+            );
+          })}
+        </Select>
       </Box>
-    );
-  };
-}
+      <Box width={"100%"}>
+        <Plot data={plotData} layout={layout} />
+      </Box>
+    </Box>
+  );
+};
+// }
 
 export default Surface2DPlot;
 
