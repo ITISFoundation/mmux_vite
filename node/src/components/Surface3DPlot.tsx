@@ -1,18 +1,20 @@
 import { Box, MenuItem, Select } from "@mui/material";
-import { useState, useContext, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Plot from "react-plotly.js";
-import MMUXContext from "../views/MMUXContext";
+import { useMMUXContext } from "../context/MMUXContext";
+import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
+import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 
 
 const Surface2DPlot = () => {
-  const context = useContext(MMUXContext);
-  console.log("InputVars to 3D surface (e.g. 2D plot): ", context?.inputVars)
-  console.log("QoI  to 3D surface (e.g. 2D plot): ", context?.selectedQoI)
+  const { selectedFunction, inputVars, selectedQoI } = useMMUXContext();
+  console.log("InputVars to 3D surface (e.g. 2D plot): ", inputVars)
+  console.log("QoI  to 3D surface (e.g. 2D plot): ", selectedQoI)
 
   if (
-    !Array.isArray(context?.inputVars) ||
-    context?.inputVars.length < 2 ||
-    !context?.inputVars.every((v) => typeof v === "string")
+    !Array.isArray(inputVars) ||
+    inputVars.length < 2 ||
+    !inputVars.every((v) => typeof v === "string")
   ) {
     return (
       <Box color="error.main" p={2}>
@@ -20,41 +22,50 @@ const Surface2DPlot = () => {
       </Box>
     );
   }
-  const [key1, setKey1] = useState(context?.inputVars[0]);
-  const [key2, setKey2] = useState(context?.inputVars[1]);
+  const [key1, setKey1] = useState(inputVars[0]);
+  const [key2, setKey2] = useState(inputVars[1]);
+  const [data, setData] = useState(undefined)
 
-  async function RunSuMo2DInterpolation() {
-
+  async function RunSuMo2DInterpolation(jobs: FunctionJob[], key1: string, key2: string) {
+    // This should create the "data" state variable to be plotted
+    console.info("Evaluating SuMo for 2D surface...")
+    fetch(
+      PYTHON_DAKOTA_BACKEND + '/flask/sumo_2d_surface',
+      {
+        method: "POST",
+        body: JSON.stringify(
+          {
+            key1: key1,
+            key2: key2,
+            output: selectedQoI,
+            FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
+            log: false,
+          }
+        ),
+      }).then(function (response) {
+        return response.json()
+      }).then(function (d) {
+        console.log("2D retrieved data: ", d)
+        setData(d)
+      }).catch(error => console.debug('Error:', error));
   }
 
 
   useEffect(() => {
-    await RunSuMo2DInterpolation(...)
-
+    RunSuMo2DInterpolation(jobs, key1, key2)
   }, [jobs, key1, key2]);
+  // TODO jobs will come from the fetched jobs that Alejandro pushed into the context
 
-
-  function unpack(rows: Record<string, number>[], key: string) {
-    return rows.map(function (row) {
-      return row[key];
-    });
-  }
-
-  const z_data = [];
-  for (let i = 0; i < 24; i++) {
-    z_data.push(unpack(mockdata, i.toString()));
-  }
-
-  const data: Partial<Plotly.PlotData>[] = [
+  const plotData: Partial<Plotly.PlotData>[] = [
     {
-      z: z_data,
+      z: data,
       type: "surface",
     },
   ];
 
   const layout = {
     title: {
-      text: "Mt Bruno Elevation",
+      text: selectedFunction?.title + " Surface Plot",
     },
     autosize: false,
     willReadFrequently: true,
@@ -67,48 +78,50 @@ const Surface2DPlot = () => {
       t: 90,
     },
   };
-
-  return (
-    <Box display={"flex"} flexDirection={"column"} gap={2} width={"100%"}>
-      <Box display={"flex"} flexDirection={"row"} gap={2} width={"100%"}>
-        <Select
-          labelId="select-key1"
-          id="select-key1"
-          defaultValue={"x1"}
-          value={key1}
-          onChange={(e) => setKey1(e.target.value)}
-        >
-          {Object.keys(mockdata2).map((key) => {
-            if (key.includes("x"))
+  if (data === undefined) {
+    return <span>Loading...</span>;
+  } else {
+    return (
+      <Box display={"flex"} flexDirection={"column"} gap={2} width={"100%"}>
+        <Box display={"flex"} flexDirection={"row"} gap={2} width={"100%"}>
+          <Select
+            labelId="select-key1"
+            id="select-key1"
+            defaultValue={""}
+            value={key1}
+            onChange={(e) => setKey1(e.target.value)}
+          >
+            {inputVars.map((key) => {
               return (
                 <MenuItem key={key} value={key}>
                   {key}
                 </MenuItem>
               );
-          })}
-        </Select>
-        <Select
-          labelId="select-key2"
-          id="select-key2"
-          defaultValue={"x2"}
-          value={key2}
-          onChange={(e) => setKey2(e.target.value)}
-        >
-          {Object.keys(mockdata2).map((key) => {
-            if (key.includes("x"))
+            })}
+          </Select>
+          <Select
+            labelId="select-key2"
+            id="select-key2"
+            defaultValue={""}
+            value={key2}
+            onChange={(e) => setKey2(e.target.value)}
+          >
+            {inputVars.map((key) => {
               return (
                 <MenuItem key={key} value={key}>
                   {key}
                 </MenuItem>
               );
-          })}
-        </Select>
+            })}
+          </Select>
+        </Box>
+        <Box width={"100%"}>
+          <Plot data={plotData} layout={layout} />
+        </Box>
       </Box>
-      <Box width={"100%"}>
-        <Plot data={data} layout={layout} />
-      </Box>
-    </Box>
-  );
-};
+    );
+  };
+}
 
 export default Surface2DPlot;
+

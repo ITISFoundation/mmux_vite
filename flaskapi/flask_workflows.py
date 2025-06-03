@@ -142,15 +142,15 @@ def get_last_N_items(api_call: Callable, N: int, **kwargs):
 def flask_list_functions():
     logger.info("Starting flask function: flask_list_functions")
     logger.info("Cwd: " + str(Path.cwd()))
-    # functions = get_all_items(functions_api_instance.list_functions)
+    functions = get_all_items(functions_api_instance.list_functions)
     # functions = get_first_N_items(functions_api_instance.list_functions, N=5)
-    functions = get_last_N_items(functions_api_instance.list_functions, N=50)
+    # functions = get_last_N_items(functions_api_instance.list_functions, N=50)
     functions = functions[::-1] # put last-created first? FIXME still need to expose "created_at" in the response
     logger.info(f"N Functions: {len(functions)}")
 
-    ## TODO temporal - filter out those without input & output schema
-    functions = [f for f in functions if len(f["inputSchema"]["schemaContent"]) > 0 and len(f["outputSchema"]["schemaContent"]) > 0]
-    logger.info(f"N Functions after filtering: {len(functions)}")
+    ## optional - filter out those without input & output schema
+    # functions = [f for f in functions if len(f["inputSchema"]["schemaContent"]) > 0 and len(f["outputSchema"]["schemaContent"]) > 0]
+    # logger.info(f"N Functions after filtering: {len(functions)}")
 
     return jsonify(functions)
 
@@ -277,6 +277,40 @@ def flask_evaluate_sumo_along_axes():
     logger.info("Done!!")
     return jsonify(results) # check if jsonify is needed
 
+@app.route("/flask/sumo_2d_surface", methods=["POST"])
+def flask_sumo_2d_surface():
+    os.chdir(Path(__file__).parent)
+    logger.info("Starting flask function: flask_sumo_2d_surface")
+    logger.info("Cwd: " + str(Path.cwd()))
+
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    output_response = request_data["output"]
+    input_var1: str = request_data["key1"]
+    input_var2: str = request_data["key2"]
+    input_vars = [input_var1, input_var2]
+    make_log: bool = request_data.get("log", False)
+    jobs: List[FunctionJob] = request_data["FunctionJobs"]
+    TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
+    run_dir = TRAINING_FILE.parent
+
+    PROCESSED_TRAINING_FILE = process_input_file(
+        TRAINING_FILE,
+        make_log=make_log,
+        columns_to_keep=input_vars + [output_response], # type: ignore
+    )
+    if make_log:  # FIXME for now log applies to all inputs & the output
+        input_vars = [f"log_{var}" for var in input_vars]
+        output_response = f"log_{output_response}"
+
+    results = evaluate_sumo_along_axes(
+        run_dir,
+        PROCESSED_TRAINING_FILE,
+        input_vars,
+        output_response, # type: ignore
+    )
+    logger.info("Done!!")
+    return jsonify(results) # check if jsonify is needed
 
 @app.route("/flask/uq_propagation")
 def flask_uq_propagation() -> Dict[str, str]:

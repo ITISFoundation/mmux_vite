@@ -103,7 +103,7 @@ function SuMoBuildingValidation() {
 
           {/* Refactor from here. Have the cross-validation metrics always displayed,
           and the + button to add 1D / 2D / 3D plots always right below it. */}
-          {context?.isSuMoGenerated && (
+          {isSuMoGenerated && (
             <>
               {/* TODO add manual CV */}
               {/* <PlusButton
@@ -133,7 +133,7 @@ function SuMoBuildingValidation() {
                 text="Add SuMo CrossValidation accuracy metrics"
                 enabled={context?.isSuMoGenerated}
               /> */}
-              <Curves1DPlots jobs={jobs} />
+              <Curves1DPlots />
               <Surface2DPlot />
               <IsoSurface3DPlot />
             </>
