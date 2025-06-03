@@ -24,7 +24,7 @@ RUN git clone --single-branch \
 
 # Install Python packages directly with system Python
 RUN uv pip install --system -r ./mmux_python/requirements.txt \
-  && uv pip install --system --prerelease=allow osparc==0.8.3.post0.dev26 \
+  && uv pip install --system --prerelease=allow osparc==0.8.3.post0.dev27 \
   && uv pip install --system \
   # depnendcies usd by production wsgi server
   gunicorn==23.0.0 \
