@@ -1,6 +1,9 @@
 import { Function, FunctionJob, FunctionJobCollection} from '../osparc-api-ts-client';
 import { PYTHON_DAKOTA_BACKEND } from './api_objects';
 
+export function delay(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
+}
 
 export function createInputOutputSchema(vars: string[]) {
     return {
@@ -11,6 +14,13 @@ export function createInputOutputSchema(vars: string[]) {
         }, {} as Record<string, any>),
         "required": vars,
     }
+}
+
+export async function getHealth(): Promise<number> {
+    const result = await fetch(
+        PYTHON_DAKOTA_BACKEND + '/flask/health',
+    )
+    return result.status
 }
 
 export async function listFunctions(): Promise<Function[]> {
