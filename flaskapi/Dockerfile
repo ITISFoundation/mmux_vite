@@ -6,7 +6,11 @@ RUN apt update && apt install -y \
 
 EXPOSE 5000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+HEALTHCHECK \
+  --interval=30s \
+  --timeout=5s \
+  --start-period=20s \
+  --retries=3 \
   CMD curl -f http://localhost:5000/flask/health || exit 1
 
 WORKDIR /app

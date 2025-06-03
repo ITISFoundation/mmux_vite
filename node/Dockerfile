@@ -17,7 +17,11 @@ RUN apk add --no-cache curl thttpd
 EXPOSE 8080
 
 # Add healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+HEALTHCHECK \
+  --interval=30s \
+  --timeout=5s \
+  --start-period=20s \
+  --retries=3 \
   CMD curl -f http://localhost:8080/ || exit 1
 
 CMD ["thttpd", "-D", "-h", "0.0.0.0", "-p", "8080", "-d", "/app", "-u", "nobody", "-l", "-"]
