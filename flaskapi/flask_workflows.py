@@ -386,7 +386,7 @@ def flask_test_job():
     sample = {config[i]["variable"]: config[i]["value"] for i in range(len(config))} 
 
     ## DEBUGGING
-    _logger.debug("Input to validate_function_inputs:" , sample)
+    _logger.debug("Input to validate_function_inputs: %s" , sample)
     val = functions_api_instance.validate_function_inputs(function_uid, sample)  # this is working - changing the name of the variable does return a validation error
     _logger.debug(f"Validated function inputs for function {function_uid} with sample {sample}: {val}")
     job = functions_api_instance.run_function(function_uid, sample) # type: ignore
