@@ -129,7 +129,7 @@ export function FunctionList() {
       <span>
         {jobCollectionCount === null || jobCount === null
           ? "Loading..."
-          : `${jobCollectionCount} / ${jobCount}`}
+          : `Campaigns: ${jobCollectionCount} (${jobCount} total evaluations)`}
       </span>
     );
   }
@@ -206,10 +206,11 @@ export function FunctionList() {
         },
         {
           field: "n_evaluations",
-          headerName: "# Campaigns / Samples",
+          headerName: "# Campaigns / Evaluations",
           flex: 1,
           minWidth: 250,
           renderCell: (params) => getNFunctionJobCollections(params.row),
+          // FIXME for some reason, this gets called many times
         },
         {
           field: "solverKey",
