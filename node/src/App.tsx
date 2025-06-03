@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { styled, ThemeProvider } from "@mui/material/styles";
 import {
-  Box,
   Card,
   CardHeader,
   CircularProgress,

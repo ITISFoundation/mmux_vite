@@ -7,7 +7,10 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import { useMMUXContext } from "../context/MMUXContext";
 import { FunctionJob } from "../osparc-api-ts-client";
-import { getFunctionJobCollections, getFunctionJob } from "../utils/function_utils";
+import {
+  getFunctionJobCollections,
+  getFunctionJob,
+} from "../utils/function_utils";
 import {
   Box,
   Card,
@@ -15,6 +18,8 @@ import {
   IconButton,
   LinearProgress,
   Popper,
+  TableContainer,
+  TablePagination,
   Typography,
 } from "@mui/material";
 import { Refresh } from "@mui/icons-material";
@@ -22,18 +27,31 @@ import { DataGrid } from "@mui/x-data-grid";
 import JobRow from "./JobRow";
 
 export default function JobsSelector() {
-  const { selectedFunction, setSelectedJobUids, fetchedJobCollections, setFetchedJobCollections } = useMMUXContext();
-  const [jobCollections, setJobCollections] = useState<SelectedJobCollection[]>([]);
-  const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
+  const {
+    selectedFunction,
+    setSelectedJobUids,
+    fetchedJobCollections,
+    setFetchedJobCollections,
+  } = useMMUXContext();
+  const [jobCollections, setJobCollections] = useState<SelectedJobCollection[]>(
+    []
+  );
+  const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(
+    null
+  );
   const [poperID, setPopperID] = useState<number>(-1);
   const [loading, setLoading] = useState<boolean>(true);
   const [progress, setProgress] = useState<number>(0);
   const [jobProgress, setJobProgress] = useState<number>(0);
-  const jobCFetched = useRef(0)
-  const jobsFetched = useRef(0)
+  const [rowsPerPage, setRowsPerPage] = useState<number>(20);
+  const [page, setPage] = React.useState(0);
+  const jobsFetched = useRef(0);
+  const colsFetched = useRef(0);
 
   const updateJobContext = (jobs: SelectedJobCollection[]) => {
-    const newList = jobs.map((j) =>j.subJobs.filter((j) => j.selected).map((j)=>j.job.uid)).flat();
+    const newList = jobs
+      .map((j) => j.subJobs.filter((j) => j.selected).map((j) => j.job.uid))
+      .flat();
     setSelectedJobUids(newList);
   };
 
@@ -43,7 +61,7 @@ export default function JobsSelector() {
         const auxJob = jc;
         if (jc.jobCollection.uid === uid) {
           auxJob.selected = selected;
-          auxJob.subJobs = auxJob.subJobs.map(j => ({
+          auxJob.subJobs = auxJob.subJobs.map((j) => ({
             selected: selected,
             job: j.job,
           }));
@@ -57,16 +75,21 @@ export default function JobsSelector() {
   };
 
   const onSelectJob = (index: number, selected: boolean, subJob: string) => {
-    console.log("Selecting subJob: ", subJob, " at index: ", index, " with selected: ", selected);
+    console.log(
+      "Selecting subJob: ",
+      subJob,
+      " at index: ",
+      index,
+      " with selected: ",
+      selected
+    );
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(
       (jc, idx) => {
         const auxJob = jc;
         if (idx === index) {
-          const jobId = jc.subJobs.findIndex(j => j.job.uid === subJob);
+          const jobId = jc.subJobs.findIndex((j) => j.job.uid === subJob);
           auxJob.subJobs[jobId].selected = selected;
-          const subJobState = auxJob.subJobs.map(
-            (j) => j.selected
-          );
+          const subJobState = auxJob.subJobs.map((j) => j.selected);
           if (
             subJobState.every((j) => j === true) ||
             subJobState.every((j) => j === false)
@@ -84,12 +107,10 @@ export default function JobsSelector() {
 
   const onSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
     const checked = event.target.checked;
-    const newSubJobs = jobCollections[poperID].subJobs.map(
-      (subJob) => ({
-        selected: checked,
-        job: subJob.job,
-      }
-    ))
+    const newSubJobs = jobCollections[poperID].subJobs.map((subJob) => ({
+      selected: checked,
+      job: subJob.job,
+    }));
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(
       (jc, idx) => {
         const auxJob = jc;
@@ -106,7 +127,7 @@ export default function JobsSelector() {
 
   async function updateJobCollections(functionUid: string) {
     console.log("Fetching jobCollections for function: ", functionUid);
-    if(fetchedJobCollections.length > 0) {
+    if (fetchedJobCollections.length > 0) {
       console.log("Job collections already fetched, skipping fetch.");
       setJobCollections(fetchedJobCollections);
       setLoading(false);
@@ -115,34 +136,43 @@ export default function JobsSelector() {
     const jobsC = (await getFunctionJobCollections(
       functionUid as string
     )) as FunctionJobCollection[];
-    console.log("Fetched jobCollections: ", jobsC);
+    const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
+    colsFetched.current = 0;
+    jobsFetched.current = 0;
+    console.log("Fetched jobCollections: ", jobsC, totalSubs);
 
-    const newJobs: SelectedJobCollection[] = await Promise.all(jobsC.map(async (jc) => {
-      const subJobs = await Promise.all(jc.jobIds.map(async (id) => {
-        const job = await getFunctionJob(id) as FunctionJob;
-        jobsFetched.current += 1;
-        const upperBound = 30 + ((jobCFetched.current +1)/jobsC.length * 70)
-        const jobsProg = (upperBound - progress) * (jobsFetched.current / jc.jobIds.length);
-        console.log("Job fetched: ", jobsProg, jobsFetched.current, jc.jobIds.length);
-        setJobProgress((jobsProg/100) * progress);
-        return ({
-        selected: false,
-        job
-      })}));
-      console.log("Fetched subJobs for jobCollection: ", progress, jobProgress, jobsFetched.current);
-      jobCFetched.current += 1;
-      jobsFetched.current = 0;
-      setProgress(30 + (jobCFetched.current/jobsC.length * 70));
-      return ({
-        jobCollection: jc,
-        selected: false,
-        subJobs: subJobs,
-      });
-    }));
+    const newJobs: SelectedJobCollection[] = await Promise.all(
+      jobsC.map(async (jc) => {
+        const subJobs = await Promise.all(
+          jc.jobIds.map(async (id) => {
+            const job = (await getFunctionJob(id)) as FunctionJob;
+            jobsFetched.current += 1;
+            const jobsProg = (jobsFetched.current / totalSubs) * 100;
+            setJobProgress(jobsProg);
+            return {
+              selected: false,
+              job,
+            };
+          })
+        );
+        console.log(
+          "Fetched subJobs for jobCollection: ",
+          progress,
+          jobProgress,
+          jobsFetched.current
+        );
+        colsFetched.current += jc.jobIds.length;
+        setProgress((colsFetched.current / totalSubs) * 100);
+        return {
+          jobCollection: jc,
+          selected: false,
+          subJobs: subJobs,
+        };
+      })
+    );
 
     updateJobContext(newJobs);
     setJobCollections(newJobs);
-    jobCFetched.current = 0;
     setProgress(100);
     setFetchedJobCollections(newJobs);
   }
@@ -162,6 +192,21 @@ export default function JobsSelector() {
     }
   };
 
+  const visibleSubJobs = React.useMemo(() => {
+    if (
+      poperID > -1 &&
+      jobCollections[poperID] &&
+      jobCollections[poperID].subJobs
+    ) {
+      return [...jobCollections[poperID].jobCollection.jobIds].slice(
+        page * rowsPerPage,
+        page * rowsPerPage + rowsPerPage
+      );
+    } else {
+      return [];
+    }
+  }, [jobCollections, page, poperID, rowsPerPage]);
+
   function getRowId(value: SelectedJobCollection) {
     return value.jobCollection.uid;
   }
@@ -178,18 +223,41 @@ export default function JobsSelector() {
         console.log("Updated JobCollections");
       })();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFunction]);
 
-  if(loading) {
-    console.log("Loading job collections...", jobCFetched.current, jobsFetched.current);
+  if (loading) {
+    console.log(
+      "Loading job collections...",
+      colsFetched.current,
+      jobsFetched.current
+    );
     return (
       <>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', width: '100%' }}>
-          <LinearProgress variant="buffer" value={progress} valueBuffer={jobProgress} sx={{height: '6px', width: '40%'}} />
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100%",
+            width: "100%",
+          }}
+        >
+          <LinearProgress
+            variant="buffer"
+            value={progress}
+            valueBuffer={jobProgress}
+            sx={{ height: "6px", width: "40%" }}
+          />
         </Box>
-        <Typography variant="body1" fontFamily={'inherit'} fontWeight={100} textAlign={'center'} mt={0.5}>
-          <span>{progress}%</span>
+        <Typography
+          variant="body1"
+          fontFamily={"inherit"}
+          fontWeight={100}
+          textAlign={"center"}
+          mt={0.5}
+        >
+          <span>{Math.round(progress)}%</span>
         </Typography>
       </>
     );
@@ -214,7 +282,9 @@ export default function JobsSelector() {
                   color: theme.palette.primary.contrastText,
                 })}
                 onClick={async () => {
-                  await updateJobCollections(selectedFunction?.uid ? selectedFunction.uid : "");
+                  await updateJobCollections(
+                    selectedFunction?.uid ? selectedFunction.uid : ""
+                  );
                 }}
               >
                 <Refresh />
@@ -230,11 +300,12 @@ export default function JobsSelector() {
                 }}
                 sx={(theme) => ({ color: theme.palette.primary.contrastText })}
               >
-                {poperID > -1 && jobCollections[poperID].jobCollection.uid ===
-                params.row.jobCollection.uid ? (
-                  <KeyboardArrowUp />
+                {poperID > -1 &&
+                jobCollections[poperID].jobCollection.uid ===
+                  params.row.jobCollection.uid ? (
+                  <KeyboardArrowDown style={{ transform: "rotate(90deg)" }} />
                 ) : (
-                  <KeyboardArrowDown />
+                  <KeyboardArrowUp style={{ transform: "rotate(90deg)" }} />
                 )}
               </IconButton>
             ),
@@ -345,45 +416,60 @@ export default function JobsSelector() {
         disableColumnSelector
         disableRowSelectionOnClick
       ></DataGrid>
-      <Popper
-        open={poperID !== -1}
-        anchorEl={anchorEl}
-        placement="right"
-      >
-      { poperID !== -1 && jobCollections[poperID] &&
-        <Card sx={{ borderRadius: '8px' }}>
-          <Box style={{ padding: '16px' }}>
-              <Table size="small" aria-label="jobs" sx={{ borderRadius: '8px', padding: '16px'}}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>
-                      <Checkbox
-                        checked={jobCollections[poperID].subJobs.every(j => j.selected)}
-                        onChange={onSelectAllClick}
+      <Popper open={poperID !== -1} anchorEl={anchorEl} placement="right">
+        {poperID !== -1 && jobCollections[poperID] && (
+          <Card sx={{ borderRadius: "8px" }}>
+            <Box style={{ padding: "16px" }}>
+              <TableContainer>
+                <Table
+                  size="small"
+                  aria-label="jobs"
+                  sx={{ borderRadius: "8px", padding: "16px" }}
+                >
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>
+                        <Checkbox
+                          checked={jobCollections[poperID].subJobs.every(
+                            (j) => j.selected
+                          )}
+                          onChange={onSelectAllClick}
+                        />
+                      </TableCell>
+                      <TableCell>Job ID</TableCell>
+                      <TableCell>Inputs</TableCell>
+                      <TableCell>Outputs</TableCell>
+                      <TableCell align="right">Status</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {visibleSubJobs?.map((jobUid: string) => (
+                      <JobRow
+                        key={jobUid}
+                        jobUid={jobUid}
+                        jobList={jobCollections[poperID].subJobs}
+                        setSelected={(selected: boolean, subJob: string) =>
+                          onSelectJob(poperID, selected, subJob)
+                        }
                       />
-                    </TableCell>
-                    <TableCell>Job ID</TableCell>
-                    <TableCell>Inputs</TableCell>
-                    <TableCell>Outputs</TableCell>
-                    <TableCell align="right">Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {jobCollections[poperID].jobCollection.jobIds?.map((jobUid: string) => (
-                    <JobRow
-                      key={jobUid}
-                      jobUid={jobUid}
-                      jobList={jobCollections[poperID].subJobs}
-                      setSelected={(selected: boolean, subJob: string) =>
-                        onSelectJob(poperID, selected, subJob)
-                      }
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-          </Box>
-        </Card>
-        }
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              <TablePagination
+                rowsPerPageOptions={[10, 20, 30]}
+                component="div"
+                count={jobCollections[poperID].jobCollection.jobIds.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={(_e, newPage) => setPage(newPage)}
+                onRowsPerPageChange={(e) =>
+                  setRowsPerPage(parseInt(e.target.value, 10))
+                }
+              />
+            </Box>
+          </Card>
+        )}
       </Popper>
     </>
   );
