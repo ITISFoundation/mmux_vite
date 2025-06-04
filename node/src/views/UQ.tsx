@@ -29,11 +29,11 @@ export default function UQ() {
 
     // Extract means and stds from distributions
     const means = Object.keys(distribution).reduce((acc, key) => {
-      acc[key] = distribution[key].mean;
+      acc[key] = distribution[key].mean ? distribution[key].mean : NaN;
       return acc;
     }, {} as Record<string, number>);
     const stds = Object.keys(distribution).reduce((acc, key) => {
-      acc[key] = distribution[key].std;
+      acc[key] = distribution[key].std ? distribution[key].std : NaN;
       return acc;
     }, {} as Record<string, number>);
 

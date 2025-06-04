@@ -3,7 +3,18 @@ import { useMMUXContext } from '../context/MMUXContext';
 import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import Plot from 'react-plotly.js';
 import { Box, Typography } from '@mui/material';
+import { PlotData } from 'plotly.js';
+import { FunctionJob } from '../osparc-api-ts-client';
 
+type cvMetricsType = {
+    mean_y: number;
+    std_y: number;
+    mean_error: number;
+    std_error: number;
+    mae: number;
+    rmse: number;
+    std_hat: number[] | number;
+  }
 
 const SuMoValidation = () => {
   // This component will be perform the following tasks:
@@ -16,12 +27,12 @@ const SuMoValidation = () => {
   //    - Mean of y-y_hat
   //    - Std of y-y_hat
   const { selectedFunction, inputVars, selectedQoI, filterSelectedJobList } = useMMUXContext();
-  const [cvMetrics, setCvMetrics] = useState<any>(undefined);
-  const [plotData, setPlotData] = useState<any>(undefined);
+  const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
+  const [plotData, setPlotData] = useState<PlotData[]>();
 
   console.log("Performing SuMo Validation for function: ", selectedFunction, " and QoI: ", selectedQoI);
 
-  const RunSuMoValidation = async (jobs: any[]) => {
+  const RunSuMoValidation = async (jobs: FunctionJob[]) => {
     console.info("Evaluating SuMo Validation for jobs: ", jobs);
     fetch(
       PYTHON_DAKOTA_BACKEND + '/flask/sumo_cross_validation',
@@ -43,7 +54,7 @@ const SuMoValidation = () => {
       }).catch(error => console.debug('Error:', error));
   }
 
-  const createDataAndMetrics = (data: any) => {
+  const createDataAndMetrics = (data: {[key: string]: number[]}) => {
     if (data && selectedQoI) {
       const y = data[selectedQoI];
       const mean_y = y.reduce((a: number, b: number) => a + b, 0) / y.length;
@@ -98,7 +109,6 @@ const SuMoValidation = () => {
         "std_error": std_error,
         "mae": mae,
         "rmse": rmse,
-        "std_hat": std_hat,
       };
       setCvMetrics(cvMetricsData);
       console.log("Registered cvMetrics: ", cvMetricsData);
@@ -123,7 +133,6 @@ const SuMoValidation = () => {
       xaxis: { title: { text: selectedQoI ? selectedQoI : "Quantity of Interest" } },
       yaxis: { title: { text: "Count" } },
     },
-    barmode: "overlay",
   }
 
   return <>
@@ -133,7 +142,7 @@ const SuMoValidation = () => {
           <div style={{ width: '100%', maxWidth: 400 }}>
           <Plot
             data={plotData}
-            layout={layout}
+            layout={{...layout, barmode: 'overlay'}}
             style={{ width: '100%', height: 400 }}
             config={{ responsive: true }}
           />
