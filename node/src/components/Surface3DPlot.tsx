@@ -5,7 +5,6 @@ import { useMMUXContext } from "../context/MMUXContext";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import { Data } from "plotly.js";
-import { text } from "stream/consumers";
 
 
 const Surface2DPlot = () => {
@@ -19,13 +18,13 @@ const Surface2DPlot = () => {
     console.info("Evaluating SuMo for 2D surface...")
     console.info("Jobs to build SuMo: ", jobs)
     fetch(
-      PYTHON_DAKOTA_BACKEND + '/flask/sumo_2d_surface',
+      PYTHON_DAKOTA_BACKEND + '/flask/sumo_grid_evaluation',
       {
         method: "POST",
         body: JSON.stringify(
           {
-            key1: key1,
-            key2: key2,
+            gridVars: [key1, key2],
+            inputVars: inputVars,
             output: selectedQoI,
             FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
             log: false,
@@ -39,19 +38,21 @@ const Surface2DPlot = () => {
       }).catch(error => console.debug('Error:', error));
   }
 
-  // Transform backend data to Plotly surface format
-  // Expecting backend returns: { x: number[], y: number[], z: number[][] }
-  // If not, adjust accordingly.
-
   const reshapePlotData = (data: any) => {
     if (data && selectedQoI) {
+      const uniqueX: Array<number> = Array.from(new Set(data[key1]));
+      const uniqueY: Array<number> = Array.from(new Set(data[key2]));
+      const zFlat: Array<Array<number>> = data[selectedQoI];
+      const z = [];
+      for (let j = 0; j < uniqueY.length; j++) {
+        z.push(zFlat.slice(j * uniqueX.length, (j + 1) * uniqueX.length));
+      }
       console.log("Executing reshapePlotData", data, selectedQoI, data[key1], data[key2], data[selectedQoI])
       const newData: Data[] = [{
-        x: [0,0,0,0,2,2,2,2],
-        y: [0,2,0,2,0,2,0,2],
-        z: [2,2,0,0,2,2,0,0],
-        value: [1,2,3,4,5,6,7,8],
-          type: "isosurface",
+        x: uniqueX,
+        y: uniqueY,
+        z: z,
+        type: "surface",
           colorscale: "Viridis",
           showscale: true,
         }];
@@ -77,9 +78,9 @@ const Surface2DPlot = () => {
       text: selectedFunction?.title + " Surface Plot",
     },
     scene: {
-      xaxis: { title: {text: key1}, tickangle: -45, range: [-10, 10] },
-      yaxis: { title: {text: key2}, tickangle: -45, range: [-10, 10] },
-      zaxis: { title: {text: selectedQoI}, tickangle: -45, range: [-10, 10] },
+      xaxis: { title: { text: key1 } },
+      yaxis: { title: { text: key2 } },
+      zaxis: { title: { text: selectedQoI } },
     },
     autosize: true,
     willReadFrequently: true,
