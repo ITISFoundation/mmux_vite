@@ -130,55 +130,53 @@ export default function JobsSelector() {
   async function updateJobCollections(functionUid: string) {
     console.log("Fetching jobCollections for function: ", functionUid);
     if (fetchedJobCollections.length > 0) {
-      if (fetchedJobCollections.length > 0) {
-        console.log("Job collections already fetched, skipping fetch.");
-        setJobCollections(fetchedJobCollections);
-        setLoading(false);
-        return;
-      }
-      const jobsC = (await getFunctionJobCollections(
-        functionUid as string
-      )) as FunctionJobCollection[];
-      const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
-      colsFetched.current = 0;
-      jobsFetched.current = 0;
-      console.log("Fetched jobCollections: ", jobsC, totalSubs);
-
-      const newJobs: SelectedJobCollection[] = await Promise.all(
-        jobsC.map(async (jc) => {
-          const subJobs = await Promise.all(
-            jc.jobIds.map(async (id) => {
-              const job = (await getFunctionJob(id)) as FunctionJob;
-              jobsFetched.current += 1;
-              const jobsProg = (jobsFetched.current / totalSubs) * 100;
-              setJobProgress(jobsProg);
-              return {
-                selected: false,
-                job,
-              };
-            })
-          );
-          console.log(
-            "Fetched subJobs for jobCollection: ",
-            progress,
-            jobProgress,
-            jobsFetched.current
-          );
-          colsFetched.current += jc.jobIds.length;
-          setProgress((colsFetched.current / totalSubs) * 100);
-          return {
-            jobCollection: jc,
-            selected: false,
-            subJobs: subJobs,
-          };
-        })
-      );
-
-      updateJobContext(newJobs);
-      setJobCollections(newJobs);
-      setProgress(100);
-      setFetchedJobCollections(newJobs);
+      console.log("Job collections already fetched, skipping fetch.");
+      setJobCollections(fetchedJobCollections);
+      setLoading(false);
+      return;
     }
+    const jobsC = (await getFunctionJobCollections(
+      functionUid as string
+    )) as FunctionJobCollection[];
+    const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
+    colsFetched.current = 0;
+    jobsFetched.current = 0;
+    console.log("Fetched jobCollections: ", jobsC, totalSubs);
+
+    const newJobs: SelectedJobCollection[] = await Promise.all(
+      jobsC.map(async (jc) => {
+        const subJobs = await Promise.all(
+          jc.jobIds.map(async (id) => {
+            const job = (await getFunctionJob(id)) as FunctionJob;
+            jobsFetched.current += 1;
+            const jobsProg = (jobsFetched.current / totalSubs) * 100;
+            setJobProgress(jobsProg);
+            return {
+              selected: false,
+              job,
+            };
+          })
+        );
+        console.log(
+          "Fetched subJobs for jobCollection: ",
+          progress,
+          jobProgress,
+          jobsFetched.current
+        );
+        colsFetched.current += jc.jobIds.length;
+        setProgress((colsFetched.current / totalSubs) * 100);
+        return {
+          jobCollection: jc,
+          selected: false,
+          subJobs: subJobs,
+        };
+      })
+    );
+
+    updateJobContext(newJobs);
+    setJobCollections(newJobs);
+    setProgress(100);
+    setFetchedJobCollections(newJobs);
   }
 
   const handleAnchor = (target: HTMLButtonElement, uid: string) => {
@@ -282,33 +280,36 @@ export default function JobsSelector() {
           textAlign={"center"}
           mt={1}
         >
-          <span>{Math.round(progress)}%</span>
+          <span>{Math.round(jobProgress)}%</span>
         </Typography>
       </>
     );
   }
 
   const getJobCollectionStatus = (subJobs: SubJob[]) => {
-    if (subJobs.length === 0) return "EMPTY";
-    // Assuming job.status exists and can be "COMPLETE" or other statuses
-    const allComplete = subJobs.every(
-      (j) => j.job && j.job.status === "SUCCESS"
+    if (!subJobs || subJobs.length === 0) return "EMPTY";
+    const result = subJobs.filter((j) => j.job).map((j) => j.job.status).reduce(
+      (acc, status) => {
+        if (status === "SUCCESS") acc.success += 1;
+        else if (status === "RUNNING") acc.running += 1;
+        else if (status === "FAILED") acc.failed += 1;
+        else acc.incomplete += 1;
+        return acc;
+      },
+      { success: 0, running: 0, failed: 0, incomplete: 0 }
     );
+
+    const allComplete = result.success === subJobs.length;
+    const anyComplete = result.success > 0;
+    const anyRunning = result.running > 0;
+    const anyFailed = result.failed > 0;
+    const allFailed = result.failed === subJobs.length;
     if (allComplete) return "COMPLETE";
-    const anyRunning = subJobs.some((j) => j.job && j.job.status === "RUNNING");
     if (anyRunning) return "RUNNING";
-    const anyFailed = subJobs.some((j) => j.job && j.job.status === "FAILED");
-    const allFailed = subJobs.every((j) => j.job && j.job.status === "FAILED");
     if (allFailed) return "FAILED";
-    if (anyFailed) {
-      const anyComplete = subJobs.some(
-        (j) => j.job && j.job.status === "SUCCESS"
-      );
-      if (anyComplete) return "FAILED (PARTIALLY)";
-      return "FAILED";
-    }
+    if (anyFailed && anyComplete) return "FAILED (PARTIALLY)";
     // Default fallback
-    return "INCOMPLETE";
+    return "UNKNOWN";
   };
 
   return (
