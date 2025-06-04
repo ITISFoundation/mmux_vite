@@ -37,7 +37,7 @@ from mmux_python.utils.funs_data_processing import (
     process_input_file,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
-from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo_crossvalidation
+from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid
 
 ### Logger configuration ####################################
 _logger = logging.getLogger(__name__)
@@ -158,15 +158,15 @@ def get_last_N_items(api_call: Callable, N: int, **kwargs):
 def flask_list_functions():
     _logger.debug("Starting flask function: flask_list_functions")
     _logger.debug("Cwd: " + str(Path.cwd()))
-    # functions = get_all_items(functions_api_instance.list_functions)
+    functions = get_all_items(functions_api_instance.list_functions)
     # functions = get_first_N_items(functions_api_instance.list_functions, N=5)
-    functions = get_last_N_items(functions_api_instance.list_functions, N=50)
+    # functions = get_last_N_items(functions_api_instance.list_functions, N=50)
     functions = functions[::-1] # put last-created first? FIXME still need to expose "created_at" in the response
     _logger.debug(f"N Functions: {len(functions)}")
 
-    ## TODO temporal - filter out those without input & output schema
-    functions = [f for f in functions if len(f["inputSchema"]["schemaContent"]) > 0 and len(f["outputSchema"]["schemaContent"]) > 0]
-    _logger.debug(f"N Functions after filtering: {len(functions)}")
+    ## optional - filter out those without input & output schema
+    # functions = [f for f in functions if len(f["inputSchema"]["schemaContent"]) > 0 and len(f["outputSchema"]["schemaContent"]) > 0]
+    # _logger.debug(f"N Functions after filtering: {len(functions)}")
 
     return jsonify(functions)
 
@@ -244,8 +244,8 @@ def get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
 
     return job_dict
 
-def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str) -> Path:
-    completed_jobs = [job for job in jobs if job["status"].lower() == "completed"]  # type: ignore
+def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str, folder_name: str = "evaluate") -> Path:
+    completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
     def get_job_dict(job):
         d = {key: job["inputs"][key] for key in input_vars}
@@ -256,10 +256,47 @@ def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str
     df_jobs = pd.DataFrame(
             [get_job_dict(job) for job in completed_jobs]
         )
-    run_dir = create_run_dir(Path("."), "evaluate")
+    run_dir = create_run_dir(Path("."), folder_name)
     TRAINING_FILE = run_dir/  "df_jobs.csv"
     df_jobs.to_csv(TRAINING_FILE, index=False)
     return TRAINING_FILE
+
+
+@app.route("/flask/sumo_cross_validation", methods=["POST"])
+def flask_sumo_cross_validation():
+    os.chdir(Path(__file__).parent)
+    _logger.debug("Starting flask function: flask_sumo_cross_validation")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+    
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    output_response = request_data["output"]
+    input_vars: List[str] = request_data["inputVars"]
+    jobs: List[FunctionJob] = request_data["FunctionJobs"]
+    make_log: bool = request_data.get("log", False)
+
+    TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
+    run_dir = TRAINING_FILE.parent
+
+    PROCESSED_TRAINING_FILE = process_input_file(
+        TRAINING_FILE,
+        make_log=make_log,
+        columns_to_keep=input_vars + [output_response], # type: ignore
+    )
+    if make_log:  # FIXME for now log applies to all inputs & the output
+        input_vars = [f"log_{var}" for var in input_vars]
+        output_response = f"log_{output_response}"
+
+    results = evaluate_sumo_manual_crossvalidation(
+        run_dir,
+        PROCESSED_TRAINING_FILE,
+        input_vars,
+        output_response, # type: ignore
+    )
+    _logger.debug("Done!!")
+
+    return jsonify(results) 
+
 
 @app.route("/flask/sumo_along_axes", methods=["POST"])
 def flask_evaluate_sumo_along_axes():
@@ -291,38 +328,74 @@ def flask_evaluate_sumo_along_axes():
         input_vars,
         output_response, # type: ignore
     )
-    _logger.info("Done!!")
+    
+    _logger.debug("Done!!")
     return jsonify(results) # check if jsonify is needed
 
-
-@app.route("/flask/uq_propagation")
-def flask_uq_propagation() -> Dict[str, str]:
-    ## TODO change to new scheme (jobs are passed here, not a filename)
+## This method could probably be generic for N-D (thus not needing the 1D version above)
+@app.route("/flask/sumo_grid_evaluation", methods=["POST"])
+def flask_sumo_grid_evaluation():
     os.chdir(Path(__file__).parent)
-    _logger.debug("Starting flask function: flask_uq_propagation")
+    _logger.debug("Starting flask function: flask_sumo_grid_evaluation")
     _logger.debug("Cwd: " + str(Path.cwd()))
-    _logger.debug("Inputs of the request: %s", request.args)
-    TRAINING_FILE = base_dir / "mmux_python" / "data" / request.args["filename"]
-    _logger.debug(f"TRAINING_FILE: {TRAINING_FILE} does exist: {TRAINING_FILE.exists()}")
-    output_response = request.args["output"]
-    input_vars = request.args["inputs"].split(",")
-    make_log = False if request.args["log"].lower() == "false" else True
-    _logger.debug(f"output_response: {output_response}")
-    _logger.debug(f"input_vars: {input_vars}")
-    _logger.debug(
-        f"make_log: {make_log} (input {request.args['log']}) type: {type(make_log)}"
-    )
-    run_dir = create_run_dir(Path("."), "uq")
-    TRAINING_FILE = Path(shutil.copy(TRAINING_FILE, run_dir))
+
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    output_response = request_data["output"]
+    grid_vars: List[str] = request_data["gridVars"]
+    input_vars: List[str] = request_data["inputVars"]
+    make_log: bool = request_data.get("log", False)
+    jobs: List[FunctionJob] = request_data["FunctionJobs"]
+    TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
+    run_dir = TRAINING_FILE.parent
 
     PROCESSED_TRAINING_FILE = process_input_file(
         TRAINING_FILE,
         make_log=make_log,
-        columns_to_keep=input_vars + [output_response],
+        columns_to_keep=input_vars + [output_response], # type: ignore
+    )
+    if make_log:  # FIXME for now log applies to all inputs & the output
+        input_vars = [f"log_{var}" for var in input_vars]
+        output_response = f"log_{output_response}"
+
+    results = evaluate_sumo_on_grid(
+        run_dir,
+        PROCESSED_TRAINING_FILE,
+        grid_vars,
+        input_vars,
+        output_response, # type: ignore
+    )
+    _logger.debug("Done!!")
+    print(results)
+    return jsonify(results) # check if jsonify is needed
+
+@app.route("/flask/uq_propagation", methods=["POST"])
+def flask_uq_propagation():
+    os.chdir(Path(__file__).parent)
+    _logger.debug("Starting flask function: flask_uq_propagation")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    input_vars: List[str] = request_data["inputVars"]
+    output_response = request_data["output"]
+    num_samples: int = request_data["numSamples"]
+    ######### TODO make this more generic, not only for normal distribution
+    means: Dict[str, float] = request_data["means"]
+    stds: Dict[str, float] = request_data["stds"]
+    ####################################################################
+    make_log: bool = request_data.get("log", False)
+    jobs: List[FunctionJob] = request_data["FunctionJobs"]
+
+    TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
+    run_dir = TRAINING_FILE.parent
+
+    PROCESSED_TRAINING_FILE = process_input_file(
+        TRAINING_FILE,
+        make_log=make_log,
+        columns_to_keep=input_vars + [output_response], # type: ignore
     )
 
-    ## TODO get means & stds from frontend
-    means, stds = {}, {}
 
     if make_log:  # FIXME for now log applies to all inputs & the output
         input_vars = [f"log_{var}" for var in input_vars]
@@ -330,17 +403,18 @@ def flask_uq_propagation() -> Dict[str, str]:
         means = {f"log_{key}": np.log(val) for key, val in means.items()}
         stds = {f"log_{key}": np.log(val) for key, val in stds.items()}
 
-    savepath = propagate_uq(
-        PROCESSED_TRAINING_FILE,
+    samples = propagate_uq(
         run_dir,
+        PROCESSED_TRAINING_FILE,
         input_vars,
         output_response,
+        ## TODO make distributions other than normal functional!!
         means,
         stds,
-        xscale="linear",
+        n_samples=num_samples,
     )
-    # _save_in_react_public_folder(savepath)
-    return {"imagePath": savepath.name} ## TODO return data instead
+
+    return jsonify(samples) 
 
 @app.route("/flask/save_json", methods=["POST"])
 def flask_save_json():

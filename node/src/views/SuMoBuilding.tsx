@@ -1,69 +1,37 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
 import MetaModelingUX from '../components/MetaModelingUX';
 import { Button, Box, Container } from '@mui/material';
 import { useMMUXContext } from '../context/MMUXContext';
-import PlotDataTogether from '../components/PlotDataTogether'
-import ShowCvMetrics from '../components/ShowCvMetrics';
-import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
-import PlusButton from '../components/PlusButton';
-import { getFunctionJobsFromFunctionUid } from "../utils/function_utils";
-import Surface3DPlot from "../components/Surface3DPlot";
+import Curves1DPlots from '../components/PlotDataTogether'
+import Surface2DPlot from "../components/Surface3DPlot";
 import IsoSurface3DPlot from "../components/IsoSurface3DPlot";
-
+import SuMoValidation from '../components/SuMoValidation';
 
 function SuMoBuildingValidation() {
-  const { inputVars, outputVars, selectedFunction, selectedJobUids} = useMMUXContext()
-  const [isSuMoGenerated, setIsSuMoGenerated] = useState(false)
-
-  const [selectedResponse, setSelectedResponse] = useState(outputVars ? outputVars[0] : '');
-  const [dataSumoCentralCurves, setDataSumoCentralCurves] = useState({});
+  const { inputVars, outputVars, selectedFunction, selectedJobUids, isSuMoGenerated, setIsSuMoGenerated, selectedQoI, setSelectedQoI } = useMMUXContext()
 
   useEffect(() => {
-    if (Array.isArray(outputVars)) setSelectedResponse(outputVars[0]);
-  }, [selectedFunction, outputVars]);
+    setSelectedQoI("");
+  }, [selectedFunction]);
 
   useEffect(() => {
     setIsSuMoGenerated(false);
   }, [selectedJobUids]);
 
-  async function RunPlotCentralSuMoInterpolations() {
-    // TODO get only those selected in the JobSelector (pass as status??)
-    const jobList = await getFunctionJobsFromFunctionUid(selectedFunction?.uid as string);
-    console.log("Fetched jobs:", jobList);
-    console.log("Running SuMo...");
-    fetch(
-      PYTHON_DAKOTA_BACKEND + '/flask/sumo_along_axes',
-      {
-        method: "POST",
-        body: JSON.stringify(
-          {
-            inputs: inputVars,
-            output: selectedResponse,
-            log: false,
-            FunctionJobs: jobList,
-          }
-        ),
-      }).then(function (response) {
-        return response.json()
-      }).then(function (data) {
-        setDataSumoCentralCurves(data)
-      }).catch(error => console.debug('Error:', error));
-  }
-
   function QoISelector() {
     return (
-      // TODO show only when jobs have already been selected
       <Box sx={{ display: 'flex', alignItems: 'center', gap: "10px" }}>
         <span>Quantity of Interest (QoI) to inspect: </span>
         <select
-          value={selectedResponse}
+          value={selectedQoI ?? ""}
           onChange={(e) => {
-            // TODO make this more visible & prominent
             setIsSuMoGenerated(false)
-            setSelectedResponse(e.target.value)
-            console.log(selectedResponse)
+            setSelectedQoI(e.target.value)
+            console.log(e.target.value)
           }}
         >
+          <option value="">-- Select QoI --</option>
           {outputVars?.map((qoi) => (
             <option key={qoi} value={qoi}>
               {qoi}
@@ -79,7 +47,6 @@ function SuMoBuildingValidation() {
     // eventually, we will actually register a SuMo. For now, this is just a placeholder
     const [loading, setLoading] = useState(false);
 
-
     const handleCreateSuMo = () => {
       setLoading(true);
       setTimeout(() => {
@@ -93,7 +60,7 @@ function SuMoBuildingValidation() {
         <Button
           onClick={handleCreateSuMo}
           disabled={
-            loading || isSuMoGenerated || selectedJobUids.length === 0
+            loading || isSuMoGenerated || selectedJobUids.length === 0 || selectedQoI === ""
           }
         >
           {loading
@@ -128,59 +95,17 @@ function SuMoBuildingValidation() {
             Selected Function: <b>{selectedFunction?.title}</b>
           </span>
           <QoISelector />
+
+
+
+          {/* Refactor from here. Have the cross-validation metrics always displayed,
+          and the + button to add 1D / 2D / 3D plots always right below it. */}
           {isSuMoGenerated && (
             <>
-              <PlusButton
-                onClickFun={() => null} // TODO need to execute this
-                PlotFunComponent={() => {
-                  const sumoCvMetrics = {
-                    "cv_metrics": { // mockup
-                      'RMSE': 0.0122742,
-                      'Sum Absolute Error': 0.637624,
-                      'Mean Absolute Error': 0.00850166,
-                      'Maximal Absolute Error': 0.065424
-                    },
-                    "statistics": { // mockup
-                      'Mean': 0.0122742,
-                      'Standard Deviation': 0.637624,
-                      'Minimum': 0.00850166,
-                      'Maximum': 0.065424
-                    }
-                  }
-                  return <ShowCvMetrics
-                    data={sumoCvMetrics}
-                    inputVars={inputVars}
-                    qoi={selectedResponse}
-                  />
-                }
-                }
-                text="Add SuMo CrossValidation accuracy metrics"
-                enabled={isSuMoGenerated}
-              />
-              <PlusButton
-                onClickFun={RunPlotCentralSuMoInterpolations}
-                PlotFunComponent={() => (
-                  <PlotDataTogether
-                    data={dataSumoCentralCurves}
-                    inputVars={inputVars}
-                    qoi={selectedResponse}
-                  />
-                )}
-                text="Visualize central SuMo interpolations"
-                enabled={isSuMoGenerated}
-              />
-              <PlusButton
-                onClickFun={() => null}
-                PlotFunComponent={() => <Surface3DPlot />}
-                text="Add SuMo 3D Surface visualization"
-                enabled={isSuMoGenerated}
-              />
-              <PlusButton
-                onClickFun={() => null}
-                PlotFunComponent={() => <IsoSurface3DPlot />}
-                text="Add SuMo 3D IsoSurface visualization"
-                enabled={isSuMoGenerated}
-              />
+              <SuMoValidation />
+              {inputVars.length > 0 ? <Curves1DPlots /> : undefined}
+              {inputVars.length > 1 ? <Surface2DPlot /> : undefined}
+              {inputVars.length > 2 ? <IsoSurface3DPlot /> : undefined}
             </>
           )}
         </Box>

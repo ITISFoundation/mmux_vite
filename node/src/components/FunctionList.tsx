@@ -10,7 +10,7 @@ import {
   ProjectFunction,
   PythonCodeFunction,
 } from "../osparc-api-ts-client/index.ts";
-import { listFunctions } from "../utils/function_utils.ts";
+import { listFunctions, getFunctionJobCollections } from "../utils/function_utils.ts";
 import {
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,
@@ -35,17 +35,18 @@ const VarsHolder = styled("div")`
 `;
 
 export function FunctionList() {
-  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } = useMMUXContext();
+  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } =
+    useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [functions, setFunctions] = useState<Function[]>([]);
-  const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
+  const [rowSelectionModel, setRowSelectionModel] =
+    useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
   const fetchFunctions = async () => {
     try {
       setLoading(true);
       const funs = await listFunctions();
-      console.debug("Functions obtained: ", funs);
       setFunctions(funs);
       if (funs.length === 0) {
         toast.info("No functions available. Please create a function first.");
@@ -94,9 +95,9 @@ export function FunctionList() {
         // Send a postMessage to the parent iframe
         window.parent.postMessage(
           {
-            "type": "openFunction",
-            "message": {
-              "functionId": (fun as ProjectFunction).projectId,
+            type: "openFunction",
+            message: {
+              functionId: (fun as ProjectFunction).projectId,
             },
           },
           "*"
@@ -118,6 +119,37 @@ export function FunctionList() {
       return "Unknown";
     }
   };
+
+  const NFunctionJobCollections = (props: {fun: Function}): React.ReactNode => {
+    const { fun } = props;
+    const [jobCollectionCount, setJobCollectionCount] = useState<number | null>(null);
+    const [jobCount, setJobCount] = useState<number | null>(null);
+
+    useEffect(() => {
+      const fetchJobJobCollectionCount = async () => {
+        try {
+          const jcs = await getFunctionJobCollections(fun.uid);
+          setJobCollectionCount(jcs.length)
+          setJobCount(jcs.map(jc => { return jc.jobIds ? jc.jobIds.length : 0 }).reduce((a, b) => a + b, 0));
+        } catch (err) {
+          console.warn("Error fetching jobs for Function ", fun.uid)
+          console.error(err);
+        }
+      };
+      fetchJobJobCollectionCount();
+    }
+    , [fun.uid]);
+
+    return (
+      <Box>
+        {jobCollectionCount === null || jobCount === null
+          ? "Loading..."
+          : `Campaigns: ${jobCollectionCount} (${jobCount} total evaluations)`}
+      </Box>
+    );
+  }
+
+
 
   function getRowId(row: Function) {
     return row.uid ? row.uid : "" + row.title + row.description;
@@ -148,7 +180,7 @@ export function FunctionList() {
           display="inline"
           mr={1}
         >
-          No functions available.
+          Error fetching functions from the server. Please try again after some time.
         </Typography>
         <IconButton size="small" onClick={async () => await fetchFunctions()}>
           <Refresh color="primary" />
@@ -188,6 +220,14 @@ export function FunctionList() {
             showInputOutputSchema(params.row.outputSchema),
         },
         {
+          field: "n_evaluations",
+          headerName: "# Campaigns / Evaluations",
+          flex: 1,
+          minWidth: 250,
+          renderCell: (params) => <NFunctionJobCollections fun={params.row} />,
+          // FIXME for some reason, this gets called many times
+        },
+        {
           field: "solverKey",
           headerName: "Solver / Template",
           flex: 1,
@@ -208,13 +248,20 @@ export function FunctionList() {
                 setSelectedFunction(params.row);
                 setInputVars(
                   params.row.inputSchema?.schemaContent?.properties
-                    ? Object.keys(params.row.inputSchema.schemaContent.properties)
+                    ? Object.keys(
+                        params.row.inputSchema.schemaContent.properties
+                      )
                     : []
                 );
-                console.log("inputVars registered:", Object.keys(params.row.inputSchema.schemaContent.properties))
+                console.log(
+                  "inputVars registered:",
+                  Object.keys(params.row.inputSchema.schemaContent.properties)
+                );
                 setOutputVars(
                   params.row.outputSchema?.schemaContent?.properties
-                    ? Object.keys(params.row.outputSchema.schemaContent.properties)
+                    ? Object.keys(
+                        params.row.outputSchema.schemaContent.properties
+                      )
                     : []
                 );
               }}
@@ -234,14 +281,21 @@ export function FunctionList() {
         },
         "& .MuiDataGrid-row:hover": {
           backgroundColor: (theme) =>
-            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
+            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+              theme.palette.mode === "dark" ? "black" : "white"
             })`,
         },
         "& .MuiDataGrid-row.Mui-selected": {
-          backgroundColor: (theme) => theme.palette.primary.main,
+          backgroundColor: (theme) =>
+            `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${
+              theme.palette.mode === "dark" ? "black" : "white"
+            })`,
         },
         "& .MuiDataGrid-row.Mui-selected:hover": {
-          backgroundColor: (theme) => theme.palette.primary.main,
+          backgroundColor: (theme) =>
+            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+              theme.palette.mode === "dark" ? "black" : "white"
+            })`,
         },
         "& .MuiDataGrid-sortButton": {
           backgroundColor: (theme) => theme.palette.background.paper,

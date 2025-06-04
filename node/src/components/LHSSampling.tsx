@@ -3,7 +3,7 @@ import { MMUXContextType, useMMUXContext } from '../context/MMUXContext';
 import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import { Box, Button, Input, Typography } from '@mui/material';
 import { Function, RegisteredFunctionJobCollection } from '../osparc-api-ts-client';
-
+import { getSamplingStartValue, getSamplingEndValue } from '../utils/sampling';
 
 
 async function runLhsSampling(context: MMUXContextType, config: any[], seed: number = 0, N: number = 5) {
@@ -39,12 +39,14 @@ async function runLhsSampling(context: MMUXContextType, config: any[], seed: num
 
 
 const LHSSampling = () => {
-    const { inputVars, launchingSampling, runningSampling } = useMMUXContext();
+    const { inputVars, launchingSampling, runningSampling, distribution } = useMMUXContext();
+    const context = useMMUXContext();
+
     const [lhsInputs, setLhsInputs] = useState(
         inputVars.map((inputVar) => ({
             variable: inputVar,
-            start: 0.0,
-            end: 1.0,
+            start: getSamplingStartValue(inputVar, distribution),
+            end: getSamplingEndValue(inputVar, distribution),
             points: 50, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
             seed: 0,  // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
         })),
@@ -52,7 +54,6 @@ const LHSSampling = () => {
 
     function CreateSamplingButton() {
         const handleRunSampling = async () => {
-            const context = useMMUXContext();
             await runLhsSampling(context, lhsInputs)
         };
 
@@ -93,7 +94,7 @@ const LHSSampling = () => {
                     <Input
                         type="number"
                         placeholder="Start"
-                        value={inputVar.start.toString()}
+                        value={inputVar.start?.toString()}
                         sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}` })}
                         onChange={(e) => handleInputChange(index, "start", e.target.value)}
                     />
@@ -101,7 +102,7 @@ const LHSSampling = () => {
                     <Input
                         type="number"
                         placeholder="End"
-                        value={inputVar.end.toString()}
+                        value={inputVar.end?.toString()}
                         sx={(theme) => ({ width: 100, borderBottom: `1px solid ${theme.palette.background.paper}` })}
                         onChange={(e) => handleInputChange(index, "end", e.target.value)}
                     />

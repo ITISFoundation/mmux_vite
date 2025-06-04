@@ -28,6 +28,11 @@ const Navi = styled(NavBar)(({ theme }) => `
         border-color: ${theme.palette.primary.main};
       }
     }
+    & > .MuiStepConnector-root.Mui-completed {
+      & .MuiStepConnector-line {
+        border-color: ${theme.palette.primary.main};
+      }
+    }
   }
 `);
 

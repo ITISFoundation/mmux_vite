@@ -31,5 +31,11 @@ dist-ssr
 */.venv*/
 
 docker-compose.yml
-.env
+*.env
 *.ignore.*
+
+# Run data values
+predictions.dat
+results.dat
+variances.dat
+dakota.rst

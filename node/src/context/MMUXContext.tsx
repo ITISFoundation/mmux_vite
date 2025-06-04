@@ -1,5 +1,9 @@
-import React, { createContext, useContext, useMemo, useState,  } from "react";
-import { Function, RegisteredFunctionJobCollection } from "../osparc-api-ts-client";
+import React, { createContext, useContext, useMemo, useState } from "react";
+import {
+  Function,
+  FunctionJob,
+  RegisteredFunctionJobCollection,
+} from "../osparc-api-ts-client";
 
 export interface MMUXContextType {
   selectedFunction: Function | undefined;
@@ -12,19 +16,28 @@ export interface MMUXContextType {
   setOutputVars: (vars: string[]) => void;
   currentView: number;
   setCurrentView: (i: number) => void;
-  launchingSampling: boolean,
+  launchingSampling: boolean;
   setLaunchingSampling: (b: boolean) => void;
-  selectedResponse: string | undefined;
-  setSelectedResponse: (response: string | undefined) => void;
-  runningSampling: boolean,
+  runningSampling: boolean;
   setRunningSampling: (b: boolean) => void;
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
-  setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void;
+  setRunningJobCollection: (
+    jc: RegisteredFunctionJobCollection | undefined
+  ) => void;
+  fetchedJobCollections: SelectedJobCollection[];
+  setFetchedJobCollections: (jc: SelectedJobCollection[]) => void;
   selectedJobUids: string[];
   setSelectedJobUids: (selectedJobs: string[]) => void;
+  filterSelectedJobList: () => FunctionJob[];
+  selectedQoI: string | undefined;
+  setSelectedQoI: (response: string | undefined) => void;
+  isSuMoGenerated: boolean;
+  setIsSuMoGenerated: (is: boolean) => void;
 }
 
-export const MMUXContext = createContext<MMUXContextType | undefined>(undefined);
+export const MMUXContext = createContext<MMUXContextType | undefined>(
+  undefined
+);
 
 type Props = {
   children: React.ReactNode;
@@ -36,37 +49,71 @@ export const MMUXContextProvider = ({ children }: Props) => {
   const [launchingSampling, setLaunchingSampling] = useState<boolean>(false);
   const [runningSampling, setRunningSampling] = useState<boolean>(false);
   const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
+  const [fetchedJobCollections, setFetchedJobCollections] = useState<
+    SelectedJobCollection[]
+  >([]);
   const [inputVars, setInputVars] = useState<string[]>([]);
   const [distribution, setDistribution] = useState<InputVarSelection>({});
   const [outputVars, setOutputVars] = useState<string[] | undefined>(undefined);
-  const [selectedResponse, setSelectedResponse] = useState<string | undefined>(undefined);
+  const [selectedQoI, setSelectedQoI] = useState<string | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
+  const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
 
-  const memoState = useMemo(() => ({
-    selectedFunction: funct,
-    setSelectedFunction: setFunct,
-    distribution: distribution,
-    setDistribution: setDistribution,
-    inputVars: inputVars,
-    setInputVars: setInputVars,
-    outputVars: outputVars,
-    setOutputVars: setOutputVars,
-    currentView: currentView,
-    setCurrentView: setCurrentView,
-    launchingSampling: launchingSampling,
-    setLaunchingSampling: setLaunchingSampling,
-    runningSampling: runningSampling,
-    setRunningSampling: setRunningSampling,
-    selectedResponse: selectedResponse,
-    setSelectedResponse: setSelectedResponse,
-    runningJobCollection: runningJobCollection,
-    setRunningJobCollection: setRunningJobCollection,
-    selectedJobUids: selectedJobUids,
-    setSelectedJobUids: setSelectedJobUids,
-  }), [funct, distribution, inputVars, outputVars, currentView, launchingSampling, runningSampling, selectedResponse, runningJobCollection, selectedJobUids]);
-
-  return <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>;
-}
+  const memoState = useMemo(() => {
+    const filterSelectedJobList = () => {
+      const response: FunctionJob[] = fetchedJobCollections.flatMap(
+        (jobCollection) =>
+          jobCollection.subJobs
+            .filter((subJob) => subJob.selected)
+            .map((subJob) => subJob.job)
+      );
+      return response;
+    };
+    return {
+      selectedFunction: funct,
+      setSelectedFunction: setFunct,
+      distribution: distribution,
+      setDistribution: setDistribution,
+      inputVars: inputVars,
+      setInputVars: setInputVars,
+      outputVars: outputVars,
+      setOutputVars: setOutputVars,
+      currentView: currentView,
+      setCurrentView: setCurrentView,
+      launchingSampling: launchingSampling,
+      setLaunchingSampling: setLaunchingSampling,
+      runningSampling: runningSampling,
+      setRunningSampling: setRunningSampling,
+      selectedQoI: selectedQoI,
+      setSelectedQoI: setSelectedQoI,
+      runningJobCollection: runningJobCollection,
+      setRunningJobCollection: setRunningJobCollection,
+      fetchedJobCollections: fetchedJobCollections,
+      setFetchedJobCollections: setFetchedJobCollections,
+      selectedJobUids: selectedJobUids,
+      setSelectedJobUids: setSelectedJobUids,
+      filterSelectedJobList: filterSelectedJobList,
+      isSuMoGenerated: isSuMoGenerated,
+      setIsSuMoGenerated: setIsSuMoGenerated
+    };
+  }, [
+    funct,
+    distribution,
+    inputVars,
+    outputVars,
+    currentView,
+    launchingSampling,
+    runningSampling,
+    selectedQoI,
+    runningJobCollection,
+    selectedJobUids,
+    fetchedJobCollections,
+    isSuMoGenerated
+  ]);
+  return (
+    <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>
+  );
+};
 
 export const useMMUXContext = () => {
   const context = useContext(MMUXContext);
@@ -74,4 +121,4 @@ export const useMMUXContext = () => {
     throw new Error("useMMUXContext must be used within a MMUXContextProvider");
   }
   return context;
-}
+};
