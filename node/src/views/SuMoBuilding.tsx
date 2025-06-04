@@ -102,9 +102,9 @@ function SuMoBuildingValidation() {
           {isSuMoGenerated && (
             <>
               <SuMoValidation />
-              {/* {inputVars.length > 0 ? <Curves1DPlots /> : undefined}
+              {inputVars.length > 0 ? <Curves1DPlots /> : undefined}
               {inputVars.length > 1 ? <Surface2DPlot /> : undefined}
-              {inputVars.length > 2 ? <IsoSurface3DPlot /> : undefined} */}
+              {inputVars.length > 2 ? <IsoSurface3DPlot /> : undefined}
             </>
           )}
         </Box>

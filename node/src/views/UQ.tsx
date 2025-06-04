@@ -1,44 +1,69 @@
 import { useState } from "react";
-// import FileSelector from '../components/FileSelector';
-// import SuMoTypeSelector from '../components/SuMoTypeSelector';
-// import OutputResponseSelector from '../components/OutputResponseSelector';
 import { useMMUXContext } from "../context/MMUXContext";
 import MetaModelingUX from "../components/MetaModelingUX";
-import { Box, Container } from "@mui/material";
+import { Box, Button, Container } from "@mui/material";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
-import { getFunctionJobsFromFunctionUid } from "../utils/function_utils";
+import Plot from "react-plotly.js";
+import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 
 export default function UQ() {
   // Similar to Sumo building
-  const { inputVars, selectedFunction, selectedResponse } = useMMUXContext();
-  const [numSamples, setNumSamples] = useState(10000);
-  const [dataUQHistogram, setDataUQHistogram] = useState(undefined);
+  const { inputVars, selectedFunction, selectedQoI, distribution, filterSelectedJobList } = useMMUXContext();
+  const [numSamples, setNumSamples] = useState(1000);
+  const [dataUQHistogram, setDataUQHistogram] = useState<Array<number>>([]);
 
-  async function runUQ(config: any) {
+  async function runUQ(jobs: FunctionJob[]) {
     console.log("Running UQ...");
-    // TODO get only those selected in the JobSelector (pass as status??)
-    const jobList = await getFunctionJobsFromFunctionUid(
-      selectedFunction?.uid as string
+    // Ensure all inputVars have a 'distribution' property and are Normal
+    const invalidVars = Object.values(distribution).filter(
+      (v: VarSelection) => !v.distribution || v.distribution !== "normal"
     );
-    console.log("Fetched jobs:", jobList);
+    if (invalidVars.length > 0) {
+      alert(
+        `All variables must have Normal (Gaussian) distributions. Invalid: ${invalidVars
+          .map((v: VarSelection) => v.distribution)
+          .join(", ")}`
+      );
+      return;
+    }
+
+    // Extract means and stds from distributions
+    const means = Object.keys(distribution).reduce((acc, key) => {
+      acc[key] = distribution[key].mean;
+      return acc;
+    }, {} as Record<string, number>);
+    const stds = Object.keys(distribution).reduce((acc, key) => {
+      acc[key] = distribution[key].std;
+      return acc;
+    }, {} as Record<string, number>);
+
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/uq_propagation", {
       method: "POST",
       body: JSON.stringify({
-        inputs: inputVars,
-        output: selectedResponse,
-        FunctionJobs: jobList,
+        inputVars: inputVars,
+        output: selectedQoI,
+        FunctionJobs: jobs,
         numSamples: numSamples,
+        log: false,
+        means: means,
+        stds: stds,
       }),
     })
       .then(function (response) {
         return response.json();
       })
       .then(function (data) {
+        console.log("UQ Data:", data);
         setDataUQHistogram(data);
       })
       .catch((error) => console.debug("Error:", error));
   }
 
+
+  const run = async () => {
+    const jobs = filterSelectedJobList();
+    return await runUQ(jobs)
+  };
 
   // Copy the structure from SuMo building; refactor the PY script as a Flask callback.
   // Fixed Means & Stds (inside Python), will make that customizable later on.
@@ -60,34 +85,51 @@ export default function UQ() {
             Selected Function: <b>{selectedFunction?.title}</b>{" "}
           </span>
           <span>
-            Selected Job Campaign(s): <b>TODO</b>{" "}
+            Selected QoI: <b>{selectedQoI}</b>{" "}
           </span>
-          <span>
-            Selected QoI: <b>{selectedResponse}</b>{" "}
-          </span>
-          {/*
-            <label htmlFor="useSuMo">Use Surrogate Model to perform Uncertainty Quantification</label>
-            <input
-                type="checkbox"
-                id="useSuMo"
-                checked={useSuMo}
-                onChange={(e) => setUseSuMo(e.target.checked)}
-          /> */}
 
           <label htmlFor="numSamples">Number of Samples:</label>
           <input
             type="number"
             id="numSamples"
-            defaultValue={10000}
+            defaultValue={1000}
             onChange={(e) => setNumSamples(Number(e.target.value))}
           />
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={run}
+            disabled={!selectedFunction || !selectedQoI || inputVars.length === 0}
+          >
+            Run UQ
+          </Button>
         </Box>
+
+        {dataUQHistogram && (
+          <Plot
+            data={[
+              {
+                x: dataUQHistogram,
+                type: "histogram",
+                marker: { color: "#1976d2" },
+                name: "UQ Histogram",
+              },
+            ]}
+            layout={{
+              title: { text: "Uncertainty Quantification Histogram" },
+              xaxis: { title: { text: selectedQoI || "Output" } },
+              yaxis: { title: { text: "Frequency" } },
+              plot_bgcolor: "#222",
+              paper_bgcolor: "#222",
+              font: { color: "#eee" },
+            }}
+            style={{ width: "100%", height: "400px" }}
+            config={{ responsive: true }} />
+        )}
+
+
       </Container>
 
-      {/*
-        // 3 - pass fun & jobs to Flask backend, compute UQ, return UQ propagated data
-        // 4 -  to plot hist of each input & qoi (in two sep rows) 
-      */}
     </MetaModelingUX>
   );
 }

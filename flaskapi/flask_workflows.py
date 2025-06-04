@@ -227,7 +227,7 @@ def get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
     logger.info(f"Job: {job_dict}")
     return job_dict
 
-def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str) -> Path:
+def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str, folder_name: str = "evaluate") -> Path:
     completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
     logger.info(f"N Completed jobs: {len(completed_jobs)}")
     def get_job_dict(job):
@@ -239,7 +239,7 @@ def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str
     df_jobs = pd.DataFrame(
             [get_job_dict(job) for job in completed_jobs]
         )
-    run_dir = create_run_dir(Path("."), "evaluate")
+    run_dir = create_run_dir(Path("."), folder_name)
     TRAINING_FILE = run_dir/  "df_jobs.csv"
     df_jobs.to_csv(TRAINING_FILE, index=False)
     return TRAINING_FILE
@@ -351,34 +351,33 @@ def flask_sumo_grid_evaluation():
     print(results)
     return jsonify(results) # check if jsonify is needed
 
-@app.route("/flask/uq_propagation")
-def flask_uq_propagation() -> Dict[str, str]:
-    ## TODO change to new scheme (jobs are passed here, not a filename)
+@app.route("/flask/uq_propagation", methods=["POST"])
+def flask_uq_propagation():
     os.chdir(Path(__file__).parent)
     logger.info("Starting flask function: flask_uq_propagation")
     logger.info("Cwd: " + str(Path.cwd()))
-    logger.info("Inputs of the request: ", request.args)
-    TRAINING_FILE = base_dir / "mmux_python" / "data" / request.args["filename"]
-    logger.info(f"TRAINING_FILE: {TRAINING_FILE} does exist: {TRAINING_FILE.exists()}")
-    output_response = request.args["output"]
-    input_vars = request.args["inputs"].split(",")
-    make_log = False if request.args["log"].lower() == "false" else True
-    logger.info(f"output_response: {output_response}")
-    logger.info(f"input_vars: {input_vars}")
-    logger.info(
-        f"make_log: {make_log} (input {request.args['log']}) type: {type(make_log)}"
-    )
-    run_dir = create_run_dir(Path("."), "uq")
-    TRAINING_FILE = Path(shutil.copy(TRAINING_FILE, run_dir))
+
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    input_vars: List[str] = request_data["inputVars"]
+    output_response = request_data["output"]
+    num_samples: int = request_data["numSamples"]
+    ######### TODO make this more generic, not only for normal distribution
+    means: Dict[str, float] = request_data["means"]
+    stds: Dict[str, float] = request_data["stds"]
+    ####################################################################
+    make_log: bool = request_data.get("log", False)
+    jobs: List[FunctionJob] = request_data["FunctionJobs"]
+
+    TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
+    run_dir = TRAINING_FILE.parent
 
     PROCESSED_TRAINING_FILE = process_input_file(
         TRAINING_FILE,
         make_log=make_log,
-        columns_to_keep=input_vars + [output_response],
+        columns_to_keep=input_vars + [output_response], # type: ignore
     )
 
-    ## TODO get means & stds from frontend
-    means, stds = {}, {}
 
     if make_log:  # FIXME for now log applies to all inputs & the output
         input_vars = [f"log_{var}" for var in input_vars]
@@ -386,17 +385,18 @@ def flask_uq_propagation() -> Dict[str, str]:
         means = {f"log_{key}": np.log(val) for key, val in means.items()}
         stds = {f"log_{key}": np.log(val) for key, val in stds.items()}
 
-    savepath = propagate_uq(
-        PROCESSED_TRAINING_FILE,
+    samples = propagate_uq(
         run_dir,
+        PROCESSED_TRAINING_FILE,
         input_vars,
         output_response,
+        ## TODO make distributions other than normal functional!!
         means,
         stds,
-        xscale="linear",
+        n_samples=num_samples,
     )
-    # _save_in_react_public_folder(savepath)
-    return {"imagePath": savepath.name} ## TODO return data instead
+
+    return jsonify(samples) 
 
 @app.route("/flask/save_json", methods=["POST"])
 def flask_save_json():
