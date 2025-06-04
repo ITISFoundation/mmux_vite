@@ -51,7 +51,7 @@ const SuMoValidation = () => {
       const y_hat = data[selectedQoI + "_hat"];
       const diff = y.map((value: number, index: number) => value - y_hat[index])
       const diff_shifted = diff.map((d: number) => d + mean_y);
-      const std_hat = data[selectedQoI + "_std_hat"];
+      // const std_hat = data[selectedQoI + "_std_hat"];
 
       // Compute global min/max for binning
       const allValues = [...y, ...y_hat];
@@ -98,7 +98,6 @@ const SuMoValidation = () => {
         "std_error": std_error,
         "mae": mae,
         "rmse": rmse,
-        "std_hat": std_hat,
       };
       setCvMetrics(cvMetricsData);
       console.log("Registered cvMetrics: ", cvMetricsData);
@@ -208,11 +207,6 @@ const SuMoValidation = () => {
                   <li><strong>Std Error (y - ŷ):</strong> {cvMetrics.std_error?.toFixed(4)}</li>
                   <li><strong>MAE:</strong> {cvMetrics.mae?.toFixed(4)}</li>
                   <li><strong>RMSE:</strong> {cvMetrics.rmse?.toFixed(4)}</li>
-                  {cvMetrics.std_hat && (
-                    <li><strong>Mean Pred. Std (ŷ):</strong> {Array.isArray(cvMetrics.std_hat)
-                      ? (cvMetrics.std_hat.reduce((a: number, b: number) => a + b, 0) / cvMetrics.std_hat.length).toFixed(4)
-                      : cvMetrics.std_hat?.toFixed(4)}</li>
-                  )}
                 </ul>
               ) : (
                 <div>No metrics available.</div>
