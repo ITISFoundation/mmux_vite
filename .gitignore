@@ -31,7 +31,7 @@ dist-ssr
 */.venv*/
 
 docker-compose.yml
-.env
+*.env
 *.ignore.*
 
 # Run data values
