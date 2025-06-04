@@ -127,13 +127,44 @@ const SuMoValidation = () => {
 
   return <>
     {plotData && selectedQoI && (
-      <div style={{ width: '100%', maxWidth: 600 }}>
-        <Plot
-          data={plotData}
-          layout={layout}
-          style={{ width: '100%', height: 400 }}
-          config={{ responsive: true }}
-        />
+      <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+        <div style={{ width: '100%', maxWidth: 600 }}>
+          <Plot
+            data={plotData}
+            layout={layout}
+            style={{ width: '100%', height: 400 }}
+            config={{ responsive: true }}
+          />
+        </div>
+        <div style={{ width: 350 }}>
+          <Plot
+            data={[
+              {
+                y: plotData[0]?.y,
+                type: 'box',
+                name: 'Observations',
+                marker: { color: '#7fc7ff' },
+                boxpoints: 'all',
+              },
+              {
+                y: plotData[1]?.y,
+                type: 'box',
+                name: 'Prediction Deviations',
+                marker: { color: '#2ca02c' },
+                boxpoints: 'all',
+              }
+            ]}
+            layout={{
+              title: { text: 'Whisker Plot' },
+              yaxis: { title: { text: selectedQoI ? selectedQoI : "Quantity of Interest" } },
+              boxmode: 'group',
+              margin: { t: 40, l: 40, r: 10, b: 40 },
+              height: 400,
+            }}
+            style={{ width: '100%', height: 400 }}
+            config={{ responsive: true }}
+          />
+        </div>
       </div>
     )} 
 
