@@ -14,7 +14,6 @@ FIXME crashing error when I already have SuMo plots open & went back to setup & 
 
 import os
 from pathlib import Path
-import shutil
 import json
 import logging
 from typing import List, Dict, Callable
@@ -456,6 +455,44 @@ def flask_lhs():
     ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
     jc = functions_api_instance.map_function(function_uid, samples) ## TODO samples will need to adhere to a specific format
     return jsonify(jc.to_dict()) ## this now returns a JobCollection
+
+
+@app.route("/flask/grid_sampling", methods=["POST"])
+def flask_grid_sampling():
+    _logger.debug("Starting flask function: flask/grid_sampling")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    function_uid = request_data["funUid"]
+    config = request_data["config"]
+    input_vars = [config[i]["variable"] for i in range(len(config))] # this is the list of input variables
+    run_dir = create_run_dir(Path("."), "grid_sampling") # create a run directory for the grid sampling
+
+    from mmux_python.utils.funs_evaluate import create_grid_samples
+    from mmux_python.utils.funs_data_processing import load_data
+    PROCESSED_GRIDPOINTS_INPUT_FILE = create_grid_samples(
+        run_dir = run_dir,
+        grid_vars = input_vars,
+        input_vars = input_vars,
+        mins = [config[var]["start"] for var in input_vars],
+        means = [(config[var]["end"] + config[var]["start"]) / 2 for var in input_vars], # this is the mean of the grid points
+        maxs = [config[var]["end"] for var in input_vars],
+        n_points_per_dimension=[config[var]["points"] for var in input_vars], # this is the number of points per dimension
+    )
+
+    samples = []
+    df = load_data(PROCESSED_GRIDPOINTS_INPUT_FILE)
+    for i in df.index:
+        sample = {var: float(df.loc[i, var]) for var in input_vars} # type: ignore
+        samples.append(sample)
+
+    # Now, the running of jobs through the OSPARC API has been moved to the Python backend
+    ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
+    _logger.debug(f"Samples: {samples}")
+    _logger.debug("Grid sampling not yet tested!! TODO Double check!")
+    jc = functions_api_instance.map_function(function_uid, samples) ## TODO samples will need to adhere to a specific format
+    return jsonify(jc.to_dict()) ## this now returns a JobCollection
+
 
 @app.route("/flask/get_sumo_cv_accuracy_metrics")
 def flask_get_sumo_cv_accuracy_metrics():

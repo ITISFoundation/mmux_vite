@@ -9,7 +9,7 @@ import { getSamplingStartValue, getSamplingEndValue } from '../utils/sampling';
 async function runGridSampling(context: MMUXContextType, config: any[], seed: number = 0, N: number = 5) {
   const fun = context.selectedFunction as Function;
   // send config to Python backend to create LHS
-  console.log("Running LHS Sampling with config: ", config);
+  console.log("Running Grid Sampling with config: ", config);
   context.setLaunchingSampling(true)
   const jc = await fetch(
     PYTHON_DAKOTA_BACKEND + '/flask/grid_sampling',
