@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMMUXContext } from '../context/MMUXContext';
 import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import Plot from 'react-plotly.js';
+import { Box, Typography } from '@mui/material';
 
 
 const SuMoValidation = () => {
@@ -127,8 +128,9 @@ const SuMoValidation = () => {
 
   return <>
     {plotData && selectedQoI && (
+      <Box display="flex" flexDirection="column" gap={1}>
       <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-        <div style={{ width: '100%', maxWidth: 600 }}>
+          <div style={{ width: '100%', maxWidth: 400 }}>
           <Plot
             data={plotData}
             layout={layout}
@@ -136,7 +138,7 @@ const SuMoValidation = () => {
             config={{ responsive: true }}
           />
         </div>
-        <div style={{ width: 350 }}>
+          <div style={{ width: 250 }}>
           <Plot
             data={[
               {
@@ -164,8 +166,61 @@ const SuMoValidation = () => {
             style={{ width: '100%', height: 400 }}
             config={{ responsive: true }}
           />
-        </div>
+          </div>
+          <Box display="flex" flexDirection="row" gap={1}>
+
+            <div style={{ minWidth: 250, fontSize: 15, lineHeight: 1.7 }}>
+              <Typography variant="h6" gutterBottom fontWeight="bold">Data Statistics</Typography>
+              <hr style={{ border: 0, borderTop: '2px solid #eee', margin: '8px 0 16px 0' }} />
+              {cvMetrics ? (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  <li><strong>Mean (y):</strong> {cvMetrics.mean_y?.toFixed(4)}</li>
+                  <li><strong>Std (y):</strong> {cvMetrics.std_y?.toFixed(4)}</li>
+                  <li><strong>Skewness (y):</strong> {(() => {
+                    const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
+                    const y = plotData[0]?.y || [];
+                    const mean = cvMetrics.mean_y || 0;
+                    const skew = y.length > 2
+                      ? y.reduce((acc: number, val: number) => acc + Math.pow((val - mean) / n, 3), 0) * (y.length / ((y.length - 1) * (y.length - 2)))
+                      : 0;
+                    return skew.toFixed(4);
+                  })()}</li>
+                  <li><strong>Kurtosis (y):</strong> {(() => {
+                    const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
+                    const y = plotData[0]?.y || [];
+                    const mean = cvMetrics.mean_y || 0;
+                    const kurt = y.length > 3
+                      ? y.reduce((acc: number, val: number) => acc + Math.pow((val - mean) / n, 4), 0) * (y.length * (y.length + 1)) / ((y.length - 1) * (y.length - 2) * (y.length - 3))
+                      - (3 * Math.pow(y.length - 1, 2)) / ((y.length - 2) * (y.length - 3))
+                      : 0;
+                    return kurt.toFixed(4);
+                  })()}</li>
+                </ul>
+              ) : (
+                <div>No data statistics available.</div>
+              )}
+
+              <Typography variant="h6" gutterBottom fontWeight="bold">Cross-Validation Metrics</Typography>
+              <hr style={{ border: 0, borderTop: '2px solid #eee', margin: '8px 0 16px 0' }} />
+              {cvMetrics ? (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  <li><strong>Mean Error (y - ŷ):</strong> {cvMetrics.mean_error?.toFixed(4)}</li>
+                  <li><strong>Std Error (y - ŷ):</strong> {cvMetrics.std_error?.toFixed(4)}</li>
+                  <li><strong>MAE:</strong> {cvMetrics.mae?.toFixed(4)}</li>
+                  <li><strong>RMSE:</strong> {cvMetrics.rmse?.toFixed(4)}</li>
+                  {cvMetrics.std_hat && (
+                    <li><strong>Mean Pred. Std (ŷ):</strong> {Array.isArray(cvMetrics.std_hat)
+                      ? (cvMetrics.std_hat.reduce((a: number, b: number) => a + b, 0) / cvMetrics.std_hat.length).toFixed(4)
+                      : cvMetrics.std_hat?.toFixed(4)}</li>
+                  )}
+                </ul>
+              ) : (
+                <div>No metrics available.</div>
+              )}
+            </div>
+          </Box>
       </div>
+      </Box >
     )} 
 
   </>
