@@ -35,7 +35,7 @@ export const InputVariableDist = () => {
     return (
       <InputBlock
         name="Value"
-        value={distribution[inputVar].value ? distribution[inputVar].value : null}
+        value={distribution[inputVar].value ? distribution[inputVar].value : NaN}
         onChange={(value) => handleSetValue(inputVar, 'value', value)}
       />
     );
@@ -46,12 +46,12 @@ export const InputVariableDist = () => {
       <>
         <InputBlock
           name="Mean"
-          value={distribution[inputVar].mean ? distribution[inputVar].mean : null}
+          value={distribution[inputVar].mean ? distribution[inputVar].mean : NaN}
           onChange={(value) => handleSetValue(inputVar, 'mean', value)}
         />
         <InputBlock
           name="Standard Deviation"
-          value={distribution[inputVar].std ? distribution[inputVar].std : null}
+          value={distribution[inputVar].std ? distribution[inputVar].std : NaN}
           onChange={(value) => handleSetValue(inputVar, 'std', value)}
         />
       </>
@@ -63,34 +63,34 @@ export const InputVariableDist = () => {
       <>
         <InputBlock
           name="Min"
-          value={distribution[inputVar].min ? distribution[inputVar].min : null}
+          value={distribution[inputVar].min ? distribution[inputVar].min : NaN}
           onChange={(value) => handleSetValue(inputVar, 'min', value)}
         />
         <InputBlock
           name="Max"
-          value={distribution[inputVar].max ? distribution[inputVar].max : null}
+          value={distribution[inputVar].max ? distribution[inputVar].max : NaN}
           onChange={(value) => handleSetValue(inputVar, 'max', value)}
         />
       </>
     );
   }
 
-  const LogNormalInputDistribution = ({ inputVar }: { inputVar: string }) => {
-    return (
-      <>
-        <InputBlock
-          name="Log Location"
-          value={distribution[inputVar].location ? distribution[inputVar].location : null}
-          onChange={(value) => handleSetValue(inputVar, 'location', value)}
-        />
-        <InputBlock
-          name='Log Scale'
-          value={distribution[inputVar].scale ? distribution[inputVar].scale : null}
-          onChange={(value) => handleSetValue(inputVar, 'scale', value)}
-        />
-      </>
-    );
-  }
+  // const LogNormalInputDistribution = ({ inputVar }: { inputVar: string }) => {
+  //   return (
+  //     <>
+  //       <InputBlock
+  //         name="Log Location"
+  //         value={distribution[inputVar].location ? distribution[inputVar].location : NaN}
+  //         onChange={(value) => handleSetValue(inputVar, 'location', value)}
+  //       />
+  //       <InputBlock
+  //         name='Log Scale'
+  //         value={distribution[inputVar].scale ? distribution[inputVar].scale : NaN}
+  //         onChange={(value) => handleSetValue(inputVar, 'scale', value)}
+  //       />
+  //     </>
+  //   );
+  // }
 
 
   const handleDistributionChange = (inputVar: string, value: distribution) => {

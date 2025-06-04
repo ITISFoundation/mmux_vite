@@ -11,7 +11,7 @@ export function createInputOutputSchema(vars: string[]) {
         "properties": vars.reduce((acc, curr) => {
             acc[curr] = { "type": "number" };
             return acc;
-        }, {} as Record<string, any>),
+        }, {} as Record<string, unknown>),
         "required": vars,
     }
 }
