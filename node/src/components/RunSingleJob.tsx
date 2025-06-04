@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { MMUXContextType } from '../views/MMUXContext';
 import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
 import { Box, Button, Input, Typography } from '@mui/material';
 import { Function, FunctionJob } from '../osparc-api-ts-client';
-import { useMMUXContext } from '../context/MMUXContext';
+import { useMMUXContext, MMUXContextType } from '../context/MMUXContext';
 
 
 async function runTestJob(context: MMUXContextType | undefined, config: any[]) {

@@ -30,6 +30,10 @@ dist-ssr
 *.sw?
 */.venv*/
 
+docker-compose.yml
+.env
+*.ignore.*
+
 # Run data values
 predictions.dat
 results.dat
