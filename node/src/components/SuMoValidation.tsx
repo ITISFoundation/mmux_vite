@@ -13,7 +13,6 @@ type cvMetricsType = {
     std_error: number;
     mae: number;
     rmse: number;
-    std_hat: number[] | number;
   }
 
 const SuMoValidation = () => {
@@ -28,7 +27,7 @@ const SuMoValidation = () => {
   //    - Std of y-y_hat
   const { selectedFunction, inputVars, selectedQoI, filterSelectedJobList } = useMMUXContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
-  const [plotData, setPlotData] = useState<PlotData[]>();
+  const [plotData, setPlotData] = useState<Partial<PlotData>[]>([]);
 
   console.log("Performing SuMo Validation for function: ", selectedFunction, " and QoI: ", selectedQoI);
 
@@ -76,7 +75,7 @@ const SuMoValidation = () => {
         size: binSize > 0 ? binSize : 1,
       };
 
-      const newPlotData = [
+      const newPlotData: Partial<PlotData>[] = [
         {
           y: y,
           type: 'histogram',
@@ -114,8 +113,8 @@ const SuMoValidation = () => {
       console.log("Registered cvMetrics: ", cvMetricsData);
     } else {
       console.warn("No data available for SuMo validation.");
-      setPlotData(undefined);
-      setCvMetrics(undefined);
+      setPlotData([]);
+      setCvMetrics({} as cvMetricsType);
     }
   }
 
@@ -187,7 +186,7 @@ const SuMoValidation = () => {
                   <li><strong>Std (y):</strong> {cvMetrics.std_y?.toFixed(4)}</li>
                   <li><strong>Skewness (y):</strong> {(() => {
                     const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
-                    const y = plotData[0]?.y || [];
+                    const y = plotData[0]?.y as Array<number> || [];
                     const mean = cvMetrics.mean_y || 0;
                     const skew = y.length > 2
                       ? y.reduce((acc: number, val: number) => acc + Math.pow((val - mean) / n, 3), 0) * (y.length / ((y.length - 1) * (y.length - 2)))
@@ -196,7 +195,7 @@ const SuMoValidation = () => {
                   })()}</li>
                   <li><strong>Kurtosis (y):</strong> {(() => {
                     const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
-                    const y = plotData[0]?.y || [];
+                    const y = plotData[0]?.y as Array<number> || [];
                     const mean = cvMetrics.mean_y || 0;
                     const kurt = y.length > 3
                       ? y.reduce((acc: number, val: number) => acc + Math.pow((val - mean) / n, 4), 0) * (y.length * (y.length + 1)) / ((y.length - 1) * (y.length - 2) * (y.length - 3))
