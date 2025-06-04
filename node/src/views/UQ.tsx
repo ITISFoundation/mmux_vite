@@ -105,7 +105,7 @@ export default function UQ() {
           </Button>
         </Box>
 
-        {dataUQHistogram && (
+        {dataUQHistogram && dataUQHistogram.length > 0 && (
           <Plot
             data={[
               {
