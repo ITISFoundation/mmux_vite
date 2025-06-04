@@ -45,35 +45,53 @@ const SuMoValidation = () => {
   const createDataAndMetrics = (data: any) => {
     if (data && selectedQoI) {
       const y = data[selectedQoI];
+      const mean_y = y.reduce((a: number, b: number) => a + b, 0) / y.length;
+      const std_y = Math.sqrt(y.reduce((sum: number, value: number) => sum + Math.pow(value - mean_y, 2), 0) / (y.length - 1));
       const y_hat = data[selectedQoI + "_hat"];
       const diff = y.map((value: number, index: number) => value - y_hat[index])
+      const diff_shifted = diff.map((d: number) => d + mean_y);
       const std_hat = data[selectedQoI + "_std_hat"];
+
+      // Compute global min/max for binning
+      const allValues = [...y, ...y_hat];
+      const minVal = Math.min(...allValues);
+      const maxVal = Math.max(...allValues);
+      const binCount = 20; // You can adjust the number of bins as needed
+      const binSize = (maxVal - minVal) / binCount;
+
+      const binSettings = {
+        start: minVal,
+        end: maxVal,
+        size: binSize > 0 ? binSize : 1,
+      };
+
       const newPlotData = [
         {
           x: y,
           type: 'histogram',
           marker: { color: '#7fc7ff' },
           name: 'Observed',
+          xbins: binSettings,
         },
         {
           x: y_hat,
           type: 'histogram',
           marker: { color: '#ff7f0e' },
           name: 'Predicted',
+          xbins: binSettings,
         },
         {
-          x: diff,
+          x: diff_shifted,
           type: 'histogram',
           marker: { color: '#2ca02c' },
           name: 'Deviation (y - y_hat)',
+          xbins: binSettings,
         }
       ]
       setPlotData(newPlotData);
       console.log("Registered plotData: ", newPlotData);
 
       // compute statistics
-      const mean_y = y.reduce((a: number, b: number) => a + b, 0) / y.length;
-      const std_y = Math.sqrt(y.reduce((sum: number, value: number) => sum + Math.pow(value - mean_y, 2), 0) / (y.length - 1));
       const mean_error = y.reduce((sum: number, value: number, index: number) => sum + (value - y_hat[index]), 0) / y.length;
       const std_error = Math.sqrt(y.reduce((sum: number, value: number, index: number) => sum + Math.pow(value - y_hat[index] - mean_error, 2), 0) / (y.length - 1));
       const mae = y.reduce((sum: number, value: number, index: number) => sum + Math.abs(value - y_hat[index]), 0) / y.length;
