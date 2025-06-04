@@ -37,11 +37,14 @@ export default function UQ() {
       return acc;
     }, {} as Record<string, number>);
 
-    fetch(PYTHON_DAKOTA_BACKEND + "/flask/uq_propagation", {
+    // Dakota UQ is much less noisy in its sampling - however more constrained
+    // fetch(PYTHON_DAKOTA_BACKEND + "/flask/uq_propagation", {
+    fetch(PYTHON_DAKOTA_BACKEND + "/flask/manual_uq_propagation", {
       method: "POST",
       body: JSON.stringify({
         inputVars: inputVars,
         output: selectedQoI,
+        distributions: distribution,
         FunctionJobs: jobs,
         numSamples: numSamples,
         log: false,

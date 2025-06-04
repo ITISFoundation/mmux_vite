@@ -18,7 +18,7 @@ from pathlib import Path
 import shutil
 import json
 import logging
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Literal, Optional
 import numpy as np
 import pandas as pd
 from flask import Flask, request, jsonify
@@ -35,9 +35,10 @@ from osparc_client.configuration import Configuration as OsparcConfiguration
 
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
+    create_manual_uq_samples,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
-from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid
+from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid
 
 ### Logger configuration ####################################
 _logger = logging.getLogger(__name__)
@@ -296,6 +297,62 @@ def flask_sumo_cross_validation():
     _logger.debug("Done!!")
 
     return jsonify(results) 
+
+
+### First do "normal" manual UQ propagation & compare w the outputs of Dakota. Then do the N times w error.
+@app.route("/flask/manual_uq_propagation", methods=["POST"])
+def flask_manual_uq_propagation():
+    os.chdir(Path(__file__).parent)
+    _logger.debug("Starting flask function: flask_manual_uq_propagation")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+    
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    output_response = request_data["output"]
+    input_vars: List[str] = request_data["inputVars"]
+    distributions = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
+    num_samples: int = request_data["numSamples"]
+    jobs: List[FunctionJob] = request_data["FunctionJobs"]
+    make_log: bool = request_data.get("log", False)
+
+    TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
+    run_dir = TRAINING_FILE.parent
+
+    PROCESSED_TRAINING_FILE = process_input_file(
+        TRAINING_FILE,
+        make_log=make_log,
+        columns_to_keep=input_vars + [output_response], # type: ignore
+    )
+
+    # if make_log:  # FIXME for now log applies to all inputs & the output
+    #     input_vars = [f"log_{var}" for var in input_vars]
+    #     output_response = f"log_{output_response}"
+    #     means = {f"log_{key}": np.log(val) for key, val in means.items()}
+    #     stds = {f"log_{key}": np.log(val) for key, val in stds.items()}
+
+    ## for some reason, much more noisy than Dakota's sampling
+    samples = create_manual_uq_samples(input_vars, distributions, num_samples)
+    df = pd.DataFrame(samples)
+    UQ_SAMPLES_FILE = run_dir / "manual_uq_samples.csv"
+    df.to_csv(UQ_SAMPLES_FILE, index=False)
+    _logger.debug(f"Generated manual UQ samples saved to {UQ_SAMPLES_FILE}")
+    
+    PROCESSED_UQ_SAMPLES_FILE = process_input_file(
+        UQ_SAMPLES_FILE,
+        make_log=make_log,
+        columns_to_keep=input_vars,
+    )
+    results = evaluate_sumo(
+        run_dir, 
+        PROCESSED_TRAINING_FILE,
+        PROCESSED_UQ_SAMPLES_FILE,
+        input_vars,
+        output_response,
+    )
+
+    _logger.debug("Done!!")
+    # return jsonify(results) 
+    return jsonify(results[output_response+"_hat"]) # for compatibility w normal dakota UQ
 
 
 @app.route("/flask/sumo_along_axes", methods=["POST"])
