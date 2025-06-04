@@ -1,13 +1,12 @@
 SHELL 				 			:= /bin/sh
 .DEFAULT_GOAL 		 			:= help
 
-DOCKER_IMAGE_TAG := 1.0.0
+DOCKER_IMAGE_TAG := 1.1.0
 
 
 FLASKAPI_DIR := ./flaskapi
 VENV_DIR := $(FLASKAPI_DIR)/.venv
 MMUX_PYTHON_DIR := $(FLASKAPI_DIR)/mmux_python
-MMUX_PYTHON_BRANCH := "work/jgo/flask_mmux_nih"
 #
 NODE_DIR := ./node
 
@@ -24,7 +23,6 @@ start-frontend:
 install-mmux-python:
 	apt install python3.11 python3.11-venv # install python venv
 	git clone https://github.com/ITISFoundation/mmux_python $(MMUX_PYTHON_DIR)
-	cd $(MMUX_PYTHON_DIR) && git checkout $(MMUX_PYTHON_BRANCH)
 	python3.11 -m venv $(VENV_DIR)
 	$(VENV_DIR)/bin/python -m pip install flask python-dotenv
 	$(VENV_DIR)/bin/python -m pip install -r $(MMUX_PYTHON_DIR)/requirements.txt
