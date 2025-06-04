@@ -34,7 +34,7 @@ from mmux_python.utils.funs_data_processing import (
     process_input_file,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
-from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo_crossvalidation, evaluate_sumo_on_grid
+from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid
 
 ### TypeScript expects camelCase, but Python API is getting snake_case. 
 # Convert before sending to frontend.
@@ -244,6 +244,43 @@ def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str
     df_jobs.to_csv(TRAINING_FILE, index=False)
     return TRAINING_FILE
 
+
+@app.route("/flask/sumo_cross_validation", methods=["POST"])
+def flask_sumo_cross_validation():
+    os.chdir(Path(__file__).parent)
+    logger.info("Starting flask function: flask_sumo_cross_validation")
+    logger.info("Cwd: " + str(Path.cwd()))
+    
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    output_response = request_data["output"]
+    input_vars: List[str] = request_data["inputVars"]
+    jobs: List[FunctionJob] = request_data["FunctionJobs"]
+    make_log: bool = request_data.get("log", False)
+
+    TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
+    run_dir = TRAINING_FILE.parent
+
+    PROCESSED_TRAINING_FILE = process_input_file(
+        TRAINING_FILE,
+        make_log=make_log,
+        columns_to_keep=input_vars + [output_response], # type: ignore
+    )
+    if make_log:  # FIXME for now log applies to all inputs & the output
+        input_vars = [f"log_{var}" for var in input_vars]
+        output_response = f"log_{output_response}"
+
+    results = evaluate_sumo_manual_crossvalidation(
+        run_dir,
+        PROCESSED_TRAINING_FILE,
+        input_vars,
+        output_response, # type: ignore
+    )
+    logger.info("Done!!")
+
+    return jsonify(results) 
+
+
 @app.route("/flask/sumo_along_axes", methods=["POST"])
 def flask_evaluate_sumo_along_axes():
     os.chdir(Path(__file__).parent)
@@ -277,18 +314,18 @@ def flask_evaluate_sumo_along_axes():
     logger.info("Done!!")
     return jsonify(results) # check if jsonify is needed
 
-@app.route("/flask/sumo_2d_surface", methods=["POST"])
-def flask_sumo_2d_surface():
+## This method could probably be generic for N-D (thus not needing the 1D version above)
+@app.route("/flask/sumo_grid_evaluation", methods=["POST"])
+def flask_sumo_grid_evaluation():
     os.chdir(Path(__file__).parent)
-    logger.info("Starting flask function: flask_sumo_2d_surface")
+    logger.info("Starting flask function: flask_sumo_grid_evaluation")
     logger.info("Cwd: " + str(Path.cwd()))
 
     # Convert request data into a Python dictionary
     request_data: dict = json.loads(request.data.decode("utf-8"))
     output_response = request_data["output"]
-    input_var1: str = request_data["key1"]
-    input_var2: str = request_data["key2"]
-    input_vars = [input_var1, input_var2]
+    grid_vars: List[str] = request_data["gridVars"]
+    input_vars: List[str] = request_data["inputVars"]
     make_log: bool = request_data.get("log", False)
     jobs: List[FunctionJob] = request_data["FunctionJobs"]
     TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
@@ -306,6 +343,7 @@ def flask_sumo_2d_surface():
     results = evaluate_sumo_on_grid(
         run_dir,
         PROCESSED_TRAINING_FILE,
+        grid_vars,
         input_vars,
         output_response, # type: ignore
     )
