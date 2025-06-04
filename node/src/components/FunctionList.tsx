@@ -120,27 +120,32 @@ export function FunctionList() {
     }
   };
 
-  const getNFunctionJobCollections = (fun: Function) => {
-    console.log(fun);
+  const NFunctionJobCollections = (props: {fun: Function}): React.ReactNode => {
+    const { fun } = props;
     const [jobCollectionCount, setJobCollectionCount] = useState<number | null>(null);
     const [jobCount, setJobCount] = useState<number | null>(null);
-    const fetchJobJobCollectionCount = async () => {
-      try {
-        const jcs = await getFunctionJobCollections(fun.uid);
-        setJobCollectionCount(jcs.length)
-        setJobCount(jcs.map(jc => { return jc.jobIds ? jc.jobIds.length : 0 }).reduce((a, b) => a + b, 0));
-      } catch (err) {
-        console.log("Error fetching jobs for Function ", fun.uid)
-      }
-    };
-    fetchJobJobCollectionCount();
+
+    useEffect(() => {
+      const fetchJobJobCollectionCount = async () => {
+        try {
+          const jcs = await getFunctionJobCollections(fun.uid);
+          setJobCollectionCount(jcs.length)
+          setJobCount(jcs.map(jc => { return jc.jobIds ? jc.jobIds.length : 0 }).reduce((a, b) => a + b, 0));
+        } catch (err) {
+          console.warn("Error fetching jobs for Function ", fun.uid)
+          console.error(err);
+        }
+      };
+      fetchJobJobCollectionCount();
+    }
+    , [fun.uid]);
 
     return (
-      <span>
+      <Box>
         {jobCollectionCount === null || jobCount === null
           ? "Loading..."
           : `Campaigns: ${jobCollectionCount} (${jobCount} total evaluations)`}
-      </span>
+      </Box>
     );
   }
 
@@ -219,7 +224,7 @@ export function FunctionList() {
           headerName: "# Campaigns / Evaluations",
           flex: 1,
           minWidth: 250,
-          renderCell: (params) => getNFunctionJobCollections(params.row),
+          renderCell: (params) => <NFunctionJobCollections fun={params.row} />,
           // FIXME for some reason, this gets called many times
         },
         {
