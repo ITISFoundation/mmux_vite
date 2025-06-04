@@ -56,9 +56,8 @@ const SuMoValidation = () => {
       const allValues = [...y, ...y_hat];
       const minVal = Math.min(...allValues);
       const maxVal = Math.max(...allValues);
-      const binCount = 20; // You can adjust the number of bins as needed
+      const binCount = 5; // You can adjust the number of bins as needed
       const binSize = (maxVal - minVal) / binCount;
-
       const binSettings = {
         start: minVal,
         end: maxVal,
@@ -67,24 +66,19 @@ const SuMoValidation = () => {
 
       const newPlotData = [
         {
-          x: y,
+          y: y,
           type: 'histogram',
+          histnorm: 'probability',
           marker: { color: '#7fc7ff' },
-          name: 'Observed',
+          name: 'Observations',
           xbins: binSettings,
         },
         {
-          x: y_hat,
+          y: diff_shifted,
           type: 'histogram',
-          marker: { color: '#ff7f0e' },
-          name: 'Predicted',
-          xbins: binSettings,
-        },
-        {
-          x: diff_shifted,
-          type: 'histogram',
+          histnorm: 'probability',
           marker: { color: '#2ca02c' },
-          name: 'Deviation (y - y_hat)',
+          name: 'Prediction Deviations',
           xbins: binSettings,
         }
       ]
@@ -123,12 +117,12 @@ const SuMoValidation = () => {
   }, []);
 
   const layout = {
-    title: { text: selectedFunction?.title + " SuMo Validation", },
+    title: { text: selectedFunction?.title + " " + selectedQoI + " SuMo Validation", },
     scene: {
       xaxis: { title: { text: selectedQoI ? selectedQoI : "Quantity of Interest" } },
       yaxis: { title: { text: "Count" } },
     },
-    bargap: 0.05,
+    barmode: "overlay",
   }
 
   return <>
