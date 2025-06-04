@@ -50,7 +50,7 @@ const SuMoValidation = () => {
       const std_hat = data[selectedQoI + "_std_hat"];
       const newPlotData = [
         {
-          x: plotData[selectedQoI],
+          x: y,
           type: 'histogram',
           marker: { color: '#7fc7ff' },
           name: 'Observed',
@@ -112,8 +112,9 @@ const SuMoValidation = () => {
     },
     bargap: 0.05,
   }
+
   return <>
-    {plotData && selectedQoI && selectedQoI in plotData && (
+    {plotData && selectedQoI && (
       <div style={{ width: '100%', maxWidth: 600 }}>
         <Plot
           data={plotData}
@@ -122,7 +123,7 @@ const SuMoValidation = () => {
           config={{ responsive: true }}
         />
       </div>
-    )}
+    )} 
 
   </>
 }

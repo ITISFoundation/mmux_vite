@@ -2,17 +2,13 @@ import { useState, useEffect } from 'react';
 import MetaModelingUX from '../components/MetaModelingUX';
 import { Button, Box, Container } from '@mui/material';
 import { useMMUXContext } from '../context/MMUXContext';
-import PlotDataTogether from '../components/PlotDataTogether'
-import ShowCvMetrics from '../components/ShowCvMetrics';
 import Curves1DPlots from '../components/PlotDataTogether'
 import Surface2DPlot from "../components/Surface3DPlot";
 import IsoSurface3DPlot from "../components/IsoSurface3DPlot";
-import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
-import { getFunctionJob } from "../utils/function_utils";
-
+import SuMoValidation from '../components/SuMoValidation';
 
 function SuMoBuildingValidation() {
-  const { outputVars, selectedFunction, selectedJobUids, isSuMoGenerated, setIsSuMoGenerated, selectedQoI, setSelectedQoI } = useMMUXContext()
+  const { inputVars, outputVars, selectedFunction, selectedJobUids, isSuMoGenerated, setIsSuMoGenerated, selectedQoI, setSelectedQoI } = useMMUXContext()
 
   useEffect(() => {
     setSelectedQoI("");
@@ -105,38 +101,10 @@ function SuMoBuildingValidation() {
           and the + button to add 1D / 2D / 3D plots always right below it. */}
           {isSuMoGenerated && (
             <>
-              {/* TODO add manual CV */}
-              {/* <PlusButton
-                onClickFun={() => null} // TODO need to execute this
-                PlotFunComponent={() => {
-                  const sumoCvMetrics = {
-                    "cv_metrics": { // mockup
-                      'RMSE': 0.0122742,
-                      'Sum Absolute Error': 0.637624,
-                      'Mean Absolute Error': 0.00850166,
-                      'Maximal Absolute Error': 0.065424
-                    },
-                    "statistics": { // mockup
-                      'Mean': 0.0122742,
-                      'Standard Deviation': 0.637624,
-                      'Minimum': 0.00850166,
-                      'Maximum': 0.065424
-                    }
-                  }
-                  return <ShowCvMetrics
-                    data={sumoCvMetrics}
-                    inputVars={inputVars}
-                    qoi={context?.selectedQoI}
-                  />
-                }
-                }
-                text="Add SuMo CrossValidation accuracy metrics"
-                enabled={context?.isSuMoGenerated}
-              /> */}
-
-              {/* TODO something broke <Curves1DPlots /> */}
-              <Surface2DPlot />
-              <IsoSurface3DPlot />
+              <SuMoValidation />
+              {/* {inputVars.length > 0 ? <Curves1DPlots /> : undefined}
+              {inputVars.length > 1 ? <Surface2DPlot /> : undefined}
+              {inputVars.length > 2 ? <IsoSurface3DPlot /> : undefined} */}
             </>
           )}
         </Box>
