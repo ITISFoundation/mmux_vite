@@ -1,6 +1,7 @@
-import { Box, Chip, InputLabel, MenuItem, Select, TextField, Typography } from "@mui/material";
+import { Box, Chip, InputLabel, MenuItem, Select, Typography } from "@mui/material";
 import { useEffect } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
+import { InputBlock } from "./InputBlock";
 
 export const InputVariableDist = () => {
   const { inputVars, distribution, setDistribution } = useMMUXContext();
@@ -12,23 +13,6 @@ export const InputVariableDist = () => {
     }
     newInputVars[inputVar][type as variables] = value;
     setDistribution(newInputVars);
-  }
-
-  const InputBlock = (props: InputBlockProps) => {
-    const { name, value, onChange } = props;
-    return (
-      <InputLabel size="small" sx={{ flex: '1', display: 'flex', flexDirection: 'column', transform: 'none' }}>
-        {name}:
-        <TextField
-          type="number"
-          variant="outlined"
-          size="small"
-          sx={{ marginTop: '8px' }}
-          value={value}
-          onChange={(e) => onChange(parseFloat(e.target.value))}
-        />
-      </InputLabel>
-    );
   }
 
   const ConstantInputDistribution = ({ inputVar }: { inputVar: string }) => {

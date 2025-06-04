@@ -25,9 +25,7 @@ const App = () => {
   const [healthStatus, setHealthStatus] = useState<boolean>(false);
   const steps: Step[] = [
     { id: 0, label: "Setup" },
-    { id: 1, label: "Job Setup" },
-    { id: 2, label: "SuMo" },
-    { id: 3, label: "UQ" },
+    { id: 1, label: "UQ" },
     // Do not include the ones below - this is for the navigation bar
     // { id: 98, label: "FunctionIndex" },
     // { id: 99, label: "JobIndex" },
@@ -98,9 +96,7 @@ const App = () => {
             <Navigation steps={steps} activeStep={currentView} />
             <>
               {currentView === 0 ? <Setup /> : undefined}
-              {currentView === 1 ? <JobSetup /> : undefined}
-              {currentView === 2 ? <SuMoBuildingValidation /> : undefined}
-              {currentView === 3 ? <UQ /> : undefined}
+              {currentView === 1 ? <UQ /> : undefined}
             </>
             <Footer
               mode={themeMode}
