@@ -35,7 +35,7 @@ export const InputVariableDist = () => {
     return (
       <InputBlock
         name="Value"
-        value={distribution[inputVar].value ? distribution[inputVar].value : NaN}
+        value={distribution[inputVar].value !== undefined ? distribution[inputVar].value : NaN}
         onChange={(value) => handleSetValue(inputVar, 'value', value)}
       />
     );
@@ -46,12 +46,12 @@ export const InputVariableDist = () => {
       <>
         <InputBlock
           name="Mean"
-          value={distribution[inputVar].mean ? distribution[inputVar].mean : NaN}
+          value={distribution[inputVar].mean !== undefined ? distribution[inputVar].mean : NaN}
           onChange={(value) => handleSetValue(inputVar, 'mean', value)}
         />
         <InputBlock
           name="Standard Deviation"
-          value={distribution[inputVar].std ? distribution[inputVar].std : NaN}
+          value={distribution[inputVar].std !== undefined ? distribution[inputVar].std : NaN}
           onChange={(value) => handleSetValue(inputVar, 'std', value)}
         />
       </>
@@ -63,12 +63,12 @@ export const InputVariableDist = () => {
       <>
         <InputBlock
           name="Min"
-          value={distribution[inputVar].min ? distribution[inputVar].min : NaN}
+          value={distribution[inputVar].min !== undefined ? distribution[inputVar].min : NaN}
           onChange={(value) => handleSetValue(inputVar, 'min', value)}
         />
         <InputBlock
           name="Max"
-          value={distribution[inputVar].max ? distribution[inputVar].max : NaN}
+          value={distribution[inputVar].max !== undefined ? distribution[inputVar].max : NaN}
           onChange={(value) => handleSetValue(inputVar, 'max', value)}
         />
       </>
@@ -80,12 +80,12 @@ export const InputVariableDist = () => {
   //     <>
   //       <InputBlock
   //         name="Log Location"
-  //         value={distribution[inputVar].location ? distribution[inputVar].location : NaN}
+  //         value={distribution[inputVar].location !== undefined ? distribution[inputVar].location : NaN}
   //         onChange={(value) => handleSetValue(inputVar, 'location', value)}
   //       />
   //       <InputBlock
   //         name='Log Scale'
-  //         value={distribution[inputVar].scale ? distribution[inputVar].scale : NaN}
+  //         value={distribution[inputVar].scale !== undefined ? distribution[inputVar].scale : NaN}
   //         onChange={(value) => handleSetValue(inputVar, 'scale', value)}
   //       />
   //     </>
@@ -142,16 +142,17 @@ export const InputVariableDist = () => {
                 gap: "16px",
                 borderRadius: "8px",
               })}>
-              <InputLabel sx={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                <Typography variant="h6" sx={{ fontSize: '1.2em' }}>
-                  <Chip label={inputVar} style={{ fontSize: '0.8em', fontWeight: '100', textTransform: 'uppercase' }}></Chip> :
-                </Typography>
+              <Typography variant="h6" sx={{ fontSize: '1.2em' }}>
+                <Chip label={inputVar} style={{ fontSize: '0.8em', fontWeight: '100', textTransform: 'uppercase' }}></Chip>
+              </Typography>
+              <InputLabel sx={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'start' }}>
+                Type:
                 <Select
                   variant="outlined"
                   size="small"
                   id={index + "selector"}
                   value={distribution[inputVar]?.distribution || ""}
-                  sx={{ minWidth: 132 }}
+                  sx={{ minWidth: 132, width: '100%' }}
                   onChange={(e) => handleDistributionChange(inputVar, e.target.value as distribution)}
                 >
                   {/* TODO include info buttons about each distribution & their parameters */}
@@ -173,11 +174,10 @@ export const InputVariableDist = () => {
                   "not found"
                 )}
                 {/* For v9 release, removed log-normal and exponential input distributions
-                  
-                   ) : distribution[inputVar]?.distribution === "log-normal" ? (
-                       <LogNormalInputDistribution inputVar={inputVar} />
-                     ) : distribution[inputVar]?.distribution === "exponential" ? (
-                         <ExponentialInputDistribution inputVar={inputVar} />
+                  ) : distribution[inputVar]?.distribution === "log-normal" ? (
+                      <LogNormalInputDistribution inputVar={inputVar} />
+                    ) : distribution[inputVar]?.distribution === "exponential" ? (
+                        <ExponentialInputDistribution inputVar={inputVar} />
                 */}
               </>
             </Box>

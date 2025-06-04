@@ -27,7 +27,7 @@ const Surface2DPlot = () => {
             inputVars: inputVars,
             output: selectedQoI,
             FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
-            log: false,
+            log: false, // FIXME not used atm
           }
         ),
       }).then(function (response) {
@@ -53,9 +53,9 @@ const Surface2DPlot = () => {
         y: uniqueY,
         z: z,
         type: "surface",
-          colorscale: "Viridis",
-          showscale: true,
-        }];
+        colorscale: "Viridis",
+        showscale: true,
+      }];
       setPlotData(newData);
       console.log("Registered plotData: ", newData)
     } else {
