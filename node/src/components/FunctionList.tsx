@@ -35,11 +35,13 @@ const VarsHolder = styled("div")`
 `;
 
 export function FunctionList() {
-  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } = useMMUXContext();
+  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } =
+    useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [functions, setFunctions] = useState<Function[]>([]);
-  const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
+  const [rowSelectionModel, setRowSelectionModel] =
+    useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
   const fetchFunctions = async () => {
     try {
@@ -93,9 +95,9 @@ export function FunctionList() {
         // Send a postMessage to the parent iframe
         window.parent.postMessage(
           {
-            "type": "openFunction",
-            "message": {
-              "functionId": (fun as ProjectFunction).projectId,
+            type: "openFunction",
+            message: {
+              functionId: (fun as ProjectFunction).projectId,
             },
           },
           "*"
@@ -118,27 +120,32 @@ export function FunctionList() {
     }
   };
 
-  const getNFunctionJobCollections = (fun: Function) => {
-    console.log(fun);
+  const NFunctionJobCollections = (props: {fun: Function}): React.ReactNode => {
+    const { fun } = props;
     const [jobCollectionCount, setJobCollectionCount] = useState<number | null>(null);
     const [jobCount, setJobCount] = useState<number | null>(null);
-    const fetchJobJobCollectionCount = async () => {
-      try {
-        const jcs = await getFunctionJobCollections(fun.uid);
-        setJobCollectionCount(jcs.length)
-        setJobCount(jcs.map(jc => { return jc.jobIds ? jc.jobIds.length : 0 }).reduce((a, b) => a + b, 0));
-      } catch (err) {
-        console.log("Error fetching jobs for Function ", fun.uid)
-      }
-    };
-    fetchJobJobCollectionCount();
+
+    useEffect(() => {
+      const fetchJobJobCollectionCount = async () => {
+        try {
+          const jcs = await getFunctionJobCollections(fun.uid);
+          setJobCollectionCount(jcs.length)
+          setJobCount(jcs.map(jc => { return jc.jobIds ? jc.jobIds.length : 0 }).reduce((a, b) => a + b, 0));
+        } catch (err) {
+          console.warn("Error fetching jobs for Function ", fun.uid)
+          console.error(err);
+        }
+      };
+      fetchJobJobCollectionCount();
+    }
+    , [fun.uid]);
 
     return (
-      <span>
+      <Box>
         {jobCollectionCount === null || jobCount === null
           ? "Loading..."
           : `Campaigns: ${jobCollectionCount} (${jobCount} total evaluations)`}
-      </span>
+      </Box>
     );
   }
 
@@ -217,7 +224,7 @@ export function FunctionList() {
           headerName: "# Campaigns / Evaluations",
           flex: 1,
           minWidth: 250,
-          renderCell: (params) => getNFunctionJobCollections(params.row),
+          renderCell: (params) => <NFunctionJobCollections fun={params.row} />,
           // FIXME for some reason, this gets called many times
         },
         {
@@ -241,13 +248,20 @@ export function FunctionList() {
                 setSelectedFunction(params.row);
                 setInputVars(
                   params.row.inputSchema?.schemaContent?.properties
-                    ? Object.keys(params.row.inputSchema.schemaContent.properties)
+                    ? Object.keys(
+                        params.row.inputSchema.schemaContent.properties
+                      )
                     : []
                 );
-                console.log("inputVars registered:", Object.keys(params.row.inputSchema.schemaContent.properties))
+                console.log(
+                  "inputVars registered:",
+                  Object.keys(params.row.inputSchema.schemaContent.properties)
+                );
                 setOutputVars(
                   params.row.outputSchema?.schemaContent?.properties
-                    ? Object.keys(params.row.outputSchema.schemaContent.properties)
+                    ? Object.keys(
+                        params.row.outputSchema.schemaContent.properties
+                      )
                     : []
                 );
               }}
@@ -267,14 +281,21 @@ export function FunctionList() {
         },
         "& .MuiDataGrid-row:hover": {
           backgroundColor: (theme) =>
-            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
+            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+              theme.palette.mode === "dark" ? "black" : "white"
             })`,
         },
         "& .MuiDataGrid-row.Mui-selected": {
-          backgroundColor: (theme) => theme.palette.primary.main,
+          backgroundColor: (theme) =>
+            `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${
+              theme.palette.mode === "dark" ? "black" : "white"
+            })`,
         },
         "& .MuiDataGrid-row.Mui-selected:hover": {
-          backgroundColor: (theme) => theme.palette.primary.main,
+          backgroundColor: (theme) =>
+            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+              theme.palette.mode === "dark" ? "black" : "white"
+            })`,
         },
         "& .MuiDataGrid-sortButton": {
           backgroundColor: (theme) => theme.palette.background.paper,
