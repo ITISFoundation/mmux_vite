@@ -196,6 +196,7 @@ export default function UQ() {
           borderRadius={2}
           width={900}
           height={600}
+          overflow={"auto"}
         >
           {isSuMoGenerated && (
             <>
