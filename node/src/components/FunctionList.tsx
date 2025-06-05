@@ -138,7 +138,7 @@ export function FunctionList() {
     console.log("NFunctionJobCollections for function:", fun);
     return (
       <Box>
-        {jobCollectionCount === null || jobCount === null
+        {jobCollectionCount[fun.uid] === undefined || jobCount[fun.uid] === undefined
           ? "Loading..."
           : `Campaigns: ${jobCollectionCount[fun.uid]} (${jobCount[fun.uid]} total evaluations)`}
       </Box>
