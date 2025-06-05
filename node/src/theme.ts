@@ -5,7 +5,7 @@ export function setupTheme(mode: "light" | "dark") {
     palette: {
       mode: mode,
       primary: {
-        main: mode === "light" ? "#FF7C60" : "#FF8166",
+        main: mode === "light" ? "#5dc0ff" : "#00639f",
         contrastText: mode === "light" ? "#000" : "#fff",
       },
       secondary: {
@@ -29,7 +29,7 @@ export function setupTheme(mode: "light" | "dark") {
       MuiButton: {
         styleOverrides: {
           root: {
-            backgroundColor: mode === "light" ? "#ddd" : "#343839",
+            backgroundColor: mode === "light" ? "#fff" : "#343839",
             variants: [
               {
                 props: {
