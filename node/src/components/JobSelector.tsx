@@ -77,7 +77,7 @@ export default function JobsSelector() {
   };
 
   const onSelectJob = (index: number, selected: boolean, subJob: string) => {
-    console.log(
+    console.info(
       "Selecting subJob: ",
       subJob,
       " at index: ",
@@ -128,9 +128,9 @@ export default function JobsSelector() {
   };
 
   async function updateJobCollections(functionUid: string) {
-    console.log("Fetching jobCollections for function: ", functionUid);
+    console.info("Fetching jobCollections for function: ", functionUid);
     if (fetchedJobCollections.length > 0) {
-      console.log("Job collections already fetched, skipping fetch.");
+      console.info("Job collections already fetched, skipping fetch.");
       setJobCollections(fetchedJobCollections);
       setLoading(false);
       return;
@@ -141,7 +141,7 @@ export default function JobsSelector() {
     const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
     colsFetched.current = 0;
     jobsFetched.current = 0;
-    console.log("Fetched jobCollections: ", jobsC, totalSubs);
+    console.info("Fetched jobCollections: ", jobsC, totalSubs);
 
     const newJobs: SelectedJobCollection[] = await Promise.all(
       jobsC.map(async (jc) => {
@@ -157,7 +157,7 @@ export default function JobsSelector() {
             };
           })
         );
-        console.log(
+        console.info(
           "Fetched subJobs for jobCollection: ",
           progress,
           jobProgress,
@@ -180,7 +180,7 @@ export default function JobsSelector() {
   }
 
   const handleAnchor = (target: HTMLButtonElement, uid: string) => {
-    console.log("Opening job collection with uid: ", target, uid);
+    console.info("Opening job collection with uid: ", target, uid);
     setAnchorEl(target);
     openJobCollection(uid);
   };
@@ -197,7 +197,7 @@ export default function JobsSelector() {
 
   const handleClickAway = () => {
     if (poperID !== -1 && anchorEl && poperOpen.current) {
-      console.log("Closing job collection popper", poperID, anchorEl);
+      console.info("Closing job collection popper", poperID, anchorEl);
       setAnchorEl(null);
       setPopperID(-1);
       poperOpen.current = false;
@@ -226,22 +226,22 @@ export default function JobsSelector() {
   }
 
   useEffect(() => {
-    console.log("useEffect in JobsSelector triggered");
+    console.info("useEffect in JobsSelector triggered");
     if (selectedFunction === undefined || jobCollections.length > 0) {
       return;
     } else {
-      console.log("Function selected: ", selectedFunction.uid);
+      console.info("Function selected: ", selectedFunction.uid);
       (async () => {
         await updateJobCollections(selectedFunction?.uid as string);
         setLoading(false);
-        console.log("Updated JobCollections");
+        console.info("Updated JobCollections");
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFunction]);
 
   if (loading) {
-    console.log(
+    console.info(
       "Loading job collections...",
       colsFetched.current,
       jobsFetched.current

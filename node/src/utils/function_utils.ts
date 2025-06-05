@@ -1,5 +1,6 @@
 import { Function, FunctionJob, FunctionJobCollection} from '../osparc-api-ts-client';
 import { PYTHON_DAKOTA_BACKEND } from './api_objects';
+import { fetchWithRetry } from './fetch_retry';
 
 export function delay(ms: number) {
     return new Promise( resolve => setTimeout(resolve, ms) );
@@ -31,7 +32,7 @@ export async function listFunctions(): Promise<Function[]> {
 }
 
 export async function listJobs(): Promise<FunctionJob[]> {
-    return await fetch(
+    return await fetchWithRetry(
         PYTHON_DAKOTA_BACKEND + '/flask/list_jobs',
     ).then(function (response) {
         return response.json()
@@ -39,7 +40,7 @@ export async function listJobs(): Promise<FunctionJob[]> {
 }
 
 export async function getFunctionJob(jobUid: string): Promise<FunctionJob> {
-    return await fetch(
+    return await fetchWithRetry(
         PYTHON_DAKOTA_BACKEND + '/flask/get_function_job?jobUid=' + jobUid,
     ).then(function (response) {
         return response.json()
