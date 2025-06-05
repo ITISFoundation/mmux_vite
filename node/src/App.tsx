@@ -28,7 +28,7 @@ const App = () => {
     // { id: 98, label: "FunctionIndex" },
     // { id: 99, label: "JobIndex" },
   ];
-  const { currentView, setCurrentView } = useMMUXContext();
+  const { currentView } = useMMUXContext();
   const { mode, systemMode, setMode } = useColorScheme();
   const finalMode = mode
     ? mode === "system"
@@ -64,7 +64,6 @@ const App = () => {
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    console.log('Testing out the print!', window.parent.postMessage({ type: 'theme'}, '*'))
     const pollHealthStatus = async (retries: number) => {
       console.log("Fetching health status from backend...", retries);
       const result = await getHealthStatus();
@@ -86,6 +85,31 @@ const App = () => {
     };
   }, []);
 
+    useEffect(() => {
+    // Message handler (from parent window, when in an iframe zB.)
+    const processKeyValue = (keyValue: string) => {
+      const [key, value] = keyValue.split('=')
+      if (key === 'theme') {
+        if (value.toLowerCase().includes('dark')) {
+          setThemeModeHandler('dark')
+        }
+        else if (value.toLowerCase().includes('light')) {
+          setThemeModeHandler('light')
+        }
+      }
+    }
+    const messageHandler = (e: { data: {msg: string}; }) => {
+      const { msg } = e.data;
+      const OSPARC_MSG_PREFIX = 'osparc;'
+      if (msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
+        const osparcMsg = msg.slice(OSPARC_MSG_PREFIX.length)
+        osparcMsg.split('&').forEach(processKeyValue)
+      }
+    }
+    window.addEventListener('message', messageHandler)
+    return () => window.removeEventListener('message', messageHandler)
+  }, [])
+
   return (
     <ThemeProvider theme={theme}>
       <FakeRoot>
@@ -98,12 +122,7 @@ const App = () => {
               {currentView === 0 ? <Setup /> : undefined}
               {currentView === 1 ? <UQ /> : undefined}
             </>
-            <Footer
-              mode={themeMode}
-              setMode={setThemeModeHandler}
-              activeStep={currentView}
-              setActiveStep={setCurrentView}
-            />
+            <Footer />
           </Container>
         )}
         <ToastContainer
