@@ -33,6 +33,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
 
   const theme = useTheme();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
+  const [propagating, setPropagating] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -41,6 +42,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
       async function runUQ(jobs: FunctionJob[]) {
         console.log("Running UQ...");
         setDataUQHistogram(undefined);
+        setPropagating(true);
         fetch(
           PYTHON_DAKOTA_BACKEND +
             "/flask/manual_uq_propagation_with_uncertainty",
@@ -63,8 +65,13 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           .then(function (data) {
             console.log("UQ Data:", data);
             setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
+            setPropagating(false);
           })
-          .catch((error) => console.debug("Error:", error));
+          .catch((error) => {
+            console.debug("Error:", error)
+            setPropagating(false);
+            setDataUQHistogram(undefined);
+          });
       }
       return await runUQ(jobs);
     };
@@ -120,6 +127,30 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           mt={1}
         >
           <span>{Math.round(jobProgress)}%</span>
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (propagating) {
+    return (
+      <Box
+        width={"100%"}
+        height={"400px"}
+        display={"flex"}
+        flexDirection={"column"}
+        alignItems={"center"}
+        justifyContent={"center"}
+        bgcolor={theme.palette.background.default}
+        borderRadius={"8px"}
+      >
+        <Typography
+          variant="body1"
+          fontFamily={"inherit"}
+          fontWeight={100}
+          textAlign={"center"}
+        >
+          Calculating
         </Typography>
       </Box>
     );
