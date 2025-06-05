@@ -2,7 +2,6 @@ import React from 'react'
 import { Box, Button, Container, Modal, Paper, styled } from '@mui/material'
 import { useMMUXContext } from '../context/MMUXContext';
 import JobsDashboard from '../views/ParallelRunner';
-import { DarkMode, LightMode } from '@mui/icons-material';
 import { stepValidator } from '../utils/stepValidator';
 
 const Cont = styled(Container)`
@@ -19,17 +18,11 @@ padding: 0 !important;
 }
 `
 
-export const Footer = (props: FooterProps) => {
-  const { mode, setMode } = props;
+export const Footer = () => {
   const context = useMMUXContext();
   const { currentView, setCurrentView, runningSampling } = context;
   const [modal, setModal] = React.useState(false);
   const isJobsRunning = runningSampling;
-
-  const handleModeChange = () => {
-    console.log('Changing mode from', mode);
-    setMode(mode === 'light' ? 'dark' : 'light')
-  }
 
   return (
     <>
@@ -38,7 +31,6 @@ export const Footer = (props: FooterProps) => {
           <Button className='footerBtn footerBtnFirst' onClick={()=>setCurrentView(currentView <= 0 ? 0 : currentView -1)} disabled={currentView <= 0}>Previous</Button>
           <Box>
             <Button className='footerBtn' onClick={() => setModal(!modal)} disabled={!isJobsRunning}>Tasks running</Button>
-            <Button className='footerBtn' onClick={handleModeChange}>{mode === 'light' ? <LightMode/> : <DarkMode/>}</Button>
           </Box>
           <Button
             className='footerBtn footerBtnLast'

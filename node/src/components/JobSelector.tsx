@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { KeyboardArrowUp, KeyboardArrowDown } from "@mui/icons-material";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -17,23 +17,34 @@ import {
   Checkbox,
   ClickAwayListener,
   IconButton,
-  LinearProgress,
   Popper,
   TableContainer,
   TablePagination,
-  Typography,
 } from "@mui/material";
 import { Refresh } from "@mui/icons-material";
 import { DataGrid } from "@mui/x-data-grid";
 import JobRow from "./JobRow";
 
-export default function JobsSelector() {
+type JobSelectorPropsType = {
+  loading: boolean
+  setLoading: (loading: boolean) => void
+  progress: number
+  setProgress: (progress: number) => void
+  jobProgress: number
+  setJobProgress: (progress: number) => void
+  jobsFetched: React.MutableRefObject<number>
+  colsFetched: React.MutableRefObject<number>
+}
+
+export default function JobsSelector(props: JobSelectorPropsType) {
   const {
     selectedFunction,
     setSelectedJobUids,
     fetchedJobCollections,
     setFetchedJobCollections,
+    setIsSuMoGenerated,
   } = useMMUXContext();
+  const {colsFetched, jobProgress, jobsFetched, loading, progress, setJobProgress, setLoading, setProgress } = props;
   const [jobCollections, setJobCollections] = useState<SelectedJobCollection[]>(
     []
   );
@@ -42,20 +53,16 @@ export default function JobsSelector() {
   );
   const [poperID, setPopperID] = useState<number>(-1);
   const poperOpen = useRef(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [progress, setProgress] = useState<number>(0);
-  const [jobProgress, setJobProgress] = useState<number>(0);
   const [rowsPerPage, setRowsPerPage] = useState<number>(20);
   const [page, setPage] = React.useState(0);
-  const jobsFetched = useRef(0);
-  const colsFetched = useRef(0);
 
-  const updateJobContext = (jobs: SelectedJobCollection[]) => {
+
+  const updateJobContext = useCallback((jobs: SelectedJobCollection[]) => {
     const newList = jobs
       .map((j) => j.subJobs.filter((j) => j.selected).map((j) => j.job.uid))
       .flat();
     setSelectedJobUids(newList);
-  };
+  }, [setSelectedJobUids]);
 
   const selectMainJob = (uid: string, selected: boolean) => {
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(
@@ -244,8 +251,9 @@ export default function JobsSelector() {
       };
       onToggleAll(true);
       setLoading(false);
+      setIsSuMoGenerated(true);
     }
-  },[jobCollections, loading, updateJobContext]);
+  },[jobCollections, loading, setLoading, updateJobContext]);
 
   useEffect(() => {
     console.info("useEffect in JobsSelector triggered");
@@ -260,52 +268,6 @@ export default function JobsSelector() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFunction]);
-
-  if (loading) {
-    console.info(
-      "Loading job collections...",
-      colsFetched.current,
-      jobsFetched.current
-    );
-    return (
-      <>
-        <Typography
-          variant="body1"
-          fontFamily={"inherit"}
-          fontWeight={100}
-          textAlign={"center"}
-          mb={1}
-        >
-          Loading Job Collections...
-        </Typography>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100%",
-            width: "100%",
-          }}
-        >
-          <LinearProgress
-            variant="buffer"
-            value={progress}
-            valueBuffer={jobProgress}
-            sx={{ height: "6px", width: "40%" }}
-          />
-        </Box>
-        <Typography
-          variant="body1"
-          fontFamily={"inherit"}
-          fontWeight={100}
-          textAlign={"center"}
-          mt={1}
-        >
-          <span>{Math.round(jobProgress)}%</span>
-        </Typography>
-      </>
-    );
-  }
 
   const getJobCollectionStatus = (subJobs: SubJob[]) => {
     if (!subJobs || subJobs.length === 0) return "EMPTY";
