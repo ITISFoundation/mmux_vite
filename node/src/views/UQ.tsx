@@ -1,14 +1,37 @@
 import { useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import MetaModelingUX from "../components/MetaModelingUX";
-import { Box, Button, Container } from "@mui/material";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  Button,
+  Container,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+} from "@mui/material";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import Plot from "react-plotly.js";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
+import JobSelector from "../components/JobSelector";
+import PlusButton from "../components/PlusButton";
+import { Sampling } from "../components/Sampling";
+import { InputBlock } from "../components/InputBlock";
 
 export default function UQ() {
   // Similar to Sumo building
-  const { inputVars, selectedFunction, selectedQoI, distribution, filterSelectedJobList } = useMMUXContext();
+  const {
+    inputVars,
+    outputVars,
+    selectedFunction,
+    selectedQoI,
+    setSelectedQoI,
+    distribution,
+    filterSelectedJobList,
+  } = useMMUXContext();
   const [numSamples, setNumSamples] = useState(1000);
   const [dataUQHistogram, setDataUQHistogram] = useState<Array<number>>([]);
 
@@ -59,47 +82,87 @@ export default function UQ() {
       .catch((error) => console.debug("Error:", error));
   }
 
-
   const run = async () => {
     const jobs = filterSelectedJobList();
-    return await runUQ(jobs)
+    return await runUQ(jobs);
   };
 
   // Copy the structure from SuMo building; refactor the PY script as a Flask callback.
   // Fixed Means & Stds (inside Python), will make that customizable later on.
   return (
-    <MetaModelingUX tabTitle="Uncertainty Quantification" headerType="uq">
-      <Container>
+    <MetaModelingUX
+      tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}
+      headerType="uq"
+    >
+      <Container disableGutters>
         <Box
           sx={{
             justifySelf: "left",
             flex: 1,
             display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            justifyContent: "space-between",
+            gap: "16px",
             color: "#eee",
+            margin: "16px 0",
+            width: "100%",
           }}
         >
-          <span>
-            Selected Function: <b>{selectedFunction?.title}</b>{" "}
-          </span>
-          <span>
-            Selected QoI: <b>{selectedQoI}</b>{" "}
-          </span>
-
-          <label htmlFor="numSamples">Number of Samples:</label>
-          <input
-            type="number"
-            id="numSamples"
-            defaultValue={1000}
-            onChange={(e) => setNumSamples(Number(e.target.value))}
-          />
+          <InputLabel
+            size="small"
+            sx={{
+              display: "flex",
+              transform: "none",
+              alignItems: "baseline",
+              gap: "16px",
+              fontSize: "1.2em",
+            }}
+          >
+            Select input variables:
+            <Select
+              size="small"
+              variant="outlined"
+              sx={{ minWidth: "200px", marginTop: "8px" }}
+              value={selectedQoI}
+              onChange={(e) => {
+                setSelectedQoI(e.target.value);
+                console.log(e.target.value);
+              }}
+            >
+              {outputVars?.map((qoi) => (
+                <MenuItem key={qoi} value={qoi}>
+                  {qoi}
+                </MenuItem>
+              ))}
+            </Select>
+          </InputLabel>
+          <InputLabel
+            size="small"
+            sx={{
+              display: "flex",
+              transform: "none",
+              alignItems: "baseline",
+              gap: "16px",
+              fontSize: "1.2em",
+            }}
+          >
+            Number of Samples:
+            <TextField
+              type="number"
+              variant="outlined"
+              size="small"
+              sx={{ marginTop: "8px" }}
+              value={numSamples}
+              onChange={(e) => setNumSamples(parseInt(e.target.value))}
+            />
+          </InputLabel>
           <Button
             variant="contained"
+            size="small"
+            sx={{ marginTop: "8px", fontSize: "1.2em" }}
             color="primary"
             onClick={run}
-            disabled={!selectedFunction || !selectedQoI || inputVars.length === 0}
+            disabled={
+              !selectedFunction || !selectedQoI || inputVars.length === 0
+            }
           >
             Run UQ
           </Button>
@@ -124,12 +187,36 @@ export default function UQ() {
               font: { color: "#eee" },
             }}
             style={{ width: "100%", height: "400px" }}
-            config={{ responsive: true }} />
+            config={{ responsive: true }}
+          />
         )}
-
-
       </Container>
-
+      <Accordion
+        variant="outlined"
+        sx={{
+          marginTop: "16px",
+          border: "none",
+          "&:before": { display: "none" },
+        }}
+        style={{}}
+      >
+        <AccordionSummary>
+          <span style={{ padding: '8px', backgroundColor:'grey', borderRadius: '8px'}}>Modify selected functions</span>
+        </AccordionSummary>
+        <AccordionDetails>
+          <JobSelector />
+          {selectedFunction !== undefined ? (
+            <PlusButton
+              onClickFun={() => null}
+              PlotFunComponent={() => {
+                return <Sampling />;
+              }}
+              text="Create new sampling campaign"
+              enabled={selectedFunction !== undefined}
+            />
+          ) : undefined}
+        </AccordionDetails>
+      </Accordion>
     </MetaModelingUX>
   );
 }

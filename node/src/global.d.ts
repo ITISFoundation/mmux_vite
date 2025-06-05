@@ -82,6 +82,12 @@ interface InputBlockProps {
   onChange: (value: number) => void
 }
 
+interface InputTextBlockProps {
+  name: string,
+  value: string,
+  onChange: (value: string) => void
+}
+
 type distribution = 'constant' | 'normal' | 'uniform' | 'log-normal' | 'exponential';
 type variables = 'value' | 'mean' | 'std' | 'min' | 'max' | 'location' | 'scale';
 
