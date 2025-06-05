@@ -114,7 +114,7 @@ const App = () => {
         {!healthStatus ? (
           <SplashScreen />
         ) : (
-          <Container>
+          <Container sx={{paddingBottom: 4}}>
             <Navigation steps={steps} activeStep={currentView} />
             <>
               {currentView === 0 ? <Setup /> : undefined}
