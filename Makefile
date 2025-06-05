@@ -21,9 +21,9 @@ start-frontend:
 
 ## Python Backend
 install-mmux-python:
-	# apt install python3.11 python3.11-venv # install python venv
+	apt install python3.11 python3.11-venv # install python venv
 	git clone https://github.com/ITISFoundation/mmux_python $(MMUX_PYTHON_DIR)
-	python -m venv $(VENV_DIR)
+	python3.11 -m venv $(VENV_DIR)
 	$(VENV_DIR)/bin/python -m pip install flask python-dotenv
 	$(VENV_DIR)/bin/python -m pip install -r $(MMUX_PYTHON_DIR)/requirements.txt
 
