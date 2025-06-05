@@ -62,7 +62,7 @@ export function FunctionList() {
       if (funs.length === 0) {
         toast.info("No functions available. Please create a function first.");
       } else {
-        funs.map((fun)=>fetchJobJobCollectionCount(fun));
+        await Promise.all(funs.map((fun) => fetchJobJobCollectionCount(fun)));
       }
       setError(false);
     } catch (error) {
