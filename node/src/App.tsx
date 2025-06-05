@@ -101,7 +101,8 @@ const App = () => {
     const messageHandler = (e: { data: {msg: string}; }) => {
       const { msg } = e.data;
       const OSPARC_MSG_PREFIX = 'osparc;'
-      if (msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
+      if (msg && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
+        console.log("Received message from parent window:", e);
         const osparcMsg = msg.slice(OSPARC_MSG_PREFIX.length)
         osparcMsg.split('&').forEach(processKeyValue)
       }

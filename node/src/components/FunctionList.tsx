@@ -96,7 +96,6 @@ export function FunctionList() {
   };
 
   const getFunctionSolver = (fun: Function) => {
-    console.log(fun);
     if ((fun as SolverFunction).solverKey) {
       return (
         (fun as SolverFunction).solverKey.split("/").slice(-1)[0] +
@@ -135,7 +134,7 @@ export function FunctionList() {
 
   const NFunctionJobCollections = (props: {fun: Function}): React.ReactNode => {
     const fun = props.fun;
-    console.log("NFunctionJobCollections for function:", fun);
+    console.debug("NFunctionJobCollections for function:", fun);
     return (
       <Box>
         {jobCollectionCount[fun.uid] === undefined || jobCount[fun.uid] === undefined

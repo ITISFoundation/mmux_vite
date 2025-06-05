@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { KeyboardArrowUp, KeyboardArrowDown } from "@mui/icons-material";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -42,8 +42,9 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     setSelectedJobUids,
     fetchedJobCollections,
     setFetchedJobCollections,
+    setIsSuMoGenerated,
   } = useMMUXContext();
-  const {colsFetched, jobProgress, jobsFetched, loading, progress, setJobProgress, setLoading, setProgress} = props;
+  const {colsFetched, jobProgress, jobsFetched, loading, progress, setJobProgress, setLoading, setProgress } = props;
   const [jobCollections, setJobCollections] = useState<SelectedJobCollection[]>(
     []
   );
@@ -56,12 +57,12 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   const [page, setPage] = React.useState(0);
 
 
-  const updateJobContext = (jobs: SelectedJobCollection[]) => {
+  const updateJobContext = useCallback((jobs: SelectedJobCollection[]) => {
     const newList = jobs
       .map((j) => j.subJobs.filter((j) => j.selected).map((j) => j.job.uid))
       .flat();
     setSelectedJobUids(newList);
-  };
+  }, [setSelectedJobUids]);
 
   const selectMainJob = (uid: string, selected: boolean) => {
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(
@@ -250,8 +251,9 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       };
       onToggleAll(true);
       setLoading(false);
+      setIsSuMoGenerated(true);
     }
-  },[jobCollections, loading, updateJobContext]);
+  },[jobCollections, loading, setLoading, updateJobContext]);
 
   useEffect(() => {
     console.info("useEffect in JobsSelector triggered");
