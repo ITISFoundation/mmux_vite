@@ -38,17 +38,19 @@ export function FunctionList() {
   const [jobCount, setJobCount] = useState<{[key: string]:number}>({});
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
+
   const fetchJobJobCollectionCount = async (fun: Function) => {
     try {
       const jcs = await getFunctionJobCollections(fun.uid);
-      const JCC = {...jobCollectionCount};
-      JCC[fun.uid] = jcs.length;
-      setJobCollectionCount(JCC)
-      const JC = {...jobCount};
-      JC[fun.uid] = jcs.map(jc => { return jc.jobIds ? jc.jobIds.length : 0 }).reduce((a, b) => a + b, 0);
-      setJobCount(JC);
+      const jc_length = jcs.length;
+      const j_length = jcs.map(jc => { return jc.jobIds ? jc.jobIds.length : 0 }).reduce((a, b) => a + b, 0);
+      return {
+        "Function Uid": fun.uid,
+        "Job Collection Count": jc_length,
+        "Job Count": j_length
+      }
     } catch (err) {
-      console.warn("Error fetching jobs for Function ", fun.uid)
+      console.warn("Error fetching job count for Function ", fun.uid)
       console.error(err);
     }
   };
@@ -61,7 +63,17 @@ export function FunctionList() {
       if (funs.length === 0) {
         toast.info("No functions available. Please create a function first.");
       } else {
-        await Promise.all(funs.map((fun) => fetchJobJobCollectionCount(fun)));
+        const fetchedCounts = await Promise.all(funs.map((fun) => fetchJobJobCollectionCount(fun)));
+        const jcCount: { [key: string]: number } = {};
+        const jCount: { [key: string]: number } = {};
+        fetchedCounts.forEach((item) => {
+          if (item) {
+            jcCount[item["Function Uid"]] = item["Job Collection Count"];
+            jCount[item["Function Uid"]] = item["Job Count"];
+          }
+        });
+        setJobCollectionCount(jcCount);
+        setJobCount(jCount);
       }
       setError(false);
     } catch (error) {
@@ -131,7 +143,7 @@ export function FunctionList() {
     }
   };
 
-  const NFunctionJobCollections = (props: {fun: Function}): React.ReactNode => {
+  const NFunctionJobCollections = (props: { fun: Function }): React.ReactNode => {
     const fun = props.fun;
     console.debug("NFunctionJobCollections for function:", fun);
     return (

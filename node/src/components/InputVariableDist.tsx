@@ -87,21 +87,20 @@ export const InputVariableDist = () => {
   };
 
   useEffect(() => {
-    console.log("InputVariableDist useEffect", distribution);
     if (distribution) {
       setDistribution(distribution);
     }
   }, [distribution, setDistribution]);
 
   useEffect(() => {
-    if (inputVars.length > 0 && Object.keys(distribution).length === 0) {
+    if (inputVars.length > 0) {
       const initialInputVars = inputVars.reduce((acc, val) => {
         acc[val] = { distribution: "normal" };
         return acc;
       }, {} as typeof distribution);
       setDistribution(initialInputVars);
     }
-  }, [inputVars, distribution, setDistribution]);
+  }, [inputVars]);
 
   if (inputVars.length === 0) {
     return <></>
@@ -122,6 +121,7 @@ export const InputVariableDist = () => {
                 flexDirection: "column",
                 flex: 1,
                 maxWidth: "240px",
+                minWidth: "240px",
                 padding: "8px 8px 16px",
                 marginRight: "16px",
                 backgroundColor: theme.palette.background.default,

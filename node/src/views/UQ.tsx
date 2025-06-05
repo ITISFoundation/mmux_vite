@@ -26,7 +26,7 @@ import Surface2DPlot from "../components/Surface3DPlot";
 
 export default function UQ() {
   // Similar to Sumo building
-  const { inputVars, outputVars, selectedFunction, selectedQoI, setSelectedQoI, isSuMoGenerated} =
+  const { inputVars, outputVars, selectedFunction, selectedQoI, setSelectedQoI, isSuMoGenerated } =
     useMMUXContext();
   const theme = useTheme();
   const [numSamples, setNumSamples] = useState(1000);
@@ -78,7 +78,7 @@ export default function UQ() {
               fontSize: "1.2em",
             }}
           >
-            Select input variables:
+            Select QoI:
             <Select
               size="small"
               variant="outlined"
