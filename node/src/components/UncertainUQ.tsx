@@ -52,7 +52,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
             return await runUQ(jobs)
         };
         run();
-    }, [numSamples]);
+    }, [numSamples, filterSelectedJobList, inputVars, distribution, selectedQoI]);
 
     return (
         <>
