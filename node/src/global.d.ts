@@ -12,6 +12,21 @@ type SamplingInputsState = {
   seed?: number; // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
 }
 
+type dataUQHistogramType = {
+  bins_start: number;
+  bins_end: number;
+  bin_means: number[];
+  bin_stds: number[];
+};
+type UncertainUQPropsType = {
+  numSamples: number;
+  loading: boolean;
+  progress: number;
+  jobProgress: number;
+  colsFetched: React.MutableRefObject<number>;
+  jobsFetched: React.MutableRefObject<number>;
+};
+
 interface NavigationProps {
   steps: Step[];
   activeStep: number;

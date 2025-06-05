@@ -5,20 +5,6 @@ import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Typography, Box, LinearProgress, useTheme } from "@mui/material";
 
-type dataUQHistogramType = {
-  bins_start: number;
-  bins_end: number;
-  bin_means: number[];
-  bin_stds: number[];
-};
-type UncertainUQPropsType = {
-  numSamples: number;
-  loading: boolean;
-  progress: number;
-  jobProgress: number;
-  colsFetched: React.MutableRefObject<number>;
-  jobsFetched: React.MutableRefObject<number>;
-};
 export default function UncertainUQ(props: UncertainUQPropsType) {
   const {
     numSamples,
@@ -28,8 +14,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     colsFetched,
     jobsFetched,
   } = props;
-  const { inputVars, selectedQoI, distribution, filterSelectedJobList } =
-    useMMUXContext();
+  const { inputVars, selectedQoI, distribution, filterSelectedJobList } =useMMUXContext();
 
   const theme = useTheme();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
