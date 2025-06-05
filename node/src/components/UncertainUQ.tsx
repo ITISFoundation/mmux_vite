@@ -71,7 +71,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     run();
   }, [numSamples, filterSelectedJobList, inputVars, distribution, selectedQoI]);
 
-  if (!dataUQHistogram || dataUQHistogram.bin_means.length === 0 || loading) {
+  if (loading) {
     console.info(
       "Loading job collections...",
       colsFetched.current,
@@ -86,7 +86,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         alignItems={"center"}
         justifyContent={"center"}
         bgcolor={theme.palette.background.default}
-        borderRadius={"4px"}
+        borderRadius={"8px"}
       >
         <Typography
           variant="body1"
@@ -125,6 +125,30 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     );
   }
 
+  if (!dataUQHistogram) {
+    return (
+      <Box
+        width={"100%"}
+        height={"400px"}
+        display={"flex"}
+        flexDirection={"column"}
+        alignItems={"center"}
+        justifyContent={"center"}
+        bgcolor={theme.palette.background.default}
+        borderRadius={"8px"}
+      >
+        <Typography
+          variant="body1"
+          fontFamily={"inherit"}
+          fontWeight={100}
+          textAlign={"center"}
+        >
+          No data available for the selected QoI.
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Plot
       data={[
@@ -156,7 +180,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         paper_bgcolor: "#222",
         font: { color: "#eee" },
       }}
-      style={{ width: "100%", height: "400px" }}
+      style={{ width: "100%", height: "400px", borderRadius: "8px", overflow: "hidden" }}
       config={{ responsive: true }}
     />
   );

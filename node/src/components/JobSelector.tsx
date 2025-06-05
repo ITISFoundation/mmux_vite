@@ -13,6 +13,7 @@ import {
 } from "../utils/function_utils";
 import {
   Box,
+  Button,
   Card,
   Checkbox,
   ClickAwayListener,
@@ -231,29 +232,47 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     return value.jobCollection.uid;
   }
 
+  const onToggleAll = useCallback((checked: boolean) => {
+    const newJobCollections: SelectedJobCollection[] = jobCollections.map(
+      (jc) => {
+        const auxJob = jc;
+        auxJob.selected = checked;
+        auxJob.subJobs = jc.subJobs.map((subJob) => ({
+          selected: checked,
+          job: subJob.job,
+        }));
+        return auxJob;
+      }
+    );
+
+    setJobCollections(newJobCollections);
+    updateJobContext(newJobCollections);
+  }, [jobCollections, updateJobContext]);
+
+  const autoSelectJobs = useCallback(() => {
+    const newJobCollections: SelectedJobCollection[] = jobCollections.map(
+      (jc) => {
+        const auxJob = jc;
+        auxJob.selected = true;
+        auxJob.subJobs = jc.subJobs.map((subJob) => ({
+          selected: subJob.job.status === "SUCCESS",
+          job: subJob.job,
+        }));
+        return auxJob;
+      }
+    );
+
+    setJobCollections(newJobCollections);
+    updateJobContext(newJobCollections);
+  }, [jobCollections, updateJobContext]);
+
   useEffect(() => {
     if (jobCollections.length > 0 && loading === true) {
-      const onToggleAll = (checked: boolean) => {
-        const newJobCollections: SelectedJobCollection[] = jobCollections.map(
-          (jc) => {
-            const auxJob = jc;
-            auxJob.selected = checked;
-            auxJob.subJobs = jc.subJobs.map((subJob) => ({
-              selected: checked,
-              job: subJob.job,
-            }));
-            return auxJob;
-          }
-        );
-
-        setJobCollections(newJobCollections);
-        updateJobContext(newJobCollections);
-      };
       onToggleAll(true);
       setLoading(false);
       setIsSuMoGenerated(true);
     }
-  },[jobCollections, loading, setLoading, updateJobContext]);
+  },[jobCollections, loading, onToggleAll, setIsSuMoGenerated, setLoading, updateJobContext]);
 
   useEffect(() => {
     console.info("useEffect in JobsSelector triggered");
@@ -314,6 +333,9 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                   color: theme.palette.primary.contrastText,
                 })}
                 onClick={async () => {
+                  setLoading(true);
+                  setProgress(0);
+                  setJobProgress(0);
                   await updateJobCollections(
                     selectedFunction?.uid ? selectedFunction.uid : ""
                   );
@@ -513,6 +535,38 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           )}
         </Popper>
       </ClickAwayListener>
+      <Box sx={{ display: "flex", justifyContent: 'center', alignItems: "center", gap: "16px" }}>
+        <Button
+          variant="contained"
+          size="medium"
+          sx={{ marginTop: "8px", marginBottom: "8px" }}
+          onClick={async () => {
+            onToggleAll(true);
+          }}
+        >
+          Select all Jobs
+        </Button>
+        <Button
+          variant="contained"
+          size="medium"
+          sx={{ marginTop: "8px", marginBottom: "8px" }}
+          onClick={async () => {
+            autoSelectJobs();
+          }}
+        >
+          Auto select Jobs
+        </Button>
+        <Button
+          variant="contained"
+          size="medium"
+          sx={{ marginTop: "8px", marginBottom: "8px" }}
+          onClick={async () => {
+            onToggleAll(false);
+          }}
+        >
+          De-select all Jobs
+        </Button>
+      </Box>
     </>
   );
 }

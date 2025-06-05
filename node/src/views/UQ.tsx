@@ -53,7 +53,7 @@ export default function UQ() {
       tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}
       headerType="uq"
     >
-      <Container disableGutters style={{ padding: "0px 16px" }}>
+      <Container disableGutters>
         <Box
           sx={{
             justifySelf: "left",
@@ -61,7 +61,7 @@ export default function UQ() {
             display: "flex",
             gap: "16px",
             color: `${theme.palette.text.primary}`,
-            margin: "16px 0",
+            marginBottom: "16px",
             width: "100%",
           }}
         >
@@ -69,9 +69,12 @@ export default function UQ() {
             size="small"
             sx={{
               display: "flex",
+              flex: 1,
               transform: "none",
               alignItems: "baseline",
               gap: "16px",
+              fontFamily: "inherit",
+              fontWeight: 300,
               fontSize: "1.2em",
             }}
           >
@@ -79,7 +82,7 @@ export default function UQ() {
             <Select
               size="small"
               variant="outlined"
-              sx={{ minWidth: "200px", marginTop: "8px" }}
+              sx={{ flex: 1, marginTop: "8px" }}
               value={selectedQoI}
               defaultValue={outputVars?.[0] || ""}
               onChange={(e) => {
@@ -98,9 +101,12 @@ export default function UQ() {
             size="small"
             sx={{
               display: "flex",
+              flex: 1,
               transform: "none",
               alignItems: "baseline",
               gap: "16px",
+              fontFamily: "inherit",
+              fontWeight: 300,
               fontSize: "1.2em",
             }}
           >
@@ -109,7 +115,7 @@ export default function UQ() {
               type="number"
               variant="outlined"
               size="small"
-              sx={{ marginTop: "8px" }}
+              sx={{ marginTop: "8px", flex: 1 }}
               value={numSamples}
               onChange={(e) => setNumSamples(parseInt(e.target.value))}
             />
@@ -144,6 +150,7 @@ export default function UQ() {
       <Accordion
         expanded={jobPanelOpen}
         onChange={() => setJobPanelOpen(loading ? false : !jobPanelOpen)}
+        disableGutters
         variant="outlined"
         sx={{
           marginTop: "16px",
@@ -151,12 +158,12 @@ export default function UQ() {
           "&:before": { display: "none" },
         }}
       >
-        <AccordionSummary>
-          <Button variant="contained" color="primary" disabled={loading}>
+        <AccordionSummary sx={{padding: "0", "& .MuiAccordionSummary-content": { margin: "0 0 4px 0" }}}>
+          <Button variant="contained" color="primary" disabled={loading} sx={{ minHeight: 'auto' }} >
             Modify selected jobs
           </Button>
         </AccordionSummary>
-        <AccordionDetails>
+        <AccordionDetails sx={{padding: "0"}}>
           <JobSelector
             loading={loading}
             setLoading={setLoading}

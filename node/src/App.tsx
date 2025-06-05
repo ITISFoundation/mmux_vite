@@ -24,9 +24,6 @@ const App = () => {
   const steps: Step[] = [
     { id: 0, label: "Setup" },
     { id: 1, label: "UQ" },
-    // Do not include the ones below - this is for the navigation bar
-    // { id: 98, label: "FunctionIndex" },
-    // { id: 99, label: "JobIndex" },
   ];
   const { currentView } = useMMUXContext();
   const { mode, systemMode, setMode } = useColorScheme();
@@ -123,7 +120,7 @@ const App = () => {
               {currentView === 0 ? <Setup /> : undefined}
               {currentView === 1 ? <UQ /> : undefined}
             </>
-            <Footer />
+            <Footer steps={steps} />
           </Container>
         )}
         <ToastContainer

@@ -59,22 +59,23 @@ export const InputVariableDist = () => {
     );
   }
 
-  // const LogNormalInputDistribution = ({ inputVar }: { inputVar: string }) => {
-  //   return (
-  //     <>
-  //       <InputBlock
-  //         name="Log Location"
-  //         value={distribution[inputVar].location !== undefined ? distribution[inputVar].location : NaN}
-  //         onChange={(value) => handleSetValue(inputVar, 'location', value)}
-  //       />
-  //       <InputBlock
-  //         name='Log Scale'
-  //         value={distribution[inputVar].scale !== undefined ? distribution[inputVar].scale : NaN}
-  //         onChange={(value) => handleSetValue(inputVar, 'scale', value)}
-  //       />
-  //     </>
-  //   );
-  // }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const LogNormalInputDistribution = ({ inputVar }: { inputVar: string }) => {
+    return (
+      <>
+        <InputBlock
+          name="Log Location"
+          value={distribution[inputVar].location !== undefined ? distribution[inputVar].location : NaN}
+          onChange={(value) => handleSetValue(inputVar, 'location', value)}
+        />
+        <InputBlock
+          name='Log Scale'
+          value={distribution[inputVar].scale !== undefined ? distribution[inputVar].scale : NaN}
+          onChange={(value) => handleSetValue(inputVar, 'scale', value)}
+        />
+      </>
+    );
+  }
 
 
   const handleDistributionChange = (inputVar: string, value: distribution) => {
@@ -106,7 +107,7 @@ export const InputVariableDist = () => {
   }
 
   return (
-    <Box sx={{ marginTop: "20px", padding: "16px", borderRadius: "8px" }}>
+    <Box sx={{ marginTop: "8px", paddingTop: "8px", borderRadius: "8px" }}>
       <Typography variant="h5" sx={{ fontFamily: 'inherit', fontWeight: '100', marginBottom: '16px' }}>
         Input Variable Distributions
       </Typography>
@@ -127,7 +128,7 @@ export const InputVariableDist = () => {
                 borderRadius: "8px",
               })}>
               <Typography variant="h6" sx={{ fontSize: '1.2em' }}>
-                <Chip label={inputVar} style={{ fontSize: '0.8em', fontWeight: '100', textTransform: 'uppercase' }}></Chip>
+                <Chip label={inputVar} style={{ width: '100%', fontSize: '0.8em', fontWeight: '100', textTransform: 'uppercase' }}></Chip>
               </Typography>
               <InputLabel sx={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'start' }}>
                 Type:

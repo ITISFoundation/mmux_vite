@@ -29,15 +29,13 @@ const VarsHolder = styled("div")`
 `;
 
 export function FunctionList() {
-  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } =
-    useMMUXContext();
+  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [functions, setFunctions] = useState<Function[]>([]);
   const [jobCollectionCount, setJobCollectionCount] = useState<{[key: string]:number}>({});
   const [jobCount, setJobCount] = useState<{[key: string]:number}>({});
-  const [rowSelectionModel, setRowSelectionModel] =
-    useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
+  const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
   const fetchJobJobCollectionCount = async (fun: Function) => {
     try {
@@ -267,7 +265,6 @@ export function FunctionList() {
         overflow: "hidden",
         fontFamily: "inherit",
         padding: "0px 8px",
-        margin: "0px 16px",
         "& .MuiDataGrid-cell": {
           fontWeight: 400,
         },
