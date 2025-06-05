@@ -3,7 +3,7 @@ type Step = {
   label: string
 }
 
-type gridSearchInputsState = {
+type SamplingInputsState = {
   variable: string;
   start: number;
   end: number;
