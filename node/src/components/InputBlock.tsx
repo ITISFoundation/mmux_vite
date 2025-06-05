@@ -20,7 +20,6 @@ export const InputBlock = (props: InputBlockProps) => {
         value={currentValue}
         onChange={(e) => setCurrentValue(parseFloat(e.target.value))}
         onBlur={(e) => handleChange(parseFloat(e.target.value))}
-        onMouseDown={(e) => e.preventDefault()}
       />
     </InputLabel>
   );
