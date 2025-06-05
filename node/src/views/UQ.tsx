@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
@@ -29,6 +29,12 @@ export default function UQ() {
   } = useMMUXContext();
   const theme = useTheme();
   const [numSamples, setNumSamples] = useState(1000);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [jobPanelOpen, setJobPanelOpen] = useState<boolean>(true);
+  const [progress, setProgress] = useState<number>(0);
+  const [jobProgress, setJobProgress] = useState<number>(0);
+  const jobsFetched = useRef(0);
+  const colsFetched = useRef(0);
 
   useEffect(() => {
     if (outputVars && outputVars.length > 0) {
@@ -120,27 +126,38 @@ export default function UQ() {
           </Button> */}
         </Box>
 
-      <UncertainUQ numSamples={numSamples} />
+      <UncertainUQ numSamples={numSamples} colsFetched={colsFetched} jobProgress={jobProgress} jobsFetched={jobsFetched} loading={loading} progress={progress} />
       </Container>
       <Accordion
+        expanded={jobPanelOpen}
+        onChange={() => setJobPanelOpen(loading ? false : !jobPanelOpen)}
         variant="outlined"
         sx={{
           marginTop: "16px",
           border: "none",
           "&:before": { display: "none" },
         }}
-        style={{}}
       >
         <AccordionSummary>
           <Button
             variant="contained"
             color="primary"
+            disabled={loading}
           >
             Modify selected jobs
           </Button>
         </AccordionSummary>
         <AccordionDetails>
-          <JobSelector />
+          <JobSelector
+            loading={loading}
+            setLoading={setLoading}
+            progress={progress}
+            setProgress={setProgress}
+            jobProgress={jobProgress}
+            setJobProgress={setJobProgress}
+            jobsFetched={jobsFetched}
+            colsFetched={colsFetched}
+          />
           {selectedFunction !== undefined ? (
             <PlusButton
               onClickFun={() => null}

@@ -3,6 +3,7 @@ import { useMMUXContext } from "../context/MMUXContext";
 import Plot from "react-plotly.js";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
+import { Typography, Box, LinearProgress, useTheme } from "@mui/material";
 
 type dataUQHistogramType = {
   bins_start: number;
@@ -12,102 +13,151 @@ type dataUQHistogramType = {
 };
 type UncertainUQPropsType = {
   numSamples: number;
+  loading: boolean;
+  progress: number;
+  jobProgress: number;
+  colsFetched: React.MutableRefObject<number>;
+  jobsFetched: React.MutableRefObject<number>;
 };
 export default function UncertainUQ(props: UncertainUQPropsType) {
-  const { numSamples } = props;
+  const {
+    numSamples,
+    loading,
+    progress,
+    jobProgress,
+    colsFetched,
+    jobsFetched,
+  } = props;
   const { inputVars, selectedQoI, distribution, filterSelectedJobList } =
     useMMUXContext();
 
+  const theme = useTheme();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
-
-  async function runUQ(jobs: FunctionJob[]) {
-    console.log("Running UQ...");
-    setDataUQHistogram(undefined);
-    fetch(
-      PYTHON_DAKOTA_BACKEND + "/flask/manual_uq_propagation_with_uncertainty",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          inputVars: inputVars,
-          output: selectedQoI,
-          distributions: distribution,
-          FunctionJobs: jobs,
-          numSamples: numSamples,
-          log: false,
-          nHistograms: 50,
-        }),
-      }
-    )
-      .then(function (response) {
-        return response.json();
-      })
-      .then(function (data) {
-        console.log("UQ Data:", data);
-        setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
-      })
-      .catch((error) => console.debug("Error:", error));
-  }
 
   useEffect(() => {
     const run = async () => {
       const jobs = filterSelectedJobList();
+
+      async function runUQ(jobs: FunctionJob[]) {
+        console.log("Running UQ...");
+        setDataUQHistogram(undefined);
+        fetch(
+          PYTHON_DAKOTA_BACKEND +
+            "/flask/manual_uq_propagation_with_uncertainty",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              inputVars: inputVars,
+              output: selectedQoI,
+              distributions: distribution,
+              FunctionJobs: jobs,
+              numSamples: numSamples,
+              log: false,
+              nHistograms: 50,
+            }),
+          }
+        )
+          .then(function (response) {
+            return response.json();
+          })
+          .then(function (data) {
+            console.log("UQ Data:", data);
+            setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
+          })
+          .catch((error) => console.debug("Error:", error));
+      }
       return await runUQ(jobs);
     };
     run();
   }, [numSamples, filterSelectedJobList, inputVars, distribution, selectedQoI]);
 
-  return (
-    <>
-      {dataUQHistogram ? (
-        <Plot
-          data={[
-            {
-              x: Array.from(
-                { length: dataUQHistogram.bin_means.length },
-                (_, i) =>
-                  dataUQHistogram.bins_start +
-                  ((dataUQHistogram.bins_end - dataUQHistogram.bins_start) /
-                    dataUQHistogram.bin_means.length) *
-                    (i + 0.5)
-              ),
-              y: dataUQHistogram.bin_means,
-              type: "bar",
-              marker: { color: "#1976d2" },
-              name: "UQ Histogram",
-              error_y: {
-                type: "data",
-                array: dataUQHistogram.bin_stds,
-                visible: true,
-              },
-            },
-          ]}
-          layout={{
-            title: { text: "Uncertainty Quantification Histogram" },
-            xaxis: { title: { text: selectedQoI || "Output" } },
-            yaxis: { title: { text: "Frequency" } },
-            plot_bgcolor: "#222",
-            paper_bgcolor: "#222",
-            font: { color: "#eee" },
-          }}
-          style={{ width: "100%", height: "400px" }}
-          config={{ responsive: true }}
-        />
-      ) : (
-        <div
-          style={{
-            width: "100%",
-            height: "400px",
-            backgroundColor: "#222",
+  if (!dataUQHistogram || dataUQHistogram.bin_means.length === 0 || loading) {
+    console.info(
+      "Loading job collections...",
+      colsFetched.current,
+      jobsFetched.current
+    );
+    return (
+      <Box
+        width={"100%"}
+        height={"400px"}
+        display={"flex"}
+        flexDirection={"column"}
+        alignItems={"center"}
+        justifyContent={"center"}
+        bgcolor={theme.palette.background.default}
+        borderRadius={"4px"}
+      >
+        <Typography
+          variant="body1"
+          fontFamily={"inherit"}
+          fontWeight={100}
+          textAlign={"center"}
+          mb={1}
+        >
+          Creating Uncertainty Quantification AI model...
+        </Typography>
+        <Box
+          sx={{
             display: "flex",
-            alignItems: "center",
             justifyContent: "center",
-            color: "#eee",
-            borderRadius: "4px",
+            alignItems: "center",
+            width: "100%",
           }}
         >
-          <span>Computing Uncertainty...</span>
-        </div>
-      )}
-    </>
+          <LinearProgress
+            variant="buffer"
+            value={progress}
+            valueBuffer={jobProgress}
+            sx={{ height: "6px", width: "40%" }}
+          />
+        </Box>
+        <Typography
+          variant="body1"
+          fontFamily={"inherit"}
+          fontWeight={100}
+          textAlign={"center"}
+          mt={1}
+        >
+          <span>{Math.round(jobProgress)}%</span>
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Plot
+      data={[
+        {
+          x: Array.from(
+            { length: dataUQHistogram.bin_means.length },
+            (_, i) =>
+              dataUQHistogram.bins_start +
+              ((dataUQHistogram.bins_end - dataUQHistogram.bins_start) /
+                dataUQHistogram.bin_means.length) *
+                (i + 0.5)
+          ),
+          y: dataUQHistogram.bin_means,
+          type: "bar",
+          marker: { color: "#1976d2" },
+          name: "UQ Histogram",
+          error_y: {
+            type: "data",
+            array: dataUQHistogram.bin_stds,
+            visible: true,
+          },
+        },
+      ]}
+      layout={{
+        title: { text: "Uncertainty Quantification Histogram" },
+        xaxis: { title: { text: selectedQoI || "Output" } },
+        yaxis: { title: { text: "Frequency" } },
+        plot_bgcolor: "#222",
+        paper_bgcolor: "#222",
+        font: { color: "#eee" },
+      }}
+      style={{ width: "100%", height: "400px" }}
+      config={{ responsive: true }}
+    />
   );
 }
