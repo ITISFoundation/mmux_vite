@@ -106,7 +106,7 @@ function GridSearchSampling() {
           <Input
             type="number"
             placeholder={`Number of grid points in ${inputVar.variable}`}
-            value={inputVar.end?.toString()}
+            value={inputVar.points?.toString()}
             sx={(theme) => ({ width: 400, borderBottom: `1px solid ${theme.palette.background.paper}` })}
             onChange={(e) => handleInputChange(index, "points", e.target.value)}
           />
