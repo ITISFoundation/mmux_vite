@@ -7,17 +7,17 @@ settings:
     value:
       Limits:
         NanoCPUs: 500000000
-        MemoryBytes: 0
+        MemoryBytes: 268435456 # 256MB
       Reservations:
         NanoCPUs: 500000000
-        MemoryBytes: 0
+        MemoryBytes: 268435456 # 256MB
 paths-mapping:
   inputs_path: /tmp/inputs
   outputs_path: /tmp/outputs
   state_paths: []
 
 compose-spec:
-  version: '3.8'
+  version: "3.8"
   services:
     mmux-vite-backend:
       image: $${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-backend:$${SERVICE_VERSION}

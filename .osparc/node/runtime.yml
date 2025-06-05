@@ -4,7 +4,7 @@ settings:
     value:
       Limits:
         NanoCPUs: 500000000
-        MemoryBytes: 0
+        MemoryBytes: 268435456 # 256MB
       Reservations:
         NanoCPUs: 500000000
-        MemoryBytes: 0
+        MemoryBytes: 268435456 # 256MB
