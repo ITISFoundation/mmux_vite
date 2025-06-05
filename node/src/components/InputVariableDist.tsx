@@ -1,10 +1,11 @@
-import { Box, Chip, InputLabel, MenuItem, Select, Typography } from "@mui/material";
+import { Box, Chip, InputLabel, MenuItem, Select, Typography, useTheme } from "@mui/material";
 import { useEffect } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import { InputBlock } from "./InputBlock";
 
 export const InputVariableDist = () => {
   const { inputVars, distribution, setDistribution } = useMMUXContext();
+  const theme = useTheme();
 
   const handleSetValue = (inputVar: string, type: string, value: number) => {
     const newInputVars = { ...distribution };
@@ -108,7 +109,7 @@ export const InputVariableDist = () => {
 
   return (
     <Box sx={{ marginTop: "8px", paddingTop: "8px", borderRadius: "8px" }}>
-      <Typography variant="h5" sx={{ fontFamily: 'inherit', fontWeight: '100', marginBottom: '16px' }}>
+      <Typography variant="h6" sx={{ fontFamily: 'inherit', fontWeight: '100', marginBottom: '16px' }}>
         Input Variable Distributions
       </Typography>
       <Box sx={{ display: "flex", overflowX: "auto" }}>
@@ -121,16 +122,17 @@ export const InputVariableDist = () => {
                 flexDirection: "column",
                 flex: 1,
                 maxWidth: "240px",
-                padding: "16px",
+                padding: "8px 8px 16px",
                 marginRight: "16px",
                 backgroundColor: theme.palette.background.default,
                 gap: "16px",
                 borderRadius: "8px",
               })}>
               <Typography variant="h6" sx={{ fontSize: '1.2em' }}>
-                <Chip label={inputVar} style={{ width: '100%', fontSize: '0.8em', fontWeight: '100', textTransform: 'uppercase' }}></Chip>
+                <Chip label={inputVar} style={{ width: '100%', fontSize: '0.8em', fontWeight: '100', textTransform: 'uppercase', borderRadius: '8px', backgroundColor: `${theme.palette.primary.main}` }}></Chip>
               </Typography>
-              <InputLabel sx={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'start' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px'}}>
+              <InputLabel sx={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'start' }}>
                 Type:
                 <Select
                   variant="outlined"
@@ -165,6 +167,7 @@ export const InputVariableDist = () => {
                         <ExponentialInputDistribution inputVar={inputVar} />
                 */}
               </>
+            </Box>
             </Box>
           );
         })}

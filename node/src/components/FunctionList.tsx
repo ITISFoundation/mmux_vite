@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { styled, Box, IconButton, Typography } from "@mui/material";
+import { styled, Box, IconButton, Typography, useTheme } from "@mui/material";
 import { toast } from "react-toastify";
 import { Refresh } from "@mui/icons-material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -29,6 +29,7 @@ const VarsHolder = styled("div")`
 `;
 
 export function FunctionList() {
+  const theme = useTheme();
   const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
@@ -118,7 +119,7 @@ export function FunctionList() {
         <IconButton
           size="small"
           onClick={handleInfoClick}
-          sx={{ color: "#1976d2" }}
+          sx={{ color: `${theme.palette.primary.main}` }}
         >
           <InfoOutlinedIcon fontSize="small" />
         </IconButton>

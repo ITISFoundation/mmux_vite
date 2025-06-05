@@ -143,7 +143,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           fontWeight={100}
           textAlign={"center"}
         >
-          No data available for the selected QoI.
+          No data selected
         </Typography>
       </Box>
     );
@@ -163,7 +163,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           ),
           y: dataUQHistogram.bin_means,
           type: "bar",
-          marker: { color: "#1976d2" },
+          marker: { color: `${theme.palette.primary.main}` },
           name: "UQ Histogram",
           error_y: {
             type: "data",
@@ -176,9 +176,9 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         title: { text: "Uncertainty Quantification Histogram" },
         xaxis: { title: { text: selectedQoI || "Output" } },
         yaxis: { title: { text: "Frequency" } },
-        plot_bgcolor: "#222",
-        paper_bgcolor: "#222",
-        font: { color: "#eee" },
+        plot_bgcolor: `${theme.palette.background.default}`,
+        paper_bgcolor: `${theme.palette.background.default}`,
+        font: { color: `${theme.palette.text.primary}` },
       }}
       style={{ width: "100%", height: "400px", borderRadius: "8px", overflow: "hidden" }}
       config={{ responsive: true }}
