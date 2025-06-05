@@ -38,16 +38,16 @@ const JobRow = (props: JobRowProps) => {
         <TableCell component="th" scope="row">
           {job.job.uid ? job.job.uid.slice(0, 5) : ""}...
         </TableCell>
-        <TableCell>
+        <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {Object.entries(job.job.inputs).map(([key, value], idx) => {
             return (
-              <Box key={idx} display={"inline"}>
-                {key} : {(value as number).toExponential(3)}{", "}
+              <Box key={idx} display="inline">
+                {key} : {(value as number).toExponential(3)},{' '}
               </Box>
             );
           })}
         </TableCell>
-        <TableCell>
+        <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {(job.job.outputs && job.job.status === "SUCCESS") ? Object.entries(job.job.outputs).map(([key, value], idx) => {
             return (
               <Box key={idx} display={"inline"}>
