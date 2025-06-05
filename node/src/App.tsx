@@ -7,8 +7,6 @@ import Navigation from "./components/Navigation";
 import { Footer } from "./components/Footer";
 import { useMMUXContext } from "./context/MMUXContext";
 import Setup from "./views/Setup";
-import JobSetup from "./views/JobSetup";
-import SuMoBuildingValidation from "./views/SuMoBuilding";
 import UQ from "./views/UQ";
 import { getHealth } from "./utils/function_utils";
 import { SplashScreen } from "./views/SplashScreen";
@@ -61,29 +59,31 @@ const App = () => {
       return result;
     } catch (error) {
       console.error("Backend is not healthy:", error);
-      toast.error("Backend is not healthy. Please check the server status.");
     }
   };
 
   useEffect(() => {
-  let timeoutId: NodeJS.Timeout;
-  const pollHealthStatus = async (retries: number) => {
-    console.log("Fetching health status from backend...", retries);
-    const result = await getHealthStatus();
-    if(retries <= 0) {
-      console.error("Failed to get health status after multiple attempts.");
-      toast.error("Failed to connect to the backend after multiple attempts. Please check the server status.");
-      return;
-    }
-    if(result) return;
-    if (!healthStatus) {
-      timeoutId = setTimeout(pollHealthStatus, 1000, retries - 1);
-    }
-  };
-  pollHealthStatus(30);
-  return () => {
-    clearTimeout(timeoutId);
-  };
+    let timeoutId: NodeJS.Timeout;
+    console.log('Testing out the print!', window.parent.postMessage({ type: 'theme'}, '*'))
+    const pollHealthStatus = async (retries: number) => {
+      console.log("Fetching health status from backend...", retries);
+      const result = await getHealthStatus();
+      if (retries <= 0) {
+        console.error("Failed to get health status after multiple attempts.");
+        toast.error(
+          "Failed to connect to the backend after multiple attempts. Please check the server status."
+        );
+        return;
+      }
+      if (result) return;
+      if (!healthStatus) {
+        timeoutId = setTimeout(pollHealthStatus, 1000, retries - 1);
+      }
+    };
+    pollHealthStatus(30);
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   return (

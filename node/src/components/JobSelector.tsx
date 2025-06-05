@@ -107,8 +107,7 @@ export default function JobsSelector() {
     setJobCollections(newJobCollections);
   };
 
-  const onSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const checked = event.target.checked;
+  const onSelectAllClick = (checked: boolean) => {
     const newSubJobs = jobCollections[poperID].subJobs.map((subJob) => ({
       selected: checked,
       job: subJob.job,
@@ -173,10 +172,10 @@ export default function JobsSelector() {
       })
     );
 
-    updateJobContext(newJobs);
     setJobCollections(newJobs);
-    setProgress(100);
     setFetchedJobCollections(newJobs);
+    updateJobContext(newJobs);
+    setProgress(100);
   }
 
   const handleAnchor = (target: HTMLButtonElement, uid: string) => {
@@ -226,6 +225,29 @@ export default function JobsSelector() {
   }
 
   useEffect(() => {
+    if (jobCollections.length > 0 && loading === true) {
+      const onToggleAll = (checked: boolean) => {
+        const newJobCollections: SelectedJobCollection[] = jobCollections.map(
+          (jc) => {
+            const auxJob = jc;
+            auxJob.selected = checked;
+            auxJob.subJobs = jc.subJobs.map((subJob) => ({
+              selected: checked,
+              job: subJob.job,
+            }));
+            return auxJob;
+          }
+        );
+
+        setJobCollections(newJobCollections);
+        updateJobContext(newJobCollections);
+      };
+      onToggleAll(true);
+      setLoading(false);
+    }
+  },[jobCollections, loading, updateJobContext]);
+
+  useEffect(() => {
     console.info("useEffect in JobsSelector triggered");
     if (selectedFunction === undefined || jobCollections.length > 0) {
       return;
@@ -233,7 +255,6 @@ export default function JobsSelector() {
       console.info("Function selected: ", selectedFunction.uid);
       (async () => {
         await updateJobCollections(selectedFunction?.uid as string);
-        setLoading(false);
         console.info("Updated JobCollections");
       })();
     }
@@ -491,7 +512,7 @@ export default function JobsSelector() {
                             checked={jobCollections[poperID].subJobs.every(
                               (j) => j.selected
                             )}
-                            onChange={onSelectAllClick}
+                            onChange={(e)=>onSelectAllClick(e.target.checked)}
                           />
                         </TableCell>
                         <TableCell>Job ID</TableCell>
