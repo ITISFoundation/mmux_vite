@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useMMUXContext } from "../context/MMUXContext";
-import MetaModelingUX from "../components/MetaModelingUX";
+import Plot from "react-plotly.js";
 import {
   Accordion,
   AccordionDetails,
@@ -12,14 +11,16 @@ import {
   MenuItem,
   Select,
   TextField,
+  Typography,
+  useTheme,
 } from "@mui/material";
-import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
-import Plot from "react-plotly.js";
-import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
-import JobSelector from "../components/JobSelector";
+import MetaModelingUX from "../components/MetaModelingUX";
 import PlusButton from "../components/PlusButton";
+import JobSelector from "../components/JobSelector";
+import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
+import { useMMUXContext } from "../context/MMUXContext";
+import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { Sampling } from "../components/Sampling";
-import { InputBlock } from "../components/InputBlock";
 
 export default function UQ() {
   // Similar to Sumo building
@@ -32,6 +33,7 @@ export default function UQ() {
     distribution,
     filterSelectedJobList,
   } = useMMUXContext();
+  const theme = useTheme();
   const [numSamples, setNumSamples] = useState(1000);
   const [dataUQHistogram, setDataUQHistogram] = useState<Array<number>>([]);
 
@@ -94,14 +96,14 @@ export default function UQ() {
       tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}
       headerType="uq"
     >
-      <Container disableGutters>
+      <Container disableGutters style={{ padding: "0px 16px" }}>
         <Box
           sx={{
             justifySelf: "left",
             flex: 1,
             display: "flex",
             gap: "16px",
-            color: "#eee",
+            color: `${theme.palette.text.primary}`,
             margin: "16px 0",
             width: "100%",
           }}
@@ -182,11 +184,16 @@ export default function UQ() {
               title: { text: "Uncertainty Quantification Histogram" },
               xaxis: { title: { text: selectedQoI || "Output" } },
               yaxis: { title: { text: "Frequency" } },
-              plot_bgcolor: "#222",
-              paper_bgcolor: "#222",
-              font: { color: "#eee" },
+              plot_bgcolor: `${theme.palette.background.default}`,
+              paper_bgcolor: `${theme.palette.background.default}`,
+              font: { color: `${theme.palette.text.primary}` },
             }}
-            style={{ width: "100%", height: "400px" }}
+            style={{
+              width: "100%",
+              height: "400px",
+              borderRadius: "8px",
+              overflow: "hidden",
+            }}
             config={{ responsive: true }}
           />
         )}
@@ -201,7 +208,12 @@ export default function UQ() {
         style={{}}
       >
         <AccordionSummary>
-          <span style={{ padding: '8px', backgroundColor:'grey', borderRadius: '8px'}}>Modify selected functions</span>
+          <Button
+            variant="contained"
+            color="primary"
+          >
+            Modify selected functions
+          </Button>
         </AccordionSummary>
         <AccordionDetails>
           <JobSelector />

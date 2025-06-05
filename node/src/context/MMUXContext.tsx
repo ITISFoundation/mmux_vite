@@ -7,7 +7,7 @@ import {
 
 export interface MMUXContextType {
   selectedFunction: Function | undefined;
-  setSelectedFunction: (F: Function) => void;
+  setSelectedFunction: (F: Function | undefined) => void;
   distribution: InputVarSelection;
   setDistribution: (d: InputVarSelection) => void;
   inputVars: string[];

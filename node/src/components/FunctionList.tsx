@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button, styled, Box, IconButton, Typography } from "@mui/material";
+import { styled, Box, IconButton, Typography } from "@mui/material";
 import { toast } from "react-toastify";
 import { Refresh } from "@mui/icons-material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -16,12 +16,6 @@ import {
   JSONFunctionOutputSchema,
 } from "../osparc-api-ts-client";
 import { useMMUXContext } from "../context/MMUXContext.tsx";
-
-const TableButton = styled(Button)(
-  ({ theme }) => `
-  color: ${theme.palette.primary.main};
-`
-);
 
 const VarsHolder = styled("div")`
   max-width: 150px;
@@ -40,8 +34,25 @@ export function FunctionList() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [functions, setFunctions] = useState<Function[]>([]);
+  const [jobCollectionCount, setJobCollectionCount] = useState<{[key: string]:number}>({});
+  const [jobCount, setJobCount] = useState<{[key: string]:number}>({});
   const [rowSelectionModel, setRowSelectionModel] =
     useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
+
+  const fetchJobJobCollectionCount = async (fun: Function) => {
+    try {
+      const jcs = await getFunctionJobCollections(fun.uid);
+      const JCC = {...jobCollectionCount};
+      JCC[fun.uid] = jcs.length;
+      setJobCollectionCount(JCC)
+      const JC = {...jobCount};
+      JC[fun.uid] = jcs.map(jc => { return jc.jobIds ? jc.jobIds.length : 0 }).reduce((a, b) => a + b, 0);
+      setJobCount(JC);
+    } catch (err) {
+      console.warn("Error fetching jobs for Function ", fun.uid)
+      console.error(err);
+    }
+  };
 
   const fetchFunctions = async () => {
     try {
@@ -50,6 +61,8 @@ export function FunctionList() {
       setFunctions(funs);
       if (funs.length === 0) {
         toast.info("No functions available. Please create a function first.");
+      } else {
+        funs.map((fun)=>fetchJobJobCollectionCount(fun));
       }
       setError(false);
     } catch (error) {
@@ -121,39 +134,54 @@ export function FunctionList() {
   };
 
   const NFunctionJobCollections = (props: {fun: Function}): React.ReactNode => {
-    const { fun } = props;
-    const [jobCollectionCount, setJobCollectionCount] = useState<number | null>(null);
-    const [jobCount, setJobCount] = useState<number | null>(null);
-
-    useEffect(() => {
-      const fetchJobJobCollectionCount = async () => {
-        try {
-          const jcs = await getFunctionJobCollections(fun.uid);
-          setJobCollectionCount(jcs.length)
-          setJobCount(jcs.map(jc => { return jc.jobIds ? jc.jobIds.length : 0 }).reduce((a, b) => a + b, 0));
-        } catch (err) {
-          console.warn("Error fetching jobs for Function ", fun.uid)
-          console.error(err);
-        }
-      };
-      fetchJobJobCollectionCount();
-    }
-    , [fun.uid]);
-
+    const fun = props.fun;
+    console.log("NFunctionJobCollections for function:", fun);
     return (
       <Box>
         {jobCollectionCount === null || jobCount === null
           ? "Loading..."
-          : `Campaigns: ${jobCollectionCount} (${jobCount} total evaluations)`}
+          : `Campaigns: ${jobCollectionCount[fun.uid]} (${jobCount[fun.uid]} total evaluations)`}
       </Box>
     );
   }
 
-
-
   function getRowId(row: Function) {
     return row.uid ? row.uid : "" + row.title + row.description;
   }
+
+  const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {
+    setRowSelectionModel(newRowSelectionModel);
+    if (newRowSelectionModel.ids.size > 0) {
+      const selectedRow = functions.find((row) =>
+        getRowId(row) === newRowSelectionModel.ids.values().next().value
+      );
+      if (selectedRow) {
+        setSelectedFunction(selectedRow);
+        setInputVars(
+          selectedRow.inputSchema?.schemaContent?.properties
+            ? Object.keys(
+                selectedRow.inputSchema.schemaContent.properties
+              )
+            : []
+        );
+        console.log(
+          "inputVars registered:",
+          Object.keys(selectedRow.inputSchema.schemaContent.properties)
+        );
+        setOutputVars(
+          selectedRow.outputSchema?.schemaContent?.properties
+            ? Object.keys(
+                selectedRow.outputSchema.schemaContent.properties
+              )
+            : []
+        );
+      }
+    } else {
+      setSelectedFunction(undefined);
+      setInputVars([]);
+      setOutputVars([]);
+    }
+  };
 
   useEffect(() => {
     console.log("FunctionList mounted, fetching functions...");
@@ -192,7 +220,7 @@ export function FunctionList() {
   return (
     <DataGrid
       onRowSelectionModelChange={(newRowSelectionModel) => {
-        setRowSelectionModel(newRowSelectionModel);
+        handleRowSelection(newRowSelectionModel);
       }}
       rowSelectionModel={rowSelectionModel}
       rows={functions}
@@ -234,48 +262,13 @@ export function FunctionList() {
           minWidth: 200,
           renderCell: (params) => getFunctionSolver(params.row),
         },
-        {
-          field: "actions",
-          headerName: "",
-          sortable: false,
-          flex: 0.5,
-          maxWidth: 100,
-          minWidth: 100,
-          renderCell: (params) => (
-            <TableButton
-              variant="contained"
-              onClick={() => {
-                setSelectedFunction(params.row);
-                setInputVars(
-                  params.row.inputSchema?.schemaContent?.properties
-                    ? Object.keys(
-                        params.row.inputSchema.schemaContent.properties
-                      )
-                    : []
-                );
-                console.log(
-                  "inputVars registered:",
-                  Object.keys(params.row.inputSchema.schemaContent.properties)
-                );
-                setOutputVars(
-                  params.row.outputSchema?.schemaContent?.properties
-                    ? Object.keys(
-                        params.row.outputSchema.schemaContent.properties
-                      )
-                    : []
-                );
-              }}
-            >
-              Select
-            </TableButton>
-          ),
-        },
       ]}
       sx={{
         borderRadius: "8px",
         overflow: "hidden",
         fontFamily: "inherit",
         padding: "0px 8px",
+        margin: "0px 16px",
         "& .MuiDataGrid-cell": {
           fontWeight: 400,
         },
