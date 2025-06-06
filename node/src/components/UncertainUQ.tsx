@@ -5,20 +5,6 @@ import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Typography, Box, LinearProgress, useTheme } from "@mui/material";
 
-type dataUQHistogramType = {
-  bins_start: number;
-  bins_end: number;
-  bin_means: number[];
-  bin_stds: number[];
-};
-type UncertainUQPropsType = {
-  numSamples: number;
-  loading: boolean;
-  progress: number;
-  jobProgress: number;
-  colsFetched: React.MutableRefObject<number>;
-  jobsFetched: React.MutableRefObject<number>;
-};
 export default function UncertainUQ(props: UncertainUQPropsType) {
   const {
     numSamples,
@@ -28,11 +14,11 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     colsFetched,
     jobsFetched,
   } = props;
-  const { inputVars, selectedQoI, distribution, filterSelectedJobList } =
-    useMMUXContext();
+  const { inputVars, selectedQoI, distribution, selectedFunction, fetchedJobCollections, filterSelectedJobList } =useMMUXContext();
 
   const theme = useTheme();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
+  const [propagating, setPropagating] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -41,37 +27,40 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
       async function runUQ(jobs: FunctionJob[]) {
         console.log("Running UQ...");
         setDataUQHistogram(undefined);
-        fetch(
-          PYTHON_DAKOTA_BACKEND +
-            "/flask/manual_uq_propagation_with_uncertainty",
-          {
-            method: "POST",
-            body: JSON.stringify({
-              inputVars: inputVars,
-              output: selectedQoI,
-              distributions: distribution,
-              FunctionJobs: jobs,
-              numSamples: numSamples,
-              log: false,
-              nHistograms: 50,
-            }),
-          }
-        )
-          .then(function (response) {
-            return response.json();
-          })
-          .then(function (data) {
-            console.log("UQ Data:", data);
-            setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
-          })
-          .catch((error) => console.debug("Error:", error));
+        setPropagating(true);
+        try {
+          const response = await fetch(
+            PYTHON_DAKOTA_BACKEND +
+              "/flask/manual_uq_propagation_with_uncertainty",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                inputVars: inputVars,
+                output: selectedQoI,
+                distributions: distribution[selectedFunction?.uid || ""],
+                FunctionJobs: jobs,
+                numSamples: numSamples,
+                log: false,
+                nHistograms: 50,
+              }),
+            }
+          )
+          const data: dataUQHistogramType = await response.json();
+          console.log("UQ Data:", data);
+          setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
+          setPropagating(false);
+        } catch (error) {
+          console.debug("Error:", error)
+          setPropagating(false);
+          setDataUQHistogram(undefined);
+        }
       }
       return await runUQ(jobs);
     };
     run();
   }, [numSamples, filterSelectedJobList, inputVars, distribution, selectedQoI]);
 
-  if (!dataUQHistogram || dataUQHistogram.bin_means.length === 0 || loading) {
+  if (loading) {
     console.info(
       "Loading job collections...",
       colsFetched.current,
@@ -86,7 +75,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         alignItems={"center"}
         justifyContent={"center"}
         bgcolor={theme.palette.background.default}
-        borderRadius={"4px"}
+        borderRadius={"8px"}
       >
         <Typography
           variant="body1"
@@ -125,6 +114,54 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     );
   }
 
+  if (propagating) {
+    return (
+      <Box
+        width={"100%"}
+        height={"400px"}
+        display={"flex"}
+        flexDirection={"column"}
+        alignItems={"center"}
+        justifyContent={"center"}
+        bgcolor={theme.palette.background.default}
+        borderRadius={"8px"}
+      >
+        <Typography
+          variant="body1"
+          fontFamily={"inherit"}
+          fontWeight={100}
+          textAlign={"center"}
+        >
+          Calculating
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!dataUQHistogram) {
+    return (
+      <Box
+        width={"100%"}
+        height={"400px"}
+        display={"flex"}
+        flexDirection={"column"}
+        alignItems={"center"}
+        justifyContent={"center"}
+        bgcolor={theme.palette.background.default}
+        borderRadius={"8px"}
+      >
+        <Typography
+          variant="body1"
+          fontFamily={"inherit"}
+          fontWeight={100}
+          textAlign={"center"}
+        >
+          {fetchedJobCollections.length > 0 ? 'No data selected' : 'No data available. Please create more Jobs.'}
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Plot
       data={[
@@ -139,7 +176,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           ),
           y: dataUQHistogram.bin_means,
           type: "bar",
-          marker: { color: "#1976d2" },
+          marker: { color: `${theme.palette.primary.main}` },
           name: "UQ Histogram",
           error_y: {
             type: "data",
@@ -152,11 +189,11 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         title: { text: "Uncertainty Quantification Histogram" },
         xaxis: { title: { text: selectedQoI || "Output" } },
         yaxis: { title: { text: "Frequency" } },
-        plot_bgcolor: "#222",
-        paper_bgcolor: "#222",
-        font: { color: "#eee" },
+        plot_bgcolor: `${theme.palette.background.default}`,
+        paper_bgcolor: `${theme.palette.background.default}`,
+        font: { color: `${theme.palette.text.primary}` },
       }}
-      style={{ width: "100%", height: "400px" }}
+      style={{ width: "100%", height: "400px", borderRadius: "8px", overflow: "hidden" }}
       config={{ responsive: true }}
     />
   );

@@ -41,8 +41,8 @@ const JobRow = (props: JobRowProps) => {
         <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {Object.entries(job.job.inputs).map(([key, value], idx) => {
             return (
-              <Box key={idx} display="inline">
-                {key} : {(value as number).toExponential(3)},{' '}
+              <Box key={idx} display={"inline"}>
+                {key} : {(value as number).toExponential(3)}{", "}
               </Box>
             );
           })}

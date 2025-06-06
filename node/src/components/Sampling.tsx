@@ -45,11 +45,11 @@ export const Sampling = () => {
   };
 
   return (
-    <Container>
+    <Container sx={{ borderRadius: 2 }}>
       <TabContainer>
         <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
           <Tab label="LHS Sampling" {...a11yProps(0)} />
-          <Tab label="Grid Search Sampling" {...a11yProps(1)} />
+          <Tab label="Grid Sampling" {...a11yProps(1)} />
           <Tab label="Test Run" {...a11yProps(2)} />
         </Tabs>
       </TabContainer>

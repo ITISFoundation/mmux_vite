@@ -8,8 +8,8 @@ import {
 export interface MMUXContextType {
   selectedFunction: Function | undefined;
   setSelectedFunction: (F: Function | undefined) => void;
-  distribution: InputVarSelection;
-  setDistribution: (d: InputVarSelection) => void;
+  distribution: {[key: string]:InputVarSelection};
+  setDistribution: (d: {[key: string]:InputVarSelection}) => void;
   inputVars: string[];
   setInputVars: (vars: string[]) => void;
   outputVars: string[] | undefined;
@@ -53,11 +53,17 @@ export const MMUXContextProvider = ({ children }: Props) => {
     SelectedJobCollection[]
   >([]);
   const [inputVars, setInputVars] = useState<string[]>([]);
-  const [distribution, setDistribution] = useState<InputVarSelection>({});
+  const [distribution, setDistribution] = useState<{[key: string]:InputVarSelection}>({});
   const [outputVars, setOutputVars] = useState<string[] | undefined>(undefined);
   const [selectedQoI, setSelectedQoI] = useState<string | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
   const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
+
+  const handleSelecedFunction = (F: Function | undefined) => {
+    setFunct(F);
+    setSelectedJobUids([])
+    setFetchedJobCollections([]);
+  };
 
   const memoState = useMemo(() => {
     const filterSelectedJobList = () => {
@@ -71,7 +77,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
     };
     return {
       selectedFunction: funct,
-      setSelectedFunction: setFunct,
+      setSelectedFunction: handleSelecedFunction,
       distribution: distribution,
       setDistribution: setDistribution,
       inputVars: inputVars,

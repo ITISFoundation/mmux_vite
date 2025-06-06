@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { styled, Box, IconButton, Typography } from "@mui/material";
+import { styled, Box, IconButton, Typography, useTheme, Button } from "@mui/material";
 import { toast } from "react-toastify";
 import { Refresh } from "@mui/icons-material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -29,15 +29,14 @@ const VarsHolder = styled("div")`
 `;
 
 export function FunctionList() {
-  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } =
-    useMMUXContext();
+  const theme = useTheme();
+  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [functions, setFunctions] = useState<Function[]>([]);
-  const [jobCollectionCount, setJobCollectionCount] = useState<{ [key: string]: number }>({});
-  const [jobCount, setJobCount] = useState<{ [key: string]: number }>({});
-  const [rowSelectionModel, setRowSelectionModel] =
-    useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
+  const [jobCollectionCount, setJobCollectionCount] = useState<{[key: string]:number}>({});
+  const [jobCount, setJobCount] = useState<{[key: string]:number}>({});
+  const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
   const fetchJobJobCollectionCount = async (fun: Function) => {
     try {
@@ -131,7 +130,7 @@ export function FunctionList() {
         <IconButton
           size="small"
           onClick={handleInfoClick}
-          sx={{ color: "#1976d2" }}
+          sx={{ color: `${theme.palette.primary.main}` }}
         >
           <InfoOutlinedIcon fontSize="small" />
         </IconButton>
@@ -145,7 +144,6 @@ export function FunctionList() {
 
   const NFunctionJobCollections = (props: { fun: Function }): React.ReactNode => {
     const fun = props.fun;
-    console.debug("NFunctionJobCollections for function:", fun);
     return (
       <Box>
         {jobCollectionCount[fun.uid] === undefined || jobCount[fun.uid] === undefined
@@ -272,13 +270,48 @@ export function FunctionList() {
           minWidth: 200,
           renderCell: (params) => getFunctionSolver(params.row),
         },
+                {
+          field: "actions",
+          headerName: "",
+          sortable: false,
+          flex: 0.5,
+          maxWidth: 100,
+          minWidth: 100,
+          renderCell: (params) => (
+            <Button
+              variant="contained"
+              onClick={() => {
+                setSelectedFunction(params.row);
+                setInputVars(
+                  params.row.inputSchema?.schemaContent?.properties
+                    ? Object.keys(
+                        params.row.inputSchema.schemaContent.properties
+                      )
+                    : []
+                );
+                console.log(
+                  "inputVars registered:",
+                  Object.keys(params.row.inputSchema.schemaContent.properties)
+                );
+                setOutputVars(
+                  params.row.outputSchema?.schemaContent?.properties
+                    ? Object.keys(
+                        params.row.outputSchema.schemaContent.properties
+                      )
+                    : []
+                );
+              }}
+            >
+              Select
+            </Button>
+          ),
+        },
       ]}
       sx={{
         borderRadius: "8px",
         overflow: "hidden",
         fontFamily: "inherit",
         padding: "0px 8px",
-        margin: "0px 16px",
         "& .MuiDataGrid-cell": {
           fontWeight: 400,
         },

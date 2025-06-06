@@ -1,24 +1,29 @@
-import React from 'react'
-import { Box, Button, Container, Modal, Paper, styled } from '@mui/material'
-import { useMMUXContext } from '../context/MMUXContext';
-import JobsDashboard from '../views/ParallelRunner';
-import { stepValidator } from '../utils/stepValidator';
+import React from "react";
+import { Box, Button, Container, Modal, Paper, styled } from "@mui/material";
+import { useMMUXContext } from "../context/MMUXContext";
+import JobsDashboard from "../views/ParallelRunner";
+import { stepValidator } from "../utils/stepValidator";
+
+type FooterProps = {
+  steps: Step[];
+};
 
 const Cont = styled(Container)`
-padding: 0 !important;
-& .footerBox {
-  padding: 1em 0;
-  margin-top: 2em;
-  border-radius: 16px;
-  display: flex;
-  justify-content: space-between;
-}
-& .footerBtn {
-  margin: 0 1em;
-}
-`
+  padding: 0 !important;
+  & .footerBox {
+    padding: 1em 0;
+    margin-top: 2em;
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+  }
+  & .footerBtn {
+    margin: 0 1em;
+  }
+`;
 
-export const Footer = () => {
+export const Footer = (props: FooterProps) => {
+  const { steps } = props;
   const context = useMMUXContext();
   const { currentView, setCurrentView, runningSampling } = context;
   const [modal, setModal] = React.useState(false);
@@ -26,34 +31,57 @@ export const Footer = () => {
 
   return (
     <>
-    <Cont>
-        <Paper className='footerBox' variant="outlined">
-          <Button className='footerBtn footerBtnFirst' onClick={()=>setCurrentView(currentView <= 0 ? 0 : currentView -1)} disabled={currentView <= 0}>Previous</Button>
+      <Cont>
+        <Paper className="footerBox" variant="outlined">
+          <Button
+            className="footerBtn footerBtnFirst"
+            variant="contained"
+            onClick={() =>
+              setCurrentView(currentView <= 0 ? 0 : currentView - 1)
+            }
+            disabled={currentView <= 0}
+          >
+            Previous
+          </Button>
           <Box>
-            <Button className='footerBtn' onClick={() => setModal(!modal)} disabled={!isJobsRunning}>Tasks running</Button>
+            <Button
+              className="footerBtn"
+              variant="contained"
+              onClick={() => setModal(!modal)}
+              disabled={!isJobsRunning}
+            >
+              Tasks running
+            </Button>
           </Box>
           <Button
-            className='footerBtn footerBtnLast'
-            onClick={()=>setCurrentView(currentView >= 3 ? 3 : currentView +1)}
-            disabled={currentView >= 3 || !stepValidator(context, currentView)}
+            className="footerBtn footerBtnLast"
+            variant="contained"
+            onClick={() =>
+              setCurrentView(currentView >= (steps.length -1) ? (steps.length -1) : currentView + 1)
+            }
+            disabled={currentView >= (steps.length -1) || !stepValidator(context, currentView)}
           >
             Next
           </Button>
         </Paper>
-    </Cont>
-    <Modal
-      open={modal}
-      onClose={() => setModal(false)}
-      aria-labelledby="modal-modal-title"
-      aria-describedby="modal-modal-description"
-      sx={{
-        margin: 'auto',
-        width: '80vw',
-        height: '80vh',
-      }}
+      </Cont>
+      <Modal
+        open={modal}
+        onClose={() => setModal(false)}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+        sx={{
+          margin: "auto",
+          width: "80vw",
+          height: "80vh",
+        }}
       >
-        { isJobsRunning && isJobsRunning === true ? <JobsDashboard progressBarOnly={false} /> : <></>}
+        {isJobsRunning && isJobsRunning === true ? (
+          <JobsDashboard progressBarOnly={false} />
+        ) : (
+          <></>
+        )}
       </Modal>
     </>
-  )
-}
+  );
+};
