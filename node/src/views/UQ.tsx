@@ -25,9 +25,14 @@ import SuMoValidation from "../components/SuMoValidation";
 import Surface2DPlot from "../components/Surface3DPlot";
 
 export default function UQ() {
-  // Similar to Sumo building
-  const { inputVars, outputVars, selectedFunction, selectedQoI, setSelectedQoI, isSuMoGenerated } =
-    useMMUXContext();
+  const {
+    inputVars,
+    outputVars,
+    selectedFunction,
+    selectedQoI,
+    setSelectedQoI,
+    isSuMoGenerated,
+  } = useMMUXContext();
   const theme = useTheme();
   const [numSamples, setNumSamples] = useState(1000);
   const [loading, setLoading] = useState<boolean>(true);
@@ -149,7 +154,6 @@ export default function UQ() {
       </Container>
       <Accordion
         expanded={jobPanelOpen}
-        onChange={() => setJobPanelOpen(loading ? false : !jobPanelOpen)}
         disableGutters
         variant="outlined"
         sx={{
@@ -158,12 +162,20 @@ export default function UQ() {
           "&:before": { display: "none" },
         }}
       >
-        <AccordionSummary sx={{padding: "0", "& .MuiAccordionSummary-content": { margin: "0 0 4px 0" }}}>
-          <Button variant="contained" color="primary" disabled={loading} sx={{ minHeight: 'auto' }} >
-            Modify selected jobs
-          </Button>
-        </AccordionSummary>
-        <AccordionDetails sx={{padding: "0"}}>
+        <Button
+          variant="contained"
+          color="primary"
+          disabled={loading}
+          onClick={() => setJobPanelOpen(loading ? false : !jobPanelOpen)}
+          sx={{
+            minHeight: "auto",
+            padding: "4px 8px",
+            margin: `0 0 ${jobPanelOpen ? '16px' : '0px'} 0`,
+          }}
+        >
+          Modify selected jobs
+        </Button>
+        <AccordionDetails sx={{ padding: "0" }}>
           <JobSelector
             loading={loading}
             setLoading={setLoading}
