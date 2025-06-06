@@ -59,6 +59,12 @@ export const MMUXContextProvider = ({ children }: Props) => {
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
   const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
 
+  const handleSelecedFunction = (F: Function | undefined) => {
+    setFunct(F);
+    setSelectedJobUids([])
+    setFetchedJobCollections([]);
+  };
+
   const memoState = useMemo(() => {
     const filterSelectedJobList = () => {
       const response: FunctionJob[] = fetchedJobCollections.flatMap(
@@ -71,7 +77,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
     };
     return {
       selectedFunction: funct,
-      setSelectedFunction: setFunct,
+      setSelectedFunction: handleSelecedFunction,
       distribution: distribution,
       setDistribution: setDistribution,
       inputVars: inputVars,
