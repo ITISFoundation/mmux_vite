@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
@@ -25,6 +25,7 @@ import IsoSurface3DPlot from "../components/IsoSurface3DPlot";
 import Curves1DPlots from "../components/PlotDataTogether";
 import SuMoValidation from "../components/SuMoValidation";
 import Surface2DPlot from "../components/Surface3DPlot";
+import { useSequentialRenderer } from "../hooks/useSequentialRenderer";
 
 export default function UQ() {
   // Similar to Sumo building
@@ -39,6 +40,77 @@ export default function UQ() {
   const [jobProgress, setJobProgress] = useState<number>(0);
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
+
+  // type SuMoPlotsType = {
+  //   children: Record<string, React.ReactNode>[]
+  // }
+  // const SuMoPlots = (props: SuMoPlotsType) => {
+  //   const { items } = useSequentialRenderer(props.children);
+
+  //   return (
+  //     <>
+  //       {items.map((plot) => {
+  //         return { plot }
+  //       })}
+  //     </>
+  //   );
+  // };
+
+
+  const ModelValidationModal = () => {
+    return (
+      <Modal
+        open={sumoModal}
+        onClose={() => setSumoModal(false)}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+        sx={{
+          margin: "auto",
+          height: "600px",
+          width: "900px",
+        }}
+      >
+        <Box
+          bgcolor={theme.palette.background.default}
+          p={4}
+          borderRadius={2}
+          width={900}
+          height={600}
+          overflow={"auto"}
+        >
+          <Carousel
+            renderItem={(item) => {
+              // Only render the current slide
+              return item;
+            }}
+            selectedItem={0}
+            showThumbs={false}
+            showStatus={false}
+            infiniteLoop={false}
+          >
+            <div>
+              <SuMoValidation />
+            </div>
+            {inputVars.length > 0 ? (
+              <div>
+                <Curves1DPlots />
+              </div>
+            ) : undefined}
+            {inputVars.length > 1 ? (
+              <div>
+                <Surface2DPlot />
+              </div>
+            ) : undefined}
+            {inputVars.length > 2 ? (
+              <div>
+                <IsoSurface3DPlot />
+              </div>
+            ) : undefined}
+          </Carousel>
+        </Box>
+      </Modal>
+    )
+  }
 
   useEffect(() => {
     if (outputVars && outputVars.length > 0) {
@@ -188,56 +260,7 @@ export default function UQ() {
           ) : undefined}
         </AccordionDetails>
       </Accordion>
-      <Modal
-        open={sumoModal}
-        onClose={() => setSumoModal(false)}
-        aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description"
-        sx={{
-          margin: "auto",
-          height: "600px",
-          width: "900px",
-        }}
-      >
-        <Box
-          bgcolor={theme.palette.background.default}
-          p={4}
-          borderRadius={2}
-          width={900}
-          height={600}
-          overflow={"auto"}
-        >
-          <Carousel
-            renderItem={(item) => {
-              // Only render the current slide
-              return item;
-            }}
-            selectedItem={0}
-            showThumbs={false}
-            showStatus={false}
-            infiniteLoop={false}
-          >
-            <div>
-              <SuMoValidation />
-            </div>
-            {inputVars.length > 0 ? (
-              <div>
-                <Curves1DPlots />
-              </div>
-            ) : undefined}
-            {inputVars.length > 1 ? (
-              <div>
-                <Surface2DPlot />
-              </div>
-            ) : undefined}
-            {inputVars.length > 2 ? (
-              <div>
-                <IsoSurface3DPlot />
-              </div>
-            ) : undefined}
-          </Carousel>
-        </Box>
-      </Modal>
+      <ModelValidationModal />
     </MetaModelingUX>
   );
 }
