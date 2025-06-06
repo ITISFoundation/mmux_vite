@@ -12,6 +12,8 @@ import {
   TextField,
   useTheme,
 } from "@mui/material";
+import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
+import { Carousel } from 'react-responsive-carousel';
 import MetaModelingUX from "../components/MetaModelingUX";
 import PlusButton from "../components/PlusButton";
 import JobSelector from "../components/JobSelector";
@@ -91,7 +93,7 @@ export default function UQ() {
               sx={{ flex: 1, marginTop: "8px" }}
               value={localQoI}
               defaultValue={outputVars?.[0] || ""}
-              onChange={(e) => {handlesetLocalQoI(e.target.value);}}
+              onChange={(e) => { handlesetLocalQoI(e.target.value); }}
             >
               {outputVars?.map((qoi) => (
                 <MenuItem key={qoi} value={qoi}>
@@ -215,14 +217,35 @@ export default function UQ() {
           height={600}
           overflow={"auto"}
         >
-          {isSuMoGenerated && (
-            <>
+          <Carousel
+            renderItem={(item) => {
+              // Only render the current slide
+              return item;
+            }}
+            selectedItem={0}
+            showThumbs={false}
+            showStatus={false}
+            infiniteLoop={false}
+          >
+            <div>
               <SuMoValidation />
-              {inputVars.length > 0 ? <Curves1DPlots /> : undefined}
-              {inputVars.length > 1 ? <Surface2DPlot /> : undefined}
-              {inputVars.length > 2 ? <IsoSurface3DPlot /> : undefined}
-            </>
-          )}
+            </div>
+            {inputVars.length > 0 ? (
+              <div>
+                <Curves1DPlots />
+              </div>
+            ) : undefined}
+            {inputVars.length > 1 ? (
+              <div>
+                <Surface2DPlot />
+              </div>
+            ) : undefined}
+            {inputVars.length > 2 ? (
+              <div>
+                <IsoSurface3DPlot />
+              </div>
+            ) : undefined}
+          </Carousel>
         </Box>
       </Modal>
     </MetaModelingUX>

@@ -8,6 +8,7 @@ import { Data } from 'plotly.js';
 type GPPrediction = {
     x: number[];
     y_hat: number[];
+    std_hat: number[];
 };
 
 const Curves1DPlots = () => {
@@ -15,8 +16,6 @@ const Curves1DPlots = () => {
     const [plotData, setPlotData] = useState<Array<Data>>([]);
     console.log("InputVars to 1D curves: ", inputVars)
     console.log("QoI to 1D curves: ", selectedQoI)
-
-    // TODO move this to the PlotComponent (same as the 2D and 3D plots)
 
     const RunCentralSuMoInterpolations = async (jobs: FunctionJob[]) => {
         console.log("Evaluating SuMo for 1D curves...");
@@ -28,7 +27,7 @@ const Curves1DPlots = () => {
                     {
                         inputs: inputVars,
                         output: selectedQoI,
-                        FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
+                        FunctionJobs: jobs,
                         log: false,
                     }
                 ),
@@ -57,13 +56,49 @@ const Curves1DPlots = () => {
         } else {
 
             const newData: Data[] = [
-                ...inputVars.map((varName) => ({
-                    x: data[varName]?.x || [],
-                    y: data[varName]?.y_hat || [],
-                    name: varName,
-                    xaxis: `x${inputVars.indexOf(varName) + 1}`,
-                    yaxis: 'y',
-                }))
+                ...inputVars.flatMap((varName) => {
+                    const x = data[varName]?.x || [];
+                    const y_hat = data[varName]?.y_hat || [];
+                    const std_hat = data[varName]?.std_hat || [];
+                    const traces: Data[] = [
+                        {
+                            x,
+                            y: y_hat,
+                            name: varName,
+                            xaxis: `x${inputVars.indexOf(varName) + 1}`,
+                            yaxis: 'y',
+                            mode: 'lines',
+                            line: { color: 'blue' },
+                        }
+                    ];
+                    if (std_hat.length === y_hat.length) {
+                        traces.push(
+                            {
+                                x,
+                                y: y_hat.map((y, i) => y + 2 * std_hat[i]),
+                                name: `${varName} +2σ`,
+                                xaxis: `x${inputVars.indexOf(varName) + 1}`,
+                                yaxis: 'y',
+                                mode: 'lines',
+                                line: { color: 'rgba(0,0,255,0.3)', dash: 'dot' },
+                                fill: 'tonexty',
+                                showlegend: false,
+                            },
+                            {
+                                x,
+                                y: y_hat.map((y, i) => y - 2 * std_hat[i]),
+                                name: `${varName} -2σ`,
+                                xaxis: `x${inputVars.indexOf(varName) + 1}`,
+                                yaxis: 'y',
+                                mode: 'lines',
+                                fill: 'tonexty',
+                                line: { color: 'rgba(0,0,255,0.3)', dash: 'dot' },
+                                showlegend: false,
+                            }
+                        );
+                    }
+                    return traces;
+                })
             ]
             setPlotData(newData);
             console.log("Registered plotData: ", newData);
