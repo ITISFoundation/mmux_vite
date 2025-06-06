@@ -434,7 +434,6 @@ def flask_manual_uq_propagation_with_uncertainty():
     results = {key.replace(output_response_sanitized, output_response): val for key, val in results_sanitized.items()}
 
     ## now, use the prediction of std_hat to get an estimation of the uncertainty over the UQ
-    _logger.debug("Results of the evaluation: %s", results)
     assert output_response_sanitized + "_std_hat" in results, f"Cannot perform uncertainty of UQ if there is no prediction of the uncertainty"
     
     ## TODO change by normal sampling
@@ -453,7 +452,7 @@ def flask_manual_uq_propagation_with_uncertainty():
 
     # Compute histograms for each row (histogram per UQ run)
     histograms = np.array([
-        np.histogram(all_results[i, :], bins=bin_edges)[0]
+        np.histogram(all_results[i, :], bins=bin_edges, density=True)[0]
         for i in range(n_histograms)
     ])
 

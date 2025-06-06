@@ -196,7 +196,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
             layout={{
               title: { text: "Uncertainty Quantification Histogram" },
               xaxis: { title: { text: selectedQoI || "Output" } },
-              yaxis: { title: { text: "Frequency" } },
+              yaxis: { title: { text: "Density" } },
               plot_bgcolor: `${theme.palette.background.default}`,
               paper_bgcolor: `${theme.palette.background.default}`,
               font: { color: `${theme.palette.text.primary}` },
