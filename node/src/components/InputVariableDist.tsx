@@ -129,7 +129,17 @@ export const InputVariableDist = () => {
                 borderRadius: "8px",
               })}>
               <Typography variant="h6" sx={{ fontSize: '1.2em' }}>
-                <Chip label={inputVar} style={{ width: '100%', fontSize: '0.8em', fontWeight: '100', textTransform: 'uppercase', borderRadius: '8px', backgroundColor: `${theme.palette.primary.main}` }}></Chip>
+                <Chip
+                  label={inputVar}
+                  sx={{
+                    width: '100%',
+                    fontSize: '0.8em',
+                    fontWeight: '100',
+                    textTransform: 'uppercase',
+                    borderRadius: '8px',
+                    backgroundColor: theme.palette.primary.main,
+                  }}
+                ></Chip>
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px'}}>
               <InputLabel sx={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'start' }}>
