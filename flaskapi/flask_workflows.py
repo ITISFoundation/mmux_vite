@@ -373,7 +373,7 @@ def flask_manual_uq_propagation():
     
     _logger.debug("Done!!")
     # return jsonify(results) 
-    return jsonify(results[output_response_sanitized+"_hat"]) # for compatibility w normal dakota UQ
+    return jsonify(results[output_response+"_hat"]) # for compatibility w normal dakota UQ
 
 
 ### First do "normal" manual UQ propagation & compare w the outputs of Dakota. Then do the N times w error.
