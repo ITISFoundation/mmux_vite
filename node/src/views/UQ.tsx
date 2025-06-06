@@ -39,6 +39,31 @@ export default function UQ() {
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
 
+  // type SuMoPlotsType = {
+  //   children: Record<string, React.ReactNode>[]
+  // }
+  // const SuMoPlots = (props: SuMoPlotsType) => {
+  //   const { items } = useSequentialRenderer(props.children);
+
+  //   return (
+  //     <>
+  //       {items.map((plot) => {
+  //         return { plot }
+  //       })}
+  //     </>
+  //   );
+  // };
+
+  type plotsObjectType = {
+    loaded: boolean;
+    plot: React.ReactNode;
+  }
+  const plotsObject = [1, 2, 3, 4].map((a: React.ReactNode) => ({
+    loaded: false,
+    plot: a
+  }));
+
+
   const ModelValidationModal = () => {
     return (
       <Modal
@@ -56,7 +81,7 @@ export default function UQ() {
           bgcolor={theme.palette.background.default}
           p={4}
           borderRadius={2}
-          width={900}
+          width={1900}
           height={600}
           overflow={"auto"}
         >
@@ -73,6 +98,7 @@ export default function UQ() {
             <div>
               <SuMoValidation />
             </div>
+            {/*
             {inputVars.length > 0 ? (
               <div>
                 <Curves1DPlots />
@@ -83,11 +109,13 @@ export default function UQ() {
                 <Surface2DPlot />
               </div>
             ) : undefined}
+                */}
+            {/*
             {inputVars.length > 2 ? (
               <div>
                 <IsoSurface3DPlot />
               </div>
-            ) : undefined}
+            ) : undefined} */}
           </Carousel>
         </Box>
       </Modal>

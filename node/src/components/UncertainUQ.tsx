@@ -4,6 +4,7 @@ import Plot from "react-plotly.js";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Typography, Box, LinearProgress, useTheme } from "@mui/material";
+import { fetchWithRetry } from "../utils/fetch_retry";
 
 export default function UncertainUQ(props: UncertainUQPropsType) {
   const {
@@ -31,9 +32,9 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         setPropagating(true);
         setPropagationFailed(false)
         try {
-          const response = await fetch(
+          const response = await fetchWithRetry(
             PYTHON_DAKOTA_BACKEND +
-              "/flask/manual_uq_propagation_with_uncertainty",
+            "/flask/manual_uq_propagation_with_uncertainty",
             {
               method: "POST",
               body: JSON.stringify({
