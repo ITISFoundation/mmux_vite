@@ -85,7 +85,6 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
   const theme = useTheme();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
   const [propagating, setPropagating] = useState(false);
-  const [propagationFailed, setPropagationFailed] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -95,8 +94,11 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         console.log("Running UQ...");
         setDataUQHistogram(undefined);
         setPropagating(true);
-        setPropagationFailed(false)
-
+        if (jobs.length === 0) {
+          console.warn("No jobs selected for UQ propagation.");
+          setPropagating(false);
+          return;
+        }
         try {
           console.info("Propagating UQ...")
           console.info("SelectedQoI: ", selectedQoI)
@@ -117,20 +119,16 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
               }),
             }
           )
-          console.log(response)
-          const data: dataUQHistogramType = await response.json();
           if (!response.ok) {
-            throw new Error(`UQ propagation failed: ${data ? JSON.stringify(data) : response.statusText}`);
+            throw new Error(`Error in UQ response: ${response.status}, ${response.statusText}`);
           }
+          const data: dataUQHistogramType = await response.json();
           setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
-          console.debug("Writing error in dataUQHistogram")
           setPropagating(false);
         } catch (error) {
           console.debug("Error:", error)
           setPropagating(false);
-          console.debug("Writing undefined in dataUQHistogram")
           setDataUQHistogram(undefined);
-          setPropagationFailed(true)
         };
       }
       return await runUQ(jobs);
