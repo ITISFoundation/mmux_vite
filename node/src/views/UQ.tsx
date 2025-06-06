@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
-  AccordionSummary,
   Box,
   Button,
   Container,
@@ -40,6 +39,7 @@ export default function UQ() {
   const [sumoModal, setSumoModal] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [jobProgress, setJobProgress] = useState<number>(0);
+  const [localQoI, setLocalQoI] = useState<string | undefined>(selectedQoI);
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
 
@@ -49,9 +49,10 @@ export default function UQ() {
     }
   }, [outputVars]);
 
-  useEffect(() => {
-    console.log("Selected QoI changed:", selectedQoI);
-  }, [selectedQoI]);
+  const handlesetLocalQoI = (value: string) => {
+    setLocalQoI(value);
+    setSelectedQoI(value);
+  };
 
   return (
     <MetaModelingUX
@@ -88,12 +89,9 @@ export default function UQ() {
               size="small"
               variant="outlined"
               sx={{ flex: 1, marginTop: "8px" }}
-              value={selectedQoI}
+              value={localQoI}
               defaultValue={outputVars?.[0] || ""}
-              onChange={(e) => {
-                setSelectedQoI(e.target.value);
-                console.log(e.target.value);
-              }}
+              onChange={(e) => {handlesetLocalQoI(e.target.value);}}
             >
               {outputVars?.map((qoi) => (
                 <MenuItem key={qoi} value={qoi}>

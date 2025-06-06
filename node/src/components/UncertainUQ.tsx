@@ -28,6 +28,11 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         console.log("Running UQ...");
         setDataUQHistogram(undefined);
         setPropagating(true);
+        if (jobs.length === 0) {
+          console.warn("No jobs selected for UQ propagation.");
+          setPropagating(false);
+          return;
+        }
         try {
           const response = await fetch(
             PYTHON_DAKOTA_BACKEND +
@@ -45,6 +50,9 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
               }),
             }
           )
+          if (!response.ok) {
+            throw new Error(`Error in UQ response: ${response.status}, ${response.statusText}`);
+          }
           const data: dataUQHistogramType = await response.json();
           console.log("UQ Data:", data);
           setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
