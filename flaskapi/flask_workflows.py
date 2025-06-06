@@ -244,14 +244,22 @@ def get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
 
     return job_dict
 
+def sanitize_varname(varname: str) -> str:
+    """Sanitize variable names by replacing spaces and non-alphanumeric characters with underscores."""
+    return re.sub(r'[^0-9a-zA-Z_]', '_', varname.replace(' ', '_'))
+
+def sanitize_varnames(varnames):
+    return [sanitize_varname(v) for v in varnames]
+
 def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str, folder_name: str = "evaluate") -> Path:
+    output_response_sanitized = sanitize_varname(output_response)
     completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
     def get_job_dict(job):
-        d = {key: job["inputs"][key] for key in input_vars}
+        d = {sanitize_varname(key): job["inputs"][key] for key in input_vars}
         assert "outputs" in job.keys(), f"Outputs not in job: {job}"
         assert output_response in job["outputs"].keys(), f"Output {output_response} not in job: {job}"
-        d[output_response] = job["outputs"][output_response] # type: ignore
+        d[output_response_sanitized] = job["outputs"][output_response] # type: ignore
         return d
     df_jobs = pd.DataFrame(
             [get_job_dict(job) for job in completed_jobs]
@@ -272,8 +280,13 @@ def flask_sumo_cross_validation():
     request_data: dict = json.loads(request.data.decode("utf-8"))
     output_response = request_data["output"]
     input_vars: List[str] = request_data["inputVars"]
+    
     jobs: List[FunctionJob] = request_data["FunctionJobs"]
     make_log: bool = request_data.get("log", False)
+
+    # Sanitize variable names
+    input_vars_sanitized = sanitize_varnames(input_vars)
+    output_response_sanitized = sanitize_varname(output_response)
 
     TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
     run_dir = TRAINING_FILE.parent
@@ -281,17 +294,17 @@ def flask_sumo_cross_validation():
     PROCESSED_TRAINING_FILE = process_input_file(
         TRAINING_FILE,
         make_log=make_log,
-        columns_to_keep=input_vars + [output_response], # type: ignore
+        columns_to_keep=input_vars_sanitized + [output_response_sanitized], # type: ignore
     )
     if make_log:  # FIXME for now log applies to all inputs & the output
-        input_vars = [f"log_{var}" for var in input_vars]
-        output_response = f"log_{output_response}"
+        input_vars_sanitized = [f"log_{var}" for var in input_vars_sanitized]
+        output_response_sanitized = f"log_{output_response_sanitized}"
 
     results = evaluate_sumo_manual_crossvalidation(
         run_dir,
         PROCESSED_TRAINING_FILE,
-        input_vars,
-        output_response, # type: ignore
+        input_vars_sanitized,
+        output_response_sanitized, # type: ignore
     )
     _logger.debug("Done!!")
 
