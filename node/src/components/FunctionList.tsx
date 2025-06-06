@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { styled, Box, IconButton, Typography, useTheme } from "@mui/material";
+import { styled, Box, IconButton, Typography, useTheme, Button } from "@mui/material";
 import { toast } from "react-toastify";
 import { Refresh } from "@mui/icons-material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -37,7 +37,6 @@ export function FunctionList() {
   const [jobCollectionCount, setJobCollectionCount] = useState<{[key: string]:number}>({});
   const [jobCount, setJobCount] = useState<{[key: string]:number}>({});
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
-
 
   const fetchJobJobCollectionCount = async (fun: Function) => {
     try {
@@ -270,6 +269,42 @@ export function FunctionList() {
           flex: 1,
           minWidth: 200,
           renderCell: (params) => getFunctionSolver(params.row),
+        },
+                {
+          field: "actions",
+          headerName: "",
+          sortable: false,
+          flex: 0.5,
+          maxWidth: 100,
+          minWidth: 100,
+          renderCell: (params) => (
+            <Button
+              variant="contained"
+              onClick={() => {
+                setSelectedFunction(params.row);
+                setInputVars(
+                  params.row.inputSchema?.schemaContent?.properties
+                    ? Object.keys(
+                        params.row.inputSchema.schemaContent.properties
+                      )
+                    : []
+                );
+                console.log(
+                  "inputVars registered:",
+                  Object.keys(params.row.inputSchema.schemaContent.properties)
+                );
+                setOutputVars(
+                  params.row.outputSchema?.schemaContent?.properties
+                    ? Object.keys(
+                        params.row.outputSchema.schemaContent.properties
+                      )
+                    : []
+                );
+              }}
+            >
+              Select
+            </Button>
+          ),
         },
       ]}
       sx={{
