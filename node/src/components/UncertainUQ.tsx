@@ -14,11 +14,12 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     colsFetched,
     jobsFetched,
   } = props;
-  const { inputVars, selectedQoI, distribution, filterSelectedJobList } =useMMUXContext();
+  const { inputVars, selectedQoI, distribution, filterSelectedJobList } = useMMUXContext();
 
   const theme = useTheme();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
   const [propagating, setPropagating] = useState(false);
+  const [propagationFailed, setPropagationFailed] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -28,9 +29,10 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         console.log("Running UQ...");
         setDataUQHistogram(undefined);
         setPropagating(true);
+        setPropagationFailed(false)
         fetch(
           PYTHON_DAKOTA_BACKEND +
-            "/flask/manual_uq_propagation_with_uncertainty",
+          "/flask/manual_uq_propagation_with_uncertainty",
           {
             method: "POST",
             body: JSON.stringify({
@@ -56,6 +58,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
             console.debug("Error:", error)
             setPropagating(false);
             setDataUQHistogram(undefined);
+            setPropagationFailed(true)
           });
       }
       return await runUQ(jobs);
@@ -165,6 +168,30 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     );
   }
 
+  if (propagationFailed) {
+    return (
+      <Box
+        width={"100%"}
+        height={"400px"}
+        display={"flex"}
+        flexDirection={"column"}
+        alignItems={"center"}
+        justifyContent={"center"}
+        bgcolor={theme.palette.background.default}
+        borderRadius={"8px"}
+      >
+        <Typography
+          variant="body1"
+          fontFamily={"inherit"}
+          fontWeight={100}
+          textAlign={"center"}
+        >
+          UQ calculation failed, please contact support
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Plot
       data={[
@@ -175,7 +202,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
               dataUQHistogram.bins_start +
               ((dataUQHistogram.bins_end - dataUQHistogram.bins_start) /
                 dataUQHistogram.bin_means.length) *
-                (i + 0.5)
+              (i + 0.5)
           ),
           y: dataUQHistogram.bin_means,
           type: "bar",
