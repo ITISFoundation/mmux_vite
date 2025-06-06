@@ -17,7 +17,7 @@ export const InputBlock = (props: InputBlockProps) => {
         variant="outlined"
         size="small"
         sx={{ marginTop: '8px' }}
-        value={currentValue}
+        value={ isNaN(currentValue) ? "" : currentValue }
         onChange={(e) => setCurrentValue(parseFloat(e.target.value))}
         onBlur={(e) => handleChange(parseFloat(e.target.value))}
       />
