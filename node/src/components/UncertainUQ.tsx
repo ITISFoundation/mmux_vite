@@ -14,7 +14,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     colsFetched,
     jobsFetched,
   } = props;
-  const { inputVars, selectedQoI, distribution, filterSelectedJobList } = useMMUXContext();
+  const { inputVars, selectedQoI, distribution, selectedFunction, fetchedJobCollections, filterSelectedJobList } = useMMUXContext();
 
   const theme = useTheme();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
@@ -30,36 +30,34 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         setDataUQHistogram(undefined);
         setPropagating(true);
         setPropagationFailed(false)
-        fetch(
-          PYTHON_DAKOTA_BACKEND +
-          "/flask/manual_uq_propagation_with_uncertainty",
-          {
-            method: "POST",
-            body: JSON.stringify({
-              inputVars: inputVars,
-              output: selectedQoI,
-              distributions: distribution,
-              FunctionJobs: jobs,
-              numSamples: numSamples,
-              log: false,
-              nHistograms: 50,
-            }),
-          }
-        )
-          .then(function (response) {
-            return response.json();
-          })
-          .then(function (data) {
-            console.log("UQ Data:", data);
-            setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
-            setPropagating(false);
-          })
-          .catch((error) => {
-            console.debug("Error:", error)
-            setPropagating(false);
-            setDataUQHistogram(undefined);
-            setPropagationFailed(true)
-          });
+
+        try {
+          const response = await fetch(
+            PYTHON_DAKOTA_BACKEND +
+            "/flask/manual_uq_propagation_with_uncertainty",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                inputVars: inputVars,
+                output: selectedQoI,
+                distributions: distribution[selectedFunction?.uid || ""],
+                FunctionJobs: jobs,
+                numSamples: numSamples,
+                log: false,
+                nHistograms: 50,
+              }),
+            }
+          )
+          const data: dataUQHistogramType = await response.json();
+          console.log("UQ Data:", data);
+          setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
+          setPropagating(false);
+        } catch (error) {
+          console.debug("Error:", error)
+          setPropagating(false);
+          setDataUQHistogram(undefined);
+          setPropagationFailed(true)
+        };
       }
       return await runUQ(jobs);
     };
@@ -158,31 +156,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           fontWeight={100}
           textAlign={"center"}
         >
-          No data selected
-        </Typography>
-      </Box>
-    );
-  }
-
-  if (propagationFailed) {
-    return (
-      <Box
-        width={"100%"}
-        height={"400px"}
-        display={"flex"}
-        flexDirection={"column"}
-        alignItems={"center"}
-        justifyContent={"center"}
-        bgcolor={theme.palette.background.default}
-        borderRadius={"8px"}
-      >
-        <Typography
-          variant="body1"
-          fontFamily={"inherit"}
-          fontWeight={100}
-          textAlign={"center"}
-        >
-          UQ calculation failed, please contact support
+          {fetchedJobCollections.length > 0 ? 'No data selected' : 'No data available. Please create more Jobs.'}
         </Typography>
       </Box>
     );

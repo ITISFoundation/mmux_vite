@@ -3,7 +3,12 @@ import { MMUXContextType } from "../context/MMUXContext";
 export function stepValidator(context: MMUXContextType, step: number): boolean {
   if (step === 0) {
     // Step 0: Check if a function is selected
-    const correctDistributions = Object.values(context.distribution).every(
+    const selectedFunction = context?.selectedFunction;
+    const selectedDistribution = context?.distribution[selectedFunction?.uid || ""];
+    if(!selectedFunction || !selectedDistribution) {
+      return false; // No function or distribution selected
+    }
+    const correctDistributions = Object.values(selectedDistribution).every(
       (dist) => {
         if (dist.distribution === "constant") {
           return dist.value !== undefined && !isNaN(dist.value);

@@ -150,6 +150,14 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     jobsFetched.current = 0;
     console.info("Fetched jobCollections: ", jobsC, totalSubs);
 
+    if(jobsC.length === 0) {
+      console.info("No job collections found for function: ", functionUid);
+      setJobCollections([]);
+      setFetchedJobCollections([]);
+      setLoading(false);
+      return;
+    }
+
     const newJobs: SelectedJobCollection[] = await Promise.all(
       jobsC.map(async (jc) => {
         const subJobs = await Promise.all(
