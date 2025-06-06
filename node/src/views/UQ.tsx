@@ -25,12 +25,10 @@ import IsoSurface3DPlot from "../components/IsoSurface3DPlot";
 import Curves1DPlots from "../components/PlotDataTogether";
 import SuMoValidation from "../components/SuMoValidation";
 import Surface2DPlot from "../components/Surface3DPlot";
-import { useSequentialRenderer } from "../hooks/useSequentialRenderer";
 
 export default function UQ() {
   // Similar to Sumo building
-  const { inputVars, outputVars, selectedFunction, selectedQoI, setSelectedQoI, isSuMoGenerated } =
-    useMMUXContext();
+  const { inputVars, outputVars, selectedFunction, selectedQoI, setSelectedQoI } = useMMUXContext();
   const theme = useTheme();
   const [numSamples, setNumSamples] = useState(1000);
   const [loading, setLoading] = useState<boolean>(true);
@@ -40,22 +38,6 @@ export default function UQ() {
   const [jobProgress, setJobProgress] = useState<number>(0);
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
-
-  // type SuMoPlotsType = {
-  //   children: Record<string, React.ReactNode>[]
-  // }
-  // const SuMoPlots = (props: SuMoPlotsType) => {
-  //   const { items } = useSequentialRenderer(props.children);
-
-  //   return (
-  //     <>
-  //       {items.map((plot) => {
-  //         return { plot }
-  //       })}
-  //     </>
-  //   );
-  // };
-
 
   const ModelValidationModal = () => {
     return (
