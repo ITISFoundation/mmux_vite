@@ -5,6 +5,35 @@ import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Typography, Box, LinearProgress, useTheme } from "@mui/material";
 
+type DisplayMessageProps = {
+  mssg: string
+}
+const DisplayMessage = (props: DisplayMessageProps) => {
+  const theme = useTheme();
+  const { mssg } = props
+  return (
+    <Box
+      width={"100%"}
+      height={"400px"}
+      display={"flex"}
+      flexDirection={"column"}
+      alignItems={"center"}
+      justifyContent={"center"}
+      bgcolor={theme.palette.background.default}
+      borderRadius={"8px"}
+    >
+      <Typography
+        variant="body1"
+        fontFamily={"inherit"}
+        fontWeight={100}
+        textAlign={"center"}
+      >
+        {mssg}
+      </Typography>
+    </Box>
+  )
+}
+
 export default function UncertainUQ(props: UncertainUQPropsType) {
   const {
     numSamples,
@@ -15,7 +44,6 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     jobsFetched,
   } = props;
   const { inputVars, selectedQoI, distribution, selectedFunction, fetchedJobCollections, filterSelectedJobList } = useMMUXContext();
-
   const theme = useTheme();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
   const [propagating, setPropagating] = useState(false);
@@ -71,25 +99,8 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
       jobsFetched.current
     );
     return (
-      <Box
-        width={"100%"}
-        height={"400px"}
-        display={"flex"}
-        flexDirection={"column"}
-        alignItems={"center"}
-        justifyContent={"center"}
-        bgcolor={theme.palette.background.default}
-        borderRadius={"8px"}
-      >
-        <Typography
-          variant="body1"
-          fontFamily={"inherit"}
-          fontWeight={100}
-          textAlign={"center"}
-          mb={1}
-        >
-          Creating Uncertainty Quantification AI model...
-        </Typography>
+      <>
+        <DisplayMessage mssg={"Creating Uncertainty Quantification AI model..."} />
         <Box
           sx={{
             display: "flex",
@@ -114,51 +125,24 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         >
           <span>{Math.round(jobProgress)}%</span>
         </Typography>
-      </Box>
+      </>
     );
   } else if (propagating) {
     return (
-      <Box
-        width={"100%"}
-        height={"400px"}
-        display={"flex"}
-        flexDirection={"column"}
-        alignItems={"center"}
-        justifyContent={"center"}
-        bgcolor={theme.palette.background.default}
-        borderRadius={"8px"}
-      >
-        <Typography
-          variant="body1"
-          fontFamily={"inherit"}
-          fontWeight={100}
-          textAlign={"center"}
-        >
-          Calculating
-        </Typography>
-      </Box>
-    );
+      <DisplayMessage mssg={"Calculating..."} />
+    )
   } else if (!dataUQHistogram) {
+    // loading is off, propagating is off. 
+    // The data we have is fetchedJobCollections (e.g. whether there is data available at all), 
+    // dataUQHistogram (whether we managed to retrieve any data) and propagationFailed (whether we got an error during propagation)
+    // I guess the later is redundant - we can already use dataUQHistogram to know if the propagation failed
     return (
-      <Box
-        width={"100%"}
-        height={"400px"}
-        display={"flex"}
-        flexDirection={"column"}
-        alignItems={"center"}
-        justifyContent={"center"}
-        bgcolor={theme.palette.background.default}
-        borderRadius={"8px"}
-      >
-        <Typography
-          variant="body1"
-          fontFamily={"inherit"}
-          fontWeight={100}
-          textAlign={"center"}
-        >
-          {fetchedJobCollections.length > 0 ? 'No data selected' : 'No data available. Please create more Jobs.'}
-        </Typography>
-      </Box>
+      <DisplayMessage mssg={fetchedJobCollections.length === 0
+        ? 'No data available. Please create more Jobs.'
+        : filterSelectedJobList().length === 0 ? 'No data selected'
+          : "Error propagating uncertainty, please contact support."
+      }
+      />
     );
   }
 
