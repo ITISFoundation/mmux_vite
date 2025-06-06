@@ -1,5 +1,5 @@
 import { Box, Chip, InputLabel, MenuItem, Select, Typography, useTheme } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import { InputBlock } from "./InputBlock";
 
@@ -8,15 +8,13 @@ export const InputVariableDist = () => {
   const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
 
-  const handleSetLocalDistribution = (newInputVars: typeof localDistribution) => {
+  const handleSetLocalDistribution = useCallback((newInputVars: typeof localDistribution) => {
     setLocalDistribution(newInputVars);
     if(selectedFunction) {
       const newDist =  { ...distribution, [selectedFunction.uid]: newInputVars };
-      console.debug("Setting local distribution for function:", selectedFunction.uid);
-      console.debug("Updating global distribution:", newDist, 'and original distribution:', distribution);
       setDistribution(newDist);
     }
-  }
+  }, [distribution, selectedFunction, setDistribution]);
 
   const handleSetValue = (inputVar: string, type: string, value: number) => {
     const newInputVars = { ...localDistribution };
@@ -99,7 +97,6 @@ export const InputVariableDist = () => {
 
   useEffect(() => {
     if (distribution && selectedFunction && distribution[selectedFunction.uid]) {
-      console.debug("Updating local distribution for function IN USEEFFECT!!!:", selectedFunction.uid, distribution[selectedFunction.uid]);
       setLocalDistribution(distribution[selectedFunction.uid]);
     } else {
       if (inputVars.length > 0) {

@@ -14,7 +14,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     colsFetched,
     jobsFetched,
   } = props;
-  const { inputVars, selectedQoI, distribution, filterSelectedJobList } =useMMUXContext();
+  const { inputVars, selectedQoI, distribution, selectedFunction, filterSelectedJobList } =useMMUXContext();
 
   const theme = useTheme();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
@@ -36,7 +36,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
             body: JSON.stringify({
               inputVars: inputVars,
               output: selectedQoI,
-              distributions: distribution,
+              distributions: distribution[selectedFunction?.uid || ""],
               FunctionJobs: jobs,
               numSamples: numSamples,
               log: false,
