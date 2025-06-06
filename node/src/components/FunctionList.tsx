@@ -145,7 +145,6 @@ export function FunctionList() {
 
   const NFunctionJobCollections = (props: { fun: Function }): React.ReactNode => {
     const fun = props.fun;
-    console.debug("NFunctionJobCollections for function:", fun);
     return (
       <Box>
         {jobCollectionCount[fun.uid] === undefined || jobCount[fun.uid] === undefined

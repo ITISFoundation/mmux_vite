@@ -1,26 +1,37 @@
 import { Box, Chip, InputLabel, MenuItem, Select, Typography, useTheme } from "@mui/material";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import { InputBlock } from "./InputBlock";
 
 export const InputVariableDist = () => {
-  const { inputVars, distribution, setDistribution } = useMMUXContext();
+  const { inputVars, distribution, setDistribution, selectedFunction } = useMMUXContext();
+  const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
 
+  const handleSetLocalDistribution = (newInputVars: typeof localDistribution) => {
+    setLocalDistribution(newInputVars);
+    if(selectedFunction) {
+      const newDist =  { ...distribution, [selectedFunction.uid]: newInputVars };
+      console.debug("Setting local distribution for function:", selectedFunction.uid);
+      console.debug("Updating global distribution:", newDist, 'and original distribution:', distribution);
+      setDistribution(newDist);
+    }
+  }
+
   const handleSetValue = (inputVar: string, type: string, value: number) => {
-    const newInputVars = { ...distribution };
+    const newInputVars = { ...localDistribution };
     if (!newInputVars[inputVar]) {
       newInputVars[inputVar] = { distribution: "normal" };
     }
     newInputVars[inputVar][type as variables] = value;
-    setDistribution(newInputVars);
+    handleSetLocalDistribution(newInputVars);
   }
 
   const ConstantInputDistribution = ({ inputVar }: { inputVar: string }) => {
     return (
       <InputBlock
         name="Value"
-        value={distribution[inputVar].value !== undefined ? distribution[inputVar].value : NaN}
+        value={localDistribution[inputVar].value !== undefined ? localDistribution[inputVar].value : NaN}
         onChange={(value) => handleSetValue(inputVar, 'value', value)}
       />
     );
@@ -31,12 +42,12 @@ export const InputVariableDist = () => {
       <>
         <InputBlock
           name="Mean"
-          value={distribution[inputVar].mean !== undefined ? distribution[inputVar].mean : NaN}
+          value={localDistribution[inputVar].mean !== undefined ? localDistribution[inputVar].mean : NaN}
           onChange={(value) => handleSetValue(inputVar, 'mean', value)}
         />
         <InputBlock
           name="Standard Deviation"
-          value={distribution[inputVar].std !== undefined ? distribution[inputVar].std : NaN}
+          value={localDistribution[inputVar].std !== undefined ? localDistribution[inputVar].std : NaN}
           onChange={(value) => handleSetValue(inputVar, 'std', value)}
         />
       </>
@@ -48,12 +59,12 @@ export const InputVariableDist = () => {
       <>
         <InputBlock
           name="Min"
-          value={distribution[inputVar].min !== undefined ? distribution[inputVar].min : NaN}
+          value={localDistribution[inputVar].min !== undefined ? localDistribution[inputVar].min : NaN}
           onChange={(value) => handleSetValue(inputVar, 'min', value)}
         />
         <InputBlock
           name="Max"
-          value={distribution[inputVar].max !== undefined ? distribution[inputVar].max : NaN}
+          value={localDistribution[inputVar].max !== undefined ? localDistribution[inputVar].max : NaN}
           onChange={(value) => handleSetValue(inputVar, 'max', value)}
         />
       </>
@@ -66,12 +77,12 @@ export const InputVariableDist = () => {
       <>
         <InputBlock
           name="Log Location"
-          value={distribution[inputVar].location !== undefined ? distribution[inputVar].location : NaN}
+          value={localDistribution[inputVar].location !== undefined ? localDistribution[inputVar].location : NaN}
           onChange={(value) => handleSetValue(inputVar, 'location', value)}
         />
         <InputBlock
           name='Log Scale'
-          value={distribution[inputVar].scale !== undefined ? distribution[inputVar].scale : NaN}
+          value={localDistribution[inputVar].scale !== undefined ? localDistribution[inputVar].scale : NaN}
           onChange={(value) => handleSetValue(inputVar, 'scale', value)}
         />
       </>
@@ -80,27 +91,26 @@ export const InputVariableDist = () => {
 
 
   const handleDistributionChange = (inputVar: string, value: distribution) => {
-    const newInputVars = { ...distribution };
+    const newInputVars = { ...localDistribution };
     const newDist: VarSelection = { distribution: value };
     newInputVars[inputVar] = newDist;
-    setDistribution(newInputVars);
+    handleSetLocalDistribution(newInputVars);
   };
 
   useEffect(() => {
-    if (distribution) {
-      setDistribution(distribution);
+    if (distribution && selectedFunction && distribution[selectedFunction.uid]) {
+      console.debug("Updating local distribution for function IN USEEFFECT!!!:", selectedFunction.uid, distribution[selectedFunction.uid]);
+      setLocalDistribution(distribution[selectedFunction.uid]);
+    } else {
+      if (inputVars.length > 0) {
+        const initialInputVars = inputVars.reduce((acc, val) => {
+          acc[val] = { distribution: "normal" };
+          return acc;
+        }, {} as typeof localDistribution);
+        handleSetLocalDistribution(initialInputVars);
+      }
     }
-  }, [distribution, setDistribution]);
-
-  useEffect(() => {
-    if (inputVars.length > 0) {
-      const initialInputVars = inputVars.reduce((acc, val) => {
-        acc[val] = { distribution: "normal" };
-        return acc;
-      }, {} as typeof distribution);
-      setDistribution(initialInputVars);
-    }
-  }, [inputVars]);
+  }, [distribution, handleSetLocalDistribution, inputVars, selectedFunction, setDistribution]);
 
   if (inputVars.length === 0) {
     return <></>
@@ -112,7 +122,7 @@ export const InputVariableDist = () => {
         Input Variable Distributions
       </Typography>
       <Box sx={{ display: "flex", overflowX: "auto" }}>
-        {Object.keys(distribution).map((inputVar, index) => {
+        {Object.keys(localDistribution).map((inputVar, index) => {
           return (
             <Box
               key={index}
@@ -148,7 +158,7 @@ export const InputVariableDist = () => {
                   variant="outlined"
                   size="small"
                   id={index + "selector"}
-                  value={distribution[inputVar]?.distribution || ""}
+                  value={localDistribution[inputVar]?.distribution || ""}
                   sx={{ minWidth: 132, width: '100%' }}
                   onChange={(e) => handleDistributionChange(inputVar, e.target.value as distribution)}
                 >
@@ -161,19 +171,19 @@ export const InputVariableDist = () => {
                 </Select>
               </InputLabel>
               <>
-                {distribution[inputVar]?.distribution === "constant" ? (
+                {localDistribution[inputVar]?.distribution === "constant" ? (
                   <ConstantInputDistribution inputVar={inputVar} />
-                ) : distribution[inputVar]?.distribution === "normal" ? (
+                ) : localDistribution[inputVar]?.distribution === "normal" ? (
                   <NormalInputDistribution inputVar={inputVar} />
-                ) : distribution[inputVar]?.distribution === "uniform" ? (
+                ) : localDistribution[inputVar]?.distribution === "uniform" ? (
                   <UniformInputDistribution inputVar={inputVar} />
                 ) : (
                   "not found"
                 )}
                 {/* For v9 release, removed log-normal and exponential input distributions
-                  ) : distribution[inputVar]?.distribution === "log-normal" ? (
+                  ) : localDistribution[inputVar]?.distribution === "log-normal" ? (
                       <LogNormalInputDistribution inputVar={inputVar} />
-                    ) : distribution[inputVar]?.distribution === "exponential" ? (
+                    ) : localDistribution[inputVar]?.distribution === "exponential" ? (
                         <ExponentialInputDistribution inputVar={inputVar} />
                 */}
               </>
