@@ -98,7 +98,6 @@ export default function UQ() {
             <div>
               <SuMoValidation />
             </div>
-            {/*
             {inputVars.length > 0 ? (
               <div>
                 <Curves1DPlots />
@@ -109,13 +108,11 @@ export default function UQ() {
                 <Surface2DPlot />
               </div>
             ) : undefined}
-                */}
-            {/*
             {inputVars.length > 2 ? (
               <div>
                 <IsoSurface3DPlot />
               </div>
-            ) : undefined} */}
+            ) : undefined}
           </Carousel>
         </Box>
       </Modal>
