@@ -20,7 +20,7 @@ import logging
 from typing import List, Dict, Callable, Literal, Optional
 import numpy as np
 import pandas as pd
-from flask import Flask, request, jsonify
+from flask import Flask, request, abort, jsonify, make_response
 import osparc_client
 from osparc_client.configuration import Configuration as OsparcConfiguration
 from osparc_client.api_client import ApiClient
@@ -35,6 +35,8 @@ from osparc_client.configuration import Configuration as OsparcConfiguration
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
     create_manual_uq_samples,
+    sanitize_varnames,
+    sanitize_varnames_dict,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
 from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid
@@ -244,19 +246,17 @@ def get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
 
     return job_dict
 
-def sanitize_varname(varname: str) -> str:
-    """Sanitize variable names by replacing spaces and non-alphanumeric characters with underscores."""
-    return re.sub(r'[^0-9a-zA-Z_]', '_', varname.replace(' ', '_'))
-
-def sanitize_varnames(varnames):
-    return [sanitize_varname(v) for v in varnames]
-
 def create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str, folder_name: str = "evaluate") -> Path:
-    output_response_sanitized = sanitize_varname(output_response)
+    output_response_sanitized = sanitize_varnames(output_response)
     completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
+    if len(completed_jobs) == 0:
+        # Return a Flask error response if called from a Flask route
+        response = make_response(jsonify({"error": "No completed jobs found. Cannot create training file."}), 400)
+        # If running inside a Flask request context, abort with this response
+        abort(response)
     def get_job_dict(job):
-        d = {sanitize_varname(key): job["inputs"][key] for key in input_vars}
+        d = {sanitize_varnames(key): job["inputs"][key] for key in input_vars}
         assert "outputs" in job.keys(), f"Outputs not in job: {job}"
         assert output_response in job["outputs"].keys(), f"Output {output_response} not in job: {job}"
         d[output_response_sanitized] = job["outputs"][output_response] # type: ignore
@@ -286,7 +286,7 @@ def flask_sumo_cross_validation():
 
     # Sanitize variable names
     input_vars_sanitized = sanitize_varnames(input_vars)
-    output_response_sanitized = sanitize_varname(output_response)
+    output_response_sanitized = sanitize_varnames(output_response)
 
     TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
     run_dir = TRAINING_FILE.parent
@@ -300,12 +300,15 @@ def flask_sumo_cross_validation():
         input_vars_sanitized = [f"log_{var}" for var in input_vars_sanitized]
         output_response_sanitized = f"log_{output_response_sanitized}"
 
-    results = evaluate_sumo_manual_crossvalidation(
+    results_sanitized = evaluate_sumo_manual_crossvalidation(
         run_dir,
         PROCESSED_TRAINING_FILE,
         input_vars_sanitized,
         output_response_sanitized, # type: ignore
     )
+    ## now need to de-sanitize the result keys before returning the results
+    results = {key.replace(output_response_sanitized, output_response): val for key, val in results_sanitized.items()}
+
     _logger.debug("Done!!")
 
     return jsonify(results) 
@@ -322,10 +325,14 @@ def flask_manual_uq_propagation():
     request_data: dict = json.loads(request.data.decode("utf-8"))
     output_response = request_data["output"]
     input_vars: List[str] = request_data["inputVars"]
-    distributions = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
+    distributions: Dict[str, Dict[str, float]] = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
     num_samples: int = request_data["numSamples"]
     jobs: List[FunctionJob] = request_data["FunctionJobs"]
     make_log: bool = request_data.get("log", False)
+    
+    input_vars_sanitized = sanitize_varnames(input_vars)
+    output_response_sanitized = sanitize_varnames(output_response)
+    distributions = sanitize_varnames(distributions)
 
     TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
     run_dir = TRAINING_FILE.parent
@@ -333,7 +340,7 @@ def flask_manual_uq_propagation():
     PROCESSED_TRAINING_FILE = process_input_file(
         TRAINING_FILE,
         make_log=make_log,
-        columns_to_keep=input_vars + [output_response], # type: ignore
+        columns_to_keep=input_vars_sanitized + [output_response_sanitized], # type: ignore
     )
 
     # if make_log:  # FIXME for now log applies to all inputs & the output
@@ -343,7 +350,7 @@ def flask_manual_uq_propagation():
     #     stds = {f"log_{key}": np.log(val) for key, val in stds.items()}
 
     ## for some reason, much more noisy than Dakota's sampling
-    samples = create_manual_uq_samples(input_vars, distributions, num_samples)
+    samples = create_manual_uq_samples(input_vars_sanitized, distributions, num_samples)
     df = pd.DataFrame(samples)
     UQ_SAMPLES_FILE = run_dir / "manual_uq_samples.csv"
     df.to_csv(UQ_SAMPLES_FILE, index=False)
@@ -352,19 +359,21 @@ def flask_manual_uq_propagation():
     PROCESSED_UQ_SAMPLES_FILE = process_input_file(
         UQ_SAMPLES_FILE,
         make_log=make_log,
-        columns_to_keep=input_vars,
+        columns_to_keep=input_vars_sanitized,
     )
-    results = evaluate_sumo(
+    results_sanitized = evaluate_sumo(
         run_dir, 
         PROCESSED_TRAINING_FILE,
         PROCESSED_UQ_SAMPLES_FILE,
-        input_vars,
-        output_response,
+        input_vars_sanitized,
+        output_response_sanitized,
     )
-
+    
+    results = {key.replace(output_response_sanitized, output_response): val for key, val in results_sanitized.items()}
+    
     _logger.debug("Done!!")
     # return jsonify(results) 
-    return jsonify(results[output_response+"_hat"]) # for compatibility w normal dakota UQ
+    return jsonify(results[output_response_sanitized+"_hat"]) # for compatibility w normal dakota UQ
 
 
 ### First do "normal" manual UQ propagation & compare w the outputs of Dakota. Then do the N times w error.
@@ -383,6 +392,10 @@ def flask_manual_uq_propagation_with_uncertainty():
     jobs: List[FunctionJob] = request_data["FunctionJobs"]
     make_log: bool = request_data.get("log", False)
     n_histograms: int = request_data["nHistograms"] # number of histograms - to give uncertainty over it
+    
+    # Sanitize variable names
+    input_vars_sanitized = sanitize_varnames(input_vars)
+    output_response_sanitized = sanitize_varnames(output_response)
 
     TRAINING_FILE = create_training_file_from_jobs(jobs, input_vars, output_response)
     run_dir = TRAINING_FILE.parent
@@ -390,7 +403,7 @@ def flask_manual_uq_propagation_with_uncertainty():
     PROCESSED_TRAINING_FILE = process_input_file(
         TRAINING_FILE,
         make_log=make_log,
-        columns_to_keep=input_vars + [output_response], # type: ignore
+        columns_to_keep=input_vars_sanitized + [output_response_sanitized], # type: ignore
     )
 
     # if make_log:  # FIXME for now log applies to all inputs & the output
@@ -400,7 +413,7 @@ def flask_manual_uq_propagation_with_uncertainty():
     #     stds = {f"log_{key}": np.log(val) for key, val in stds.items()}
 
     ## for some reason, much more noisy than Dakota's sampling
-    samples = create_manual_uq_samples(input_vars, distributions, num_samples)
+    samples = create_manual_uq_samples(input_vars_sanitized, distributions, num_samples)
     df = pd.DataFrame(samples)
     UQ_SAMPLES_FILE = run_dir / "manual_uq_samples.csv"
     df.to_csv(UQ_SAMPLES_FILE, index=False)
@@ -409,25 +422,29 @@ def flask_manual_uq_propagation_with_uncertainty():
     PROCESSED_UQ_SAMPLES_FILE = process_input_file(
         UQ_SAMPLES_FILE,
         make_log=make_log,
-        columns_to_keep=input_vars,
+        columns_to_keep=input_vars_sanitized,
     )
-    results = evaluate_sumo(
+    results_sanitized = evaluate_sumo(
         run_dir, 
         PROCESSED_TRAINING_FILE,
         PROCESSED_UQ_SAMPLES_FILE,
-        input_vars,
-        output_response,
+        input_vars_sanitized,
+        output_response_sanitized,
     )
-    
+    results = {key.replace(output_response_sanitized, output_response): val for key, val in results_sanitized.items()}
+
     ## now, use the prediction of std_hat to get an estimation of the uncertainty over the UQ
-    assert output_response + "_std_hat" in results, f"Cannot perform uncertainty of UQ if there is no prediction of the uncertainty"
+    _logger.debug("Results of the evaluation: %s", results)
+    assert output_response_sanitized + "_std_hat" in results, f"Cannot perform uncertainty of UQ if there is no prediction of the uncertainty"
+    
+    ## TODO change by normal sampling
     from scipy.special import erfinv
     all_results = np.empty(shape=(n_histograms, num_samples), dtype=float) # create an empty array to store the results
     for i in range(n_histograms):
         _logger.debug(f"Running histogram {i+1}/{n_histograms}")
         r = erfinv(np.random.uniform(-1, 1, size=num_samples)) # generate random samples from an uniform distribution
-        all_results[i, :] = results[output_response+"_hat"] + r * results[output_response+"_std_hat"]
-    
+        all_results[i, :] = results[output_response_sanitized+"_hat"] + r * results[output_response_sanitized+"_std_hat"]
+
     # Compute common bin edges for all histograms
     all_values = all_results.flatten()
     num_bins = min(50, num_samples // 10)  # or set as needed

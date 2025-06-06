@@ -118,9 +118,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         </Typography>
       </Box>
     );
-  }
-
-  if (propagating) {
+  } else if (propagating) {
     return (
       <Box
         width={"100%"}
@@ -142,9 +140,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         </Typography>
       </Box>
     );
-  }
-
-  if (!dataUQHistogram) {
+  } else if (!dataUQHistogram) {
     return (
       <Box
         width={"100%"}
