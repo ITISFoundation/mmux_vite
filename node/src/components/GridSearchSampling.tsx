@@ -42,15 +42,15 @@ async function runGridSampling(
 
 function GridSearchSampling() {
   const context = useMMUXContext();
-  const { inputVars, distribution } = context;
+  const { inputVars, distribution, selectedFunction } = context;
 
   const [gridSamplingInputs, setGridSamplingInputs] = useState<
     SamplingInputsState[]
   >(
     inputVars.map((inputVar) => ({
       variable: inputVar,
-      start: getSamplingStartValue(inputVar, distribution) as number,
-      end: getSamplingEndValue(inputVar, distribution) as number,
+      start: getSamplingStartValue(inputVar, distribution[selectedFunction?.uid || '']) as number,
+      end: getSamplingEndValue(inputVar, distribution[selectedFunction?.uid || '']) as number,
       points: 10,
     }))
   );

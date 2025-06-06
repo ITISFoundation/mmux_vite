@@ -41,13 +41,13 @@ async function runLhsSampling(context: MMUXContextType, config: SamplingInputsSt
 
 const LHSSampling = () => {
   const context = useMMUXContext();
-  const { inputVars, distribution } = useMMUXContext();
+  const { inputVars, distribution, selectedFunction } = useMMUXContext();
 
   const [lhsInputs, setLhsInputs] = useState<SamplingInputsState[]>(
     inputVars.map((inputVar) => ({
       variable: inputVar,
-      start: getSamplingStartValue(inputVar, distribution) as number,
-      end: getSamplingEndValue(inputVar, distribution) as number,
+      start: getSamplingStartValue(inputVar, distribution[selectedFunction?.uid || '']) as number,
+      end: getSamplingEndValue(inputVar, distribution[selectedFunction?.uid || '']) as number,
       points: 50, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
       seed: 0, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
     }))
