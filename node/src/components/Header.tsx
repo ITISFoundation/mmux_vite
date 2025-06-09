@@ -32,6 +32,7 @@ function Header(props: HeaderProps) {
             <Typography variant="h5" component="h1" fontWeight={200} fontFamily={'inherit'}>
                 {tabTitle}
             </Typography>
+            {infoText && infoText.length > 0 &&
             <BootstrapTooltip title={infoText} placement="right" arrow>
                   <InfoOutline sx={(theme) => ({
               color: theme.palette.text.secondary,
@@ -40,7 +41,7 @@ function Header(props: HeaderProps) {
               padding: '2px',
               marginLeft: '8px',
             })}/>
-            </BootstrapTooltip>
+            </BootstrapTooltip>}
         </HeaderContainer>
     );
 };
