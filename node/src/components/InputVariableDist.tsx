@@ -31,7 +31,7 @@ export const InputVariableDist = () => {
       <InputBlock
         name="Value"
         value={localDistribution[inputVar].value !== undefined ? localDistribution[inputVar].value : NaN}
-        onChange={(value) => handleSetValue(inputVar, 'value', value)}
+        onChange={(value) => handleSetValue(inputVar, 'value', value as number)}
       />
     );
   }
@@ -42,12 +42,12 @@ export const InputVariableDist = () => {
         <InputBlock
           name="Mean"
           value={localDistribution[inputVar].mean !== undefined ? localDistribution[inputVar].mean : NaN}
-          onChange={(value) => handleSetValue(inputVar, 'mean', value)}
+          onChange={(value) => handleSetValue(inputVar, 'mean', value as number)}
         />
         <InputBlock
           name="Standard Deviation"
           value={localDistribution[inputVar].std !== undefined ? localDistribution[inputVar].std : NaN}
-          onChange={(value) => handleSetValue(inputVar, 'std', value)}
+          onChange={(value) => handleSetValue(inputVar, 'std', value as number)}
         />
       </>
     );
@@ -59,12 +59,12 @@ export const InputVariableDist = () => {
         <InputBlock
           name="Min"
           value={localDistribution[inputVar].min !== undefined ? localDistribution[inputVar].min : NaN}
-          onChange={(value) => handleSetValue(inputVar, 'min', value)}
+          onChange={(value) => handleSetValue(inputVar, 'min', value as number)}
         />
         <InputBlock
           name="Max"
           value={localDistribution[inputVar].max !== undefined ? localDistribution[inputVar].max : NaN}
-          onChange={(value) => handleSetValue(inputVar, 'max', value)}
+          onChange={(value) => handleSetValue(inputVar, 'max', value as number)}
         />
       </>
     );
@@ -77,12 +77,12 @@ export const InputVariableDist = () => {
         <InputBlock
           name="Log Location"
           value={localDistribution[inputVar].location !== undefined ? localDistribution[inputVar].location : NaN}
-          onChange={(value) => handleSetValue(inputVar, 'location', value)}
+          onChange={(value) => handleSetValue(inputVar, 'location', value as number)}
         />
         <InputBlock
           name='Log Scale'
           value={localDistribution[inputVar].scale !== undefined ? localDistribution[inputVar].scale : NaN}
-          onChange={(value) => handleSetValue(inputVar, 'scale', value)}
+          onChange={(value) => handleSetValue(inputVar, 'scale', value as number)}
         />
       </>
     );

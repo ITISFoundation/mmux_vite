@@ -91,7 +91,8 @@ interface FunctionJobCollection {
 interface InputBlockProps {
   name: string,
   value: number,
-  onChange: (value: number) => void
+  type?: 'number' | 'text',
+  onChange: (value: unknown) => void
 }
 
 interface InputTextBlockProps {

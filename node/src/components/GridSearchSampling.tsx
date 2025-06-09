@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Input, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { useMMUXContext, MMUXContextType } from "../context/MMUXContext";
 import {
@@ -8,6 +8,7 @@ import {
 } from "../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../utils/sampling";
 import { RunSamplingButton } from "./SamplingButton";
+import VariableConfig from "./VariableConfig";
 
 async function runGridSampling(
   context: MMUXContextType,
@@ -89,53 +90,18 @@ function GridSearchSampling() {
         Specify the ranges and number of points per dimension for the grid
         search sampling.
       </Typography>
-      {gridSamplingInputs?.map((inputVar, index) => (
-        <form
-          key={index}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            marginBottom: "8px",
-            gap: "16px",
-          }}
-        >
-          <Typography variant="h6">{inputVar.variable}:</Typography>
-          <Typography variant="caption">Start: </Typography>
-          <Input
-            type="number"
-            placeholder="Start"
-            value={inputVar.start?.toString()}
-            sx={(theme) => ({
-              width: 100,
-              borderBottom: `1px solid ${theme.palette.background.paper}`,
-            })}
-            onChange={(e) => handleInputChange(index, "start", e.target.value)}
-          />
-          <Typography variant="caption">End: </Typography>
-          <Input
-            type="number"
-            placeholder="End"
-            value={inputVar.end?.toString()}
-            sx={(theme) => ({
-              width: 100,
-              borderBottom: `1px solid ${theme.palette.background.paper}`,
-            })}
-            onChange={(e) => handleInputChange(index, "end", e.target.value)}
-          />
-          <Typography variant="caption">N: </Typography>
-          <Input
-            type="number"
-            placeholder={`Number of grid points in ${inputVar.variable}`}
-            value={inputVar.points?.toString()}
-            sx={(theme) => ({
-              width: 400,
-              borderBottom: `1px solid ${theme.palette.background.paper}`,
-            })}
-            onChange={(e) => handleInputChange(index, "points", e.target.value)}
-          />
-        </form>
-      ))}
-
+      <Box sx={{
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: "16px",
+        marginBottom: "16px",
+        padding: "8px 0",
+      }}>
+        {gridSamplingInputs?.map((inputVar, index) => (
+          <VariableConfig index={index} inputVar={inputVar} key={index} handleInputChange={handleInputChange}/>
+        ))}
+      </Box>
       <RunSamplingButton handleRunSampling={handleRunSampling} />
     </>
   );
