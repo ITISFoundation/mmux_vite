@@ -39,7 +39,7 @@ const VariableConfig = ({
             borderRadius: "8px",
             backgroundColor: theme.palette.primary.main,
           }}
-        ></Chip>
+        />
       </Typography>
       <InputBlock
         name="Value"

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { styled, ThemeProvider } from "@mui/material/styles";
-import { Alert, Container, useColorScheme } from "@mui/material";
+import { Alert, Container, useColorScheme, Box } from "@mui/material";
 import { toast, ToastContainer } from "react-toastify";
 import { setupTheme } from "./theme";
 import Navigation from "./components/Navigation";
@@ -112,9 +112,11 @@ const App = () => {
     <ThemeProvider theme={theme}>
       <FakeRoot>
         <Container>
+          <Box paddingTop={2} marginBottom={2}>
           <Alert variant='outlined' severity='warning'>
             This is a preview of the Uncertainty Quantification Hypertool that runs on a precomputed demonstration application. If you want to explore it using your own Projects, please contact xxx@xxx.
           </Alert>
+          </Box>
         </Container>
         {!healthStatus ? (
           <SplashScreen />
