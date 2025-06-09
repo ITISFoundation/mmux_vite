@@ -37,6 +37,7 @@ export default function UQ() {
     setSelectedQoI,
     numSamples,
     setNumSamples,
+    filterSelectedJobList,
   } = useMMUXContext();
   const theme = useTheme();
   const [localNumSamples, setLocalNumSamples] = useState(numSamples[selectedFunction?.uid || ""] || 1000);
@@ -229,6 +230,7 @@ export default function UQ() {
           <Button
             variant="contained"
             size="small"
+            disabled={loading || !selectedFunction || filterSelectedJobList().length === 0}
             sx={{
               marginTop: "8px",
               width: "160px",
@@ -239,7 +241,6 @@ export default function UQ() {
             }}
             color="primary"
             onClick={() => setSumoModal(true)}
-            disabled={loading}
           >
             Inspect SuMo
           </Button>
