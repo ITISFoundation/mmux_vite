@@ -35,9 +35,11 @@ export default function UQ() {
     selectedFunction,
     selectedQoI,
     setSelectedQoI,
+    numSamples,
+    setNumSamples,
   } = useMMUXContext();
   const theme = useTheme();
-  const [numSamples, setNumSamples] = useState(1000);
+  const [localNumSamples, setLocalNumSamples] = useState(numSamples[selectedFunction?.uid || ""] || 1000);
   const [loading, setLoading] = useState<boolean>(true);
   const [jobPanelOpen, setJobPanelOpen] = useState<boolean>(false);
   const [sumoModal, setSumoModal] = useState<boolean>(false);
@@ -128,6 +130,14 @@ export default function UQ() {
     setSelectedQoI(value);
   };
 
+  const handlesetLocalNumSamples = (value: number) => {
+    setLocalNumSamples(value);
+    setNumSamples({
+      ...numSamples,
+      [selectedFunction?.uid || ""]: value,
+    });
+  };
+
   return (
     <MetaModelingUX
       tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}
@@ -212,8 +222,8 @@ export default function UQ() {
               variant="outlined"
               size="small"
               sx={{ marginTop: "8px", flex: 1 }}
-              value={numSamples}
-              onChange={(e) => setNumSamples(parseInt(e.target.value))}
+              value={localNumSamples}
+              onChange={(e) => handlesetLocalNumSamples(parseInt(e.target.value))}
             />
           </InputLabel>
           <Button
@@ -235,7 +245,7 @@ export default function UQ() {
           </Button>
         </Box>
         <UncertainUQ
-          numSamples={numSamples}
+          numSamples={localNumSamples}
           colsFetched={colsFetched}
           jobProgress={jobProgress}
           jobsFetched={jobsFetched}

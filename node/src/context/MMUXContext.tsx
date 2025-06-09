@@ -20,6 +20,8 @@ export interface MMUXContextType {
   setLaunchingSampling: (b: boolean) => void;
   runningSampling: boolean;
   setRunningSampling: (b: boolean) => void;
+  numSamples: {[key: string]:number};
+  setNumSamples: (ns: {[key: string]:number}) => void;
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
   setRunningJobCollection: (
     jc: RegisteredFunctionJobCollection | undefined
@@ -54,6 +56,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
   >([]);
   const [inputVars, setInputVars] = useState<string[]>([]);
   const [distribution, setDistribution] = useState<{[key: string]:InputVarSelection}>({});
+  const [numSamples, setNumSamples] = useState<{[key: string]:number}>({});
   const [outputVars, setOutputVars] = useState<string[] | undefined>(undefined);
   const [selectedQoI, setSelectedQoI] = useState<string | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
@@ -90,6 +93,8 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setLaunchingSampling: setLaunchingSampling,
       runningSampling: runningSampling,
       setRunningSampling: setRunningSampling,
+      numSamples: numSamples,
+      setNumSamples: setNumSamples,
       selectedQoI: selectedQoI,
       setSelectedQoI: setSelectedQoI,
       runningJobCollection: runningJobCollection,
@@ -102,20 +107,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
       isSuMoGenerated: isSuMoGenerated,
       setIsSuMoGenerated: setIsSuMoGenerated
     };
-  }, [
-    funct,
-    distribution,
-    inputVars,
-    outputVars,
-    currentView,
-    launchingSampling,
-    runningSampling,
-    selectedQoI,
-    runningJobCollection,
-    selectedJobUids,
-    fetchedJobCollections,
-    isSuMoGenerated
-  ]);
+  }, [funct, distribution, inputVars, outputVars, currentView, launchingSampling, runningSampling, numSamples, selectedQoI, runningJobCollection, fetchedJobCollections, selectedJobUids, isSuMoGenerated]);
   return (
     <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>
   );
