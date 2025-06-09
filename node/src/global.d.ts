@@ -34,6 +34,7 @@ interface NavigationProps {
 
 interface MetaModelingUXProps {
   tabTitle?: string;
+  infoText?: string;
   headerType: 'setup' | 'sumo' | 'uq';
   children: React.ReactNode;
 }
@@ -41,6 +42,7 @@ interface MetaModelingUXProps {
 interface HeaderProps {
     headerType: 'setup' | 'sumo' | 'uq';
     tabTitle?: string;
+    infoText?: string;
 }
 
 interface SubJob {
