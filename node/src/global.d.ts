@@ -54,12 +54,6 @@ interface SelectedJobCollection {
   subJobs: SubJob[];
 }
 
-type CollectionRowProps = {
-  job: SelectedJobCollection;
-  selectMainJob: (selected: boolean) => void;
-  selectJob: (selected: boolean, subJob: string) => void;
-};
-
 interface JobRowProps  {
   jobUid: string
   setSelected: (selected: boolean, subJob: string) => void;

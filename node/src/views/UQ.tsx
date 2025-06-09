@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
-  AccordionSummary,
   Box,
   Button,
   Container,
@@ -28,7 +27,13 @@ import Surface2DPlot from "../components/Surface3DPlot";
 
 export default function UQ() {
   // Similar to Sumo building
-  const { inputVars, outputVars, selectedFunction, selectedQoI, setSelectedQoI } = useMMUXContext();
+  const {
+    inputVars,
+    outputVars,
+    selectedFunction,
+    selectedQoI,
+    setSelectedQoI,
+  } = useMMUXContext();
   const theme = useTheme();
   const [numSamples, setNumSamples] = useState(1000);
   const [loading, setLoading] = useState<boolean>(true);
@@ -36,6 +41,7 @@ export default function UQ() {
   const [sumoModal, setSumoModal] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [jobProgress, setJobProgress] = useState<number>(0);
+  const [localQoI, setLocalQoI] = useState<string | undefined>(selectedQoI);
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
 
@@ -53,16 +59,6 @@ export default function UQ() {
   //     </>
   //   );
   // };
-
-  type plotsObjectType = {
-    loaded: boolean;
-    plot: React.ReactNode;
-  }
-  const plotsObject = [1, 2, 3, 4].map((a: React.ReactNode) => ({
-    loaded: false,
-    plot: a
-  }));
-
 
   const ModelValidationModal = () => {
     return (
@@ -125,9 +121,10 @@ export default function UQ() {
     }
   }, [outputVars]);
 
-  useEffect(() => {
-    console.log("Selected QoI changed:", selectedQoI);
-  }, [selectedQoI]);
+  const handlesetLocalQoI = (value: string) => {
+    setLocalQoI(value);
+    setSelectedQoI(value);
+  };
 
   return (
     <MetaModelingUX
@@ -164,12 +161,9 @@ export default function UQ() {
               size="small"
               variant="outlined"
               sx={{ flex: 1, marginTop: "8px" }}
-              value={selectedQoI}
+              value={localQoI}
               defaultValue={outputVars?.[0] || ""}
-              onChange={(e) => {
-                setSelectedQoI(e.target.value);
-                console.log(e.target.value);
-              }}
+              onChange={(e) => { handlesetLocalQoI(e.target.value); }}
             >
               {outputVars?.map((qoi) => (
                 <MenuItem key={qoi} value={qoi}>
@@ -230,7 +224,6 @@ export default function UQ() {
       </Container>
       <Accordion
         expanded={jobPanelOpen}
-        onChange={() => setJobPanelOpen(loading ? false : !jobPanelOpen)}
         disableGutters
         variant="outlined"
         sx={{
@@ -239,11 +232,19 @@ export default function UQ() {
           "&:before": { display: "none" },
         }}
       >
-        <AccordionSummary sx={{ padding: "0", "& .MuiAccordionSummary-content": { margin: "0 0 4px 0" } }}>
-          <Button variant="contained" color="primary" disabled={loading} sx={{ minHeight: 'auto' }} >
-            Modify selected jobs
-          </Button>
-        </AccordionSummary>
+        <Button
+          variant="contained"
+          color="primary"
+          disabled={loading}
+          onClick={() => setJobPanelOpen(loading ? false : !jobPanelOpen)}
+          sx={{
+            minHeight: "auto",
+            padding: "4px 8px",
+            margin: `0 0 ${jobPanelOpen ? '16px' : '0px'} 0`,
+          }}
+        >
+          Modify selected jobs
+        </Button>
         <AccordionDetails sx={{ padding: "0" }}>
           <JobSelector
             loading={loading}
