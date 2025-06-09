@@ -2,6 +2,7 @@ import { Box, Chip, InputLabel, MenuItem, Select, Typography, useTheme } from "@
 import { useCallback, useEffect, useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import { InputBlock } from "./InputBlock";
+import Header from "./Header";
 
 export const InputVariableDist = () => {
   const { inputVars, distribution, setDistribution, selectedFunction } = useMMUXContext();
@@ -115,9 +116,7 @@ export const InputVariableDist = () => {
 
   return (
     <Box sx={{ marginTop: "8px", paddingTop: "8px", borderRadius: "8px" }}>
-      <Typography variant="h6" sx={{ fontFamily: 'inherit', fontWeight: '100', marginBottom: '16px' }}>
-        Input Variable Distributions
-      </Typography>
+      <Header headerType="subTitle" tabTitle="Input Variable Distributions" infoText="Specify the probability distribution for every input parameters. Input parameters are assumed to be stochastically independent." />
       <Box sx={{ display: "flex", overflowX: "auto" }}>
         {Object.keys(localDistribution).map((inputVar, index) => {
           return (

@@ -40,7 +40,7 @@ interface MetaModelingUXProps {
 }
 
 interface HeaderProps {
-    headerType: 'setup' | 'sumo' | 'uq';
+    headerType: 'setup' | 'sumo' | 'uq' | 'subTitle';
     tabTitle?: string;
     infoText?: string;
 }
