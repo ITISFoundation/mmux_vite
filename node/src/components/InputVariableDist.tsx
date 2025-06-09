@@ -149,7 +149,7 @@ export const InputVariableDist = () => {
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px'}}>
               <InputLabel sx={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'start' }}>
-                Type:
+                Distribution Form:
                 <Select
                   variant="outlined"
                   size="small"
