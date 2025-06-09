@@ -12,8 +12,9 @@ import {
   TextField,
   useTheme,
 } from "@mui/material";
+import { InfoOutline } from "@mui/icons-material";
 import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
-import { Carousel } from 'react-responsive-carousel';
+import { Carousel } from "react-responsive-carousel";
 import MetaModelingUX from "../components/MetaModelingUX";
 import PlusButton from "../components/PlusButton";
 import JobSelector from "../components/JobSelector";
@@ -24,6 +25,7 @@ import IsoSurface3DPlot from "../components/IsoSurface3DPlot";
 import Curves1DPlots from "../components/PlotDataTogether";
 import SuMoValidation from "../components/SuMoValidation";
 import Surface2DPlot from "../components/Surface3DPlot";
+import CustomTooltip from "../components/CustomTooltip";
 
 export default function UQ() {
   // Similar to Sumo building
@@ -112,8 +114,8 @@ export default function UQ() {
           </Carousel>
         </Box>
       </Modal>
-    )
-  }
+    );
+  };
 
   useEffect(() => {
     if (outputVars && outputVars.length > 0) {
@@ -150,20 +152,39 @@ export default function UQ() {
               flex: 1,
               transform: "none",
               alignItems: "baseline",
-              gap: "16px",
+              gap: "8px",
               fontFamily: "inherit",
               fontWeight: 300,
               fontSize: "1.2em",
             }}
           >
-            Select QoI:
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              Select Quantity of Interest
+              <CustomTooltip
+                title="The input parameter probability distribution is propagated through a Gaussian Process surrogate model (SuMo) fitted to the response surface of the quantity of interest. Multiple runs of stochastic sampling are used to assess convergence of the propagated uncertainty distribution. The variability of the runs, as well as the interpolation uncertainty provided by the Gaussian Process SuMo are used to quantify the uncertainty of the propagated probability distribution (uncertainty of uncertainty propagation; displayed as whiskers)"
+                placement="right"
+                arrow
+              >
+                <InfoOutline
+                  sx={(theme) => ({
+                    color: theme.palette.text.secondary,
+                    backgroundColor: theme.palette.grey[100],
+                    borderRadius: "50%",
+                    padding: "2px",
+                    marginLeft: "4px",
+                  })}
+                />
+              </CustomTooltip>
+            </Box>
             <Select
               size="small"
               variant="outlined"
               sx={{ flex: 1, marginTop: "8px" }}
               value={localQoI}
               defaultValue={outputVars?.[0] || ""}
-              onChange={(e) => { handlesetLocalQoI(e.target.value); }}
+              onChange={(e) => {
+                handlesetLocalQoI(e.target.value);
+              }}
             >
               {outputVars?.map((qoi) => (
                 <MenuItem key={qoi} value={qoi}>
@@ -200,7 +221,7 @@ export default function UQ() {
             size="small"
             sx={{
               marginTop: "8px",
-              width: "200px",
+              width: "160px",
               fontSize: "1.1em",
               fontFamily: "inherit",
               fontWeight: 200,
@@ -210,7 +231,7 @@ export default function UQ() {
             onClick={() => setSumoModal(true)}
             disabled={loading}
           >
-            View SuMo results
+            Inspect SuMo
           </Button>
         </Box>
         <UncertainUQ
@@ -240,10 +261,25 @@ export default function UQ() {
           sx={{
             minHeight: "auto",
             padding: "4px 8px",
-            margin: `0 0 ${jobPanelOpen ? '16px' : '0px'} 0`,
+            margin: `0 0 ${jobPanelOpen ? "16px" : "0px"} 0`,
           }}
         >
-          Modify selected jobs
+          Adapt / Extend Sampling
+          <CustomTooltip
+            title="Modify the function samples used to construct the SuMo and/or run additional sampling of the response surfaces to improve the SuMo quality and reduce the uncertainty of the uncertainty propagation."
+            placement="right"
+            arrow
+          >
+            <InfoOutline
+              sx={(theme) => ({
+                color: theme.palette.text.secondary,
+                backgroundColor: theme.palette.grey[100],
+                borderRadius: "50%",
+                padding: "2px",
+                marginLeft: "8px",
+              })}
+            />
+          </CustomTooltip>
         </Button>
         <AccordionDetails sx={{ padding: "0" }}>
           <JobSelector

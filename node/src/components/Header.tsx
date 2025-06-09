@@ -1,6 +1,6 @@
 import { InfoOutline } from "@mui/icons-material";
 import { Typography, styled } from "@mui/material";
-import Tooltip, { TooltipProps, tooltipClasses } from "@mui/material/Tooltip";
+import CustomTooltip from "./CustomTooltip";
 
 const HeaderContainer = styled("div", {
   shouldForwardProp: (props) => props !== "headerType",
@@ -13,20 +13,6 @@ const HeaderContainer = styled("div", {
   width: 100%;
 `
 );
-const BootstrapTooltip = styled(({ className, ...props }: TooltipProps) => (
-  <Tooltip {...props} arrow classes={{ popper: className }} />
-))(({ theme }) => ({
-  [`& .${tooltipClasses.arrow}`]: {
-    color: theme.palette.background.default,
-  },
-  [`& .${tooltipClasses.tooltip}`]: {
-    backgroundColor: theme.palette.background.default,
-    fontFamily: "inherit",
-    fontWeight: 200,
-    fontSize: "0.9rem",
-    padding: "8px 12px",
-  },
-}));
 
 function Header(props: HeaderProps) {
   const { tabTitle, infoText, headerType } = props;
@@ -41,7 +27,7 @@ function Header(props: HeaderProps) {
         {tabTitle}
       </Typography>
       {infoText && infoText.length > 0 && (
-        <BootstrapTooltip title={infoText} placement="right" arrow>
+        <CustomTooltip title={infoText} placement="right" arrow>
           <InfoOutline
             sx={(theme) => ({
               color: theme.palette.text.secondary,
@@ -51,7 +37,7 @@ function Header(props: HeaderProps) {
               marginLeft: "8px",
             })}
           />
-        </BootstrapTooltip>
+        </CustomTooltip>
       )}
     </HeaderContainer>
   );
