@@ -277,8 +277,8 @@ export function FunctionList() {
           headerName: "",
           sortable: false,
           flex: 0.5,
-          maxWidth: 100,
-          minWidth: 100,
+          maxWidth: 130,
+          minWidth: 130,
           renderCell: (params) => (
             <Button
               variant="contained"
@@ -304,7 +304,7 @@ export function FunctionList() {
                 );
               }}
             >
-              Select
+              { selectedFunction?.uid === params.row.uid ? "Unselect" : "Select"}
             </Button>
           ),
         },
