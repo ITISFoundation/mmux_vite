@@ -260,7 +260,7 @@ export default function UQ() {
           onClick={() => setJobPanelOpen(loading ? false : !jobPanelOpen)}
           sx={{
             minHeight: "auto",
-            padding: "4px 8px",
+            padding: "4px 8px 4px 16px",
             margin: `0 0 ${jobPanelOpen ? "16px" : "0px"} 0`,
           }}
         >
