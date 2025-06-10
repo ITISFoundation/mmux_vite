@@ -155,50 +155,6 @@ const IsoSurface3DPlot = () => {
       | { [key: string]: number }
   ) => {
     if (data && selectedQoI) {
-      // console.log("Executing reshapePlotData", data, selectedQoI, data[axis1], data[axis2], data[selectedQoI])
-      // console.log(
-      //   "Lengths:",
-      //   data[axis1]?.length,
-      //   data[axis2]?.length,
-      //   data[axis3]?.length,
-      //   data[selectedQoI]?.length
-      // );
-      // console.log(
-      //   "Any NaN:",
-      //   data[axis1].some(Number.isNaN),
-      //   data[axis2].some(Number.isNaN),
-      //   data[axis3].some(Number.isNaN),
-      //   data[selectedQoI].some(Number.isNaN)
-      // );
-
-      // console.log(
-      //   "Data types:",
-      //   typeof data[axis1][0],
-      //   typeof data[axis2][0],
-      //   typeof data[axis3][0],
-      //   typeof data[selectedQoI][0]
-      // );
-      // console.log(
-      //   "Array lengths:",
-      //   data[axis1]?.length,
-      //   data[axis2]?.length,
-      //   data[axis3]?.length,
-      //   data[selectedQoI]?.length
-      // );
-      // console.log(
-      //   "Sample values:",
-      //   data[axis1]?.slice(0, 5),
-      //   data[axis2]?.slice(0, 5),
-      //   data[axis3]?.slice(0, 5),
-      //   data[selectedQoI]?.slice(0, 5)
-      // );
-      // console.log(
-      //   "Any NaN:",
-      //   data[axis1]?.some(Number.isNaN),
-      //   data[axis2]?.some(Number.isNaN),
-      //   data[axis3]?.some(Number.isNaN),
-      //   data[selectedQoI]?.some(Number.isNaN)
-      // );
       const newData: Data[] = [
         {
           type: "isosurface",
