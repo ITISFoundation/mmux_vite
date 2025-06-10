@@ -5,6 +5,8 @@ import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Typography, Box, LinearProgress, useTheme } from "@mui/material";
 import { fetchWithRetry } from "../utils/fetch_retry";
+import WhiskerPlot from "./WhiskerPlot";
+import HistogramStats from "./HistogramStats";
 
 type DisplayMessageProps = {
   mssg: string,
@@ -112,7 +114,6 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
               body: JSON.stringify({
                 inputVars: inputVars,
                 output: selectedQoI,
-                output2: "blabla",
                 distributions: distribution[selectedFunction?.uid || ""],
                 FunctionJobs: jobs,
                 numSamples: numSamples,
@@ -171,41 +172,47 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     return (
       <>
         {(dataUQHistogram !== undefined) &&
-          <Plot
-            data={[
-              {
-                x: Array.from(
-                  { length: dataUQHistogram.bin_means.length },
-                  (_, i) =>
-                    dataUQHistogram.bins_start +
-                    ((dataUQHistogram.bins_end - dataUQHistogram.bins_start) /
-                      dataUQHistogram.bin_means.length) *
-                    (i + 0.5)
-                ),
-                y: dataUQHistogram.bin_means,
-                type: "bar",
-                marker: { color: `${theme.palette.primary.main}` },
-                name: "UQ Histogram",
-                error_y: {
-                  type: "data",
-                  array: dataUQHistogram.bin_stds,
-                  visible: true,
+          <>
+            <Plot
+              data={[
+                {
+                  x: Array.from(
+                    { length: dataUQHistogram.bin_means.length },
+                    (_, i) =>
+                      dataUQHistogram.bins_start +
+                      ((dataUQHistogram.bins_end - dataUQHistogram.bins_start) /
+                        dataUQHistogram.bin_means.length) *
+                      (i + 0.5)
+                  ),
+                  y: dataUQHistogram.bin_means,
+                  type: "bar",
+                  marker: { color: `${theme.palette.primary.main}` },
+                  name: "UQ Histogram",
+                  error_y: {
+                    type: "data",
+                    array: dataUQHistogram.bin_stds,
+                    visible: true,
+                  },
                 },
-              },
-            ]}
-            layout={{
-              title: { text: "Uncertainty Quantification Histogram" },
-              xaxis: { title: { text: selectedQoI || "Output" } },
-              yaxis: { title: { text: "Density" } },
-              plot_bgcolor: `${theme.palette.background.default}`,
-              paper_bgcolor: `${theme.palette.background.default}`,
-              font: { color: `${theme.palette.text.primary}` },
-            }}
-            style={{ width: "100%", height: "400px", borderRadius: "8px", overflow: "hidden" }}
-            config={{ responsive: true }}
-          />
+              ]}
+              layout={{
+                title: { text: "Uncertainty Quantification Histogram" },
+                xaxis: { title: { text: selectedQoI || "Output" } },
+                yaxis: { title: { text: "Density" } },
+                plot_bgcolor: `${theme.palette.background.default}`,
+                paper_bgcolor: `${theme.palette.background.default}`,
+                font: { color: `${theme.palette.text.primary}` },
+              }}
+              style={{ width: "100%", height: "400px", borderRadius: "8px", overflow: "hidden" }}
+              config={{ responsive: true }}
+            />
+            <WhiskerPlot {...dataUQHistogram} />
+            <HistogramStats {...dataUQHistogram} />
+          </>
         }
       </>
+
+
     )
   }
 }
