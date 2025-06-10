@@ -17,6 +17,12 @@ type dataUQHistogramType = {
   bins_end: number;
   bin_means: number[];
   bin_stds: number[];
+  q1: number;
+  median: number; 
+  q3: number;
+  whisker_min: number;
+  whisker_max: number;
+  outliers: number[];
 };
 type UncertainUQPropsType = {
   numSamples: number;
