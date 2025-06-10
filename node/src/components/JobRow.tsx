@@ -71,6 +71,19 @@ const JobRow = (props: JobRowProps) => {
             {outputs}
           </Tooltip>
         </TableCell>
+
+        {/* TODO this opens the original job - replace by creating a copy!! */}
+        <TableCell align="right" sx={{ gap: "8px" }}>
+          <Button
+            variant="outlined"
+            size="small"
+            href={`/#/study/${job.job.projectJobId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View
+          </Button>
+        </TableCell>
         <TableCell align="right">{job.job.status}</TableCell>
       </TableRow>
     );
