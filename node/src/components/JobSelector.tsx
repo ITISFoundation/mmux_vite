@@ -45,7 +45,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     setFetchedJobCollections,
     setIsSuMoGenerated,
   } = useMMUXContext();
-  const {colsFetched, jobProgress, jobsFetched, loading, progress, setJobProgress, setLoading, setProgress } = props;
+  const { colsFetched, jobProgress, jobsFetched, loading, progress, setJobProgress, setLoading, setProgress } = props;
   const [jobCollections, setJobCollections] = useState<SelectedJobCollection[]>(
     []
   );
@@ -54,7 +54,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   );
   const [poperID, setPopperID] = useState<number>(-1);
   const poperOpen = useRef(false);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(20);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [page, setPage] = React.useState(0);
 
 
@@ -150,7 +150,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     jobsFetched.current = 0;
     console.info("Fetched jobCollections: ", jobsC, totalSubs);
 
-    if(jobsC.length === 0) {
+    if (jobsC.length === 0) {
       console.info("No job collections found for function: ", functionUid);
       setJobCollections([]);
       setFetchedJobCollections([]);
@@ -280,7 +280,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       setLoading(false);
       setIsSuMoGenerated(true);
     }
-  },[jobCollections, loading, onToggleAll, setIsSuMoGenerated, setLoading, updateJobContext]);
+  }, [jobCollections, loading, onToggleAll, setIsSuMoGenerated, setLoading, updateJobContext]);
 
   useEffect(() => {
     console.info("useEffect in JobsSelector triggered");
@@ -301,8 +301,9 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     const result = subJobs.filter((j) => j.job).map((j) => j.job.status).reduce(
       (acc, status) => {
         if (status === "SUCCESS") acc.success += 1;
-        else if (status === "RUNNING") acc.running += 1;
+        else if (status === "STARTED") acc.running += 1;
         else if (status === "FAILED") acc.failed += 1;
+        // else if (status === "PENDING") acc.pending += 1;
         else acc.incomplete += 1;
         return acc;
       },
@@ -363,7 +364,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                 sx={(theme) => ({ color: theme.palette.primary.contrastText })}
               >
                 {poperID > -1 &&
-                jobCollections[poperID].jobCollection.uid ===
+                  jobCollections[poperID].jobCollection.uid ===
                   params.row.jobCollection.uid ? (
                   <KeyboardArrowDown style={{ transform: "rotate(90deg)" }} />
                 ) : (
@@ -445,20 +446,17 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           },
           "& .MuiDataGrid-row:hover": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
-                theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-row.Mui-selected": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${
-                theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-row.Mui-selected:hover": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
-                theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-sortButton": {
@@ -504,7 +502,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                             checked={jobCollections[poperID].subJobs.every(
                               (j) => j.selected
                             )}
-                            onChange={(e)=>onSelectAllClick(e.target.checked)}
+                            onChange={(e) => onSelectAllClick(e.target.checked)}
                           />
                         </TableCell>
                         <TableCell>Job ID</TableCell>
