@@ -113,7 +113,7 @@ const App = () => {
       <FakeRoot>
         <Container>
           <Box paddingTop={2}>
-          <Alert variant='outlined' severity='warning'>
+          <Alert variant='outlined' severity='info'>
             This is a preview of the Uncertainty Quantification Hypertool that runs on a precomputed demonstration application. If you want to explore it using your own Projects, please contact xxx@xxx.
           </Alert>
           </Box>
