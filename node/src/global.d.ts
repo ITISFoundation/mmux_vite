@@ -39,8 +39,9 @@ interface MetaModelingUXProps {
   children: React.ReactNode;
 }
 
+type HeaderTypes = 'setup' | 'sumo' | 'uq' | 'subTitle';
 interface HeaderProps {
-    headerType: 'setup' | 'sumo' | 'uq' | 'subTitle';
+    headerType: HeaderTypes;
     tabTitle?: string;
     infoText?: string;
 }

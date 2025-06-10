@@ -7,30 +7,24 @@ import {
   Container,
   InputLabel,
   MenuItem,
-  Modal,
   Select,
   TextField,
   useTheme,
 } from "@mui/material";
 import { InfoOutline } from "@mui/icons-material";
 import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
-import { Carousel } from "react-responsive-carousel";
 import MetaModelingUX from "../components/MetaModelingUX";
 import PlusButton from "../components/PlusButton";
 import JobSelector from "../components/JobSelector";
 import { useMMUXContext } from "../context/MMUXContext";
 import { Sampling } from "../components/Sampling";
 import UncertainUQ from "../components/UncertainUQ";
-import IsoSurface3DPlot from "../components/IsoSurface3DPlot";
-import Curves1DPlots from "../components/PlotDataTogether";
-import SuMoValidation from "../components/SuMoValidation";
-import Surface2DPlot from "../components/Surface3DPlot";
 import CustomTooltip from "../components/CustomTooltip";
+import SuMoModal from "../components/SuMoModal";
 
 export default function UQ() {
   // Similar to Sumo building
   const {
-    inputVars,
     outputVars,
     selectedFunction,
     selectedQoI,
@@ -64,61 +58,6 @@ export default function UQ() {
   //     </>
   //   );
   // };
-
-  const ModelValidationModal = () => {
-    return (
-      <Modal
-        open={sumoModal}
-        onClose={() => setSumoModal(false)}
-        aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description"
-        sx={{
-          margin: "auto",
-          height: "600px",
-          width: "900px",
-        }}
-      >
-        <Box
-          bgcolor={theme.palette.background.default}
-          p={4}
-          borderRadius={2}
-          width={1900}
-          height={600}
-          overflow={"auto"}
-        >
-          <Carousel
-            renderItem={(item) => {
-              // Only render the current slide
-              return item;
-            }}
-            selectedItem={0}
-            showThumbs={false}
-            showStatus={false}
-            infiniteLoop={false}
-          >
-            <div>
-              <SuMoValidation />
-            </div>
-            {inputVars.length > 0 ? (
-              <div>
-                <Curves1DPlots />
-              </div>
-            ) : undefined}
-            {inputVars.length > 1 ? (
-              <div>
-                <Surface2DPlot />
-              </div>
-            ) : undefined}
-            {inputVars.length > 2 ? (
-              <div>
-                <IsoSurface3DPlot />
-              </div>
-            ) : undefined}
-          </Carousel>
-        </Box>
-      </Modal>
-    );
-  };
 
   useEffect(() => {
     if (outputVars && outputVars.length > 0) {
@@ -315,7 +254,7 @@ export default function UQ() {
           ) : undefined}
         </AccordionDetails>
       </Accordion>
-      <ModelValidationModal />
+      <SuMoModal open={sumoModal} setOpen={setSumoModal} />
     </MetaModelingUX>
   );
 }

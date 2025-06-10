@@ -7,19 +7,27 @@ const HeaderContainer = styled("div", {
 })<{ headerType: string }>(
   ({ headerType }) => `
   text-align: left;
-  margin-bottom: ${headerType === "subTitle" ? "16px" : "16px"};
+  margin-bottom: ${headerType === "subTitle" ? "16px" : "0px"};
   display: flex;
   align-items: center;
   width: 100%;
-`
-);
+`);
+
+type TypographyVariant = "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "subtitle1" | "subtitle2" | "body1" | "body2" | "caption" | "button" | "overline" | "inherit";
+
+const types:{[key in HeaderTypes]: TypographyVariant} = {
+  subTitle: "h6",
+  setup: "h5",
+  sumo: "h4",
+  uq: "h5",
+}
 
 function Header(props: HeaderProps) {
   const { tabTitle, infoText, headerType } = props;
   return (
     <HeaderContainer headerType={headerType}>
       <Typography
-        variant={headerType === "subTitle" ? "h6" : "h5"}
+        variant={types[headerType]}
         component="h1"
         fontWeight={headerType === "subTitle" ? 100 : 200}
         fontFamily={"inherit"}
