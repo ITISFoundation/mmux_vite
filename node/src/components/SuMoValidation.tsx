@@ -30,7 +30,7 @@ const SuMoValidation = () => {
   const { selectedFunction, inputVars, selectedQoI, filterSelectedJobList } =
     useMMUXContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
-  const [plotData, setPlotData] = useState<Partial<PlotData>[]>([]);
+  const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
 
   console.log(
     "Performing SuMo Validation for function: ",
@@ -59,100 +59,55 @@ const SuMoValidation = () => {
       })
       .catch((error) => console.debug("Error:", error));
   };
+  function computeStatisticsCv(y: number[], y_hat: number[]) {
 
-  const createDataAndMetrics = (data: { [key: string]: number[] }) => {
-    if (data && selectedQoI) {
-      const y = data[selectedQoI];
-      const mean_y = y.reduce((a: number, b: number) => a + b, 0) / y.length;
-      const std_y = Math.sqrt(
-        y.reduce(
-          (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
-          0
-        ) /
-        (y.length - 1)
-      );
-      const y_hat = data[selectedQoI + "_hat"];
-      const diff = y.map(
-        (value: number, index: number) => value - y_hat[index]
-      );
-      const diff_shifted = diff.map((d: number) => d + mean_y);
-      // const std_hat = data[selectedQoI + "_std_hat"];
-
-      // Compute global min/max for binning
-      const allValues = [...y, ...y_hat];
-      const minVal = Math.min(...allValues);
-      const maxVal = Math.max(...allValues);
-      const binCount = 5; // You can adjust the number of bins as needed
-      const binSize = (maxVal - minVal) / binCount;
-      const binSettings = {
-        start: minVal,
-        end: maxVal,
-        size: binSize > 0 ? binSize : 1,
-      };
-
-      const createViolinPlot = (data: number[], name: string): Partial<PlotData> => {
-        return {
-          x: data,
-          type: "violin",
-          name: name,
-          points: "all",
-          jitter: 0.5,
-          box: {
-            visible: true
-          },
-        };
-      }
-      const newPlotData: Partial<PlotData>[] = [
-        createViolinPlot(y, "Observations"),
-        createViolinPlot(y_hat, "Predictions")
-      ];
-      setPlotData(newPlotData);
-      console.log("Registered plotData: ", newPlotData);
-
-      // compute statistics
-      const mean_error =
-        y.reduce(
-          (sum: number, value: number, index: number) =>
-            sum + (value - y_hat[index]),
-          0
-        ) / y.length;
-      const std_error = Math.sqrt(
-        y.reduce(
-          (sum: number, value: number, index: number) =>
-            sum + Math.pow(value - y_hat[index] - mean_error, 2),
-          0
-        ) /
-        (y.length - 1)
-      );
-      const mae =
-        y.reduce(
-          (sum: number, value: number, index: number) =>
-            sum + Math.abs(value - y_hat[index]),
-          0
-        ) / y.length;
-      const rmse = Math.sqrt(
-        y.reduce(
-          (sum: number, value: number, index: number) =>
-            sum + Math.pow(value - y_hat[index], 2),
-          0
-        ) / y.length
-      );
-      const cvMetricsData = {
-        mean_y: mean_y,
-        std_y: std_y,
-        mean_error: mean_error,
-        std_error: std_error,
-        mae: mae,
-        rmse: rmse,
-      };
-      setCvMetrics(cvMetricsData);
-      console.log("Registered cvMetrics: ", cvMetricsData);
-    } else {
-      console.warn("No data available for SuMo validation.");
-      setPlotData([]);
-      setCvMetrics({} as cvMetricsType);
-    }
-  };
+    // compute statistics
+    const mean_error =
+      y.reduce(
+        (sum: number, value: number, index: number) =>
+          sum + (value - y_hat[index]),
+        0
+      ) / y.length;
+    const std_error = Math.sqrt(
+      y.reduce(
+        (sum: number, value: number, index: number) =>
+          sum + Math.pow(value - y_hat[index] - mean_error, 2),
+        0
+      ) /
+      (y.length - 1)
+    );
+    const mae =
+      y.reduce(
+        (sum: number, value: number, index: number) =>
+          sum + Math.abs(value - y_hat[index]),
+        0
+      ) / y.length;
+    const rmse = Math.sqrt(
+      y.reduce(
+        (sum: number, value: number, index: number) =>
+          sum + Math.pow(value - y_hat[index], 2),
+        0
+      ) / y.length
+    );
+    const mean_y = y.reduce((a: number, b: number) => a + b, 0) / y.length;
+    const std_y = Math.sqrt(
+      y.reduce(
+        (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
+        0
+      ) /
+      (y.length - 1)
+    );
+    const cvMetricsData = {
+      mean_y: mean_y,
+      std_y: std_y,
+      mean_error: mean_error,
+      std_error: std_error,
+      mae: mae,
+      rmse: rmse,
+    };
+    setCvMetrics(cvMetricsData);
+    console.log("Registered cvMetrics: ", cvMetricsData);
+  }
 
   useEffect(() => {
     const run = async () => {
@@ -162,13 +117,45 @@ const SuMoValidation = () => {
     run();
   }, []);
 
-  const layout = {
-    title: { text: selectedFunction?.title + " " + selectedQoI + " SuMo Validation", },
-    scene: {
-      xaxis: { title: { text: selectedQoI ? selectedQoI : "Quantity of Interest" } },
-      yaxis: { title: { text: "Count" } },
-    },
-  }
+  const createDataAndMetrics = (data: { [key: string]: number[] }) => {
+    if (data && selectedQoI) {
+      const y = data[selectedQoI];
+      const y_hat = data[selectedQoI + "_hat"];
+
+      // For violin plots, y should be the data and x should be the label
+      const createViolinPlot = (data: number[], name: string, side: "positive" | "negative"): Partial<Plotly.ViolinData> => {
+        return {
+          x: data,
+          y: Array(data.length).fill(""), // Use same x value to overlay
+          orientation: "h",
+          type: "violin",
+          name: name,
+          pointpos: (side === "positive" ? 1.3 : -1.3),
+          points: "all",
+          side: side,
+          box: {
+            visible: true
+          },
+          spanmode: "soft", // TODO show Esra both variants
+        };
+      }
+
+
+      const newPlotData: Partial<Plotly.ViolinData>[] = [
+        createViolinPlot(y, "Observations", "positive"),
+        createViolinPlot(y_hat, "Predictions", "negative"),
+      ];
+      setPlotData(newPlotData);
+      console.log("Registered plotData: ", newPlotData);
+      computeStatisticsCv(y, y_hat)
+    } else {
+      console.warn("No data available for SuMo validation.");
+      setPlotData([]);
+      setCvMetrics({} as cvMetricsType);
+    }
+  };
+
+
 
   return <>
     {plotData && selectedQoI && (
@@ -179,11 +166,9 @@ const SuMoValidation = () => {
               data={plotData}
               layout={{
                 title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
-                // yaxis: { title: { text: selectedQoI ? selectedQoI : "Quantity of Interest" } },
-                // boxmode: '',
                 margin: { t: 40, l: 100, r: 10, b: 40 },
-                height: 400,
-                width: 650
+                height: 300,
+                width: 650,
               }}
               style={{ width: '100%', height: 400 }}
               config={{ responsive: true }}
