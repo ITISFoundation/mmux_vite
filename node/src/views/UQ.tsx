@@ -12,7 +12,6 @@ import {
   useTheme,
 } from "@mui/material";
 import { InfoOutline } from "@mui/icons-material";
-import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
 import MetaModelingUX from "../components/MetaModelingUX";
 import PlusButton from "../components/PlusButton";
 import JobSelector from "../components/JobSelector";
