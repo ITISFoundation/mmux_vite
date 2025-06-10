@@ -82,7 +82,7 @@ const SuMoValidation = () => {
       const allValues = [...y, ...y_hat];
       const minVal = Math.min(...allValues);
       const maxVal = Math.max(...allValues);
-      const binCount = 5; // You can adjust the number of bins as needed
+      const binCount = 30; // You can adjust the number of bins as needed
       const binSize = (maxVal - minVal) / binCount;
       const binSettings = {
         start: minVal,
@@ -92,7 +92,7 @@ const SuMoValidation = () => {
 
       const newPlotData: Partial<PlotData>[] = [
         {
-          y: y,
+          x: y,
           type: "histogram",
           histnorm: "probability",
           marker: { color: "#7fc7ff" },
@@ -100,7 +100,7 @@ const SuMoValidation = () => {
           xbins: binSettings,
         },
         {
-          y: diff_shifted,
+          x: diff_shifted,
           type: "histogram",
           histnorm: "probability",
           marker: { color: "#2ca02c" },
@@ -164,12 +164,6 @@ const SuMoValidation = () => {
     run();
   }, []);
 
-  const layout = {
-    plot_bgcolor: `${theme.palette.background.default}`,
-    paper_bgcolor: `${theme.palette.background.default}`,
-    font: { color: `${theme.palette.text.primary}` },
-  };
-
   const skewnessValue =
     cvMetrics &&
     (() => {
@@ -206,176 +200,169 @@ const SuMoValidation = () => {
       return kurt.toFixed(4);
     })();
 
+  const layout = {
+    plot_bgcolor: `${theme.palette.background.default}`,
+    paper_bgcolor: `${theme.palette.background.default}`,
+    font: { color: `${theme.palette.text.primary}` },
+  };
+
+  const plotStyle = {
+    height: 300,
+    borderRadius: "8px",
+    overflow: "hidden",
+  };
+
   return (
-    <>
-      {plotData && selectedQoI && (
-        <Box display="flex" flexDirection="column" gap={1}>
-          <div
-            style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}
-          >
-            <div style={{ width: "100%", maxWidth: 400 }}>
-              <Plot
-                data={plotData}
-                layout={{
-                  ...layout,
-                  title: {
-                    text:
-                      selectedFunction?.title +
-                      " " +
-                      selectedQoI +
-                      " SuMo Validation",
-                  },
-                  scene: {
-                    xaxis: {
-                      title: {
-                        text: selectedQoI
-                          ? selectedQoI
-                          : "Quantity of Interest",
-                      },
-                    },
-                    yaxis: { title: { text: "Count" } },
-                  },
-                  barmode: "overlay",
-                }}
-                style={{
-                  width: "100%",
-                  height: 400,
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                }}
-                config={{ responsive: true }}
-              />
-            </div>
-            <div style={{ width: 250 }}>
-              <Plot
-                data={[
-                  {
-                    y: plotData[0]?.y,
-                    type: "box",
-                    name: "Observations",
-                    marker: { color: "#7fc7ff" },
-                    boxpoints: "all",
-                  },
-                  {
-                    y: plotData[1]?.y,
-                    type: "box",
-                    name: "Prediction Deviations",
-                    marker: { color: "#2ca02c" },
-                    boxpoints: "all",
-                  },
-                ]}
-                layout={{
-                  ...layout,
-                  title: { text: "Whisker Plot" },
-                  yaxis: {
-                    title: {
-                      text: selectedQoI ? selectedQoI : "Quantity of Interest",
-                    },
-                  },
-                  boxmode: "group",
-                  margin: { t: 40, l: 40, r: 10, b: 40 },
-                  height: 400,
-                }}
-                style={{
-                  width: "100%",
-                  height: 400,
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                }}
-                config={{ responsive: true }}
-              />
-            </div>
-            <Box display="flex" flexDirection="row" gap={1}>
-              <div style={{ minWidth: 250, fontSize: 15, lineHeight: 1.7 }}>
-                <Header
-                  headerType="sumo"
-                  infoText=""
-                  tabTitle="Data Statistics"
-                />
-                {cvMetrics ? (
+    <Box display="flex" flexDirection="column" gap={1} width={"100%"}>
+      <Plot
+        data={plotData}
+        layout={{
+          ...layout,
+          title: {
+            text:
+              selectedFunction?.title + " " + selectedQoI + " SuMo Validation",
+          },
+          scene: {
+            xaxis: {
+              title: {
+                text: selectedQoI ? selectedQoI : "Quantity of Interest",
+              },
+            },
+            yaxis: { title: { text: "Count" } },
+          },
+          barmode: "overlay",
+          legend: {
+            x: 1,
+            xanchor: "right",
+            y: 1,
+          },
+          margin: {
+            l: 75,
+            r: 65,
+            b: 65,
+            t: 90,
+          },
+        }}
+        style={plotStyle}
+        config={{ responsive: true }}
+      />
+      <Box flex={1} maxHeight={200} borderRadius={"8px"} overflow="hidden">
+        <Plot
+          data={[
+            {
+              x: plotData[0]?.x,
+              type: "box",
+              name: "",
+              marker: { color: "#7fc7ff" },
+              boxpoints: "suspectedoutliers",
+              hoverinfo: "skip",
+            },
+            {
+              x: plotData[1]?.x,
+              type: "box",
+              name: "",
+              marker: { color: "#2ca02c" },
+              boxpoints: "suspectedoutliers",
+              hoverinfo: "skip",
+            },
+          ]}
+          layout={{
+            ...layout,
+            showlegend: false,
+            margin: {
+              l: 30,
+              r: 30,
+              b: 60,
+              t: 30,
+              pad: 4,
+            },
+          }}
+          style={{ ...plotStyle, height: 200 }}
+          config={{ responsive: true }}
+        />
+      </Box>
+      <Box display="flex" flexDirection="row" width="680px" ml={2}>
+        <Box mt={2} display={"flex"} flexDirection={"column"}>
+          <Header headerType="uq" infoText="" tabTitle="Data Statistics" />
+          <Box display={"flex"} flexDirection={"row"}>
+            <Box mt={2} display={"flex"}>
+              {cvMetrics ? (
+                <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                  <Typography
+                    variant="body1"
+                    fontFamily={"inherit"}
+                    fontWeight={100}
+                  >
+                    Mean (y): <strong>{cvMetrics.mean_y?.toFixed(4)}</strong>
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    fontFamily={"inherit"}
+                    fontWeight={100}
+                  >
+                    Std (y): <strong>{cvMetrics.std_y?.toFixed(4)}</strong>
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    fontFamily={"inherit"}
+                    fontWeight={100}
+                  >
+                    Skewness (y): <strong>{skewnessValue}</strong>
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    fontFamily={"inherit"}
+                    fontWeight={100}
+                  >
+                    Kurtosis (y): <strong>{KurtosisValue}</strong>
+                  </Typography>
+                </ul>
+              ) : (
+                <div>No data statistics available.</div>
+              )}
+            </Box>
+            <Box mt={2} ml={4}>
+              {cvMetrics ? (
+                <>
                   <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                     <Typography
-                      variant="h6"
+                      variant="body1"
                       fontFamily={"inherit"}
                       fontWeight={100}
                     >
-                      Mean (y): <strong>{cvMetrics.mean_y?.toFixed(4)}</strong>
+                      Mean Error (y - ŷ):{" "}
+                      <strong>{cvMetrics.mean_error?.toFixed(4)}</strong>
                     </Typography>
                     <Typography
-                      variant="h6"
+                      variant="body1"
                       fontFamily={"inherit"}
                       fontWeight={100}
                     >
-                      Std (y): <strong>{cvMetrics.std_y?.toFixed(4)}</strong>
+                      Std Error (y - ŷ):{" "}
+                      <strong>{cvMetrics.std_error?.toFixed(4)}</strong>
                     </Typography>
                     <Typography
-                      variant="h6"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      Skewness (y): <strong>{skewnessValue}</strong>
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      Kurtosis (y): <strong>{KurtosisValue}</strong>
-                    </Typography>
-                  </ul>
-                ) : (
-                  <div>No data statistics available.</div>
-                )}
-                <Box                   style={{ marginTop: "16px" }}
->
-
-
-                <Header
-                  headerType="setup"
-                  infoText=""
-                  tabTitle="Cross-Validation Metrics"
-                />
-                {cvMetrics ? (
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    <Typography
-                      variant="h6"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      Mean Error (y - ŷ): <strong>{cvMetrics.mean_error?.toFixed(4)}</strong>
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      Std Error (y - ŷ): <strong>{cvMetrics.std_error?.toFixed(4)}</strong>
-                    </Typography>
-                    <Typography
-                      variant="h6"
+                      variant="body1"
                       fontFamily={"inherit"}
                       fontWeight={100}
                     >
                       MAE: <strong>{cvMetrics.mae?.toFixed(4)}</strong>
                     </Typography>
                     <Typography
-                      variant="h6"
+                      variant="body1"
                       fontFamily={"inherit"}
                       fontWeight={100}
                     >
                       RMSE: <strong>{cvMetrics.rmse?.toFixed(4)}</strong>
                     </Typography>
                   </ul>
-                ) : (
-                  <div>No metrics available.</div>
-                )}
-                                </Box>
-              </div>
+                </>
+              ) : undefined}
             </Box>
-          </div>
+          </Box>
         </Box>
-      )}
-    </>
+      </Box>
+    </Box>
   );
 };
 

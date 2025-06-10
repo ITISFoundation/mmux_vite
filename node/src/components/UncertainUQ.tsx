@@ -155,8 +155,8 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
       <DisplayMessage mssg={"Calculating..."} />
     )
   } else if (dataUQHistogram === undefined) {
-    // loading is off, propagating is off. 
-    // The data we have is fetchedJobCollections (e.g. whether there is data available at all), 
+    // loading is off, propagating is off.
+    // The data we have is fetchedJobCollections (e.g. whether there is data available at all),
     // dataUQHistogram (whether we managed to retrieve any data) and propagationFailed (whether we got an error during propagation)
     // I guess the later is redundant - we can already use dataUQHistogram to know if the propagation failed
     return (
