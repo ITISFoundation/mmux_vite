@@ -1,7 +1,8 @@
 import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
-import { Box, Checkbox } from "@mui/material";
+import { Box, Button, Checkbox, Tooltip } from "@mui/material";
+import React from "react";
 
 // TODO include tick to select it
 const JobRow = (props: JobRowProps) => {
@@ -23,6 +24,28 @@ const JobRow = (props: JobRowProps) => {
       </TableRow>
     );
   } else {
+
+    const outputs =
+      (job.job.outputs && job.job.status === "SUCCESS") ? Object.entries(job.job.outputs).map(([key, value], idx) => {
+        return (
+          <Box key={idx} display={"inline"}>
+            {key} : {(value as number).toExponential(3)}{", "}
+          </Box>
+        );
+      }) : [
+        <Box key={0} display={"inline"}>
+          {"No outputs"}
+        </Box >
+      ]
+    const inputs = Object.entries(job.job.inputs).map(([key, value], idx) => {
+      return (
+        <Box key={idx} display={"inline"}>
+          {key} : {(value as number).toExponential(3)}{", "}
+        </Box>
+      );
+    })
+
+
     return (
       <TableRow key={job.job.uid}>
         <TableCell padding="checkbox">
@@ -39,22 +62,14 @@ const JobRow = (props: JobRowProps) => {
           {job.job.uid ? job.job.uid.slice(0, 5) : ""}...
         </TableCell>
         <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {Object.entries(job.job.inputs).map(([key, value], idx) => {
-            return (
-              <Box key={idx} display={"inline"}>
-                {key} : {(value as number).toExponential(3)}{", "}
-              </Box>
-            );
-          })}
+          <Tooltip title={inputs}>
+            {inputs}
+          </Tooltip>
         </TableCell>
-        <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {(job.job.outputs && job.job.status === "SUCCESS") ? Object.entries(job.job.outputs).map(([key, value], idx) => {
-            return (
-              <Box key={idx} display={"inline"}>
-                {key} : {(value as number).toExponential(3)}{", "}
-              </Box>
-            );
-          }) : "No outputs"}
+        <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "auto" }}>
+          <Tooltip title={outputs}>
+            {outputs}
+          </Tooltip>
         </TableCell>
         <TableCell align="right">{job.job.status}</TableCell>
       </TableRow>
