@@ -69,7 +69,7 @@ const SuMoValidation = () => {
           (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
           0
         ) /
-          (y.length - 1)
+        (y.length - 1)
       );
       const y_hat = data[selectedQoI + "_hat"];
       const diff = y.map(
@@ -90,23 +90,21 @@ const SuMoValidation = () => {
         size: binSize > 0 ? binSize : 1,
       };
 
+      const createViolinPlot = (data: number[], name: string): Partial<PlotData> => {
+        return {
+          x: data,
+          type: "violin",
+          name: name,
+          points: "all",
+          jitter: 0.5,
+          box: {
+            visible: true
+          },
+        };
+      }
       const newPlotData: Partial<PlotData>[] = [
-        {
-          y: y,
-          type: "histogram",
-          histnorm: "probability",
-          marker: { color: "#7fc7ff" },
-          name: "Observations",
-          xbins: binSettings,
-        },
-        {
-          y: diff_shifted,
-          type: "histogram",
-          histnorm: "probability",
-          marker: { color: "#2ca02c" },
-          name: "Prediction Deviations",
-          xbins: binSettings,
-        },
+        createViolinPlot(y, "Observations"),
+        createViolinPlot(y_hat, "Predictions")
       ];
       setPlotData(newPlotData);
       console.log("Registered plotData: ", newPlotData);
@@ -124,7 +122,7 @@ const SuMoValidation = () => {
             sum + Math.pow(value - y_hat[index] - mean_error, 2),
           0
         ) /
-          (y.length - 1)
+        (y.length - 1)
       );
       const mae =
         y.reduce(
@@ -165,218 +163,84 @@ const SuMoValidation = () => {
   }, []);
 
   const layout = {
-    plot_bgcolor: `${theme.palette.background.default}`,
-    paper_bgcolor: `${theme.palette.background.default}`,
-    font: { color: `${theme.palette.text.primary}` },
-  };
+    title: { text: selectedFunction?.title + " " + selectedQoI + " SuMo Validation", },
+    scene: {
+      xaxis: { title: { text: selectedQoI ? selectedQoI : "Quantity of Interest" } },
+      yaxis: { title: { text: "Count" } },
+    },
+  }
 
-  const skewnessValue =
-    cvMetrics &&
-    (() => {
-      const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
-      const y = (plotData[0]?.y as Array<number>) || [];
-      const mean = cvMetrics.mean_y || 0;
-      const skew =
-        y.length > 2
-          ? y.reduce(
-              (acc: number, val: number) => acc + Math.pow((val - mean) / n, 3),
-              0
-            ) *
-            (y.length / ((y.length - 1) * (y.length - 2)))
-          : 0;
-      return skew.toFixed(4);
-    })();
-
-  const KurtosisValue =
-    cvMetrics &&
-    (() => {
-      const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
-      const y = (plotData[0]?.y as Array<number>) || [];
-      const mean = cvMetrics.mean_y || 0;
-      const kurt =
-        y.length > 3
-          ? (y.reduce(
-              (acc: number, val: number) => acc + Math.pow((val - mean) / n, 4),
-              0
-            ) *
-              (y.length * (y.length + 1))) /
-              ((y.length - 1) * (y.length - 2) * (y.length - 3)) -
-            (3 * Math.pow(y.length - 1, 2)) / ((y.length - 2) * (y.length - 3))
-          : 0;
-      return kurt.toFixed(4);
-    })();
-
-  return (
-    <>
-      {plotData && selectedQoI && (
-        <Box display="flex" flexDirection="column" gap={1}>
-          <div
-            style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}
-          >
-            <div style={{ width: "100%", maxWidth: 400 }}>
-              <Plot
-                data={plotData}
-                layout={{
-                  ...layout,
-                  title: {
-                    text:
-                      selectedFunction?.title +
-                      " " +
-                      selectedQoI +
-                      " SuMo Validation",
-                  },
-                  scene: {
-                    xaxis: {
-                      title: {
-                        text: selectedQoI
-                          ? selectedQoI
-                          : "Quantity of Interest",
-                      },
-                    },
-                    yaxis: { title: { text: "Count" } },
-                  },
-                  barmode: "overlay",
-                }}
-                style={{
-                  width: "100%",
-                  height: 400,
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                }}
-                config={{ responsive: true }}
-              />
-            </div>
-            <div style={{ width: 250 }}>
-              <Plot
-                data={[
-                  {
-                    y: plotData[0]?.y,
-                    type: "box",
-                    name: "Observations",
-                    marker: { color: "#7fc7ff" },
-                    boxpoints: "all",
-                  },
-                  {
-                    y: plotData[1]?.y,
-                    type: "box",
-                    name: "Prediction Deviations",
-                    marker: { color: "#2ca02c" },
-                    boxpoints: "all",
-                  },
-                ]}
-                layout={{
-                  ...layout,
-                  title: { text: "Whisker Plot" },
-                  yaxis: {
-                    title: {
-                      text: selectedQoI ? selectedQoI : "Quantity of Interest",
-                    },
-                  },
-                  boxmode: "group",
-                  margin: { t: 40, l: 40, r: 10, b: 40 },
-                  height: 400,
-                }}
-                style={{
-                  width: "100%",
-                  height: 400,
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                }}
-                config={{ responsive: true }}
-              />
-            </div>
-            <Box display="flex" flexDirection="row" gap={1}>
-              <div style={{ minWidth: 250, fontSize: 15, lineHeight: 1.7 }}>
-                <Header
-                  headerType="sumo"
-                  infoText=""
-                  tabTitle="Data Statistics"
-                />
-                {cvMetrics ? (
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    <Typography
-                      variant="h6"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      Mean (y): <strong>{cvMetrics.mean_y?.toFixed(4)}</strong>
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      Std (y): <strong>{cvMetrics.std_y?.toFixed(4)}</strong>
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      Skewness (y): <strong>{skewnessValue}</strong>
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      Kurtosis (y): <strong>{KurtosisValue}</strong>
-                    </Typography>
-                  </ul>
-                ) : (
-                  <div>No data statistics available.</div>
-                )}
-                <Box                   style={{ marginTop: "16px" }}
->
-
-
-                <Header
-                  headerType="setup"
-                  infoText=""
-                  tabTitle="Cross-Validation Metrics"
-                />
-                {cvMetrics ? (
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    <Typography
-                      variant="h6"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      Mean Error (y - ŷ): <strong>{cvMetrics.mean_error?.toFixed(4)}</strong>
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      Std Error (y - ŷ): <strong>{cvMetrics.std_error?.toFixed(4)}</strong>
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      MAE: <strong>{cvMetrics.mae?.toFixed(4)}</strong>
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      RMSE: <strong>{cvMetrics.rmse?.toFixed(4)}</strong>
-                    </Typography>
-                  </ul>
-                ) : (
-                  <div>No metrics available.</div>
-                )}
-                                </Box>
-              </div>
-            </Box>
+  return <>
+    {plotData && selectedQoI && (
+      <Box display="flex" flexDirection="column" gap={1}>
+        <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+          <div>
+            <Plot
+              data={plotData}
+              layout={{
+                title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
+                // yaxis: { title: { text: selectedQoI ? selectedQoI : "Quantity of Interest" } },
+                // boxmode: '',
+                margin: { t: 40, l: 100, r: 10, b: 40 },
+                height: 400,
+                width: 650
+              }}
+              style={{ width: '100%', height: 400 }}
+              config={{ responsive: true }}
+            />
           </div>
-        </Box>
-      )}
-    </>
-  );
-};
+          <Box display="flex" flexDirection="row" gap={1}>
+
+            <div style={{ minWidth: 250, fontSize: 15, lineHeight: 1.7 }}>
+              <Typography variant="h6" gutterBottom fontWeight="bold">Data Statistics</Typography>
+              <hr style={{ border: 0, borderTop: '2px solid #eee', margin: '8px 0 16px 0' }} />
+              {cvMetrics ? (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  <li><strong>Mean (y):</strong> {cvMetrics.mean_y?.toFixed(4)}</li>
+                  <li><strong>Std (y):</strong> {cvMetrics.std_y?.toFixed(4)}</li>
+                  <li><strong>Skewness (y):</strong> {(() => {
+                    const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
+                    const y = plotData[0]?.y as Array<number> || [];
+                    const mean = cvMetrics.mean_y || 0;
+                    const skew = y.length > 2
+                      ? y.reduce((acc: number, val: number) => acc + Math.pow((val - mean) / n, 3), 0) * (y.length / ((y.length - 1) * (y.length - 2)))
+                      : 0;
+                    return skew.toFixed(4);
+                  })()}</li>
+                  <li><strong>Kurtosis (y):</strong> {(() => {
+                    const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
+                    const y = plotData[0]?.y as Array<number> || [];
+                    const mean = cvMetrics.mean_y || 0;
+                    const kurt = y.length > 3
+                      ? y.reduce((acc: number, val: number) => acc + Math.pow((val - mean) / n, 4), 0) * (y.length * (y.length + 1)) / ((y.length - 1) * (y.length - 2) * (y.length - 3))
+                      - (3 * Math.pow(y.length - 1, 2)) / ((y.length - 2) * (y.length - 3))
+                      : 0;
+                    return kurt.toFixed(4);
+                  })()}</li>
+                </ul>
+              ) : (
+                <div>No data statistics available.</div>
+              )}
+
+              <Typography variant="h6" gutterBottom fontWeight="bold">Cross-Validation Metrics</Typography>
+              <hr style={{ border: 0, borderTop: '2px solid #eee', margin: '8px 0 16px 0' }} />
+              {cvMetrics ? (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  <li><strong>Mean Error (y - ŷ):</strong> {cvMetrics.mean_error?.toFixed(4)}</li>
+                  <li><strong>Std Error (y - ŷ):</strong> {cvMetrics.std_error?.toFixed(4)}</li>
+                  <li><strong>MAE:</strong> {cvMetrics.mae?.toFixed(4)}</li>
+                  <li><strong>RMSE:</strong> {cvMetrics.rmse?.toFixed(4)}</li>
+                </ul>
+              ) : (
+                <div>No metrics available.</div>
+              )}
+            </div>
+          </Box>
+        </div>
+      </Box >
+    )}
+
+  </>
+}
 
 export default SuMoValidation;
