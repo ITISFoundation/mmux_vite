@@ -172,7 +172,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     return (
       <>
         {(dataUQHistogram !== undefined) &&
-          <>
+          <Box display={'flex'} flexDirection={'column'} gap={1} width={'100%'}>
             <Plot
               data={[
                 {
@@ -208,7 +208,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
             />
             <WhiskerPlot {...dataUQHistogram} />
             <HistogramStats {...dataUQHistogram} />
-          </>
+          </Box>
         }
       </>
 
