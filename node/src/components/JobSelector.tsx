@@ -509,6 +509,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                         <TableCell>Inputs</TableCell>
                         <TableCell>Outputs</TableCell>
                         <TableCell align="right">Status</TableCell>
+                        <TableCell align="right"></TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>

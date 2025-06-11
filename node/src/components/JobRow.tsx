@@ -112,6 +112,7 @@ const JobRow = (props: JobRowProps) => {
             <span>{outputs}</span>
           </Tooltip>
         </TableCell>
+        <TableCell align="right">{job.job.status}</TableCell>
 
         <TableCell align="right" sx={{ gap: "8px" }}>
           <>
@@ -150,7 +151,6 @@ const JobRow = (props: JobRowProps) => {
             </Button>
           </>
         </TableCell>
-        <TableCell align="right">{job.job.status}</TableCell>
       </TableRow>
     );
   }
