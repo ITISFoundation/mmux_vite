@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { MMUXContextType, useMMUXContext } from "../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
-import { Input, Typography } from "@mui/material";
+import { Box, Input, Typography } from "@mui/material";
 import {
   Function,
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../utils/sampling";
 import { RunSamplingButton } from "./SamplingButton";
+import VariableConfig from "./VariableConfig";
 
 async function runLhsSampling(context: MMUXContextType, config: SamplingInputsState[]) {
   const fun = context.selectedFunction as Function;
@@ -87,41 +88,18 @@ const LHSSampling = () => {
         Specify total number of sample points that will be computed, as well as
         the ranges of each parameter.
       </Typography>
+      <Box sx={{
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: "16px",
+        marginBottom: "16px",
+        padding: "8px 0",
+      }}>
       {lhsInputs?.map((inputVar, index) => (
-        <form
-          key={index}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            marginBottom: "8px",
-            gap: "16px",
-          }}
-        >
-          <Typography variant="h6">{inputVar.variable}:</Typography>
-          <Typography variant="caption">Start: </Typography>
-          <Input
-            type="number"
-            placeholder="Start"
-            value={inputVar.start?.toString()}
-            sx={(theme) => ({
-              width: 100,
-              borderBottom: `1px solid ${theme.palette.background.paper}`,
-            })}
-            onChange={(e) => handleInputChange(index, "start", e.target.value)}
-          />
-          <Typography variant="caption">End: </Typography>
-          <Input
-            type="number"
-            placeholder="End"
-            value={inputVar.end?.toString()}
-            sx={(theme) => ({
-              width: 100,
-              borderBottom: `1px solid ${theme.palette.background.paper}`,
-            })}
-            onChange={(e) => handleInputChange(index, "end", e.target.value)}
-          />
-        </form>
+        <VariableConfig index={index} inputVar={inputVar} key={index} handleInputChange={handleInputChange}/>
       ))}
+      </Box>
 
       <form style={{ display: "flex", alignItems: "center", gap: "40px" }}>
         <Typography variant="body1">Number of sampling points: </Typography>

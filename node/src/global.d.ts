@@ -17,6 +17,12 @@ type dataUQHistogramType = {
   bins_end: number;
   bin_means: number[];
   bin_stds: number[];
+  q1: number;
+  median: number; 
+  q3: number;
+  whisker_min: number;
+  whisker_max: number;
+  outliers: number[];
 };
 type UncertainUQPropsType = {
   numSamples: number;
@@ -34,13 +40,18 @@ interface NavigationProps {
 
 interface MetaModelingUXProps {
   tabTitle?: string;
+  infoText?: string;
+  ExtendedInfoText?: ReactElement;
   headerType: 'setup' | 'sumo' | 'uq';
   children: React.ReactNode;
 }
 
+type HeaderTypes = 'setup' | 'sumo' | 'uq' | 'subTitle';
 interface HeaderProps {
-    headerType: 'setup' | 'sumo' | 'uq';
+    headerType: HeaderTypes;
     tabTitle?: string;
+    infoText?: string;
+    ExtendedInfoText?: ReactElement;
 }
 
 interface SubJob {
@@ -89,7 +100,8 @@ interface FunctionJobCollection {
 interface InputBlockProps {
   name: string,
   value: number,
-  onChange: (value: number) => void
+  type?: 'number' | 'text',
+  onChange: (value: unknown) => void
 }
 
 interface InputTextBlockProps {

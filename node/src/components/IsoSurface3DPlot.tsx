@@ -1,105 +1,207 @@
-import { Box, MenuItem, Select } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { useState, useEffect } from "react";
 import Plot from "react-plotly.js";
 import { useMMUXContext } from "../context/MMUXContext";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
-import { PYTHON_DAKOTA_BACKEND } from '../utils/api_objects';
+import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Data } from "plotly.js";
+import { CreateSelect, CreateConstant, CreateSlider } from "./PlotTools";
 
 const IsoSurface3DPlot = () => {
-  const { selectedFunction, inputVars, selectedQoI, filterSelectedJobList } = useMMUXContext();
-  const [key1, setKey1] = useState(inputVars[0]);
-  const [key2, setKey2] = useState(inputVars[1]);
-  // FIXME TEmporal fix for 2D-input
-  const [key3, setKey3] = useState(inputVars.length > 2 ? inputVars[2] : inputVars[1]);
+  const theme = useTheme();
+  const {
+    selectedFunction,
+    distribution,
+    inputVars,
+    selectedQoI,
+    filterSelectedJobList,
+  } = useMMUXContext();
+  const filteredInputVars = inputVars.filter(
+    (i) =>
+      (distribution[selectedFunction?.uid || ""][i]
+        .distribution as distribution) !== "constant"
+  );
+  const [axis1, setAxis1] = useState(filteredInputVars[0]);
+  const [axis2, setAxis2] = useState(filteredInputVars[1]);
+  const [axis3, setAxis3] = useState(filteredInputVars[2]);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
+  const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
+    inputVars.reduce((acc: { [key: string]: number }, key) => {
+      acc[key] =
+        distribution[selectedFunction?.uid || ""][key].value ||
+        distribution[selectedFunction?.uid || ""][key].mean ||
+        distribution[selectedFunction?.uid || ""][key].min ||
+        0;
+      return acc;
+    }, {})
+  );
 
-  const RunSuMo3DInterpolation = async (jobs: FunctionJob[], key1: string, key2: string) => {
-    // This should create the "data" state variable to be plotted
-    console.info("Evaluating SuMo for 2D surface...")
-    console.info("Jobs to build SuMo: ", jobs)
-    fetch(
-      PYTHON_DAKOTA_BACKEND + '/flask/sumo_grid_evaluation',
-      {
-        method: "POST",
-        body: JSON.stringify(
-          {
-            gridVars: [key1, key2, key3],
-            inputVars: inputVars,
-            output: selectedQoI,
-            FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
-            log: false,
-          }
-        ),
-      }).then(function (response) {
-        return response.json()
-      }).then(function (d) {
-        console.log("2D retrieved data: ", d)
-        reshapePlotData(d)
-      }).catch(error => console.debug('Error:', error));
-  }
-
-  const reshapePlotData = (data: any) => {
-    if (data && selectedQoI) {
-      // console.log("Executing reshapePlotData", data, selectedQoI, data[key1], data[key2], data[selectedQoI])
-      console.log(
-        "Lengths:",
-        data[key1]?.length,
-        data[key2]?.length,
-        data[key3]?.length,
-        data[selectedQoI]?.length
-      );
-      console.log(
-        "Any NaN:",
-        data[key1].some(Number.isNaN),
-        data[key2].some(Number.isNaN),
-        data[key3].some(Number.isNaN),
-        data[selectedQoI].some(Number.isNaN)
-      );
-
-      console.log("Data types:", typeof data[key1][0], typeof data[key2][0], typeof data[key3][0], typeof data[selectedQoI][0]);
-      console.log("Array lengths:", data[key1]?.length, data[key2]?.length, data[key3]?.length, data[selectedQoI]?.length);
-      console.log("Sample values:", data[key1]?.slice(0, 5), data[key2]?.slice(0, 5), data[key3]?.slice(0, 5), data[selectedQoI]?.slice(0, 5));
-      console.log("Any NaN:", data[key1]?.some(Number.isNaN), data[key2]?.some(Number.isNaN), data[key3]?.some(Number.isNaN), data[selectedQoI]?.some(Number.isNaN));
-      const newData: Data[] = [{
-        type: "isosurface",
-        x: data[key1],
-        y: data[key2],
-        z: data[key3],
-        value: data[selectedQoI],
-        colorscale: "Reds",
-        showscale: true,
-      }];
-      setPlotData(newData);
-      console.log("Registered plotData: ", newData)
+  const handleSetAxis1 = (newAxis: string) => {
+    if (axis3 === newAxis || axis2 === newAxis) {
+      const newVars = filteredInputVars.filter((i) => i !== newAxis);
+      let newVar2 = newVars.find((i) => i === axis2);
+      let newVar3 = newVars.find((i) => i === axis3);
+      if (newVar2 || newVar3) {
+        if (newVar2 && newVar3) {
+          setAxis2(newVar2);
+          setAxis3(newVar3);
+        } else if (newVar2) {
+          newVar3 = newVars.find((i) => i !== newAxis && i !== axis2) || "";
+          setAxis2(newVar2);
+          setAxis3(newVar3);
+        } else if (newVar3) {
+          newVar2 = newVars.find((i) => i !== newAxis && i !== axis3) || "";
+          setAxis2(newVar2);
+          setAxis3(newVar3);
+        }
+      } else {
+        setAxis2(newVars[1]);
+        setAxis3(newVars[0]);
+      }
+      setAxis1(newAxis);
     } else {
-      setPlotData([{}])
-      console.log("Empty plotData")
+      setAxis1(newAxis);
     }
-  }
+  };
+
+  const handleSetAxis2 = (newAxis: string) => {
+    if (axis3 === newAxis || axis1 === newAxis) {
+      const newVars = filteredInputVars.filter((i) => i !== newAxis);
+      let newVar1 = newVars.find((i) => i === axis1);
+      let newVar3 = newVars.find((i) => i === axis3);
+      if (newVar1 || newVar3) {
+        if (newVar1 && newVar3) {
+          setAxis1(newVar1);
+          setAxis3(newVar3);
+        } else if (newVar1) {
+          newVar3 = newVars.find((i) => i !== newAxis && i !== axis1) || "";
+          setAxis1(newVar1);
+          setAxis3(newVar3);
+        } else if (newVar3) {
+          newVar1 = newVars.find((i) => i !== newAxis && i !== axis3) || "";
+          setAxis1(newVar1);
+          setAxis3(newVar3);
+        }
+      } else {
+        setAxis1(newVars[1]);
+        setAxis3(newVars[0]);
+      }
+      setAxis2(newAxis);
+    } else {
+      setAxis2(newAxis);
+    }
+  };
+
+  const handleSetAxis3 = (newAxis: string) => {
+    if (axis1 === newAxis || axis2 === newAxis) {
+      const newVars = filteredInputVars.filter((i) => i !== newAxis);
+      let newVar1 = newVars.find((i) => i === axis1);
+      let newVar2 = newVars.find((i) => i === axis2);
+      if (newVar1 || newVar2) {
+        if (newVar1 && newVar2) {
+          setAxis1(newVar1);
+          setAxis2(newVar2);
+        } else if (newVar1) {
+          newVar2 = newVars.find((i) => i !== newAxis && i !== newVar1) || "";
+          setAxis1(newVar1);
+          setAxis2(newVar2);
+        } else if (newVar2) {
+          newVar1 = newVars.find((i) => i !== newAxis && i !== newVar2) || "";
+          setAxis1(newVar1);
+          setAxis2(newVar2);
+        }
+      } else {
+        setAxis1(newVars[1]);
+        setAxis2(newVars[0]);
+      }
+      setAxis3(newAxis);
+    } else {
+      setAxis3(newAxis);
+    }
+  };
+
+  const RunSuMo3DInterpolation = async (
+    jobs: FunctionJob[],
+    axis1: string,
+    axis2: string
+  ) => {
+    // This should create the "data" state variable to be plotted
+    console.info("Evaluating SuMo for 2D surface...");
+    console.info("Jobs to build SuMo: ", jobs);
+    fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_grid_evaluation", {
+      method: "POST",
+      body: JSON.stringify({
+        gridVars: [axis1, axis2, axis3],
+        inputVars: inputVars,
+        output: selectedQoI,
+        FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
+        log: false,
+      }),
+    })
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (d) {
+        console.log("2D retrieved data: ", d);
+        reshapePlotData(d);
+      })
+      .catch((error) => console.debug("Error:", error));
+  };
+
+  const reshapePlotData = (
+    data:
+      | { [key: string]: number[] }
+      | { [key: string]: number[][] }
+      | { [key: string]: number }
+  ) => {
+    if (data && selectedQoI) {
+      const newData: Data[] = [
+        {
+          type: "isosurface",
+          x: data[axis1] as number[],
+          y: data[axis2] as number[],
+          z: data[axis3] as number[],
+          value: data[selectedQoI] as number,
+          colorscale: "Reds",
+          showscale: true,
+        },
+      ];
+      setPlotData(newData);
+      console.log("Registered plotData: ", newData);
+    } else {
+      setPlotData([{}]);
+      console.log("Empty plotData");
+    }
+  };
 
   useEffect(() => {
     const run = async () => {
       const jobs = filterSelectedJobList();
-      return await RunSuMo3DInterpolation(jobs, key1, key2)
+      return await RunSuMo3DInterpolation(jobs, axis1, axis2);
     };
     run();
-    console.log(key1, key2, key3);
-  }, [key1, key2, key3]);
+    console.log(axis1, axis2, axis3);
+  }, [axis1, axis2, axis3]);
 
   const layout = {
     title: {
       text: selectedFunction?.title + " Surface Plot",
     },
-    autosize: false,
+    autosize: true,
     willReadFrequently: true,
-    width: 930,
-    // height: 500,
-    margin: { t: 0, l: 0, b: 0 },
+    plot_bgcolor: `${theme.palette.background.default}`,
+    paper_bgcolor: `${theme.palette.background.default}`,
+    font: { color: `${theme.palette.text.primary}` },
+    margin: {
+      l: 65,
+      r: 50,
+      b: 65,
+      t: 90,
+    },
     scene: {
-      xaxis: { title: { text: key1 }, tickangle: -45, range: [-10, 10] },
-      yaxis: { title: { text: key2 }, tickangle: -45, range: [-10, 10] },
-      zaxis: { title: { text: key3 }, tickangle: -45, range: [-10, 10] },
+      xaxis: { title: { text: axis1 }, tickangle: -45, range: [-10, 10] },
+      yaxis: { title: { text: axis2 }, tickangle: -45, range: [-10, 10] },
+      zaxis: { title: { text: axis3 }, tickangle: -45, range: [-10, 10] },
       camera: {
         eye: {
           x: 1.88,
@@ -110,57 +212,87 @@ const IsoSurface3DPlot = () => {
     },
   };
 
+  const plotStyle = {
+    height: 500,
+    borderRadius: "8px",
+    overflow: "hidden",
+  };
+
   return (
     <Box display={"flex"} flexDirection={"column"} gap={2} width={"100%"}>
-      <Box display={"flex"} flexDirection={"row"} gap={2} width={"100%"}>
-        <Select
-          labelId="select-key1"
-          id="select-key1"
-          defaultValue={""}
-          value={key1}
-          onChange={(e) => setKey1(e.target.value)}
-        >
-          {inputVars.map((key) => {
-            return (
-              <MenuItem key={key} value={key}>
-                {key}
-              </MenuItem>
-            );
-          })}
-        </Select>
-        <Select
-          labelId="select-key2"
-          id="select-key2"
-          defaultValue={""}
-          value={key2}
-          onChange={(e) => setKey2(e.target.value)}
-        >
-          {inputVars.map((key) => {
-            return (
-              <MenuItem key={key} value={key}>
-                {key}
-              </MenuItem>
-            );
-          })}
-        </Select>
-        <Select
-          labelId="select-key3"
-          id="select-key3"
-          defaultValue={""}
-          value={key3}
-          onChange={(e) => setKey3(e.target.value)}
-        >
-          {inputVars.map((key) => {
-            return (
-              <MenuItem key={key} value={key}>
-                {key}
-              </MenuItem>
-            );
-          })}
-        </Select>
+      <Box
+        sx={{
+          width: "100%",
+          height: "500px",
+          overflow: "hidden",
+          borderRadius: 2,
+        }}
+      >
+        <Plot data={plotData} layout={layout} style={plotStyle} />
       </Box>
-      <Box width={"100%"}>
-        <Plot data={plotData} layout={layout} />
+      <Box display={"flex"} flexDirection={"column"} gap={2} pt={2}>
+        <CreateSelect
+          idx={1}
+          axis={axis1}
+          setAxis={handleSetAxis1}
+          filteredInputVars={inputVars.filter(
+            (i) =>
+              (distribution[selectedFunction?.uid || ""][i]
+                .distribution as distribution) !== "constant"
+          )}
+        />
+        <CreateSelect
+          idx={2}
+          axis={axis2}
+          setAxis={handleSetAxis2}
+          filteredInputVars={inputVars.filter(
+            (i) =>
+              (distribution[selectedFunction?.uid || ""][i]
+                .distribution as distribution) !== "constant"
+          )}
+        />
+        <CreateSelect
+          idx={3}
+          axis={axis3}
+          setAxis={handleSetAxis3}
+          filteredInputVars={inputVars.filter(
+            (i) =>
+              (distribution[selectedFunction?.uid || ""][i]
+                .distribution as distribution) !== "constant"
+          )}
+        />
+        {inputVars.length > 0 &&
+        distribution[selectedFunction?.uid || ""] !== undefined &&
+        !(
+          filteredInputVars.includes(axis1) &&
+          filteredInputVars.includes(axis2) &&
+          filteredInputVars.includes(axis3)
+        ) ? (
+          <>
+            {filteredInputVars.map((key) => {
+              if (key === axis1 || key === axis2) {
+                return null; // Skip the first variable as it is already selected
+              }
+              const dist = distribution[selectedFunction?.uid || ""];
+              const distValue = dist[key];
+              if (distValue.distribution === "constant") {
+                return (
+                  <CreateConstant input={key} dist={dist[key]} key={key} />
+                );
+              } else {
+                return (
+                  <CreateSlider
+                    input={key}
+                    dist={dist[key]}
+                    otherAxis={otherAxis}
+                    setOtherAxis={setOtherAxis}
+                    key={key}
+                  />
+                );
+              }
+            })}
+          </>
+        ) : undefined}
       </Box>
     </Box>
   );
