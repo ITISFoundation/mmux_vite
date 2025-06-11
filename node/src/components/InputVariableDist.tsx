@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import { InputBlock } from "./InputBlock";
 import Header from "./Header";
+import InputVariableDistDocument from "./documents/InputVariableDistDocument";
 
 export const InputVariableDist = () => {
   const { inputVars, distribution, setDistribution, selectedFunction } = useMMUXContext();
@@ -116,7 +117,7 @@ export const InputVariableDist = () => {
 
   return (
     <Box sx={{ marginTop: "8px", paddingTop: "8px", borderRadius: "8px" }}>
-      <Header headerType="subTitle" tabTitle="Input Variable Distributions" infoText="Specify the probability distribution for every input parameters. Input parameters are assumed to be stochastically independent." />
+      <Header headerType="subTitle" tabTitle="Input Variable Distributions" infoText="Define probability distributions for each input parameter (assumed independent)" ExtendedInfoText={InputVariableDistDocument} />
       <Box sx={{ display: "flex", overflowX: "auto" }}>
         {Object.keys(localDistribution).map((inputVar, index) => {
           return (

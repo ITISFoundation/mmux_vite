@@ -7,10 +7,10 @@ border-radius: 16px;
 `
 
 export default function MetaModelingUX(props: MetaModelingUXProps) {
-  const { children, tabTitle, infoText, headerType } = props;
+  const { children, tabTitle, infoText, ExtendedInfoText, headerType } = props;
     return (
         <MetaCard variant="outlined">
-            <Header tabTitle={tabTitle} infoText={infoText} headerType={headerType} />
+            <Header tabTitle={tabTitle} infoText={infoText} ExtendedInfoText={ExtendedInfoText} headerType={headerType} />
             {children}
         </MetaCard>
     );
