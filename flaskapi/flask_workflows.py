@@ -27,6 +27,7 @@ from osparc_client.api_client import ApiClient
 from osparc_client.api.functions_api import FunctionsApi
 from osparc_client.api.function_jobs_api import FunctionJobsApi
 from osparc_client.api.users_api import UsersApi
+from osparc_client.api.studies_api import StudiesApi
 from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi
 from osparc_client.models.function_job import FunctionJob
 from osparc_client.models.function_job_status import FunctionJobStatus
@@ -94,6 +95,7 @@ _logger.info("Detected osparc_client configuration: host=%s, username=%s, passwo
 )
 
 api_client = ApiClient(configuration)
+studies_api_instance = StudiesApi(api_client)
 functions_api_instance = FunctionsApi(api_client)
 job_api_instance = FunctionJobsApi(api_client)
 job_collection_api_instance = FunctionJobCollectionsApi(api_client)
@@ -771,3 +773,20 @@ def flask_get_sumo_cv_accuracy_metrics():
     return jsonify(results)
 
 _logger.info("Flask workflows module loaded successfully!")
+
+@app.route("/flask/clone_job", methods = ["POST"])
+def flask_clone_job():
+    _logger.debug("Starting flask function: flask/clone_job")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+
+    # Convert request data into a Python dictionary
+    request_data: dict = json.loads(request.data.decode("utf-8"))
+    project_job_id = request_data["projectJobId"]
+    
+    # Clone the job using the job_id
+    study = studies_api_instance.clone_study(project_job_id)
+    studies_api_instance.patch_study(study)  # this will update the study with the new data
+    _logger.debug(f"Cloned study: {study.to_dict()}")
+    
+    _logger.debug("Done!!")
+    return jsonify(study.to_dict())

@@ -1,13 +1,15 @@
 import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
-import { Box, Button, Checkbox, Tooltip } from "@mui/material";
-import React from "react";
+import { Box, Button, Checkbox, CircularProgress, Tooltip } from "@mui/material";
+import { toast } from "react-toastify";
+import React, { useState } from "react";
+import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 
-// TODO include tick to select it
 const JobRow = (props: JobRowProps) => {
   const { jobUid, jobList, setSelected } = props;
   const job = jobList.find(j => j.job.uid === jobUid);
+  const [creatingJobCopy, setCreatingJobCopy] = useState(false)
 
   const handleSetJob = (selected: boolean) => {
     setSelected(selected, jobUid);
@@ -55,7 +57,34 @@ const JobRow = (props: JobRowProps) => {
       );
     })
 
+    interface StudyType {
+      uid: string;
+      title: string;
+      description: string;
+    }
+    const createJobStudyCopy = async (projectJobId: string) => {
+      try {
+        const study: StudyType = await fetch(
+          PYTHON_DAKOTA_BACKEND + "/flask/clone_job", {
+          method: "POST",
+          body: JSON.stringify({
+            projectJobId: projectJobId,
+          }),
+        }).then(function (response) {
+          return response.json()
+        })
+        console.log("Clone study response: ", study)
 
+        if (study && study.uid) {
+          return study.uid
+        } else {
+          toast.error("Failed to open job copy: No UID returned");
+        }
+      } catch (error) {
+        console.error("Error creating Job Copy for inspection:", error);
+        toast.error("Error creating Job Copy for inspection");
+      }
+    }
     return (
       <TableRow key={job.job.uid}>
         <TableCell padding="checkbox">
@@ -70,31 +99,56 @@ const JobRow = (props: JobRowProps) => {
         </TableCell>
         <TableCell component="th" scope="row" sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} >
           <Tooltip title={job.job.uid}>
-            {job.job.uid ? job.job.uid.slice(0, 5) : ""}...
+            {job.job.uid ? job.job.uid.slice(0, 5) + "..." as unknown as React.ReactElement : "" as unknown as React.ReactElement}
           </Tooltip>
         </TableCell>
         <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           <Tooltip title={inputs}>
-            {inputs}
+            {inputs as unknown as React.ReactElement}
           </Tooltip>
         </TableCell>
         <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "auto" }}>
           <Tooltip title={outputs}>
-            {outputs}
+            {outputs as unknown as React.ReactElement}
           </Tooltip>
         </TableCell>
 
-        {/* TODO this opens the original job - replace by creating a copy!! */}
         <TableCell align="right" sx={{ gap: "8px" }}>
-          <Button
-            variant="outlined"
-            size="small"
-            href={`/#/study/${job.job.projectJobId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            View
-          </Button>
+          <>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={async () => {
+                setCreatingJobCopy(true)
+                const copy_uid = await createJobStudyCopy(job.job.projectJobId);
+                setCreatingJobCopy(false)
+                console.log("Let's open a new window using project uid: ", copy_uid)
+                if (copy_uid) {
+                  const url = `/#/study/${copy_uid}`
+                  const newWindow = window.open(url);
+                  if (newWindow) {
+                    console.info("Window opened successfully")
+                  } else {
+                    toast.warning("Popup blocked! Please allow popups for this site to open the job in a new tab.");
+                  }
+                } else {
+                  toast.warning("Could not open Job copy in new window!")
+                }
+              }}
+              children={creatingJobCopy ? (
+                < >
+                  <Box sx={{ display: 'flex' }}>
+                    <CircularProgress size={21} />
+                  </Box>
+                </>
+              ) :
+                <Typography variant="body2">
+                  View
+                </Typography>
+              }
+            >
+            </Button>
+          </>
         </TableCell>
         <TableCell align="right">{job.job.status}</TableCell>
       </TableRow>
