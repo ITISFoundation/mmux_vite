@@ -17,7 +17,7 @@ import os
 from pathlib import Path
 import json
 import logging
-from typing import List, Dict, Callable, Literal, Optional
+from typing import List, Dict, Callable
 import numpy as np
 import pandas as pd
 from flask import Flask, request, abort, jsonify, make_response
@@ -36,7 +36,6 @@ from mmux_python.utils.funs_data_processing import (
     process_input_file,
     create_manual_uq_samples,
     sanitize_varnames,
-    sanitize_varnames_dict,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
 from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid
@@ -434,7 +433,7 @@ def flask_manual_uq_propagation_with_uncertainty():
     results = {key.replace(output_response_sanitized, output_response): val for key, val in results_sanitized.items()}
 
     ## now, use the prediction of std_hat to get an estimation of the uncertainty over the UQ
-    assert output_response_sanitized + "_std_hat" in results, f"Cannot perform uncertainty of UQ if there is no prediction of the uncertainty"
+    assert output_response + "_std_hat" in results, f"Cannot perform uncertainty of UQ if there is no prediction of the uncertainty"
     
     ## TODO change by normal sampling
     from scipy.special import erfinv
@@ -442,7 +441,7 @@ def flask_manual_uq_propagation_with_uncertainty():
     for i in range(n_histograms):
         _logger.debug(f"Running histogram {i+1}/{n_histograms}")
         r = erfinv(np.random.uniform(-1, 1, size=num_samples)) # generate random samples from an uniform distribution
-        all_results[i, :] = results[output_response_sanitized+"_hat"] + r * results[output_response_sanitized+"_std_hat"]
+        all_results[i, :] = results[output_response+"_hat"] + r * results[output_response+"_std_hat"]
 
     # Compute common bin edges for all histograms
     all_values = all_results.flatten()
@@ -459,6 +458,16 @@ def flask_manual_uq_propagation_with_uncertainty():
     # Calculate mean and std of bin heights across histograms
     bin_means = np.mean(histograms, axis=0)
     bin_stds = np.std(histograms, axis=0)
+    
+    # calculate quantities for whisker-plot
+    all_results = all_results.flatten()
+    q1 = np.percentile(all_results, 25, axis=0)
+    median = np.percentile(all_results, 50, axis=0)
+    q3 = np.percentile(all_results, 75, axis=0)
+    iqr = q3 - q1  # Interquartile range for whisker plot
+    whisker_min = np.maximum(hist_min, q1 - 1.5 * iqr)
+    whisker_max = np.minimum(hist_max, q3 + 1.5 * iqr)
+    outliers = all_results[(all_results < whisker_min) | (all_results > whisker_max)]
 
     output = {
         "bins_start": float(hist_min),
@@ -466,6 +475,12 @@ def flask_manual_uq_propagation_with_uncertainty():
         "bin_means": bin_means.tolist(),
         "bin_stds": bin_stds.tolist(),
         # "histograms": histograms.tolist()  # optional, for debugging/plotting
+        "q1": float(q1),
+        "median": float(median),
+        "q3": float(q3),
+        "whisker_min": float(whisker_min),
+        "whisker_max": float(whisker_max),
+        "outliers": outliers.tolist(),
     }
 
     _logger.debug("Done!!")

@@ -113,7 +113,9 @@ export function FunctionList() {
         (fun as SolverFunction).solverVersion
       );
     } else if ((fun as ProjectFunction).projectId) {
-      const handleInfoClick = () => {
+      const handleInfoClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
         // Send a postMessage to the parent iframe
         window.parent.postMessage(
           {
@@ -233,7 +235,7 @@ export function FunctionList() {
       rowSelectionModel={rowSelectionModel}
       rows={functions}
       columns={[
-        { field: "title", headerName: "Title", flex: 1, maxWidth: 200 },
+        { field: "title", headerName: "Name", flex: 1, maxWidth: 200 },
         {
           field: "description",
           headerName: "Description",
@@ -265,7 +267,7 @@ export function FunctionList() {
         },
         {
           field: "solverKey",
-          headerName: "Solver / Template",
+          headerName: "Further Info",
           flex: 1,
           minWidth: 200,
           renderCell: (params) => getFunctionSolver(params.row),
@@ -275,8 +277,8 @@ export function FunctionList() {
           headerName: "",
           sortable: false,
           flex: 0.5,
-          maxWidth: 100,
-          minWidth: 100,
+          maxWidth: 130,
+          minWidth: 130,
           renderCell: (params) => (
             <Button
               variant="contained"
@@ -302,7 +304,7 @@ export function FunctionList() {
                 );
               }}
             >
-              Select
+              { selectedFunction?.uid === params.row.uid ? "Unselect" : "Select"}
             </Button>
           ),
         },

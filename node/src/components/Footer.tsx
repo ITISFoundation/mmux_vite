@@ -50,7 +50,7 @@ export const Footer = (props: FooterProps) => {
               onClick={() => setModal(!modal)}
               disabled={!isJobsRunning}
             >
-              Tasks running
+              TASK MANAGER
             </Button>
           </Box>
           <Button

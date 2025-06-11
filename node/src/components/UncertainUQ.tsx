@@ -4,6 +4,9 @@ import Plot from "react-plotly.js";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Typography, Box, LinearProgress, useTheme } from "@mui/material";
+import { fetchWithRetry } from "../utils/fetch_retry";
+import WhiskerPlot from "./WhiskerPlot";
+import HistogramStats from "./HistogramStats";
 
 type DisplayMessageProps = {
   mssg: string,
@@ -82,6 +85,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     jobsFetched,
   } = props;
   const { inputVars, selectedQoI, distribution, selectedFunction, fetchedJobCollections, filterSelectedJobList } = useMMUXContext();
+
   const theme = useTheme();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
   const [propagating, setPropagating] = useState(false);
@@ -102,7 +106,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         try {
           console.info("Propagating UQ...")
           console.info("SelectedQoI: ", selectedQoI)
-          const response = await fetch(
+          const response = await fetchWithRetry(
             PYTHON_DAKOTA_BACKEND +
             "/flask/manual_uq_propagation_with_uncertainty",
             {
@@ -110,7 +114,6 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
               body: JSON.stringify({
                 inputVars: inputVars,
                 output: selectedQoI,
-                output2: "blabla",
                 distributions: distribution[selectedFunction?.uid || ""],
                 FunctionJobs: jobs,
                 numSamples: numSamples,
@@ -129,12 +132,12 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           console.debug("Error:", error)
           setPropagating(false);
           setDataUQHistogram(undefined);
-        };
+        }
       }
       return await runUQ(jobs);
     };
     run();
-  }, [numSamples, filterSelectedJobList, inputVars, distribution, selectedQoI]);
+  }, [numSamples, filterSelectedJobList, inputVars, distribution, selectedQoI, selectedFunction?.uid]);
 
   if (loading) {
     console.info(
@@ -153,8 +156,8 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
       <DisplayMessage mssg={"Calculating..."} />
     )
   } else if (dataUQHistogram === undefined) {
-    // loading is off, propagating is off. 
-    // The data we have is fetchedJobCollections (e.g. whether there is data available at all), 
+    // loading is off, propagating is off.
+    // The data we have is fetchedJobCollections (e.g. whether there is data available at all),
     // dataUQHistogram (whether we managed to retrieve any data) and propagationFailed (whether we got an error during propagation)
     // I guess the later is redundant - we can already use dataUQHistogram to know if the propagation failed
     return (
@@ -169,41 +172,47 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     return (
       <>
         {(dataUQHistogram !== undefined) &&
-          <Plot
-            data={[
-              {
-                x: Array.from(
-                  { length: dataUQHistogram.bin_means.length },
-                  (_, i) =>
-                    dataUQHistogram.bins_start +
-                    ((dataUQHistogram.bins_end - dataUQHistogram.bins_start) /
-                      dataUQHistogram.bin_means.length) *
-                    (i + 0.5)
-                ),
-                y: dataUQHistogram.bin_means,
-                type: "bar",
-                marker: { color: `${theme.palette.primary.main}` },
-                name: "UQ Histogram",
-                error_y: {
-                  type: "data",
-                  array: dataUQHistogram.bin_stds,
-                  visible: true,
+          <>
+            <Plot
+              data={[
+                {
+                  x: Array.from(
+                    { length: dataUQHistogram.bin_means.length },
+                    (_, i) =>
+                      dataUQHistogram.bins_start +
+                      ((dataUQHistogram.bins_end - dataUQHistogram.bins_start) /
+                        dataUQHistogram.bin_means.length) *
+                      (i + 0.5)
+                  ),
+                  y: dataUQHistogram.bin_means,
+                  type: "bar",
+                  marker: { color: `${theme.palette.primary.main}` },
+                  name: "UQ Histogram",
+                  error_y: {
+                    type: "data",
+                    array: dataUQHistogram.bin_stds,
+                    visible: true,
+                  },
                 },
-              },
-            ]}
-            layout={{
-              title: { text: "Uncertainty Quantification Histogram" },
-              xaxis: { title: { text: selectedQoI || "Output" } },
-              yaxis: { title: { text: "Density" } },
-              plot_bgcolor: `${theme.palette.background.default}`,
-              paper_bgcolor: `${theme.palette.background.default}`,
-              font: { color: `${theme.palette.text.primary}` },
-            }}
-            style={{ width: "100%", height: "400px", borderRadius: "8px", overflow: "hidden" }}
-            config={{ responsive: true }}
-          />
+              ]}
+              layout={{
+                title: { text: "Uncertainty Quantification Histogram" },
+                xaxis: { title: { text: selectedQoI || "Output" } },
+                yaxis: { title: { text: "Density" } },
+                plot_bgcolor: `${theme.palette.background.default}`,
+                paper_bgcolor: `${theme.palette.background.default}`,
+                font: { color: `${theme.palette.text.primary}` },
+              }}
+              style={{ width: "100%", height: "400px", borderRadius: "8px", overflow: "hidden" }}
+              config={{ responsive: true }}
+            />
+            <WhiskerPlot {...dataUQHistogram} />
+            <HistogramStats {...dataUQHistogram} />
+          </>
         }
       </>
+
+
     )
   }
 }

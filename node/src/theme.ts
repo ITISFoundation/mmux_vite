@@ -21,6 +21,17 @@ export function setupTheme(mode: "light" | "dark") {
         paper: mode === "light" ? "#eee" : "#555",
       },
       divider: mode === "light" ? "#bbb" : "#999",
+      grey: {
+        100: mode === "light" ? "#f5f5f5" : "#343839",
+        200: mode === "light" ? "#e0e0e0" : "#444",
+        300: mode === "light" ? "#cfcfcf" : "#555",
+        400: mode === "light" ? "#bdbdbd" : "#666",
+        500: mode === "light" ? "#9e9e9e" : "#777",
+        600: mode === "light" ? "#757575" : "#888",
+        700: mode === "light" ? "#616161" : "#999",
+        800: mode === "light" ? "#424242" : "#aaa",
+        900: mode === "light" ? "#212121" : "#bbb",
+      },
     }
   });
 
@@ -29,7 +40,7 @@ export function setupTheme(mode: "light" | "dark") {
       MuiButton: {
         styleOverrides: {
           root: {
-            backgroundColor: mode === "light" ? "#fff" : "#343839",
+            backgroundColor: theme.palette.grey[100],
             variants: [
               {
                 props: {
@@ -50,7 +61,7 @@ export function setupTheme(mode: "light" | "dark") {
       MuiIconButton: {
         styleOverrides: {
           root: {
-            backgroundColor: mode === "light" ? "#ddd" : "#343839",
+            backgroundColor: theme.palette.grey[100],
             variants: [
               {
                 props: {
@@ -62,7 +73,7 @@ export function setupTheme(mode: "light" | "dark") {
               backgroundColor: mode === "light" ? "#fff" : "#444",
             },
             "&:disabled": {
-              color: mode === "light" ? "#999" : "#777",
+              color: theme.palette.grey[500],
               backgroundColor: mode === "light" ? "#bbb" : "#555",
             },
           },

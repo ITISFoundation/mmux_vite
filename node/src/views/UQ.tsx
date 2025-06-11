@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
@@ -7,35 +7,33 @@ import {
   Container,
   InputLabel,
   MenuItem,
-  Modal,
   Select,
   TextField,
   useTheme,
 } from "@mui/material";
-import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
-import { Carousel } from 'react-responsive-carousel';
+import { InfoOutline } from "@mui/icons-material";
 import MetaModelingUX from "../components/MetaModelingUX";
 import PlusButton from "../components/PlusButton";
 import JobSelector from "../components/JobSelector";
 import { useMMUXContext } from "../context/MMUXContext";
 import { Sampling } from "../components/Sampling";
 import UncertainUQ from "../components/UncertainUQ";
-import IsoSurface3DPlot from "../components/IsoSurface3DPlot";
-import Curves1DPlots from "../components/PlotDataTogether";
-import SuMoValidation from "../components/SuMoValidation";
-import Surface2DPlot from "../components/Surface3DPlot";
+import CustomTooltip from "../components/CustomTooltip";
+import SuMoModal from "../components/SuMoModal";
 
 export default function UQ() {
+  // Similar to Sumo building
   const {
-    inputVars,
     outputVars,
     selectedFunction,
     selectedQoI,
     setSelectedQoI,
-    isSuMoGenerated,
+    numSamples,
+    setNumSamples,
+    filterSelectedJobList,
   } = useMMUXContext();
   const theme = useTheme();
-  const [numSamples, setNumSamples] = useState(1000);
+  const [localNumSamples, setLocalNumSamples] = useState(numSamples[selectedFunction?.uid || ""] || 1000);
   const [loading, setLoading] = useState<boolean>(true);
   const [jobPanelOpen, setJobPanelOpen] = useState<boolean>(false);
   const [sumoModal, setSumoModal] = useState<boolean>(false);
@@ -44,6 +42,21 @@ export default function UQ() {
   const [localQoI, setLocalQoI] = useState<string | undefined>(selectedQoI);
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
+
+  // type SuMoPlotsType = {
+  //   children: Record<string, React.ReactNode>[]
+  // }
+  // const SuMoPlots = (props: SuMoPlotsType) => {
+  //   const { items } = useSequentialRenderer(props.children);
+
+  //   return (
+  //     <>
+  //       {items.map((plot) => {
+  //         return { plot }
+  //       })}
+  //     </>
+  //   );
+  // };
 
   useEffect(() => {
     if (outputVars && outputVars.length > 0) {
@@ -54,6 +67,14 @@ export default function UQ() {
   const handlesetLocalQoI = (value: string) => {
     setLocalQoI(value);
     setSelectedQoI(value);
+  };
+
+  const handlesetLocalNumSamples = (value: number) => {
+    setLocalNumSamples(value);
+    setNumSamples({
+      ...numSamples,
+      [selectedFunction?.uid || ""]: value,
+    });
   };
 
   return (
@@ -80,20 +101,39 @@ export default function UQ() {
               flex: 1,
               transform: "none",
               alignItems: "baseline",
-              gap: "16px",
+              gap: "8px",
               fontFamily: "inherit",
               fontWeight: 300,
               fontSize: "1.2em",
             }}
           >
-            Select QoI:
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              Select Quantity of Interest
+              <CustomTooltip
+                title="The input parameter probability distribution is propagated through a Gaussian Process surrogate model (SuMo) fitted to the response surface of the quantity of interest. Multiple runs of stochastic sampling are used to assess convergence of the propagated uncertainty distribution. The variability of the runs, as well as the interpolation uncertainty provided by the Gaussian Process SuMo are used to quantify the uncertainty of the propagated probability distribution (uncertainty of uncertainty propagation; displayed as whiskers)"
+                placement="right"
+                arrow
+              >
+                <InfoOutline
+                  sx={(theme) => ({
+                    color: theme.palette.text.secondary,
+                    backgroundColor: theme.palette.grey[100],
+                    borderRadius: "50%",
+                    padding: "2px",
+                    marginLeft: "4px",
+                  })}
+                />
+              </CustomTooltip>
+            </Box>
             <Select
               size="small"
               variant="outlined"
               sx={{ flex: 1, marginTop: "8px" }}
               value={localQoI}
               defaultValue={outputVars?.[0] || ""}
-              onChange={(e) => { handlesetLocalQoI(e.target.value); }}
+              onChange={(e) => {
+                handlesetLocalQoI(e.target.value);
+              }}
             >
               {outputVars?.map((qoi) => (
                 <MenuItem key={qoi} value={qoi}>
@@ -121,16 +161,17 @@ export default function UQ() {
               variant="outlined"
               size="small"
               sx={{ marginTop: "8px", flex: 1 }}
-              value={numSamples}
-              onChange={(e) => setNumSamples(parseInt(e.target.value))}
+              value={localNumSamples}
+              onChange={(e) => handlesetLocalNumSamples(parseInt(e.target.value))}
             />
           </InputLabel>
           <Button
             variant="contained"
             size="small"
+            disabled={loading || !selectedFunction || filterSelectedJobList().length === 0}
             sx={{
               marginTop: "8px",
-              width: "200px",
+              width: "160px",
               fontSize: "1.1em",
               fontFamily: "inherit",
               fontWeight: 200,
@@ -138,13 +179,12 @@ export default function UQ() {
             }}
             color="primary"
             onClick={() => setSumoModal(true)}
-            disabled={loading}
           >
-            View SuMo results
+            Inspect SuMo
           </Button>
         </Box>
         <UncertainUQ
-          numSamples={numSamples}
+          numSamples={localNumSamples}
           colsFetched={colsFetched}
           jobProgress={jobProgress}
           jobsFetched={jobsFetched}
@@ -169,11 +209,26 @@ export default function UQ() {
           onClick={() => setJobPanelOpen(loading ? false : !jobPanelOpen)}
           sx={{
             minHeight: "auto",
-            padding: "4px 8px",
-            margin: `0 0 ${jobPanelOpen ? '16px' : '0px'} 0`,
+            padding: "4px 8px 4px 16px",
+            margin: `0 0 ${jobPanelOpen ? "16px" : "0px"} 0`,
           }}
         >
-          Modify selected jobs
+          Adapt / Extend Sampling
+          <CustomTooltip
+            title="Modify the function samples used to construct the SuMo and/or run additional sampling of the response surfaces to improve the SuMo quality and reduce the uncertainty of the uncertainty propagation."
+            placement="right"
+            arrow
+          >
+            <InfoOutline
+              sx={(theme) => ({
+                color: theme.palette.text.secondary,
+                backgroundColor: theme.palette.grey[100],
+                borderRadius: "50%",
+                padding: "2px",
+                marginLeft: "8px",
+              })}
+            />
+          </CustomTooltip>
         </Button>
         <AccordionDetails sx={{ padding: "0" }}>
           <JobSelector
@@ -198,56 +253,7 @@ export default function UQ() {
           ) : undefined}
         </AccordionDetails>
       </Accordion>
-      <Modal
-        open={sumoModal}
-        onClose={() => setSumoModal(false)}
-        aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description"
-        sx={{
-          margin: "auto",
-          height: "600px",
-          width: "900px",
-        }}
-      >
-        <Box
-          bgcolor={theme.palette.background.default}
-          p={4}
-          borderRadius={2}
-          width={900}
-          height={600}
-          overflow={"auto"}
-        >
-          <Carousel
-            renderItem={(item) => {
-              // Only render the current slide
-              return item;
-            }}
-            selectedItem={0}
-            showThumbs={false}
-            showStatus={false}
-            infiniteLoop={false}
-          >
-            <div>
-              <SuMoValidation />
-            </div>
-            {inputVars.length > 0 ? (
-              <div>
-                <Curves1DPlots />
-              </div>
-            ) : undefined}
-            {inputVars.length > 1 ? (
-              <div>
-                <Surface2DPlot />
-              </div>
-            ) : undefined}
-            {inputVars.length > 2 ? (
-              <div>
-                <IsoSurface3DPlot />
-              </div>
-            ) : undefined}
-          </Carousel>
-        </Box>
-      </Modal>
+      <SuMoModal open={sumoModal} setOpen={setSumoModal} />
     </MetaModelingUX>
   );
 }

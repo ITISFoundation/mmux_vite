@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
-import { Input, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { Function, FunctionJob } from "../osparc-api-ts-client";
 import { useMMUXContext, MMUXContextType } from "../context/MMUXContext";
 import { RunSamplingButton } from "./SamplingButton";
+import ValueConfig from "./ValueConfig";
 
 async function runTestJob(context: MMUXContextType | undefined, config: SamplingInputsState[]) {
   const fun = context?.selectedFunction as Function;
@@ -49,7 +50,7 @@ const TestJob = () => {
     runTestJob(context, jobInputs);
     setTimeout(() => {
       context?.setLaunchingSampling(false);
-    }, 3000);
+    }, 1000);
     // TODO have some way to detect that it finished running; and set the corresponding context variable to False
   };
 
@@ -64,6 +65,8 @@ const TestJob = () => {
     });
   }
 
+  console.log("TestJob inputs: ", jobInputs);
+
   return (
     <>
       <Typography
@@ -72,7 +75,7 @@ const TestJob = () => {
         fontWeight={300}
         marginBottom={1}
       >
-        Single Test Run{" "}
+        Single Test Run
       </Typography>
       <Typography
         variant="body1"
@@ -82,31 +85,18 @@ const TestJob = () => {
       >
         Run a single parameter combination
       </Typography>
-      {jobInputs?.map((inputVar, index) => (
-        <form
-          key={index}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            marginBottom: "8px",
-            gap: "16px",
-          }}
-        >
-          <Typography variant="h6">{inputVar.variable}:</Typography>
-          <Typography variant="caption">Value: </Typography>
-          <Input
-            type="number"
-            placeholder="Value"
-            value={inputVar.value?.toString()}
-            sx={(theme) => ({
-              width: 100,
-              borderBottom: `1px solid ${theme.palette.background.paper}`,
-            })}
-            onChange={(e) => handleInputChange(index, "start", e.target.value)}
-          />
-        </form>
-      ))}
-
+      <Box sx={{
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: "16px",
+        marginBottom: "16px",
+        padding: "8px 0",
+      }}>
+        {jobInputs?.map((inputVar, index) => (
+          <ValueConfig index={index} inputVar={inputVar} handleInputChange={handleInputChange} />
+        ))}
+      </Box>
       <RunSamplingButton handleRunSampling={handleRunSampling}/>
     </>
   );
