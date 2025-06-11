@@ -6,7 +6,7 @@ import { useMMUXContext } from "../context/MMUXContext";
 import { Data } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
 import Header from "./Header";
-import { CreateConstant, CreateSelect, CreateSlider } from "./PlotTools";
+import { CreateConstant, CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 
 type GPPrediction = {
   x: number[];
@@ -23,9 +23,9 @@ const Curves1DPlots = () => {
     distribution,
     filterSelectedJobList,
   } = useMMUXContext();
+  const filteredInputVars = filterInputVars()
   const [plotData, setPlotData] = useState<Array<Data>>([]);
-  const [axis, setAxis] = useState(inputVars[0]);
-  const [filteredInputVars, setFilteredInputVars] = useState(inputVars)
+  const [axis, setAxis] = useState(filteredInputVars[0]);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
       acc[key] =
@@ -71,7 +71,7 @@ const Curves1DPlots = () => {
       return await RunCentralSuMoInterpolations(jobs);
     };
     run();
-  }, []);
+  }, [inputVars, selectedQoI, selectedFunction, axis]);
 
   const createPlotData = (data: Record<string, GPPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
@@ -124,18 +124,6 @@ const Curves1DPlots = () => {
     }
   };
 
-  const layout = {
-    plot_bgcolor: `${theme.palette.background.default}`,
-    paper_bgcolor: `${theme.palette.background.default}`,
-    font: { color: `${theme.palette.text.primary}` },
-  };
-
-  const plotStyle = {
-    height: 300,
-    borderRadius: "8px",
-    overflow: "hidden",
-  };
-
   return (
     <Box display={"flex"} flexDirection={"column"}>
       <CreateSelect
@@ -147,12 +135,10 @@ const Curves1DPlots = () => {
         <Plot
           data={plotData}
           layout={{
-            ...layout,
+            plot_bgcolor: `${theme.palette.background.default}`,
+            paper_bgcolor: `${theme.palette.background.default}`,
+            font: { color: `${theme.palette.text.primary}` },
             title: { text: selectedQoI },
-            grid: {
-              rows: 1,
-              columns: inputVars.length,
-            },
             yaxis: {
               // title: { text: qoi },
               showgrid: true,
@@ -160,7 +146,12 @@ const Curves1DPlots = () => {
             },
             showlegend: false,
           }}
-          style={plotStyle}
+          style={{
+            height: 300,
+            borderRadius: "8px",
+            overflow: "hidden",
+          }
+          }
           config={{ responsive: true }}
         />
       </Box>

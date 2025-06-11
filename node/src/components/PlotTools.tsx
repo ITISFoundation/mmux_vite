@@ -3,11 +3,10 @@ import { useState } from "react";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { useMMUXContext } from "../context/MMUXContext";
 
-interface filterOutConstantDataVarsPropsType {
-  inputVars: string[];
-  jobs: FunctionJob[];
-}
-export const filterOutConstantDataVars = ({ inputVars, jobs }: filterOutConstantDataVarsPropsType) => {
+
+export const _filterOutConstantDataVars = () => {
+  const { inputVars, filterSelectedJobList } = useMMUXContext();
+  const jobs = filterSelectedJobList();
   const uniqueValuesPerVar: { [varName: string]: Set<number> } = {};
   inputVars.forEach((varName) => {
     uniqueValuesPerVar[varName] = new Set<number>();
@@ -40,12 +39,9 @@ export const filterOutConstantDataVars = ({ inputVars, jobs }: filterOutConstant
   console.log("Filtered inputVars (with >1 unique value):", newFilteredInputVars);
   return newFilteredInputVars
 }
-
-interface filterOutConstantDistributionVarsPropsType {
-  inputVars: string[];
-}
-export const filterOutConstantDistributionVars = ({ inputVars }: filterOutConstantDistributionVarsPropsType) => {
+export const _filterOutConstantDistributionVars = () => {
   const {
+    inputVars,
     selectedFunction,
     distribution,
   } = useMMUXContext();
@@ -55,7 +51,10 @@ export const filterOutConstantDistributionVars = ({ inputVars }: filterOutConsta
         .distribution as distribution) !== "constant"
   )
 }
-
+export const filterInputVars = () => {
+  // Wrapper to quickly change btw filtering mode
+  return _filterOutConstantDataVars()
+}
 
 interface CreateSelectProps {
   inputVars: string[];
@@ -64,11 +63,10 @@ interface CreateSelectProps {
   setAxis: (value: string) => void;
 }
 export const CreateSelect = ({ axis, idx, inputVars, setAxis }: CreateSelectProps) => {
-  const { filterSelectedJobList } = useMMUXContext();
-  const jobs = filterSelectedJobList();
+
 
   // NB: could have other filtering (based on distribution === "constant")
-  const filteredInputVars = filterOutConstantDataVars({ inputVars, jobs })
+  const filteredInputVars = filterInputVars()
 
   return (
     <InputLabel sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center" }}>
@@ -92,7 +90,7 @@ export const CreateSelect = ({ axis, idx, inputVars, setAxis }: CreateSelectProp
           .map((key) => {
             return (
               <MenuItem key={key} value={key} disabled={!filteredInputVars.includes(key)}>
-                {key}
+                {filteredInputVars.includes(key) ? key : key + " - Constant"}
               </MenuItem>
             );
           })}
