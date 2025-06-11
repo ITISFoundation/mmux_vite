@@ -98,18 +98,18 @@ const JobRow = (props: JobRowProps) => {
           />
         </TableCell>
         <TableCell component="th" scope="row" sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} >
-          <Tooltip title={job.job.uid}>
-            {job.job.uid ? job.job.uid.slice(0, 5) + "..." as unknown as React.ReactElement : "" as unknown as React.ReactElement}
+          <Tooltip title={job.job.uid} placement="bottom-start">
+            <span>{job.job.uid ? job.job.uid.slice(0, 5) + "..." : ""}</span>
           </Tooltip>
         </TableCell>
         <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          <Tooltip title={inputs}>
-            {inputs as unknown as React.ReactElement}
+          <Tooltip title={inputs} placement="bottom-start">
+            <span>{inputs}</span>
           </Tooltip>
         </TableCell>
         <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "auto" }}>
-          <Tooltip title={outputs}>
-            {outputs as unknown as React.ReactElement}
+          <Tooltip title={outputs} placement="bottom-start">
+            <span>{outputs}</span>
           </Tooltip>
         </TableCell>
 
