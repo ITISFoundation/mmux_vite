@@ -235,7 +235,7 @@ export function FunctionList() {
       rowSelectionModel={rowSelectionModel}
       rows={functions}
       columns={[
-        { field: "title", headerName: "Name", flex: 1, maxWidth: 200 },
+        { field: "title", headerName: "Name", flex: 1, maxWidth: 300 },
         {
           field: "description",
           headerName: "Description",
@@ -269,7 +269,8 @@ export function FunctionList() {
           field: "solverKey",
           headerName: "Further Info",
           flex: 1,
-          minWidth: 200,
+          minWidth: 60,
+          maxWidth: 60,
           renderCell: (params) => getFunctionSolver(params.row),
         },
                 {
@@ -282,6 +283,7 @@ export function FunctionList() {
           renderCell: (params) => (
             <Button
               variant="contained"
+              fullWidth
               onClick={() => {
                 setSelectedFunction(params.row);
                 setInputVars(
