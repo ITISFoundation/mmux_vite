@@ -7,7 +7,7 @@ const HeaderContainer = styled("div", {
 })<{ headerType: string }>(
   ({ headerType }) => `
   text-align: left;
-  margin-bottom: ${headerType === "subTitle" ? "16px" : "0px"};
+  margin-bottom: ${headerType === "subTitle" || headerType === "setup" ? "16px" : "0px"};
   display: flex;
   align-items: center;
   width: 100%;
@@ -23,7 +23,7 @@ const types:{[key in HeaderTypes]: TypographyVariant} = {
 }
 
 function Header(props: HeaderProps) {
-  const { tabTitle, infoText, headerType } = props;
+  const { tabTitle, infoText, ExtendedInfoText, headerType } = props;
   return (
     <HeaderContainer headerType={headerType}>
       <Typography
@@ -35,7 +35,7 @@ function Header(props: HeaderProps) {
         {tabTitle}
       </Typography>
       {infoText && infoText.length > 0 && (
-        <CustomTooltip title={infoText} placement="right" arrow>
+        <CustomTooltip title={infoText} ExtendedTootlip={ExtendedInfoText} placement="right" arrow>
           <InfoOutline
             sx={(theme) => ({
               color: theme.palette.text.secondary,

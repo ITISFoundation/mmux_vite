@@ -1,8 +1,71 @@
-import { styled, TooltipProps, Tooltip, tooltipClasses } from "@mui/material";
+import {
+  Modal,
+  styled,
+  Tooltip,
+  tooltipClasses,
+  TooltipProps,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import React, { ReactElement, useState } from "react";
 
-const CustomTooltip = styled(({ className, ...props }: TooltipProps) => (
-  <Tooltip {...props} arrow classes={{ popper: className }} />
-))(({ theme }) => ({
+interface CustomTooltipProps extends TooltipProps {
+  ExtendedTootlip?: ReactElement;
+}
+
+const CustomTooltip = styled((props: CustomTooltipProps) => {
+  const { ExtendedTootlip, className, title, ...rest } = props;
+  const theme = useTheme();
+  const [open, setOpen] = useState(false);
+
+  const infotextWButton = (
+    <Typography variant="body2" fontFamily="inherit">
+      {title}
+      {ExtendedTootlip ? (
+      <a
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(true);
+        }}
+        style={{
+          marginLeft: "8px",
+          color: `${theme.palette.primary.main}`,
+          textDecoration: "underline",
+        }}
+      >
+        Read more...
+      </a>) : undefined}
+    </Typography>
+  );
+
+  return (
+    <>
+      <Tooltip
+        {...rest}
+        title={infotextWButton}
+        arrow
+        classes={{ popper: className }}
+      />
+      {ExtendedTootlip && (
+        <Modal
+          open={open}
+          onClose={() => setOpen(false)}
+          aria-labelledby="extended-tooltip-title"
+          aria-describedby="extended-tooltip-description"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {ExtendedTootlip}
+        </Modal>
+      )}
+    </>
+  );
+})(({ theme }) => ({
   [`& .${tooltipClasses.arrow}`]: {
     color: theme.palette.background.default,
   },

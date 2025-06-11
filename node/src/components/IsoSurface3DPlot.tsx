@@ -38,7 +38,7 @@ const IsoSurface3DPlot = () => {
 
   const handleSetAxis1 = (newAxis: string) => {
     if (axis3 === newAxis || axis2 === newAxis) {
-      const newVars = inputVars.filter((i) => i !== newAxis);
+      const newVars = filteredInputVars.filter((i) => i !== newAxis);
       let newVar2 = newVars.find((i) => i === axis2);
       let newVar3 = newVars.find((i) => i === axis3);
       if (newVar2 || newVar3) {
@@ -66,7 +66,7 @@ const IsoSurface3DPlot = () => {
 
   const handleSetAxis2 = (newAxis: string) => {
     if (axis3 === newAxis || axis1 === newAxis) {
-      const newVars = inputVars.filter((i) => i !== newAxis);
+      const newVars = filteredInputVars.filter((i) => i !== newAxis);
       let newVar1 = newVars.find((i) => i === axis1);
       let newVar3 = newVars.find((i) => i === axis3);
       if (newVar1 || newVar3) {
@@ -94,7 +94,7 @@ const IsoSurface3DPlot = () => {
 
   const handleSetAxis3 = (newAxis: string) => {
     if (axis1 === newAxis || axis2 === newAxis) {
-      const newVars = inputVars.filter((i) => i !== newAxis);
+      const newVars = filteredInputVars.filter((i) => i !== newAxis);
       let newVar1 = newVars.find((i) => i === axis1);
       let newVar2 = newVars.find((i) => i === axis2);
       if (newVar1 || newVar2) {

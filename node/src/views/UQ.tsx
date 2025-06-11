@@ -20,6 +20,8 @@ import { Sampling } from "../components/Sampling";
 import UncertainUQ from "../components/UncertainUQ";
 import CustomTooltip from "../components/CustomTooltip";
 import SuMoModal from "../components/SuMoModal";
+import SelectQoIDocument from "../components/documents/SelectQoIDocument";
+import AdaptExtedSamplingDocument from "../components/documents/AdaptExtendSamplingDocument";
 
 export default function UQ() {
   // Similar to Sumo building
@@ -42,21 +44,6 @@ export default function UQ() {
   const [localQoI, setLocalQoI] = useState<string | undefined>(selectedQoI);
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
-
-  // type SuMoPlotsType = {
-  //   children: Record<string, React.ReactNode>[]
-  // }
-  // const SuMoPlots = (props: SuMoPlotsType) => {
-  //   const { items } = useSequentialRenderer(props.children);
-
-  //   return (
-  //     <>
-  //       {items.map((plot) => {
-  //         return { plot }
-  //       })}
-  //     </>
-  //   );
-  // };
 
   useEffect(() => {
     if (outputVars && outputVars.length > 0) {
@@ -110,7 +97,8 @@ export default function UQ() {
             <Box sx={{ display: "flex", alignItems: "center" }}>
               Select Quantity of Interest
               <CustomTooltip
-                title="The input parameter probability distribution is propagated through a Gaussian Process surrogate model (SuMo) fitted to the response surface of the quantity of interest. Multiple runs of stochastic sampling are used to assess convergence of the propagated uncertainty distribution. The variability of the runs, as well as the interpolation uncertainty provided by the Gaussian Process SuMo are used to quantify the uncertainty of the propagated probability distribution (uncertainty of uncertainty propagation; displayed as whiskers)"
+                title="Choose the simulation output to analyze for uncertainty propagation"
+                ExtendedTootlip={SelectQoIDocument}
                 placement="right"
                 arrow
               >
@@ -215,7 +203,8 @@ export default function UQ() {
         >
           Adapt / Extend Sampling
           <CustomTooltip
-            title="Modify the function samples used to construct the SuMo and/or run additional sampling of the response surfaces to improve the SuMo quality and reduce the uncertainty of the uncertainty propagation."
+            title="Improve surrogate model accuracy by modifying or adding sample points"
+            ExtendedTootlip={AdaptExtedSamplingDocument}
             placement="right"
             arrow
           >
