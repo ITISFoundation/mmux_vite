@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Box, Typography } from "@mui/material";
-import { Function, FunctionJob } from "../osparc-api-ts-client";
+import { Function, FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
 import { useMMUXContext, MMUXContextType } from "../context/MMUXContext";
-import { RunSamplingButton } from "./SamplingButton";
+import { RunSamplingButton } from "./RunSamplingButton";
 import ValueConfig from "./ValueConfig";
+import { toast } from "react-toastify";
 
 async function runTestJob(context: MMUXContextType | undefined, config: SamplingInputsState[]) {
   const fun = context?.selectedFunction as Function;
@@ -18,23 +19,26 @@ async function runTestJob(context: MMUXContextType | undefined, config: Sampling
       config: config,
     }),
   })
-    .then(function (response) {
+    .then(async function (response) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error running Single Job ${response.status}: ${errorText}`);
+      }
       return response.json();
     })
     .then(function (j: FunctionJob) {
       console.log("Job Uid: ", j.uid);
       return j;
     })
-    .catch(function (error) {
-      console.error("Error running single job: ", error);
-    });
   context?.setLaunchingSampling(false);
+  context?.setRunningSampling(true);
   return j;
 }
 
 const TestJob = () => {
   const context = useMMUXContext();
   const { inputVars } = context;
+  // TODO incorporate nice-looking variable cards as in LHS Sampling
   const [jobInputs, setJobInputs] = useState<Array<SamplingInputsState>>(
     inputVars.map((inputVar) => ({
       variable: inputVar,
@@ -46,12 +50,25 @@ const TestJob = () => {
     }))
   );
 
-  const handleRunSampling = () => {
-    runTestJob(context, jobInputs);
-    setTimeout(() => {
-      context?.setLaunchingSampling(false);
-    }, 1000);
-    // TODO have some way to detect that it finished running; and set the corresponding context variable to False
+  const handleRunSampling = async () => {
+    const job = await runTestJob(context, jobInputs);
+    // open in a new window - like in "View" of the JobList
+    if (job instanceof ProjectFunctionJob)
+      if (job.projectJobId) {
+        const url = `/#/study/${job.uid}`
+        const newWindow = window.open(url);
+        if (newWindow) {
+          console.info("Window opened successfully")
+        } else {
+          toast.warning("Popup blocked! Please allow popups for this site to open the job in a new tab.");
+        }
+      } else {
+        toast.warning("Could not open Job in new window!")
+      }
+    else {
+      toast.warning("Only ProjectFunctionJob can be opened in a new window!");
+    }
+
   };
 
   function handleInputChange(index: number, field: string, value: string) {
@@ -97,7 +114,7 @@ const TestJob = () => {
           <ValueConfig index={index} inputVar={inputVar} handleInputChange={handleInputChange} />
         ))}
       </Box>
-      <RunSamplingButton handleRunSampling={handleRunSampling}/>
+      <RunSamplingButton handleRunSampling={handleRunSampling} />
     </>
   );
 };

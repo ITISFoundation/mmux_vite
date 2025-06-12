@@ -7,9 +7,10 @@ import {
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../utils/sampling";
-import { RunSamplingButton } from "./SamplingButton";
+import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "./VariableConfig";
 
+// TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
 async function runGridSampling(
   context: MMUXContextType,
   config: SamplingInputsState[]
@@ -25,16 +26,17 @@ async function runGridSampling(
       config: config,
     }),
   })
-    .then(function (response) {
+    .then(async function (response) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error running Grid Sampling ${response.status}: ${errorText}`);
+      }
       return response.json();
     })
     .then(function (jc: RegisteredFunctionJobCollection) {
       console.log("JobCollection Uid: ", jc.uid);
       return jc;
     })
-    .catch(function (error) {
-      console.error("Error running Grid Sampling: ", error);
-    });
   context.setLaunchingSampling(false);
   context.setRunningSampling(true);
   context.setRunningJobCollection(jc ? jc : undefined);
@@ -99,7 +101,7 @@ function GridSearchSampling() {
         padding: "8px 0",
       }}>
         {gridSamplingInputs?.map((inputVar, index) => (
-          <VariableConfig index={index} inputVar={inputVar} key={index} handleInputChange={handleInputChange}/>
+          <VariableConfig index={index} inputVar={inputVar} key={index} handleInputChange={handleInputChange} />
         ))}
       </Box>
       <RunSamplingButton handleRunSampling={handleRunSampling} />
