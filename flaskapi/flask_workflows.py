@@ -122,6 +122,17 @@ def health_check():
     """Used by docker to check the health of the Flask app."""
     return jsonify({'status': 'healthy'}), 200
 
+@app.route("/flask/service-mode")
+def service_mode():
+    """Used to check the environment variable SERVICE_MODE."""
+    try: 
+        service_mode = os.environ["SERVICE_MODE"]
+        _logger.info(f"Service mode: {service_mode}")
+        return jsonify({"service_mode": service_mode}), 200
+    except KeyError:
+        _logger.error("SERVICE_MODE environment variable is not set.")
+        return jsonify({"error": "SERVICE_MODE environment variable is not set."}), 500
+
 def _get_all_items(api_call: Callable, *args, **kwargs):
     """Helper function to get all items from a paginated API call."""
     list_len = api_call(limit=1,*args, **kwargs).total
