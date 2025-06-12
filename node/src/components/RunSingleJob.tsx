@@ -1,16 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
-import { Box, Typography } from "@mui/material";
+import { Box, Button, Skeleton, Typography } from "@mui/material";
 import { Function, FunctionJob } from "../osparc-api-ts-client";
 import { useMMUXContext, MMUXContextType } from "../context/MMUXContext";
 import { RunSamplingButton } from "./SamplingButton";
 import ValueConfig from "./ValueConfig";
 
-async function runTestJob(context: MMUXContextType | undefined, config: SamplingInputsState[]) {
+async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
   const fun = context?.selectedFunction as Function;
   // send config to Python backend to create LHS
   console.log("Running single job with config: ", config);
-  context?.setLaunchingSampling(true);
+  context.setLaunchingSampling(true);
   const j = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/test_job", {
     method: "POST",
     body: JSON.stringify({
@@ -28,30 +28,20 @@ async function runTestJob(context: MMUXContextType | undefined, config: Sampling
     .catch(function (error) {
       console.error("Error running single job: ", error);
     });
-  context?.setLaunchingSampling(false);
+  context.setLaunchingSampling(false);
   return j;
 }
 
 const TestJob = () => {
   const context = useMMUXContext();
-  const { inputVars } = context;
-  const [jobInputs, setJobInputs] = useState<Array<SamplingInputsState>>(
-    inputVars.map((inputVar) => ({
-      variable: inputVar,
-      value: 0.0,
-      start: 0.0, // Not used in this case, but kept for consistency
-      end: 1.0, // Not used in this case, but kept for consistency
-      points: 1, // Not used in this case, but kept for consistency
-      seed: 0, // Not used in this case, but kept for consistency
-    }))
-  );
+  const { inputVars, singleJobConfig, setSingleJobConfig } = context;
+  const [jobInputs, setJobInputs] =
+    useState<Array<SingleJobConfig>>(singleJobConfig);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const handleRunSampling = () => {
-    runTestJob(context, jobInputs);
-    setTimeout(() => {
-      context?.setLaunchingSampling(false);
-    }, 1000);
-    // TODO have some way to detect that it finished running; and set the corresponding context variable to False
+  const handleRunSampling = async () => {
+    setSingleJobConfig(jobInputs);
+    await runTestJob(context, jobInputs);
   };
 
   function handleInputChange(index: number, field: string, value: string) {
@@ -59,13 +49,23 @@ const TestJob = () => {
       const newInputs = [...prevInputs];
       newInputs[index] = {
         ...newInputs[index],
-        [field]: field === "points" ? parseInt(value) : parseFloat(value),
+        [field]: parseFloat(value),
       };
       return newInputs;
     });
   }
 
-  console.log("TestJob inputs: ", jobInputs);
+  useEffect(() => {
+    let currentSampling: SingleJobConfig[] = singleJobConfig;
+    if (currentSampling.length === 0) {
+      currentSampling = inputVars.map((inputVar) => ({
+        variable: inputVar,
+        value: 0.0,
+      }));
+    }
+    setJobInputs(currentSampling);
+    setLoading(false);
+  }, [inputVars, singleJobConfig]);
 
   return (
     <>
@@ -75,7 +75,16 @@ const TestJob = () => {
         fontWeight={300}
         marginBottom={1}
       >
-        Single Test Run
+        {loading ? (
+          <Skeleton
+            variant="text"
+            width={"300px"}
+            height={"32px"}
+            sx={{ fontSize: "2rem", marginBottom: "8px" }}
+          />
+        ) : (
+          "Single Test Run"
+        )}
       </Typography>
       <Typography
         variant="body1"
@@ -83,21 +92,48 @@ const TestJob = () => {
         fontWeight={200}
         marginBottom={1}
       >
-        Run a single parameter combination
+        {loading ? (
+          <Skeleton variant="text" width={"600px"} height={"24px"} />
+        ) : (
+          "Run a single parameter combination"
+        )}
       </Typography>
-      <Box sx={{
-        display: "flex",
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: "16px",
-        marginBottom: "16px",
-        padding: "8px 0",
-      }}>
-        {jobInputs?.map((inputVar, index) => (
-          <ValueConfig index={index} inputVar={inputVar} handleInputChange={handleInputChange} />
-        ))}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: "16px",
+          marginBottom: "16px",
+          padding: "8px 0",
+        }}
+      >
+        {loading ? (
+          <Skeleton variant="rounded" width={"800px"} height={"232px"} />
+        ) : (
+          jobInputs?.map((inputVar, index) => (
+            <ValueConfig
+              index={index}
+              inputVar={inputVar}
+              handleInputChange={handleInputChange}
+            />
+          ))
+        )}
       </Box>
-      <RunSamplingButton handleRunSampling={handleRunSampling}/>
+      <Box display={"flex"} flexDirection="row" justifyContent={'space-between'} marginTop={2}>
+        <Button
+          size="small"
+          variant="contained"
+          disabled={loading}
+          onClick={() => setSingleJobConfig(jobInputs)}
+        >
+          Save Sampling config
+        </Button>
+        <RunSamplingButton
+          disabled={loading}
+          handleRunSampling={handleRunSampling}
+        />
+      </Box>
     </>
   );
 };

@@ -8,8 +8,8 @@ import {
 export interface MMUXContextType {
   selectedFunction: Function | undefined;
   setSelectedFunction: (F: Function | undefined) => void;
-  distribution: {[key: string]:InputVarSelection};
-  setDistribution: (d: {[key: string]:InputVarSelection}) => void;
+  distribution: { [key: string]: InputVarSelection };
+  setDistribution: (d: { [key: string]: InputVarSelection }) => void;
   inputVars: string[];
   setInputVars: (vars: string[]) => void;
   outputVars: string[] | undefined;
@@ -20,8 +20,14 @@ export interface MMUXContextType {
   setLaunchingSampling: (b: boolean) => void;
   runningSampling: boolean;
   setRunningSampling: (b: boolean) => void;
-  numSamples: {[key: string]:number};
-  setNumSamples: (ns: {[key: string]:number}) => void;
+  lhsSamplingConfig: LHSamplingConfig;
+  setLhsSamplingConfig: (config: LHSamplingConfig) => void;
+  gridSamplingConfig: GRIDSamplingConfig;
+  setGridSamplingConfig: (config: GRIDSamplingConfig) => void;
+  singleJobConfig: SingleJobConfig[];
+  setSingleJobConfig: (config: SingleJobConfig[]) => void;
+  numSamples: { [key: string]: number };
+  setNumSamples: (ns: { [key: string]: number }) => void;
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
   setRunningJobCollection: (
     jc: RegisteredFunctionJobCollection | undefined
@@ -45,26 +51,48 @@ type Props = {
   children: React.ReactNode;
 };
 
+const defaultLHSamplingConfig: LHSamplingConfig = {
+  inputs: [],
+  points: 50,
+  seed: 0,
+};
+
+const defaultGRIDamplingConfig: GRIDSamplingConfig = [];
+
+const defaultSingleJobConfig: SingleJobConfig[] = [];
+
 export const MMUXContextProvider = ({ children }: Props) => {
   const [currentView, setCurrentView] = useState(0);
   const [funct, setFunct] = useState<Function | undefined>(undefined);
   const [launchingSampling, setLaunchingSampling] = useState<boolean>(false);
   const [runningSampling, setRunningSampling] = useState<boolean>(false);
+  const [lhsSamplingConfig, setLhsSamplingConfig] = useState<LHSamplingConfig>(
+    defaultLHSamplingConfig
+  );
+  const [gridSamplingConfig, setGridSamplingConfig] =
+    useState<GRIDSamplingConfig>(defaultGRIDamplingConfig);
+  const [singleJobConfig, setSingleJobConfig] = useState<SingleJobConfig[]>(
+    defaultSingleJobConfig
+  );
   const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
   const [fetchedJobCollections, setFetchedJobCollections] = useState<
     SelectedJobCollection[]
   >([]);
   const [inputVars, setInputVars] = useState<string[]>([]);
-  const [distribution, setDistribution] = useState<{[key: string]:InputVarSelection}>({});
-  const [numSamples, setNumSamples] = useState<{[key: string]:number}>({});
+  const [distribution, setDistribution] = useState<{
+    [key: string]: InputVarSelection;
+  }>({});
+  const [numSamples, setNumSamples] = useState<{ [key: string]: number }>({});
   const [outputVars, setOutputVars] = useState<string[] | undefined>(undefined);
   const [selectedQoI, setSelectedQoI] = useState<string | undefined>(undefined);
-  const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
+  const [runningJobCollection, setRunningJobCollection] = useState<
+    RegisteredFunctionJobCollection | undefined
+  >(undefined);
   const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
 
   const handleSelecedFunction = (F: Function | undefined) => {
     setFunct(F);
-    setSelectedJobUids([])
+    setSelectedJobUids([]);
     setFetchedJobCollections([]);
   };
 
@@ -91,6 +119,12 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setCurrentView: setCurrentView,
       launchingSampling: launchingSampling,
       setLaunchingSampling: setLaunchingSampling,
+      lhsSamplingConfig: lhsSamplingConfig,
+      setLhsSamplingConfig: setLhsSamplingConfig,
+      gridSamplingConfig: gridSamplingConfig,
+      setGridSamplingConfig: setGridSamplingConfig,
+      singleJobConfig: singleJobConfig,
+      setSingleJobConfig: setSingleJobConfig,
       runningSampling: runningSampling,
       setRunningSampling: setRunningSampling,
       numSamples: numSamples,
@@ -105,9 +139,26 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setSelectedJobUids: setSelectedJobUids,
       filterSelectedJobList: filterSelectedJobList,
       isSuMoGenerated: isSuMoGenerated,
-      setIsSuMoGenerated: setIsSuMoGenerated
+      setIsSuMoGenerated: setIsSuMoGenerated,
     };
-  }, [funct, distribution, inputVars, outputVars, currentView, launchingSampling, runningSampling, numSamples, selectedQoI, runningJobCollection, fetchedJobCollections, selectedJobUids, isSuMoGenerated]);
+  }, [
+    funct,
+    distribution,
+    inputVars,
+    outputVars,
+    currentView,
+    launchingSampling,
+    lhsSamplingConfig,
+    gridSamplingConfig,
+    singleJobConfig,
+    runningSampling,
+    numSamples,
+    selectedQoI,
+    runningJobCollection,
+    fetchedJobCollections,
+    selectedJobUids,
+    isSuMoGenerated,
+  ]);
   return (
     <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>
   );
