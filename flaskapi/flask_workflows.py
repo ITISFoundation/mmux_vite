@@ -293,10 +293,9 @@ def _get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
     _logger.debug(f"Job ID: {job_uid}")
     job = job_api_instance.get_function_job(job_uid)
     job_dict = recursive_dict_keys_camel_to_snake(job.to_dict()) # type: ignore
+    _logger.debug(f"'Raw' Job: {job_dict}")
     job_dict["status"] = job_api_instance.function_job_status(job_uid).status
-    outputs = job_api_instance.function_job_outputs(job_uid)
-    _logger.debug(f"Job: {job_dict}")
-    job_dict["outputs"] = outputs
+    job_dict["outputs"] = job_api_instance.function_job_outputs(job_uid)
     _logger.debug(f"Job: {job_dict}")
 
     return job_dict
@@ -504,7 +503,6 @@ def flask_manual_uq_propagation_with_uncertainty():
         from scipy.special import erfinv
         all_results = np.empty(shape=(n_histograms, num_samples), dtype=float) # create an empty array to store the results
         for i in range(n_histograms):
-            _logger.debug(f"Running histogram {i+1}/{n_histograms}")
             r = erfinv(np.random.uniform(-1, 1, size=num_samples)) # generate random samples from an uniform distribution
             all_results[i, :] = results[output_response+"_hat"] + r * results[output_response+"_std_hat"]
 
@@ -701,23 +699,25 @@ def flask_test_job():
         _logger.debug("Input to validate_function_inputs: %s" , sample)
         val = functions_api_instance.validate_function_inputs(function_uid, sample)  # this is working - changing the name of the variable does return a validation error
         _logger.debug(f"Validated function inputs for function {function_uid} with sample {sample}: {val}")
-        job = functions_api_instance.run_function(function_uid, sample) # type: ignore
-        job: dict = job.to_dict()  # convert to dictionary for easier logging # type:ignore
+        response = functions_api_instance.run_function(function_uid, sample) # type: ignore
+        _logger.debug(f"Response from run_function with sample {sample}: {response}")
+        assert hasattr(response, "actual_instance"), f"Job is None for function {function_uid} with sample {sample}. Response: {response}"
+        assert response.actual_instance is not None, f"Job is None for function {function_uid} with sample {sample}. Response: {response}"
+        uid = response.actual_instance.uid 
+        _logger.debug(f"Job UID: {uid}")
+        job = _get_function_job_from_uid(uid)
         _logger.debug(f"Created job: {job}")
-        status = job_api_instance.function_job_status(job["uid"])  # type: ignore
-        _logger.debug(f"Job status: {status.status}")
-        while status.status not in ("SUCCESS", "FAILED"):
-            _logger.info(f"Job {job['uid']} is still running, status: {status.status}")
-            status = job_api_instance.function_job_status(job["uid"])
-        if status.status != "SUCCESS":
-            _logger.error(f"Job {job['uid']} did not complete successfully. Status: {status.status}")
-            return jsonify({"error": f"Job {job['uid']} did not complete successfully. Status: {status.status}"})
-        else:
-            outputs = job_api_instance.function_job_outputs(job["uid"])
-            _logger.info(f"Job {job['uid']} completed successfully. Outputs: {outputs}")
-            job["outputs"] = outputs.to_dict()  # type: ignore
+        # while status.status not in ("SUCCESS", "FAILED"):
+        #     _logger.info(f"Job {job['uid']} is still running, status: {status.status}")
+        #     status = job_api_instance.function_job_status(job["uid"])
+        # if status.status != "SUCCESS":
+        #     _logger.error(f"Job {job['uid']} did not complete successfully. Status: {status.status}")
+        #     return jsonify({"error": f"Job {job['uid']} did not complete successfully. Status: {status.status}"})
+        # else:
+        #     outputs = job_api_instance.function_job_outputs(job["uid"])
+        #     _logger.info(f"Job {job['uid']} completed successfully. Outputs: {outputs}")
+        #     job["outputs"] = outputs.to_dict()  # type: ignore
         ###
-
         return jsonify(job)  # return the job details as a dictionary
     except Exception as e:
         _logger.error(f"Error while testing job for function {function_uid} with config {config}: {e}")

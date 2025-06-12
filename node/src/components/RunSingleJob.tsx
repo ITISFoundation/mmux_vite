@@ -38,7 +38,6 @@ async function runTestJob(context: MMUXContextType | undefined, config: Sampling
 const TestJob = () => {
   const context = useMMUXContext();
   const { inputVars } = context;
-  // TODO incorporate nice-looking variable cards as in LHS Sampling
   const [jobInputs, setJobInputs] = useState<Array<SamplingInputsState>>(
     inputVars.map((inputVar) => ({
       variable: inputVar,
@@ -52,23 +51,19 @@ const TestJob = () => {
 
   const handleRunSampling = async () => {
     const job = await runTestJob(context, jobInputs);
+    console.log("TestJob created: ", job);
     // open in a new window - like in "View" of the JobList
-    if (job instanceof ProjectFunctionJob)
-      if (job.projectJobId) {
-        const url = `/#/study/${job.uid}`
-        const newWindow = window.open(url);
-        if (newWindow) {
-          console.info("Window opened successfully")
-        } else {
-          toast.warning("Popup blocked! Please allow popups for this site to open the job in a new tab.");
-        }
+    if (job && job.functionClass && job.functionClass === "PROJECT") {
+      const url = `/#/study/${job.projectJobId}`
+      const newWindow = window.open(url);
+      if (newWindow) {
+        console.info("Window opened successfully")
       } else {
-        toast.warning("Could not open Job in new window!")
+        toast.warning("Popup blocked! Please allow popups for this site to open the job in a new tab.");
       }
-    else {
+    } else {
       toast.warning("Only ProjectFunctionJob can be opened in a new window!");
     }
-
   };
 
   function handleInputChange(index: number, field: string, value: string) {
