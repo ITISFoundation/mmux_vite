@@ -7,7 +7,7 @@ import {
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../utils/sampling";
-import { RunSamplingButton } from "./SamplingButton";
+import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "./VariableConfig";
 
 async function runLhsSampling(context: MMUXContextType, config: SamplingInputsState[]) {
@@ -24,16 +24,17 @@ async function runLhsSampling(context: MMUXContextType, config: SamplingInputsSt
       N: config[0].points, // TODO should be kept somewhere else in the state
     }),
   })
-    .then(function (response) {
+    .then(async function (response) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error running LHS sampling: ${response.status}: ${errorText}`);
+      }
       return response.json();
     })
     .then(function (jc: RegisteredFunctionJobCollection) {
       console.log("JobCollection Uid: ", jc.uid);
       return jc;
     })
-    .catch(function (error) {
-      console.error("Error running LHS sampling: ", error);
-    });
   context.setLaunchingSampling(false);
   context.setRunningSampling(true);
   context.setRunningJobCollection(jc ? jc : undefined);
@@ -49,7 +50,7 @@ const LHSSampling = () => {
       variable: inputVar,
       start: getSamplingStartValue(inputVar, distribution[selectedFunction?.uid || '']) as number,
       end: getSamplingEndValue(inputVar, distribution[selectedFunction?.uid || '']) as number,
-      points: 50, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
+      points: 51, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
       seed: 0, // FIXME stored here for ease of save-load as PersistentJSONState. Ideally should move somewhere else.
     }))
   );
@@ -59,6 +60,7 @@ const LHSSampling = () => {
   };
 
   function handleInputChange(index: number, field: string, value: string) {
+    console.log("Changed LHS inputs")
     setLhsInputs((prevInputs) => {
       const newInputs = [...prevInputs];
       newInputs[index] = {

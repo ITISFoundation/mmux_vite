@@ -700,8 +700,13 @@ def flask_lhs():
 
     # Now, the running of jobs through the OSPARC API has been moved to the Python backend
     ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
-    jc = functions_api_instance.map_function(function_uid, samples) ## TODO samples will need to adhere to a specific format
-    return jsonify(jc.to_dict()) ## this now returns a JobCollection
+    try: 
+        jc = functions_api_instance.map_function(function_uid, samples)
+        return jsonify(jc.to_dict())
+    except Exception as e:
+        _logger.error(f"Error while mapping function {function_uid} with samples {samples}: {e}")
+        abort(make_response(jsonify({"error": str(e)}), 500))  # return an error response if the function mapping fails
+        
 
 
 @app.route("/flask/grid_sampling", methods=["POST"])
@@ -785,7 +790,7 @@ def flask_clone_job():
     
     # Clone the job using the job_id
     study = studies_api_instance.clone_study(project_job_id)
-    studies_api_instance.patch_study(study)  # this will update the study with the new data
+    # studies_api_instance.patch_study(study)  # this will update the study with the new data -- FIXME this endpoint needs to be exposed in the API
     _logger.debug(f"Cloned study: {study.to_dict()}")
     
     _logger.debug("Done!!")
