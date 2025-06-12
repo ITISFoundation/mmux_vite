@@ -68,8 +68,17 @@ def camel_to_snake(s: str) -> str:
     res = re.sub(r'_([a-z])', lambda match: match.group(1).upper(),s)
     return res
 
+def snake_to_camel(s: str) -> str:
+    """Convert snake_case to camelCase."""
+    components = s.split('_')
+    return components[0] + ''.join(x.title() for x in components[1:])
+
 def dict_keys_camel_to_snake(d: dict) -> dict:
     return {camel_to_snake(k): v for k, v in d.items()}
+
+def dict_keys_snake_to_camel(d: dict) -> dict:
+    """Convert dictionary keys from snake_case to camelCase."""
+    return {snake_to_camel(k): v for k, v in d.items()}
 
 def recursive_dict_keys_camel_to_snake(d: dict) -> dict:
     for k, v in d.items():
@@ -79,6 +88,13 @@ def recursive_dict_keys_camel_to_snake(d: dict) -> dict:
             d[k] = [recursive_dict_keys_camel_to_snake(i) if isinstance(i, dict) else i for i in v]
     return {camel_to_snake(k): v for k, v in d.items()}
 
+def recursive_dict_keys_snake_to_camel(d: dict) -> dict:
+    for k, v in d.items():
+        if isinstance(v, dict):
+            d[k] = recursive_dict_keys_snake_to_camel(v)
+        elif isinstance(v, list):
+            d[k] = [recursive_dict_keys_snake_to_camel(i) if isinstance(i, dict) else i for i in v]
+    return {snake_to_camel(k): v for k, v in d.items()}
 
 ### osparc client configuration #############################    
 os.chdir(os.path.dirname(__file__))
@@ -738,7 +754,7 @@ def flask_lhs():
         # Now, the running of jobs through the OSPARC API has been moved to the Python backend
         ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
         jc = functions_api_instance.map_function(function_uid, samples)
-        return jsonify(jc.to_dict())
+        return jsonify(recursive_dict_keys_snake_to_camel(jc.to_dict()))
     except Exception as e:
         _logger.error(f"Error while performing LHS sampling on function {function_uid}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))  # return an error response if the function mapping fails

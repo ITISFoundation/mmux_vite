@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
@@ -143,7 +143,7 @@ export default function UQ() {
               fontSize: "1.2em",
             }}
           >
-            Number of Samples:
+            Number of UQ Samples:
             <TextField
               type="number"
               variant="outlined"
@@ -168,7 +168,7 @@ export default function UQ() {
             color="primary"
             onClick={() => setSumoModal(true)}
           >
-            Inspect SuMo
+            Inspect Model
           </Button>
         </Box>
         <UncertainUQ
