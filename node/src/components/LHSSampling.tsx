@@ -4,11 +4,13 @@ import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Box, Input, Typography } from "@mui/material";
 import {
   Function,
+  FunctionJob,
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "./VariableConfig";
+import { getFunctionJob } from "../utils/function_utils";
 
 async function runLhsSampling(context: MMUXContextType, config: SamplingInputsState[]) {
   const fun = context.selectedFunction as Function;
@@ -43,7 +45,7 @@ async function runLhsSampling(context: MMUXContextType, config: SamplingInputsSt
 
 const LHSSampling = () => {
   const context = useMMUXContext();
-  const { inputVars, distribution, selectedFunction } = useMMUXContext();
+  const { inputVars, distribution, selectedFunction, fetchedJobCollections, setFetchedJobCollections } = context;
 
   const [lhsInputs, setLhsInputs] = useState<SamplingInputsState[]>(
     inputVars.map((inputVar) => ({
@@ -56,8 +58,37 @@ const LHSSampling = () => {
   );
 
   const handleRunSampling = async () => {
-    await runLhsSampling(context, lhsInputs);
-  };
+    const jc = await runLhsSampling(context, lhsInputs);
+
+    // New - include this job collection in the fetchedJobCollections
+    if (!jc) {
+      console.error("Job collection is undefined. Cannot add to fetchedJobCollections.");
+      return;
+    }
+    const newJobs: SelectedJobCollection[] = await Promise.all(
+      [jc].map(async (jc) => {
+        console.log("Fetching sub-jobs for job collection:", jc);
+        console.log("Job IDs:", jc.jobIds);
+        const subJobs = await Promise.all(
+          jc.jobIds.map(async (id) => {
+            const job = (await getFunctionJob(id)) as FunctionJob;
+            return {
+              selected: false,
+              job,
+            };
+          })
+        );
+        return {
+          jobCollection: jc,
+          selected: true,
+          subJobs: subJobs,
+        };
+      })
+    );
+    console.log("Adding new job collection to fetchedJobCollections:", newJobs);
+    setFetchedJobCollections([...fetchedJobCollections, ...newJobs]);
+    // TODO Alex: how do I update the table without need to reload everything else?
+  }
 
   function handleInputChange(index: number, field: string, value: string) {
     console.log("Changed LHS inputs")
