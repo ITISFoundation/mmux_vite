@@ -6,7 +6,7 @@ const VariableConfig = ({
   index,
   handleInputChange,
 }: {
-  inputVar: SamplingInputsState;
+  inputVar: SingleJobConfig;
   index: number;
   handleInputChange: (index: number, field: string, value: string) => void;
 }) => {
