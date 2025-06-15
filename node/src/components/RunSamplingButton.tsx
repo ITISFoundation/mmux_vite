@@ -1,13 +1,14 @@
-import { Box, Button } from '@mui/material';
+import { Button, CircularProgress } from '@mui/material';
 import { useMMUXContext } from '../context/MMUXContext';
 import { toast } from 'react-toastify';
 
 type RunSamplingButtonProps = {
   handleRunSampling: () => void;
+  disabled?: boolean;
 };
 
 export const RunSamplingButton = (props: RunSamplingButtonProps) => {
-  const { handleRunSampling } = props;
+  const { handleRunSampling, disabled } = props;
   const { launchingSampling, runningSampling, setLaunchingSampling, setRunningSampling } = useMMUXContext();
 
   const handleRunSamplingWithErrorHandling = async () => {
@@ -24,21 +25,20 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
   };
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: "8px", marginTop: '16px' }}>
-      {/* <Button variant="contained" onClick={() => }>Run LHS Sampling</Button> */}
-
+    <>
       <Button
         variant="contained"
         onClick={handleRunSamplingWithErrorHandling}
-        disabled={launchingSampling || runningSampling}
+        disabled={launchingSampling || runningSampling || disabled}
       >
-        {launchingSampling
-          ? "Launching..."
-          : runningSampling
+        {launchingSampling ? (
+          <>
+            Launching... <CircularProgress size={"0.875rem"} />
+          </>
+        ) : runningSampling
             ? "Running..."
             : "Run Sampling"}
       </Button>
-      {launchingSampling && <Box className="spinner" />}
-    </Box>
+    </>  
   );
 }
