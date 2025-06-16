@@ -213,7 +213,7 @@ const SuMoValidation = () => {
             layout={{
               ...layout,
               title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
-              margin: { t: 40, l: 100, r: 10, b: 40 },
+              margin: { t: 40, l: 30, r: 30, b: 40 },
               height: 300,
               width: 650,
               barmode: "overlay",
@@ -221,6 +221,7 @@ const SuMoValidation = () => {
                 x: 1,
                 xanchor: "right",
                 y: 1,
+                bgcolor: 'rgba(0,0,0,0)'
               },
             }}
             style={plotStyle}
