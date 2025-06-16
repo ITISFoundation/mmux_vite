@@ -59,8 +59,8 @@ const SuMoValidation = () => {
       })
       .catch((error) => console.debug("Error:", error));
   };
-  function computeStatisticsCv(y: number[], y_hat: number[]) {
 
+  function computeStatisticsCv(y: number[], y_hat: number[]) {
     // compute statistics
     const mean_error =
       y.reduce(
@@ -117,6 +117,7 @@ const SuMoValidation = () => {
     run();
   }, []);
 
+
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
     if (data && selectedQoI) {
       const y = data[selectedQoI];
@@ -155,77 +156,196 @@ const SuMoValidation = () => {
     }
   };
 
+  const layout = {
+    plot_bgcolor: `${theme.palette.background.default}`,
+    paper_bgcolor: `${theme.palette.background.default}`,
+    font: { color: `${theme.palette.text.primary}` },
+  };
 
+  const skewnessValue =
+    cvMetrics &&
+    (() => {
+      const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
+      const y = (plotData[0]?.y as Array<number>) || [];
+      const mean = cvMetrics.mean_y || 0;
+      const skew =
+        y.length > 2
+          ? y.reduce(
+            (acc: number, val: number) => acc + Math.pow((val - mean) / n, 3),
+            0
+          ) *
+          (y.length / ((y.length - 1) * (y.length - 2)))
+          : 0;
+      return skew.toFixed(4);
+    })();
 
-  return <>
-    {plotData && selectedQoI && (
-      <Box display="flex" flexDirection="column" gap={1}>
-        <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-          <div>
+  const KurtosisValue =
+    cvMetrics &&
+    (() => {
+      const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
+      const y = (plotData[0]?.y as Array<number>) || [];
+      const mean = cvMetrics.mean_y || 0;
+      const kurt =
+        y.length > 3
+          ? (y.reduce(
+            (acc: number, val: number) => acc + Math.pow((val - mean) / n, 4),
+            0
+          ) *
+            (y.length * (y.length + 1))) /
+          ((y.length - 1) * (y.length - 2) * (y.length - 3)) -
+          (3 * Math.pow(y.length - 1, 2)) / ((y.length - 2) * (y.length - 3))
+          : 0;
+      return kurt.toFixed(4);
+    })();
+
+  const plotStyle = {
+    height: 300,
+    borderRadius: "8px",
+    overflow: "hidden",
+  };
+
+  return (
+    <>
+      {plotData && selectedQoI && (
+        <Box display="flex" flexDirection="column" gap={1} width={"100%"}>
+          <Plot
+            data={plotData}
+            layout={{
+              ...layout,
+              title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
+              margin: { t: 40, l: 100, r: 10, b: 40 },
+              height: 300,
+              width: 650,
+              barmode: "overlay",
+              legend: {
+                x: 1,
+                xanchor: "right",
+                y: 1,
+              },
+            }}
+            style={plotStyle}
+            config={{ responsive: true }}
+          />
+          <Box flex={1} maxHeight={200} borderRadius={"8px"} overflow="hidden">
             <Plot
-              data={plotData}
+              data={[
+                {
+                  x: plotData[0]?.x,
+                  type: "box",
+                  name: "",
+                  marker: { color: "#7fc7ff" },
+                  boxpoints: "suspectedoutliers",
+                  hoverinfo: "skip",
+                },
+                {
+                  x: plotData[1]?.x,
+                  type: "box",
+                  name: "",
+                  marker: { color: "#2ca02c" },
+                  boxpoints: "suspectedoutliers",
+                  hoverinfo: "skip",
+                },
+              ]}
               layout={{
-                title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
-                margin: { t: 40, l: 100, r: 10, b: 40 },
-                height: 300,
-                width: 650,
+                ...layout,
+                showlegend: false,
+                margin: {
+                  l: 30,
+                  r: 30,
+                  b: 60,
+                  t: 30,
+                  pad: 4,
+                },
               }}
-              style={{ width: '100%', height: 400 }}
+              style={{ ...plotStyle, height: 200 }}
               config={{ responsive: true }}
             />
-          </div>
-          <Box display="flex" flexDirection="row" gap={1}>
-
-            <div style={{ minWidth: 250, fontSize: 15, lineHeight: 1.7 }}>
-              <Typography variant="h6" gutterBottom fontWeight="bold">Data Statistics</Typography>
-              <hr style={{ border: 0, borderTop: '2px solid #eee', margin: '8px 0 16px 0' }} />
-              {cvMetrics ? (
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  <li><strong>Mean (y):</strong> {cvMetrics.mean_y?.toFixed(4)}</li>
-                  <li><strong>Std (y):</strong> {cvMetrics.std_y?.toFixed(4)}</li>
-                  <li><strong>Skewness (y):</strong> {(() => {
-                    const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
-                    const y = plotData[0]?.y as Array<number> || [];
-                    const mean = cvMetrics.mean_y || 0;
-                    const skew = y.length > 2
-                      ? y.reduce((acc: number, val: number) => acc + Math.pow((val - mean) / n, 3), 0) * (y.length / ((y.length - 1) * (y.length - 2)))
-                      : 0;
-                    return skew.toFixed(4);
-                  })()}</li>
-                  <li><strong>Kurtosis (y):</strong> {(() => {
-                    const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
-                    const y = plotData[0]?.y as Array<number> || [];
-                    const mean = cvMetrics.mean_y || 0;
-                    const kurt = y.length > 3
-                      ? y.reduce((acc: number, val: number) => acc + Math.pow((val - mean) / n, 4), 0) * (y.length * (y.length + 1)) / ((y.length - 1) * (y.length - 2) * (y.length - 3))
-                      - (3 * Math.pow(y.length - 1, 2)) / ((y.length - 2) * (y.length - 3))
-                      : 0;
-                    return kurt.toFixed(4);
-                  })()}</li>
-                </ul>
-              ) : (
-                <div>No data statistics available.</div>
-              )}
-
-              <Typography variant="h6" gutterBottom fontWeight="bold">Cross-Validation Metrics</Typography>
-              <hr style={{ border: 0, borderTop: '2px solid #eee', margin: '8px 0 16px 0' }} />
-              {cvMetrics ? (
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  <li><strong>Mean Error (y - ŷ):</strong> {cvMetrics.mean_error?.toFixed(4)}</li>
-                  <li><strong>Std Error (y - ŷ):</strong> {cvMetrics.std_error?.toFixed(4)}</li>
-                  <li><strong>MAE:</strong> {cvMetrics.mae?.toFixed(4)}</li>
-                  <li><strong>RMSE:</strong> {cvMetrics.rmse?.toFixed(4)}</li>
-                </ul>
-              ) : (
-                <div>No metrics available.</div>
-              )}
-            </div>
           </Box>
-        </div>
-      </Box >
-    )}
-
-  </>
-}
+          <Box display="flex" flexDirection="row" width="680px" ml={2}>
+            <Box mt={2} display={"flex"} flexDirection={"column"}>
+              <Header headerType="uq" infoText="" tabTitle="Data Statistics" />
+              <Box display={"flex"} flexDirection={"row"}>
+                <Box mt={2} display={"flex"}>
+                  {cvMetrics ? (
+                    <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                      <Typography
+                        variant="body1"
+                        fontFamily={"inherit"}
+                        fontWeight={100}
+                      >
+                        Mean (y): <strong>{cvMetrics.mean_y?.toFixed(4)}</strong>
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        fontFamily={"inherit"}
+                        fontWeight={100}
+                      >
+                        Std (y): <strong>{cvMetrics.std_y?.toFixed(4)}</strong>
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        fontFamily={"inherit"}
+                        fontWeight={100}
+                      >
+                        Skewness (y): <strong>{skewnessValue}</strong>
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        fontFamily={"inherit"}
+                        fontWeight={100}
+                      >
+                        Kurtosis (y): <strong>{KurtosisValue}</strong>
+                      </Typography>
+                    </ul>
+                  ) : (
+                    <div>No data statistics available.</div>
+                  )}
+                </Box>
+                <Box mt={2} ml={4}>
+                  {cvMetrics ? (
+                    <>
+                      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                        <Typography
+                          variant="body1"
+                          fontFamily={"inherit"}
+                          fontWeight={100}
+                        >
+                          Mean Error (y - ŷ):{" "}
+                          <strong>{cvMetrics.mean_error?.toFixed(4)}</strong>
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          fontFamily={"inherit"}
+                          fontWeight={100}
+                        >
+                          Std Error (y - ŷ):{" "}
+                          <strong>{cvMetrics.std_error?.toFixed(4)}</strong>
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          fontFamily={"inherit"}
+                          fontWeight={100}
+                        >
+                          MAE: <strong>{cvMetrics.mae?.toFixed(4)}</strong>
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          fontFamily={"inherit"}
+                          fontWeight={100}
+                        >
+                          RMSE: <strong>{cvMetrics.rmse?.toFixed(4)}</strong>
+                        </Typography>
+                      </ul>
+                    </>
+                  ) : undefined}
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      )}
+    </>
+  );
+};
 
 export default SuMoValidation;

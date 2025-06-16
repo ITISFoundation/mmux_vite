@@ -6,7 +6,7 @@ const VariableConfig = ({
   index,
   handleInputChange,
 }: {
-  inputVar: SamplingInputsState;
+  inputVar: SingleJobConfig;
   index: number;
   handleInputChange: (index: number, field: string, value: string) => void;
 }) => {
@@ -45,7 +45,7 @@ const VariableConfig = ({
         name="Value"
         type="number"
         value={inputVar.value !== undefined ? inputVar.value : NaN}
-        onChange={(n) => handleInputChange(index, "start", n as string)}
+        onChange={(n) => handleInputChange(index, "value", n as string)}
       />
     </Box>
   );

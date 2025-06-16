@@ -43,7 +43,7 @@ export const Footer = (props: FooterProps) => {
           >
             Previous
           </Button>
-          <Box>
+          {/* <Box>
             <Button
               className="footerBtn"
               variant="contained"
@@ -52,7 +52,7 @@ export const Footer = (props: FooterProps) => {
             >
               TASK MANAGER
             </Button>
-          </Box>
+          </Box> */}
           <Button
             className="footerBtn footerBtnLast"
             variant="contained"

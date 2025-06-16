@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Box, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
+import { Box, Button, Skeleton, Typography } from "@mui/material";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { useMMUXContext, MMUXContextType } from "../context/MMUXContext";
 import {
@@ -7,12 +7,13 @@ import {
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../utils/sampling";
-import { RunSamplingButton } from "./SamplingButton";
+import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "./VariableConfig";
 
+// TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
 async function runGridSampling(
   context: MMUXContextType,
-  config: SamplingInputsState[]
+  config: GRIDSamplingConfig
 ) {
   const fun = context.selectedFunction as Function;
   // send config to Python backend to create LHS
@@ -25,51 +26,71 @@ async function runGridSampling(
       config: config,
     }),
   })
-    .then(function (response) {
+    .then(async function (response) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error running Grid Sampling ${response.status}: ${errorText}`);
+      }
       return response.json();
     })
     .then(function (jc: RegisteredFunctionJobCollection) {
       console.log("JobCollection Uid: ", jc.uid);
       return jc;
     })
-    .catch(function (error) {
-      console.error("Error running Grid Sampling: ", error);
-    });
   context.setLaunchingSampling(false);
   context.setRunningSampling(true);
   context.setRunningJobCollection(jc ? jc : undefined);
   return jc;
 }
 
-function GridSearchSampling() {
+const GridSearchSampling = () => {
   const context = useMMUXContext();
-  const { inputVars, distribution, selectedFunction } = context;
+  const {
+    inputVars,
+    distribution,
+    selectedFunction,
+    gridSamplingConfig,
+    setGridSamplingConfig,
+  } = context;
 
-  const [gridSamplingInputs, setGridSamplingInputs] = useState<
-    SamplingInputsState[]
-  >(
-    inputVars.map((inputVar) => ({
-      variable: inputVar,
-      start: getSamplingStartValue(inputVar, distribution[selectedFunction?.uid || '']) as number,
-      end: getSamplingEndValue(inputVar, distribution[selectedFunction?.uid || '']) as number,
-      points: 10,
-    }))
-  );
+  const [gridSamplingInputs, setGridSamplingInputs] =
+    useState<GRIDSamplingConfig>(gridSamplingConfig);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const handleRunSampling = async () => {
+    setGridSamplingConfig(gridSamplingInputs);
     await runGridSampling(context, gridSamplingInputs);
   };
 
   function handleInputChange(index: number, field: string, value: string) {
-    setGridSamplingInputs((prevInputs: SamplingInputsState[]) => {
+    setGridSamplingInputs((prevInputs: GRIDSamplingConfig) => {
       const newInputs = [...prevInputs];
       newInputs[index] = {
         ...newInputs[index],
-        [field]: field === "points" ? parseInt(value) : parseFloat(value),
+        [field]: parseFloat(value),
       };
       return newInputs;
     });
   }
+
+  useEffect(() => {
+    let currentSampling: GRIDSamplingConfig = gridSamplingConfig;
+    if (gridSamplingConfig.length === 0) {
+      currentSampling = inputVars.map((inputVar) => ({
+        variable: inputVar,
+        start: getSamplingStartValue(
+          inputVar,
+          distribution[selectedFunction?.uid || ""]
+        ) as number,
+        end: getSamplingEndValue(
+          inputVar,
+          distribution[selectedFunction?.uid || ""]
+        ) as number,
+      }));
+    }
+    setGridSamplingInputs(currentSampling);
+    setLoading(false);
+  }, []);
 
   return (
     <>
@@ -79,7 +100,16 @@ function GridSearchSampling() {
         fontWeight={300}
         marginBottom={1}
       >
-        Grid Sampling
+        {loading ? (
+          <Skeleton
+            variant="text"
+            width={"300px"}
+            height={"32px"}
+            sx={{ fontSize: "2rem", marginBottom: "8px" }}
+          />
+        ) : (
+          "Grid Sampling"
+        )}
       </Typography>
       <Typography
         variant="body1"
@@ -87,24 +117,51 @@ function GridSearchSampling() {
         fontWeight={200}
         marginBottom={1}
       >
-        Specify the ranges and number of points per dimension for the grid
-        search sampling.
+        {loading ? (
+          <Skeleton variant="text" width={"600px"} height={"24px"} />
+        ) : (
+          "Specify the ranges and number of points per dimension for the grid search sampling."
+        )}
       </Typography>
-      <Box sx={{
-        display: "flex",
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: "16px",
-        marginBottom: "16px",
-        padding: "8px 0",
-      }}>
-        {gridSamplingInputs?.map((inputVar, index) => (
-          <VariableConfig index={index} inputVar={inputVar} key={index} handleInputChange={handleInputChange}/>
-        ))}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: "16px",
+          marginBottom: "16px",
+          padding: "8px 0",
+        }}
+      >
+        {loading ? (
+          <Skeleton variant="rounded" width={"800px"} height={"232px"} />
+        ) : (
+          gridSamplingInputs?.map((inputVar, index) => (
+            <VariableConfig
+              index={index}
+              inputVar={inputVar}
+              key={index}
+              handleInputChange={handleInputChange}
+            />
+          ))
+        )}
       </Box>
-      <RunSamplingButton handleRunSampling={handleRunSampling} />
+      <Box display={"flex"} flexDirection="row" justifyContent={'space-between'} marginTop={2}>
+        <Button
+          size="small"
+          variant="contained"
+          disabled={loading}
+          onClick={() => setGridSamplingConfig(gridSamplingInputs)}
+        >
+          Save Sampling config
+        </Button>
+        <RunSamplingButton
+          disabled={loading}
+          handleRunSampling={handleRunSampling}
+        />
+      </Box>
     </>
   );
-}
+};
 
 export default GridSearchSampling;

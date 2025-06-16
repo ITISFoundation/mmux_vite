@@ -13,9 +13,9 @@
 import { HttpFile } from '../http/http';
 
 export class RegisteredFunctionJobCollection {
-    'title'?: string;
-    'description'?: string;
-    'jobIds'?: Array<string>;
+    'title': string;
+    'description': string;
+    'jobIds': Array<string>;
     'uid': string;
 
     static readonly discriminator: string | undefined = undefined;
