@@ -1,16 +1,15 @@
 import { Box, Typography, Chip, useTheme } from "@mui/material";
 import { InputBlock } from "./InputBlock";
 
-const VariableConfig = ({
-  inputVar,
-  index,
-  handleInputChange,
-}: {
+interface VariableConfigProps {
   inputVar: SamplingInputsState;
   index: number;
-  handleInputChange: (index: number, field: string, value: string) => void;
-}) => {
+  handleInputChange: (index: number, field: fieldType, value: string) => void;
+}
+
+const VariableConfig = (props: VariableConfigProps) => {
   const theme = useTheme();
+  const { inputVar, index, handleInputChange } = props;
 
   return (
     <Box
@@ -43,7 +42,6 @@ const VariableConfig = ({
       </Typography>
       <InputBlock
         name="Start"
-        type="text"
         value={inputVar.start}
         onChange={(n) => handleInputChange(index, "start", n as string)}
       />
