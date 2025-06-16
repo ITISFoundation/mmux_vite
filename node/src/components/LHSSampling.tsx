@@ -4,11 +4,13 @@ import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Box, Button, Input, Skeleton, Typography } from "@mui/material";
 import {
   Function,
+  FunctionJob,
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../utils/sampling";
-import { RunSamplingButton } from "./SamplingButton";
+import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "./VariableConfig";
+import { getFunctionJob } from "../utils/function_utils";
 
 async function runLhsSampling(
   context: MMUXContextType,
@@ -27,16 +29,17 @@ async function runLhsSampling(
       N: config.points,
     }),
   })
-    .then(function (response) {
+    .then(async function (response) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error running LHS sampling: ${response.status}: ${errorText}`);
+      }
       return response.json();
     })
     .then(function (jc: RegisteredFunctionJobCollection) {
       console.log("JobCollection Uid: ", jc.uid);
       return jc;
     })
-    .catch(function (error) {
-      console.error("Error running LHS sampling: ", error);
-    });
   context.setLaunchingSampling(false);
   context.setRunningSampling(true);
   context.setRunningJobCollection(jc ? jc : undefined);
@@ -51,20 +54,52 @@ const LHSSampling = () => {
     selectedFunction,
     lhsSamplingConfig,
     setLhsSamplingConfig,
+    fetchedJobCollections,
+    setFetchedJobCollections
   } = context;
+
   const [lhsInputs, setLhsInputs] =
     useState<LHSamplingConfig>(lhsSamplingConfig);
   const [loading, setLoading] = useState<boolean>(true);
 
   const handleRunSampling = async () => {
     setLhsSamplingConfig(lhsInputs)
-    await runLhsSampling(context, lhsInputs);
-  };
+    const jc = await runLhsSampling(context, lhsInputs);
+    // New - include this job collection in the fetchedJobCollections
+    if (!jc) {
+      console.error("Job collection is undefined. Cannot add to fetchedJobCollections.");
+      return;
+    }
+    const newJobs: SelectedJobCollection[] = await Promise.all(
+      [jc].map(async (jc) => {
+        console.log("Fetching sub-jobs for job collection:", jc);
+        console.log("Job IDs:", jc.jobIds);
+        const subJobs = await Promise.all(
+          jc.jobIds.map(async (id) => {
+            const job = (await getFunctionJob(id)) as FunctionJob;
+            return {
+              selected: false,
+              job,
+            };
+          })
+        );
+        return {
+          jobCollection: jc,
+          selected: true,
+          subJobs: subJobs,
+        };
+      })
+    );
+    console.log("Adding new job collection to fetchedJobCollections:", newJobs);
+    setFetchedJobCollections([...fetchedJobCollections, ...newJobs]);
+    // TODO Alex: how do I update the table without need to reload everything else?
+  }
 
-  function handleInputChange(index: number, field: fieldType, value: string) {
+  function handleInputChange(index: number, field: string, value: string) {
+    console.log("Changed LHS inputs")
     setLhsInputs((prevInputs) => {
       const newInputs: LHSamplingConfig = { ...prevInputs };
-      if(['points', 'seed'].includes(field)) {
+      if (['points', 'seed'].includes(field)) {
         newInputs[field as 'seed' | 'points'] = field === 'seed' ? parseFloat(value) : parseInt(value);
       } else {
         newInputs.inputs[index] = {

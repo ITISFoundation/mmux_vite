@@ -54,6 +54,7 @@ interface MetaModelingUXProps {
   tabTitle?: string;
   infoText?: string;
   ExtendedInfoText?: ReactElement;
+  helpContents?: ReactElement;
   headerType: 'setup' | 'sumo' | 'uq';
   children: React.ReactNode;
 }
@@ -64,6 +65,7 @@ interface HeaderProps {
     tabTitle?: string;
     infoText?: string;
     ExtendedInfoText?: ReactElement;
+    helpContents?: ReactElement;
 }
 
 interface SubJob {

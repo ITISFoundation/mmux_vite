@@ -1,7 +1,7 @@
 SHELL 				 			:= /bin/sh
 .DEFAULT_GOAL 		 			:= help
 
-DOCKER_IMAGE_TAG := 1.2.2
+DOCKER_IMAGE_TAG := 1.2.3
 
 
 FLASKAPI_DIR := ./flaskapi
@@ -88,6 +88,8 @@ build: compose-spec ## build docker images
 build-no-cache: compose-spec ## build docker images	
 	docker compose build --no-cache --pull --parallel
 
+## NB: VSCode might keep old credentials cached, even if changed in .env
+## run in a non-VSCode terminal to avoid this
 .PHONY: run-develop
 run-develop: ## runs for development
 	docker compose --file docker-compose-development.yml up
