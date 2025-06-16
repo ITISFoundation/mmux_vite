@@ -226,41 +226,6 @@ const SuMoValidation = () => {
             style={plotStyle}
             config={{ responsive: true }}
           />
-          <Box flex={1} maxHeight={200} borderRadius={"8px"} overflow="hidden">
-            <Plot
-              data={[
-                {
-                  x: plotData[0]?.x,
-                  type: "box",
-                  name: "",
-                  marker: { color: "#7fc7ff" },
-                  boxpoints: "suspectedoutliers",
-                  hoverinfo: "skip",
-                },
-                {
-                  x: plotData[1]?.x,
-                  type: "box",
-                  name: "",
-                  marker: { color: "#2ca02c" },
-                  boxpoints: "suspectedoutliers",
-                  hoverinfo: "skip",
-                },
-              ]}
-              layout={{
-                ...layout,
-                showlegend: false,
-                margin: {
-                  l: 30,
-                  r: 30,
-                  b: 60,
-                  t: 30,
-                  pad: 4,
-                },
-              }}
-              style={{ ...plotStyle, height: 200 }}
-              config={{ responsive: true }}
-            />
-          </Box>
           <Box display="flex" flexDirection="row" width="680px" ml={2}>
             <Box mt={2} display={"flex"} flexDirection={"column"}>
               <Header headerType="uq" infoText="" tabTitle="Data Statistics" />
