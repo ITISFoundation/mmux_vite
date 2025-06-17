@@ -20,6 +20,9 @@ export LOG_LEVEL=${LOG_LEVEL:-INFO}
 if [ "$DEVELOPMENT_MODE" = "true" ]; then
   # Development mode - use Flask's built-in server
 
+  # copy library to application directory
+  cp -R /mmux_python /app/mmux_python
+
   export FLASK_APP=flask_workflows.py
   export FLASK_DEBUG=1
   FLASK_ARGS=("--host=$HOST" "--port=$PORT" "--debug" "--debugger" "--reload")
