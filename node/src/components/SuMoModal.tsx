@@ -45,7 +45,7 @@ const SuMoModal = ({
   ];
 
   const filteredInputVars = filterInputVars()
-
+  const maxSteps = Math.min(filteredInputVars.length + 1, 4)
 
   return (
     <Modal
@@ -101,7 +101,7 @@ const SuMoModal = ({
                 size="small"
                 variant="contained"
                 onClick={handleNext}
-                disabled={activeStep === filteredInputVars.length}
+                disabled={activeStep === maxSteps - 1}
                 sx={{ alignItems: 'end' }}
               >
                 Next
