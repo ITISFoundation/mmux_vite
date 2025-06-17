@@ -14,7 +14,7 @@ export const fetchWithRetry = async (url: string, options: RequestInit = {}, ret
         ErrorToRetry = error as Error; // Re-throw the error after all retries have failed
       }
     }
-    await delay(wait * (4 - retries)); // Wait before the next retry
+    await delay(wait * (attempt + 1)); // Wait before the next retry
 
     if( response && response.ok) {
       return response; // If the response is successful, return it immediately
