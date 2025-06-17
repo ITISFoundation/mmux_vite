@@ -80,21 +80,31 @@ def dict_keys_snake_to_camel(d: dict) -> dict:
     """Convert dictionary keys from snake_case to camelCase."""
     return {snake_to_camel(k): v for k, v in d.items()}
 
-def recursive_dict_keys_camel_to_snake(d: dict) -> dict:
+def recursive_dict_keys_camel_to_snake(d: dict, max_depth: int = -1, current_depth: int = 0) -> dict:
+    # Process nested values
     for k, v in d.items():
-        if isinstance(v, dict):
-            d[k] = recursive_dict_keys_camel_to_snake(v)
-        elif isinstance(v, list):
-            d[k] = [recursive_dict_keys_camel_to_snake(i) if isinstance(i, dict) else i for i in v]
+        if isinstance(v, dict) and (max_depth == -1 or current_depth < max_depth):
+            d[k] = recursive_dict_keys_camel_to_snake(v, max_depth, current_depth + 1)
+        elif isinstance(v, list) and (max_depth == -1 or current_depth < max_depth):
+            d[k] = [
+                recursive_dict_keys_camel_to_snake(i, max_depth, current_depth + 1) if isinstance(i, dict) else i 
+                for i in v
+            ]
+    
+    # Convert keys and return
     return {camel_to_snake(k): v for k, v in d.items()}
 
-def recursive_dict_keys_snake_to_camel(d: dict) -> dict:
+def recursive_dict_keys_snake_to_camel(d: dict, max_depth: int = -1, current_depth: int = 0) -> dict:
     for k, v in d.items():
-        if isinstance(v, dict):
-            d[k] = recursive_dict_keys_snake_to_camel(v)
-        elif isinstance(v, list):
-            d[k] = [recursive_dict_keys_snake_to_camel(i) if isinstance(i, dict) else i for i in v]
+        if isinstance(v, dict) and (max_depth == -1 or current_depth < max_depth):
+            d[k] = recursive_dict_keys_snake_to_camel(v, max_depth, current_depth + 1)
+        elif isinstance(v, list) and (max_depth == -1 or current_depth < max_depth):
+            d[k] = [
+                recursive_dict_keys_snake_to_camel(i, max_depth, current_depth + 1) if isinstance(i, dict) else i
+                for i in v
+            ]
     return {snake_to_camel(k): v for k, v in d.items()}
+
 
 ### osparc client configuration #############################    
 os.chdir(os.path.dirname(__file__))
@@ -159,7 +169,7 @@ def _get_all_items(api_call: Callable, *args, **kwargs):
         _logger.debug(f"Retrieving page {page} of {api_call.__name__} (offset: {retrieved})")
         response = api_call(offset = retrieved, *args, **kwargs)
         retrieved += len(response.items)  # type: ignore
-        items += [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
+        items += [recursive_dict_keys_camel_to_snake(i.to_dict(), max_depth=1) for i in response.items]
     return items
 
 def _get_first_N_items(api_call: Callable, N: int, **kwargs):
@@ -168,8 +178,8 @@ def _get_first_N_items(api_call: Callable, N: int, **kwargs):
     if list_len < N:
         _logger.warning(f"Requested {N} items, but only {list_len} are available.")
         N = list_len
-    response = api_call(limit = max(1, N), **kwargs)
-    items = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
+    response = api_call(limit=max(1, N), **kwargs)
+    items = [recursive_dict_keys_camel_to_snake(i.to_dict(), max_depth=1) for i in response.items]
     assert len(items) == N, f"Expected {N} items, but got {len(items)}"
     return items
 
@@ -180,7 +190,7 @@ def _get_last_N_items(api_call: Callable, N: int, **kwargs):
         _logger.warning(f"Requested {N} items, but only {list_len} are available.")
         N = list_len
     response = api_call(offset=list_len - N, limit=max(1,N), **kwargs)
-    items = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
+    items = [recursive_dict_keys_camel_to_snake(i.to_dict(), max_depth=1) for i in response.items]
     assert len(items) == N, f"Expected {N} items, but got {len(items)}"
     return items
 
@@ -271,7 +281,7 @@ def flask_get_function_job_collections_for_functionid():
         _logger.debug(f"Function ID: {function_uid}")
         # job_collections = get_all_items(job_collection_api_instance.list_function_job_collections, has_function_id=function_uid)
         response = job_collection_api_instance.list_function_job_collections(has_function_id=function_uid)
-        job_collections = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
+        job_collections = [dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
         _logger.debug(f"N Job collections for function {function_uid}: {len(job_collections)}")
         return jsonify(job_collections)
     except Exception as e:
@@ -292,7 +302,7 @@ def _get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
     """Helper function to get a Job information (including status) from its UID."""
     _logger.debug(f"Job ID: {job_uid}")
     job = job_api_instance.get_function_job(job_uid)
-    job_dict = recursive_dict_keys_camel_to_snake(job.to_dict()) # type: ignore
+    job_dict = dict_keys_camel_to_snake(job.to_dict()) # type: ignore
     _logger.debug(f"'Raw' Job: {job_dict}")
     job_dict["status"] = job_api_instance.function_job_status(job_uid).status
     job_dict["outputs"] = job_api_instance.function_job_outputs(job_uid)
@@ -309,6 +319,10 @@ def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[st
         response = make_response(jsonify({"error": "No completed jobs found. Cannot create training file."}), 400)
         # If running inside a Flask request context, abort with this response
         abort(response)
+    elif len(completed_jobs)<10:
+        response = make_response(jsonify({"error": "At least 10 jobs are necessary to build a surrogate model"}), 400)
+        abort(response)
+
     def get_job_dict(job):
         d = {sanitize_varnames(key): job["inputs"][key] for key in input_vars}
         assert "outputs" in job.keys(), f"Outputs not in job: {job}"
@@ -760,7 +774,7 @@ def flask_lhs():
         # Now, the running of jobs through the OSPARC API has been moved to the Python backend
         ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
         jc = functions_api_instance.map_function(function_uid, samples)
-        return jsonify(recursive_dict_keys_snake_to_camel(jc.to_dict()))
+        return jsonify(dict_keys_snake_to_camel(jc.to_dict()))
     except Exception as e:
         _logger.error(f"Error while performing LHS sampling on function {function_uid}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))  # return an error response if the function mapping fails
