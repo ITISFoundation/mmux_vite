@@ -18,8 +18,8 @@ export class RegisteredProjectFunction {
     'functionClass'?: RegisteredProjectFunctionFunctionClassEnum;
     'title'?: string;
     'description'?: string;
-    'inputSchema': JSONFunctionInputSchema;
-    'outputSchema': JSONFunctionOutputSchema;
+    'input_schema': JSONFunctionInputSchema;
+    'output_schema': JSONFunctionOutputSchema;
     'defaultInputs': any | null;
     'uid': string;
     'projectId': string;
@@ -48,13 +48,13 @@ export class RegisteredProjectFunction {
             "format": ""
         },
         {
-            "name": "inputSchema",
+            "name": "input_schema",
             "baseName": "input_schema",
             "type": "JSONFunctionInputSchema",
             "format": ""
         },
         {
-            "name": "outputSchema",
+            "name": "output_schema",
             "baseName": "output_schema",
             "type": "JSONFunctionOutputSchema",
             "format": ""

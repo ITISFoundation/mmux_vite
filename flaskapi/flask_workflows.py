@@ -160,9 +160,7 @@ def _get_all_items(api_call: Callable, *args, **kwargs):
         _logger.debug(f"Retrieving page {page} of {api_call.__name__} (offset: {retrieved})")
         response = api_call(offset = retrieved, *args, **kwargs)
         retrieved += len(response.items)  # type: ignore
-        _logger.debug(f"Items before key conversion: ", [[i.to_dict() for i in response.items]])
-        items += [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
-        _logger.debug(f"Items after key conversion: ", items)
+        items += [i.to_dict() for i in response.items]
     return items
 
 def _get_first_N_items(api_call: Callable, N: int, **kwargs):
@@ -172,7 +170,7 @@ def _get_first_N_items(api_call: Callable, N: int, **kwargs):
         _logger.warning(f"Requested {N} items, but only {list_len} are available.")
         N = list_len
     response = api_call(limit = max(1, N), **kwargs)
-    items = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
+    items = [i.to_dict() for i in response.items]
     assert len(items) == N, f"Expected {N} items, but got {len(items)}"
     return items
 
@@ -183,7 +181,7 @@ def _get_last_N_items(api_call: Callable, N: int, **kwargs):
         _logger.warning(f"Requested {N} items, but only {list_len} are available.")
         N = list_len
     response = api_call(offset=list_len - N, limit=max(1,N), **kwargs)
-    items = [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
+    items = [i.to_dict() for i in response.items]
     assert len(items) == N, f"Expected {N} items, but got {len(items)}"
     return items
 
@@ -199,7 +197,7 @@ def flask_list_functions():
         _logger.debug(f"N Functions: {len(functions)}")
 
         ## optional - filter out those without input & output schema
-        # functions = [f for f in functions if len(f["inputSchema"]["schemaContent"]) > 0 and len(f["outputSchema"]["schemaContent"]) > 0]
+        # functions = [f for f in functions if len(f["input_schema"]["schemaContent"]) > 0 and len(f["output_schema"]["schemaContent"]) > 0]
         # _logger.debug(f"N Functions after filtering: {len(functions)}")
 
         return jsonify(functions)

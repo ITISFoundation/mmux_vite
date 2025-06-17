@@ -18,8 +18,8 @@ export class SolverFunction {
     'functionClass'?: SolverFunctionFunctionClassEnum;
     'title'?: string;
     'description'?: string;
-    'inputSchema': JSONFunctionInputSchema;
-    'outputSchema': JSONFunctionOutputSchema;
+    'input_schema': JSONFunctionInputSchema;
+    'output_schema': JSONFunctionOutputSchema;
     'defaultInputs': any | null;
     'solverKey': string;
     'solverVersion': string;
@@ -49,13 +49,13 @@ export class SolverFunction {
             "format": ""
         },
         {
-            "name": "inputSchema",
+            "name": "input_schema",
             "baseName": "input_schema",
             "type": "JSONFunctionInputSchema",
             "format": ""
         },
         {
-            "name": "outputSchema",
+            "name": "output_schema",
             "baseName": "output_schema",
             "type": "JSONFunctionOutputSchema",
             "format": ""
