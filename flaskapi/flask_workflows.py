@@ -319,6 +319,10 @@ def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[st
         response = make_response(jsonify({"error": "No completed jobs found. Cannot create training file."}), 400)
         # If running inside a Flask request context, abort with this response
         abort(response)
+    elif len(completed_jobs)<10:
+        response = make_response(jsonify({"error": "At least 10 jobs are necessary to build a surrogate model"}), 400)
+        abort(response)
+
     def get_job_dict(job):
         d = {sanitize_varnames(key): job["inputs"][key] for key in input_vars}
         assert "outputs" in job.keys(), f"Outputs not in job: {job}"

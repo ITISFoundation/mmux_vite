@@ -315,10 +315,12 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     const anyRunning = result.running > 0;
     const anyFailed = result.failed > 0;
     const allFailed = result.failed === subJobs.length;
+    const allPending = result.incomplete == subJobs.length;
     if (allComplete) return "COMPLETE";
     if (anyRunning) return "RUNNING";
     if (allFailed) return "FAILED";
     if (anyFailed && anyComplete) return "FAILED (PARTIALLY)";
+    if (allPending) return "PENDING"
     // Default fallback
     return "UNKNOWN";
   };
