@@ -37,11 +37,11 @@ export const _filterOutConstantDistributionVars = (context: MMUXContextType) => 
     selectedFunction,
     distribution,
   } = context;
-  inputVars.filter(
+  return inputVars.filter(
     (i) =>
       (distribution[selectedFunction?.uid || ""][i]
         .distribution as distribution) !== "constant"
-  )
+  );
 }
 export const filterInputVars = (context: MMUXContextType) => {
   // Wrapper to quickly change btw filtering mode
