@@ -8,8 +8,9 @@ import { Footer } from "./components/Footer";
 import { useMMUXContext } from "./context/MMUXContext";
 import Setup from "./views/Setup";
 import UQ from "./views/UQ";
-import { getHealth } from "./utils/function_utils";
+import { getHealth} from "./utils/function_utils";
 import { SplashScreen } from "./views/SplashScreen";
+import { ServiceContextProvider } from "./context/ServiceContext";
 
 const FakeRoot = styled("div")(
   ({ theme }) => `
@@ -95,8 +96,8 @@ const App = () => {
         }
       }
     }
-    const messageHandler = (e: { data: {msg: string}; }) => {
-      const { msg } = e.data;
+    const messageHandler = (e: { data: string }) => {
+      const msg = e.data;
       const OSPARC_MSG_PREFIX = 'osparc;'
       if (msg && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
         console.log("Received message from parent window:", e);
@@ -110,39 +111,41 @@ const App = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <FakeRoot>
-        <Container>
-          <Box paddingTop={2}>
-          <Alert variant='outlined' severity='info'>
-            This is a preview of the Uncertainty Quantification Hypertool that runs on a precomputed demonstration application. If you want to explore it using your own Projects, please contact xxx@xxx.
-          </Alert>
-          </Box>
-        </Container>
-        {!healthStatus ? (
-          <SplashScreen />
-        ) : (
-          <Container sx={{paddingBottom: 4}}>
-            <Navigation steps={steps} activeStep={currentView} />
-            <>
-              {currentView === 0 ? <Setup /> : undefined}
-              {currentView === 1 ? <UQ /> : undefined}
-            </>
-            <Footer steps={steps} />
+        <FakeRoot>
+          <Container>
+            <Box paddingTop={2}>
+            <Alert variant='outlined' severity='info'>
+              This is a preview of the Uncertainty Quantification Hypertool that runs on a precomputed demonstration application. If you want to explore it using your own Projects, please contact xxx@xxx.
+            </Alert>
+            </Box>
           </Container>
-        )}
-        <ToastContainer
-          theme={themeMode}
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable={false}
-          pauseOnHover
-        />
-      </FakeRoot>
+          {!healthStatus ? (
+            <SplashScreen />
+          ) : (
+            <ServiceContextProvider>
+              <Container sx={{paddingBottom: 4}}>
+                <Navigation steps={steps} activeStep={currentView} />
+                <>
+                  {currentView === 0 ? <Setup /> : undefined}
+                  {currentView === 1 ? <UQ /> : undefined}
+                </>
+                <Footer steps={steps} />
+              </Container>
+            </ServiceContextProvider>
+          )}
+          <ToastContainer
+            theme={themeMode}
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable={false}
+            pauseOnHover
+          />
+        </FakeRoot>
     </ThemeProvider>
   );
 };
