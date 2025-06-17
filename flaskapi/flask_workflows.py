@@ -81,12 +81,13 @@ def dict_keys_snake_to_camel(d: dict) -> dict:
     return {snake_to_camel(k): v for k, v in d.items()}
 
 def recursive_dict_keys_camel_to_snake(d: dict) -> dict:
+    d = {camel_to_snake(k): v for k, v in d.items()}
     for k, v in d.items():
         if isinstance(v, dict):
             d[k] = recursive_dict_keys_camel_to_snake(v)
         elif isinstance(v, list):
-            d[k] = [recursive_dict_keys_camel_to_snake(i) if isinstance(i, dict) else i for i in v]
-    return {camel_to_snake(k): v for k, v in d.items()}
+            d[k] = [recursive_dict_keys_camel_to_snake(i) if isinstance(i, dict) else camel_to_snake(i) for i in v]
+    return d
 
 def recursive_dict_keys_snake_to_camel(d: dict) -> dict:
     for k, v in d.items():
@@ -159,7 +160,9 @@ def _get_all_items(api_call: Callable, *args, **kwargs):
         _logger.debug(f"Retrieving page {page} of {api_call.__name__} (offset: {retrieved})")
         response = api_call(offset = retrieved, *args, **kwargs)
         retrieved += len(response.items)  # type: ignore
+        _logger.debug(f"Items before key conversion: ", [[i.to_dict() for i in response.items]])
         items += [recursive_dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
+        _logger.debug(f"Items after key conversion: ", items)
     return items
 
 def _get_first_N_items(api_call: Callable, N: int, **kwargs):
