@@ -151,13 +151,24 @@ def health_check():
 @app.route("/flask/service-mode")
 def service_mode():
     """Used to check the environment variable SERVICE_MODE."""
-    try: 
+    try:
         service_mode = os.environ["SERVICE_MODE"]
         _logger.info(f"Service mode: {service_mode}")
         return jsonify({"service_mode": service_mode}), 200
     except KeyError:
         _logger.error("SERVICE_MODE environment variable is not set.")
         return jsonify({"error": "SERVICE_MODE environment variable is not set."}), 500
+
+@app.route("/flask/permissions")
+def permissions():
+    """Used to check the environment variable PERMISSIONS."""
+    try:
+        permissions = os.environ["PERMISSIONS"]
+        _logger.info(f"Service mode: {permissions}")
+        return jsonify({"permissions": permissions}), 200
+    except KeyError:
+        _logger.error("PERMISSIOSN environment variable is not set.")
+        return jsonify({"error": "PERMISSIONS environment variable is not set."}), 500
 
 def _get_all_items(api_call: Callable, *args, **kwargs):
     """Helper function to get all items from a paginated API call."""
