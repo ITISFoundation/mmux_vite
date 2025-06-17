@@ -158,35 +158,36 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       return;
     }
 
-    const newJobs: SelectedJobCollection[] = await Promise.all(
-      jobsC.map(async (jc) => {
-        const subJobs = await Promise.all(
-          jc.jobIds.map(async (id) => {
-            const job = (await getFunctionJob(id)) as FunctionJob;
-            jobsFetched.current += 1;
-            const jobsProg = (jobsFetched.current / totalSubs) * 100;
-            setJobProgress(jobsProg);
-            return {
-              selected: false,
-              job,
-            };
-          })
-        );
-        console.info(
-          "Fetched subJobs for jobCollection: ",
-          progress,
-          jobProgress,
-          jobsFetched.current
-        );
-        colsFetched.current += jc.jobIds.length;
-        setProgress((colsFetched.current / totalSubs) * 100);
-        return {
-          jobCollection: jc,
+    const newJobs: SelectedJobCollection[] = []
+
+    for( let i = 0; i < jobsC.length; i++) {
+      const jc = jobsC[i];
+      const subJobs = [];
+      for( let j = 0; i < jc.jobIds.length; i++) {
+        const id = jc.jobIds[j];
+        const job = (await getFunctionJob(id)) as FunctionJob;
+        jobsFetched.current += 1;
+        const jobsProg = (jobsFetched.current / totalSubs) * 100;
+        setJobProgress(jobsProg);
+        subJobs.push({
           selected: false,
-          subJobs: subJobs,
-        };
-      })
-    );
+          job,
+        });
+      }
+      console.info(
+        "Fetched subJobs for jobCollection: ",
+        progress,
+        jobProgress,
+        jobsFetched.current
+      );
+      colsFetched.current += jc.jobIds.length;
+      setProgress((colsFetched.current / totalSubs) * 100);
+      newJobs.push({
+        jobCollection: jc,
+        selected: false,
+        subJobs: subJobs,
+      });
+    }
 
     setJobCollections(newJobs);
     setFetchedJobCollections(newJobs);
