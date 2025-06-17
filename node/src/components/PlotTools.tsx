@@ -115,6 +115,10 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
   } else if (dist.distribution === "uniform" && dist.min !== undefined && dist.max !== undefined) {
     min = dist.min;
     max = dist.max;
+  } else {
+    console.log("Could not define max & min for variable ", input)
+    min = 0
+    max = 1
   }
   if (!filteredInputVars.includes(input)) {
     min = uniqueValuesPerVar[input].values().next().value * 0.99
@@ -124,6 +128,7 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
 
   console.log("var", input, "min & max: ", min, max)
   console.log(uniqueValuesPerVar)
+  const step = (max - min) / 500
   return (
     <InputLabel
       sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center" }}
@@ -140,7 +145,7 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
         aria-label="Default"
         valueLabelDisplay="auto"
         getAriaValueText={sliderMarc}
-        step={0.01}
+        step={step}
         min={min}
         max={max}
         value={value} // TODO could not get slider to be in the middle for those w constant values
@@ -167,6 +172,7 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
         }}
         type="number"
         variant="outlined"
+        inputProps={{ step: step }}
         size="small"
         sx={{ width: "120px", textAlign: "center" }}
       />
