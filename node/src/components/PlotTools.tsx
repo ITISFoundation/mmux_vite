@@ -121,14 +121,22 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
     max = 1
   }
   if (!filteredInputVars.includes(input)) {
-    min = uniqueValuesPerVar[input].values().next().value * 0.99
-    max = uniqueValuesPerVar[input].values().next().value * 1.01
+    // min = uniqueValuesPerVar[input].values().next().value * 0.99
+    // max = uniqueValuesPerVar[input].values().next().value * 1.01
+    min = 0
+    max = 0
     // setValue(uniqueValuesPerVar[input])
   } // TODO add the other distributions
 
   console.log("var", input, "min & max: ", min, max)
   console.log(uniqueValuesPerVar)
   const step = (max - min) / 500
+  const changeOtherAxis = (e: Event, value: number) => {
+    const newAxis = { ...otherAxis };
+    newAxis[input] = value as number;
+    console.log("new otherAxis: ", newAxis)
+    setOtherAxis(newAxis);
+  }
   return (
     <InputLabel
       sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center" }}
@@ -151,12 +159,10 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
         value={value} // TODO could not get slider to be in the middle for those w constant values
         onChange={(e, newValue) => {
           setValue(newValue as number);
+          changeOtherAxis(e, newValue as number) // NEW: upload plot for EVERY movement of slider
         }}
-        onChangeCommitted={(e, value) => {
-          const newAxis = { ...otherAxis };
-          newAxis[input] = value as number;
-          console.log("new otherAxis: ", newAxis)
-          setOtherAxis(newAxis);
+        onChangeCommitted={(e, newValue) => {
+          changeOtherAxis(e as Event, newValue as number)
         }}
         disabled={!filteredInputVars.includes(input)}
       />
