@@ -23,7 +23,8 @@ const Curves1DPlots = () => {
     distribution,
     filterSelectedJobList,
   } = useMMUXContext();
-  const filteredInputVars = filterInputVars()
+  const context = useMMUXContext();
+  const filteredInputVars = filterInputVars(context)
   const [plotData, setPlotData] = useState<Array<Data>>([]);
   const [axis, setAxis] = useState(filteredInputVars[0]);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(

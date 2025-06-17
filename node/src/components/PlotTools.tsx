@@ -1,10 +1,10 @@
 import { InputLabel, Typography, Select, MenuItem, TextField, styled, Slider } from "@mui/material";
 import { useState } from "react";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
-import { useMMUXContext } from "../context/MMUXContext";
+import { MMUXContextType, useMMUXContext } from "../context/MMUXContext";
 
-export const _get_unique_values = () => {
-  const { inputVars, filterSelectedJobList } = useMMUXContext();
+export const _get_unique_values = (context: MMUXContextType) => {
+  const { inputVars,filterSelectedJobList } = context;
   const uniqueValuesPerVar: { [varName: string]: Set<number> } = {};
   const jobs = filterSelectedJobList();
   inputVars.forEach((varName) => {
@@ -23,29 +23,29 @@ export const _get_unique_values = () => {
   return uniqueValuesPerVar
 }
 
-export const _filterOutConstantDataVars = () => {
+export const _filterOutConstantDataVars = (context: MMUXContextType) => {
   // Filter out variables with only one unique value
-  const uniqueValuesPerVar: { [varName: string]: Set<number> } = _get_unique_values()
+  const uniqueValuesPerVar: { [varName: string]: Set<number> } = _get_unique_values(context)
   const newFilteredInputVars = Object.entries(uniqueValuesPerVar)
-    .filter(([_, valueSet]) => valueSet.size > 1)
-    .map(([varName, _]) => varName);
+    .filter(([ _value, valueSet]) => valueSet.size > 1)
+    .map(([varName]) => varName);
   return newFilteredInputVars
 }
-export const _filterOutConstantDistributionVars = () => {
+export const _filterOutConstantDistributionVars = (context: MMUXContextType) => {
   const {
     inputVars,
     selectedFunction,
     distribution,
-  } = useMMUXContext();
+  } = context;
   inputVars.filter(
     (i) =>
       (distribution[selectedFunction?.uid || ""][i]
         .distribution as distribution) !== "constant"
   )
 }
-export const filterInputVars = () => {
+export const filterInputVars = (context: MMUXContextType) => {
   // Wrapper to quickly change btw filtering mode
-  return _filterOutConstantDataVars()
+  return _filterOutConstantDataVars(context)
 }
 
 interface CreateSelectProps {
@@ -55,10 +55,9 @@ interface CreateSelectProps {
   setAxis: (value: string) => void;
 }
 export const CreateSelect = ({ axis, idx, inputVars, setAxis }: CreateSelectProps) => {
-
-
+  const context = useMMUXContext();
   // NB: could have other filtering (based on distribution === "constant")
-  const filteredInputVars = filterInputVars()
+  const filteredInputVars = filterInputVars(context)
 
   return (
     <InputLabel sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center" }}>
@@ -105,9 +104,10 @@ const CustomSlider = styled(Slider)(({ theme }) => ({
 const sliderMarc = (value: number) => `X: ${value}`;
 
 export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSliderProps) => {
+  const context = useMMUXContext();
   const [value, setValue] = useState(otherAxis[input] || 0);
-  const filteredInputVars = filterInputVars()
-  const uniqueValuesPerVar = _get_unique_values()
+  const filteredInputVars = filterInputVars(context)
+  const uniqueValuesPerVar = _get_unique_values(context)
   let min, max;
   if (dist.distribution === "normal" && dist.mean !== undefined && dist.std !== undefined) {
     min = dist.mean - 2.5 * dist.std;
@@ -123,8 +123,17 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
   if (!filteredInputVars.includes(input)) {
     // min = uniqueValuesPerVar[input].values().next().value * 0.99
     // max = uniqueValuesPerVar[input].values().next().value * 1.01
-    min = 0
-    max = 0
+    const inputValues = uniqueValuesPerVar[input].values();
+    const firstVal = inputValues.next().value // get the first value
+
+    if( firstVal !== undefined) {
+      min = firstVal * 0.99
+      max = firstVal * 1.01
+    } else {
+      console.warn("No values found for variable", input, "setting default min and max to 0 and 1")
+      min = 0;
+      max = 1;
+    }
     // setValue(uniqueValuesPerVar[input])
   } // TODO add the other distributions
 

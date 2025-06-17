@@ -16,6 +16,7 @@ import SuMoValidation from "./SuMoValidation";
 import Surface2DPlot from "./Surface3DPlot";
 import Header from "./Header";
 import { filterInputVars } from "./PlotTools";
+import { useMMUXContext } from "../context/MMUXContext";
 
 const SuMoModal = ({
   open,
@@ -25,6 +26,7 @@ const SuMoModal = ({
   setOpen: (value: boolean) => void;
 }) => {
   const theme = useTheme();
+  const context = useMMUXContext();
   const [activeStep, setActiveStep] = React.useState(0);
 
   const handleNext = () => {
@@ -42,7 +44,7 @@ const SuMoModal = ({
     "3D IsoSurface",
   ];
 
-  const filteredInputVars = filterInputVars()
+  const filteredInputVars = filterInputVars(context)
   const maxSteps = Math.min(filteredInputVars.length + 1, 4)
 
   return (

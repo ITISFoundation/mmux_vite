@@ -4,7 +4,6 @@ import Plot from "react-plotly.js";
 import { useMMUXContext } from "../context/MMUXContext";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
-import { Data } from "plotly.js";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 
 const IsoSurface3DPlot = () => {
@@ -16,7 +15,8 @@ const IsoSurface3DPlot = () => {
     selectedQoI,
     filterSelectedJobList,
   } = useMMUXContext();
-  const filteredInputVars = filterInputVars()
+  const context = useMMUXContext();
+  const filteredInputVars = filterInputVars(context)
   const [axis1, setAxis1] = useState(filteredInputVars[0]);
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [axis3, setAxis3] = useState(filteredInputVars[2]);
