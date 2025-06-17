@@ -114,7 +114,7 @@ const SuMoValidation = () => {
       return await RunSuMoValidation(jobs);
     };
     run();
-  }, []);
+  }, [selectedQoI, inputVars, selectedFunction]);
 
 
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
