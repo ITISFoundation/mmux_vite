@@ -86,7 +86,7 @@ const SuMoModal = ({
         <CardActions>
           <MobileStepper
             variant="dots"
-            steps={Math.min(filteredInputVars.length + 1, 4)}
+            steps={maxSteps}
             position="static"
             activeStep={activeStep}
             sx={{
