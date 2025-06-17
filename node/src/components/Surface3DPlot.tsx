@@ -5,7 +5,7 @@ import { useMMUXContext } from "../context/MMUXContext";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Data } from "plotly.js";
-import { CreateSelect, CreateConstant, CreateSlider } from "./PlotTools";
+import { CreateSelect, CreateSlider } from "./PlotTools";
 
 const Surface2DPlot = () => {
   const theme = useTheme();
@@ -67,6 +67,7 @@ const Surface2DPlot = () => {
         gridVars: [key1, key2],
         inputVars: inputVars,
         output: selectedQoI,
+        sliderValues: otherAxis,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false, // FIXME not used atm
       }),
@@ -129,7 +130,7 @@ const Surface2DPlot = () => {
     };
     run();
     console.log(axis1, axis2);
-  }, [axis1, axis2]);
+  }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis]);
 
   const layout = {
     title: {
@@ -186,51 +187,40 @@ const Surface2DPlot = () => {
       >
         <Plot data={plotData} layout={layout} style={plotStyle} />
       </Box>
-      <Box display={"flex"} flexDirection={"column"} gap={2} pt={2}>
+      <Box display={"flex"} flexDirection={"row"} gap={2} pt={1}>
         <CreateSelect
           axis={axis1}
           idx={1}
           setAxis={handleSetAxis1}
-          filteredInputVars={inputVars.filter(
-            (i) =>
-              (distribution[selectedFunction?.uid || ""][i]
-                .distribution as distribution) !== "constant"
-          )}
+          inputVars={inputVars}
         />
         <CreateSelect
           axis={axis2}
           idx={2}
           setAxis={handleSetAxis2}
-          filteredInputVars={inputVars.filter(
-            (i) =>
-              (distribution[selectedFunction?.uid || ""][i]
-                .distribution as distribution) !== "constant"
-          )}
+          inputVars={inputVars}
         />
+      </Box>
+
+      <Box display={"flex"} flexDirection={"column"} gap={2} pt={2}>
+
         {inputVars.length > 0 &&
-        distribution[selectedFunction?.uid || ""] !== undefined ? (
+          distribution[selectedFunction?.uid || ""] !== undefined ? (
           <>
             {inputVars.map((key) => {
               if (key === axis1 || key === axis2) {
                 return null; // Skip the first variable as it is already selected
               }
               const dist = distribution[selectedFunction?.uid || ""];
-              const distValue = dist[key];
-              if (distValue.distribution === "constant") {
-                return (
-                  <CreateConstant input={key} dist={dist[key]} key={key} />
-                );
-              } else {
-                return (
-                  <CreateSlider
-                    input={key}
-                    dist={dist[key]}
-                    otherAxis={otherAxis}
-                    setOtherAxis={setOtherAxis}
-                    key={key}
-                  />
-                );
-              }
+              return (
+                <CreateSlider
+                  input={key}
+                  dist={dist[key]}
+                  otherAxis={otherAxis}
+                  setOtherAxis={setOtherAxis}
+                  key={key}
+                />
+              );
             })}
           </>
         ) : undefined}
