@@ -16,7 +16,7 @@ export class JSONFunctionInputSchema {
     /**
     * JSON Schema
     */
-    'schemaContent'?: any;
+    'schema_content'?: any;
     'schemaClass'?: JSONFunctionInputSchemaSchemaClassEnum;
 
     static readonly discriminator: string | undefined = undefined;
@@ -25,7 +25,7 @@ export class JSONFunctionInputSchema {
 
     static readonly attributeTypeMap: Array<{name: string, baseName: string, type: string, format: string}> = [
         {
-            "name": "schemaContent",
+            "name": "schema_content",
             "baseName": "schema_content",
             "type": "any",
             "format": ""

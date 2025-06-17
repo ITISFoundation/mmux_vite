@@ -91,7 +91,7 @@ export function FunctionList() {
       return [];
     }
 
-    const vars = Object.keys(schema.schemaContent.properties);
+    const vars = Object.keys(schema.schema_content.properties);
     const display_vars = vars.map((variable, index) => (
       <span key={index}>
         {variable}
@@ -179,9 +179,9 @@ export function FunctionList() {
           Object.keys(selectedRow.input_schema?.schema_content?.properties)
         );
         setOutputVars(
-          selectedRow.output_schema?.schemaContent?.properties
+          selectedRow.output_schema?.schema_content?.properties
             ? Object.keys(
-              selectedRow.output_schema.schemaContent.properties
+              selectedRow.output_schema.schema_content.properties
             )
             : []
         );
@@ -313,20 +313,20 @@ export function FunctionList() {
                 onClick={() => {
                   setSelectedFunction(params.row);
                   setInputVars(
-                    params.row.input_schema?.schemaContent?.properties
+                    params.row.input_schema?.schema_content?.properties
                       ? Object.keys(
-                        params.row.input_schema.schemaContent.properties
+                        params.row.input_schema.schema_content.properties
                       )
                       : []
                   );
                   console.log(
                     "inputVars registered:",
-                    Object.keys(params.row.input_schema.schemaContent.properties)
+                    Object.keys(params.row.input_schema.schema_content.properties)
                   );
                   setOutputVars(
-                    params.row.output_schema?.schemaContent?.properties
+                    params.row.output_schema?.schema_content?.properties
                       ? Object.keys(
-                        params.row.output_schema.schemaContent.properties
+                        params.row.output_schema.schema_content.properties
                       )
                       : []
                   );

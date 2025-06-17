@@ -197,7 +197,7 @@ def flask_list_functions():
         _logger.debug(f"N Functions: {len(functions)}")
 
         ## optional - filter out those without input & output schema
-        # functions = [f for f in functions if len(f["input_schema"]["schemaContent"]) > 0 and len(f["output_schema"]["schemaContent"]) > 0]
+        # functions = [f for f in functions if len(f["input_schema"]["schema_content"]) > 0 and len(f["output_schema"]["schema_content"]) > 0]
         # _logger.debug(f"N Functions after filtering: {len(functions)}")
 
         return jsonify(functions)
