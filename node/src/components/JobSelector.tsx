@@ -320,7 +320,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     if (anyRunning) return "RUNNING";
     if (allFailed) return "FAILED";
     if (anyFailed && anyComplete) return "FAILED (PARTIALLY)";
-    if (allPending) return "PENDING"
+    if (allPending) return "PENDING";
     // Default fallback
     return "UNKNOWN";
   };
