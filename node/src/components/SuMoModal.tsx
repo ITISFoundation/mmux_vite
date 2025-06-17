@@ -16,6 +16,7 @@ import Curves1DPlots from "./PlotDataTogether";
 import SuMoValidation from "./SuMoValidation";
 import Surface2DPlot from "./Surface3DPlot";
 import Header from "./Header";
+import { filterInputVars } from "./PlotTools";
 
 const SuMoModal = ({
   open,
@@ -43,11 +44,8 @@ const SuMoModal = ({
     "3D IsoSurface",
   ];
 
-  const filterInputVars = inputVars.filter(
-            (i) =>
-              (distribution[selectedFunction?.uid || ""][i]
-                .distribution as distribution) !== "constant"
-          )
+  const filteredInputVars = filterInputVars()
+
 
   return (
     <Modal
@@ -69,26 +67,26 @@ const SuMoModal = ({
         }}
       >
         <Box sx={{ padding: '16px 0px 0px 16px', display: "flex", alignItems: "center" }}>
-          <Header headerType="sumo" tabTitle={stepTitles[activeStep]} infoText=""/>
+          <Header headerType="sumo" tabTitle={stepTitles[activeStep]} infoText="" />
         </Box>
         <CardContent>
-          {activeStep === 0 && filterInputVars.length > 0 ? (
+          {activeStep === 0 && filteredInputVars.length > 0 ? (
             <SuMoValidation />
           ) : undefined}
-          {activeStep === 1 && filterInputVars.length > 0 ? (
+          {activeStep === 1 && filteredInputVars.length > 0 ? (
             <Curves1DPlots />
           ) : undefined}
-          {activeStep === 2 && filterInputVars.length > 1 ? (
+          {activeStep === 2 && filteredInputVars.length > 1 ? (
             <Surface2DPlot />
           ) : undefined}
-          {activeStep === 3 && filterInputVars.length > 2 ? (
+          {activeStep === 3 && filteredInputVars.length > 2 ? (
             <IsoSurface3DPlot />
           ) : undefined}
         </CardContent>
         <CardActions>
           <MobileStepper
             variant="dots"
-            steps={filterInputVars.length + 1}
+            steps={Math.min(filteredInputVars.length + 1, 4)}
             position="static"
             activeStep={activeStep}
             sx={{
@@ -103,7 +101,7 @@ const SuMoModal = ({
                 size="small"
                 variant="contained"
                 onClick={handleNext}
-                disabled={activeStep === filterInputVars.length}
+                disabled={activeStep === filteredInputVars.length}
                 sx={{ alignItems: 'end' }}
               >
                 Next
