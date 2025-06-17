@@ -88,6 +88,9 @@ build: compose-spec ## build docker images
 build-no-cache: compose-spec ## build docker images	
 	docker compose build --no-cache --pull --parallel
 
+## NB: VSCode might keep old credentials cached, even if changed in .env
+## run in a non-VSCode terminal to avoid this
+
 # DEVELOPMENT
 
 .PHONY: run-develop-sumo-read
