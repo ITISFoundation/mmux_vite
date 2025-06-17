@@ -3,9 +3,7 @@ import { useMMUXContext } from "../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import Plot from "react-plotly.js";
 import { Box, Typography, useTheme } from "@mui/material";
-import { PlotData } from "plotly.js";
 import { FunctionJob } from "../osparc-api-ts-client";
-import Header from "./Header";
 
 type cvMetricsType = {
   mean_y: number;
@@ -59,7 +57,6 @@ const SuMoValidation = () => {
       })
       .catch((error) => console.debug("Error:", error));
   };
-
   function computeStatisticsCv(y: number[], y_hat: number[]) {
     // compute statistics
     const mean_error =
@@ -115,7 +112,7 @@ const SuMoValidation = () => {
       return await RunSuMoValidation(jobs);
     };
     run();
-  }, []);
+  }, [selectedQoI, inputVars, selectedFunction]);
 
 
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
@@ -131,13 +128,13 @@ const SuMoValidation = () => {
           orientation: "h",
           type: "violin",
           name: name,
-          pointpos: (side === "positive" ? 1.3 : -1.3),
+          pointpos: (side === "positive" ? 1. : -1.),
           points: "all",
           side: side,
           box: {
             visible: true
           },
-          spanmode: "soft", // TODO show Esra both variants
+          spanmode: "hard", // TODO show Esra both variants
         };
       }
 
@@ -202,12 +199,14 @@ const SuMoValidation = () => {
     height: 300,
     borderRadius: "8px",
     overflow: "hidden",
+    margin: "0 auto", // Center the plot horizontally
+    maxWidth: "680px", // Match the width of the statistics box below
   };
 
   return (
     <>
       {plotData && selectedQoI && (
-        <Box display="flex" flexDirection="column" gap={1} width={"100%"}>
+        <Box display="flex" flexDirection="column" gap={1} width={"100%"} justifyContent={"center"}>
           <Plot
             data={plotData}
             layout={{
@@ -227,84 +226,86 @@ const SuMoValidation = () => {
             style={plotStyle}
             config={{ responsive: true }}
           />
-          <Box display="flex" flexDirection="row" width="680px" ml={2}>
-            <Box mt={2} display={"flex"} flexDirection={"column"}>
-              <Header headerType="uq" infoText="" tabTitle="Data Statistics" />
-              <Box display={"flex"} flexDirection={"row"}>
-                <Box mt={2} display={"flex"}>
+          <Box display="flex" flexDirection="row" width="680px" ml={3} mr={3} >
+            <Box mt={1} display={"flex"} flexDirection={"column"} width={"100%"}>
+              {/* <Header headerType="uq" infoText="" tabTitle="Data Statistics" /> */}
+              <Box display={"flex"} flexDirection={"row"} width={"100%"}>
+                <Box mt={2} display={"flex"} flexDirection={"row"} width={"100%"}>
                   {cvMetrics ? (
-                    <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    <ul style={{
+                      listStyle: "none", padding: 0, margin: "0px", display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%" // Ensure the ul takes full width
+                    }}>
                       <Typography
                         variant="body1"
                         fontFamily={"inherit"}
                         fontWeight={100}
                       >
-                        Mean (y): <strong>{cvMetrics.mean_y?.toFixed(4)}</strong>
+                        Mean(y): <strong>{cvMetrics.mean_y?.toFixed(4)}</strong>
                       </Typography>
                       <Typography
                         variant="body1"
                         fontFamily={"inherit"}
                         fontWeight={100}
                       >
-                        Std (y): <strong>{cvMetrics.std_y?.toFixed(4)}</strong>
+                        Std(y): <strong>{cvMetrics.std_y?.toFixed(4)}</strong>
                       </Typography>
                       <Typography
                         variant="body1"
                         fontFamily={"inherit"}
                         fontWeight={100}
                       >
-                        Skewness (y): <strong>{skewnessValue}</strong>
+                        Skewness(y): <strong>{skewnessValue}</strong>
                       </Typography>
                       <Typography
                         variant="body1"
                         fontFamily={"inherit"}
                         fontWeight={100}
                       >
-                        Kurtosis (y): <strong>{KurtosisValue}</strong>
+                        Kurtosis(y): <strong>{KurtosisValue}</strong>
                       </Typography>
                     </ul>
                   ) : (
                     <div>No data statistics available.</div>
                   )}
                 </Box>
-                <Box mt={2} ml={4}>
-                  {cvMetrics ? (
-                    <>
-                      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                        <Typography
-                          variant="body1"
-                          fontFamily={"inherit"}
-                          fontWeight={100}
-                        >
-                          Mean Error (y - ŷ):{" "}
-                          <strong>{cvMetrics.mean_error?.toFixed(4)}</strong>
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          fontFamily={"inherit"}
-                          fontWeight={100}
-                        >
-                          Std Error (y - ŷ):{" "}
-                          <strong>{cvMetrics.std_error?.toFixed(4)}</strong>
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          fontFamily={"inherit"}
-                          fontWeight={100}
-                        >
-                          MAE: <strong>{cvMetrics.mae?.toFixed(4)}</strong>
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          fontFamily={"inherit"}
-                          fontWeight={100}
-                        >
-                          RMSE: <strong>{cvMetrics.rmse?.toFixed(4)}</strong>
-                        </Typography>
-                      </ul>
-                    </>
-                  ) : undefined}
-                </Box>
+                {/* <Box mt={2} ml={4}>
+              {cvMetrics ? (
+                <>
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    <Typography
+                      variant="body1"
+                      fontFamily={"inherit"}
+                      fontWeight={100}
+                    >
+                      Mean Error (y - ŷ):{" "}
+                      <strong>{cvMetrics.mean_error?.toFixed(4)}</strong>
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      fontFamily={"inherit"}
+                      fontWeight={100}
+                    >
+                      Std Error (y - ŷ):{" "}
+                      <strong>{cvMetrics.std_error?.toFixed(4)}</strong>
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      fontFamily={"inherit"}
+                      fontWeight={100}
+                    >
+                      MAE: <strong>{cvMetrics.mae?.toFixed(4)}</strong>
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      fontFamily={"inherit"}
+                      fontWeight={100}
+                    >
+                      RMSE: <strong>{cvMetrics.rmse?.toFixed(4)}</strong>
+                    </Typography>
+                  </ul>
+                </>
+              ) : undefined}
+            </Box> */}
               </Box>
             </Box>
           </Box>

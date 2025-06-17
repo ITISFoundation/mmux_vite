@@ -62,7 +62,9 @@ export async function getFunctionJobCollections(functionUid: string): Promise<Fu
         // PYTHON_DAKOTA_BACKEND + '/flask/list_function_job_collections_for_functionid?functionUid=' + functionUid,
         PYTHON_DAKOTA_BACKEND + '/flask/list_function_job_collections_for_functionid?functionUid=' + functionUid,
     ).then(function (response) {
-        return response.json()
+        const response_object = response.json()
+        console.log("JobCollections for function ID ", functionUid, ": ", response_object)
+        return response_object
     })
 }
 
