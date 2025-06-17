@@ -565,6 +565,8 @@ def flask_evaluate_sumo_along_axes():
         input_vars: List[str] = request_data["inputs"]
         make_log: bool = request_data.get("log", False)
         jobs: List[FunctionJob] = request_data["FunctionJobs"]
+        slider_values = request_data.get("sliderValues", None)  # this is a dict of input_vars to cut values, e.g. {"input1": 0.5, "input2": 1.0}
+        _logger.debug(f"Slider values: {slider_values}")
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
         run_dir = TRAINING_FILE.parent
 
@@ -582,6 +584,7 @@ def flask_evaluate_sumo_along_axes():
             PROCESSED_TRAINING_FILE,
             input_vars,
             output_response, 
+            cut_values = slider_values
         )
         
         _logger.debug("Done!!")

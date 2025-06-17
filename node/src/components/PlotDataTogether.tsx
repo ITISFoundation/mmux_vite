@@ -6,7 +6,7 @@ import { useMMUXContext } from "../context/MMUXContext";
 import { Data } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
 import Header from "./Header";
-import { CreateConstant, CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
+import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 
 type GPPrediction = {
   x: number[];
@@ -36,11 +36,6 @@ const Curves1DPlots = () => {
       return acc;
     }, {})
   );
-  console.log(
-    "InputVars to 1D curves: ",
-    inputVars,
-    distribution[selectedFunction?.uid || ""]
-  );
   console.log("QoI to 1D curves: ", selectedQoI);
 
   const RunCentralSuMoInterpolations = async (jobs: FunctionJob[]) => {
@@ -50,7 +45,7 @@ const Curves1DPlots = () => {
       body: JSON.stringify({
         inputs: inputVars,
         output: selectedQoI,
-        cutting_values: otherAxis,
+        sliderValues: otherAxis,
         FunctionJobs: jobs,
         log: false,
       }),
@@ -59,7 +54,6 @@ const Curves1DPlots = () => {
         return response.json();
       })
       .then(function (data) {
-        console.log("1D retrieved data: ", data);
         createPlotData(data);
       })
       .catch((error) => console.debug("Error:", error));
@@ -71,7 +65,7 @@ const Curves1DPlots = () => {
       return await RunCentralSuMoInterpolations(jobs);
     };
     run();
-  }, [inputVars, selectedQoI, selectedFunction, axis]);
+  }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis]);
 
   const createPlotData = (data: Record<string, GPPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
@@ -138,10 +132,12 @@ const Curves1DPlots = () => {
             plot_bgcolor: `${theme.palette.background.default}`,
             paper_bgcolor: `${theme.palette.background.default}`,
             font: { color: `${theme.palette.text.primary}` },
-            title: { text: selectedQoI },
+            xaxis: {
+              title: { text: axis }
+            },
             yaxis: {
-              // title: { text: qoi },
-              showgrid: true,
+              title: { text: selectedQoI },
+              // showgrid: true,
               anchor: "x",
             },
             showlegend: false,
@@ -167,22 +163,15 @@ const Curves1DPlots = () => {
                 return null; // Skip the first variable as it is already selected
               }
               const dist = distribution[selectedFunction?.uid || ""];
-              const distValue = dist[key];
-              if (distValue.distribution === "constant") {
-                return (
-                  <CreateConstant input={key} dist={dist[key]} key={key} />
-                );
-              } else {
-                return (
-                  <CreateSlider
-                    input={key}
-                    dist={dist[key]}
-                    otherAxis={otherAxis}
-                    setOtherAxis={setOtherAxis}
-                    key={key}
-                  />
-                );
-              }
+              return (
+                <CreateSlider
+                  input={key}
+                  dist={dist[key]}
+                  otherAxis={otherAxis}
+                  setOtherAxis={setOtherAxis}
+                  key={key}
+                />
+              );
             })}
           </>
         ) : undefined}
