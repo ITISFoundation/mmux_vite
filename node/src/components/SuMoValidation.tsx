@@ -69,7 +69,7 @@ const SuMoValidation = () => {
           (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
           0
         ) /
-          (y.length - 1)
+        (y.length - 1)
       );
       const y_hat = data[selectedQoI + "_hat"];
       const diff = y.map(
@@ -124,7 +124,7 @@ const SuMoValidation = () => {
             sum + Math.pow(value - y_hat[index] - mean_error, 2),
           0
         ) /
-          (y.length - 1)
+        (y.length - 1)
       );
       const mae =
         y.reduce(
@@ -173,10 +173,10 @@ const SuMoValidation = () => {
       const skew =
         y.length > 2
           ? y.reduce(
-              (acc: number, val: number) => acc + Math.pow((val - mean) / n, 3),
-              0
-            ) *
-            (y.length / ((y.length - 1) * (y.length - 2)))
+            (acc: number, val: number) => acc + Math.pow((val - mean) / n, 3),
+            0
+          ) *
+          (y.length / ((y.length - 1) * (y.length - 2)))
           : 0;
       return skew.toFixed(4);
     })();
@@ -190,12 +190,12 @@ const SuMoValidation = () => {
       const kurt =
         y.length > 3
           ? (y.reduce(
-              (acc: number, val: number) => acc + Math.pow((val - mean) / n, 4),
-              0
-            ) *
-              (y.length * (y.length + 1))) /
-              ((y.length - 1) * (y.length - 2) * (y.length - 3)) -
-            (3 * Math.pow(y.length - 1, 2)) / ((y.length - 2) * (y.length - 3))
+            (acc: number, val: number) => acc + Math.pow((val - mean) / n, 4),
+            0
+          ) *
+            (y.length * (y.length + 1))) /
+          ((y.length - 1) * (y.length - 2) * (y.length - 3)) -
+          (3 * Math.pow(y.length - 1, 2)) / ((y.length - 2) * (y.length - 3))
           : 0;
       return kurt.toFixed(4);
     })();
@@ -281,47 +281,49 @@ const SuMoValidation = () => {
           config={{ responsive: true }}
         />
       </Box>
-      <Box display="flex" flexDirection="row" width="680px" ml={2}>
-        <Box mt={2} display={"flex"} flexDirection={"column"}>
-          <Header headerType="uq" infoText="" tabTitle="Data Statistics" />
-          <Box display={"flex"} flexDirection={"row"}>
-            <Box mt={2} display={"flex"}>
+      <Box display="flex" flexDirection="row" width="680px" ml={2} mr={2} >
+        <Box mt={1} display={"flex"} flexDirection={"column"} width={"100%"}>
+          {/* <Header headerType="uq" infoText="" tabTitle="Data Statistics" /> */}
+          <Box display={"flex"} flexDirection={"row"} width={"100%"}>
+            <Box mt={2} display={"flex"} flexDirection={"row"} width={"100%"}>
               {cvMetrics ? (
-                <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                <ul style={{
+                  listStyle: "none", padding: 0, margin: "0px", display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%" // Ensure the ul takes full width
+                }}>
                   <Typography
                     variant="body1"
                     fontFamily={"inherit"}
                     fontWeight={100}
                   >
-                    Mean (y): <strong>{cvMetrics.mean_y?.toFixed(4)}</strong>
+                    Mean(y): <strong>{cvMetrics.mean_y?.toFixed(4)}</strong>
                   </Typography>
                   <Typography
                     variant="body1"
                     fontFamily={"inherit"}
                     fontWeight={100}
                   >
-                    Std (y): <strong>{cvMetrics.std_y?.toFixed(4)}</strong>
+                    Std(y): <strong>{cvMetrics.std_y?.toFixed(4)}</strong>
                   </Typography>
                   <Typography
                     variant="body1"
                     fontFamily={"inherit"}
                     fontWeight={100}
                   >
-                    Skewness (y): <strong>{skewnessValue}</strong>
+                    Skewness(y): <strong>{skewnessValue}</strong>
                   </Typography>
                   <Typography
                     variant="body1"
                     fontFamily={"inherit"}
                     fontWeight={100}
                   >
-                    Kurtosis (y): <strong>{KurtosisValue}</strong>
+                    Kurtosis(y): <strong>{KurtosisValue}</strong>
                   </Typography>
                 </ul>
               ) : (
                 <div>No data statistics available.</div>
               )}
             </Box>
-            <Box mt={2} ml={4}>
+            {/* <Box mt={2} ml={4}>
               {cvMetrics ? (
                 <>
                   <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
@@ -358,7 +360,7 @@ const SuMoValidation = () => {
                   </ul>
                 </>
               ) : undefined}
-            </Box>
+            </Box> */}
           </Box>
         </Box>
       </Box>
