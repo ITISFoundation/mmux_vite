@@ -3,9 +3,7 @@ import { useMMUXContext } from "../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import Plot from "react-plotly.js";
 import { Box, Typography, useTheme } from "@mui/material";
-import { PlotData } from "plotly.js";
 import { FunctionJob } from "../osparc-api-ts-client";
-import Header from "./Header";
 
 type cvMetricsType = {
   mean_y: number;

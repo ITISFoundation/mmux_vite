@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { KeyboardArrowLeft, KeyboardArrowRight } from "@mui/icons-material";
 import IsoSurface3DPlot from "./IsoSurface3DPlot";
-import Curves1DPlots from "./PlotDataTogether";
+import Curves1DPlots from "./Curves1DPlot";
 import SuMoValidation from "./SuMoValidation";
 import Surface2DPlot from "./Surface3DPlot";
 import Header from "./Header";
