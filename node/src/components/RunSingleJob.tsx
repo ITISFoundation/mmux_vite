@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Box, Button, Skeleton, Typography } from "@mui/material";
-import { Function, FunctionJob } from "../osparc-api-ts-client";
+import { Function, FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
 import { useMMUXContext, MMUXContextType } from "../context/MMUXContext";
-import { RunSamplingButton } from "./SamplingButton";
+import { RunSamplingButton } from "./RunSamplingButton";
 import ValueConfig from "./ValueConfig";
+import { toast } from "react-toastify";
 
 async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
   const fun = context?.selectedFunction as Function;
@@ -18,7 +19,11 @@ async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
       config: config,
     }),
   })
-    .then(function (response) {
+    .then(async function (response) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error running Single Job ${response.status}: ${errorText}`);
+      }
       return response.json();
     })
     .then(function (j: FunctionJob) {
@@ -41,7 +46,20 @@ const TestJob = () => {
 
   const handleRunSampling = async () => {
     setSingleJobConfig(jobInputs);
-    await runTestJob(context, jobInputs);
+    const job = await runTestJob(context, jobInputs);
+    console.log("TestJob created: ", job);
+    // open in a new window - like in "View" of the JobList
+    if (job && job.functionClass && job.functionClass === "PROJECT") {
+      const url = `/#/study/${job.projectJobId}`
+      const newWindow = window.open(url);
+      if (newWindow) {
+        console.info("Window opened successfully")
+      } else {
+        toast.warning("Popup blocked! Please allow popups for this site to open the job in a new tab.");
+      }
+    } else {
+      toast.warning("Only ProjectFunctionJob can be opened in a new window!");
+    }
   };
 
   function handleInputChange(index: number, field: string, value: string) {
