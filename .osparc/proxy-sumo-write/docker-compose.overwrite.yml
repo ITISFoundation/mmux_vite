@@ -1,0 +1,5 @@
+services:
+  mmux-vite-app-sumo-write:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile

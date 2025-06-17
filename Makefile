@@ -88,13 +88,66 @@ build: compose-spec ## build docker images
 build-no-cache: compose-spec ## build docker images	
 	docker compose build --no-cache --pull --parallel
 
-.PHONY: run-develop
-run-develop: ## runs for development
+# DEVELOPMENT
+
+.PHONY: run-develop-sumo-read
+run-develop-sumo-read: ## runs for development SUMO/READ-ONLY
+	export SERVICE_MODE=SUMO && \
+	export PERMISSIONS=READ-ONLY && \
+	export APP_IMAGE=mmux-vite-app-sumo-read && \
 	docker compose --file docker-compose-development.yml up
 
-.PHONY: run-prod-local
-run-prod-local: ## runs for validation as it would be in production
+.PHONY: run-develop-sumo-write
+run-develop-sumo-write: ## runs for development SUMO/WRITE
+	export SERVICE_MODE=SUMO \
+	&& export PERMISSIONS=WRITE && \
+	export APP_IMAGE=mmux-vite-app-sumo-write && \
+	docker compose --file docker-compose-development.yml up
+
+.PHONY: run-develop-uq-read
+run-develop-uq-read: ## runs for development UQ/READ-ONLY
+	export SERVICE_MODE=UQ && \
+	export PERMISSIONS=READ-ONLY && \
+	export APP_IMAGE=mmux-vite-app-uq-read && \
+	docker compose --file docker-compose-development.yml up
+
+.PHONY: run-develop-uq-write
+run-develop-uq-write: ## runs for development UQ/WRITE
+	export SERVICE_MODE=UQ && \
+	export PERMISSIONS=WRITE && \
+	export APP_IMAGE=mmux-vite-app-uq-write && \
+	docker compose --file docker-compose-development.yml up
+
+# VALIDATION VERSIONS
+
+.PHONY: run-prod-local-sumo-read
+run-prod-local-sumo-read: ## runs for validation as it would be in production SUMO/READ-ONLY
+	export SERVICE_MODE=SUMO && \
+	export PERMISSIONS=READ-ONLY && \
+	export APP_IMAGE=mmux-vite-app-sumo-read && \
 	docker compose --file docker-compose-local.yml up
+
+.PHONY: run-prod-local-sumo-write
+run-prod-local-sumo-write: ## runs for validation as it would be in production SUMO/WRITE
+	export SERVICE_MODE=SUMO && \
+	export PERMISSIONS=WRITE && \
+	export APP_IMAGE=mmux-vite-app-sumo-write && \
+	docker compose --file docker-compose-local.yml up
+
+.PHONY: run-prod-local-uq-read
+run-prod-local-uq-read: ## runs for validation as it would be in production UQ/READ-ONLY
+	export SERVICE_MODE=UQ && \
+	export PERMISSIONS=READ-ONLY && \
+	export APP_IMAGE=mmux-vite-app-uq-read && \
+	docker compose --file docker-compose-local.yml up
+
+.PHONY: run-prod-local-uq-write
+run-prod-local-uq-write: ## runs for validation as it would be in production UQ/WRITE
+	export SERVICE_MODE=UQ && \
+	export PERMISSIONS=WRITE && \
+	export APP_IMAGE=mmux-vite-app-uq-write && \
+	docker compose --file docker-compose-local.yml up
+
 
 .PHONY: publish-local
 publish-local: ## push to local throw away registry to test integration
@@ -102,8 +155,14 @@ publish-local: ## push to local throw away registry to test integration
 	docker push registry:5000/simcore/services/dynamic/mmux-vite-backend:$(DOCKER_IMAGE_TAG)
 	docker tag simcore/services/dynamic/mmux-vite-web:${DOCKER_IMAGE_TAG} registry:5000/simcore/services/dynamic/mmux-vite-web:$(DOCKER_IMAGE_TAG)
 	docker push registry:5000/simcore/services/dynamic/mmux-vite-web:$(DOCKER_IMAGE_TAG)
-	docker tag simcore/services/dynamic/mmux-vite-app:${DOCKER_IMAGE_TAG} registry:5000/simcore/services/dynamic/mmux-vite-app:$(DOCKER_IMAGE_TAG)
-	docker push registry:5000/simcore/services/dynamic/mmux-vite-app:$(DOCKER_IMAGE_TAG)
+	docker tag simcore/services/dynamic/mmux-vite-app-sumo-read:${DOCKER_IMAGE_TAG} registry:5000/simcore/services/dynamic/mmux-vite-app-sumo-read:$(DOCKER_IMAGE_TAG)
+	docker push registry:5000/simcore/services/dynamic/mmux-vite-app-sumo-read:$(DOCKER_IMAGE_TAG)
+	docker tag simcore/services/dynamic/mmux-vite-app-sumo-write:${DOCKER_IMAGE_TAG} registry:5000/simcore/services/dynamic/mmux-vite-app-sumo-write:$(DOCKER_IMAGE_TAG)
+	docker push registry:5000/simcore/services/dynamic/mmux-vite-app-sumo-write:$(DOCKER_IMAGE_TAG)
+	docker tag simcore/services/dynamic/mmux-vite-app-uq-read:${DOCKER_IMAGE_TAG} registry:5000/simcore/services/dynamic/mmux-vite-app-uq-read:$(DOCKER_IMAGE_TAG)
+	docker push registry:5000/simcore/services/dynamic/mmux-vite-app-uq-read:$(DOCKER_IMAGE_TAG)
+	docker tag simcore/services/dynamic/mmux-vite-app-uq-write:${DOCKER_IMAGE_TAG} registry:5000/simcore/services/dynamic/mmux-vite-app-uq-write:$(DOCKER_IMAGE_TAG)
+	docker push registry:5000/simcore/services/dynamic/mmux-vite-app-uq-write:$(DOCKER_IMAGE_TAG)
 	@curl registry:5000/v2/_catalog | jq
 
 

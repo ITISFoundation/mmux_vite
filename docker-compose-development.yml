@@ -8,6 +8,8 @@ services:
       - OSPARC_API_SECRET=${OSPARC_API_SECRET}
       - LOG_LEVEL=DEBUG
       - DEVELOPMENT_MODE=true
+      - SERVICE_MODE=${SERVICE_MODE}
+      - PERMISSIONS=${PERMISSIONS}
     volumes:
       - ./flaskapi:/app
   mmux-vite-web:
@@ -20,7 +22,7 @@ services:
     environment:
       - NODE_ENV=development
   mmux-vite-app:
-    image: simcore/services/dynamic/mmux-vite-app:1.2.2
+    image: simcore/services/dynamic/${APP_IMAGE}:1.2.2
     environment:
       - WEB_SERVICE=mmux-vite-web:8080
       - BACKEND_SERVICE=mmux-vite-backend:5000

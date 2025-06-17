@@ -1,0 +1,5 @@
+services:
+  mmux-vite-app-uq-read:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile

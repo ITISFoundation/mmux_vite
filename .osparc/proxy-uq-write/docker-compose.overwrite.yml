@@ -1,5 +1,5 @@
 services:
-  mmux-vite-app:
+  mmux-vite-app-uq-write:
     build:
       context: ./proxy
       dockerfile: Dockerfile
