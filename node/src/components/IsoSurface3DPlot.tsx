@@ -5,7 +5,7 @@ import { useMMUXContext } from "../context/MMUXContext";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Data } from "plotly.js";
-import { CreateSelect, CreateConstant, CreateSlider } from "./PlotTools";
+import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 
 const IsoSurface3DPlot = () => {
   const theme = useTheme();
@@ -16,11 +16,7 @@ const IsoSurface3DPlot = () => {
     selectedQoI,
     filterSelectedJobList,
   } = useMMUXContext();
-  const filteredInputVars = inputVars.filter(
-    (i) =>
-      (distribution[selectedFunction?.uid || ""][i]
-        .distribution as distribution) !== "constant"
-  );
+  const filteredInputVars = filterInputVars()
   const [axis1, setAxis1] = useState(filteredInputVars[0]);
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [axis3, setAxis3] = useState(filteredInputVars[2]);
@@ -134,6 +130,7 @@ const IsoSurface3DPlot = () => {
         gridVars: [axis1, axis2, axis3],
         inputVars: inputVars,
         output: selectedQoI,
+        sliderValues: otherAxis,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false,
       }),
@@ -148,6 +145,9 @@ const IsoSurface3DPlot = () => {
       .catch((error) => console.debug("Error:", error));
   };
 
+  interface IsoSurfaceData extends Plotly.PlotData {
+    surface: { show: boolean, count: number }; // Just to make TypeScript happy. Edit if necessary.
+  }
   const reshapePlotData = (
     data:
       | { [key: string]: number[] }
@@ -155,15 +155,17 @@ const IsoSurface3DPlot = () => {
       | { [key: string]: number }
   ) => {
     if (data && selectedQoI) {
-      const newData: Data[] = [
+      const newData: Partial<IsoSurfaceData>[] = [
         {
           type: "isosurface",
           x: data[axis1] as number[],
           y: data[axis2] as number[],
           z: data[axis3] as number[],
           value: data[selectedQoI] as number,
-          colorscale: "Reds",
+          colorscale: "Viridis",
           showscale: true,
+          opacity: 0.5,
+          surface: { show: true, count: 10 },
         },
       ];
       setPlotData(newData);
@@ -181,7 +183,7 @@ const IsoSurface3DPlot = () => {
     };
     run();
     console.log(axis1, axis2, axis3);
-  }, [axis1, axis2, axis3]);
+  }, [axis1, axis2, axis3, inputVars, selectedQoI, selectedFunction, otherAxis]);
 
   const layout = {
     title: {
@@ -199,9 +201,9 @@ const IsoSurface3DPlot = () => {
       t: 90,
     },
     scene: {
-      xaxis: { title: { text: axis1 }, tickangle: -45, range: [-10, 10] },
-      yaxis: { title: { text: axis2 }, tickangle: -45, range: [-10, 10] },
-      zaxis: { title: { text: axis3 }, tickangle: -45, range: [-10, 10] },
+      xaxis: { title: { text: axis1 }, tickangle: -45, },
+      yaxis: { title: { text: axis2 }, tickangle: -45, },
+      zaxis: { title: { text: axis3 }, tickangle: -45, },
       camera: {
         eye: {
           x: 1.88,
@@ -230,66 +232,45 @@ const IsoSurface3DPlot = () => {
       >
         <Plot data={plotData} layout={layout} style={plotStyle} />
       </Box>
-      <Box display={"flex"} flexDirection={"column"} gap={2} pt={2}>
+      <Box display={"flex"} flexDirection={"row"} gap={2} pt={2}>
         <CreateSelect
           idx={1}
+          inputVars={inputVars}
           axis={axis1}
           setAxis={handleSetAxis1}
-          filteredInputVars={inputVars.filter(
-            (i) =>
-              (distribution[selectedFunction?.uid || ""][i]
-                .distribution as distribution) !== "constant"
-          )}
         />
         <CreateSelect
           idx={2}
+          inputVars={inputVars}
           axis={axis2}
           setAxis={handleSetAxis2}
-          filteredInputVars={inputVars.filter(
-            (i) =>
-              (distribution[selectedFunction?.uid || ""][i]
-                .distribution as distribution) !== "constant"
-          )}
         />
         <CreateSelect
           idx={3}
           axis={axis3}
+          inputVars={inputVars}
           setAxis={handleSetAxis3}
-          filteredInputVars={inputVars.filter(
-            (i) =>
-              (distribution[selectedFunction?.uid || ""][i]
-                .distribution as distribution) !== "constant"
-          )}
         />
+      </Box>
+      <Box display={"flex"} flexDirection={"column"} gap={2} pt={2}>
         {inputVars.length > 0 &&
-        distribution[selectedFunction?.uid || ""] !== undefined &&
-        !(
-          filteredInputVars.includes(axis1) &&
-          filteredInputVars.includes(axis2) &&
-          filteredInputVars.includes(axis3)
-        ) ? (
+          distribution[selectedFunction?.uid || ""] !== undefined ? (
           <>
-            {filteredInputVars.map((key) => {
-              if (key === axis1 || key === axis2) {
+            {inputVars.map((key) => {
+              if (key === axis1 || key === axis2 || key === axis3) {
                 return null; // Skip the first variable as it is already selected
               }
               const dist = distribution[selectedFunction?.uid || ""];
-              const distValue = dist[key];
-              if (distValue.distribution === "constant") {
-                return (
-                  <CreateConstant input={key} dist={dist[key]} key={key} />
-                );
-              } else {
-                return (
-                  <CreateSlider
-                    input={key}
-                    dist={dist[key]}
-                    otherAxis={otherAxis}
-                    setOtherAxis={setOtherAxis}
-                    key={key}
-                  />
-                );
-              }
+              return (
+                <CreateSlider
+                  input={key}
+                  dist={dist[key]}
+                  otherAxis={otherAxis}
+                  setOtherAxis={setOtherAxis}
+                  key={key}
+                />
+              );
+
             })}
           </>
         ) : undefined}

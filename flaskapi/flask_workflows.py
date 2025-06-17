@@ -608,6 +608,8 @@ def flask_sumo_grid_evaluation():
         input_vars: List[str] = request_data["inputVars"]
         make_log: bool = request_data.get("log", False)
         jobs: List[FunctionJob] = request_data["FunctionJobs"]
+        slider_values = request_data.get("sliderValues", None)  # this is a dict of input_vars to cut values, e.g. {"input1": 0.5, "input2": 1.0}
+        _logger.debug(f"Slider values: {slider_values}")
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
         run_dir = TRAINING_FILE.parent
 
@@ -626,6 +628,7 @@ def flask_sumo_grid_evaluation():
             grid_vars,
             input_vars,
             output_response, # type: ignore
+            cut_values = slider_values
         )
         _logger.debug("Done!!")
         return jsonify(results) # check if jsonify is needed
@@ -784,7 +787,7 @@ def flask_grid_sampling():
             grid_vars = input_vars,
             input_vars = input_vars,
             mins = [config[var]["start"] for var in input_vars],
-            means = [(config[var]["end"] + config[var]["start"]) / 2 for var in input_vars], # this is the mean of the grid points
+            cut_values = [(config[var]["end"] + config[var]["start"]) / 2 for var in input_vars], # this is the mean of the grid points
             maxs = [config[var]["end"] for var in input_vars],
             n_points_per_dimension=[config[var]["points"] for var in input_vars], # this is the number of points per dimension
         )
