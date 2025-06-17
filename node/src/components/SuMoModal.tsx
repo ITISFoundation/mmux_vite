@@ -10,7 +10,6 @@ import {
   useTheme,
 } from "@mui/material";
 import { KeyboardArrowLeft, KeyboardArrowRight } from "@mui/icons-material";
-import { useMMUXContext } from "../context/MMUXContext";
 import IsoSurface3DPlot from "./IsoSurface3DPlot";
 import Curves1DPlots from "./PlotDataTogether";
 import SuMoValidation from "./SuMoValidation";
@@ -26,7 +25,6 @@ const SuMoModal = ({
   setOpen: (value: boolean) => void;
 }) => {
   const theme = useTheme();
-  const { inputVars, distribution, selectedFunction } = useMMUXContext();
   const [activeStep, setActiveStep] = React.useState(0);
 
   const handleNext = () => {
@@ -56,7 +54,7 @@ const SuMoModal = ({
       sx={{
         margin: "auto",
         width: "50%",
-        height: "60%",
+        height: "80%",
       }}
     >
       <Card
