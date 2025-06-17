@@ -125,10 +125,7 @@ const JobRow = (props: JobRowProps) => {
                 setCreatingJobCopy(false)
                 console.log("Let's open a new window using project uid: ", copy_uid)
                 if (copy_uid) {
-                  const url = new URL(serviceAddress);
-                  const simplifiedHost = url.hostname.replace(/^[^.]+\.services\./, ''); // get rid of the UUID and "services"
-                  const deploymentUrl = `${url.protocol}//${simplifiedHost}`; // add the protocol
-                  // const url = `/#/study/${copy_uid}`
+                  const url = `/#/study/${copy_uid}`
                   const newWindow = window.open(url);
                   if (newWindow) {
                     console.info("Window opened successfully")
