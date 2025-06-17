@@ -105,7 +105,7 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
 
 
         // Path Params
-        const localVarPath = '/v0/functions/{function_id}/input_schema'
+        const localVarPath = '/v0/functions/{function_id}/inputSchema'
             .replace('{' + 'function_id' + '}', encodeURIComponent(String(functionId)));
 
         // Make Request Context
@@ -137,7 +137,7 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
 
 
         // Path Params
-        const localVarPath = '/v0/functions/{function_id}/output_schema'
+        const localVarPath = '/v0/functions/{function_id}/outputSchema'
             .replace('{' + 'function_id' + '}', encodeURIComponent(String(functionId)));
 
         // Make Request Context

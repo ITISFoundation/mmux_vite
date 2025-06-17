@@ -7,8 +7,8 @@ const MOCKUP_FUNCTIONS: Function[] = [
 MOCKUP_FUNCTIONS[0].title = "Mockup Function"
 MOCKUP_FUNCTIONS[0].description = "A simple mockup Function for FrontEnd development & testing"
 MOCKUP_FUNCTIONS[0].uid = "asdfasdfasdf"
-MOCKUP_FUNCTIONS[0].input_schema = new JSONFunctionInputSchema()
-MOCKUP_FUNCTIONS[0].input_schema.schema_content = {
+MOCKUP_FUNCTIONS[0].inputSchema = new JSONFunctionInputSchema()
+MOCKUP_FUNCTIONS[0].inputSchema.schema_content = {
     "type": "object",
     "properties": {
         "x": { "type": "number" },
@@ -16,8 +16,8 @@ MOCKUP_FUNCTIONS[0].input_schema.schema_content = {
     },
     "required": ["x", "y"],
 }
-MOCKUP_FUNCTIONS[0].output_schema = new JSONFunctionOutputSchema()
-MOCKUP_FUNCTIONS[0].output_schema.schema_content = {
+MOCKUP_FUNCTIONS[0].outputSchema = new JSONFunctionOutputSchema()
+MOCKUP_FUNCTIONS[0].outputSchema.schema_content = {
     "type": "object",
     "properties": { "result": { "type": "number" } },
     "required": ["result"],

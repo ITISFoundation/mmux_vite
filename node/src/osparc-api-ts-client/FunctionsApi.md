@@ -6,8 +6,8 @@ Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**deleteFunction**](FunctionsApi.md#deleteFunction) | **DELETE** /v0/functions/{function_id} | Delete Function
 [**getFunction**](FunctionsApi.md#getFunction) | **GET** /v0/functions/{function_id} | Get Function
-[**getFunctionInputschema**](FunctionsApi.md#getFunctionInputschema) | **GET** /v0/functions/{function_id}/input_schema | Get Function Inputschema
-[**getFunctionOutputschema**](FunctionsApi.md#getFunctionOutputschema) | **GET** /v0/functions/{function_id}/output_schema | Get Function Outputschema
+[**getFunctionInputschema**](FunctionsApi.md#getFunctionInputschema) | **GET** /v0/functions/{function_id}/inputSchema | Get Function Inputschema
+[**getFunctionOutputschema**](FunctionsApi.md#getFunctionOutputschema) | **GET** /v0/functions/{function_id}/outputSchema | Get Function Outputschema
 [**listFunctionJobsForFunctionid**](FunctionsApi.md#listFunctionJobsForFunctionid) | **GET** /v0/functions/{function_id}/jobs | List Function Jobs For Functionid
 [**listFunctions**](FunctionsApi.md#listFunctions) | **GET** /v0/functions | List Functions
 [**mapFunction**](FunctionsApi.md#mapFunction) | **POST** /v0/functions/{function_id}:map | Map Function

@@ -80,7 +80,6 @@ def dict_keys_snake_to_camel(d: dict) -> dict:
     """Convert dictionary keys from snake_case to camelCase."""
     return {snake_to_camel(k): v for k, v in d.items()}
 
-
 ### osparc client configuration #############################    
 os.chdir(os.path.dirname(__file__))
 

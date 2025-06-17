@@ -168,20 +168,20 @@ export function FunctionList() {
       if (selectedRow) {
         setSelectedFunction(selectedRow);
         setInputVars(
-          selectedRow.input_schema?.schema_content?.properties
+          selectedRow.inputSchema?.schema_content?.properties
             ? Object.keys(
-              selectedRow.input_schema?.schema_content?.properties
+              selectedRow.inputSchema?.schema_content?.properties
             )
             : []
         );
         console.log(
           "inputVars registered:",
-          Object.keys(selectedRow.input_schema?.schema_content?.properties)
+          Object.keys(selectedRow.inputSchema?.schema_content?.properties)
         );
         setOutputVars(
-          selectedRow.output_schema?.schema_content?.properties
+          selectedRow.outputSchema?.schema_content?.properties
             ? Object.keys(
-              selectedRow.output_schema.schema_content.properties
+              selectedRow.outputSchema.schema_content.properties
             )
             : []
         );
@@ -269,19 +269,19 @@ export function FunctionList() {
             maxWidth: 100,
           },
           {
-            field: "input_schema",
+            field: "inputSchema",
             headerName: "Inputs",
             flex: 1,
             maxWidth: 100,
-            renderCell: (params) => showInputOutputSchema(params.row.input_schema),
+            renderCell: (params) => showInputOutputSchema(params.row.inputSchema),
           },
           {
-            field: "output_schema",
+            field: "outputSchema",
             headerName: "Outputs",
             flex: 1,
             maxWidth: 100,
             renderCell: (params) =>
-              showInputOutputSchema(params.row.output_schema),
+              showInputOutputSchema(params.row.outputSchema),
           },
           {
             field: "n_evaluations",
@@ -313,20 +313,20 @@ export function FunctionList() {
                 onClick={() => {
                   setSelectedFunction(params.row);
                   setInputVars(
-                    params.row.input_schema?.schema_content?.properties
+                    params.row.inputSchema?.schema_content?.properties
                       ? Object.keys(
-                        params.row.input_schema.schema_content.properties
+                        params.row.inputSchema.schema_content.properties
                       )
                       : []
                   );
                   console.log(
                     "inputVars registered:",
-                    Object.keys(params.row.input_schema.schema_content.properties)
+                    Object.keys(params.row.inputSchema.schema_content.properties)
                   );
                   setOutputVars(
-                    params.row.output_schema?.schema_content?.properties
+                    params.row.outputSchema?.schema_content?.properties
                       ? Object.keys(
-                        params.row.output_schema.schema_content.properties
+                        params.row.outputSchema.schema_content.properties
                       )
                       : []
                   );
