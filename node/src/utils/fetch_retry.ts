@@ -1,6 +1,6 @@
 import { delay } from './function_utils'
 
-export const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 3, wait = 100): Promise<Response> => {
+export const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 3, wait = 150): Promise<Response> => {
   let attempt = 0;
   let response: Response | undefined = undefined;
   let ErrorToRetry: Error | undefined = undefined;
@@ -14,7 +14,7 @@ export const fetchWithRetry = async (url: string, options: RequestInit = {}, ret
         ErrorToRetry = error as Error; // Re-throw the error after all retries have failed
       }
     }
-    await delay(wait); // Wait before the next retry
+    await delay(wait * (4 - retries)); // Wait before the next retry
 
     if( response && response.ok) {
       return response; // If the response is successful, return it immediately
