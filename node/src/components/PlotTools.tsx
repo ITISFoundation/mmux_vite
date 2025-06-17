@@ -3,11 +3,10 @@ import { useState } from "react";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { useMMUXContext } from "../context/MMUXContext";
 
-
-export const _filterOutConstantDataVars = () => {
+export const _get_unique_values = () => {
   const { inputVars, filterSelectedJobList } = useMMUXContext();
-  const jobs = filterSelectedJobList();
   const uniqueValuesPerVar: { [varName: string]: Set<number> } = {};
+  const jobs = filterSelectedJobList();
   inputVars.forEach((varName) => {
     uniqueValuesPerVar[varName] = new Set<number>();
   });
@@ -21,22 +20,15 @@ export const _filterOutConstantDataVars = () => {
       });
     }
   });
+  return uniqueValuesPerVar
+}
 
-  Object.entries(uniqueValuesPerVar).forEach(([varName, valueSet]) => {
-    if (valueSet.size === 0) {
-      console.log(`Variable ${varName} has no unique values.`);
-    } else if (valueSet.size === 1) {
-      console.log(`Variable ${varName} has a single unique value:`, Array.from(valueSet)[0]);
-    } else if (valueSet.size > 1) {
-      console.log(`Variable ${varName} has multiple unique values:`, Array.from(valueSet));
-    }
-  });
-
+export const _filterOutConstantDataVars = () => {
   // Filter out variables with only one unique value
+  const uniqueValuesPerVar: { [varName: string]: Set<number> } = _get_unique_values()
   const newFilteredInputVars = Object.entries(uniqueValuesPerVar)
     .filter(([_, valueSet]) => valueSet.size > 1)
     .map(([varName, _]) => varName);
-  console.log("Filtered inputVars (with >1 unique value):", newFilteredInputVars);
   return newFilteredInputVars
 }
 export const _filterOutConstantDistributionVars = () => {
@@ -114,15 +106,24 @@ const sliderMarc = (value: number) => `X: ${value}`;
 
 export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSliderProps) => {
   const [value, setValue] = useState(otherAxis[input] || 0);
+  const filteredInputVars = filterInputVars()
+  const uniqueValuesPerVar = _get_unique_values()
   let min, max;
-  if (dist.distribution === "normal" && dist.mean && dist.std) {
+  if (dist.distribution === "normal" && dist.mean !== undefined && dist.std !== undefined) {
     min = dist.mean - 2.5 * dist.std;
     max = dist.mean + 2.5 * dist.std;
-  }
-  if (dist.distribution === "uniform" && dist.min && dist.max) {
+  } else if (dist.distribution === "uniform" && dist.min !== undefined && dist.max !== undefined) {
     min = dist.min;
     max = dist.max;
   }
+  if (!filteredInputVars.includes(input)) {
+    min = uniqueValuesPerVar[input].values().next().value * 0.99
+    max = uniqueValuesPerVar[input].values().next().value * 1.01
+    // setValue(uniqueValuesPerVar[input])
+  } // TODO add the other distributions
+
+  console.log("var", input, "min & max: ", min, max)
+  console.log(uniqueValuesPerVar)
   return (
     <InputLabel
       sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center" }}
@@ -133,7 +134,7 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
         fontFamily={"inherit"}
         fontWeight={100}
       >
-        {input}:
+        {filteredInputVars.includes(input) ? input : input + " - constant"}:
       </Typography>
       <CustomSlider
         aria-label="Default"
@@ -142,10 +143,17 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
         step={0.01}
         min={min}
         max={max}
-        value={value}
+        value={value} // TODO could not get slider to be in the middle for those w constant values
         onChange={(e, newValue) => {
           setValue(newValue as number);
         }}
+        onChangeCommitted={(e, value) => {
+          const newAxis = { ...otherAxis };
+          newAxis[input] = value as number;
+          console.log("new otherAxis: ", newAxis)
+          setOtherAxis(newAxis);
+        }}
+        disabled={!filteredInputVars.includes(input)}
       />
       <TextField
         value={value}
@@ -165,23 +173,3 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
     </InputLabel>
   );
 };
-
-export const CreateConstant = ({
-  dist,
-  input,
-}: {
-  dist: VarSelection;
-  input: string;
-}) => (
-  <InputLabel sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center" }}>
-    <Typography
-      variant="h6"
-      component={"p"}
-      display={"inline"}
-      fontFamily={"inherit"}
-      fontWeight={100}
-    >
-      {input + ":"} <strong>{dist.value}</strong>
-    </Typography>
-  </InputLabel>
-);
