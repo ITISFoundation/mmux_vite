@@ -21,17 +21,14 @@ from typing import List, Dict, Callable
 import numpy as np
 import pandas as pd
 from flask import Flask, request, abort, jsonify, make_response
-import osparc_client
-from osparc_client.configuration import Configuration as OsparcConfiguration
-from osparc_client.api_client import ApiClient
+from osparc import Configuration as OsparcConfiguration
+from osparc import ApiClient, UsersApi, StudiesApi
 from osparc_client.api.functions_api import FunctionsApi
 from osparc_client.api.function_jobs_api import FunctionJobsApi
-from osparc_client.api.users_api import UsersApi
-from osparc_client.api.studies_api import StudiesApi
 from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi
 from osparc_client.models.function_job import FunctionJob
 from osparc_client.models.function_job_status import FunctionJobStatus
-from osparc_client.configuration import Configuration as OsparcConfiguration
+from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost
 
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
@@ -129,7 +126,6 @@ job_collection_api_instance = FunctionJobCollectionsApi(api_client)
 
 # check that API is responsive
 _logger.info("Checking if the API is responsive...")
-_logger.info("osparc_client version %s", osparc_client.__version__)
 users_api = UsersApi(api_client)
 profile = users_api.get_my_profile()
 _logger.info("User profile info:\n%s", profile.model_dump_json(indent=2))
@@ -773,7 +769,9 @@ def flask_lhs():
 
         # Now, the running of jobs through the OSPARC API has been moved to the Python backend
         ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
-        jc = functions_api_instance.map_function(function_uid, samples)
+        ## TODO add x_simcore_parent_node_id and x_simcore_parent_project_uuid to the request
+        _logger.warning("MapFunction does not work until we include parent headers")
+        jc = functions_api_instance.map_function(function_uid, samples, x_simcore_parent_node_id=..., x_simcore_parent_project_uuid=...) # type: ignore
         return jsonify(dict_keys_snake_to_camel(jc.to_dict()))
     except Exception as e:
         _logger.error(f"Error while performing LHS sampling on function {function_uid}: {e}")
@@ -816,8 +814,10 @@ def flask_grid_sampling():
         ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
         _logger.debug(f"Samples: {samples}")
         _logger.debug("Grid sampling not yet tested!! TODO Double check!")
-        jc = functions_api_instance.map_function(function_uid, samples)
-        return jsonify(jc.to_dict()) ## this now returns a JobCollection
+        ## TODO add x_simcore_parent_node_id and x_simcore_parent_project_uuid to the request
+        _logger.warning("MapFunction does not work until we include parent headers")
+        jc = functions_api_instance.map_function(function_uid, samples, x_simcore_parent_node_id=..., x_simcore_parent_project_uuid=...) # type: ignore
+        return jsonify(dict_keys_snake_to_camel(jc.to_dict()))
     except Exception as e:
         _logger.error(f"Error while creating Grid Sampling of {function_uid}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
@@ -870,7 +870,9 @@ def flask_clone_job():
         project_job_id = request_data["projectJobId"]
     
         # Clone the job using the job_id
-        study = studies_api_instance.clone_study(project_job_id)
+        study_data = BodyCloneStudyV0StudiesStudyIdClonePost(title="...", description="...")
+        study = studies_api_instance.clone_study(project_job_id, hidden=False,
+                                                 body_clone_study_v0_studies_study_id_clone_post=study_data)
         # studies_api_instance.patch_study(study)  # this will update the study with the new data -- FIXME this endpoint needs to be exposed in the API
         _logger.debug(f"Cloned study: {study.to_dict()}")
         _logger.debug("Done!!")
