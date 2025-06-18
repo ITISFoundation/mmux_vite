@@ -11,6 +11,7 @@ import UQ from "./views/UQ";
 import { getHealth } from "./utils/function_utils";
 import { SplashScreen } from "./views/SplashScreen";
 import { ServiceContextProvider, useServiceContext } from "./context/ServiceContext";
+import PreviewWarning from "./components/PreviewWarning";
 
 const FakeRoot = styled("div")(
   ({ theme }) => `
@@ -22,8 +23,7 @@ const FakeRoot = styled("div")(
 
 const App = () => {
   const [healthStatus, setHealthStatus] = useState<boolean>(false);
-  const serviceAddress = window.location.href;
-  const { serviceMode, permissions } = useServiceContext();
+
   const steps: Step[] = [
     { id: 0, label: "Setup" },
     { id: 1, label: "UQ" },
@@ -114,20 +114,11 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <FakeRoot>
-        {(permissions === "READ-ONLY") ?
-          <Container>
-            <Box paddingTop={2}>
-              <Alert variant='outlined' severity='info'>
-                This is a preview of the {(serviceMode === "UQ") ? "Uncertainty Quantification" : "Meta-Modeling Insights"} Hypertool that runs on a precomputed demonstration application. If you want to explore it using your own Projects, please contact support@{serviceAddress}
-              </Alert>
-            </Box>
-          </Container>
-          : ""
-        }
         {!healthStatus ? (
           <SplashScreen />
         ) : (
           <ServiceContextProvider>
+            <PreviewWarning />
             <Container sx={{ paddingBottom: 4 }}>
               <Navigation steps={steps} activeStep={currentView} />
               <>
