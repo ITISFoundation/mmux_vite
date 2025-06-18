@@ -46,7 +46,7 @@ const JobRow = (props: JobRowProps) => {
           ]
           : (jobStatus === "FAILED")
             ? "No outputs"
-            : (jobStatus === "PENDING") || (jobStatus === "WAITING_FOR_CLUSTER") // both are valid options
+            : (jobStatus === "PENDING") || (jobStatus === "WAITING_FOR_CLUSTER") || (jobStatus === "PUBLISHED") // both are valid options
               ? "Pending to run"
               : "Unknown status, please contact support"
 
@@ -89,7 +89,7 @@ const JobRow = (props: JobRowProps) => {
     return (
       <TableRow
         key={job.job.uid}
-        sx={(theme)=>({
+        sx={(theme) => ({
           backgroundColor: jobStatus !== 'SUCCESS' ? theme.palette.grey[200] : undefined,
           '& .MuiTableCell-root': {
             color: jobStatus !== 'SUCCESS' ? theme.palette.grey[500] : undefined
