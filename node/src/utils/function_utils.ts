@@ -28,14 +28,16 @@ export async function getPermissions(): Promise<string> {
     const result = await fetch(
         PYTHON_DAKOTA_BACKEND + '/flask/permissions',
     )
-    return result.json()
+    const permissionsJson = await result.json()
+    return permissionsJson.permissions
 }
 
 export async function getServiceMode(): Promise<string> {
     const result = await fetch(
         PYTHON_DAKOTA_BACKEND + '/flask/service-mode',
     )
-    return result.json()
+    const serviceModeJson = await result.json()
+    return serviceModeJson.service_mode
 }
 
 export async function listFunctions(): Promise<Function[]> {
