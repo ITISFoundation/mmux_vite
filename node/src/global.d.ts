@@ -139,3 +139,12 @@ interface VarSelection {
 }
 
 interface InputVarSelection {[x: string]: VarSelection}
+
+type cvMetricsType = {
+  mean_y: number;
+  std_y: number;
+  mean_y_hat: number;
+  std_y_hat: number;
+  mae: number;
+  rmse: number;
+};

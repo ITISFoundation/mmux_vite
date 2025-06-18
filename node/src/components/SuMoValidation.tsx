@@ -4,27 +4,11 @@ import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import Plot from "react-plotly.js";
 import { Box, Typography, useTheme } from "@mui/material";
 import { FunctionJob } from "../osparc-api-ts-client";
-
-type cvMetricsType = {
-  mean_y: number;
-  std_y: number;
-  mean_error: number;
-  std_error: number;
-  mae: number;
-  rmse: number;
-};
+import Metric from "./Metric"
+import SuMoMetricRow from "./SuMoMetricRow";
 
 const SuMoValidation = () => {
   const theme = useTheme();
-  // This component will be perform the following tasks:
-  // 1. Perform a call to the backend where all samples are evaluated through crossvalidation.
-  //    Each sample (job) will have associated y, y_hat, and error (and ofc all inputs)
-  // 2. A histogram of y and a histogram of y-y_hat centered around mean(y) will be plotted
-  // 3. On the right, certain statistics will be shown, such as:
-  //    - Mean of y
-  //    - Std of y
-  //    - Mean of y-y_hat
-  //    - Std of y-y_hat
   const { selectedFunction, inputVars, selectedQoI, filterSelectedJobList } =
     useMMUXContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
@@ -57,22 +41,9 @@ const SuMoValidation = () => {
       })
       .catch((error) => console.debug("Error:", error));
   };
+
   function computeStatisticsCv(y: number[], y_hat: number[]) {
     // compute statistics
-    const mean_error =
-      y.reduce(
-        (sum: number, value: number, index: number) =>
-          sum + (value - y_hat[index]),
-        0
-      ) / y.length;
-    const std_error = Math.sqrt(
-      y.reduce(
-        (sum: number, value: number, index: number) =>
-          sum + Math.pow(value - y_hat[index] - mean_error, 2),
-        0
-      ) /
-      (y.length - 1)
-    );
     const mae =
       y.reduce(
         (sum: number, value: number, index: number) =>
@@ -94,11 +65,19 @@ const SuMoValidation = () => {
       ) /
       (y.length - 1)
     );
+    const mean_y_hat = y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
+    const std_y_hat = Math.sqrt(
+      y_hat.reduce(
+        (sum: number, value: number) => sum + Math.pow(value - mean_y_hat, 2),
+        0
+      ) /
+      (y_hat.length - 1)
+    );
     const cvMetricsData = {
       mean_y: mean_y,
       std_y: std_y,
-      mean_error: mean_error,
-      std_error: std_error,
+      mean_y_hat: mean_y_hat,
+      std_y_hat: std_y_hat,
       mae: mae,
       rmse: rmse,
     };
@@ -159,42 +138,6 @@ const SuMoValidation = () => {
     font: { color: `${theme.palette.text.primary}` },
   };
 
-  const skewnessValue =
-    cvMetrics &&
-    (() => {
-      const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
-      const y = (plotData[0]?.y as Array<number>) || [];
-      const mean = cvMetrics.mean_y || 0;
-      const skew =
-        y.length > 2
-          ? y.reduce(
-            (acc: number, val: number) => acc + Math.pow((val - mean) / n, 3),
-            0
-          ) *
-          (y.length / ((y.length - 1) * (y.length - 2)))
-          : 0;
-      return skew.toFixed(4);
-    })();
-
-  const KurtosisValue =
-    cvMetrics &&
-    (() => {
-      const n = cvMetrics.std_y && cvMetrics.std_y !== 0 ? cvMetrics.std_y : 1;
-      const y = (plotData[0]?.y as Array<number>) || [];
-      const mean = cvMetrics.mean_y || 0;
-      const kurt =
-        y.length > 3
-          ? (y.reduce(
-            (acc: number, val: number) => acc + Math.pow((val - mean) / n, 4),
-            0
-          ) *
-            (y.length * (y.length + 1))) /
-          ((y.length - 1) * (y.length - 2) * (y.length - 3)) -
-          (3 * Math.pow(y.length - 1, 2)) / ((y.length - 2) * (y.length - 3))
-          : 0;
-      return kurt.toFixed(4);
-    })();
-
   const plotStyle = {
     height: 300,
     borderRadius: "8px",
@@ -206,108 +149,47 @@ const SuMoValidation = () => {
   return (
     <>
       {plotData && selectedQoI && (
-        <Box display="flex" flexDirection="column" gap={1} width={"100%"} justifyContent={"center"}>
-          <Plot
-            data={plotData}
-            layout={{
-              ...layout,
-              title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
-              margin: { t: 40, l: 30, r: 30, b: 40 },
-              height: 300,
-              width: 650,
-              barmode: "overlay",
-              legend: {
-                x: 1,
-                xanchor: "right",
-                y: 1,
-                bgcolor: 'rgba(0,0,0,0)'
-              },
-            }}
-            style={plotStyle}
-            config={{ responsive: true }}
-          />
-          <Box display="flex" flexDirection="row" width="680px" ml={3} mr={3} >
-            <Box mt={1} display={"flex"} flexDirection={"column"} width={"100%"}>
-              {/* <Header headerType="uq" infoText="" tabTitle="Data Statistics" /> */}
-              <Box display={"flex"} flexDirection={"row"} width={"100%"}>
-                <Box mt={2} display={"flex"} flexDirection={"row"} width={"100%"}>
-                  {cvMetrics ? (
-                    <ul style={{
-                      listStyle: "none", padding: 0, margin: "0px", display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%" // Ensure the ul takes full width
-                    }}>
-                      <Typography
-                        variant="body1"
-                        fontFamily={"inherit"}
-                        fontWeight={100}
-                      >
-                        Mean(y): <strong>{cvMetrics.mean_y?.toFixed(4)}</strong>
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        fontFamily={"inherit"}
-                        fontWeight={100}
-                      >
-                        Std(y): <strong>{cvMetrics.std_y?.toFixed(4)}</strong>
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        fontFamily={"inherit"}
-                        fontWeight={100}
-                      >
-                        Skewness(y): <strong>{skewnessValue}</strong>
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        fontFamily={"inherit"}
-                        fontWeight={100}
-                      >
-                        Kurtosis(y): <strong>{KurtosisValue}</strong>
-                      </Typography>
-                    </ul>
-                  ) : (
-                    <div>No data statistics available.</div>
-                  )}
-                </Box>
-                {/* <Box mt={2} ml={4}>
-              {cvMetrics ? (
-                <>
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    <Typography
-                      variant="body1"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      Mean Error (y - ŷ):{" "}
-                      <strong>{cvMetrics.mean_error?.toFixed(4)}</strong>
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      Std Error (y - ŷ):{" "}
-                      <strong>{cvMetrics.std_error?.toFixed(4)}</strong>
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      MAE: <strong>{cvMetrics.mae?.toFixed(4)}</strong>
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      fontFamily={"inherit"}
-                      fontWeight={100}
-                    >
-                      RMSE: <strong>{cvMetrics.rmse?.toFixed(4)}</strong>
-                    </Typography>
-                  </ul>
-                </>
-              ) : undefined}
-            </Box> */}
-              </Box>
+        <Box display="flex" flexDirection="column" gap={1} width={"100%"} justifyContent={"center"} alignContent={"space-between"}>
+
+          {cvMetrics ? (
+            <Box display="flex" flexDirection="column" justifyContent="space-around" ml={2} mr={3} mb={3} >
+              <SuMoMetricRow>
+                <Metric metricName={"Mean"} metricValue={cvMetrics.mean_y} color={"rgb(41, 146, 221)"} />
+                <Metric metricName={"Std"} metricValue={cvMetrics.std_y} color={"rgb(41, 146, 221)"} />
+                {/* rgb(31, 119, 180) is the original; changed it slightly to improve visibility */}
+              </SuMoMetricRow>
+              <SuMoMetricRow>
+                <Metric metricName={"Mean"} metricValue={cvMetrics.mean_y_hat} color={"rgb(255, 127, 14)"} />
+                <Metric metricName={"Std"} metricValue={cvMetrics.std_y_hat} color={"rgb(255, 127, 14)"} />
+              </SuMoMetricRow>
+              <SuMoMetricRow>
+                <Metric metricName={"MAE"} metricValue={cvMetrics.mae} />
+                <Metric metricName={"RMSE"} metricValue={cvMetrics.rmse} />
+              </SuMoMetricRow>
             </Box>
+          ) : (
+            <div>No data statistics available.</div>
+          )}
+          <Box display="flex" flexDirection="column" justifyContent="space-around" ml={2} mr={3} mb={3} >
+            <Plot
+              data={plotData}
+              layout={{
+                ...layout,
+                title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
+                margin: { t: 40, l: 30, r: 30, b: 40 },
+                height: 300,
+                width: 650,
+                barmode: "overlay",
+                legend: {
+                  x: 1,
+                  xanchor: "right",
+                  y: 1,
+                  bgcolor: 'rgba(0,0,0,0)'
+                },
+              }}
+              style={plotStyle}
+              config={{ responsive: true }}
+            />
           </Box>
         </Box>
       )}
