@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
 import { styled, ThemeProvider } from "@mui/material/styles";
-import { Alert, Container, useColorScheme, Box } from "@mui/material";
+import { Container, useColorScheme } from "@mui/material";
 import { toast, ToastContainer } from "react-toastify";
 import { setupTheme } from "./theme";
 import Navigation from "./components/Navigation";
 import { Footer } from "./components/Footer";
 import { useMMUXContext } from "./context/MMUXContext";
-import Setup from "./views/Setup";
-import UQ from "./views/UQ";
 import { getHealth } from "./utils/function_utils";
 import { SplashScreen } from "./views/SplashScreen";
-import { ServiceContextProvider, useServiceContext } from "./context/ServiceContext";
+import { ServiceContextProvider } from "./context/ServiceContext";
 import PreviewWarning from "./components/PreviewWarning";
+import { ReturnCurrentView } from "./views/ReturnCurrentView";
 
 const FakeRoot = styled("div")(
   ({ theme }) => `
@@ -26,7 +25,7 @@ const App = () => {
 
   const steps: Step[] = [
     { id: 0, label: "Setup" },
-    { id: 1, label: "UQ" },
+    { id: 1, label: "Results" },
   ];
   const { currentView } = useMMUXContext();
   const { mode, systemMode, setMode } = useColorScheme();
@@ -121,10 +120,7 @@ const App = () => {
             <PreviewWarning />
             <Container sx={{ paddingBottom: 4 }}>
               <Navigation steps={steps} activeStep={currentView} />
-              <>
-                {currentView === 0 ? <Setup /> : undefined}
-                {currentView === 1 ? <UQ /> : undefined}
-              </>
+              <ReturnCurrentView currentView={currentView} />
               <Footer steps={steps} />
             </Container>
           </ServiceContextProvider>
