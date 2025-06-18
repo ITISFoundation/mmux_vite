@@ -33,8 +33,8 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
         disabled={launchingSampling || runningSampling || disabled}
         sx={(theme)=> ({
           "&:disabled": {
-            backgroundColor: launchingSampling ?  theme.palette.grey[100] : '',
-            color: launchingSampling ? theme.palette.primary.contrastText : '',
+            backgroundColor: launchingSampling ?  theme.palette.grey[100] : undefined,
+            color: launchingSampling ? theme.palette.primary.contrastText : undefined,
           }
         })}
       >
