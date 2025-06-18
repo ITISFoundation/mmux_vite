@@ -27,10 +27,10 @@ const JobRow = (props: JobRowProps) => {
       </TableRow>
     );
   } else {
-
+    const jobStatus = job.job.status;
     const outputs =
       // (job.job.outputs) ?
-      (job.job.status === "SUCCESS")
+      (jobStatus === "SUCCESS")
         ? Object.entries(job.job.outputs).map(([key, value], idx) => {
           return (
             <Box key={idx} display={"inline"}>
@@ -38,15 +38,15 @@ const JobRow = (props: JobRowProps) => {
             </Box>
           );
         })
-        : (job.job.status === "STARTED")
+        : (jobStatus === "STARTED")
           ? [
             <Box key={0} display={"inline"}>
               {"Running..."}
             </Box >
           ]
-          : (job.job.status === "FAILED")
+          : (jobStatus === "FAILED")
             ? "No outputs"
-            : (job.job.status === "PENDING") || (job.job.status === "WAITING_FOR_CLUSTER") // both are valid options
+            : (jobStatus === "PENDING") || (jobStatus === "WAITING_FOR_CLUSTER") // both are valid options
               ? "Pending to run"
               : "Unknown status, please contact support"
 
@@ -87,7 +87,15 @@ const JobRow = (props: JobRowProps) => {
       }
     }
     return (
-      <TableRow key={job.job.uid}>
+      <TableRow
+        key={job.job.uid}
+        sx={(theme)=>({
+          backgroundColor: jobStatus !== 'SUCCESS' ? theme.palette.grey[200] : undefined,
+          '& .MuiTableCell-root': {
+            color: jobStatus !== 'SUCCESS' ? theme.palette.grey[500] : undefined
+          }
+        })}
+      >
         <TableCell padding="checkbox">
           <Checkbox
             color="primary"
@@ -113,7 +121,7 @@ const JobRow = (props: JobRowProps) => {
             <span>{outputs}</span>
           </Tooltip>
         </TableCell>
-        <TableCell align="right">{job.job.status}</TableCell>
+        <TableCell align="right">{jobStatus}</TableCell>
 
         <TableCell align="right" sx={{ gap: "8px" }}>
           <>
