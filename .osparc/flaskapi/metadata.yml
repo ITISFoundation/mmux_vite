@@ -1,6 +1,6 @@
 key: simcore/services/dynamic/mmux-vite-backend
 name: MMUX Backend
-version: 1.2.4
+version: 1.3.0
 description: Python (Flask) and Dakota meta-modeling functionality in an interactive, user-friendly, guided step-by-step way
 integration-version: 2.0.0
 type: dynamic
