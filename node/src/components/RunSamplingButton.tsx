@@ -1,5 +1,6 @@
 import { Button, CircularProgress } from '@mui/material';
 import { useMMUXContext } from '../context/MMUXContext';
+import { useServiceContext } from '../context/ServiceContext';
 import { toast } from 'react-toastify';
 
 type RunSamplingButtonProps = {
@@ -8,6 +9,8 @@ type RunSamplingButtonProps = {
 };
 
 export const RunSamplingButton = (props: RunSamplingButtonProps) => {
+  const { permissions } = useServiceContext()
+  console.info("Current permissions: ", permissions)
   const { handleRunSampling, disabled } = props;
   const { launchingSampling, runningSampling, setLaunchingSampling, setRunningSampling } = useMMUXContext();
 
@@ -29,16 +32,16 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
       <Button
         variant="contained"
         onClick={handleRunSamplingWithErrorHandling}
-        disabled={launchingSampling || runningSampling || disabled}
+        disabled={launchingSampling || runningSampling || disabled || (permissions === "WRITE")}
       >
         {launchingSampling ? (
           <>
             Launching... <CircularProgress size={"0.875rem"} />
           </>
         ) : runningSampling
-            ? "Running..."
-            : "Run Sampling"}
+          ? "Running..."
+          : "Run Sampling"}
       </Button>
-    </>  
+    </>
   );
 }
