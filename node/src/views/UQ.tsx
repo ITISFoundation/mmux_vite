@@ -1,24 +1,8 @@
 import { useRef, useState } from "react";
-import {
-  Accordion,
-  AccordionDetails,
-  Box,
-  Button,
-  Container,
-  InputLabel,
-  TextField,
-  useTheme,
-} from "@mui/material";
-import { InfoOutline } from "@mui/icons-material";
-import MetaModelingUX from "../components/MetaModelingUX";
-import PlusButton from "../components/PlusButton";
-import JobSelector from "../components/JobSelector";
+import { Button, InputLabel, TextField } from "@mui/material";
 import { useMMUXContext } from "../context/MMUXContext";
-import { Sampling } from "../components/Sampling";
 import UncertainUQ from "../components/UncertainUQ";
-import CustomTooltip from "../components/CustomTooltip";
 import SuMoModal from "../components/SuMoModal";
-import AdaptExtedSamplingDocument from "../components/documents/AdaptExtendSamplingDocument";
 import GeneralResultsView from "./GeneralResultsView";
 
 export default function UQ() {
@@ -28,10 +12,8 @@ export default function UQ() {
     setNumSamples,
     filterSelectedJobList,
   } = useMMUXContext();
-  const theme = useTheme();
   const [localNumSamples, setLocalNumSamples] = useState(numSamples[selectedFunction?.uid || ""] || 1000);
   const [loading, setLoading] = useState<boolean>(true);
-  const [jobPanelOpen, setJobPanelOpen] = useState<boolean>(false);
   const [sumoModal, setSumoModal] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [jobProgress, setJobProgress] = useState<number>(0);
