@@ -55,7 +55,7 @@ const TestJob = () => {
       if (newWindow) {
         console.info("Window opened successfully")
       } else {
-        toast.warning("Popup blocked! Please allow popups for this site to open the job in a new tab.");
+        toast.warning("Popup blocked! Please allow popups for this site to open the test run study in a new tab.");
       }
     } else {
       toast.warning("Only ProjectFunctionJob can be opened in a new window!");
@@ -113,7 +113,7 @@ const TestJob = () => {
         {loading ? (
           <Skeleton variant="text" width={"600px"} height={"24px"} />
         ) : (
-          "Run a single parameter combination"
+          "Run a single parameter combination. The generated study will be opened in a new window for user inspection."
         )}
       </Typography>
       <Box
