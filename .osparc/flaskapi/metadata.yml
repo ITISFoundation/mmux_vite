@@ -5,7 +5,7 @@ description: Python (Flask) and Dakota meta-modeling functionality in an interac
 integration-version: 2.0.0
 type: dynamic
 authors:
-  - name: "Javier Ordonez"
+  - name: "Javier Garcia Ordonez"
     email: "ordonez@itis.swiss"
     affiliation: "IT'IS Foundation"
 contact: "ordonez@itis.swiss"
