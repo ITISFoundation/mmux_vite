@@ -17,7 +17,7 @@ import os
 from pathlib import Path
 import json
 import logging
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, NamedTuple
 import numpy as np
 import pandas as pd
 from flask import Flask, request, abort, jsonify, make_response
@@ -739,7 +739,25 @@ def flask_test_job():
         _logger.error(f"Error while testing job for function {function_uid} with config {config}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
 
+class ParentInfo(NamedTuple):
+    parent_node_id : str
+    parent_project_id: str
     
+def _get_parent_ids() -> ParentInfo:
+    parent_node_id = os.environ.get("OSPARC_NODE_ID", None)
+    parent_project_id = os.environ.get("OSPARC_STUDY_ID", None)
+    if not parent_node_id or not parent_project_id:
+        _logger.error("OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set. Cannot create a sampling campaign through map function.")
+        abort(make_response(jsonify({"error": "OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set."}), 500))
+    return ParentInfo(parent_node_id=parent_node_id, parent_project_id=parent_project_id)
+
+def _run_sampling_map(function_uid, samples):
+    parent_info = _get_parent_ids()
+    jc = functions_api_instance.map_function(function_id=function_uid, request_body=samples, 
+                                             x_simcore_parent_node_id=parent_info.parent_node_id, 
+                                             x_simcore_parent_project_uuid=parent_info.parent_project_id) 
+    return dict_keys_snake_to_camel(jc.to_dict())
+
 
 @app.route("/flask/lhs_sampling", methods=["POST"])
 def flask_lhs():
@@ -769,16 +787,12 @@ def flask_lhs():
 
         # Now, the running of jobs through the OSPARC API has been moved to the Python backend
         ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
-        ## TODO add x_simcore_parent_node_id and x_simcore_parent_project_uuid to the request
-        _logger.warning("MapFunction does not work until we include parent headers")
-        jc = functions_api_instance.map_function(function_uid, samples, x_simcore_parent_node_id=..., x_simcore_parent_project_uuid=...) # type: ignore
-        return jsonify(dict_keys_snake_to_camel(jc.to_dict()))
+        jc = _run_sampling_map(function_uid, samples)
+        return jsonify(jc)
     except Exception as e:
         _logger.error(f"Error while performing LHS sampling on function {function_uid}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))  # return an error response if the function mapping fails
         
-
-
 @app.route("/flask/grid_sampling", methods=["POST"])
 def flask_grid_sampling():
     _logger.debug("Starting flask function: flask/grid_sampling")
@@ -814,10 +828,8 @@ def flask_grid_sampling():
         ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
         _logger.debug(f"Samples: {samples}")
         _logger.debug("Grid sampling not yet tested!! TODO Double check!")
-        ## TODO add x_simcore_parent_node_id and x_simcore_parent_project_uuid to the request
-        _logger.warning("MapFunction does not work until we include parent headers")
-        jc = functions_api_instance.map_function(function_uid, samples, x_simcore_parent_node_id=..., x_simcore_parent_project_uuid=...) # type: ignore
-        return jsonify(dict_keys_snake_to_camel(jc.to_dict()))
+        jc = _run_sampling_map(function_uid, samples)
+        return jsonify(jc)
     except Exception as e:
         _logger.error(f"Error while creating Grid Sampling of {function_uid}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
@@ -871,8 +883,11 @@ def flask_clone_job():
     
         # Clone the job using the job_id
         study_data = BodyCloneStudyV0StudiesStudyIdClonePost(title="...", description="...")
+        parent_info = _get_parent_ids()
         study = studies_api_instance.clone_study(project_job_id, hidden=False,
-                                                 body_clone_study_v0_studies_study_id_clone_post=study_data)
+                                                 body_clone_study_v0_studies_study_id_clone_post=study_data,
+                                                 x_simcore_parent_node_id=parent_info.parent_node_id, 
+                                                 x_simcore_parent_project_uuid=parent_info.parent_project_id) 
         # studies_api_instance.patch_study(study)  # this will update the study with the new data -- FIXME this endpoint needs to be exposed in the API
         _logger.debug(f"Cloned study: {study.to_dict()}")
         _logger.debug("Done!!")
