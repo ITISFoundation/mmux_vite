@@ -25,6 +25,22 @@ export async function getHealth(): Promise<number> {
     return result.status
 }
 
+export async function getPermissions(): Promise<string> {
+    const result = await fetch(
+        PYTHON_DAKOTA_BACKEND + '/flask/permissions',
+    )
+    const permissionsJson = await result.json()
+    return permissionsJson.permissions
+}
+
+export async function getServiceMode(): Promise<string> {
+    const result = await fetch(
+        PYTHON_DAKOTA_BACKEND + '/flask/service-mode',
+    )
+    const serviceModeJson = await result.json()
+    return serviceModeJson.service_mode
+}
+
 export async function listFunctions(): Promise<Function[]> {
     const result = await fetch(
         PYTHON_DAKOTA_BACKEND + '/flask/list_functions',

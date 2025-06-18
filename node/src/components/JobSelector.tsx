@@ -246,7 +246,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         const auxJob = jc;
         auxJob.selected = checked;
         auxJob.subJobs = jc.subJobs.map((subJob) => ({
-          selected: checked,
+          selected: checked === true ? subJob.job.status === "SUCCESS" : false,
           job: subJob.job,
         }));
         return auxJob;

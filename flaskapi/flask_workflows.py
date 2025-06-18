@@ -17,21 +17,18 @@ import os
 from pathlib import Path
 import json
 import logging
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, NamedTuple
 import numpy as np
 import pandas as pd
 from flask import Flask, request, abort, jsonify, make_response
-import osparc_client
-from osparc_client.configuration import Configuration as OsparcConfiguration
-from osparc_client.api_client import ApiClient
+from osparc import Configuration as OsparcConfiguration
+from osparc import ApiClient, UsersApi, StudiesApi
 from osparc_client.api.functions_api import FunctionsApi
 from osparc_client.api.function_jobs_api import FunctionJobsApi
-from osparc_client.api.users_api import UsersApi
-from osparc_client.api.studies_api import StudiesApi
 from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi
 from osparc_client.models.function_job import FunctionJob
 from osparc_client.models.function_job_status import FunctionJobStatus
-from osparc_client.configuration import Configuration as OsparcConfiguration
+from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost
 
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
@@ -129,7 +126,6 @@ job_collection_api_instance = FunctionJobCollectionsApi(api_client)
 
 # check that API is responsive
 _logger.info("Checking if the API is responsive...")
-_logger.info("osparc_client version %s", osparc_client.__version__)
 users_api = UsersApi(api_client)
 profile = users_api.get_my_profile()
 _logger.info("User profile info:\n%s", profile.model_dump_json(indent=2))
@@ -151,13 +147,24 @@ def health_check():
 @app.route("/flask/service-mode")
 def service_mode():
     """Used to check the environment variable SERVICE_MODE."""
-    try: 
+    try:
         service_mode = os.environ["SERVICE_MODE"]
         _logger.info(f"Service mode: {service_mode}")
         return jsonify({"service_mode": service_mode}), 200
     except KeyError:
         _logger.error("SERVICE_MODE environment variable is not set.")
         return jsonify({"error": "SERVICE_MODE environment variable is not set."}), 500
+
+@app.route("/flask/permissions")
+def permissions():
+    """Used to check the environment variable PERMISSIONS."""
+    try:
+        permissions = os.environ["PERMISSIONS"]
+        _logger.info(f"Service mode: {permissions}")
+        return jsonify({"permissions": permissions}), 200
+    except KeyError:
+        _logger.error("PERMISSIOSN environment variable is not set.")
+        return jsonify({"error": "PERMISSIONS environment variable is not set."}), 500
 
 def _get_all_items(api_call: Callable, *args, **kwargs):
     """Helper function to get all items from a paginated API call."""
@@ -743,7 +750,25 @@ def flask_test_job():
         _logger.error(f"Error while testing job for function {function_uid} with config {config}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
 
+class ParentInfo(NamedTuple):
+    parent_node_id : str
+    parent_project_id: str
     
+def _get_parent_ids() -> ParentInfo:
+    parent_node_id = os.environ.get("OSPARC_NODE_ID", None)
+    parent_project_id = os.environ.get("OSPARC_STUDY_ID", None)
+    if not parent_node_id or not parent_project_id:
+        _logger.error("OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set. Cannot create a sampling campaign through map function.")
+        abort(make_response(jsonify({"error": "OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set."}), 500))
+    return ParentInfo(parent_node_id=parent_node_id, parent_project_id=parent_project_id)
+
+def _run_sampling_map(function_uid, samples):
+    parent_info = _get_parent_ids()
+    jc = functions_api_instance.map_function(function_id=function_uid, request_body=samples, 
+                                             x_simcore_parent_node_id=parent_info.parent_node_id, 
+                                             x_simcore_parent_project_uuid=parent_info.parent_project_id) 
+    return dict_keys_snake_to_camel(jc.to_dict())
+
 
 @app.route("/flask/lhs_sampling", methods=["POST"])
 def flask_lhs():
@@ -773,14 +798,12 @@ def flask_lhs():
 
         # Now, the running of jobs through the OSPARC API has been moved to the Python backend
         ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
-        jc = functions_api_instance.map_function(function_uid, samples)
-        return jsonify(dict_keys_snake_to_camel(jc.to_dict()))
+        jc = _run_sampling_map(function_uid, samples)
+        return jsonify(jc)
     except Exception as e:
         _logger.error(f"Error while performing LHS sampling on function {function_uid}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))  # return an error response if the function mapping fails
         
-
-
 @app.route("/flask/grid_sampling", methods=["POST"])
 def flask_grid_sampling():
     _logger.debug("Starting flask function: flask/grid_sampling")
@@ -816,8 +839,8 @@ def flask_grid_sampling():
         ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
         _logger.debug(f"Samples: {samples}")
         _logger.debug("Grid sampling not yet tested!! TODO Double check!")
-        jc = functions_api_instance.map_function(function_uid, samples)
-        return jsonify(jc.to_dict()) ## this now returns a JobCollection
+        jc = _run_sampling_map(function_uid, samples)
+        return jsonify(jc)
     except Exception as e:
         _logger.error(f"Error while creating Grid Sampling of {function_uid}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
@@ -870,7 +893,12 @@ def flask_clone_job():
         project_job_id = request_data["projectJobId"]
     
         # Clone the job using the job_id
-        study = studies_api_instance.clone_study(project_job_id)
+        study_data = BodyCloneStudyV0StudiesStudyIdClonePost(title="...", description="...")
+        parent_info = _get_parent_ids()
+        study = studies_api_instance.clone_study(project_job_id, hidden=False,
+                                                 body_clone_study_v0_studies_study_id_clone_post=study_data,
+                                                 x_simcore_parent_node_id=parent_info.parent_node_id, 
+                                                 x_simcore_parent_project_uuid=parent_info.parent_project_id) 
         # studies_api_instance.patch_study(study)  # this will update the study with the new data -- FIXME this endpoint needs to be exposed in the API
         _logger.debug(f"Cloned study: {study.to_dict()}")
         _logger.debug("Done!!")

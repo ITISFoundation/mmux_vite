@@ -21,12 +21,14 @@ compose-spec:
   services:
     mmux-vite-backend:
       image: $${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-backend:$${SERVICE_VERSION}
-
+      environment:
+        - SERVICE_MODE=SUMO
+        - PERMISSIONS=WRITE
     mmux-vite-web:
       image: $${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-web:$${SERVICE_VERSION}
 
     mmux-vite-app:
-      image: $${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-app:$${SERVICE_VERSION}
+      image: $${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-app-sumo-write:$${SERVICE_VERSION}
       depends_on:
         mmux-vite-backend:
           condition: service_healthy
