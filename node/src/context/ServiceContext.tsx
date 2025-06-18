@@ -3,9 +3,7 @@ import { getPermissions, getServiceMode } from '../utils/function_utils';
 
 interface ServiceContextType {
   permissions: string;
-  setPermissions: (permissions: string) => void;
   serviceMode: string;
-  setServiceMode: (mode: string) => void;
 }
 
 export const ServiceContext = createContext<ServiceContextType>(undefined!);
@@ -35,9 +33,7 @@ export const ServiceContextProvider = ({ children }: Props) => {
 
   const memo = React.useMemo(() => ({
     permissions,
-    setPermissions,
     serviceMode,
-    setServiceMode,
   }), [permissions, serviceMode]);
 
   return (
