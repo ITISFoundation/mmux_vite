@@ -147,14 +147,6 @@ const GridSearchSampling = () => {
         )}
       </Box>
       <Box display={"flex"} flexDirection="row" justifyContent={'space-between'} marginTop={2}>
-        <Button
-          size="small"
-          variant="contained"
-          disabled={loading}
-          onClick={() => setGridSamplingConfig(gridSamplingInputs)}
-        >
-          Save Sampling config
-        </Button>
         <RunSamplingButton
           disabled={loading}
           handleRunSampling={handleRunSampling}
