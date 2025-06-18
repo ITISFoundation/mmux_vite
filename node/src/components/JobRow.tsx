@@ -3,8 +3,9 @@ import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import { Box, Button, Checkbox, CircularProgress, Tooltip } from "@mui/material";
 import { toast } from "react-toastify";
-import React, { useState } from "react";
+import { useState } from "react";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
+import { openStudyUid } from "../utils/function_utils";
 
 const JobRow = (props: JobRowProps) => {
   const { jobUid, jobList, setSelected } = props;
@@ -123,18 +124,8 @@ const JobRow = (props: JobRowProps) => {
                 setCreatingJobCopy(true)
                 const copy_uid = await createJobStudyCopy(job.job.projectJobId);
                 setCreatingJobCopy(false)
-                console.log("Let's open a new window using project uid: ", copy_uid)
-                if (copy_uid) {
-                  const url = `/#/study/${copy_uid}`
-                  const newWindow = window.open(url);
-                  if (newWindow) {
-                    console.info("Window opened successfully")
-                  } else {
-                    toast.warning("Popup blocked! Please allow popups for this site to open the job in a new tab.");
-                  }
-                } else {
-                  toast.warning("Could not open Job copy in new window!")
-                }
+                if (copy_uid) openStudyUid(copy_uid)
+                else toast.warning("Could not open Job copy in new window!")
               }}
               children={creatingJobCopy ? (
                 < >
