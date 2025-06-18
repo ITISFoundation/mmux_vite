@@ -1,6 +1,7 @@
 import { Function, FunctionJob, FunctionJobCollection} from '../osparc-api-ts-client';
 import { PYTHON_DAKOTA_BACKEND } from './api_objects';
 import { fetchWithRetry } from './fetch_retry';
+import { toast } from "react-toastify";
 
 export function delay(ms: number) {
     return new Promise( resolve => setTimeout(resolve, ms) );
@@ -74,4 +75,20 @@ export async function getFunctionJobsFromFunctionJobCollection(JobCollectionUid:
     ).then(function (response) {
         return response.json()
     })
+}
+
+export function openStudyUid(uid: string): void {
+    const serviceAddress = window.location.href
+    const url = new URL(serviceAddress);
+    const simplifiedHost = url.hostname.replace(/^[^.]+\.services\./, ''); // get rid of the UUID and "services"
+    const deploymentUrl = `${url.protocol}//${simplifiedHost}`; // add the protocol
+    const serviceUrl = deploymentUrl + `/#/study/${uid}`
+    const newWindow = window.open(serviceUrl);
+    if (newWindow) {
+      console.info("Window opened successfully")
+    } else {
+      toast.warning("Popup blocked! Please allow popups for this site to open the job in a new tab.");
+    }
+
+
 }
