@@ -24,6 +24,7 @@ compose-spec:
       environment:
         - SERVICE_MODE=UQ
         - PERMISSIONS=WRITE
+        - DEPLOYMENT_MODE=OSPARC
     mmux-vite-web:
       image: $${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-web:$${SERVICE_VERSION}
 
