@@ -37,18 +37,18 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
             ? "Sampling is being launched... Please wait until the current sampling operation is fully launched before launching a new campaign / job"
             : disabled
               ? "Sampling is disabled"
-              : permissions === "WRITE"
+              : permissions !== "WRITE"
                 ? `This is a preview version that runs on a precomputed demonstration application. If you want to explore it using your own Projects, please contact support@${serviceAddress}`
                 : ""
         }
         placement="top"
-        disableHoverListener={!launchingSampling && !disabled && permissions !== "WRITE"}
+        disableHoverListener={!launchingSampling && !disabled && permissions === "WRITE"}
       >
         <span>
           <Button
             variant="contained"
             onClick={handleRunSamplingWithErrorHandling}
-            disabled={launchingSampling || disabled || (permissions === "WRITE")}
+            disabled={launchingSampling || disabled || (permissions !== "WRITE")}
           >
             {launchingSampling ? (
               <>
