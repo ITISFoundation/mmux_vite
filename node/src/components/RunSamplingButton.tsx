@@ -12,7 +12,7 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
   const { permissions } = useServiceContext()
   console.info("Current permissions: ", permissions)
   const { handleRunSampling, disabled } = props;
-  const { launchingSampling, runningSampling, setLaunchingSampling, setRunningSampling } = useMMUXContext();
+  const { launchingSampling, setLaunchingSampling, setRunningSampling } = useMMUXContext();
 
   const handleRunSamplingWithErrorHandling = async () => {
     try {
@@ -32,15 +32,13 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
       <Button
         variant="contained"
         onClick={handleRunSamplingWithErrorHandling}
-        disabled={launchingSampling || runningSampling || disabled || (permissions === "WRITE")}
+        disabled={launchingSampling || disabled || (permissions === "WRITE")}
       >
         {launchingSampling ? (
           <>
             Launching... <CircularProgress size={"0.875rem"} />
           </>
-        ) : runningSampling
-          ? "Running..."
-          : "Run Sampling"}
+        ) : "Run Sampling"}
       </Button>
     </>
   );
