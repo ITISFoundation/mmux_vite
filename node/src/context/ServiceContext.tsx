@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getPermissions, getServiceMode } from '../utils/function_utils';
 
+type PermissionsEnum = 'WRITE' | 'READ-ONLY';
+type ServiceModeEnum = 'UQ' | 'SUMO' // this will need to be expanded as we include more flavours
+
 interface ServiceContextType {
-  permissions: string;
-  serviceMode: string;
+  permissions: PermissionsEnum;
+  serviceMode: ServiceModeEnum;
 }
 
 export const ServiceContext = createContext<ServiceContextType>(undefined!);
@@ -13,14 +16,14 @@ type Props = {
 };
 
 export const ServiceContextProvider = ({ children }: Props) => {
-  const [permissions, setPermissions] = useState('');
-  const [serviceMode, setServiceMode] = useState('');
+  const [permissions, setPermissions] = useState<PermissionsEnum>('READ-ONLY');
+  const [serviceMode, setServiceMode] = useState<ServiceModeEnum>('UQ');
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const responsePermissions = await getPermissions();
-        const responseServiceMode = await getServiceMode();
+        const responsePermissions = await getPermissions() as PermissionsEnum;
+        const responseServiceMode = await getServiceMode() as ServiceModeEnum;
         setPermissions(responsePermissions);
         setServiceMode(responseServiceMode);
       } catch (error) {
