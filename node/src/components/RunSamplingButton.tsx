@@ -32,27 +32,6 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
 
   return (
     <>
-<<<<<<< 91-to-be-discussed---save-config-unclear-goal-launching-spinner-not-very-visible
-      <Button
-        variant="contained"
-        onClick={handleRunSamplingWithErrorHandling}
-        disabled={launchingSampling || runningSampling || disabled}
-        sx={(theme)=> ({
-          "&:disabled": {
-            backgroundColor: launchingSampling ?  theme.palette.grey[100] : undefined,
-            color: launchingSampling ? theme.palette.primary.contrastText : undefined,
-          }
-        })}
-      >
-        {launchingSampling ? (
-          <>
-            Launching...<CircularProgress size={"1.1rem"} thickness={6} sx={{ marginLeft: '1rem'}} />
-          </>
-        ) : runningSampling
-            ? "Running..."
-            : "Run Sampling"}
-      </Button>
-=======
       <CustomTooltip
         title={
           launchingSampling
@@ -71,16 +50,21 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
             variant="contained"
             onClick={handleRunSamplingWithErrorHandling}
             disabled={launchingSampling || disabled || (permissions !== "WRITE")}
+            sx={(theme) => ({
+              "&:disabled": {
+                backgroundColor: launchingSampling ? theme.palette.grey[100] : undefined,
+                color: launchingSampling ? theme.palette.primary.contrastText : undefined,
+              }
+            })}
           >
             {launchingSampling ? (
               <>
-                Launching... <CircularProgress size={"0.875rem"} />
+                Launching...<CircularProgress size={"1.1rem"} thickness={6} sx={{ marginLeft: '1rem' }} />
               </>
             ) : "Run Sampling"}
           </Button>
         </span>
       </CustomTooltip>
->>>>>>> main
     </>
   );
 }
