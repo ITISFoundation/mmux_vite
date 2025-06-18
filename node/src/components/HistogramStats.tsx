@@ -1,5 +1,5 @@
 import { Typography, Box, useTheme } from "@mui/material";
-import Header from "./Header";
+import Header from "./navigation/Header";
 
 const HistogramStats = (props: dataUQHistogramType) => {
   const theme = useTheme();
@@ -14,7 +14,7 @@ const HistogramStats = (props: dataUQHistogramType) => {
           textAlign: "left",
         }}
       >
-        <Header headerType="uq" infoText="" tabTitle="Summary Statistics" />
+        <Header headerType="title" infoText="" tabTitle="Summary Statistics" />
         <ul style={{ listStyleType: "initial", marginLeft: "16px" }}>
           <li>
             <Typography variant="body1" fontFamily={"inherit"} fontWeight={100}>

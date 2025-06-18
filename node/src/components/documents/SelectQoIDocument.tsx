@@ -1,5 +1,5 @@
 import { Card, CardContent, Typography, Link } from "@mui/material";
-import Header from "../Header";
+import Header from "../navigation/Header";
 
 const SelectQoIDocument = (
   <Card sx={{ padding: "8px", borderRadius: "16px", maxWidth: "800px" }}>

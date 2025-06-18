@@ -3,13 +3,13 @@ import { styled, ThemeProvider } from "@mui/material/styles";
 import { Container, useColorScheme } from "@mui/material";
 import { toast, ToastContainer } from "react-toastify";
 import { setupTheme } from "./theme";
-import Navigation from "./components/Navigation";
-import { Footer } from "./components/Footer";
+import Navigation from "./components/navigation/Navigation";
+import { Footer } from "./components/navigation/Footer";
 import { useMMUXContext } from "./context/MMUXContext";
 import { getHealth } from "./utils/function_utils";
 import { SplashScreen } from "./views/SplashScreen";
 import { ServiceContextProvider } from "./context/ServiceContext";
-import PreviewWarning from "./components/PreviewWarning";
+import PreviewWarning from "./components/navigation/PreviewWarning";
 import { ReturnCurrentView } from "./views/ReturnCurrentView";
 
 const FakeRoot = styled("div")(
@@ -97,10 +97,10 @@ const App = () => {
         }
       }
     }
-    const messageHandler = (e: { data: string }) => {
-      const msg = e.data;
+    const messageHandler = (e: any) => {
+      const msg: string = e.data;
       const OSPARC_MSG_PREFIX = 'osparc;'
-      if (msg && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
+      if (typeof msg === 'string'  && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
         console.log("Received message from parent window:", e);
         const osparcMsg = msg.slice(OSPARC_MSG_PREFIX.length)
         osparcMsg.split('&').forEach(processKeyValue)

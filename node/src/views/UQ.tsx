@@ -1,18 +1,13 @@
-import { useRef, useState } from "react";
-import { Button, InputLabel, TextField } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import UncertainUQ from "../components/UncertainUQ";
 import SuMoModal from "../components/SuMoModal";
-import GeneralResultsView from "./GeneralResultsView";
+import MetaModelingUX from "../components/navigation/MetaModelingUX";
+import { UQSetup } from "../components/UQSetup";
+import { JobSampling } from "../components/JobSampling";
 
 export default function UQ() {
-  const {
-    selectedFunction,
-    numSamples,
-    setNumSamples,
-    filterSelectedJobList,
-  } = useMMUXContext();
-  const [localNumSamples, setLocalNumSamples] = useState(numSamples[selectedFunction?.uid || ""] || 1000);
+  const { selectedFunction, outputVars, setSelectedQoI } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [sumoModal, setSumoModal] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
@@ -20,71 +15,37 @@ export default function UQ() {
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
 
-  const handlesetLocalNumSamples = (value: number) => {
-    setLocalNumSamples(value);
-    setNumSamples({
-      ...numSamples,
-      [selectedFunction?.uid || ""]: value,
-    });
-  };
-
-  const NumSamplesInput = () => {
-    return (
-      <InputLabel
-        size="small"
-        sx={{
-          display: "flex",
-          flex: 1,
-          transform: "none",
-          alignItems: "baseline",
-          gap: "16px",
-          fontFamily: "inherit",
-          fontWeight: 300,
-          fontSize: "1.2em",
-        }}
-      >
-        Number of UQ Samples:
-        <TextField
-          type="number"
-          variant="outlined"
-          size="small"
-          sx={{ marginTop: "8px", flex: 1 }}
-          value={localNumSamples}
-          onChange={(e) => handlesetLocalNumSamples(parseInt(e.target.value))}
-        />
-      </InputLabel>
-    )
-  }
+  useEffect(() => {
+    if (outputVars && outputVars.length > 0) {
+      setSelectedQoI(outputVars[0]);
+    }
+  }, [outputVars]);
 
   return (
-    <GeneralResultsView headerType="uq" tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}>
-      <NumSamplesInput />
-      <Button
-        variant="contained"
-        size="small"
-        disabled={loading || !selectedFunction || filterSelectedJobList().length === 0}
-        sx={{
-          marginTop: "8px",
-          width: "160px",
-          fontSize: "1.1em",
-          fontFamily: "inherit",
-          fontWeight: 200,
-          textTransform: "none",
-        }}
-        color="primary"
-        onClick={() => setSumoModal(true)}
-      >
-        Inspect Model
-      </Button>
-      <SuMoModal open={sumoModal} setOpen={setSumoModal} />
+    <MetaModelingUX
+      headerType="title"
+      tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}
+    >
+      <UQSetup loading={loading} setSumoModal={setSumoModal} />
       <UncertainUQ
-        numSamples={localNumSamples}
         colsFetched={colsFetched}
         jobProgress={jobProgress}
         jobsFetched={jobsFetched}
         loading={loading}
         progress={progress}
       />
-    </GeneralResultsView >
+      <SuMoModal open={sumoModal} setOpen={setSumoModal} />
+      <JobSampling
+        loading={loading}
+        setLoading={setLoading}
+        progress={progress}
+        setProgress={setProgress}
+        jobProgress={jobProgress}
+        setJobProgress={setJobProgress}
+        jobsFetched={jobsFetched}
+        colsFetched={colsFetched}
+        selectedFunction={selectedFunction}
+      />
+    </MetaModelingUX>
   );
 }
