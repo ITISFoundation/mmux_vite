@@ -6,6 +6,7 @@ import { useMMUXContext, MMUXContextType } from "../context/MMUXContext";
 import { RunSamplingButton } from "./RunSamplingButton";
 import ValueConfig from "./ValueConfig";
 import { toast } from "react-toastify";
+import { openStudyUid } from "../utils/function_utils";
 
 async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
   const fun = context?.selectedFunction as Function;
@@ -49,17 +50,8 @@ const TestJob = () => {
     const job = await runTestJob(context, jobInputs);
     console.log("TestJob created: ", job);
     // open in a new window - like in "View" of the JobList
-    if (job && job.functionClass && job.functionClass === "PROJECT") {
-      const url = `/#/study/${job.projectJobId}`
-      const newWindow = window.open(url);
-      if (newWindow) {
-        console.info("Window opened successfully")
-      } else {
-        toast.warning("Popup blocked! Please allow popups for this site to open the job in a new tab.");
-      }
-    } else {
-      toast.warning("Only ProjectFunctionJob can be opened in a new window!");
-    }
+    if (job && job.functionClass && job.functionClass === "PROJECT") openStudyUid(job.projectJobId)
+    else toast.warning("Only ProjectFunctionJob can be opened in a new window!");
   };
 
   function handleInputChange(index: number, field: string, value: string) {
