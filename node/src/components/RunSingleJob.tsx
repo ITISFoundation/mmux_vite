@@ -131,14 +131,6 @@ const TestJob = () => {
         )}
       </Box>
       <Box display={"flex"} flexDirection="row" justifyContent={'space-between'} marginTop={2}>
-        <Button
-          size="small"
-          variant="contained"
-          disabled={loading}
-          onClick={() => setSingleJobConfig(jobInputs)}
-        >
-          Save Sampling config
-        </Button>
         <RunSamplingButton
           disabled={loading}
           handleRunSampling={handleRunSampling}

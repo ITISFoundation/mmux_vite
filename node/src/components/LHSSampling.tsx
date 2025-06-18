@@ -219,14 +219,6 @@ const LHSSampling = () => {
         </form>
       )}
       <Box display={"flex"} flexDirection="row" justifyContent={'space-between'} marginTop={2}>
-        <Button
-          size="small"
-          variant="contained"
-          disabled={loading}
-          onClick={() => setLhsSamplingConfig(lhsInputs)}
-        >
-          Save Sampling config
-        </Button>
         <RunSamplingButton
           disabled={loading}
           handleRunSampling={handleRunSampling}

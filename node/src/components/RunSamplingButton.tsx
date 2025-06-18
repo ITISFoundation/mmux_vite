@@ -16,6 +16,7 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
   const { launchingSampling, setLaunchingSampling, setRunningSampling } = useMMUXContext();
   const serviceAddress = window.location.href
 
+
   const handleRunSamplingWithErrorHandling = async () => {
     try {
       await handleRunSampling();
@@ -49,10 +50,16 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
             variant="contained"
             onClick={handleRunSamplingWithErrorHandling}
             disabled={launchingSampling || disabled || (permissions !== "WRITE")}
+            sx={(theme) => ({
+              "&:disabled": {
+                backgroundColor: launchingSampling ? theme.palette.grey[100] : undefined,
+                color: launchingSampling ? theme.palette.primary.contrastText : undefined,
+              }
+            })}
           >
             {launchingSampling ? (
               <>
-                Launching... <CircularProgress size={"0.875rem"} />
+                Launching...<CircularProgress size={"1.1rem"} thickness={6} sx={{ marginLeft: '1rem' }} />
               </>
             ) : "Run Sampling"}
           </Button>
