@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { styled, ThemeProvider } from "@mui/material/styles";
-import { Alert, Container, useColorScheme, Box } from "@mui/material";
+import { Container, useColorScheme } from "@mui/material";
 import { toast, ToastContainer } from "react-toastify";
 import { setupTheme } from "./theme";
 import Navigation from "./components/Navigation";
 import { Footer } from "./components/Footer";
 import { useMMUXContext } from "./context/MMUXContext";
-import Setup from "./views/Setup";
-import UQ from "./views/UQ";
 import { getHealth } from "./utils/function_utils";
 import { SplashScreen } from "./views/SplashScreen";
+import { ServiceContextProvider } from "./context/ServiceContext";
+import PreviewWarning from "./components/PreviewWarning";
+import { ReturnCurrentView } from "./views/ReturnCurrentView";
 
 const FakeRoot = styled("div")(
   ({ theme }) => `
@@ -21,9 +22,10 @@ const FakeRoot = styled("div")(
 
 const App = () => {
   const [healthStatus, setHealthStatus] = useState<boolean>(false);
+
   const steps: Step[] = [
     { id: 0, label: "Setup" },
-    { id: 1, label: "UQ" },
+    { id: 1, label: "Results" },
   ];
   const { currentView } = useMMUXContext();
   const { mode, systemMode, setMode } = useColorScheme();
@@ -82,7 +84,7 @@ const App = () => {
     };
   }, []);
 
-    useEffect(() => {
+  useEffect(() => {
     // Message handler (from parent window, when in an iframe zB.)
     const processKeyValue = (keyValue: string) => {
       const [key, value] = keyValue.split('=')
@@ -95,8 +97,8 @@ const App = () => {
         }
       }
     }
-    const messageHandler = (e: { data: {msg: string}; }) => {
-      const { msg } = e.data;
+    const messageHandler = (e: { data: string }) => {
+      const msg = e.data;
       const OSPARC_MSG_PREFIX = 'osparc;'
       if (msg && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
         console.log("Received message from parent window:", e);
@@ -111,24 +113,17 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <FakeRoot>
-        <Container>
-          <Box paddingTop={2}>
-          <Alert variant='outlined' severity='info'>
-            This is a preview of the Uncertainty Quantification Hypertool that runs on a precomputed demonstration application. If you want to explore it using your own Projects, please contact xxx@xxx.
-          </Alert>
-          </Box>
-        </Container>
         {!healthStatus ? (
           <SplashScreen />
         ) : (
-          <Container sx={{paddingBottom: 4}}>
-            <Navigation steps={steps} activeStep={currentView} />
-            <>
-              {currentView === 0 ? <Setup /> : undefined}
-              {currentView === 1 ? <UQ /> : undefined}
-            </>
-            <Footer steps={steps} />
-          </Container>
+          <ServiceContextProvider>
+            <PreviewWarning />
+            <Container sx={{ paddingBottom: 4 }}>
+              <Navigation steps={steps} activeStep={currentView} />
+              <ReturnCurrentView currentView={currentView} />
+              <Footer steps={steps} />
+            </Container>
+          </ServiceContextProvider>
         )}
         <ToastContainer
           theme={themeMode}

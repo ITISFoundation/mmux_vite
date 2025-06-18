@@ -49,13 +49,13 @@ interface NavigationProps {
   steps: Step[];
   activeStep: number;
 }
-
+type HeaderTypeEnum = 'setup' | 'sumo' | 'uq'
 interface MetaModelingUXProps {
   tabTitle?: string;
   infoText?: string;
   ExtendedInfoText?: ReactElement;
   helpContents?: ReactElement;
-  headerType: 'setup' | 'sumo' | 'uq';
+  headerType: HeaderTypeEnum;
   children: React.ReactNode;
 }
 

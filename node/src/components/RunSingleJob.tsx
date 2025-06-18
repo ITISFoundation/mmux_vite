@@ -105,7 +105,7 @@ const TestJob = () => {
         {loading ? (
           <Skeleton variant="text" width={"600px"} height={"24px"} />
         ) : (
-          "Run a single parameter combination"
+          "Run a single parameter combination. The generated study will be opened in a new window for user inspection."
         )}
       </Typography>
       <Box

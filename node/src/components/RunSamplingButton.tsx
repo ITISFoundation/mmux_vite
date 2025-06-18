@@ -1,6 +1,8 @@
 import { Button, CircularProgress } from '@mui/material';
 import { useMMUXContext } from '../context/MMUXContext';
+import { useServiceContext } from '../context/ServiceContext';
 import { toast } from 'react-toastify';
+import CustomTooltip from './CustomTooltip';
 
 type RunSamplingButtonProps = {
   handleRunSampling: () => void;
@@ -8,8 +10,11 @@ type RunSamplingButtonProps = {
 };
 
 export const RunSamplingButton = (props: RunSamplingButtonProps) => {
+  const { permissions } = useServiceContext()
+  console.info("Current permissions: ", permissions)
   const { handleRunSampling, disabled } = props;
-  const { launchingSampling, runningSampling, setLaunchingSampling, setRunningSampling } = useMMUXContext();
+  const { launchingSampling, setLaunchingSampling, setRunningSampling } = useMMUXContext();
+  const serviceAddress = window.location.href
 
   const handleRunSamplingWithErrorHandling = async () => {
     try {
@@ -26,19 +31,33 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
 
   return (
     <>
-      <Button
-        variant="contained"
-        onClick={handleRunSamplingWithErrorHandling}
-        disabled={launchingSampling || runningSampling || disabled}
+      <CustomTooltip
+        title={
+          launchingSampling
+            ? "Sampling is being launched... Please wait until the current sampling operation is fully launched before launching a new campaign / job"
+            : disabled
+              ? "Sampling is disabled"
+              : permissions !== "WRITE"
+                ? `This is a preview version that runs on a precomputed demonstration application. If you want to explore it using your own Projects, please contact support@${serviceAddress}`
+                : ""
+        }
+        placement="top"
+        disableHoverListener={!launchingSampling && !disabled && permissions === "WRITE"}
       >
-        {launchingSampling ? (
-          <>
-            Launching... <CircularProgress size={"0.875rem"} />
-          </>
-        ) : runningSampling
-            ? "Running..."
-            : "Run Sampling"}
-      </Button>
-    </>  
+        <span>
+          <Button
+            variant="contained"
+            onClick={handleRunSamplingWithErrorHandling}
+            disabled={launchingSampling || disabled || (permissions !== "WRITE")}
+          >
+            {launchingSampling ? (
+              <>
+                Launching... <CircularProgress size={"0.875rem"} />
+              </>
+            ) : "Run Sampling"}
+          </Button>
+        </span>
+      </CustomTooltip>
+    </>
   );
 }

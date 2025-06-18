@@ -17,8 +17,15 @@ DEVELOPMENT_MODE=${DEVELOPMENT_MODE:-false}
 export LOG_LEVEL=${LOG_LEVEL:-INFO}
 
 
+# NOTE: only required to test in local oSPARC deployment
+# uncomment and adjust with correct IP and PORT where the api servver is exposed
+# export OSPARC_API_BASE_URL=api.10.43.201.15.nip.io:8006
+
 if [ "$DEVELOPMENT_MODE" = "true" ]; then
   # Development mode - use Flask's built-in server
+
+  # copy library to application directory
+  cp -R /mmux_python /app/mmux_python
 
   export FLASK_APP=flask_workflows.py
   export FLASK_DEBUG=1
