@@ -261,25 +261,26 @@ export function FunctionList() {
         rowSelectionModel={rowSelectionModel}
         rows={functions}
         columns={[
-          { field: "title", headerName: "Name", flex: 1, maxWidth: 300 },
+          { field: "title", headerName: "Name", flex: 1, maxWidth: 200 },
           {
             field: "description",
             headerName: "Description",
             flex: 1,
-            maxWidth: 100,
+            minWidth: 80,
+            maxWidth: 260,
           },
           {
             field: "inputSchema",
             headerName: "Inputs",
             flex: 1,
-            maxWidth: 100,
+            maxWidth: 90,
             renderCell: (params) => showInputOutputSchema(params.row.inputSchema),
           },
           {
             field: "outputSchema",
             headerName: "Outputs",
             flex: 1,
-            maxWidth: 100,
+            maxWidth: 90,
             renderCell: (params) =>
               showInputOutputSchema(params.row.outputSchema),
           },
@@ -287,16 +288,18 @@ export function FunctionList() {
             field: "n_evaluations",
             headerName: "# Campaigns / Evaluations",
             flex: 1,
-            minWidth: 250,
+            minWidth: 100,
+            maxWidth: 250,
             renderCell: (params) => <NFunctionJobCollections fun={params.row} />,
             // FIXME for some reason, this gets called many times
           },
           {
             field: "solverKey",
             headerName: "Further Info",
+            align: 'center',
             flex: 1,
             minWidth: 60,
-            maxWidth: 60,
+            maxWidth: 100,
             renderCell: (params) => getFunctionSolver(params.row),
           },
           {
@@ -366,7 +369,6 @@ export function FunctionList() {
         }}
         onRowClick={(params) => setSelectedFunction(params.row)}
         getRowId={getRowId}
-        showToolbar
         initialState={{
           pagination: {
             paginationModel: { pageSize: 10 },
