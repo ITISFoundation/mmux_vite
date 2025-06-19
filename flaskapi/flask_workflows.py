@@ -44,6 +44,10 @@ _logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=os.environ["LOG_LEVEL"],
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("flask_workflows.log"),
+        logging.StreamHandler()
+    ]
 )
 # Make Flask propagate its logs to the root logger
 flask_logger = logging.getLogger("flask")
