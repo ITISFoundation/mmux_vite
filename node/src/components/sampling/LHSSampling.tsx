@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
-import { MMUXContextType, useMMUXContext } from "../context/MMUXContext";
-import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
+import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, Button, Input, Skeleton, Typography } from "@mui/material";
 import {
   Function,
   FunctionJob,
   RegisteredFunctionJobCollection,
-} from "../osparc-api-ts-client";
-import { getSamplingStartValue, getSamplingEndValue } from "../utils/sampling";
+} from "../../osparc-api-ts-client";
+import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
-import VariableConfig from "./VariableConfig";
-import { getFunctionJob } from "../utils/function_utils";
+import VariableConfig from "../VariableConfig";
+import { getFunctionJob } from "../../utils/function_utils";
 import { toast } from "react-toastify";
-import { useServiceContext } from "../context/ServiceContext";
+import { useServiceContext } from "../../context/ServiceContext";
 
 async function runLhsSampling(
   context: MMUXContextType,

@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, Button, Skeleton, Typography } from "@mui/material";
-import { Function, FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
-import { useMMUXContext, MMUXContextType } from "../context/MMUXContext";
+import { Function, FunctionJob, ProjectFunctionJob } from "../../osparc-api-ts-client";
+import { useMMUXContext, MMUXContextType } from "../../context/MMUXContext";
 import { RunSamplingButton } from "./RunSamplingButton";
-import ValueConfig from "./ValueConfig";
+import ValueConfig from "../ValueConfig";
 import { toast } from "react-toastify";
-import { openStudyUid } from "../utils/function_utils";
+import { openStudyUid } from "../../utils/function_utils";
 
 async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
   const fun = context?.selectedFunction as Function;

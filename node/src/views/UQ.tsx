@@ -4,7 +4,7 @@ import UncertainUQ from "../components/plots/UncertainUQ";
 import SuMoModal from "../components/SuMoModal";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { OutputSetup } from "../components/OutputSetup";
-import { JobSampling } from "../components/JobSampling";
+import { JobSampling } from "../components/sampling/JobSampling";
 
 export default function UQ() {
   const { selectedFunction, outputVars, setSelectedQoI } = useMMUXContext();
