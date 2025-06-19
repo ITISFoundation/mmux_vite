@@ -4,18 +4,18 @@ import { toast } from "react-toastify";
 import { Refresh } from "@mui/icons-material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
-import type { Function } from "../osparc-api-ts-client/models/Function";
+import type { Function } from "../../osparc-api-ts-client/models/Function";
 import {
   SolverFunction,
   ProjectFunction,
   PythonCodeFunction,
-} from "../osparc-api-ts-client/index.ts";
-import { listFunctions, getFunctionJobCollections } from "../utils/function_utils.ts";
+} from "../../osparc-api-ts-client/index.ts";
+import { listFunctions, getFunctionJobCollections } from "../../utils/function_utils.ts";
 import {
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,
-} from "../osparc-api-ts-client";
-import { useMMUXContext } from "../context/MMUXContext.tsx";
+} from "../../osparc-api-ts-client";
+import { useMMUXContext } from "../../context/MMUXContext.tsx";
 
 const VarsHolder = styled("div")`
   max-width: 150px;

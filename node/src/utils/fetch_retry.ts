@@ -13,20 +13,13 @@ export const fetchWithRetry = async (url: string, options: RequestInit = {}, ret
         ErrorToRetry = error as Error; // Re-throw the error after all retries have failed
       }
     }
-    await delay(wait * (attempt + 1)); // Wait before the next retry
-
     if( response && response.ok) {
       return response; // If the response is successful, return it immediately
     }
+
+    await delay(wait * (attempt + 1)); // Wait before the next retry
   }
 
-  if (response && response.ok) {
-    return response; // Return the successful response
-  }
-  if (ErrorToRetry) {
-    throw ErrorToRetry; // Re-throw the last error encountered
-  }
   // If we reach here, it means all retries failed
-
-  throw new Error('Fetch failed after maximum retries');
+  throw ErrorToRetry; // Re-throw the last error encountered
 }

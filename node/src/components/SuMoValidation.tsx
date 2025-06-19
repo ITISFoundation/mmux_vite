@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import Plot from "react-plotly.js";
@@ -25,10 +25,11 @@ const SuMoValidation = () => {
   //    - Std of y
   //    - Mean of y-y_hat
   //    - Std of y-y_hat
-  const { selectedFunction, inputVars, selectedQoI, filterSelectedJobList } =
-    useMMUXContext();
+  const { selectedFunction, inputVars, selectedQoI, filterSelectedJobList } = useMMUXContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
+  const [width, setWidth] = useState(1080);
+  const boxRef = useRef<HTMLDivElement>(null);
 
   console.log(
     "Performing SuMo Validation for function: ",
@@ -36,6 +37,96 @@ const SuMoValidation = () => {
     " and QoI: ",
     selectedQoI
   );
+
+  function computeStatisticsCv(y: number[], y_hat: number[]) {
+    // compute statistics
+    const mean_error =
+      y.reduce(
+        (sum: number, value: number, index: number) =>
+          sum + (value - y_hat[index]),
+        0
+      ) / y.length;
+    const std_error = Math.sqrt(
+      y.reduce(
+        (sum: number, value: number, index: number) =>
+          sum + Math.pow(value - y_hat[index] - mean_error, 2),
+        0
+      ) /
+        (y.length - 1)
+    );
+    const mae =
+      y.reduce(
+        (sum: number, value: number, index: number) =>
+          sum + Math.abs(value - y_hat[index]),
+        0
+      ) / y.length;
+    const rmse = Math.sqrt(
+      y.reduce(
+        (sum: number, value: number, index: number) =>
+          sum + Math.pow(value - y_hat[index], 2),
+        0
+      ) / y.length
+    );
+    const mean_y = y.reduce((a: number, b: number) => a + b, 0) / y.length;
+    const std_y = Math.sqrt(
+      y.reduce(
+        (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
+        0
+      ) /
+        (y.length - 1)
+    );
+    const cvMetricsData = {
+      mean_y: mean_y,
+      std_y: std_y,
+      mean_error: mean_error,
+      std_error: std_error,
+      mae: mae,
+      rmse: rmse,
+    };
+    setCvMetrics(cvMetricsData);
+    console.log("Registered cvMetrics: ", cvMetricsData);
+  }
+
+  const createDataAndMetrics = (data: { [key: string]: number[] }) => {
+    if (data && selectedQoI) {
+      const y = data[selectedQoI];
+      const y_hat = data[selectedQoI + "_hat"];
+
+      // For violin plots, y should be the data and x should be the label
+      const createViolinPlot = (
+        data: number[],
+        name: string,
+        side: "positive" | "negative"
+      ): Partial<Plotly.ViolinData> => {
+        return {
+          x: data,
+          y: Array(data.length).fill(""), // Use same x value to overlay
+          orientation: "h",
+          type: "violin",
+          name: name,
+          pointpos: side === "positive" ? 1 : -1,
+          points: "all",
+          side: side,
+          box: {
+            visible: true,
+          },
+          spanmode: "hard", // TODO show Esra both variants
+        };
+      };
+
+      const newPlotData: Partial<Plotly.ViolinData>[] = [
+        createViolinPlot(y, "Observations", "positive"),
+        createViolinPlot(y_hat, "Predictions", "negative"),
+      ];
+      setPlotData(newPlotData);
+      console.log("Registered plotData: ", newPlotData);
+      computeStatisticsCv(y, y_hat);
+    } else {
+      console.warn("No data available for SuMo validation.");
+      setPlotData([]);
+      setCvMetrics({} as cvMetricsType);
+    }
+  };
 
   const RunSuMoValidation = async (jobs: FunctionJob[]) => {
     console.info("Evaluating SuMo Validation for jobs: ", jobs);
@@ -57,54 +148,6 @@ const SuMoValidation = () => {
       })
       .catch((error) => console.debug("Error:", error));
   };
-  function computeStatisticsCv(y: number[], y_hat: number[]) {
-    // compute statistics
-    const mean_error =
-      y.reduce(
-        (sum: number, value: number, index: number) =>
-          sum + (value - y_hat[index]),
-        0
-      ) / y.length;
-    const std_error = Math.sqrt(
-      y.reduce(
-        (sum: number, value: number, index: number) =>
-          sum + Math.pow(value - y_hat[index] - mean_error, 2),
-        0
-      ) /
-      (y.length - 1)
-    );
-    const mae =
-      y.reduce(
-        (sum: number, value: number, index: number) =>
-          sum + Math.abs(value - y_hat[index]),
-        0
-      ) / y.length;
-    const rmse = Math.sqrt(
-      y.reduce(
-        (sum: number, value: number, index: number) =>
-          sum + Math.pow(value - y_hat[index], 2),
-        0
-      ) / y.length
-    );
-    const mean_y = y.reduce((a: number, b: number) => a + b, 0) / y.length;
-    const std_y = Math.sqrt(
-      y.reduce(
-        (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
-        0
-      ) /
-      (y.length - 1)
-    );
-    const cvMetricsData = {
-      mean_y: mean_y,
-      std_y: std_y,
-      mean_error: mean_error,
-      std_error: std_error,
-      mae: mae,
-      rmse: rmse,
-    };
-    setCvMetrics(cvMetricsData);
-    console.log("Registered cvMetrics: ", cvMetricsData);
-  }
 
   useEffect(() => {
     const run = async () => {
@@ -114,44 +157,17 @@ const SuMoValidation = () => {
     run();
   }, [selectedQoI, inputVars, selectedFunction]);
 
+  useEffect(() => {
+    const resizeObserver = new ResizeObserver((event) => {
+      // Depending on the layout, you may need to swap inlineSize with blockSize
+      // https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserverEntry/contentBoxSize
+      setWidth(event[0].contentBoxSize[0].inlineSize);
+    });
 
-  const createDataAndMetrics = (data: { [key: string]: number[] }) => {
-    if (data && selectedQoI) {
-      const y = data[selectedQoI];
-      const y_hat = data[selectedQoI + "_hat"];
-
-      // For violin plots, y should be the data and x should be the label
-      const createViolinPlot = (data: number[], name: string, side: "positive" | "negative"): Partial<Plotly.ViolinData> => {
-        return {
-          x: data,
-          y: Array(data.length).fill(""), // Use same x value to overlay
-          orientation: "h",
-          type: "violin",
-          name: name,
-          pointpos: (side === "positive" ? 1. : -1.),
-          points: "all",
-          side: side,
-          box: {
-            visible: true
-          },
-          spanmode: "hard", // TODO show Esra both variants
-        };
-      }
-
-
-      const newPlotData: Partial<Plotly.ViolinData>[] = [
-        createViolinPlot(y, "Observations", "positive"),
-        createViolinPlot(y_hat, "Predictions", "negative"),
-      ];
-      setPlotData(newPlotData);
-      console.log("Registered plotData: ", newPlotData);
-      computeStatisticsCv(y, y_hat)
-    } else {
-      console.warn("No data available for SuMo validation.");
-      setPlotData([]);
-      setCvMetrics({} as cvMetricsType);
+    if(boxRef.current) {
+      resizeObserver.observe(boxRef.current);
     }
-  };
+  }, [boxRef]);
 
   const layout = {
     plot_bgcolor: `${theme.palette.background.default}`,
@@ -168,10 +184,10 @@ const SuMoValidation = () => {
       const skew =
         y.length > 2
           ? y.reduce(
-            (acc: number, val: number) => acc + Math.pow((val - mean) / n, 3),
-            0
-          ) *
-          (y.length / ((y.length - 1) * (y.length - 2)))
+              (acc: number, val: number) => acc + Math.pow((val - mean) / n, 3),
+              0
+            ) *
+            (y.length / ((y.length - 1) * (y.length - 2)))
           : 0;
       return skew.toFixed(4);
     })();
@@ -185,56 +201,98 @@ const SuMoValidation = () => {
       const kurt =
         y.length > 3
           ? (y.reduce(
-            (acc: number, val: number) => acc + Math.pow((val - mean) / n, 4),
-            0
-          ) *
-            (y.length * (y.length + 1))) /
-          ((y.length - 1) * (y.length - 2) * (y.length - 3)) -
-          (3 * Math.pow(y.length - 1, 2)) / ((y.length - 2) * (y.length - 3))
+              (acc: number, val: number) => acc + Math.pow((val - mean) / n, 4),
+              0
+            ) *
+              (y.length * (y.length + 1))) /
+              ((y.length - 1) * (y.length - 2) * (y.length - 3)) -
+            (3 * Math.pow(y.length - 1, 2)) / ((y.length - 2) * (y.length - 3))
           : 0;
       return kurt.toFixed(4);
     })();
 
   const plotStyle = {
-    height: 300,
+    height: 400,
     borderRadius: "8px",
     overflow: "hidden",
     margin: "0 auto", // Center the plot horizontally
-    maxWidth: "680px", // Match the width of the statistics box below
+    maxWidth: `${width}px`, // Match the width of the statistics box below
   };
 
   return (
     <>
       {plotData && selectedQoI && (
-        <Box display="flex" flexDirection="column" gap={1} width={"100%"} justifyContent={"center"}>
+        <Box
+          display="flex"
+          flexDirection="column"
+          width={"100%"}
+          justifyContent={"center"}
+          ref={boxRef}
+        >
           <Plot
             data={plotData}
             layout={{
               ...layout,
-              title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
+              title: {
+                text:
+                  (selectedQoI ? selectedQoI : "Quantity of Interest") +
+                  " Sample Distribution",
+              },
               margin: { t: 40, l: 30, r: 30, b: 40 },
-              height: 300,
-              width: 650,
+              height: 400,
+              width: width,
               barmode: "overlay",
               legend: {
                 x: 1,
                 xanchor: "right",
                 y: 1,
-                bgcolor: 'rgba(0,0,0,0)'
+                bgcolor: "rgba(0,0,0,0)",
               },
             }}
             style={plotStyle}
             config={{ responsive: true }}
           />
-          <Box display="flex" flexDirection="row" width="680px" ml={3} mr={3} >
-            <Box mt={1} display={"flex"} flexDirection={"column"} width={"100%"}>
-              {/* <Header headerType="uq" infoText="" tabTitle="Data Statistics" /> */}
-              <Box display={"flex"} flexDirection={"row"} width={"100%"}>
-                <Box mt={2} display={"flex"} flexDirection={"row"} width={"100%"}>
+          <Box
+            display="flex"
+            flex={1}
+            flexDirection="row"
+            width={width - 8*2}
+            ml={1}
+            mr={1}
+          >
+            <Box
+              mt={1}
+              display={"flex"}
+              flex={1}
+              flexDirection={"column"}
+              width={"100%"}
+            >
+              {/* <Header headerType="title" infoText="" tabTitle="Data Statistics" /> */}
+              <Box
+                display={"flex"}
+                flex={1}
+                flexDirection={"row"}
+                width={"100%"}
+              >
+                <Box
+                  mt={2}
+                  display={"flex"}
+                  flexDirection={"row"}
+                  width={"100%"}
+                >
                   {cvMetrics ? (
-                    <ul style={{
-                      listStyle: "none", padding: 0, margin: "0px", display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%" // Ensure the ul takes full width
-                    }}>
+                    <ul
+                      style={{
+                        listStyle: "none",
+                        padding: 0,
+                        margin: "0px",
+                        display: "flex",
+                        flexDirection: "row",
+                        alignContent: "center",
+                        justifyContent: "space-between",
+                        width: "100%", // Ensure the ul takes full width
+                      }}
+                    >
                       <Typography
                         variant="body1"
                         fontFamily={"inherit"}

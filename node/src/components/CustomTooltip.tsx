@@ -7,7 +7,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import React, { ReactElement, useState } from "react";
+import { ReactElement, useState } from "react";
 
 interface CustomTooltipProps extends TooltipProps {
   ExtendedTootlip?: ReactElement;
