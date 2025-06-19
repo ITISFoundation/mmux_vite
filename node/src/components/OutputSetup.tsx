@@ -33,7 +33,7 @@ export const OutputSetup = (props: UQSetupProps) => {
   } = useMMUXContext();
   const [localQoI, setLocalQoI] = useState<string | undefined>(selectedQoI);
   const [localNumSamples, setLocalNumSamples] = useState(
-    numSamples[selectedFunction?.uid || ""] || 1000
+    numSamples[selectedFunction?.uid || ""] || 10000
   );
 
   const handlesetLocalQoI = (value: string) => {
