@@ -37,7 +37,8 @@ const Curves1DPlots = () => {
       return acc;
     }, {})
   );
-  console.log("QoI to 1D curves: ", selectedQoI);
+  const plotColor = "rgb(127, 199, 255)"
+  const fillColor = "rgba(127, 199, 255, 0.3)"
 
   const RunCentralSuMoInterpolations = async (jobs: FunctionJob[]) => {
     console.log("Evaluating SuMo for 1D curves...");
@@ -45,6 +46,7 @@ const Curves1DPlots = () => {
       method: "POST",
       body: JSON.stringify({
         inputs: inputVars,
+        distribution: distribution,
         output: selectedQoI,
         sliderValues: otherAxis,
         FunctionJobs: jobs,
@@ -79,37 +81,39 @@ const Curves1DPlots = () => {
       const std_hat = data[varName]?.std_hat || [];
       const traces: Data[] = [
         {
-          x,
+          x: x,
           y: y_hat,
           name: varName,
           xaxis: `x${inputVars.indexOf(varName) + 1}`,
           yaxis: "y",
           mode: "lines",
-          line: { color: "#7fc7ff" },
+          line: { color: plotColor },
         },
       ];
       if (std_hat.length === y_hat.length) {
         traces.push(
           {
-            x,
+            x: x,
             y: y_hat.map((y, i) => y + 2 * std_hat[i]),
-            name: `${varName} +2σ`,
+            name: `${varName}+2σ`,
             xaxis: `x${inputVars.indexOf(varName) + 1}`,
             yaxis: "y",
             mode: "lines",
-            line: { color: "#7fc7ff", dash: "dot" },
+            line: { color: "rgba(0,0,0,0)" },
+            fillcolor: fillColor,
             fill: "tonexty",
             showlegend: false,
           },
           {
-            x,
+            x: x,
             y: y_hat.map((y, i) => y - 2 * std_hat[i]),
-            name: `${varName} -2σ`,
+            name: `${varName}-2σ`,
             xaxis: `x${inputVars.indexOf(varName) + 1}`,
             yaxis: "y",
             mode: "lines",
             fill: "tonexty",
-            line: { color: "#7fc7ff", dash: "dot" },
+            line: { color: "rgba(0,0,0,0)" },
+            fillcolor: fillColor,
             showlegend: false,
           }
         );
