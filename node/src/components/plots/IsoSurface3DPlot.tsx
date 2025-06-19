@@ -5,6 +5,7 @@ import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
+import PlotLoadingWrapper from "./PlotLoadingWrapper";
 
 const IsoSurface3DPlot = () => {
   const theme = useTheme();
@@ -225,13 +226,16 @@ const IsoSurface3DPlot = () => {
       <Box
         sx={{
           width: "100%",
-          height: "500px",
-          overflow: "hidden",
+          height: plotStyle.height,
+          overflow: plotStyle.overflow,
           borderRadius: 2,
         }}
       >
-        <Plot data={plotData} layout={layout} style={plotStyle} />
+        <PlotLoadingWrapper height={plotStyle.height} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+        </PlotLoadingWrapper>
       </Box>
+
       <Box display={"flex"} flexDirection={"row"} gap={2} pt={2}>
         <CreateSelect
           idx={1}
