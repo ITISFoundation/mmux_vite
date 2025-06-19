@@ -319,14 +319,11 @@ def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[st
     output_response_sanitized = sanitize_varnames(output_response)
     completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
+
     if len(completed_jobs) == 0:
-        # Return a Flask error response if called from a Flask route
-        response = make_response(jsonify({"error": "No completed jobs found. Cannot create training file."}), 400)
-        # If running inside a Flask request context, abort with this response
-        abort(response)
+        raise ValueError("No completed jobs found. Cannot create training file.")
     elif len(completed_jobs)<10:
-        response = make_response(jsonify({"error": "At least 10 jobs are necessary to build a surrogate model"}), 400)
-        abort(response)
+        raise ValueError("At least 10 jobs are necessary to build a surrogate model")
 
     def get_job_dict(job):
         d = {sanitize_varnames(key): job["inputs"][key] for key in input_vars}
