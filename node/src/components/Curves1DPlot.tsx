@@ -5,7 +5,7 @@ import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { useMMUXContext } from "../context/MMUXContext";
 import { Data } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
-import Header from "./Header";
+import Header from "./navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 
 type GPPrediction = {
@@ -121,11 +121,6 @@ const Curves1DPlots = () => {
 
   return (
     <Box display={"flex"} flexDirection={"column"}>
-      <CreateSelect
-        axis={axis}
-        setAxis={setAxis}
-        inputVars={inputVars}
-      />
       <Box overflow={"hidden"} borderRadius={1} width="100%" mb={2}>
         <Plot
           data={plotData}
@@ -153,9 +148,14 @@ const Curves1DPlots = () => {
         />
       </Box>
       <Box>
-        <Header headerType="uq" infoText="" tabTitle="Selection" />
+        <Header headerType="title" infoText="" tabTitle="Selection" />
       </Box>
-      <Box display={"flex"} flexDirection={"column"} gap={2} pt={2}>
+      <Box display={"flex"} flexDirection={"column"} gap={1}>
+        <CreateSelect
+          axis={axis}
+          setAxis={setAxis}
+          inputVars={inputVars}
+        />
         {inputVars.length > 0 &&
           distribution[selectedFunction?.uid || ""] !== undefined ? (
           <>

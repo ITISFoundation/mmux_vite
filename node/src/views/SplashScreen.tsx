@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Container,
   Card,
@@ -5,7 +6,6 @@ import {
   CircularProgress,
   CardHeader,
 } from "@mui/material";
-import React from "react";
 
 export const SplashScreen = () => {
   return (
