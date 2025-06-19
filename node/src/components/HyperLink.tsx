@@ -12,6 +12,7 @@ const StyledHyperLink = ({ text, link }: StyledHyperLinkPropsType) => {
       {" "}
       <a
         href={link}
+        target="_blank"
         style={{
           color: theme.palette.primary.main,
           textDecoration: "underline",
