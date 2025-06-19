@@ -92,19 +92,8 @@ const Surface2DPlot = () => {
       const uniqueY: Array<number> = Array.from(
         new Set(data[axis2] as number[])
       );
-      const zFlat: Array<Array<number>> = data[selectedQoI] as number[][];
-      const z = [];
-      for (let j = 0; j < uniqueY.length; j++) {
-        z.push(zFlat.slice(j * uniqueX.length, (j + 1) * uniqueX.length));
-      }
-      console.log(
-        "Executing reshapePlotData",
-        data,
-        selectedQoI,
-        data[axis1],
-        data[axis2],
-        data[selectedQoI]
-      );
+      const z: Array<Array<number>> = data[selectedQoI] as number[][];
+
       const newData: Data[] = [
         {
           x: uniqueX,
@@ -116,7 +105,6 @@ const Surface2DPlot = () => {
         },
       ];
       setPlotData(newData);
-      console.log("Registered plotData: ", newData);
     } else {
       setPlotData([{}]);
       console.log("Empty plotData");
@@ -129,7 +117,6 @@ const Surface2DPlot = () => {
       return await RunSuMo2DInterpolation(jobs, axis1, axis2);
     };
     run();
-    console.log(axis1, axis2);
   }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis]);
 
   const layout = {
