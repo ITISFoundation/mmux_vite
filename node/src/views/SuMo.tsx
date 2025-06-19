@@ -18,7 +18,7 @@ export default function SuMo() {
     if (outputVars && outputVars.length > 0) {
       setSelectedQoI(outputVars[0]);
     }
-  }, [outputVars]);
+  }, [outputVars, selectedFunction]);
 
   return (
     <MetaModelingUX
