@@ -6,12 +6,17 @@ import { toast } from "react-toastify";
 import { useState } from "react";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { openStudyUid } from "../utils/function_utils";
-import { useMMUXContext } from "../context/MMUXContext";
-import { ProjectFunctionJob } from "../osparc-api-ts-client";
+import { Function, ProjectFunctionJob } from "../osparc-api-ts-client";
+
+interface JobRowProps {
+  jobUid: string
+  setSelected: (selected: boolean, subJob: string) => void;
+  jobList: SubJob[];
+  selectedFunction?: Function;
+}
 
 const JobRow = (props: JobRowProps) => {
-  const { selectedFunction } = useMMUXContext();
-  const { jobUid, jobList, setSelected } = props;
+  const { jobUid, jobList, setSelected, selectedFunction } = props;
   const job = jobList.find(j => j.job.uid === jobUid);
   const [creatingJobCopy, setCreatingJobCopy] = useState(false)
 
