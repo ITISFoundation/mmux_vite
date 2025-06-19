@@ -1,9 +1,9 @@
 import { Box, useTheme } from "@mui/material";
 import { useState, useEffect } from "react";
 import Plot from "react-plotly.js";
-import { useMMUXContext } from "../context/MMUXContext";
-import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
-import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
+import { useMMUXContext } from "../../context/MMUXContext";
+import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Data } from "plotly.js";
 import { CreateSelect, CreateSlider } from "./PlotTools";
 

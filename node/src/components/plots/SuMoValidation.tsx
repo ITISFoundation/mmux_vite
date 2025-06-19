@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { useMMUXContext } from "../context/MMUXContext";
-import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
+import { useMMUXContext } from "../../context/MMUXContext";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import Plot from "react-plotly.js";
 import { Box, Typography, useTheme } from "@mui/material";
-import { FunctionJob } from "../osparc-api-ts-client";
+import { FunctionJob } from "../../osparc-api-ts-client";
 
 type cvMetricsType = {
   mean_y: number;
@@ -52,7 +52,7 @@ const SuMoValidation = () => {
           sum + Math.pow(value - y_hat[index] - mean_error, 2),
         0
       ) /
-        (y.length - 1)
+      (y.length - 1)
     );
     const mae =
       y.reduce(
@@ -73,7 +73,7 @@ const SuMoValidation = () => {
         (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
         0
       ) /
-        (y.length - 1)
+      (y.length - 1)
     );
     const cvMetricsData = {
       mean_y: mean_y,
@@ -164,7 +164,7 @@ const SuMoValidation = () => {
       setWidth(event[0].contentBoxSize[0].inlineSize);
     });
 
-    if(boxRef.current) {
+    if (boxRef.current) {
       resizeObserver.observe(boxRef.current);
     }
   }, [boxRef]);
@@ -184,10 +184,10 @@ const SuMoValidation = () => {
       const skew =
         y.length > 2
           ? y.reduce(
-              (acc: number, val: number) => acc + Math.pow((val - mean) / n, 3),
-              0
-            ) *
-            (y.length / ((y.length - 1) * (y.length - 2)))
+            (acc: number, val: number) => acc + Math.pow((val - mean) / n, 3),
+            0
+          ) *
+          (y.length / ((y.length - 1) * (y.length - 2)))
           : 0;
       return skew.toFixed(4);
     })();
@@ -201,12 +201,12 @@ const SuMoValidation = () => {
       const kurt =
         y.length > 3
           ? (y.reduce(
-              (acc: number, val: number) => acc + Math.pow((val - mean) / n, 4),
-              0
-            ) *
-              (y.length * (y.length + 1))) /
-              ((y.length - 1) * (y.length - 2) * (y.length - 3)) -
-            (3 * Math.pow(y.length - 1, 2)) / ((y.length - 2) * (y.length - 3))
+            (acc: number, val: number) => acc + Math.pow((val - mean) / n, 4),
+            0
+          ) *
+            (y.length * (y.length + 1))) /
+          ((y.length - 1) * (y.length - 2) * (y.length - 3)) -
+          (3 * Math.pow(y.length - 1, 2)) / ((y.length - 2) * (y.length - 3))
           : 0;
       return kurt.toFixed(4);
     })();
@@ -256,7 +256,7 @@ const SuMoValidation = () => {
             display="flex"
             flex={1}
             flexDirection="row"
-            width={width - 8*2}
+            width={width - 8 * 2}
             ml={1}
             mr={1}
           >

@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { useMMUXContext } from "../context/MMUXContext";
+import { useMMUXContext } from "../../context/MMUXContext";
 import Plot from "react-plotly.js";
-import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
-import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
+import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, useTheme } from "@mui/material";
-import { fetchWithRetry } from "../utils/fetch_retry";
+import { fetchWithRetry } from "../../utils/fetch_retry";
 import WhiskerPlot from "./WhiskerPlot";
-import HistogramStats from "./HistogramStats";
-import { JobsLoading } from "./JobsLoading";
-import { DisplayMessage } from "./DisplayMessage";
+import HistogramStats from "../HistogramStats";
+import { JobsLoading } from "../JobsLoading";
+import { DisplayMessage } from "../DisplayMessage";
 
 export default function UncertainUQ(props: UncertainUQPropsType) {
   const {

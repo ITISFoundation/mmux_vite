@@ -1,5 +1,5 @@
 import { useMMUXContext } from "../context/MMUXContext";
-import SuMoPlotsSteps from "../components/SuMoPlotsSteps";
+import SuMoPlotsSteps from "../components/plots/SuMoPlotsSteps";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { JobSampling } from "../components/JobSampling";
 import { useState, useRef, useEffect } from "react";

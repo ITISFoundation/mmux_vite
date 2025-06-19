@@ -1,10 +1,10 @@
 import { InputLabel, Typography, Select, MenuItem, TextField, styled, Slider } from "@mui/material";
 import { useState } from "react";
-import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
-import { MMUXContextType, useMMUXContext } from "../context/MMUXContext";
+import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
+import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
 
 export const _get_unique_values = (context: MMUXContextType) => {
-  const { inputVars,filterSelectedJobList } = context;
+  const { inputVars, filterSelectedJobList } = context;
   const uniqueValuesPerVar: { [varName: string]: Set<number> } = {};
   const jobs = filterSelectedJobList();
   inputVars.forEach((varName) => {
@@ -27,7 +27,7 @@ export const _filterOutConstantDataVars = (context: MMUXContextType) => {
   // Filter out variables with only one unique value
   const uniqueValuesPerVar: { [varName: string]: Set<number> } = _get_unique_values(context)
   const newFilteredInputVars = Object.entries(uniqueValuesPerVar)
-    .filter(([ _value, valueSet]) => valueSet.size > 1)
+    .filter(([_value, valueSet]) => valueSet.size > 1)
     .map(([varName]) => varName);
   return newFilteredInputVars
 }
@@ -126,7 +126,7 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
     const inputValues = uniqueValuesPerVar[input].values();
     const firstVal = inputValues.next().value // get the first value
 
-    if( firstVal !== undefined) {
+    if (firstVal !== undefined) {
       min = firstVal * 0.99
       max = firstVal * 1.01
     } else {

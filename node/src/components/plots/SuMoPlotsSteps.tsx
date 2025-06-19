@@ -13,9 +13,9 @@ import IsoSurface3DPlot from "./IsoSurface3DPlot";
 import Curves1DPlots from "./Curves1DPlot";
 import SuMoValidation from "./SuMoValidation";
 import Surface2DPlot from "./Surface3DPlot";
-import Header from "./navigation/Header";
+import Header from "../navigation/Header";
 import { filterInputVars } from "./PlotTools";
-import { useMMUXContext } from "../context/MMUXContext";
+import { useMMUXContext } from "../../context/MMUXContext";
 
 const SuMoPlotsSteps = () => {
   const theme = useTheme();

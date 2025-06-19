@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
-import UncertainUQ from "../components/UncertainUQ";
+import UncertainUQ from "../components/plots/UncertainUQ";
 import SuMoModal from "../components/SuMoModal";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { OutputSetup } from "../components/OutputSetup";

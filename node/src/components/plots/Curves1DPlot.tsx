@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import Plot from "react-plotly.js";
-import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
-import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
-import { useMMUXContext } from "../context/MMUXContext";
+import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
+import { useMMUXContext } from "../../context/MMUXContext";
 import { Data } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
-import Header from "./navigation/Header";
+import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 
 type GPPrediction = {
