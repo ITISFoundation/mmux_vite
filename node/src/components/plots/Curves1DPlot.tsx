@@ -7,6 +7,7 @@ import { Data } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
 import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
+import PlotLoadingWrapper from "./PlotLoadingWrapper";
 
 type GPPrediction = {
   x: number[];
@@ -65,7 +66,12 @@ const Curves1DPlots = () => {
   useEffect(() => {
     const run = async () => {
       const jobs = filterSelectedJobList();
-      return await RunCentralSuMoInterpolations(jobs);
+      if (jobs.length !== 0) {
+        return await RunCentralSuMoInterpolations(jobs);
+      } else {
+        // Not enough jobs to build model - then returns empty list
+        setPlotData([])
+      }
     };
     run();
   }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis]);
@@ -126,30 +132,32 @@ const Curves1DPlots = () => {
   return (
     <Box display={"flex"} flexDirection={"column"}>
       <Box overflow={"hidden"} borderRadius={1} width="100%" mb={2}>
-        <Plot
-          data={plotData}
-          layout={{
-            plot_bgcolor: `${theme.palette.background.default}`,
-            paper_bgcolor: `${theme.palette.background.default}`,
-            font: { color: `${theme.palette.text.primary}` },
-            xaxis: {
-              title: { text: axis }
-            },
-            yaxis: {
-              title: { text: selectedQoI },
-              // showgrid: true,
-              anchor: "x",
-            },
-            showlegend: false,
-          }}
-          style={{
-            height: 300,
-            borderRadius: "8px",
-            overflow: "hidden",
-          }
-          }
-          config={{ responsive: true }}
-        />
+        <PlotLoadingWrapper height={300} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
+          <Plot
+            data={plotData}
+            layout={{
+              plot_bgcolor: `${theme.palette.background.default}`,
+              paper_bgcolor: `${theme.palette.background.default}`,
+              font: { color: `${theme.palette.text.primary}` },
+              xaxis: {
+                title: { text: axis }
+              },
+              yaxis: {
+                title: { text: selectedQoI },
+                // showgrid: true,
+                anchor: "x",
+              },
+              showlegend: false,
+            }}
+            style={{
+              height: 300,
+              borderRadius: "8px",
+              overflow: "hidden",
+            }
+            }
+            config={{ responsive: true }}
+          />
+        </PlotLoadingWrapper>
       </Box>
       <Box>
         <Header headerType="title" infoText="" tabTitle="Selection" />

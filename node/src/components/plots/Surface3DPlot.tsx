@@ -6,6 +6,7 @@ import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Data } from "plotly.js";
 import { CreateSelect, CreateSlider } from "./PlotTools";
+import PlotLoadingWrapper from "./PlotLoadingWrapper";
 
 const Surface2DPlot = () => {
   const theme = useTheme();
@@ -172,8 +173,11 @@ const Surface2DPlot = () => {
           borderRadius: 2,
         }}
       >
-        <Plot data={plotData} layout={layout} style={plotStyle} />
+        <PlotLoadingWrapper height={plotStyle.height} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+        </PlotLoadingWrapper>
       </Box>
+
       <Box display={"flex"} flexDirection={"row"} gap={2} pt={1}>
         <CreateSelect
           axis={axis1}

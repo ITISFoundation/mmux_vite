@@ -6,6 +6,7 @@ import { Box, useTheme } from "@mui/material";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import Metric from "./../Metric"
 import SuMoMetricRow from "./../SuMoMetricRow";
+import PlotLoadingWrapper from "./PlotLoadingWrapper";
 
 const SuMoValidation = () => {
   const theme = useTheme();
@@ -184,25 +185,28 @@ const SuMoValidation = () => {
           ) : (
             <div>No data statistics available.</div>
           )}
-          <Plot
-            data={plotData}
-            layout={{
-              ...layout,
-              title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
-              margin: { t: 40, l: 30, r: 30, b: 40 },
-              height: 400,
-              width: width,
-              barmode: "overlay",
-              legend: {
-                x: 1,
-                xanchor: "right",
-                y: 1,
-                bgcolor: 'rgba(0,0,0,0)'
-              },
-            }}
-            style={plotStyle}
-            config={{ responsive: true }}
-          />
+          <PlotLoadingWrapper height={300} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
+            <Plot
+              data={plotData}
+              layout={{
+                ...layout,
+                title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
+                margin: { t: 40, l: 30, r: 30, b: 40 },
+                height: 400,
+                width: width,
+                barmode: "overlay",
+                legend: {
+                  x: 1,
+                  xanchor: "right",
+                  y: 1,
+                  bgcolor: 'rgba(0,0,0,0)'
+                },
+              }}
+              style={plotStyle}
+              config={{ responsive: true }}
+            />
+          </PlotLoadingWrapper>
+
         </Box>
       )}
     </>

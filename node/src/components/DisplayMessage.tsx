@@ -4,15 +4,16 @@ import React from "react";
 type DisplayMessageProps = {
   mssg: string;
   children?: React.ReactNode;
+  height?: number;
 };
 
 export const DisplayMessage = (props: DisplayMessageProps) => {
   const theme = useTheme();
-  const { mssg, children } = props;
+  const { mssg, children, height } = props;
   return (
     <Box
       width={"100%"}
-      height={"400px"}
+      height={height ? height : "400px"}
       display={"flex"}
       flexDirection={"column"}
       alignItems={"center"}
