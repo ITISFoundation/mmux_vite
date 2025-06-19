@@ -6,8 +6,11 @@ import { toast } from "react-toastify";
 import { useState } from "react";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { openStudyUid } from "../utils/function_utils";
+import { useMMUXContext } from "../context/MMUXContext";
+import { ProjectFunctionJob } from "../osparc-api-ts-client";
 
 const JobRow = (props: JobRowProps) => {
+  const { selectedFunction } = useMMUXContext();
   const { jobUid, jobList, setSelected } = props;
   const job = jobList.find(j => j.job.uid === jobUid);
   const [creatingJobCopy, setCreatingJobCopy] = useState(false)
@@ -63,13 +66,18 @@ const JobRow = (props: JobRowProps) => {
       title: string;
       description: string;
     }
-    const createJobStudyCopy = async (projectJobId: string) => {
+    const createJobStudyCopy = async (job: ProjectFunctionJob) => {
       try {
+        const projectJobId = job.projectJobId;
+        const inputs = job.inputs
+        console.log("inputs: ", inputs)
         const study: StudyType = await fetch(
           PYTHON_DAKOTA_BACKEND + "/flask/clone_job", {
           method: "POST",
           body: JSON.stringify({
+            functionName: selectedFunction?.title,
             projectJobId: projectJobId,
+            projectInputs: inputs,
           }),
         }).then(function (response) {
           return response.json()
@@ -89,7 +97,7 @@ const JobRow = (props: JobRowProps) => {
     return (
       <TableRow
         key={job.job.uid}
-        sx={(theme)=>({
+        sx={(theme) => ({
           backgroundColor: jobStatus !== 'SUCCESS' ? theme.palette.grey[200] : undefined,
           '& .MuiTableCell-root': {
             color: jobStatus !== 'SUCCESS' ? theme.palette.grey[500] : undefined
@@ -130,7 +138,7 @@ const JobRow = (props: JobRowProps) => {
               size="small"
               onClick={async () => {
                 setCreatingJobCopy(true)
-                const copy_uid = await createJobStudyCopy(job.job.projectJobId);
+                const copy_uid = await createJobStudyCopy(job.job);
                 setCreatingJobCopy(false)
                 if (copy_uid) openStudyUid(copy_uid)
                 else toast.warning("Could not open Job copy in new window!")

@@ -687,15 +687,13 @@ class ParentInfo(NamedTuple):
     parent_project_id: str
     
 def _get_parent_ids() -> ParentInfo:
-    _logger.info("env vars: ", [os.environ.get(key) for key in os.environ.keys()])
-    _logger.info("env vars keys: ", [key for key in os.environ.keys()])
     deployment_mode = _deployment_mode()
     if deployment_mode == "LOCAL":
-        parent_node_id = "a" * 32
-        parent_project_id = "a" * 32
+        parent_node_id = "null"
+        parent_project_id = "null"
     elif deployment_mode == "OSPARC":
-        parent_node_id = os.environ.get("OSPARC_NODE_ID", "a" * 32)
-        parent_project_id = os.environ.get("OSPARC_STUDY_ID", "a" * 32)
+        parent_node_id = os.environ.get("OSPARC_NODE_ID", None)
+        parent_project_id = os.environ.get("OSPARC_STUDY_ID", None)
         if not parent_node_id or not parent_project_id:
             _logger.error("OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set. Cannot create a sampling campaign through map function.")
             raise ValueError("OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set.")
@@ -833,15 +831,21 @@ def flask_clone_job():
         # Convert request data into a Python dictionary
         request_data: dict = json.loads(request.data.decode("utf-8"))
         project_job_id = request_data["projectJobId"]
-    
+        function_name = request_data["functionName"]
+        inputs: dict = request_data["projectInputs"]
+        
         # Clone the job using the job_id
-        study_data = BodyCloneStudyV0StudiesStudyIdClonePost(title="...", description="...")
-        parent_info = _get_parent_ids()
+        def format_inputs_for_description(inputs: dict) -> str:
+            """Formats a dictionary of inputs into a human-readable string for description."""
+            formatted_inputs = "\n- ".join([""]+[f"*{key}*: {float(value):.4g}" for key, value in inputs.items()])
+            return f"#### Inputs:\n\n{formatted_inputs}"
+
+        formatted_inputs = format_inputs_for_description(inputs)
+        study_data = BodyCloneStudyV0StudiesStudyIdClonePost(title="Job " + function_name, 
+                                     description=f"Clone of job *{project_job_id}* from function *{function_name}*.\n\n{formatted_inputs}",)
+        _logger.debug("Study data: ", study_data)
         study = studies_api_instance.clone_study(project_job_id, hidden=False,
-                                                 body_clone_study_v0_studies_study_id_clone_post=study_data,
-                                                 x_simcore_parent_node_id=parent_info.parent_node_id, 
-                                                 x_simcore_parent_project_uuid=parent_info.parent_project_id) 
-        # studies_api_instance.patch_study(study)  # this will update the study with the new data -- FIXME this endpoint needs to be exposed in the API
+                                                 body_clone_study_v0_studies_study_id_clone_post=study_data,)
         _logger.debug(f"Cloned study: {study.to_dict()}")
         _logger.debug("Done!!")
         return jsonify(study.to_dict())
