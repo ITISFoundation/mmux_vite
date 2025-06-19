@@ -51,7 +51,7 @@ export const OutputSetup = (props: UQSetupProps) => {
 
   useEffect(() => {
     setLocalQoI(localQoI);
-  }, [selectedQoI]); // Update localQoI when selectedQoI changes due to selectedFunction change
+  }, [selectedFunction]); // Update localQoI when selectedQoI changes due to selectedFunction change
 
   return (
     <Box
