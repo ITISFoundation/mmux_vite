@@ -97,7 +97,7 @@ const App = () => {
         }
       }
     }
-    const messageHandler = (e: any) => {
+    const messageHandler = (e: MessageEvent) => {
       const msg: string = e.data;
       const OSPARC_MSG_PREFIX = 'osparc;'
       if (typeof msg === 'string'  && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
