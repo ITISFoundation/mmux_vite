@@ -197,7 +197,8 @@ export function FunctionList() {
         setInputVars([]);
         setOutputVars([]);
       }
-    };
+    }
+  }
 
     useEffect(() => {
       console.log("FunctionList mounted, fetching functions...");
@@ -373,4 +374,4 @@ export function FunctionList() {
       );
     }
   }
-}
+
