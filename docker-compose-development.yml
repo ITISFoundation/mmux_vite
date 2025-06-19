@@ -10,6 +10,7 @@ services:
       - DEVELOPMENT_MODE=true
       - SERVICE_MODE=${SERVICE_MODE}
       - PERMISSIONS=${PERMISSIONS}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE}
     volumes:
       - ./flaskapi:/app
   mmux-vite-web:

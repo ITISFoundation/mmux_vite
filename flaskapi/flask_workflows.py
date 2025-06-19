@@ -1,17 +1,3 @@
-"""TODOs
-- implement other metrics of SuMo assessment (can do wo internet)
-*** need to find where I have those codes (download some other repos!)
-DONE - implement a mock function 
-& LHS running (can do wo internet) in Setup screen
-- implement Running visualization (based on ParallelRunner GUI)
-
-- implement MUI table w dropdowns to select Jobs in SuMo screen (NEED Copilot)
-- implement UQ (better w Copilot, to do the pop-up to define the distribution, params, etc of each input variable).
-- implement report generation --  later, check w Melanie & Reboux
-
-FIXME crashing error when I already have SuMo plots open & went back to setup & choose Sinc Python function
-"""
-
 import re
 import os
 from pathlib import Path
@@ -56,9 +42,6 @@ flask_logger.propagate = True
 # Same for Werkzeug (Flask's underlying WSGI library)
 werkzeug_logger = logging.getLogger("werkzeug")
 werkzeug_logger.propagate = True
-
-
-
 _logger.info("Logging started")
 #############################################################
 
@@ -164,11 +147,22 @@ def permissions():
     """Used to check the environment variable PERMISSIONS."""
     try:
         permissions = os.environ["PERMISSIONS"]
-        _logger.info(f"Service mode: {permissions}")
+        _logger.info(f"permissions: {permissions}")
         return jsonify({"permissions": permissions}), 200
     except KeyError:
-        _logger.error("PERMISSIOSN environment variable is not set.")
+        _logger.error("PERMISSIONS environment variable is not set.")
         return jsonify({"error": "PERMISSIONS environment variable is not set."}), 500
+    
+def _deployment_mode() -> str:
+    """Used to check the environment variable DEPLOYMENT_MODE. 
+    Will only be used within the backend (in principle), so no need to expose an endpoint (for now)."""
+    try:
+        deployment_mode = os.environ["DEPLOYMENT_MODE"]
+        _logger.info(f"deployment mode: {deployment_mode}")
+        return deployment_mode
+    except KeyError:
+        _logger.error("DEPLOYMENT_MODE environment variable is not set.")
+        raise ValueError("DEPLOYMENT_MODE environment variable is not set.")
 
 def _get_all_items(api_call: Callable, *args, **kwargs):
     """Helper function to get all items from a paginated API call."""
@@ -524,7 +518,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         ## now, use the prediction of std_hat to get an estimation of the uncertainty over the UQ
         assert output_response + "_std_hat" in results, f"Cannot perform uncertainty of UQ if there is no prediction of the uncertainty"
         
-        ## TODO change by normal sampling
+        ## TODO change by normal (gaussian) sampling
         from scipy.special import erfinv
         all_results = np.empty(shape=(n_histograms, num_samples), dtype=float) # create an empty array to store the results
         for i in range(n_histograms):
@@ -660,57 +654,7 @@ def flask_sumo_grid_evaluation():
     except Exception as e:
         _logger.error(f"Error during grid evaluation: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
-
-@app.route("/flask/uq_propagation", methods=["POST"])
-def flask_uq_propagation():
-    os.chdir(Path(__file__).parent)
-    _logger.debug("Starting flask function: flask_uq_propagation")
-    _logger.debug("Cwd: " + str(Path.cwd()))
-
-    try:
-        # Convert request data into a Python dictionary
-        request_data: dict = json.loads(request.data.decode("utf-8"))
-        input_vars: List[str] = request_data["inputVars"]
-        output_response = request_data["output"]
-        num_samples: int = request_data["numSamples"]
-        ######### TODO make this more generic, not only for normal distribution
-        means: Dict[str, float] = request_data["means"]
-        stds: Dict[str, float] = request_data["stds"]
-        ####################################################################
-        make_log: bool = request_data.get("log", False)
-        jobs: List[FunctionJob] = request_data["FunctionJobs"]
-
-        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
-        run_dir = TRAINING_FILE.parent
-
-        PROCESSED_TRAINING_FILE = process_input_file(
-            TRAINING_FILE,
-            make_log=make_log,
-            columns_to_keep=input_vars + [output_response], # type: ignore
-        )
-
-
-        if make_log:  # FIXME for now log applies to all inputs & the output
-            input_vars = [f"log_{var}" for var in input_vars]
-            output_response = f"log_{output_response}"
-            means = {f"log_{key}": np.log(val) for key, val in means.items()}
-            stds = {f"log_{key}": np.log(val) for key, val in stds.items()}
-
-        samples = propagate_uq(
-            run_dir,
-            PROCESSED_TRAINING_FILE,
-            input_vars,
-            output_response,
-            ## TODO make distributions other than normal functional!!
-            means,
-            stds,
-            n_samples=num_samples,
-        )
-
-        return jsonify(samples)
-    except Exception as e:
-        _logger.error(f"Error during UQ propagation: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500)) 
+        
 
 @app.route("/flask/test_job", methods=["POST"])
 def flask_test_job():
@@ -726,11 +670,13 @@ def flask_test_job():
         _logger.debug(f"Config: {config}")
         sample = {config[i]["variable"]: config[i]["value"] for i in range(len(config))} 
 
-        ## DEBUGGING
         _logger.debug("Input to validate_function_inputs: %s" , sample)
         val = functions_api_instance.validate_function_inputs(function_uid, sample)  # this is working - changing the name of the variable does return a validation error
         _logger.debug(f"Validated function inputs for function {function_uid} with sample {sample}: {val}")
-        response = functions_api_instance.run_function(function_uid, sample) # type: ignore
+        parent_info = _get_parent_ids()
+        response = functions_api_instance.run_function(function_uid, body=sample,
+                                                       x_simcore_parent_node_id=parent_info.parent_node_id,
+                                                       x_simcore_parent_project_uuid=parent_info.parent_project_id)
         _logger.debug(f"Response from run_function with sample {sample}: {response}")
         assert hasattr(response, "actual_instance"), f"Job is None for function {function_uid} with sample {sample}. Response: {response}"
         assert response.actual_instance is not None, f"Job is None for function {function_uid} with sample {sample}. Response: {response}"
@@ -738,17 +684,6 @@ def flask_test_job():
         _logger.debug(f"Job UID: {uid}")
         job = _get_function_job_from_uid(uid)
         _logger.debug(f"Created job: {job}")
-        # while status.status not in ("SUCCESS", "FAILED"):
-        #     _logger.info(f"Job {job['uid']} is still running, status: {status.status}")
-        #     status = job_api_instance.function_job_status(job["uid"])
-        # if status.status != "SUCCESS":
-        #     _logger.error(f"Job {job['uid']} did not complete successfully. Status: {status.status}")
-        #     return jsonify({"error": f"Job {job['uid']} did not complete successfully. Status: {status.status}"})
-        # else:
-        #     outputs = job_api_instance.function_job_outputs(job["uid"])
-        #     _logger.info(f"Job {job['uid']} completed successfully. Outputs: {outputs}")
-        #     job["outputs"] = outputs.to_dict()  # type: ignore
-        ###
         return jsonify(job)  # return the job details as a dictionary
     except Exception as e:
         _logger.error(f"Error while testing job for function {function_uid} with config {config}: {e}")
@@ -759,11 +694,19 @@ class ParentInfo(NamedTuple):
     parent_project_id: str
     
 def _get_parent_ids() -> ParentInfo:
-    parent_node_id = os.environ.get("OSPARC_NODE_ID", None)
-    parent_project_id = os.environ.get("OSPARC_STUDY_ID", None)
-    if not parent_node_id or not parent_project_id:
-        _logger.error("OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set. Cannot create a sampling campaign through map function.")
-        abort(make_response(jsonify({"error": "OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set."}), 500))
+    deployment_mode = _deployment_mode()
+    if deployment_mode == "LOCAL":
+        parent_node_id = "null"
+        parent_project_id = "null"
+    elif deployment_mode == "OSPARC":
+        parent_node_id = os.environ.get("OSPARC_NODE_ID", None)
+        parent_project_id = os.environ.get("OSPARC_STUDY_ID", None)
+        if not parent_node_id or not parent_project_id:
+            _logger.error("OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set. Cannot create a sampling campaign through map function.")
+            raise ValueError("OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set.")
+    else:
+        _logger.error(f"Unknown value of DEPLOYMENT_MODE env variable ({deployment_mode}). Thus not able to fetch parent node and project IDs.")
+        raise ValueError(f"DEPLOYMENT_MODE env variable could not be recognized ({deployment_mode}) - can not run new pipelines as there would be no billing information.")
     return ParentInfo(parent_node_id=parent_node_id, parent_project_id=parent_project_id)
 
 def _run_sampling_map(function_uid, samples):
@@ -895,15 +838,21 @@ def flask_clone_job():
         # Convert request data into a Python dictionary
         request_data: dict = json.loads(request.data.decode("utf-8"))
         project_job_id = request_data["projectJobId"]
-    
+        function_name = request_data["functionName"]
+        inputs: dict = request_data["projectInputs"]
+        
         # Clone the job using the job_id
-        study_data = BodyCloneStudyV0StudiesStudyIdClonePost(title="...", description="...")
-        parent_info = _get_parent_ids()
+        def format_inputs_for_description(inputs: dict) -> str:
+            """Formats a dictionary of inputs into a human-readable string for description."""
+            formatted_inputs = "\n- ".join([""]+[f"*{key}*: {float(value):.4g}" for key, value in inputs.items()])
+            return f"#### Inputs:\n\n{formatted_inputs}"
+
+        formatted_inputs = format_inputs_for_description(inputs)
+        study_data = BodyCloneStudyV0StudiesStudyIdClonePost(title="Job " + function_name, 
+                                     description=f"Clone of job *{project_job_id}* from function *{function_name}*.\n\n{formatted_inputs}",)
+        _logger.debug("Study data: ", study_data)
         study = studies_api_instance.clone_study(project_job_id, hidden=False,
-                                                 body_clone_study_v0_studies_study_id_clone_post=study_data,
-                                                 x_simcore_parent_node_id=parent_info.parent_node_id, 
-                                                 x_simcore_parent_project_uuid=parent_info.parent_project_id) 
-        # studies_api_instance.patch_study(study)  # this will update the study with the new data -- FIXME this endpoint needs to be exposed in the API
+                                                 body_clone_study_v0_studies_study_id_clone_post=study_data,)
         _logger.debug(f"Cloned study: {study.to_dict()}")
         _logger.debug("Done!!")
         return jsonify(study.to_dict())

@@ -50,7 +50,8 @@ const TestJob = () => {
     const job = await runTestJob(context, jobInputs);
     console.log("TestJob created: ", job);
     // open in a new window - like in "View" of the JobList
-    if (job && job.functionClass && job.functionClass === "PROJECT") openStudyUid(job.projectJobId)
+    if (!job) toast.warning("Test Job running failed! Please contact support");
+    else if (job.functionClass && job.functionClass === "PROJECT") openStudyUid(job.projectJobId)
     else toast.warning("Only ProjectFunctionJob can be opened in a new window!");
   };
 

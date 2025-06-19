@@ -77,12 +77,6 @@ interface SelectedJobCollection {
   subJobs: SubJob[];
 }
 
-interface JobRowProps  {
-  jobUid: string
-  setSelected: (selected: boolean, subJob: string) => void;
-  jobList: SubJob[];
-}
-
 interface FooterProps {
   mode: 'light' | 'dark' | 'system' | undefined;
   setMode: ( mode: 'light' | 'dark' ) => void;
@@ -137,3 +131,12 @@ interface VarSelection {
 }
 
 interface InputVarSelection {[x: string]: VarSelection}
+
+type cvMetricsType = {
+  mean_y: number;
+  std_y: number;
+  mean_y_hat: number;
+  std_y_hat: number;
+  mae: number;
+  rmse: number;
+};
