@@ -159,38 +159,44 @@ export function FunctionList() {
     return row.uid ? row.uid : "" + row.title + row.description;
   }
 
+  function setRowSelection(fun: Function) {
+    setSelectedFunction(fun);
+        setInputVars(
+          fun.inputSchema?.schemaContent?.properties
+            ? Object.keys(
+              fun.inputSchema.schemaContent.properties
+            )
+            : []
+        );
+        console.log(
+          "inputVars registered:",
+          Object.keys(fun.inputSchema.schemaContent.properties)
+        );
+        setOutputVars(
+          fun.outputSchema?.schemaContent?.properties
+            ? Object.keys(
+              fun.outputSchema.schemaContent.properties
+            )
+            : []
+        );
+    console.log(
+      "outputVars registered:",
+      Object.keys(fun.outputSchema.schemaContent.properties)
+    )
+  }
+
   const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {
     setRowSelectionModel(newRowSelectionModel);
     if (newRowSelectionModel.ids.size > 0) {
       const selectedRow = functions.find((row) =>
         getRowId(row) === newRowSelectionModel.ids.values().next().value
       );
-      if (selectedRow) {
-        setSelectedFunction(selectedRow);
-        setInputVars(
-          selectedRow.inputSchema?.schemaContent?.properties
-            ? Object.keys(
-              selectedRow.inputSchema.schemaContent.properties
-            )
-            : []
-        );
-        console.log(
-          "inputVars registered:",
-          Object.keys(selectedRow.inputSchema.schemaContent.properties)
-        );
-        setOutputVars(
-          selectedRow.outputSchema?.schemaContent?.properties
-            ? Object.keys(
-              selectedRow.outputSchema.schemaContent.properties
-            )
-            : []
-        );
+      if (selectedRow) setRowSelection(selectedRow);
+      else {
+        setSelectedFunction(undefined);
+        setInputVars([]);
+        setOutputVars([]);
       }
-    } else {
-      setSelectedFunction(undefined);
-      setInputVars([]);
-      setOutputVars([]);
-    }
   };
 
   useEffect(() => {
@@ -310,27 +316,7 @@ export function FunctionList() {
               <Button
                 variant="contained"
                 fullWidth
-                onClick={() => {
-                  setSelectedFunction(params.row);
-                  setInputVars(
-                    params.row.inputSchema?.schemaContent?.properties
-                      ? Object.keys(
-                        params.row.inputSchema.schemaContent.properties
-                      )
-                      : []
-                  );
-                  console.log(
-                    "inputVars registered:",
-                    Object.keys(params.row.inputSchema.schemaContent.properties)
-                  );
-                  setOutputVars(
-                    params.row.outputSchema?.schemaContent?.properties
-                      ? Object.keys(
-                        params.row.outputSchema.schemaContent.properties
-                      )
-                      : []
-                  );
-                }}
+                onClick={() => setRowSelection(params.row)}
               >
                 {selectedFunction?.uid === params.row.uid ? "Unselect" : "Select"}
               </Button>
