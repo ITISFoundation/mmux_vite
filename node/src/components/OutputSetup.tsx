@@ -110,7 +110,7 @@ export const OutputSetup = (props: UQSetupProps) => {
           ))}
         </Select>
       </InputLabel>
-      {onlyQoI && setSumoModal && (
+      {(onlyQoI === undefined || onlyQoI === false) && setSumoModal && (
         <>
           <InputLabel
             size="small"
