@@ -3,7 +3,7 @@ import { useMMUXContext } from "../context/MMUXContext";
 import UncertainUQ from "../components/UncertainUQ";
 import SuMoModal from "../components/SuMoModal";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
-import { UQSetup } from "../components/UQSetup";
+import { OutputSetup } from "../components/OutputSetup";
 import { JobSampling } from "../components/JobSampling";
 
 export default function UQ() {
@@ -26,7 +26,7 @@ export default function UQ() {
       headerType="title"
       tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}
     >
-      <UQSetup loading={loading} setSumoModal={setSumoModal} />
+      <OutputSetup loading={loading} setSumoModal={setSumoModal} />
       <UncertainUQ
         colsFetched={colsFetched}
         jobProgress={jobProgress}

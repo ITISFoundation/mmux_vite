@@ -15,16 +15,26 @@ import { useMMUXContext } from "../context/MMUXContext";
 
 interface UQSetupProps {
   loading: boolean;
-  setSumoModal: (value: boolean) => void;
+  onlyQoI?: boolean;
+  setSumoModal?: (value: boolean) => void;
 }
 
-export const UQSetup = (props: UQSetupProps) => {
-  const { loading, setSumoModal } = props;
+export const OutputSetup = (props: UQSetupProps) => {
+  const { loading, onlyQoI, setSumoModal } = props;
   const theme = useTheme();
-  const { selectedQoI, setSelectedQoI, outputVars, selectedFunction, numSamples, setNumSamples, filterSelectedJobList } = useMMUXContext();
+  const {
+    selectedQoI,
+    setSelectedQoI,
+    outputVars,
+    selectedFunction,
+    numSamples,
+    setNumSamples,
+    filterSelectedJobList,
+  } = useMMUXContext();
   const [localQoI, setLocalQoI] = useState<string | undefined>(selectedQoI);
-  const [localNumSamples, setLocalNumSamples] = useState(numSamples[selectedFunction?.uid || ""] || 1000);
-
+  const [localNumSamples, setLocalNumSamples] = useState(
+    numSamples[selectedFunction?.uid || ""] || 1000
+  );
 
   const handlesetLocalQoI = (value: string) => {
     setLocalQoI(value);
@@ -48,7 +58,7 @@ export const UQSetup = (props: UQSetupProps) => {
         gap: "16px",
         color: `${theme.palette.text.primary}`,
         marginBottom: "16px",
-        width: "100%",
+        width: onlyQoI ? "50%" : "100%",
       }}
     >
       <InputLabel
@@ -100,48 +110,56 @@ export const UQSetup = (props: UQSetupProps) => {
           ))}
         </Select>
       </InputLabel>
-      <InputLabel
-        size="small"
-        sx={{
-          display: "flex",
-          flex: 1,
-          transform: "none",
-          alignItems: "baseline",
-          gap: "16px",
-          fontFamily: "inherit",
-          fontWeight: 300,
-          fontSize: "1.2em",
-        }}
-      >
-        Number of UQ Samples:
-        <TextField
-          type="number"
-          variant="outlined"
-          size="small"
-          sx={{ marginTop: "8px", flex: 1 }}
-          value={localNumSamples}
-          onChange={(e) => handlesetLocalNumSamples(parseInt(e.target.value))}
-        />
-      </InputLabel>
-      <Button
-        variant="contained"
-        size="small"
-        disabled={
-          loading || !selectedFunction || filterSelectedJobList().length === 0
-        }
-        sx={{
-          marginTop: "8px",
-          width: "160px",
-          fontSize: "1.1em",
-          fontFamily: "inherit",
-          fontWeight: 200,
-          textTransform: "none",
-        }}
-        color="primary"
-        onClick={() => setSumoModal(true)}
-      >
-        Inspect Model
-      </Button>
+      {onlyQoI && setSumoModal && (
+        <>
+          <InputLabel
+            size="small"
+            sx={{
+              display: "flex",
+              flex: 1,
+              transform: "none",
+              alignItems: "baseline",
+              gap: "16px",
+              fontFamily: "inherit",
+              fontWeight: 300,
+              fontSize: "1.2em",
+            }}
+          >
+            Number of UQ Samples:
+            <TextField
+              type="number"
+              variant="outlined"
+              size="small"
+              sx={{ marginTop: "8px", flex: 1 }}
+              value={localNumSamples}
+              onChange={(e) =>
+                handlesetLocalNumSamples(parseInt(e.target.value))
+              }
+            />
+          </InputLabel>
+          <Button
+            variant="contained"
+            size="small"
+            disabled={
+              loading ||
+              !selectedFunction ||
+              filterSelectedJobList().length === 0
+            }
+            sx={{
+              marginTop: "8px",
+              width: "160px",
+              fontSize: "1.1em",
+              fontFamily: "inherit",
+              fontWeight: 200,
+              textTransform: "none",
+            }}
+            color="primary"
+            onClick={() => setSumoModal(true)}
+          >
+            Inspect Model
+          </Button>
+        </>
+      )}
     </Box>
   );
 };

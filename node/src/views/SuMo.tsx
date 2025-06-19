@@ -4,6 +4,7 @@ import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { JobSampling } from "../components/JobSampling";
 import { useState, useRef, useEffect } from "react";
 import { JobsLoading } from "../components/JobsLoading";
+import { OutputSetup } from "../components/OutputSetup";
 
 export default function SuMo() {
   const { selectedFunction, outputVars, setSelectedQoI } = useMMUXContext();
@@ -24,6 +25,7 @@ export default function SuMo() {
       headerType="title"
       tabTitle={`AI-Enabled Model Insights: ${selectedFunction?.title}`}
     >
+      <OutputSetup loading={loading} onlyQoI />
       {loading ? (
         <JobsLoading
           progress={progress}
