@@ -187,7 +187,7 @@ const IsoSurface3DPlot = () => {
 
   const layout = {
     title: {
-      text: selectedFunction?.title + " Surface Plot",
+      text: selectedQoI + " IsoSurface 3D Plot",
     },
     autosize: true,
     willReadFrequently: true,

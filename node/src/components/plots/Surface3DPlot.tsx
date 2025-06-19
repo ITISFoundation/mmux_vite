@@ -121,7 +121,7 @@ const Surface2DPlot = () => {
 
   const layout = {
     title: {
-      text: selectedFunction?.title + " Surface Plot",
+      text: selectedQoI + " Surface 2D Plot",
     },
     scene: {
       xaxis: { title: { text: axis1 } },

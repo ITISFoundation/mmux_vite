@@ -110,7 +110,7 @@ const SuMoValidation = () => {
           box: {
             visible: true,
           },
-          spanmode: "hard", // TODO show Esra both variants
+          spanmode: "soft", // TODO show Esra both variants
         };
       };
 
