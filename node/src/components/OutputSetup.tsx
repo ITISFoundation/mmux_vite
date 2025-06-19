@@ -107,8 +107,8 @@ export const OutputSetup = (props: UQSetupProps) => {
             handlesetLocalQoI(e.target.value);
           }}
         >
-          {outputVars?.map((qoi) => (
-            <MenuItem key={qoi} value={qoi}>
+          {outputVars?.map((qoi, idx) => (
+            <MenuItem key={idx} value={qoi}>
               {qoi}
             </MenuItem>
           ))}
