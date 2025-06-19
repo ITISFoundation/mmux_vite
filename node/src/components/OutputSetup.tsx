@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   InputLabel,
@@ -48,6 +48,10 @@ export const OutputSetup = (props: UQSetupProps) => {
       [selectedFunction?.uid || ""]: value,
     });
   };
+
+  useEffect(() => {
+    setLocalQoI(localQoI);
+  }, [selectedQoI]); // Update localQoI when selectedQoI changes due to selectedFunction change
 
   return (
     <Box
