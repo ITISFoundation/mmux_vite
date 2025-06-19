@@ -50,7 +50,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
                 output: selectedQoI,
                 distributions: distribution[selectedFunction?.uid || ""],
                 FunctionJobs: jobs,
-                numSamples: numSamples[selectedFunction?.uid || ""] || 1000,
+                numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
                 log: false,
                 nHistograms: 50,
               }),
