@@ -3,88 +3,22 @@ import { useMMUXContext } from "../context/MMUXContext";
 import Plot from "react-plotly.js";
 import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
-import { Typography, Box, LinearProgress, useTheme } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { fetchWithRetry } from "../utils/fetch_retry";
 import WhiskerPlot from "./WhiskerPlot";
 import HistogramStats from "./HistogramStats";
-
-type DisplayMessageProps = {
-  mssg: string,
-  children?: React.ReactNode
-}
-const DisplayMessage = (props: DisplayMessageProps) => {
-  const theme = useTheme();
-  const { mssg, children } = props
-  return (
-    <Box
-      width={"100%"}
-      height={"400px"}
-      display={"flex"}
-      flexDirection={"column"}
-      alignItems={"center"}
-      justifyContent={"center"}
-      bgcolor={theme.palette.background.default}
-      borderRadius={"8px"}
-    >
-      <Typography
-        variant="body1"
-        fontFamily={"inherit"}
-        fontWeight={100}
-        textAlign={"center"}
-      >
-        {mssg}
-      </Typography>
-      {children}
-    </Box>
-  )
-}
-
-type LoadingBarProps = {
-  progress: number,
-  jobProgress: number,
-}
-const LoadingBar = (props: LoadingBarProps) => {
-  const { progress, jobProgress } = props
-  return (
-    <>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width: "100%",
-        }}
-      >
-        <LinearProgress
-          variant="buffer"
-          value={progress}
-          valueBuffer={jobProgress}
-          sx={{ height: "6px", width: "40%" }}
-        />
-      </Box>
-      <Typography
-        variant="body1"
-        fontFamily={"inherit"}
-        fontWeight={100}
-        textAlign={"center"}
-        mt={1}
-      >
-        <span>{Math.round(jobProgress)}%</span>
-      </Typography>
-    </>
-  )
-}
+import { JobsLoading } from "./JobsLoading";
+import { DisplayMessage } from "./DisplayMessage";
 
 export default function UncertainUQ(props: UncertainUQPropsType) {
   const {
-    numSamples,
     loading,
     progress,
     jobProgress,
     colsFetched,
     jobsFetched,
   } = props;
-  const { inputVars, selectedQoI, distribution, selectedFunction, fetchedJobCollections, filterSelectedJobList } = useMMUXContext();
+  const { numSamples, inputVars, selectedQoI, distribution, selectedFunction, fetchedJobCollections, filterSelectedJobList } = useMMUXContext();
 
   const theme = useTheme();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
@@ -116,7 +50,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
                 output: selectedQoI,
                 distributions: distribution[selectedFunction?.uid || ""],
                 FunctionJobs: jobs,
-                numSamples: numSamples,
+                numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
                 log: false,
                 nHistograms: 50,
               }),
@@ -146,9 +80,10 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
       jobsFetched.current
     );
     return (
-      <DisplayMessage
-        mssg={"Creating Uncertainty Quantification AI model..."}
-        children={<LoadingBar progress={progress} jobProgress={jobProgress} />}
+      <JobsLoading
+        progress={progress}
+        jobProgress={jobProgress}
+        message={"Creating Uncertainty Quantification AI model..."}
       />
     )
   } else if (propagating) {

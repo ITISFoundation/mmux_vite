@@ -1,7 +1,7 @@
 SHELL 				 			:= /bin/sh
 .DEFAULT_GOAL 		 			:= help
 
-DOCKER_IMAGE_TAG := 1.3.0
+DOCKER_IMAGE_TAG := 1.3.1
 
 
 FLASKAPI_DIR := ./flaskapi
@@ -97,13 +97,15 @@ build-no-cache: compose-spec ## build docker images
 run-develop-sumo-read: ## runs for development SUMO/READ-ONLY
 	export SERVICE_MODE=SUMO && \
 	export PERMISSIONS=READ-ONLY && \
+	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-sumo-read && \
 	docker compose --file docker-compose-development.yml up
 
 .PHONY: run-develop-sumo-write
 run-develop-sumo-write: ## runs for development SUMO/WRITE
-	export SERVICE_MODE=SUMO \
-	&& export PERMISSIONS=WRITE && \
+	export SERVICE_MODE=SUMO && \
+	export PERMISSIONS=WRITE && \
+	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-sumo-write && \
 	docker compose --file docker-compose-development.yml up
 
@@ -111,6 +113,7 @@ run-develop-sumo-write: ## runs for development SUMO/WRITE
 run-develop-uq-read: ## runs for development UQ/READ-ONLY
 	export SERVICE_MODE=UQ && \
 	export PERMISSIONS=READ-ONLY && \
+	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-uq-read && \
 	docker compose --file docker-compose-development.yml up
 
@@ -118,6 +121,7 @@ run-develop-uq-read: ## runs for development UQ/READ-ONLY
 run-develop-uq-write: ## runs for development UQ/WRITE
 	export SERVICE_MODE=UQ && \
 	export PERMISSIONS=WRITE && \
+	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-uq-write && \
 	docker compose --file docker-compose-development.yml up
 
@@ -127,6 +131,7 @@ run-develop-uq-write: ## runs for development UQ/WRITE
 run-prod-local-sumo-read: ## runs for validation as it would be in production SUMO/READ-ONLY
 	export SERVICE_MODE=SUMO && \
 	export PERMISSIONS=READ-ONLY && \
+	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-sumo-read && \
 	docker compose --file docker-compose-local.yml up
 
@@ -134,6 +139,7 @@ run-prod-local-sumo-read: ## runs for validation as it would be in production SU
 run-prod-local-sumo-write: ## runs for validation as it would be in production SUMO/WRITE
 	export SERVICE_MODE=SUMO && \
 	export PERMISSIONS=WRITE && \
+	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-sumo-write && \
 	docker compose --file docker-compose-local.yml up
 
@@ -141,6 +147,7 @@ run-prod-local-sumo-write: ## runs for validation as it would be in production S
 run-prod-local-uq-read: ## runs for validation as it would be in production UQ/READ-ONLY
 	export SERVICE_MODE=UQ && \
 	export PERMISSIONS=READ-ONLY && \
+	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-uq-read && \
 	docker compose --file docker-compose-local.yml up
 
@@ -148,6 +155,7 @@ run-prod-local-uq-read: ## runs for validation as it would be in production UQ/R
 run-prod-local-uq-write: ## runs for validation as it would be in production UQ/WRITE
 	export SERVICE_MODE=UQ && \
 	export PERMISSIONS=WRITE && \
+	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-uq-write && \
 	docker compose --file docker-compose-local.yml up
 
