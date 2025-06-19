@@ -113,6 +113,7 @@ const JobRow = (props: JobRowProps) => {
           <Checkbox
             color="primary"
             checked={job.selected}
+            disabled={jobStatus !== "SUCCESS"}
             onChange={(event) => {
               const checked = event.target.checked;
               handleSetJob(checked);

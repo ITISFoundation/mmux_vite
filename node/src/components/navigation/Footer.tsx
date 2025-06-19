@@ -1,8 +1,8 @@
 import React from "react";
-import { Box, Button, Container, Modal, Paper, styled } from "@mui/material";
-import { useMMUXContext } from "../context/MMUXContext";
-import JobsDashboard from "../views/ParallelRunner";
-import { stepValidator } from "../utils/stepValidator";
+import { Button, Container, Modal, Paper, styled } from "@mui/material";
+import { useMMUXContext } from "../../context/MMUXContext";
+import JobsDashboard from "../../views/ParallelRunner";
+import { stepValidator } from "../../utils/stepValidator";
 
 type FooterProps = {
   steps: Step[];

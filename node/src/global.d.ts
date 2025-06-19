@@ -37,7 +37,6 @@ type dataUQHistogramType = {
   outliers: number[];
 };
 type UncertainUQPropsType = {
-  numSamples: number;
   loading: boolean;
   progress: number;
   jobProgress: number;
@@ -49,17 +48,16 @@ interface NavigationProps {
   steps: Step[];
   activeStep: number;
 }
-type HeaderTypeEnum = 'setup' | 'sumo' | 'uq'
+type HeaderTypes = 'title' | 'titleNoMargin' | 'bigTitle' | 'subTitle';
+
 interface MetaModelingUXProps {
   tabTitle?: string;
   infoText?: string;
   ExtendedInfoText?: ReactElement;
   helpContents?: ReactElement;
-  headerType: HeaderTypeEnum;
+  headerType: HeaderTypes;
   children: React.ReactNode;
 }
-
-type HeaderTypes = 'setup' | 'sumo' | 'uq' | 'subTitle';
 interface HeaderProps {
     headerType: HeaderTypes;
     tabTitle?: string;

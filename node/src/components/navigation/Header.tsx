@@ -1,13 +1,13 @@
 import { HelpOutline, InfoOutline } from "@mui/icons-material";
-import { Typography, styled, useTheme } from "@mui/material";
-import CustomTooltip from "./CustomTooltip";
+import { Typography, styled } from "@mui/material";
+import CustomTooltip from "../CustomTooltip";
 
 const HeaderContainer = styled("div", {
   shouldForwardProp: (props) => props !== "headerType",
 })<{ headerType: string }>(
   ({ headerType }) => `
   text-align: left;
-  margin-bottom: ${headerType === "subTitle" || headerType === "setup" ? "16px" : "0px"};
+  margin-bottom: ${headerType !== "bigTitle" && headerType !== 'titleNoMargin' ? "16px" : "0px"};
   display: flex;
   align-items: flex-end;
   width: 100%;
@@ -17,9 +17,9 @@ type TypographyVariant = "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "subtitle1" |
 
 const types: { [key in HeaderTypes]: TypographyVariant } = {
   subTitle: "h6",
-  setup: "h5",
-  sumo: "h4",
-  uq: "h5",
+  bigTitle: "h4",
+  title: "h5",
+  titleNoMargin: "h5",
 }
 
 function Header(props: HeaderProps) {

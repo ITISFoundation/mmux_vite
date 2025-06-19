@@ -4,18 +4,18 @@ import { toast } from "react-toastify";
 import { Refresh } from "@mui/icons-material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
-import type { Function } from "../osparc-api-ts-client/models/Function";
+import type { Function } from "../../osparc-api-ts-client/models/Function";
 import {
   SolverFunction,
   ProjectFunction,
   PythonCodeFunction,
-} from "../osparc-api-ts-client/index.ts";
-import { listFunctions, getFunctionJobCollections } from "../utils/function_utils.ts";
+} from "../../osparc-api-ts-client/index.ts";
+import { listFunctions, getFunctionJobCollections } from "../../utils/function_utils.ts";
 import {
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,
-} from "../osparc-api-ts-client";
-import { useMMUXContext } from "../context/MMUXContext.tsx";
+} from "../../osparc-api-ts-client";
+import { useMMUXContext } from "../../context/MMUXContext.tsx";
 
 const VarsHolder = styled("div")`
   max-width: 150px;
@@ -261,25 +261,26 @@ export function FunctionList() {
         rowSelectionModel={rowSelectionModel}
         rows={functions}
         columns={[
-          { field: "title", headerName: "Name", flex: 1, maxWidth: 300 },
+          { field: "title", headerName: "Name", flex: 1, maxWidth: 200 },
           {
             field: "description",
             headerName: "Description",
             flex: 1,
-            maxWidth: 100,
+            minWidth: 80,
+            maxWidth: 260,
           },
           {
             field: "inputSchema",
             headerName: "Inputs",
             flex: 1,
-            maxWidth: 100,
+            maxWidth: 90,
             renderCell: (params) => showInputOutputSchema(params.row.inputSchema),
           },
           {
             field: "outputSchema",
             headerName: "Outputs",
             flex: 1,
-            maxWidth: 100,
+            maxWidth: 90,
             renderCell: (params) =>
               showInputOutputSchema(params.row.outputSchema),
           },
@@ -287,16 +288,18 @@ export function FunctionList() {
             field: "n_evaluations",
             headerName: "# Campaigns / Evaluations",
             flex: 1,
-            minWidth: 250,
+            minWidth: 100,
+            maxWidth: 250,
             renderCell: (params) => <NFunctionJobCollections fun={params.row} />,
             // FIXME for some reason, this gets called many times
           },
           {
             field: "solverKey",
             headerName: "Further Info",
+            align: 'center',
             flex: 1,
             minWidth: 60,
-            maxWidth: 60,
+            maxWidth: 100,
             renderCell: (params) => getFunctionSolver(params.row),
           },
           {
@@ -366,7 +369,6 @@ export function FunctionList() {
         }}
         onRowClick={(params) => setSelectedFunction(params.row)}
         getRowId={getRowId}
-        showToolbar
         initialState={{
           pagination: {
             paginationModel: { pageSize: 10 },

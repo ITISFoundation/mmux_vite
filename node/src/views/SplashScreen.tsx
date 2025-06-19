@@ -1,13 +1,16 @@
+import React from "react";
 import {
   Container,
   Card,
   Typography,
   CircularProgress,
   CardHeader,
+  useTheme,
 } from "@mui/material";
-import React from "react";
 
 export const SplashScreen = () => {
+  const theme = useTheme();
+
   return (
     <Container
       style={{
@@ -20,15 +23,16 @@ export const SplashScreen = () => {
     >
       <Card
         className="spinner"
+        variant="outlined"
         style={{
-          display: "flex",
-          flexDirection: "column",
+          height: "240px",
+          display: "block",
           justifyContent: "center",
           alignItems: "center",
           borderRadius: "16px",
           padding: "2rem",
-          height: "20vh",
           margin: "auto",
+          backgroundColor: theme.palette.grey[200]
         }}
       >
         <Typography
@@ -39,7 +43,7 @@ export const SplashScreen = () => {
         >
           MetaModelingUX
         </Typography>
-        <CircularProgress size="3rem" />
+        <CircularProgress size="3rem" sx={{color: theme.palette.primary.main}} />
         <CardHeader
           title={
             <Typography
@@ -47,7 +51,7 @@ export const SplashScreen = () => {
               fontFamily={"inherit"}
               fontWeight={"200"}
             >
-              Waiting for backend
+              Starting up service
             </Typography>
           }
           style={{ textAlign: "center" }}

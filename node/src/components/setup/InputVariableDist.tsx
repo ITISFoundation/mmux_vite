@@ -1,9 +1,9 @@
 import { Box, Chip, InputLabel, MenuItem, Select, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
-import { useMMUXContext } from "../context/MMUXContext";
-import { InputBlock } from "./InputBlock";
-import Header from "./Header";
-import InputVariableDistDocument from "./documents/InputVariableDistDocument";
+import { useMMUXContext } from "../../context/MMUXContext";
+import { InputBlock } from "../InputBlock";
+import Header from "../navigation/Header";
+import InputVariableDistDocument from "../documents/InputVariableDistDocument";
 
 export const InputVariableDist = () => {
   const { inputVars, distribution, setDistribution, selectedFunction } = useMMUXContext();

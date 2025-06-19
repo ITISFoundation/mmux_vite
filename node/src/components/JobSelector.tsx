@@ -467,7 +467,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           },
         }}
         getRowId={getRowId}
-        showToolbar
         initialState={{
           pagination: {
             paginationModel: { pageSize: 10 },
