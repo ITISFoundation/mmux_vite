@@ -2,12 +2,13 @@ import React from "react";
 
 type SuMoMetricRowPropsType = {
     children: React.ReactNode;
+    width: number;
 }
 const SuMoMetricRow = (props: SuMoMetricRowPropsType) => {
-    const { children } = props;
+    const { children, width } = props;
     return (
         <ul style={{
-            listStyle: "none", padding: 1, margin: "0px", display: "flex", flexDirection: "row", justifyContent: "space-evenly"
+            listStyle: "none", padding: 1, margin: "0px", display: "flex", flex: 1, flexDirection: "row", justifyContent: "space-evenly", width: width - 8 * 2
         }}>
             {children}
         </ul>
