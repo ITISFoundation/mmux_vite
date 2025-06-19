@@ -161,24 +161,24 @@ export function FunctionList() {
 
   function setRowSelection(fun: Function) {
     setSelectedFunction(fun);
-        setInputVars(
-          fun.inputSchema?.schemaContent?.properties
-            ? Object.keys(
-              fun.inputSchema.schemaContent.properties
-            )
-            : []
-        );
-        console.log(
-          "inputVars registered:",
-          Object.keys(fun.inputSchema.schemaContent.properties)
-        );
-        setOutputVars(
-          fun.outputSchema?.schemaContent?.properties
-            ? Object.keys(
-              fun.outputSchema.schemaContent.properties
-            )
-            : []
-        );
+    setInputVars(
+      fun.inputSchema?.schemaContent?.properties
+        ? Object.keys(
+          fun.inputSchema.schemaContent.properties
+        )
+        : []
+    );
+    console.log(
+      "inputVars registered:",
+      Object.keys(fun.inputSchema.schemaContent.properties)
+    );
+    setOutputVars(
+      fun.outputSchema?.schemaContent?.properties
+        ? Object.keys(
+          fun.outputSchema.schemaContent.properties
+        )
+        : []
+    );
     console.log(
       "outputVars registered:",
       Object.keys(fun.outputSchema.schemaContent.properties)
@@ -197,180 +197,180 @@ export function FunctionList() {
         setInputVars([]);
         setOutputVars([]);
       }
-  };
+    };
 
-  useEffect(() => {
-    console.log("FunctionList mounted, fetching functions...");
-    (async () => {
-      await fetchFunctions();
-    })();
-  }, []);
+    useEffect(() => {
+      console.log("FunctionList mounted, fetching functions...");
+      (async () => {
+        await fetchFunctions();
+      })();
+    }, []);
 
-  useEffect(() => {
-    console.log("Selected function changed:", selectedFunction);
-    if (selectedFunction) {
-      rowSelectionModel.ids.add(getRowId(selectedFunction));
-    }
-  }, [rowSelectionModel.ids, selectedFunction]);
+    useEffect(() => {
+      console.log("Selected function changed:", selectedFunction);
+      if (selectedFunction) {
+        rowSelectionModel.ids.add(getRowId(selectedFunction));
+      }
+    }, [rowSelectionModel.ids, selectedFunction]);
 
-  if (error) {
-    return (
-      <Box textAlign={"center"}>
-        <Typography
-          variant="body1"
-          fontFamily={"inherit"}
-          fontSize={"1.2em"}
-          fontWeight={300}
-          display="inline"
-          mr={1}
-        >
-          Error fetching functions from the server. Please try again after some time.
-        </Typography>
-        <IconButton size="small" onClick={async () => await fetchFunctions()}>
-          <Refresh color="primary" />
-        </IconButton>
-      </Box>
-    );
-  }
-
-  if (!loading && functions.length === 0) {
-    return (
-      <Box textAlign={"center"}>
-        <Typography
-          variant="body1"
-          fontFamily={"inherit"}
-          fontSize={"1.2em"}
-          fontWeight={300}
-          display="inline"
-          mr={1}
-        >
-          You have no Functions registered. Please check the{" "}
-          <a
-            href="https://your-tutorial-link.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: "underline" }}
+    if (error) {
+      return (
+        <Box textAlign={"center"}>
+          <Typography
+            variant="body1"
+            fontFamily={"inherit"}
+            fontSize={"1.2em"}
+            fontWeight={300}
+            display="inline"
+            mr={1}
           >
-            Tutorial
-          </a>{" "}
-          for guidance on how to create your first Function!
-        </Typography>
-      </Box>
-    );
-  }
-  else {
-    return (
-      <DataGrid
-        onRowSelectionModelChange={(newRowSelectionModel) => {
-          handleRowSelection(newRowSelectionModel);
-        }}
-        rowSelectionModel={rowSelectionModel}
-        rows={functions}
-        columns={[
-          { field: "title", headerName: "Name", flex: 1, maxWidth: 300 },
-          {
-            field: "description",
-            headerName: "Description",
-            flex: 1,
-            maxWidth: 100,
-          },
-          {
-            field: "inputSchema",
-            headerName: "Inputs",
-            flex: 1,
-            maxWidth: 100,
-            renderCell: (params) => showInputOutputSchema(params.row.inputSchema),
-          },
-          {
-            field: "outputSchema",
-            headerName: "Outputs",
-            flex: 1,
-            maxWidth: 100,
-            renderCell: (params) =>
-              showInputOutputSchema(params.row.outputSchema),
-          },
-          {
-            field: "n_evaluations",
-            headerName: "# Campaigns / Evaluations",
-            flex: 1,
-            minWidth: 250,
-            renderCell: (params) => <NFunctionJobCollections fun={params.row} />,
-            // FIXME for some reason, this gets called many times
-          },
-          {
-            field: "solverKey",
-            headerName: "Further Info",
-            flex: 1,
-            minWidth: 60,
-            maxWidth: 60,
-            renderCell: (params) => getFunctionSolver(params.row),
-          },
-          {
-            field: "actions",
-            headerName: "",
-            sortable: false,
-            flex: 0.5,
-            maxWidth: 130,
-            minWidth: 130,
-            renderCell: (params) => (
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={() => setRowSelection(params.row)}
-              >
-                {selectedFunction?.uid === params.row.uid ? "Unselect" : "Select"}
-              </Button>
-            ),
-          },
-        ]}
-        sx={{
-          borderRadius: "8px",
-          overflow: "hidden",
-          fontFamily: "inherit",
-          padding: "0px 8px",
-          "& .MuiDataGrid-cell": {
-            fontWeight: 400,
-          },
-          "& .MuiDataGrid-row:hover": {
-            backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
-              })`,
-          },
-          "& .MuiDataGrid-row.Mui-selected": {
-            backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"
-              })`,
-          },
-          "& .MuiDataGrid-row.Mui-selected:hover": {
-            backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
-              })`,
-          },
-          "& .MuiDataGrid-sortButton": {
-            backgroundColor: (theme) => theme.palette.background.paper,
-          },
-        }}
-        onRowClick={(params) => setSelectedFunction(params.row)}
-        getRowId={getRowId}
-        showToolbar
-        initialState={{
-          pagination: {
-            paginationModel: { pageSize: 10 },
-          },
-          sorting: {
-            sortModel: [{ field: "title", sort: "asc" }],
-          },
-          filter: {
-            filterModel: {
-              items: [],
+            Error fetching functions from the server. Please try again after some time.
+          </Typography>
+          <IconButton size="small" onClick={async () => await fetchFunctions()}>
+            <Refresh color="primary" />
+          </IconButton>
+        </Box>
+      );
+    }
+
+    if (!loading && functions.length === 0) {
+      return (
+        <Box textAlign={"center"}>
+          <Typography
+            variant="body1"
+            fontFamily={"inherit"}
+            fontSize={"1.2em"}
+            fontWeight={300}
+            display="inline"
+            mr={1}
+          >
+            You have no Functions registered. Please check the{" "}
+            <a
+              href="https://your-tutorial-link.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: "underline" }}
+            >
+              Tutorial
+            </a>{" "}
+            for guidance on how to create your first Function!
+          </Typography>
+        </Box>
+      );
+    } else {
+      return (
+        <DataGrid
+          onRowSelectionModelChange={(newRowSelectionModel) => {
+            handleRowSelection(newRowSelectionModel);
+          }}
+          rowSelectionModel={rowSelectionModel}
+          rows={functions}
+          columns={[
+            { field: "title", headerName: "Name", flex: 1, maxWidth: 300 },
+            {
+              field: "description",
+              headerName: "Description",
+              flex: 1,
+              maxWidth: 100,
             },
-          },
-        }}
-        pageSizeOptions={[5, 10, 20, 50]}
-        loading={loading}
-        disableColumnMenu
-        disableColumnSelector
-      ></DataGrid>
-    );
+            {
+              field: "inputSchema",
+              headerName: "Inputs",
+              flex: 1,
+              maxWidth: 100,
+              renderCell: (params) => showInputOutputSchema(params.row.inputSchema),
+            },
+            {
+              field: "outputSchema",
+              headerName: "Outputs",
+              flex: 1,
+              maxWidth: 100,
+              renderCell: (params) =>
+                showInputOutputSchema(params.row.outputSchema),
+            },
+            {
+              field: "n_evaluations",
+              headerName: "# Campaigns / Evaluations",
+              flex: 1,
+              minWidth: 250,
+              renderCell: (params) => <NFunctionJobCollections fun={params.row} />,
+              // FIXME for some reason, this gets called many times
+            },
+            {
+              field: "solverKey",
+              headerName: "Further Info",
+              flex: 1,
+              minWidth: 60,
+              maxWidth: 60,
+              renderCell: (params) => getFunctionSolver(params.row),
+            },
+            {
+              field: "actions",
+              headerName: "",
+              sortable: false,
+              flex: 0.5,
+              maxWidth: 130,
+              minWidth: 130,
+              renderCell: (params) => (
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={() => setRowSelection(params.row)}
+                >
+                  {selectedFunction?.uid === params.row.uid ? "Unselect" : "Select"}
+                </Button>
+              ),
+            },
+          ]}
+          sx={{
+            borderRadius: "8px",
+            overflow: "hidden",
+            fontFamily: "inherit",
+            padding: "0px 8px",
+            "& .MuiDataGrid-cell": {
+              fontWeight: 400,
+            },
+            "& .MuiDataGrid-row:hover": {
+              backgroundColor: (theme) =>
+                `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
+                })`,
+            },
+            "& .MuiDataGrid-row.Mui-selected": {
+              backgroundColor: (theme) =>
+                `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"
+                })`,
+            },
+            "& .MuiDataGrid-row.Mui-selected:hover": {
+              backgroundColor: (theme) =>
+                `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
+                })`,
+            },
+            "& .MuiDataGrid-sortButton": {
+              backgroundColor: (theme) => theme.palette.background.paper,
+            },
+          }}
+          onRowClick={(params) => setSelectedFunction(params.row)}
+          getRowId={getRowId}
+          showToolbar
+          initialState={{
+            pagination: {
+              paginationModel: { pageSize: 10 },
+            },
+            sorting: {
+              sortModel: [{ field: "title", sort: "asc" }],
+            },
+            filter: {
+              filterModel: {
+                items: [],
+              },
+            },
+          }}
+          pageSizeOptions={[5, 10, 20, 50]}
+          loading={loading}
+          disableColumnMenu
+          disableColumnSelector
+        ></DataGrid>
+      );
+    }
   }
 }
