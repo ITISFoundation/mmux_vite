@@ -7,14 +7,15 @@ type MetricPropsType = {
 }
 const Metric = (props: MetricPropsType) => {
     const { metricName, metricValue, color } = props;
-    return (<Typography
-        variant="body1"
-        fontFamily={"inherit"}
-        fontWeight={100}
-        color={color}
-    >
-        {metricName}: <strong>{metricValue.toFixed(4)}</strong>
-    </Typography>)
+    return (
+        <Typography
+            variant="body1"
+            fontFamily={"inherit"}
+            fontWeight={100}
+            color={color}
+        >
+            {metricName}: <strong>{metricValue.toFixed(4)}</strong>
+        </Typography>)
 }
 
 export default Metric;
