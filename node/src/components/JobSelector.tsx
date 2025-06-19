@@ -520,6 +520,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                           key={jobUid}
                           jobUid={jobUid}
                           jobList={jobCollections[poperID].subJobs}
+                          selectedFunction={selectedFunction}
                           setSelected={(selected: boolean, subJob: string) =>
                             onSelectJob(poperID, selected, subJob)
                           }
