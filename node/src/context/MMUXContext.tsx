@@ -106,11 +106,8 @@ export const MMUXContextProvider = ({ children }: Props) => {
             .map((subJob) => subJob.job)
       );
 
-      if (fetchedJobCollections.length !== 0 && response.length < 10) {
-        // TODO pops bfr the selection component truly gets loaded & selection gets auto-applied
-        toast.warning("At least 10 samples must be selected to build a model.");
-        // TODO pops 3 times when there are indeed less than 10 jobs selected
-        return [];
+      if (fetchedJobCollections.length !== 0 && response.length < 5) {
+        return []; // 5 samples are necessary to avoid Dakota crashing
       }
       return response;
     };

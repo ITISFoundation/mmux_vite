@@ -367,8 +367,8 @@ def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[st
 
     if len(completed_jobs) == 0:
         raise ValueError("No completed jobs found. Cannot create training file.")
-    elif len(completed_jobs)<10:
-        raise ValueError("At least 10 jobs are necessary to build a surrogate model")
+    elif len(completed_jobs)<5:
+        raise ValueError("At least 5 samples are necessary to build a surrogate model in Dakota - a crash would occur otherwise.")
 
     def get_job_dict(job):
         d = {sanitize_varnames(key): job["inputs"][key] for key in input_vars}
