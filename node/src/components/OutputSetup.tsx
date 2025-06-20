@@ -62,7 +62,7 @@ export const OutputSetup = (props: UQSetupProps) => {
         display: "flex",
         gap: "16px",
         color: `${theme.palette.text.primary}`,
-        marginBottom: "16px",
+        padding: "0px 4px 16px",
         width: onlyQoI ? "50%" : "100%",
       }}
     >
@@ -89,8 +89,8 @@ export const OutputSetup = (props: UQSetupProps) => {
           >
             <InfoOutline
               sx={(theme) => ({
-                color: theme.palette.primary.main,
-                backgroundColor: theme.palette.grey[100],
+                color: theme.palette.primary.light,
+                backgroundColor: theme.palette.background.default,
                 borderRadius: "50%",
                 padding: "2px",
                 marginLeft: "4px",
@@ -101,7 +101,7 @@ export const OutputSetup = (props: UQSetupProps) => {
         <Select
           size="small"
           variant="outlined"
-          sx={{ flex: 1, marginTop: "8px" }}
+          sx={{ flex: 1 }}
           value={localQoI}
           defaultValue={outputVars?.[0] || ""}
           onChange={(e) => {
@@ -135,7 +135,7 @@ export const OutputSetup = (props: UQSetupProps) => {
               type="number"
               variant="outlined"
               size="small"
-              sx={{ marginTop: "8px", flex: 1 }}
+              sx={{ flex: 1 }}
               value={localNumSamples}
               onChange={(e) =>
                 handlesetLocalNumSamples(parseInt(e.target.value))
@@ -150,16 +150,8 @@ export const OutputSetup = (props: UQSetupProps) => {
               !selectedFunction ||
               filterSelectedJobList().length === 0
             }
-            sx={{
-              marginTop: "8px",
-              width: "160px",
-              fontSize: "1.1em",
-              fontFamily: "inherit",
-              fontWeight: 200,
-              textTransform: "none",
-            }}
-            color="primary"
             onClick={() => setSumoModal(true)}
+            sx={{ padding: "8px 16px" }}
           >
             Inspect Model
           </Button>

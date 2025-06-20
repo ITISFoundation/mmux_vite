@@ -19,7 +19,7 @@ export const DisplayMessage = (props: DisplayMessageProps) => {
       alignItems={"center"}
       justifyContent={"center"}
       bgcolor={theme.palette.background.default}
-      borderRadius={"8px"}
+      borderRadius={theme.spacing(2)}
     >
       <Typography
         variant="body1"

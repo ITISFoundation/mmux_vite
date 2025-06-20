@@ -45,7 +45,7 @@ export const Sampling = () => {
   };
 
   return (
-    <Container sx={{ borderRadius: 2 }}>
+    <Container sx={(theme)=>({ borderRadius: theme.spacing(2) })}>
       <TabContainer>
         <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
           <Tab label="LHS Sampling" {...a11yProps(0)} />

@@ -17,7 +17,8 @@ const SuMoModal = ({
       aria-describedby="modal-modal-description"
       sx={{
         margin: "auto",
-        width: "50%",
+        width: "80%",
+        maxWidth: "1080px",
         height: "80%",
       }}
       children={

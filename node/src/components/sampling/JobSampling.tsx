@@ -41,6 +41,7 @@ export const JobSampling = (props: JobSamplingProps) => {
       variant="outlined"
       sx={{
         marginTop: "16px",
+        padding: '0px',
         border: "none",
         "&:before": { display: "none" },
       }}
@@ -50,11 +51,6 @@ export const JobSampling = (props: JobSamplingProps) => {
         color="primary"
         disabled={loading}
         onClick={() => setJobPanelOpen(loading ? false : !jobPanelOpen)}
-        sx={{
-          minHeight: "auto",
-          padding: "4px 8px 4px 16px",
-          margin: `0 0 ${jobPanelOpen ? "16px" : "0px"} 0`,
-        }}
       >
         Adapt / Extend Sampling
         <CustomTooltip
@@ -65,8 +61,8 @@ export const JobSampling = (props: JobSamplingProps) => {
         >
           <InfoOutline
             sx={(theme) => ({
-              color: theme.palette.primary.main,
-              backgroundColor: theme.palette.grey[100],
+              color: theme.palette.primary.light,
+              backgroundColor: theme.palette.background.default,
               borderRadius: "50%",
               padding: "2px",
               marginLeft: "8px",
@@ -74,7 +70,7 @@ export const JobSampling = (props: JobSamplingProps) => {
           />
         </CustomTooltip>
       </Button>
-      <AccordionDetails sx={{ padding: "0" }}>
+      <AccordionDetails sx={{ padding: "0", paddingTop: "16px" }}>
         <JobSelector
           loading={loading}
           setLoading={setLoading}

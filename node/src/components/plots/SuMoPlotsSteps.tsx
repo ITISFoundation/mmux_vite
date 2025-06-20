@@ -22,8 +22,8 @@ const SuMoPlotsSteps = () => {
   const context = useMMUXContext();
   const { inputVars, filterSelectedJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);
-  const [filteredInputVars, setFilteredInputVars] = React.useState(inputVars)
-  const [maxSteps, setMaxSteps] = React.useState(0)
+  const [filteredInputVars, setFilteredInputVars] = React.useState(inputVars);
+  const [maxSteps, setMaxSteps] = React.useState(0);
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
@@ -38,24 +38,22 @@ const SuMoPlotsSteps = () => {
     const jobs = filterSelectedJobList;
     if (jobs.length === 0) {
       // avoid everything disappearing when there are not enough selected jobs
-      setFilteredInputVars(inputVars)
+      setFilteredInputVars(inputVars);
     } else {
       setFilteredInputVars(filterInputVars(context));
     }
-    setMaxSteps(Math.min(filteredInputVars.length + 1, stepTitles.length))
+    setMaxSteps(Math.min(filteredInputVars.length + 1, stepTitles.length));
   }, [selectedJobUids, filterSelectedJobList]);
 
   return (
     <Card
       sx={{
-        borderRadius: 2,
         overflow: "auto",
-        backgroundColor: theme.palette.background.paper,
+        backgroundImage: "none",
       }}
     >
       <Box
         sx={{
-          padding: "16px 0px 0px 16px",
           display: "flex",
           alignItems: "center",
         }}
@@ -66,7 +64,14 @@ const SuMoPlotsSteps = () => {
           infoText=""
         />
       </Box>
-      <CardContent>
+      <CardContent
+        sx={(theme) => ({
+          padding: 0,
+          margin: "16px 0px",
+          borderRadius: theme.spacing(2),
+          overflow: "hidden",
+        })}
+      >
         {activeStep === 0 && filteredInputVars.length > 0 ? (
           <SuMoValidation />
         ) : undefined}
@@ -80,7 +85,7 @@ const SuMoPlotsSteps = () => {
           <IsoSurface3DPlot />
         ) : undefined}
       </CardContent>
-      <CardActions>
+      <CardActions sx={{ padding: 0 }}>
         <MobileStepper
           variant="dots"
           steps={maxSteps}
@@ -91,7 +96,7 @@ const SuMoPlotsSteps = () => {
             flexGrow: 1,
             margin: "0px auto",
             borderRadius: 2,
-            backgroundColor: theme.palette.background.paper,
+            backgroundColor: theme.palette.background.default,
           }}
           nextButton={
             <Button

@@ -438,8 +438,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           //   renderCell: (params) => <span>TODO</span>,
           // },
         ]}
-        sx={{
-          borderRadius: "8px",
+        sx={(theme) => ({
+          borderRadius: theme.spacing(2),
           overflow: "hidden",
           fontFamily: "inherit",
           padding: "0px 8px",
@@ -464,7 +464,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           "& .MuiDataGrid-sortButton": {
             backgroundColor: (theme) => theme.palette.background.paper,
           },
-        }}
+        })}
         getRowId={getRowId}
         initialState={{
           pagination: {
@@ -488,13 +488,13 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       <ClickAwayListener onClickAway={handleClickAway}>
         <Popper open={poperID !== -1} anchorEl={anchorEl} placement="right">
           {poperID !== -1 && jobCollections[poperID] && (
-            <Card sx={{ borderRadius: "8px" }}>
+            <Card sx={(theme)=>({ borderRadius: theme.spacing(2) })}>
               <Box style={{ padding: "16px" }}>
                 <TableContainer>
                   <Table
                     size="small"
                     aria-label="jobs"
-                    sx={{ borderRadius: "8px", padding: "16px" }}
+                    sx={(theme)=>({ borderRadius: theme.spacing(2), padding: theme.spacing(4) })}
                   >
                     <TableHead>
                       <TableRow>

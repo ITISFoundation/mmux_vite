@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Container, Modal, Paper, styled } from "@mui/material";
+import { Button, Modal, Paper } from "@mui/material";
 import { useMMUXContext } from "../../context/MMUXContext";
 import JobsDashboard from "../../views/ParallelRunner";
 import { stepValidator } from "../../utils/stepValidator";
@@ -7,20 +7,6 @@ import { stepValidator } from "../../utils/stepValidator";
 type FooterProps = {
   steps: Step[];
 };
-
-const Cont = styled(Container)`
-  padding: 0 !important;
-  & .footerBox {
-    padding: 1em 0;
-    margin-top: 2em;
-    border-radius: 16px;
-    display: flex;
-    justify-content: space-between;
-  }
-  & .footerBtn {
-    margin: 0 1em;
-  }
-`;
 
 export const Footer = (props: FooterProps) => {
   const { steps } = props;
@@ -31,40 +17,38 @@ export const Footer = (props: FooterProps) => {
 
   return (
     <>
-      <Cont>
-        <Paper className="footerBox" variant="outlined">
+      <Paper sx={{marginTop: '32px', display: 'flex', justifyContent: 'space-between'}} variant="outlined">
+        <Button
+          className="footerBtn footerBtnFirst"
+          variant="contained"
+          onClick={() =>
+            setCurrentView(currentView <= 0 ? 0 : currentView - 1)
+          }
+          disabled={currentView <= 0}
+        >
+          Previous
+        </Button>
+        {/* <Box>
           <Button
-            className="footerBtn footerBtnFirst"
+            className="footerBtn"
             variant="contained"
-            onClick={() =>
-              setCurrentView(currentView <= 0 ? 0 : currentView - 1)
-            }
-            disabled={currentView <= 0}
+            onClick={() => setModal(!modal)}
+            disabled={!isJobsRunning}
           >
-            Previous
+            TASK MANAGER
           </Button>
-          {/* <Box>
-            <Button
-              className="footerBtn"
-              variant="contained"
-              onClick={() => setModal(!modal)}
-              disabled={!isJobsRunning}
-            >
-              TASK MANAGER
-            </Button>
-          </Box> */}
-          <Button
-            className="footerBtn footerBtnLast"
-            variant="contained"
-            onClick={() =>
-              setCurrentView(currentView >= (steps.length -1) ? (steps.length -1) : currentView + 1)
-            }
-            disabled={currentView >= (steps.length -1) || !stepValidator(context, currentView)}
-          >
-            Next
-          </Button>
-        </Paper>
-      </Cont>
+        </Box> */}
+        <Button
+          className="footerBtn footerBtnLast"
+          variant="contained"
+          onClick={() =>
+            setCurrentView(currentView >= (steps.length -1) ? (steps.length -1) : currentView + 1)
+          }
+          disabled={currentView >= (steps.length -1) || !stepValidator(context, currentView)}
+        >
+          Next
+        </Button>
+      </Paper>
       <Modal
         open={modal}
         onClose={() => setModal(false)}
