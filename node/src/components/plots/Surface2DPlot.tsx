@@ -5,13 +5,13 @@ import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Data } from "plotly.js";
-import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
+import { CreateSelect, CreateSlider, filterInputVars, plotMargins } from "./PlotTools";
 import Header from "../navigation/Header";
 import CalculatingWarning from "../CalculatingWarning";
 import InsufficientDataWarning from "../InsufficientDataWarning";
+import ShowPlotOrWarning from "./ShowPlotOrWarning";
 
 const Surface2DPlot = () => {
-  const plotHeight = 300;
   const theme = useTheme();
   const context = useMMUXContext();
   const {
@@ -156,16 +156,11 @@ const Surface2DPlot = () => {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
-    margin: {
-      l: 65,
-      r: 50,
-      b: 65,
-      t: 90,
-    },
+    margin: plotMargins,
   };
 
   const plotStyle = {
-    height: plotHeight,
+    height: 500,
     borderRadius: "8px",
     overflow: "hidden",
   };
@@ -183,80 +178,59 @@ const Surface2DPlot = () => {
     );
   }
 
-  if (propagating) {
-    return <CalculatingWarning height={plotHeight} />
-  }
-
-  if (plotData.length === 0) {
-    return <InsufficientDataWarning
-      fetchedJobCollections={fetchedJobCollections}
-      filterSelectedJobList={filterSelectedJobList}
-      height={plotHeight}
-    />
-  }
-
   return (
     <>
       <Box display={"flex"} flexDirection={"column"} width={"100%"}>
-        <Box
-          sx={{
-            width: "100%",
-            height: plotHeight,
-            overflow: "hidden",
-            borderRadius: 1,
-          }}
-        >
-          <Plot data={plotData} layout={layout} style={plotStyle} />
-        </Box>
+        <ShowPlotOrWarning plotData={plotData} plotStyle={plotStyle} layout={layout} calculating={propagating} />
+      </Box>
 
-        <Box mt={2}>
-          <Header headerType="subTitle" infoText="" tabTitle="Selection" />
+      <Box mt={2}>
+        <Header headerType="subTitle" infoText="" tabTitle="Selection" />
+      </Box>
+      <Box
+        display={"flex"}
+        flexDirection={"column"}
+        gap={2}
+        p={4}
+        sx={(theme) => ({
+          backgroundColor: theme.palette.background.default,
+          borderRadius: theme.spacing(2),
+        })}
+      >
+        <Box display={"flex"} flexDirection={"row"} gap={2}>
+          <CreateSelect
+            axis={axis1}
+            idx={1}
+            setAxis={handleSetAxis1}
+            inputVars={inputVars}
+          />
+          <CreateSelect
+            axis={axis2}
+            idx={2}
+            setAxis={handleSetAxis2}
+            inputVars={inputVars}
+          />
         </Box>
-        <Box
-          display={"flex"}
-          flexDirection={"column"}
-          gap={2}
-          p={4}
-          sx={(theme) => ({
-            backgroundColor: theme.palette.background.default,
-            borderRadius: theme.spacing(2),
-          })}
-        >
-          <Box display={"flex"} flexDirection={"row"} gap={2}>
-            <CreateSelect
-              axis={axis1}
-              idx={1}
-              setAxis={handleSetAxis1}
-              inputVars={inputVars}
-            />
-            <CreateSelect
-              axis={axis2}
-              idx={2}
-              setAxis={handleSetAxis2}
-              inputVars={inputVars}
-            />
-          </Box>
-          {inputVars.length > 0 &&
-            distribution[selectedFunction?.uid || ""] !== undefined ? (
-            <>
-              {inputVars.map((key) => {
-                if (key === axis1 || key === axis2) {
-                  return null; // Skip the first variable as it is already selected
-                }
-                const dist = distribution[selectedFunction?.uid || ""];
-                return (
-                  <CreateSlider
-                    input={key}
-                    dist={dist[key]}
-                    otherAxis={otherAxis}
-                    setOtherAxis={setOtherAxis}
-                    key={key}
-                  />
-                );
-              })}
-            </>
-          ) : undefined}
-        </Box>
+        {inputVars.length > 0 &&
+          distribution[selectedFunction?.uid || ""] !== undefined ? (
+          <>
+            {inputVars.map((key) => {
+              if (key === axis1 || key === axis2) {
+                return null; // Skip the first variable as it is already selected
+              }
+              const dist = distribution[selectedFunction?.uid || ""];
+              return (
+                <CreateSlider
+                  input={key}
+                  dist={dist[key]}
+                  otherAxis={otherAxis}
+                  setOtherAxis={setOtherAxis}
+                  key={key}
+                />
+              );
+            })}
+          </>
+        ) : undefined}
       </Box>
     </>
   );

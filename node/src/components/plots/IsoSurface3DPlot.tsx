@@ -6,11 +6,9 @@ import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import Header from "../navigation/Header";
-import CalculatingWarning from "../CalculatingWarning";
-import InsufficientDataWarning from "../InsufficientDataWarning";
+import ShowPlotOrWarning from "./ShowPlotOrWarning";
 
 const IsoSurface3DPlot = () => {
-  const plotHeight = 500;
   const theme = useTheme();
   const {
     selectedFunction,
@@ -242,35 +240,14 @@ const IsoSurface3DPlot = () => {
   };
 
   const plotStyle = {
-    height: plotHeight,
+    height: "500px",
     borderRadius: "8px",
     overflow: "hidden",
   };
 
-  if (propagating) {
-    return <CalculatingWarning height={plotHeight} />
-  }
-
-  if (plotData.length === 0) {
-    return <InsufficientDataWarning
-      fetchedJobCollections={fetchedJobCollections}
-      filterSelectedJobList={filterSelectedJobList}
-      height={plotHeight}
-    />
-  }
-
   return (
     <Box display={"flex"} flexDirection={"column"} width={"100%"}>
-      <Box
-        sx={{
-          width: "100%",
-          height: plotStyle.height,
-          overflow: plotStyle.overflow,
-          borderRadius: 1,
-        }}
-      >
-        <Plot data={plotData} layout={layout} style={plotStyle} />
-      </Box>
+      <ShowPlotOrWarning plotStyle={plotStyle} layout={layout} calculating={propagating} plotData={plotData} />
 
       <Box mt={2}>
         <Header headerType="subTitle" infoText="" tabTitle="Selection" />

@@ -7,8 +7,7 @@ import { Data } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
 import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
-import CalculatingWarning from "../CalculatingWarning";
-import InsufficientDataWarning from "../InsufficientDataWarning";
+import ShowPlotOrWarning from "./ShowPlotOrWarning";
 
 type GPPrediction = {
   x: number[];
@@ -17,7 +16,6 @@ type GPPrediction = {
 };
 
 const Curves1DPlots = () => {
-  const plotHeight = 300;
   const theme = useTheme();
   const {
     inputVars,
@@ -101,6 +99,7 @@ const Curves1DPlots = () => {
   const RunCentralSuMoInterpolations = async (jobs: FunctionJob[]) => {
     console.log("Evaluating SuMo for 1D curves...");
     setPropagating(true);
+    // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_along_axes", {
       method: "POST",
       body: JSON.stringify({
@@ -120,7 +119,7 @@ const Curves1DPlots = () => {
         setPropagating(false);
       })
       .catch((error) => {
-        console.log("Error in RunCEntralSuMoINterpolations: ", error);
+        console.log("Error in RunCentralSuMoInterpolations: ", error);
         setPlotData([]);
         setPropagating(false);
       });
@@ -146,82 +145,66 @@ const Curves1DPlots = () => {
     filterSelectedJobList,
   ]);
 
-  if (propagating) {
-    return <CalculatingWarning height={plotHeight} />
+  const plotStyle = {
+    height: 300,
+    borderRadius: "8px",
+    overflow: "hidden",
   }
 
-  if (plotData.length === 0) {
-    return <InsufficientDataWarning
-      fetchedJobCollections={fetchedJobCollections}
-      filterSelectedJobList={filterSelectedJobList}
-      height={plotHeight}
-    />
+  const layout = {
+    plot_bgcolor: `${theme.palette.background.default}`,
+    paper_bgcolor: `${theme.palette.background.default}`,
+    font: { color: `${theme.palette.text.primary}` },
+    xaxis: {
+      title: { text: axis },
+    },
+    yaxis: {
+      title: { text: selectedQoI },
+      anchor: "x",
+    },
+    showlegend: false,
   }
 
   return (
     <>
       <Box display={"flex"} flexDirection={"column"}>
-        <Box overflow={"hidden"} borderRadius={1} width="100%" mb={2}>
-          <Plot
-            data={plotData}
-            layout={{
-              plot_bgcolor: `${theme.palette.background.default}`,
-              paper_bgcolor: `${theme.palette.background.default}`,
-              font: { color: `${theme.palette.text.primary}` },
-              xaxis: {
-                title: { text: axis },
-              },
-              yaxis: {
-                title: { text: selectedQoI },
-                // showgrid: true,
-                anchor: "x",
-              },
-              showlegend: false,
-            }}
-            style={{
-              height: plotHeight,
-              borderRadius: "8px",
-              overflow: "hidden",
-            }}
-            config={{ responsive: true }}
-          />
-        </Box>
-        <Box>
-          <Header headerType="subTitle" infoText="" tabTitle="Selection" />
-        </Box>
-        <Box
-          display={"flex"}
-          flexDirection={"column"}
-          overflow={"visible"}
-          gap={2}
-          p={4}
-          sx={(theme) => ({
-            backgroundColor: theme.palette.background.default,
-            borderRadius: theme.spacing(2),
-          })}
-        >
-          <CreateSelect axis={axis} setAxis={setAxis} inputVars={inputVars} />
-          {inputVars.length > 0 &&
-            distribution[selectedFunction?.uid || ""] !== undefined ? (
-            <>
-              {inputVars.map((key) => {
-                if (key === axis) {
-                  return null; // Skip the first variable as it is already selected
-                }
-                const dist = distribution[selectedFunction?.uid || ""];
-                return (
-                  <CreateSlider
-                    input={key}
-                    dist={dist[key]}
-                    otherAxis={otherAxis}
-                    setOtherAxis={setOtherAxis}
-                    key={key}
-                  />
-                );
-              })}
-            </>
-          ) : undefined}
-        </Box>
+        <ShowPlotOrWarning plotData={plotData} plotStyle={plotStyle} layout={layout} calculating={propagating} />
+      </Box>
+      <Box>
+        <Header headerType="subTitle" infoText="" tabTitle="Selection" />
+      </Box>
+      <Box
+        display={"flex"}
+        flexDirection={"column"}
+        overflow={"visible"}
+        gap={2}
+        p={4}
+        sx={(theme) => ({
+          backgroundColor: theme.palette.background.default,
+          borderRadius: theme.spacing(2),
+        })}
+      >
+        <CreateSelect axis={axis} setAxis={setAxis} inputVars={inputVars} />
+        {inputVars.length > 0 &&
+          distribution[selectedFunction?.uid || ""] !== undefined ? (
+          <>
+            {inputVars.map((key) => {
+              if (key === axis) {
+                return null; // Skip the first variable as it is already selected
+              }
+              const dist = distribution[selectedFunction?.uid || ""];
+              return (
+                <CreateSlider
+                  input={key}
+                  dist={dist[key]}
+                  otherAxis={otherAxis}
+                  setOtherAxis={setOtherAxis}
+                  key={key}
+                />
+              );
+            })}
+          </>
+        ) : undefined}
       </Box>
     </>
   );

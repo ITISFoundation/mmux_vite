@@ -12,7 +12,7 @@ import { KeyboardArrowLeft, KeyboardArrowRight } from "@mui/icons-material";
 import IsoSurface3DPlot from "./IsoSurface3DPlot";
 import Curves1DPlots from "./Curves1DPlot";
 import SuMoValidation from "./SuMoValidation";
-import Surface2DPlot from "./Surface3DPlot";
+import Surface2DPlot from "./Surface2DPlot";
 import Header from "../navigation/Header";
 import { filterInputVars } from "./PlotTools";
 import { useMMUXContext } from "../../context/MMUXContext";
