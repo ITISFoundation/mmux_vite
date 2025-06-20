@@ -14,9 +14,8 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     progress,
     jobProgress,
   } = props;
-  const plotHeight = 400;
   const theme = useTheme();
-  const { numSamples, inputVars, selectedQoI, distribution, selectedFunction, fetchedJobCollections, filterSelectedJobList } = useMMUXContext();
+  const { numSamples, inputVars, selectedQoI, distribution, selectedFunction, filterSelectedJobList } = useMMUXContext();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
@@ -109,7 +108,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
   }
-  const plotStyle = { width: "100%", height: plotHeight, borderRadius: "8px", overflow: "hidden" }
+  const plotStyle = { width: "100%", height: "400px", borderRadius: "8px", overflow: "hidden" }
 
   return (
     <Box display={'flex'} flexDirection={'column'} gap={1} width={'100%'}>

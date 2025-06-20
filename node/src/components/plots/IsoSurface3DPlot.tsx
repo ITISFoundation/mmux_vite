@@ -4,7 +4,7 @@ import Plot from "react-plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
+import { CreateSelect, CreateSlider, filterInputVars, plotMargins } from "./PlotTools";
 import Header from "../navigation/Header";
 import ShowPlotOrWarning from "./ShowPlotOrWarning";
 
@@ -219,12 +219,7 @@ const IsoSurface3DPlot = () => {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
-    margin: {
-      l: 65,
-      r: 50,
-      b: 65,
-      t: 90,
-    },
+    margin: plotMargins,
     scene: {
       xaxis: { title: { text: axis1 }, tickangle: -45 },
       yaxis: { title: { text: axis2 }, tickangle: -45 },

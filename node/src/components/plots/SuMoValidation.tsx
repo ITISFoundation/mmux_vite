@@ -1,17 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import Plot from "react-plotly.js";
 import { Box, useTheme } from "@mui/material";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import Metric from "./../Metric";
 import SuMoMetricRow from "./../SuMoMetricRow";
-import CalculatingWarning from "../CalculatingWarning";
-import InsufficientDataWarning from "../InsufficientDataWarning";
 import ShowPlotOrWarning from "./ShowPlotOrWarning";
+import { plotMargins } from "./PlotTools";
 
 const SuMoValidation = () => {
-  const plotHeight = 400;
   const theme = useTheme();
   const {
     selectedFunction,
@@ -19,7 +16,6 @@ const SuMoValidation = () => {
     distribution,
     selectedQoI,
     filterSelectedJobList,
-    fetchedJobCollections
   } = useMMUXContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
@@ -185,8 +181,7 @@ const SuMoValidation = () => {
         (selectedQoI ? selectedQoI : "Quantity of Interest") +
         " Sample Distribution",
     },
-    margin: { t: 40, l: 30, r: 30, b: 40 },
-    height: plotHeight,
+    margin: plotMargins,
     width: width,
     barmode: "overlay",
     legend: {
@@ -198,7 +193,7 @@ const SuMoValidation = () => {
   };
 
   const plotStyle = {
-    height: plotHeight,
+    height: "400px",
     borderRadius: "8px",
     overflow: "hidden",
     margin: "0 auto", // Center the plot horizontally
