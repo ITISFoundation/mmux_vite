@@ -7,8 +7,7 @@ import { Data } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
 import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
-import PlotLoadingWrapper from "./PlotLoadingWrapper";
-import InsuficientDataWarningsWrapper from "../InsuficientDataWarningsWrapper";
+import { DisplayMessage } from "../DisplayMessage";
 
 type GPPrediction = {
   x: number[];
@@ -24,7 +23,7 @@ const Curves1DPlots = () => {
     selectedFunction,
     distribution,
     filterSelectedJobList,
-    fetchedJobCollections,
+    fetchedJobCollections
   } = useMMUXContext();
   const context = useMMUXContext();
   const filteredInputVars = filterInputVars(context);
@@ -43,54 +42,6 @@ const Curves1DPlots = () => {
   );
   const plotColor = "rgb(127, 199, 255)";
   const fillColor = "rgba(127, 199, 255, 0.3)";
-
-  const RunCentralSuMoInterpolations = async (jobs: FunctionJob[]) => {
-    console.log("Evaluating SuMo for 1D curves...");
-    setPropagating(true);
-    fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_along_axes", {
-      method: "POST",
-      body: JSON.stringify({
-        inputs: inputVars,
-        distribution: distribution,
-        output: selectedQoI,
-        sliderValues: otherAxis,
-        FunctionJobs: jobs,
-        log: false,
-      }),
-    })
-      .then(function (response) {
-        return response.json();
-      })
-      .then(function (data) {
-        createPlotData(data);
-        setPropagating(false);
-      })
-      .catch((error) => {
-        console.log("Error in RunCEntralSuMoINterpolations: ", error);
-        setPlotData([]);
-        setPropagating(false);
-      });
-  };
-
-  useEffect(() => {
-    const run = async () => {
-      const jobs = filterSelectedJobList();
-      if (jobs.length !== 0) {
-        return await RunCentralSuMoInterpolations(jobs);
-      } else {
-        // Not enough jobs to build model - then returns empty list
-        setPlotData([]);
-      }
-    };
-    run();
-  }, [
-    inputVars,
-    selectedQoI,
-    selectedFunction,
-    axis,
-    otherAxis,
-    filterSelectedJobList,
-  ]);
 
   const createPlotData = (data: Record<string, GPPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
@@ -145,44 +96,95 @@ const Curves1DPlots = () => {
     }
   };
 
+  const RunCentralSuMoInterpolations = async (jobs: FunctionJob[]) => {
+    console.log("Evaluating SuMo for 1D curves...");
+    setPropagating(true);
+    fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_along_axes", {
+      method: "POST",
+      body: JSON.stringify({
+        inputs: inputVars,
+        distribution: distribution,
+        output: selectedQoI,
+        sliderValues: otherAxis,
+        FunctionJobs: jobs,
+        log: false,
+      }),
+    })
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (data) {
+        createPlotData(data);
+        setPropagating(false);
+      })
+      .catch((error) => {
+        console.log("Error in RunCEntralSuMoINterpolations: ", error);
+        setPlotData([]);
+        setPropagating(false);
+      });
+  };
+
+  useEffect(() => {
+    const run = async () => {
+      const jobs = filterSelectedJobList();
+      if (jobs.length !== 0) {
+        return await RunCentralSuMoInterpolations(jobs);
+      } else {
+        // Not enough jobs to build model - then returns empty list
+        setPlotData([]);
+      }
+    };
+    run();
+  }, [
+    inputVars,
+    selectedQoI,
+    selectedFunction,
+    axis,
+    otherAxis,
+    filterSelectedJobList,
+  ]);
+
+  if (plotData.length === 0) {
+    return (
+      <DisplayMessage
+        mssg={
+          fetchedJobCollections.length === 0
+            ? "No data available. Please create more Samples."
+            : filterSelectedJobList().length === 0
+            ? "Not enough Samples selected"
+            : "Error during calculation, please contact support."
+        }
+      />
+    );
+  }
+
   return (
-    <InsuficientDataWarningsWrapper
-      plotData={plotData}
-      calculating={propagating}
-      fetchedJobCollections={fetchedJobCollections}
-      filterSelectedJobList={filterSelectedJobList}
-    >
+    <>
       <Box display={"flex"} flexDirection={"column"}>
         <Box overflow={"hidden"} borderRadius={1} width="100%" mb={2}>
-          <PlotLoadingWrapper
-            height={300}
-            plotData={plotData}
-            filterSelectedJobList={filterSelectedJobList}
-          >
-            <Plot
-              data={plotData}
-              layout={{
-                plot_bgcolor: `${theme.palette.background.default}`,
-                paper_bgcolor: `${theme.palette.background.default}`,
-                font: { color: `${theme.palette.text.primary}` },
-                xaxis: {
-                  title: { text: axis },
-                },
-                yaxis: {
-                  title: { text: selectedQoI },
-                  // showgrid: true,
-                  anchor: "x",
-                },
-                showlegend: false,
-              }}
-              style={{
-                height: 300,
-                borderRadius: "8px",
-                overflow: "hidden",
-              }}
-              config={{ responsive: true }}
-            />
-          </PlotLoadingWrapper>
+          <Plot
+            data={plotData}
+            layout={{
+              plot_bgcolor: `${theme.palette.background.default}`,
+              paper_bgcolor: `${theme.palette.background.default}`,
+              font: { color: `${theme.palette.text.primary}` },
+              xaxis: {
+                title: { text: axis },
+              },
+              yaxis: {
+                title: { text: selectedQoI },
+                // showgrid: true,
+                anchor: "x",
+              },
+              showlegend: false,
+            }}
+            style={{
+              height: 300,
+              borderRadius: "8px",
+              overflow: "hidden",
+            }}
+            config={{ responsive: true }}
+          />
         </Box>
         <Box>
           <Header headerType="subTitle" infoText="" tabTitle="Selection" />
@@ -190,6 +192,7 @@ const Curves1DPlots = () => {
         <Box
           display={"flex"}
           flexDirection={"column"}
+          overflow={"visible"}
           gap={2}
           p={4}
           sx={(theme) => ({
@@ -220,7 +223,7 @@ const Curves1DPlots = () => {
           ) : undefined}
         </Box>
       </Box>
-    </InsuficientDataWarningsWrapper>
+    </>
   );
 };
 
