@@ -7,7 +7,6 @@ import { Box, useTheme } from "@mui/material";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import HistogramStats from "../HistogramStats";
 import { JobsLoading } from "../JobsLoading";
-import InsuficientDataWarningsWrapper from "../InsuficientDataWarningsWrapper";
 import PlotLoadingWrapper from "./PlotLoadingWrapper";
 
 export default function UncertainUQ(props: UncertainUQPropsType) {
@@ -103,29 +102,27 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     )
   } else {
     return (
-      <InsuficientDataWarningsWrapper plotData={plotData} calculating={propagating} fetchedJobCollections={fetchedJobCollections} filterSelectedJobList={filterSelectedJobList}>
-        <Box display={'flex'} flexDirection={'column'} gap={1} width={'100%'}>
-          <PlotLoadingWrapper height={400} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
-            <Plot
-              data={plotData}
-              layout={{
-                title: { text: "Uncertainty Quantification Histogram" },
-                xaxis: { title: { text: selectedQoI || "Output" } },
-                yaxis: { title: { text: "Density" } },
-                plot_bgcolor: `${theme.palette.background.default}`,
-                paper_bgcolor: `${theme.palette.background.default}`,
-                font: { color: `${theme.palette.text.primary}` },
-              }}
-              style={{ width: "100%", height: "400px", borderRadius: "8px", overflow: "hidden" }}
-              config={{ responsive: true }}
-            />
-          </PlotLoadingWrapper>
+      <Box display={'flex'} flexDirection={'column'} gap={1} width={'100%'}>
+        <PlotLoadingWrapper height={400} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
+          <Plot
+            data={plotData}
+            layout={{
+              title: { text: "Uncertainty Quantification Histogram" },
+              xaxis: { title: { text: selectedQoI || "Output" } },
+              yaxis: { title: { text: "Density" } },
+              plot_bgcolor: `${theme.palette.background.default}`,
+              paper_bgcolor: `${theme.palette.background.default}`,
+              font: { color: `${theme.palette.text.primary}` },
+            }}
+            style={{ width: "100%", height: "400px", borderRadius: "8px", overflow: "hidden" }}
+            config={{ responsive: true }}
+          />
+        </PlotLoadingWrapper>
 
-          {(dataUQHistogram !== undefined) &&
-            <HistogramStats {...dataUQHistogram} />
-          }
-        </Box>
-      </InsuficientDataWarningsWrapper>
+        {(dataUQHistogram !== undefined) &&
+          <HistogramStats {...dataUQHistogram} />
+        }
+      </Box>
     )
   }
 }
