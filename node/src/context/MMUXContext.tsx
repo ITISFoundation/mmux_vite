@@ -91,7 +91,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
   >(undefined);
   const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
 
-  const handleSelecedFunction = (F: Function | undefined) => {
+  const handleSelectedFunction = (F: Function | undefined) => {
     setFunct(F);
     setSelectedJobUids([]);
     setFetchedJobCollections([]);
@@ -116,7 +116,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
     };
     return {
       selectedFunction: funct,
-      setSelectedFunction: handleSelecedFunction,
+      setSelectedFunction: handleSelectedFunction,
       distribution: distribution,
       setDistribution: setDistribution,
       inputVars: inputVars,

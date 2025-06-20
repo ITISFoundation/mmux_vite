@@ -110,7 +110,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         return auxJob;
       }
     );
-
     updateJobContext(newJobCollections);
     setJobCollections(newJobCollections);
   };
@@ -158,12 +157,12 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       return;
     }
 
-    const newJobs: SelectedJobCollection[] = []
+    const newJobCollections: SelectedJobCollection[] = []
 
-    for( let jcIdx = 0; jcIdx < jobsC.length; jcIdx++) {
+    for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx++) {
       const jc = jobsC[jcIdx];
       const subJobs = [];
-      for( let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx++) {
+      for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx++) {
         const id = jc.jobIds[subJobIdx];
         const job = (await getFunctionJob(id)) as FunctionJob;
         jobsFetched.current += 1;
@@ -182,16 +181,16 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       );
       colsFetched.current += jc.jobIds.length;
       setProgress((colsFetched.current / totalSubs) * 100);
-      newJobs.push({
+      newJobCollections.push({
         jobCollection: jc,
         selected: false,
         subJobs: subJobs,
       });
     }
 
-    setJobCollections(newJobs);
-    setFetchedJobCollections(newJobs);
-    updateJobContext(newJobs);
+    setJobCollections(newJobCollections);
+    setFetchedJobCollections(newJobCollections);
+    updateJobContext(newJobCollections);
     setProgress(100);
   }
 
