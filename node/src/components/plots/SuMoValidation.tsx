@@ -7,8 +7,11 @@ import { FunctionJob } from "../../osparc-api-ts-client";
 import Metric from "./../Metric";
 import SuMoMetricRow from "./../SuMoMetricRow";
 import PlotLoadingWrapper from "./PlotLoadingWrapper";
+import CalculatingWarning from "../CalculatingWarning";
+import InsufficientDataWarning from "../InsufficientDataWarning";
 
 const SuMoValidation = () => {
+  const plotHeight = 400;
   const theme = useTheme();
   const {
     selectedFunction,
@@ -16,6 +19,7 @@ const SuMoValidation = () => {
     distribution,
     selectedQoI,
     filterSelectedJobList,
+    fetchedJobCollections
   } = useMMUXContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
@@ -44,7 +48,7 @@ const SuMoValidation = () => {
         (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
         0
       ) /
-        (y.length - 1)
+      (y.length - 1)
     );
     const mean_y_hat =
       y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
@@ -53,7 +57,7 @@ const SuMoValidation = () => {
         (sum: number, value: number) => sum + Math.pow(value - mean_y_hat, 2),
         0
       ) /
-        (y_hat.length - 1)
+      (y_hat.length - 1)
     );
     const cvMetricsData = {
       mean_y: mean_y,
@@ -179,12 +183,25 @@ const SuMoValidation = () => {
   };
 
   const plotStyle = {
-    height: 400,
+    height: plotHeight,
     borderRadius: "8px",
     overflow: "hidden",
     margin: "0 auto", // Center the plot horizontally
     maxWidth: `${width}px`, // Match the width of the statistics box below
   };
+
+
+  if (propagating) {
+    return <CalculatingWarning height={plotHeight} />
+  }
+
+  if (plotData.length === 0) {
+    return <InsufficientDataWarning
+      fetchedJobCollections={fetchedJobCollections}
+      filterSelectedJobList={filterSelectedJobList}
+      height={plotHeight}
+    />
+  }
 
   return (
     <>
@@ -212,7 +229,7 @@ const SuMoValidation = () => {
                     " Sample Distribution",
                 },
                 margin: { t: 40, l: 30, r: 30, b: 40 },
-                height: 400,
+                height: plotHeight,
                 width: width,
                 barmode: "overlay",
                 legend: {
