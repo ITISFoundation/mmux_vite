@@ -7,9 +7,11 @@ import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import PlotLoadingWrapper from "./PlotLoadingWrapper";
 import Header from "../navigation/Header";
-import { DisplayMessage } from "../DisplayMessage";
+import CalculatingWarning from "../CalculatingWarning";
+import InsufficientDataWarning from "../InsufficientDataWarning";
 
 const IsoSurface3DPlot = () => {
+  const plotHeight = 500;
   const theme = useTheme();
   const {
     selectedFunction,
@@ -241,23 +243,21 @@ const IsoSurface3DPlot = () => {
   };
 
   const plotStyle = {
-    height: 500,
+    height: plotHeight,
     borderRadius: "8px",
     overflow: "hidden",
   };
 
+  if (propagating) {
+    return <CalculatingWarning height={plotHeight} />
+  }
+
   if (plotData.length === 0) {
-    return (
-      <DisplayMessage
-        mssg={
-          fetchedJobCollections.length === 0
-            ? "No data available. Please create more Samples."
-            : filterSelectedJobList().length === 0
-            ? "Not enough Samples selected"
-            : "Error during calculation, please contact support."
-        }
-      />
-    );
+    return <InsufficientDataWarning
+      fetchedJobCollections={fetchedJobCollections}
+      filterSelectedJobList={filterSelectedJobList}
+      height={plotHeight}
+    />
   }
 
   return (
@@ -319,7 +319,7 @@ const IsoSurface3DPlot = () => {
         </Box>
         <Box display={"flex"} flexDirection={"column"} gap={2}>
           {inputVars.length > 0 &&
-          distribution[selectedFunction?.uid || ""] !== undefined ? (
+            distribution[selectedFunction?.uid || ""] !== undefined ? (
             <>
               {inputVars.map((key) => {
                 if (key === axis1 || key === axis2 || key === axis3) {

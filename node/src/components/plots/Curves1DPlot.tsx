@@ -7,7 +7,8 @@ import { Data } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
 import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
-import { DisplayMessage } from "../DisplayMessage";
+import CalculatingWarning from "../CalculatingWarning";
+import InsufficientDataWarning from "../InsufficientDataWarning";
 
 type GPPrediction = {
   x: number[];
@@ -16,6 +17,7 @@ type GPPrediction = {
 };
 
 const Curves1DPlots = () => {
+  const plotHeight = 300;
   const theme = useTheme();
   const {
     inputVars,
@@ -144,18 +146,16 @@ const Curves1DPlots = () => {
     filterSelectedJobList,
   ]);
 
+  if (propagating) {
+    return <CalculatingWarning height={plotHeight} />
+  }
+
   if (plotData.length === 0) {
-    return (
-      <DisplayMessage
-        mssg={
-          fetchedJobCollections.length === 0
-            ? "No data available. Please create more Samples."
-            : filterSelectedJobList().length === 0
-            ? "Not enough Samples selected"
-            : "Error during calculation, please contact support."
-        }
-      />
-    );
+    return <InsufficientDataWarning
+      fetchedJobCollections={fetchedJobCollections}
+      filterSelectedJobList={filterSelectedJobList}
+      height={plotHeight}
+    />
   }
 
   return (
@@ -179,7 +179,7 @@ const Curves1DPlots = () => {
               showlegend: false,
             }}
             style={{
-              height: 300,
+              height: plotHeight,
               borderRadius: "8px",
               overflow: "hidden",
             }}
@@ -202,7 +202,7 @@ const Curves1DPlots = () => {
         >
           <CreateSelect axis={axis} setAxis={setAxis} inputVars={inputVars} />
           {inputVars.length > 0 &&
-          distribution[selectedFunction?.uid || ""] !== undefined ? (
+            distribution[selectedFunction?.uid || ""] !== undefined ? (
             <>
               {inputVars.map((key) => {
                 if (key === axis) {

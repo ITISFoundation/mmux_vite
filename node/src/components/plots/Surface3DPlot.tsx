@@ -8,9 +8,11 @@ import { Data } from "plotly.js";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import PlotLoadingWrapper from "./PlotLoadingWrapper";
 import Header from "../navigation/Header";
-import { DisplayMessage } from "../DisplayMessage";
+import CalculatingWarning from "../CalculatingWarning";
+import InsufficientDataWarning from "../InsufficientDataWarning";
 
 const Surface2DPlot = () => {
+  const plotHeight = 300;
   const theme = useTheme();
   const context = useMMUXContext();
   const {
@@ -164,7 +166,7 @@ const Surface2DPlot = () => {
   };
 
   const plotStyle = {
-    height: 500,
+    height: plotHeight,
     borderRadius: "8px",
     overflow: "hidden",
   };
@@ -182,18 +184,16 @@ const Surface2DPlot = () => {
     );
   }
 
+  if (propagating) {
+    return <CalculatingWarning height={plotHeight} />
+  }
+
   if (plotData.length === 0) {
-    return (
-      <DisplayMessage
-        mssg={
-          fetchedJobCollections.length === 0
-            ? "No data available. Please create more Samples."
-            : filterSelectedJobList().length === 0
-            ? "Not enough Samples selected"
-            : "Error during calculation, please contact support."
-        }
-      />
-    );
+    return <InsufficientDataWarning
+      fetchedJobCollections={fetchedJobCollections}
+      filterSelectedJobList={filterSelectedJobList}
+      height={plotHeight}
+    />
   }
 
   return (
@@ -202,7 +202,7 @@ const Surface2DPlot = () => {
         <Box
           sx={{
             width: "100%",
-            height: "500px",
+            height: plotHeight,
             overflow: "hidden",
             borderRadius: 1,
           }}
@@ -244,7 +244,7 @@ const Surface2DPlot = () => {
             />
           </Box>
           {inputVars.length > 0 &&
-          distribution[selectedFunction?.uid || ""] !== undefined ? (
+            distribution[selectedFunction?.uid || ""] !== undefined ? (
             <>
               {inputVars.map((key) => {
                 if (key === axis1 || key === axis2) {
