@@ -315,6 +315,51 @@ def _get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
 
     return job_dict
 
+@app.route("/flask/get_function_job_status", methods=["GET"])
+def flask_get_function_job_status():
+    _logger.debug("Starting flask function: flask_get_function_job_status")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+    try: 
+        job_uid = request.args["jobUid"]
+        job_status = job_api_instance.function_job_status(job_uid).status
+        return jsonify(job_status)
+    except Exception as e:
+        _logger.error(f"Error while getting function job: {e}")
+        abort(make_response(jsonify({"error": str(e)}), 500))
+        
+@app.route("/flask/get_function_job_outputs", methods=["GET"])
+def flask_get_function_job_outputs():
+    _logger.debug("Starting flask function: flask_get_function_job_outputs")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+    try: 
+        job_uid = request.args["jobUid"]
+        job_outputs = job_api_instance.function_job_outputs(job_uid)
+        return jsonify(job_outputs)
+    except Exception as e:
+        _logger.error(f"Error while getting function job: {e}")
+        abort(make_response(jsonify({"error": str(e)}), 500))
+        
+def test_job_retrieval_endpoints_speed(job_uid: str, N: int = 1):
+    def _timeit(fun: Callable, N: int, *args, **kwargs):
+        """Helper function to time the execution of a function N times."""
+        import time
+        start_time = time.time()
+        for _ in range(N):
+            result = fun(*args, **kwargs)
+            _logger.info(f"Iteration {_+1}/{N}: {result}")   # Print the result of each iteration
+        end_time = time.time()
+        return (end_time - start_time) / N
+    
+    time_job_full = _timeit(job_api_instance.get_function_job, N, job_uid)
+    time_job_outputs = _timeit(job_api_instance.function_job_outputs, N, job_uid)
+    time_job_status = _timeit(job_api_instance.function_job_status, N, job_uid)
+    
+    _logger.debug(f"Average time to retrieve full job: {time_job_full:.4f} seconds")
+    _logger.debug(f"Average time to retrieve job outputs: {time_job_outputs:.4f} seconds")
+    _logger.debug(f"Average time to retrieve job status: {time_job_status:.4f} seconds")
+
+# test_job_retrieval_endpoints_speed(job_uid="aa5453be-d9e5-4e8a-a7a5-29acd113f1d2", N=30)
+        
 def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str, folder_name: str = "evaluate") -> Path:
     output_response_sanitized = sanitize_varnames(output_response)
     completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
