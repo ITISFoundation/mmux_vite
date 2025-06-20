@@ -5,7 +5,6 @@ import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
-import PlotLoadingWrapper from "./PlotLoadingWrapper";
 import Header from "../navigation/Header";
 import CalculatingWarning from "../CalculatingWarning";
 import InsufficientDataWarning from "../InsufficientDataWarning";
@@ -270,13 +269,7 @@ const IsoSurface3DPlot = () => {
           borderRadius: 1,
         }}
       >
-        <PlotLoadingWrapper
-          height={plotStyle.height}
-          plotData={plotData}
-          filterSelectedJobList={filterSelectedJobList}
-        >
-          <Plot data={plotData} layout={layout} style={plotStyle} />
-        </PlotLoadingWrapper>
+        <Plot data={plotData} layout={layout} style={plotStyle} />
       </Box>
 
       <Box mt={2}>

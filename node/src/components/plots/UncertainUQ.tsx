@@ -7,8 +7,6 @@ import { Box, useTheme } from "@mui/material";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import HistogramStats from "../HistogramStats";
 import { JobsLoading } from "../JobsLoading";
-import InsuficientDataWarningsWrapper from "../InsufficientDataWarning";
-import PlotLoadingWrapper from "./PlotLoadingWrapper";
 import InsufficientDataWarning from "../InsufficientDataWarning";
 import CalculatingWarning from "../CalculatingWarning";
 
@@ -119,25 +117,24 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
 
   return (
     <Box display={'flex'} flexDirection={'column'} gap={1} width={'100%'}>
-      <PlotLoadingWrapper height={plotHeight} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
-        <Plot
-          data={plotData}
-          layout={{
-            title: { text: "Uncertainty Quantification Histogram" },
-            xaxis: { title: { text: selectedQoI || "Output" } },
-            yaxis: { title: { text: "Density" } },
-            plot_bgcolor: `${theme.palette.background.default}`,
-            paper_bgcolor: `${theme.palette.background.default}`,
-            font: { color: `${theme.palette.text.primary}` },
-          }}
-          style={{ width: "100%", height: plotHeight, borderRadius: "8px", overflow: "hidden" }}
-          config={{ responsive: true }}
-        />
-      </PlotLoadingWrapper>
+      <Plot
+        data={plotData}
+        layout={{
+          title: { text: "Uncertainty Quantification Histogram" },
+          xaxis: { title: { text: selectedQoI || "Output" } },
+          yaxis: { title: { text: "Density" } },
+          plot_bgcolor: `${theme.palette.background.default}`,
+          paper_bgcolor: `${theme.palette.background.default}`,
+          font: { color: `${theme.palette.text.primary}` },
+        }}
+        style={{ width: "100%", height: plotHeight, borderRadius: "8px", overflow: "hidden" }}
+        config={{ responsive: true }}
+      />
 
-      {(dataUQHistogram !== undefined) &&
+      {
+        (dataUQHistogram !== undefined) &&
         <HistogramStats {...dataUQHistogram} />
       }
-    </Box>
+    </Box >
   )
 }
