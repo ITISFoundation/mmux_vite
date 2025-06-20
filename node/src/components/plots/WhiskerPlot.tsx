@@ -2,6 +2,7 @@ import React from "react";
 import Plot from "react-plotly.js";
 import { Data } from "plotly.js";
 import { useTheme } from "@mui/material";
+import { plotMargins } from "./PlotTools";
 
 const WhiskerPlot: React.FC<dataUQHistogramType> = (
   props: dataUQHistogramType
@@ -98,12 +99,7 @@ const WhiskerPlot: React.FC<dataUQHistogramType> = (
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
-    margin: {
-      l: 80,
-      r: 80,
-      b: 5,
-      t: 5,
-    },
+    margin: plotMargins,
     xaxis: {
       showticklabels: false,
       showgrid: false,
