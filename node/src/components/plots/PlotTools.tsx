@@ -98,10 +98,10 @@ interface CreateSliderProps {
 }
 
 const CustomSlider = styled(Slider)(({ theme }) => ({
-  color: `color-mix(in srgb, ${theme.palette.primary.main} 70%, white)`,
+  color: `color-mix(in srgb, ${theme.palette.primary.main} 90%, white)`,
 }));
 
-const sliderMarc = (value: number) => `X: ${value}`;
+const sliderMarc = (value: number) => { return `~: ${value}`};
 
 export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSliderProps) => {
   const context = useMMUXContext();
@@ -148,7 +148,7 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
   }
   return (
     <InputLabel
-      sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center", paddingTop: 2}}
+      sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center", paddingTop: 2, overflow: "visible"}}
     >
       <Typography
         variant="h6"
@@ -168,7 +168,6 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
         value={value} // TODO could not get slider to be in the middle for those w constant values
         onChange={(e, newValue) => {
           setValue(newValue as number);
-          changeOtherAxis(e, newValue as number) // NEW: upload plot for EVERY movement of slider
         }}
         onChangeCommitted={(e, newValue) => {
           changeOtherAxis(e as Event, newValue as number)
@@ -179,6 +178,13 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
         value={value}
         onChange={(e) => {
           setValue(parseFloat(e.target.value));
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            const newAxis = { ...otherAxis };
+            newAxis[input] = value;
+            setOtherAxis(newAxis);
+          }
         }}
         onBlur={(e) => {
           const newAxis = { ...otherAxis };
