@@ -44,7 +44,7 @@ export function setupTheme(mode: "light" | "dark") {
       MuiButton: {
         styleOverrides: {
           root: {
-            backgroundColor: theme.palette.grey[100],
+            backgroundColor: theme.palette.background.default,
             borderRadius: theme.spacing(2),
             variants: [
               {
