@@ -15,8 +15,8 @@ const HistogramStats = (props: dataUQHistogramType) => {
           textAlign: "left",
         }}
       >
-        <Header headerType="title" infoText="" tabTitle="Summary Statistics" />
-        <ul style={{ listStyleType: "initial", marginLeft: "16px" }}>
+        <Header headerType="subTitle" infoText="" tabTitle="Summary Statistics" />
+        <ul style={{ listStyleType: "initial", marginLeft: "24px" }}>
           <li>
             <Typography variant="body1" fontFamily={"inherit"} fontWeight={100}>
               <strong>Median:</strong> {median.toPrecision(4)}

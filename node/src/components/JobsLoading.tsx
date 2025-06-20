@@ -8,7 +8,7 @@ interface JobsLoadingProps {
 }
 
 export const JobsLoading = (props: JobsLoadingProps) => {
-  const { progress, jobProgress, message } = props;
+  const { jobProgress, message } = props;
   const theme = useTheme();
 
   return (
@@ -20,7 +20,7 @@ export const JobsLoading = (props: JobsLoadingProps) => {
       alignItems={"center"}
       justifyContent={"center"}
       bgcolor={theme.palette.background.default}
-      borderRadius={"8px"}
+      borderRadius={theme.spacing(2)}
     >
       <Typography
         variant="body1"

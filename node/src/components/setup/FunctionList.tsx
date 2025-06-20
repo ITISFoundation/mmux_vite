@@ -132,9 +132,9 @@ export function FunctionList() {
         <IconButton
           size="small"
           onClick={handleInfoClick}
-          sx={{ color: `${theme.palette.primary.main}` }}
+          sx={(theme)=>({color: theme.palette.primary.light, backgroundColor: theme.palette.background.default})}
         >
-          <InfoOutlinedIcon fontSize="small" />
+          <InfoOutlinedIcon fontSize="small"  />
         </IconButton>
       );
     } else if ((fun as PythonCodeFunction).codeUrl) {

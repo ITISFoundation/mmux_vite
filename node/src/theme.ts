@@ -17,8 +17,8 @@ export function setupTheme(mode: "light" | "dark") {
         secondary: mode === "light" ? "#555" : "#ccc",
       },
       background: {
-        default: mode === "light" ? "#fff" : "#07161d",
-        paper: mode === "light" ? "#eee" : "#555",
+        default: mode === "light" ? "#fff" : "#202426",
+        paper: mode === "light" ? "#eee" : "#2e3437",
       },
       divider: mode === "light" ? "#bbb" : "#999",
       grey: {
@@ -32,7 +32,11 @@ export function setupTheme(mode: "light" | "dark") {
         800: mode === "light" ? "#424242" : "#aaa",
         900: mode === "light" ? "#212121" : "#bbb",
       },
-    }
+    },
+    spacing: 4,
+    shape: {
+      borderRadius: 8,
+    },
   });
 
   return createTheme(theme, {
@@ -40,7 +44,8 @@ export function setupTheme(mode: "light" | "dark") {
       MuiButton: {
         styleOverrides: {
           root: {
-            backgroundColor: theme.palette.grey[100],
+            backgroundColor: theme.palette.grey[200],
+            borderRadius: theme.spacing(2),
             variants: [
               {
                 props: {
@@ -61,7 +66,7 @@ export function setupTheme(mode: "light" | "dark") {
       MuiIconButton: {
         styleOverrides: {
           root: {
-            backgroundColor: theme.palette.grey[100],
+            backgroundColor: theme.palette.grey[200],
             variants: [
               {
                 props: {
@@ -82,6 +87,38 @@ export function setupTheme(mode: "light" | "dark") {
       MuiCard: {
         styleOverrides: {
           root: {
+            backgroundColor: theme.palette.background.paper,
+            borderRadius: theme.spacing(4),
+            padding: theme.spacing(2),
+            variants: [
+              {
+                props: {
+                  variant: "outlined",
+                },
+                style: {
+                  border: `1px solid ${theme.palette.grey[300]}`,
+                },
+              },
+            ],
+          },
+        },
+      },
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            backgroundColor: theme.palette.background.paper,
+            borderRadius: theme.spacing(4),
+            padding: theme.spacing(2),
+            variants: [
+              {
+                props: {
+                  variant: "outlined",
+                },
+                style: {
+                  border: `1px solid ${theme.palette.grey[300]}`,
+                },
+              },
+            ],
           },
         },
       },

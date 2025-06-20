@@ -27,7 +27,7 @@ const Curves1DPlots = () => {
     fetchedJobCollections,
   } = useMMUXContext();
   const context = useMMUXContext();
-  const filteredInputVars = filterInputVars(context)
+  const filteredInputVars = filterInputVars(context);
   const [plotData, setPlotData] = useState<Array<Data>>([]);
   const [axis, setAxis] = useState(filteredInputVars[0]);
   const [propagating, setPropagating] = useState(false);
@@ -41,12 +41,12 @@ const Curves1DPlots = () => {
       return acc;
     }, {})
   );
-  const plotColor = "rgb(127, 199, 255)"
-  const fillColor = "rgba(127, 199, 255, 0.3)"
+  const plotColor = "rgb(127, 199, 255)";
+  const fillColor = "rgba(127, 199, 255, 0.3)";
 
   const RunCentralSuMoInterpolations = async (jobs: FunctionJob[]) => {
     console.log("Evaluating SuMo for 1D curves...");
-    setPropagating(true)
+    setPropagating(true);
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_along_axes", {
       method: "POST",
       body: JSON.stringify({
@@ -79,11 +79,18 @@ const Curves1DPlots = () => {
         return await RunCentralSuMoInterpolations(jobs);
       } else {
         // Not enough jobs to build model - then returns empty list
-        setPlotData([])
+        setPlotData([]);
       }
     };
     run();
-  }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filterSelectedJobList]);
+  }, [
+    inputVars,
+    selectedQoI,
+    selectedFunction,
+    axis,
+    otherAxis,
+    filterSelectedJobList,
+  ]);
 
   const createPlotData = (data: Record<string, GPPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
@@ -139,10 +146,19 @@ const Curves1DPlots = () => {
   };
 
   return (
-    <InsuficientDataWarningsWrapper plotData={plotData} calculating={propagating} fetchedJobCollections={fetchedJobCollections} filterSelectedJobList={filterSelectedJobList}>
+    <InsuficientDataWarningsWrapper
+      plotData={plotData}
+      calculating={propagating}
+      fetchedJobCollections={fetchedJobCollections}
+      filterSelectedJobList={filterSelectedJobList}
+    >
       <Box display={"flex"} flexDirection={"column"}>
         <Box overflow={"hidden"} borderRadius={1} width="100%" mb={2}>
-          <PlotLoadingWrapper height={300} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
+          <PlotLoadingWrapper
+            height={300}
+            plotData={plotData}
+            filterSelectedJobList={filterSelectedJobList}
+          >
             <Plot
               data={plotData}
               layout={{
@@ -150,7 +166,7 @@ const Curves1DPlots = () => {
                 paper_bgcolor: `${theme.palette.background.default}`,
                 font: { color: `${theme.palette.text.primary}` },
                 xaxis: {
-                  title: { text: axis }
+                  title: { text: axis },
                 },
                 yaxis: {
                   title: { text: selectedQoI },
@@ -163,23 +179,27 @@ const Curves1DPlots = () => {
                 height: 300,
                 borderRadius: "8px",
                 overflow: "hidden",
-              }
-              }
+              }}
               config={{ responsive: true }}
             />
           </PlotLoadingWrapper>
         </Box>
         <Box>
-          <Header headerType="title" infoText="" tabTitle="Selection" />
+          <Header headerType="subTitle" infoText="" tabTitle="Selection" />
         </Box>
-        <Box display={"flex"} flexDirection={"column"} gap={1}>
-          <CreateSelect
-            axis={axis}
-            setAxis={setAxis}
-            inputVars={inputVars}
-          />
+        <Box
+          display={"flex"}
+          flexDirection={"column"}
+          gap={2}
+          p={4}
+          sx={(theme) => ({
+            backgroundColor: theme.palette.background.default,
+            borderRadius: theme.spacing(2),
+          })}
+        >
+          <CreateSelect axis={axis} setAxis={setAxis} inputVars={inputVars} />
           {inputVars.length > 0 &&
-            distribution[selectedFunction?.uid || ""] !== undefined ? (
+          distribution[selectedFunction?.uid || ""] !== undefined ? (
             <>
               {inputVars.map((key) => {
                 if (key === axis) {

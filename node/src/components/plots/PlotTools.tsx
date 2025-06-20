@@ -60,7 +60,7 @@ export const CreateSelect = ({ axis, idx, inputVars, setAxis }: CreateSelectProp
   const filteredInputVars = filterInputVars(context)
 
   return (
-    <InputLabel sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center" }}>
+    <InputLabel sx={{ display: 'flex', gap: 2, alignItems: "center" }}>
       <Typography
         variant="h6"
         component={"p"}
@@ -148,7 +148,7 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
   }
   return (
     <InputLabel
-      sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center" }}
+      sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center", paddingTop: 2}}
     >
       <Typography
         variant="h6"

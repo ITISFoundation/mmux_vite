@@ -4,20 +4,24 @@ import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import Plot from "react-plotly.js";
 import { Box, useTheme } from "@mui/material";
 import { FunctionJob } from "../../osparc-api-ts-client";
-import Metric from "./../Metric"
+import Metric from "./../Metric";
 import SuMoMetricRow from "./../SuMoMetricRow";
 import PlotLoadingWrapper from "./PlotLoadingWrapper";
-import InsuficientDataWarningsWrapper from "../InsuficientDataWarningsWrapper";
 
 const SuMoValidation = () => {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution, selectedQoI, fetchedJobCollections, filterSelectedJobList } = useMMUXContext();
+  const {
+    selectedFunction,
+    inputVars,
+    distribution,
+    selectedQoI,
+    filterSelectedJobList,
+  } = useMMUXContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
   const [propagating, setPropagating] = useState(false);
   const [width, setWidth] = useState(1080);
   const boxRef = useRef<HTMLDivElement>(null);
-
 
   function computeStatisticsCv(y: number[], y_hat: number[]) {
     // compute statistics
@@ -40,15 +44,16 @@ const SuMoValidation = () => {
         (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
         0
       ) /
-      (y.length - 1)
+        (y.length - 1)
     );
-    const mean_y_hat = y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
+    const mean_y_hat =
+      y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
     const std_y_hat = Math.sqrt(
       y_hat.reduce(
         (sum: number, value: number) => sum + Math.pow(value - mean_y_hat, 2),
         0
       ) /
-      (y_hat.length - 1)
+        (y_hat.length - 1)
     );
     const cvMetricsData = {
       mean_y: mean_y,
@@ -105,9 +110,9 @@ const SuMoValidation = () => {
   const RunSuMoValidation = async (jobs: FunctionJob[]) => {
     console.info("Evaluating SuMo Validation for jobs: ", jobs);
 
-    setCvMetrics(undefined)
-    setPlotData([])
-    setPropagating(true)
+    setCvMetrics(undefined);
+    setPlotData([]);
+    setPropagating(true);
 
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_cross_validation", {
       method: "POST",
@@ -129,15 +134,15 @@ const SuMoValidation = () => {
           const data = response;
           console.log("SuMo Validation retrieved data: ", data);
           createDataAndMetrics(data);
-          setPropagating(false)
+          setPropagating(false);
         }
       })
       .catch((error) => {
-        console.debug("Error:", error)
-        setPropagating(false)
-        setPlotData([])
-        setCvMetrics(undefined)
-      })
+        console.debug("Error:", error);
+        setPropagating(false);
+        setPlotData([]);
+        setCvMetrics(undefined);
+      });
   };
 
   useEffect(() => {
@@ -146,10 +151,17 @@ const SuMoValidation = () => {
       return await RunSuMoValidation(jobs);
     };
     run();
-  }, [selectedQoI, inputVars, selectedFunction, distribution, filterSelectedJobList]);
+  }, [
+    selectedQoI,
+    inputVars,
+    selectedFunction,
+    distribution,
+    filterSelectedJobList,
+  ]);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver((event) => {
+      console.log("ResizeObserver event: ", event);
       // Depending on the layout, you may need to swap inlineSize with blockSize
       // https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserverEntry/contentBoxSize
       setWidth(event[0].contentBoxSize[0].inlineSize);
@@ -175,34 +187,30 @@ const SuMoValidation = () => {
   };
 
   return (
-    <InsuficientDataWarningsWrapper plotData={plotData} calculating={propagating} fetchedJobCollections={fetchedJobCollections} filterSelectedJobList={filterSelectedJobList}>
+    <>
       {plotData && selectedQoI && (
-        <Box display="flex" flexDirection="column" gap={1} width={"100%"} justifyContent={"center"} ref={boxRef}>
-          {cvMetrics ? (
-            <Box display="flex" flexDirection="column" flex={1} justifyContent="space-around" ml={2} mr={3} mb={3} >
-              <SuMoMetricRow width={width}>
-                <Metric metricName={"Mean"} metricValue={cvMetrics.mean_y} color={"rgb(41, 146, 221)"} />
-                <Metric metricName={"Std"} metricValue={cvMetrics.std_y} color={"rgb(41, 146, 221)"} />
-                {/* rgb(31, 119, 180) is the original; changed it slightly to improve visibility */}
-              </SuMoMetricRow>
-              <SuMoMetricRow width={width}>
-                <Metric metricName={"Mean"} metricValue={cvMetrics.mean_y_hat} color={"rgb(255, 127, 14)"} />
-                <Metric metricName={"Std"} metricValue={cvMetrics.std_y_hat} color={"rgb(255, 127, 14)"} />
-              </SuMoMetricRow>
-              <SuMoMetricRow width={width}>
-                <Metric metricName={"MAE"} metricValue={cvMetrics.mae} />
-                <Metric metricName={"RMSE"} metricValue={cvMetrics.rmse} />
-              </SuMoMetricRow>
-            </Box>
-          ) : (
-            <div>No data statistics available.</div>
-          )}
-          <PlotLoadingWrapper height={300} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
+        <Box
+          display="flex"
+          flex={1}
+          flexDirection="column"
+          width={"100%"}
+          justifyContent={"center"}
+          ref={boxRef}
+        >
+          <PlotLoadingWrapper
+            height={300}
+            plotData={plotData}
+            filterSelectedJobList={filterSelectedJobList}
+          >
             <Plot
               data={plotData}
               layout={{
                 ...layout,
-                title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
+                title: {
+                  text:
+                    (selectedQoI ? selectedQoI : "Quantity of Interest") +
+                    " Sample Distribution",
+                },
                 margin: { t: 40, l: 30, r: 30, b: 40 },
                 height: 400,
                 width: width,
@@ -211,17 +219,57 @@ const SuMoValidation = () => {
                   x: 1,
                   xanchor: "right",
                   y: 1,
-                  bgcolor: 'rgba(0,0,0,0)'
+                  bgcolor: "rgba(0,0,0,0)",
                 },
               }}
               style={plotStyle}
               config={{ responsive: true }}
             />
           </PlotLoadingWrapper>
-
+          {cvMetrics ? (
+            <Box
+              display="flex"
+              flexDirection="row"
+              flex={1}
+              justifyContent="space-around"
+              mt={4}
+            >
+              <SuMoMetricRow width={width}>
+                <Metric
+                  metricName={"Mean"}
+                  metricValue={cvMetrics.mean_y}
+                  color={"rgb(41, 146, 221)"}
+                />
+                <Metric
+                  metricName={"Std"}
+                  metricValue={cvMetrics.std_y}
+                  color={"rgb(41, 146, 221)"}
+                />
+                {/* rgb(31, 119, 180) is the original; changed it slightly to improve visibility */}
+              </SuMoMetricRow>
+              <SuMoMetricRow width={width}>
+                <Metric
+                  metricName={"Mean"}
+                  metricValue={cvMetrics.mean_y_hat}
+                  color={"rgb(255, 127, 14)"}
+                />
+                <Metric
+                  metricName={"Std"}
+                  metricValue={cvMetrics.std_y_hat}
+                  color={"rgb(255, 127, 14)"}
+                />
+              </SuMoMetricRow>
+              <SuMoMetricRow width={width}>
+                <Metric metricName={"MAE"} metricValue={cvMetrics.mae} />
+                <Metric metricName={"RMSE"} metricValue={cvMetrics.rmse} />
+              </SuMoMetricRow>
+            </Box>
+          ) : (
+            <div>No data available.</div>
+          )}
         </Box>
       )}
-    </InsuficientDataWarningsWrapper>
+    </>
   );
 };
 

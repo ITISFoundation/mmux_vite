@@ -24,7 +24,6 @@ function PlusButton(props: PlusButtonProps) {
           flexDirection: "row",
           alignItems: "center",
           gap: "8px",
-          marginTop: "16px",
         }}
       >
         <IconButton
@@ -36,6 +35,11 @@ function PlusButton(props: PlusButtonProps) {
           }}
           disabled={!enabled}
           color="primary"
+          sx={(theme) => ({
+            padding: "8px",
+            borderRadius: "8px",
+            backgroundColor: theme.palette.background.default,
+          })}
         >
           {!showElement ? <AddBox /> : <IndeterminateCheckBox />}
         </IconButton>
