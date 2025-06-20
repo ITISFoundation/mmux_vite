@@ -14,12 +14,10 @@ const HeaderContainer = styled("div", {
   padding: ${theme.spacing(2)};
   padding-left: ${headerType === "subTitle" ? theme.spacing(1) : theme.spacing(3)};
   border-radius: ${theme.shape.borderRadius}px;
-  margin-bottom: ${
-    headerType !== "bigTitle" && headerType !== "titleNoMargin" && headerType !== "subTitle" ? "16px" : "0px"
-  };
-  background-color: ${
-    headerType === "subTitle" ? undefined : theme.palette.background.default
-  };
+  margin-bottom: ${headerType !== "bigTitle" && headerType !== "titleNoMargin" && headerType !== "subTitle" ? "16px" : "0px"
+    };
+  background-color: ${headerType === "subTitle" ? undefined : theme.palette.background.default
+    };
 `
 );
 
@@ -49,7 +47,7 @@ const types: { [key in HeaderTypes]: TypographyVariant } = {
 function Header(props: HeaderProps) {
   const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents } =
     props;
-
+  console.log("tabTitle: ", tabTitle, "infoText", infoText)
   return (
     <HeaderContainer headerType={headerType}>
       <Box flex={1} display="flex" alignItems="center">
