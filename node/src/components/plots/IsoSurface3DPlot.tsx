@@ -6,8 +6,8 @@ import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import PlotLoadingWrapper from "./PlotLoadingWrapper";
-import InsuficientDataWarningsWrapper from "../InsuficientDataWarningsWrapper";
 import Header from "../navigation/Header";
+import { DisplayMessage } from "../DisplayMessage";
 
 const IsoSurface3DPlot = () => {
   const theme = useTheme();
@@ -246,89 +246,101 @@ const IsoSurface3DPlot = () => {
     overflow: "hidden",
   };
 
-  return (
-    <InsuficientDataWarningsWrapper
-      plotData={plotData}
-      calculating={propagating}
-      fetchedJobCollections={fetchedJobCollections}
-      filterSelectedJobList={filterSelectedJobList}
-    >
-      <Box display={"flex"} flexDirection={"column"} width={"100%"}>
-        <Box
-          sx={{
-            width: "100%",
-            height: plotStyle.height,
-            overflow: plotStyle.overflow,
-            borderRadius: 1,
-          }}
-        >
-          <PlotLoadingWrapper
-            height={plotStyle.height}
-            plotData={plotData}
-            filterSelectedJobList={filterSelectedJobList}
-          >
-            <Plot data={plotData} layout={layout} style={plotStyle} />
-          </PlotLoadingWrapper>
-        </Box>
+  if (plotData.length === 0) {
+    return (
+      <DisplayMessage
+        mssg={
+          fetchedJobCollections.length === 0
+            ? "No data available. Please create more Samples."
+            : filterSelectedJobList().length === 0
+            ? "Not enough Samples selected"
+            : "Error during calculation, please contact support."
+        }
+      />
+    );
+  }
 
-        <Box mt={2}>
-          <Header headerType="subTitle" infoText="" tabTitle="Selection" />
-        </Box>
+  return (
+    <Box display={"flex"} flexDirection={"column"} width={"100%"}>
+      <Box
+        sx={{
+          width: "100%",
+          height: plotStyle.height,
+          overflow: plotStyle.overflow,
+          borderRadius: 1,
+        }}
+      >
+        <PlotLoadingWrapper
+          height={plotStyle.height}
+          plotData={plotData}
+          filterSelectedJobList={filterSelectedJobList}
+        >
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+        </PlotLoadingWrapper>
+      </Box>
+
+      <Box mt={2}>
+        <Header headerType="subTitle" infoText="" tabTitle="Selection" />
+      </Box>
+      <Box
+        display={"flex"}
+        flexDirection={"column"}
+        gap={2}
+        p={4}
+        sx={(theme) => ({
+          backgroundColor: theme.palette.background.default,
+          borderRadius: theme.spacing(2),
+        })}
+      >
         <Box
           display={"flex"}
-          flexDirection={"column"}
-          gap={2}
-          p={4}
-          sx={(theme) => ({
-            backgroundColor: theme.palette.background.default,
-            borderRadius: theme.spacing(2),
-          })}
+          flex={1}
+          flexDirection={"row"}
+          justifyContent={"space-between"}
         >
-          <Box display={"flex"} flex={1} flexDirection={"row"} justifyContent={'space-between'}>
-            <CreateSelect
-              idx={1}
-              inputVars={inputVars}
-              axis={axis1}
-              setAxis={handleSetAxis1}
-            />
-            <CreateSelect
-              idx={2}
-              inputVars={inputVars}
-              axis={axis2}
-              setAxis={handleSetAxis2}
-            />
-            <CreateSelect
-              idx={3}
-              axis={axis3}
-              inputVars={inputVars}
-              setAxis={handleSetAxis3}
-            />
-          </Box>
-          <Box display={"flex"} flexDirection={"column"} gap={2}>
-            {inputVars.length > 0 &&
-            distribution[selectedFunction?.uid || ""] !== undefined ? (
-              <>
-                {inputVars.map((key) => {
-                  if (key === axis1 || key === axis2 || key === axis3) {
-                    return null; // Skip the first variable as it is already selected
-                  }
-                  const dist = distribution[selectedFunction?.uid || ""];
-                  return (
-                    <CreateSlider
-                      input={key}
-                      dist={dist[key]}
-                      otherAxis={otherAxis}
-                      setOtherAxis={setOtherAxis}
-                      key={key}
-                    />
-                  );
-                })}
-              </>
-            ) : undefined}
-          </Box>
+          <CreateSelect
+            idx={1}
+            inputVars={inputVars}
+            axis={axis1}
+            setAxis={handleSetAxis1}
+          />
+          <CreateSelect
+            idx={2}
+            inputVars={inputVars}
+            axis={axis2}
+            setAxis={handleSetAxis2}
+          />
+          <CreateSelect
+            idx={3}
+            axis={axis3}
+            inputVars={inputVars}
+            setAxis={handleSetAxis3}
+          />
+        </Box>
+        <Box display={"flex"} flexDirection={"column"} gap={2}>
+          {inputVars.length > 0 &&
+          distribution[selectedFunction?.uid || ""] !== undefined ? (
+            <>
+              {inputVars.map((key) => {
+                if (key === axis1 || key === axis2 || key === axis3) {
+                  return null; // Skip the first variable as it is already selected
+                }
+                const dist = distribution[selectedFunction?.uid || ""];
+                return (
+                  <CreateSlider
+                    input={key}
+                    dist={dist[key]}
+                    otherAxis={otherAxis}
+                    setOtherAxis={setOtherAxis}
+                    key={key}
+                  />
+                );
+              })}
+            </>
+          ) : undefined}
         </Box>
       </Box>
-    </InsuficientDataWarningsWrapper>
+    </Box>
   );
 };
 

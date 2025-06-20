@@ -7,8 +7,8 @@ import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Data } from "plotly.js";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import PlotLoadingWrapper from "./PlotLoadingWrapper";
-import InsuficientDataWarningsWrapper from "../InsuficientDataWarningsWrapper";
 import Header from "../navigation/Header";
+import { DisplayMessage } from "../DisplayMessage";
 
 const Surface2DPlot = () => {
   const theme = useTheme();
@@ -182,15 +182,22 @@ const Surface2DPlot = () => {
     );
   }
 
-  console.log("Rendering 2D surface plot with keys: ", plotData);
+  if (plotData.length === 0) {
+    return (
+      <DisplayMessage
+        mssg={
+          fetchedJobCollections.length === 0
+            ? "No data available. Please create more Samples."
+            : filterSelectedJobList().length === 0
+            ? "Not enough Samples selected"
+            : "Error during calculation, please contact support."
+        }
+      />
+    );
+  }
 
   return (
-    <InsuficientDataWarningsWrapper
-      plotData={plotData}
-      calculating={propagating}
-      fetchedJobCollections={fetchedJobCollections}
-      filterSelectedJobList={filterSelectedJobList}
-    >
+    <>
       <Box display={"flex"} flexDirection={"column"} width={"100%"}>
         <Box
           sx={{
@@ -258,7 +265,7 @@ const Surface2DPlot = () => {
           ) : undefined}
         </Box>
       </Box>
-    </InsuficientDataWarningsWrapper>
+    </>
   );
 };
 
