@@ -10,9 +10,8 @@ import PlotLoadingWrapper from "./PlotLoadingWrapper";
 import InsuficientDataWarningsWrapper from "../InsuficientDataWarningsWrapper";
 
 const SuMoValidation = () => {
-  console.log("GEtting into SuMo Validation component")
   const theme = useTheme();
-  const { selectedFunction, inputVars, selectedQoI, fetchedJobCollections, filterSelectedJobList } = useMMUXContext();
+  const { selectedFunction, inputVars, distribution, selectedQoI, fetchedJobCollections, filterSelectedJobList } = useMMUXContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
   const [propagating, setPropagating] = useState(false);
@@ -89,7 +88,6 @@ const SuMoValidation = () => {
           spanmode: "soft", // TODO show Esra both variants
         };
       };
-
       const newPlotData: Partial<Plotly.ViolinData>[] = [
         createViolinPlot(y, "Observations", "positive"),
         createViolinPlot(y_hat, "Predictions", "negative"),
@@ -123,12 +121,23 @@ const SuMoValidation = () => {
       .then(function (response) {
         return response.json();
       })
-      .then(function (data) {
-        console.log("SuMo Validation retrieved data: ", data);
-        createDataAndMetrics(data);
-        setPropagating(false)
+      .then(function (response) {
+        if (!response || (response && response.error)) {
+          console.warn("SuMo Validation error: ", response.error);
+          throw new Error(`Error running SuMo Validation: ${response.error}`);
+        } else {
+          const data = response;
+          console.log("SuMo Validation retrieved data: ", data);
+          createDataAndMetrics(data);
+          setPropagating(false)
+        }
       })
-      .catch((error) => console.debug("Error:", error));
+      .catch((error) => {
+        console.debug("Error:", error)
+        setPropagating(false)
+        setPlotData([])
+        setCvMetrics(undefined)
+      })
   };
 
   useEffect(() => {
@@ -137,7 +146,7 @@ const SuMoValidation = () => {
       return await RunSuMoValidation(jobs);
     };
     run();
-  }, [selectedQoI, inputVars, selectedFunction]);
+  }, [selectedQoI, inputVars, selectedFunction, distribution, filterSelectedJobList]);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver((event) => {
@@ -166,7 +175,7 @@ const SuMoValidation = () => {
   };
 
   return (
-    <InsuficientDataWarningsWrapper data={cvMetrics} calculating={propagating} fetchedJobCollections={fetchedJobCollections} filterSelectedJobList={filterSelectedJobList}>
+    <InsuficientDataWarningsWrapper plotData={plotData} calculating={propagating} fetchedJobCollections={fetchedJobCollections} filterSelectedJobList={filterSelectedJobList}>
       {plotData && selectedQoI && (
         <Box display="flex" flexDirection="column" gap={1} width={"100%"} justifyContent={"center"} ref={boxRef}>
           {cvMetrics ? (

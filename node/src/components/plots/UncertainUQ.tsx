@@ -103,7 +103,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     )
   } else {
     return (
-      <InsuficientDataWarningsWrapper data={dataUQHistogram} calculating={propagating} fetchedJobCollections={fetchedJobCollections} filterSelectedJobList={filterSelectedJobList}>
+      <InsuficientDataWarningsWrapper plotData={plotData} calculating={propagating} fetchedJobCollections={fetchedJobCollections} filterSelectedJobList={filterSelectedJobList}>
         <Box display={'flex'} flexDirection={'column'} gap={1} width={'100%'}>
           <PlotLoadingWrapper height={400} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
             <Plot
@@ -124,7 +124,6 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           {(dataUQHistogram !== undefined) &&
             <HistogramStats {...dataUQHistogram} />
           }
-
         </Box>
       </InsuficientDataWarningsWrapper>
     )

@@ -8,6 +8,7 @@ import { Box, useTheme } from "@mui/material";
 import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import PlotLoadingWrapper from "./PlotLoadingWrapper";
+import InsuficientDataWarningsWrapper from "../InsuficientDataWarningsWrapper";
 
 type GPPrediction = {
   x: number[];
@@ -23,11 +24,13 @@ const Curves1DPlots = () => {
     selectedFunction,
     distribution,
     filterSelectedJobList,
+    fetchedJobCollections,
   } = useMMUXContext();
   const context = useMMUXContext();
   const filteredInputVars = filterInputVars(context)
   const [plotData, setPlotData] = useState<Array<Data>>([]);
   const [axis, setAxis] = useState(filteredInputVars[0]);
+  const [propagating, setPropagating] = useState(false);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
       acc[key] =
@@ -43,6 +46,7 @@ const Curves1DPlots = () => {
 
   const RunCentralSuMoInterpolations = async (jobs: FunctionJob[]) => {
     console.log("Evaluating SuMo for 1D curves...");
+    setPropagating(true)
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_along_axes", {
       method: "POST",
       body: JSON.stringify({
@@ -59,8 +63,13 @@ const Curves1DPlots = () => {
       })
       .then(function (data) {
         createPlotData(data);
+        setPropagating(false);
       })
-      .catch((error) => console.debug("Error:", error));
+      .catch((error) => {
+        console.log("Error in RunCEntralSuMoINterpolations: ", error);
+        setPlotData([]);
+        setPropagating(false);
+      });
   };
 
   useEffect(() => {
@@ -74,7 +83,7 @@ const Curves1DPlots = () => {
       }
     };
     run();
-  }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis]);
+  }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filterSelectedJobList]);
 
   const createPlotData = (data: Record<string, GPPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
@@ -130,66 +139,68 @@ const Curves1DPlots = () => {
   };
 
   return (
-    <Box display={"flex"} flexDirection={"column"}>
-      <Box overflow={"hidden"} borderRadius={1} width="100%" mb={2}>
-        <PlotLoadingWrapper height={300} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
-          <Plot
-            data={plotData}
-            layout={{
-              plot_bgcolor: `${theme.palette.background.default}`,
-              paper_bgcolor: `${theme.palette.background.default}`,
-              font: { color: `${theme.palette.text.primary}` },
-              xaxis: {
-                title: { text: axis }
-              },
-              yaxis: {
-                title: { text: selectedQoI },
-                // showgrid: true,
-                anchor: "x",
-              },
-              showlegend: false,
-            }}
-            style={{
-              height: 300,
-              borderRadius: "8px",
-              overflow: "hidden",
-            }
-            }
-            config={{ responsive: true }}
-          />
-        </PlotLoadingWrapper>
-      </Box>
-      <Box>
-        <Header headerType="title" infoText="" tabTitle="Selection" />
-      </Box>
-      <Box display={"flex"} flexDirection={"column"} gap={1}>
-        <CreateSelect
-          axis={axis}
-          setAxis={setAxis}
-          inputVars={inputVars}
-        />
-        {inputVars.length > 0 &&
-          distribution[selectedFunction?.uid || ""] !== undefined ? (
-          <>
-            {inputVars.map((key) => {
-              if (key === axis) {
-                return null; // Skip the first variable as it is already selected
+    <InsuficientDataWarningsWrapper plotData={plotData} calculating={propagating} fetchedJobCollections={fetchedJobCollections} filterSelectedJobList={filterSelectedJobList}>
+      <Box display={"flex"} flexDirection={"column"}>
+        <Box overflow={"hidden"} borderRadius={1} width="100%" mb={2}>
+          <PlotLoadingWrapper height={300} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
+            <Plot
+              data={plotData}
+              layout={{
+                plot_bgcolor: `${theme.palette.background.default}`,
+                paper_bgcolor: `${theme.palette.background.default}`,
+                font: { color: `${theme.palette.text.primary}` },
+                xaxis: {
+                  title: { text: axis }
+                },
+                yaxis: {
+                  title: { text: selectedQoI },
+                  // showgrid: true,
+                  anchor: "x",
+                },
+                showlegend: false,
+              }}
+              style={{
+                height: 300,
+                borderRadius: "8px",
+                overflow: "hidden",
               }
-              const dist = distribution[selectedFunction?.uid || ""];
-              return (
-                <CreateSlider
-                  input={key}
-                  dist={dist[key]}
-                  otherAxis={otherAxis}
-                  setOtherAxis={setOtherAxis}
-                  key={key}
-                />
-              );
-            })}
-          </>
-        ) : undefined}
+              }
+              config={{ responsive: true }}
+            />
+          </PlotLoadingWrapper>
+        </Box>
+        <Box>
+          <Header headerType="title" infoText="" tabTitle="Selection" />
+        </Box>
+        <Box display={"flex"} flexDirection={"column"} gap={1}>
+          <CreateSelect
+            axis={axis}
+            setAxis={setAxis}
+            inputVars={inputVars}
+          />
+          {inputVars.length > 0 &&
+            distribution[selectedFunction?.uid || ""] !== undefined ? (
+            <>
+              {inputVars.map((key) => {
+                if (key === axis) {
+                  return null; // Skip the first variable as it is already selected
+                }
+                const dist = distribution[selectedFunction?.uid || ""];
+                return (
+                  <CreateSlider
+                    input={key}
+                    dist={dist[key]}
+                    otherAxis={otherAxis}
+                    setOtherAxis={setOtherAxis}
+                    key={key}
+                  />
+                );
+              })}
+            </>
+          ) : undefined}
+        </Box>
       </Box>
-    </Box>
+    </InsuficientDataWarningsWrapper>
   );
 };
 
