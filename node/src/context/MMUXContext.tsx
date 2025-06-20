@@ -4,6 +4,7 @@ import {
   FunctionJob,
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
+import { toast } from "react-toastify";
 
 export interface MMUXContextType {
   selectedFunction: Function | undefined;
@@ -90,7 +91,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
   >(undefined);
   const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
 
-  const handleSelecedFunction = (F: Function | undefined) => {
+  const handleSelectedFunction = (F: Function | undefined) => {
     setFunct(F);
     setSelectedJobUids([]);
     setFetchedJobCollections([]);
@@ -104,11 +105,18 @@ export const MMUXContextProvider = ({ children }: Props) => {
             .filter((subJob) => subJob.selected)
             .map((subJob) => subJob.job)
       );
+
+      if (fetchedJobCollections.length !== 0 && response.length < 10) {
+        // TODO pops bfr the selection component truly gets loaded & selection gets auto-applied
+        toast.warning("At least 10 samples must be selected to build a model.");
+        // TODO pops 3 times when there are indeed less than 10 jobs selected
+        return [];
+      }
       return response;
     };
     return {
       selectedFunction: funct,
-      setSelectedFunction: handleSelecedFunction,
+      setSelectedFunction: handleSelectedFunction,
       distribution: distribution,
       setDistribution: setDistribution,
       inputVars: inputVars,

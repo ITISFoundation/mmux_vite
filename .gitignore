@@ -40,3 +40,7 @@ predictions.dat
 results.dat
 variances.dat
 dakota.rst
+dakota_*.txt
+stderr
+stdout
+fort.*

@@ -159,39 +159,46 @@ export function FunctionList() {
     return row.uid ? row.uid : "" + row.title + row.description;
   }
 
+  function setRowSelection(fun: Function) {
+    setSelectedFunction(fun);
+    setInputVars(
+      fun.inputSchema?.schemaContent?.properties
+        ? Object.keys(
+          fun.inputSchema.schemaContent.properties
+        )
+        : []
+    );
+    console.log(
+      "inputVars registered:",
+      Object.keys(fun.inputSchema.schemaContent.properties)
+    );
+    setOutputVars(
+      fun.outputSchema?.schemaContent?.properties
+        ? Object.keys(
+          fun.outputSchema.schemaContent.properties
+        )
+        : []
+    );
+    console.log(
+      "outputVars registered:",
+      Object.keys(fun.outputSchema.schemaContent.properties)
+    )
+  }
+
   const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {
     setRowSelectionModel(newRowSelectionModel);
     if (newRowSelectionModel.ids.size > 0) {
       const selectedRow = functions.find((row) =>
         getRowId(row) === newRowSelectionModel.ids.values().next().value
       );
-      if (selectedRow) {
-        setSelectedFunction(selectedRow);
-        setInputVars(
-          selectedRow.inputSchema?.schemaContent?.properties
-            ? Object.keys(
-              selectedRow.inputSchema.schemaContent.properties
-            )
-            : []
-        );
-        console.log(
-          "inputVars registered:",
-          Object.keys(selectedRow.inputSchema.schemaContent.properties)
-        );
-        setOutputVars(
-          selectedRow.outputSchema?.schemaContent?.properties
-            ? Object.keys(
-              selectedRow.outputSchema.schemaContent.properties
-            )
-            : []
-        );
+      if (selectedRow) setRowSelection(selectedRow);
+      else {
+        setSelectedFunction(undefined);
+        setInputVars([]);
+        setOutputVars([]);
       }
-    } else {
-      setSelectedFunction(undefined);
-      setInputVars([]);
-      setOutputVars([]);
     }
-  };
+  }
 
   useEffect(() => {
     console.log("FunctionList mounted, fetching functions...");
@@ -238,7 +245,7 @@ export function FunctionList() {
           display="inline"
           mr={1}
         >
-          You have no Functions registered. Please check the{" "}
+          You have no Functions registered.Please check the{" "}
           <a
             href="https://your-tutorial-link.com"
             target="_blank"
@@ -248,11 +255,10 @@ export function FunctionList() {
             Tutorial
           </a>{" "}
           for guidance on how to create your first Function!
-        </Typography>
-      </Box>
+        </Typography >
+      </Box >
     );
-  }
-  else {
+  } else {
     return (
       <DataGrid
         onRowSelectionModelChange={(newRowSelectionModel) => {
@@ -273,14 +279,14 @@ export function FunctionList() {
             field: "inputSchema",
             headerName: "Inputs",
             flex: 1,
-            maxWidth: 90,
+            maxWidth: 100,
             renderCell: (params) => showInputOutputSchema(params.row.inputSchema),
           },
           {
             field: "outputSchema",
             headerName: "Outputs",
             flex: 1,
-            maxWidth: 90,
+            maxWidth: 100,
             renderCell: (params) =>
               showInputOutputSchema(params.row.outputSchema),
           },
@@ -288,8 +294,7 @@ export function FunctionList() {
             field: "n_evaluations",
             headerName: "# Campaigns / Evaluations",
             flex: 1,
-            minWidth: 100,
-            maxWidth: 250,
+            minWidth: 250,
             renderCell: (params) => <NFunctionJobCollections fun={params.row} />,
             // FIXME for some reason, this gets called many times
           },
@@ -299,7 +304,7 @@ export function FunctionList() {
             align: 'center',
             flex: 1,
             minWidth: 60,
-            maxWidth: 100,
+            maxWidth: 60,
             renderCell: (params) => getFunctionSolver(params.row),
           },
           {
@@ -313,27 +318,7 @@ export function FunctionList() {
               <Button
                 variant="contained"
                 fullWidth
-                onClick={() => {
-                  setSelectedFunction(params.row);
-                  setInputVars(
-                    params.row.inputSchema?.schemaContent?.properties
-                      ? Object.keys(
-                        params.row.inputSchema.schemaContent.properties
-                      )
-                      : []
-                  );
-                  console.log(
-                    "inputVars registered:",
-                    Object.keys(params.row.inputSchema.schemaContent.properties)
-                  );
-                  setOutputVars(
-                    params.row.outputSchema?.schemaContent?.properties
-                      ? Object.keys(
-                        params.row.outputSchema.schemaContent.properties
-                      )
-                      : []
-                  );
-                }}
+                onClick={() => setRowSelection(params.row)}
               >
                 {selectedFunction?.uid === params.row.uid ? "Unselect" : "Select"}
               </Button>
@@ -379,14 +364,15 @@ export function FunctionList() {
           filter: {
             filterModel: {
               items: [],
-            },
-          },
+            }
+          }
         }}
         pageSizeOptions={[5, 10, 20, 50]}
         loading={loading}
         disableColumnMenu
         disableColumnSelector
-      ></DataGrid>
+      ></DataGrid >
     );
   }
 }
+

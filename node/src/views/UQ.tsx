@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
-import UncertainUQ from "../components/UncertainUQ";
+import UncertainUQ from "../components/plots/UncertainUQ";
 import SuMoModal from "../components/SuMoModal";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { OutputSetup } from "../components/OutputSetup";
-import { JobSampling } from "../components/JobSampling";
+import { JobSampling } from "../components/sampling/JobSampling";
 
 export default function UQ() {
   const { selectedFunction, outputVars, setSelectedQoI } = useMMUXContext();
@@ -19,7 +19,7 @@ export default function UQ() {
     if (outputVars && outputVars.length > 0) {
       setSelectedQoI(outputVars[0]);
     }
-  }, [outputVars]);
+  }, [outputVars, selectedFunction]);
 
   return (
     <MetaModelingUX

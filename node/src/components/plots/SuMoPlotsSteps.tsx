@@ -13,15 +13,17 @@ import IsoSurface3DPlot from "./IsoSurface3DPlot";
 import Curves1DPlots from "./Curves1DPlot";
 import SuMoValidation from "./SuMoValidation";
 import Surface2DPlot from "./Surface3DPlot";
-import Header from "./navigation/Header";
+import Header from "../navigation/Header";
 import { filterInputVars } from "./PlotTools";
-import { useMMUXContext } from "../context/MMUXContext";
+import { useMMUXContext } from "../../context/MMUXContext";
 
 const SuMoPlotsSteps = () => {
   const theme = useTheme();
   const context = useMMUXContext();
+  const { inputVars, filterSelectedJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);
-
+  const [filteredInputVars, setFilteredInputVars] = React.useState(inputVars)
+  const [maxSteps, setMaxSteps] = React.useState(0)
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
   };
@@ -32,8 +34,16 @@ const SuMoPlotsSteps = () => {
 
   const stepTitles = ["Validation", "1D Curves", "2D Surface", "3D IsoSurface"];
 
-  const filteredInputVars = filterInputVars(context);
-  const maxSteps = Math.min(filteredInputVars.length + 1, 4);
+  React.useEffect(() => {
+    const jobs = filterSelectedJobList;
+    if (jobs.length === 0) {
+      // avoid everything disappearing when there are not enough selected jobs
+      setFilteredInputVars(inputVars)
+    } else {
+      setFilteredInputVars(filterInputVars(context));
+    }
+    setMaxSteps(Math.min(filteredInputVars.length + 1, stepTitles.length))
+  }, [selectedJobUids, filterSelectedJobList]);
 
   return (
     <Card

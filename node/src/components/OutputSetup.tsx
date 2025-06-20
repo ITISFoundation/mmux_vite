@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   InputLabel,
@@ -48,6 +48,11 @@ export const OutputSetup = (props: UQSetupProps) => {
       [selectedFunction?.uid || ""]: value,
     });
   };
+
+  useEffect(() => {
+    setLocalQoI(outputVars?.[0] || "");
+    console.log("changed localQoI")
+  }, [outputVars]); // Update localQoI when selectedQoI changes due to selectedFunction change
 
   return (
     <Box
@@ -103,8 +108,8 @@ export const OutputSetup = (props: UQSetupProps) => {
             handlesetLocalQoI(e.target.value);
           }}
         >
-          {outputVars?.map((qoi) => (
-            <MenuItem key={qoi} value={qoi}>
+          {outputVars?.map((qoi, idx) => (
+            <MenuItem key={idx} value={qoi}>
               {qoi}
             </MenuItem>
           ))}

@@ -1,28 +1,29 @@
 import { Box, useTheme } from "@mui/material";
 import { useState, useEffect } from "react";
 import Plot from "react-plotly.js";
-import { useMMUXContext } from "../context/MMUXContext";
-import { FunctionJob } from "../osparc-api-ts-client/models/FunctionJob";
-import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
+import { useMMUXContext } from "../../context/MMUXContext";
+import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Data } from "plotly.js";
-import { CreateSelect, CreateSlider } from "./PlotTools";
+import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
+import PlotLoadingWrapper from "./PlotLoadingWrapper";
+import InsuficientDataWarningsWrapper from "../InsuficientDataWarningsWrapper";
 
 const Surface2DPlot = () => {
   const theme = useTheme();
+  const context = useMMUXContext();
   const {
     selectedFunction,
     inputVars,
     distribution,
     selectedQoI,
     filterSelectedJobList,
-  } = useMMUXContext();
-  const filteredInputVars = inputVars.filter(
-    (i) =>
-      (distribution[selectedFunction?.uid || ""][i]
-        .distribution as distribution) !== "constant"
-  );
+    fetchedJobCollections,
+  } = context;
+  const filteredInputVars = filterInputVars(context)
   const [axis1, setAxis1] = useState(filteredInputVars[0]);
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
+  const [propagating, setPropagating] = useState(false);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
@@ -61,6 +62,8 @@ const Surface2DPlot = () => {
     // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
+    setPlotData([])
+    setPropagating(true)
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_grid_evaluation", {
       method: "POST",
       body: JSON.stringify({
@@ -73,13 +76,23 @@ const Surface2DPlot = () => {
       }),
     })
       .then(function (response) {
-        return response.json();
+        console.log(response)
+        if (response && !response.ok) {
+          console.warn("SuMo Surface plot error: ", response.body)
+        } else {
+          return response.json();
+        }
       })
       .then(function (d) {
         console.log("2D retrieved data: ", d);
         reshapePlotData(d);
+        setPropagating(false)
       })
-      .catch((error) => console.debug("Error:", error));
+      .catch((error) => {
+        console.debug("Error:", error)
+        setPropagating(false)
+        setPlotData([])
+      })
   };
 
   const reshapePlotData = (
@@ -92,19 +105,8 @@ const Surface2DPlot = () => {
       const uniqueY: Array<number> = Array.from(
         new Set(data[axis2] as number[])
       );
-      const zFlat: Array<Array<number>> = data[selectedQoI] as number[][];
-      const z = [];
-      for (let j = 0; j < uniqueY.length; j++) {
-        z.push(zFlat.slice(j * uniqueX.length, (j + 1) * uniqueX.length));
-      }
-      console.log(
-        "Executing reshapePlotData",
-        data,
-        selectedQoI,
-        data[axis1],
-        data[axis2],
-        data[selectedQoI]
-      );
+      const z: Array<Array<number>> = data[selectedQoI] as number[][];
+
       const newData: Data[] = [
         {
           x: uniqueX,
@@ -116,9 +118,8 @@ const Surface2DPlot = () => {
         },
       ];
       setPlotData(newData);
-      console.log("Registered plotData: ", newData);
     } else {
-      setPlotData([{}]);
+      setPlotData([]);
       console.log("Empty plotData");
     }
   };
@@ -129,12 +130,11 @@ const Surface2DPlot = () => {
       return await RunSuMo2DInterpolation(jobs, axis1, axis2);
     };
     run();
-    console.log(axis1, axis2);
-  }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis]);
+  }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis, filterSelectedJobList]);
 
   const layout = {
     title: {
-      text: selectedFunction?.title + " Surface Plot",
+      text: selectedQoI + " Surface 2D Plot",
     },
     scene: {
       xaxis: { title: { text: axis1 } },
@@ -176,56 +176,62 @@ const Surface2DPlot = () => {
   console.log("Rendering 2D surface plot with keys: ", plotData);
 
   return (
-    <Box display={"flex"} flexDirection={"column"} gap={2} width={"100%"}>
-      <Box
-        sx={{
-          width: "100%",
-          height: "500px",
-          overflow: "hidden",
-          borderRadius: 2,
-        }}
-      >
-        <Plot data={plotData} layout={layout} style={plotStyle} />
-      </Box>
-      <Box display={"flex"} flexDirection={"row"} gap={2} pt={1}>
-        <CreateSelect
-          axis={axis1}
-          idx={1}
-          setAxis={handleSetAxis1}
-          inputVars={inputVars}
-        />
-        <CreateSelect
-          axis={axis2}
-          idx={2}
-          setAxis={handleSetAxis2}
-          inputVars={inputVars}
-        />
-      </Box>
+    <InsuficientDataWarningsWrapper plotData={plotData} calculating={propagating} fetchedJobCollections={fetchedJobCollections} filterSelectedJobList={filterSelectedJobList}>
 
-      <Box display={"flex"} flexDirection={"column"} gap={2} pt={2}>
+      <Box display={"flex"} flexDirection={"column"} gap={2} width={"100%"}>
+        <Box
+          sx={{
+            width: "100%",
+            height: "500px",
+            overflow: "hidden",
+            borderRadius: 2,
+          }}
+        >
+          <PlotLoadingWrapper height={plotStyle.height} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
+            <Plot data={plotData} layout={layout} style={plotStyle} />
+          </PlotLoadingWrapper>
+        </Box>
 
-        {inputVars.length > 0 &&
-          distribution[selectedFunction?.uid || ""] !== undefined ? (
-          <>
-            {inputVars.map((key) => {
-              if (key === axis1 || key === axis2) {
-                return null; // Skip the first variable as it is already selected
-              }
-              const dist = distribution[selectedFunction?.uid || ""];
-              return (
-                <CreateSlider
-                  input={key}
-                  dist={dist[key]}
-                  otherAxis={otherAxis}
-                  setOtherAxis={setOtherAxis}
-                  key={key}
-                />
-              );
-            })}
-          </>
-        ) : undefined}
+        <Box display={"flex"} flexDirection={"row"} gap={2} pt={1}>
+          <CreateSelect
+            axis={axis1}
+            idx={1}
+            setAxis={handleSetAxis1}
+            inputVars={inputVars}
+          />
+          <CreateSelect
+            axis={axis2}
+            idx={2}
+            setAxis={handleSetAxis2}
+            inputVars={inputVars}
+          />
+        </Box>
+
+        <Box display={"flex"} flexDirection={"column"} gap={2} pt={2}>
+
+          {inputVars.length > 0 &&
+            distribution[selectedFunction?.uid || ""] !== undefined ? (
+            <>
+              {inputVars.map((key) => {
+                if (key === axis1 || key === axis2) {
+                  return null; // Skip the first variable as it is already selected
+                }
+                const dist = distribution[selectedFunction?.uid || ""];
+                return (
+                  <CreateSlider
+                    input={key}
+                    dist={dist[key]}
+                    otherAxis={otherAxis}
+                    setOtherAxis={setOtherAxis}
+                    key={key}
+                  />
+                );
+              })}
+            </>
+          ) : undefined}
+        </Box>
       </Box>
-    </Box>
+    </InsuficientDataWarningsWrapper>
   );
 };
 

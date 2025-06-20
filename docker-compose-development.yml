@@ -1,7 +1,7 @@
 version: "3.7"
 services:
   mmux-vite-backend:
-    image: simcore/services/dynamic/mmux-vite-backend:1.3.1
+    image: simcore/services/dynamic/mmux-vite-backend:1.3.2
     environment:
       - OSPARC_API_BASE_URL=${OSPARC_API_BASE_URL}
       - OSPARC_API_KEY=${OSPARC_API_KEY}
@@ -14,7 +14,7 @@ services:
     volumes:
       - ./flaskapi:/app
   mmux-vite-web:
-    image: simcore/services/dynamic/mmux-vite-web:1.3.1
+    image: simcore/services/dynamic/mmux-vite-web:1.3.2
     working_dir: /app
     user: "${UID:-1000}:${GID:-1000}"
     volumes:
@@ -23,7 +23,7 @@ services:
     environment:
       - NODE_ENV=development
   mmux-vite-app:
-    image: simcore/services/dynamic/${APP_IMAGE}:1.3.1
+    image: simcore/services/dynamic/${APP_IMAGE}:1.3.2
     environment:
       - WEB_SERVICE=mmux-vite-web:8080
       - BACKEND_SERVICE=mmux-vite-backend:5000

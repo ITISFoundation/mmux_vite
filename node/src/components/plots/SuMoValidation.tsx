@@ -1,26 +1,23 @@
 import { useState, useEffect, useRef } from "react";
-import { useMMUXContext } from "../context/MMUXContext";
-import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
+import { useMMUXContext } from "../../context/MMUXContext";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import Plot from "react-plotly.js";
-import { Box, Typography, useTheme } from "@mui/material";
-import { FunctionJob } from "../osparc-api-ts-client";
-import Metric from "./Metric"
-import SuMoMetricRow from "./SuMoMetricRow";
+import { Box, useTheme } from "@mui/material";
+import { FunctionJob } from "../../osparc-api-ts-client";
+import Metric from "./../Metric"
+import SuMoMetricRow from "./../SuMoMetricRow";
+import PlotLoadingWrapper from "./PlotLoadingWrapper";
+import InsuficientDataWarningsWrapper from "../InsuficientDataWarningsWrapper";
 
 const SuMoValidation = () => {
   const theme = useTheme();
-  const { selectedFunction, inputVars, selectedQoI, filterSelectedJobList } = useMMUXContext();
+  const { selectedFunction, inputVars, distribution, selectedQoI, fetchedJobCollections, filterSelectedJobList } = useMMUXContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
+  const [propagating, setPropagating] = useState(false);
   const [width, setWidth] = useState(1080);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  console.log(
-    "Performing SuMo Validation for function: ",
-    selectedFunction,
-    " and QoI: ",
-    selectedQoI
-  );
 
   function computeStatisticsCv(y: number[], y_hat: number[]) {
     // compute statistics
@@ -88,10 +85,9 @@ const SuMoValidation = () => {
           box: {
             visible: true,
           },
-          spanmode: "hard", // TODO show Esra both variants
+          spanmode: "soft", // TODO show Esra both variants
         };
       };
-
       const newPlotData: Partial<Plotly.ViolinData>[] = [
         createViolinPlot(y, "Observations", "positive"),
         createViolinPlot(y_hat, "Predictions", "negative"),
@@ -102,12 +98,17 @@ const SuMoValidation = () => {
     } else {
       console.warn("No data available for SuMo validation.");
       setPlotData([]);
-      setCvMetrics({} as cvMetricsType);
+      setCvMetrics(undefined);
     }
   };
 
   const RunSuMoValidation = async (jobs: FunctionJob[]) => {
     console.info("Evaluating SuMo Validation for jobs: ", jobs);
+
+    setCvMetrics(undefined)
+    setPlotData([])
+    setPropagating(true)
+
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_cross_validation", {
       method: "POST",
       body: JSON.stringify({
@@ -120,11 +121,23 @@ const SuMoValidation = () => {
       .then(function (response) {
         return response.json();
       })
-      .then(function (data) {
-        console.log("SuMo Validation retrieved data: ", data);
-        createDataAndMetrics(data);
+      .then(function (response) {
+        if (!response || (response && response.error)) {
+          console.warn("SuMo Validation error: ", response.error);
+          throw new Error(`Error running SuMo Validation: ${response.error}`);
+        } else {
+          const data = response;
+          console.log("SuMo Validation retrieved data: ", data);
+          createDataAndMetrics(data);
+          setPropagating(false)
+        }
       })
-      .catch((error) => console.debug("Error:", error));
+      .catch((error) => {
+        console.debug("Error:", error)
+        setPropagating(false)
+        setPlotData([])
+        setCvMetrics(undefined)
+      })
   };
 
   useEffect(() => {
@@ -133,7 +146,7 @@ const SuMoValidation = () => {
       return await RunSuMoValidation(jobs);
     };
     run();
-  }, [selectedQoI, inputVars, selectedFunction]);
+  }, [selectedQoI, inputVars, selectedFunction, distribution, filterSelectedJobList]);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver((event) => {
@@ -162,7 +175,7 @@ const SuMoValidation = () => {
   };
 
   return (
-    <>
+    <InsuficientDataWarningsWrapper plotData={plotData} calculating={propagating} fetchedJobCollections={fetchedJobCollections} filterSelectedJobList={filterSelectedJobList}>
       {plotData && selectedQoI && (
         <Box display="flex" flexDirection="column" gap={1} width={"100%"} justifyContent={"center"} ref={boxRef}>
           {cvMetrics ? (
@@ -184,28 +197,31 @@ const SuMoValidation = () => {
           ) : (
             <div>No data statistics available.</div>
           )}
-          <Plot
-            data={plotData}
-            layout={{
-              ...layout,
-              title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
-              margin: { t: 40, l: 30, r: 30, b: 40 },
-              height: 400,
-              width: width,
-              barmode: "overlay",
-              legend: {
-                x: 1,
-                xanchor: "right",
-                y: 1,
-                bgcolor: 'rgba(0,0,0,0)'
-              },
-            }}
-            style={plotStyle}
-            config={{ responsive: true }}
-          />
+          <PlotLoadingWrapper height={300} plotData={plotData} filterSelectedJobList={filterSelectedJobList}>
+            <Plot
+              data={plotData}
+              layout={{
+                ...layout,
+                title: { text: (selectedQoI ? selectedQoI : "Quantity of Interest") + " Sample Distribution" },
+                margin: { t: 40, l: 30, r: 30, b: 40 },
+                height: 400,
+                width: width,
+                barmode: "overlay",
+                legend: {
+                  x: 1,
+                  xanchor: "right",
+                  y: 1,
+                  bgcolor: 'rgba(0,0,0,0)'
+                },
+              }}
+              style={plotStyle}
+              config={{ responsive: true }}
+            />
+          </PlotLoadingWrapper>
+
         </Box>
       )}
-    </>
+    </InsuficientDataWarningsWrapper>
   );
 };
 

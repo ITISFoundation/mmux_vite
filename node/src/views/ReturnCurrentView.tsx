@@ -20,7 +20,7 @@ export const ReturnCurrentView = (props: ReturnCurrentViewPropsType) => {
   const { currentView } = props;
   const { serviceMode } = useServiceContext();
   const validMode = ["UQ", "SUMO"].includes(serviceMode);
-  console.info("service mode: ", serviceMode, " which is not a: ", validMode);
+  console.info("service mode: ", serviceMode, " which is a " + (validMode ? "" : "not") + "a valid mode");
 
   return (
     <>

@@ -54,7 +54,7 @@ const JobRow = (props: JobRowProps) => {
           ]
           : (jobStatus === "FAILED")
             ? "No outputs"
-            : (jobStatus === "PENDING") || (jobStatus === "WAITING_FOR_CLUSTER") // both are valid options
+            : (jobStatus === "PENDING") || (jobStatus === "WAITING_FOR_CLUSTER") || (jobStatus === "PUBLISHED") // both are valid options
               ? "Pending to run"
               : "Unknown status, please contact support"
 

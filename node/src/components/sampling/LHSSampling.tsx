@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { MMUXContextType, useMMUXContext } from "../context/MMUXContext";
-import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
+import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, Button, Input, Skeleton, Typography } from "@mui/material";
 import {
   Function,
   FunctionJob,
   RegisteredFunctionJobCollection,
-} from "../osparc-api-ts-client";
-import { getSamplingStartValue, getSamplingEndValue } from "../utils/sampling";
+} from "../../osparc-api-ts-client";
+import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
-import VariableConfig from "./VariableConfig";
-import { getFunctionJob } from "../utils/function_utils";
+import VariableConfig from "../VariableConfig";
+import { getFunctionJob } from "../../utils/function_utils";
+import { toast } from "react-toastify";
+import { useServiceContext } from "../../context/ServiceContext";
 
 async function runLhsSampling(
   context: MMUXContextType,
@@ -57,6 +59,7 @@ const LHSSampling = () => {
     fetchedJobCollections,
     setFetchedJobCollections
   } = context;
+  const { permissions } = useServiceContext()
 
   const [lhsInputs, setLhsInputs] =
     useState<LHSamplingConfig>(lhsSamplingConfig);
@@ -129,6 +132,22 @@ const LHSSampling = () => {
     setLhsInputs(currentSampling);
     setLoading(false);
   }, []);
+
+  useEffect(() => {
+    setLhsInputs((prevInputs) => {
+      const nPoints = Math.sqrt(inputVars.length) * 30 * 1.2;
+      // TODO make wrt # input Vars which are NOT constant distribution
+      const roundedPoints = Math.ceil(nPoints / 5) * 5;
+      if (roundedPoints > 50 && permissions === "WRITE") {
+        toast.warning(`For your number of non-constant input variables, we would recommend ${roundedPoints} samples in your LHS campaign. \n\n ` +
+          "However, currently the maximum supported number of samples per run is 50. Therefore, we encourage you to run multiple campaigns with different seeds.");
+      }
+      // TODO this will need to get changed
+      const lhsPoints = Math.min(Math.max(roundedPoints, 5), 50); // hardcode max points in backedn
+      const newInputs = { ...prevInputs, points: lhsPoints };
+      return newInputs;
+    });
+  }, [inputVars, selectedFunction]);
 
   return (
     <>

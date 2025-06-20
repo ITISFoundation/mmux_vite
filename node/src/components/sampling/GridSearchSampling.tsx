@@ -1,19 +1,25 @@
 import { useEffect, useState } from "react";
-import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
 import { Box, Button, Skeleton, Typography } from "@mui/material";
-import { Function, FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
-import { useMMUXContext, MMUXContextType } from "../context/MMUXContext";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
+import { useMMUXContext, MMUXContextType } from "../../context/MMUXContext";
+import {
+  Function,
+  RegisteredFunctionJobCollection,
+} from "../../osparc-api-ts-client";
+import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
-import ValueConfig from "./ValueConfig";
-import { toast } from "react-toastify";
-import { openStudyUid } from "../utils/function_utils";
+import VariableConfig from "./../VariableConfig";
 
-async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
-  const fun = context?.selectedFunction as Function;
+// TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
+async function runGridSampling(
+  context: MMUXContextType,
+  config: GRIDSamplingConfig
+) {
+  const fun = context.selectedFunction as Function;
   // send config to Python backend to create LHS
-  console.log("Running single job with config: ", config);
+  console.log("Running Grid Sampling with config: ", config);
   context.setLaunchingSampling(true);
-  const j = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/test_job", {
+  const jc = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/grid_sampling", {
     method: "POST",
     body: JSON.stringify({
       funUid: fun.uid,
@@ -23,40 +29,41 @@ async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
     .then(async function (response) {
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Error running Single Job ${response.status}: ${errorText}`);
+        throw new Error(`Error running Grid Sampling ${response.status}: ${errorText}`);
       }
       return response.json();
     })
-    .then(function (j: FunctionJob) {
-      console.log("Job Uid: ", j.uid);
-      return j;
+    .then(function (jc: RegisteredFunctionJobCollection) {
+      console.log("JobCollection Uid: ", jc.uid);
+      return jc;
     })
-    .catch(function (error) {
-      console.error("Error running single job: ", error);
-    });
   context.setLaunchingSampling(false);
-  return j;
+  context.setRunningSampling(true);
+  context.setRunningJobCollection(jc ? jc : undefined);
+  return jc;
 }
 
-const TestJob = () => {
+const GridSearchSampling = () => {
   const context = useMMUXContext();
-  const { inputVars, singleJobConfig, setSingleJobConfig } = context;
-  const [jobInputs, setJobInputs] =
-    useState<Array<SingleJobConfig>>(singleJobConfig);
+  const {
+    inputVars,
+    distribution,
+    selectedFunction,
+    gridSamplingConfig,
+    setGridSamplingConfig,
+  } = context;
+
+  const [gridSamplingInputs, setGridSamplingInputs] =
+    useState<GRIDSamplingConfig>(gridSamplingConfig);
   const [loading, setLoading] = useState<boolean>(true);
 
   const handleRunSampling = async () => {
-    setSingleJobConfig(jobInputs);
-    const job = await runTestJob(context, jobInputs);
-    console.log("TestJob created: ", job);
-    // open in a new window - like in "View" of the JobList
-    if (!job) toast.warning("Test Job running failed! Please contact support");
-    else if (job.functionClass && job.functionClass === "PROJECT") openStudyUid(job.projectJobId)
-    else toast.warning("Only ProjectFunctionJob can be opened in a new window!");
+    setGridSamplingConfig(gridSamplingInputs);
+    await runGridSampling(context, gridSamplingInputs);
   };
 
   function handleInputChange(index: number, field: string, value: string) {
-    setJobInputs((prevInputs) => {
+    setGridSamplingInputs((prevInputs: GRIDSamplingConfig) => {
       const newInputs = [...prevInputs];
       newInputs[index] = {
         ...newInputs[index],
@@ -67,16 +74,23 @@ const TestJob = () => {
   }
 
   useEffect(() => {
-    let currentSampling: SingleJobConfig[] = singleJobConfig;
-    if (currentSampling.length === 0) {
+    let currentSampling: GRIDSamplingConfig = gridSamplingConfig;
+    if (gridSamplingConfig.length === 0) {
       currentSampling = inputVars.map((inputVar) => ({
         variable: inputVar,
-        value: 0.0,
+        start: getSamplingStartValue(
+          inputVar,
+          distribution[selectedFunction?.uid || ""]
+        ) as number,
+        end: getSamplingEndValue(
+          inputVar,
+          distribution[selectedFunction?.uid || ""]
+        ) as number,
       }));
     }
-    setJobInputs(currentSampling);
+    setGridSamplingInputs(currentSampling);
     setLoading(false);
-  }, [inputVars, singleJobConfig]);
+  }, []);
 
   return (
     <>
@@ -94,7 +108,7 @@ const TestJob = () => {
             sx={{ fontSize: "2rem", marginBottom: "8px" }}
           />
         ) : (
-          "Single Test Run"
+          "Grid Sampling"
         )}
       </Typography>
       <Typography
@@ -106,7 +120,7 @@ const TestJob = () => {
         {loading ? (
           <Skeleton variant="text" width={"600px"} height={"24px"} />
         ) : (
-          "Run a single parameter combination. The generated study will be opened in a new window for user inspection."
+          "Specify the ranges and number of points per dimension for the grid search sampling."
         )}
       </Typography>
       <Box
@@ -122,10 +136,11 @@ const TestJob = () => {
         {loading ? (
           <Skeleton variant="rounded" width={"800px"} height={"232px"} />
         ) : (
-          jobInputs?.map((inputVar, index) => (
-            <ValueConfig
+          gridSamplingInputs?.map((inputVar, index) => (
+            <VariableConfig
               index={index}
               inputVar={inputVar}
+              key={index}
               handleInputChange={handleInputChange}
             />
           ))
@@ -141,4 +156,4 @@ const TestJob = () => {
   );
 };
 
-export default TestJob;
+export default GridSearchSampling;
