@@ -7,21 +7,18 @@ import { FunctionJob } from "../../osparc-api-ts-client";
 import Metric from "./../Metric"
 import SuMoMetricRow from "./../SuMoMetricRow";
 import PlotLoadingWrapper from "./PlotLoadingWrapper";
+import InsuficientDataWarningsWrapper from "../InsuficientDataWarningsWrapper";
 
 const SuMoValidation = () => {
+  console.log("GEtting into SuMo Validation component")
   const theme = useTheme();
-  const { selectedFunction, inputVars, selectedQoI, filterSelectedJobList } = useMMUXContext();
+  const { selectedFunction, inputVars, selectedQoI, fetchedJobCollections, filterSelectedJobList } = useMMUXContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
+  const [propagating, setPropagating] = useState(false);
   const [width, setWidth] = useState(1080);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  console.log(
-    "Performing SuMo Validation for function: ",
-    selectedFunction,
-    " and QoI: ",
-    selectedQoI
-  );
 
   function computeStatisticsCv(y: number[], y_hat: number[]) {
     // compute statistics
@@ -103,12 +100,17 @@ const SuMoValidation = () => {
     } else {
       console.warn("No data available for SuMo validation.");
       setPlotData([]);
-      setCvMetrics({} as cvMetricsType);
+      setCvMetrics(undefined);
     }
   };
 
   const RunSuMoValidation = async (jobs: FunctionJob[]) => {
     console.info("Evaluating SuMo Validation for jobs: ", jobs);
+
+    setCvMetrics(undefined)
+    setPlotData([])
+    setPropagating(true)
+
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_cross_validation", {
       method: "POST",
       body: JSON.stringify({
@@ -124,6 +126,7 @@ const SuMoValidation = () => {
       .then(function (data) {
         console.log("SuMo Validation retrieved data: ", data);
         createDataAndMetrics(data);
+        setPropagating(false)
       })
       .catch((error) => console.debug("Error:", error));
   };
@@ -163,7 +166,7 @@ const SuMoValidation = () => {
   };
 
   return (
-    <>
+    <InsuficientDataWarningsWrapper data={cvMetrics} calculating={propagating} fetchedJobCollections={fetchedJobCollections} filterSelectedJobList={filterSelectedJobList}>
       {plotData && selectedQoI && (
         <Box display="flex" flexDirection="column" gap={1} width={"100%"} justifyContent={"center"} ref={boxRef}>
           {cvMetrics ? (
@@ -209,7 +212,7 @@ const SuMoValidation = () => {
 
         </Box>
       )}
-    </>
+    </InsuficientDataWarningsWrapper>
   );
 };
 

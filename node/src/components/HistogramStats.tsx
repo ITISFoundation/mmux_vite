@@ -5,6 +5,7 @@ const HistogramStats = (props: dataUQHistogramType) => {
   const theme = useTheme();
   const { q1, median, q3, whisker_min, whisker_max } = props;
 
+  // TODO update this with the Metric / MEtricROw component
   return (
     <Box width="100%" display="flex" justifyContent="left">
       <Box

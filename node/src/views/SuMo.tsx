@@ -23,7 +23,7 @@ export default function SuMo() {
   return (
     <MetaModelingUX
       headerType="title"
-      tabTitle={`AI-Enabled Model Insights: ${selectedFunction?.title}`}
+      tabTitle={`Response Surface Modeling: ${selectedFunction?.title}`}
     >
       <OutputSetup loading={loading} onlyQoI />
       {loading ? (
