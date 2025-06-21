@@ -16,6 +16,7 @@ import Surface2DPlot from "./Surface3DPlot";
 import Header from "../navigation/Header";
 import { filterInputVars } from "./PlotTools";
 import { useMMUXContext } from "../../context/MMUXContext";
+import CrossValidationDocument from "../documents/CrossValidationDocument";
 
 const SuMoPlotsSteps = () => {
   const theme = useTheme();
@@ -33,6 +34,18 @@ const SuMoPlotsSteps = () => {
   };
 
   const stepTitles = ["Validation", "1D Curves", "2D Surface", "3D IsoSurface"];
+  const stepInfoTexts: { [key: string]: string | undefined } = {
+    "Validation": "Assessment of model quality through Cross-Validation ",
+    "1D Curves": undefined,
+    "2D Surface": undefined,
+    "3D IsoSurface": undefined,
+  };
+  const stepExtendedInfoTexts: { [key: string]: React.ReactElement | undefined } = {
+    "Validation": CrossValidationDocument,
+    "1D Curves": undefined,
+    "2D Surface": undefined,
+    "3D IsoSurface": undefined,
+  };
 
   React.useEffect(() => {
     const jobs = filterSelectedJobList;
@@ -61,7 +74,8 @@ const SuMoPlotsSteps = () => {
         <Header
           headerType="titleNoMargin"
           tabTitle={stepTitles[activeStep]}
-          infoText=""
+          infoText={stepInfoTexts[stepTitles[activeStep]]}
+          ExtendedInfoText={stepExtendedInfoTexts[stepTitles[activeStep]]}
         />
       </Box>
       <CardContent
