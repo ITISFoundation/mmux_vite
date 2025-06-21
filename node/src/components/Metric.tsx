@@ -4,9 +4,10 @@ type MetricPropsType = {
     metricName: string;
     metricValue: number;
     color?: TypographyProps['color']
+    percent_error?: number;
 }
 const Metric = (props: MetricPropsType) => {
-    const { metricName, metricValue, color } = props;
+    const { metricName, metricValue, color, percent_error } = props;
     return (
         <Typography
             variant="body1"
@@ -14,7 +15,9 @@ const Metric = (props: MetricPropsType) => {
             fontWeight={100}
             color={color}
         >
-            {metricName}: <strong>{metricValue.toPrecision(3)}</strong>
+            {metricName}: {percent_error
+                ? <><strong>{metricValue.toPrecision(3)}</strong> ({percent_error.toPrecision(2)}% std)</>
+                : <strong>{metricValue.toPrecision(3)}</strong>}
         </Typography>)
 }
 

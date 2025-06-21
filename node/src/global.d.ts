@@ -139,4 +139,6 @@ type cvMetricsType = {
   std_y_hat: number;
   mae: number;
   rmse: number;
+  mae_percent_error: number;
+  rmse_percent_error: number;
 };

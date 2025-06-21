@@ -44,7 +44,7 @@ const SuMoValidation = () => {
         (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
         0
       ) /
-        (y.length - 1)
+      (y.length - 1)
     );
     const mean_y_hat =
       y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
@@ -53,8 +53,11 @@ const SuMoValidation = () => {
         (sum: number, value: number) => sum + Math.pow(value - mean_y_hat, 2),
         0
       ) /
-        (y_hat.length - 1)
+      (y_hat.length - 1)
     );
+
+    const mae_percent_error = mae / std_y * 100
+    const rmse_percent_error = rmse / std_y * 100
     const cvMetricsData = {
       mean_y: mean_y,
       std_y: std_y,
@@ -62,6 +65,8 @@ const SuMoValidation = () => {
       std_y_hat: std_y_hat,
       mae: mae,
       rmse: rmse,
+      mae_percent_error: mae_percent_error,
+      rmse_percent_error: rmse_percent_error,
     };
     setCvMetrics(cvMetricsData);
     console.log("Registered cvMetrics: ", cvMetricsData);
@@ -144,6 +149,16 @@ const SuMoValidation = () => {
         setCvMetrics(undefined);
       });
   };
+
+  const getPercentErrorColor = (percent_error: number) => {
+    if (percent_error < 10) {
+      return "green"
+    } else if (percent_error < 30) {
+      return "orange"
+    } else {
+      return "red"
+    }
+  }
 
   useEffect(() => {
     const run = async () => {
@@ -260,8 +275,18 @@ const SuMoValidation = () => {
                 />
               </SuMoMetricRow>
               <SuMoMetricRow width={width}>
-                <Metric metricName={"MAE"} metricValue={cvMetrics.mae} />
-                <Metric metricName={"RMSE"} metricValue={cvMetrics.rmse} />
+                <Metric
+                  metricName={"MAE"}
+                  metricValue={cvMetrics.mae}
+                  percent_error={cvMetrics.mae_percent_error}
+                  color={getPercentErrorColor(cvMetrics.mae_percent_error)}
+                />
+                <Metric
+                  metricName={"RMSE"}
+                  metricValue={cvMetrics.rmse}
+                  percent_error={cvMetrics.rmse_percent_error}
+                  color={getPercentErrorColor(cvMetrics.rmse_percent_error)}
+                />
               </SuMoMetricRow>
             </Box>
           ) : (
