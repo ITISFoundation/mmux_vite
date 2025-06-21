@@ -14,7 +14,7 @@ const Metric = (props: MetricPropsType) => {
             fontWeight={100}
             color={color}
         >
-            {metricName}: <strong>{metricValue.toFixed(4)}</strong>
+            {metricName}: <strong>{metricValue.toPrecision(3)}</strong>
         </Typography>)
 }
 

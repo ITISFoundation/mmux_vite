@@ -42,7 +42,7 @@ const JobRow = (props: JobRowProps) => {
         ? Object.entries(job.job.outputs).map(([key, value], idx) => {
           return (
             <Box key={idx} display={"inline"}>
-              {key} : {(value as number).toExponential(3)}{", "}
+              {key} : {(value as number).toPrecision(3)}{", "}
             </Box>
           );
         })
@@ -61,7 +61,7 @@ const JobRow = (props: JobRowProps) => {
     const inputs = Object.entries(job.job.inputs).map(([key, value], idx) => {
       return (
         <Box key={idx} display={"inline"}>
-          {key} : {(value as number).toExponential(3)}{", "}
+          {key} : {(value as number).toPrecision(3)}{", "}
         </Box>
       );
     })
