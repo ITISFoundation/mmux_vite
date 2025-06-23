@@ -4,7 +4,7 @@ import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, useTheme } from "@mui/material";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import Metric from "./Metric";
-import SuMoMetricRow from "./SuMoMetricRow";
+import MetricRow from "./MetricRow";
 import { plotMargins } from "./PlotTools";
 import Plot from "react-plotly.js";
 import CalculatingWarning from "./CalculatingWarning";
@@ -239,7 +239,7 @@ const SuMoValidation = () => {
             justifyContent="space-around"
             mt={4}
           >
-            <SuMoMetricRow width={width}>
+            <MetricRow width={width}>
               <Metric
                 metricName={"Mean"}
                 metricValue={cvMetrics.mean_y}
@@ -251,8 +251,8 @@ const SuMoValidation = () => {
                 color={"rgb(41, 146, 221)"}
               />
               {/* rgb(31, 119, 180) is the original; changed it slightly to improve visibility */}
-            </SuMoMetricRow>
-            <SuMoMetricRow width={width}>
+            </MetricRow>
+            <MetricRow width={width}>
               <Metric
                 metricName={"Mean"}
                 metricValue={cvMetrics.mean_y_hat}
@@ -263,11 +263,11 @@ const SuMoValidation = () => {
                 metricValue={cvMetrics.std_y_hat}
                 color={"rgb(255, 127, 14)"}
               />
-            </SuMoMetricRow>
-            <SuMoMetricRow width={width}>
+            </MetricRow>
+            <MetricRow width={width}>
               <Metric metricName={"MAE"} metricValue={cvMetrics.mae} />
               <Metric metricName={"RMSE"} metricValue={cvMetrics.rmse} />
-            </SuMoMetricRow>
+            </MetricRow>
           </Box>
         ) : (
           <div></div>

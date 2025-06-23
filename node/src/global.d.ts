@@ -35,6 +35,11 @@ type dataUQHistogramType = {
   whisker_min: number;
   whisker_max: number;
   outliers: number[];
+  // new metrics to be displayed with Histogram (instead of whisker plot)
+  mean: number;
+  std: number;
+  min: number;
+  max: number;
 };
 type UncertainUQPropsType = {
   loading: boolean;
