@@ -187,7 +187,7 @@ const Surface2DPlot = () => {
         {propagating && (
           <CalculatingWarning
             height={plotStyle.height}
-            dontShowText={false}
+            dontShowText={true}
           />
         )}
         {!propagating && plotData.length === 0 && (
