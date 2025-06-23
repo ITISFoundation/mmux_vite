@@ -8,8 +8,8 @@ type CalculatingWarningPropsType = {
 // Insert if calculating == true
 const CalculatingWarning = (props: CalculatingWarningPropsType) => {
   const { height, dontShowText } = props
-  console.log("Dont Show Text: ", dontShowText)
-  console.log("Text: ", dontShowText ? "" : "Calculating...")
+  // Debug statements removed to prevent unnecessary console output
+  // Debug statements removed to prevent unnecessary console output
   return (
     <DisplayMessage mssg={dontShowText ? "" : "Calculating..."} height={height} />
   )
