@@ -4,11 +4,16 @@ import Plot from "react-plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Data } from "plotly.js";
-import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
-import PlotLoadingWrapper from "./PlotLoadingWrapper";
+import { Data, Layout } from "plotly.js";
+import {
+  CreateSelect,
+  CreateSlider,
+  filterInputVars,
+  plotMargins,
+} from "./PlotTools";
 import Header from "../navigation/Header";
-import { DisplayMessage } from "../DisplayMessage";
+import CalculatingWarning from "../CalculatingWarning";
+import InsufficientDataWarning from "../InsufficientDataWarning";
 
 const Surface2DPlot = () => {
   const theme = useTheme();
@@ -141,7 +146,7 @@ const Surface2DPlot = () => {
     filterSelectedJobList,
   ]);
 
-  const layout = {
+  const layout: Partial<Layout> = {
     title: {
       text: selectedQoI + " Surface 2D Plot",
     },
@@ -151,16 +156,10 @@ const Surface2DPlot = () => {
       zaxis: { title: { text: selectedQoI } },
     },
     autosize: true,
-    willReadFrequently: true,
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
-    margin: {
-      l: 65,
-      r: 50,
-      b: 65,
-      t: 90,
-    },
+    margin: plotMargins,
   };
 
   const plotStyle = {
@@ -182,88 +181,74 @@ const Surface2DPlot = () => {
     );
   }
 
-  if (plotData.length === 0) {
-    return (
-      <DisplayMessage
-        mssg={
-          fetchedJobCollections.length === 0
-            ? "No data available. Please create more Samples."
-            : filterSelectedJobList().length === 0
-            ? "Not enough Samples selected"
-            : "Error during calculation, please contact support."
-        }
-      />
-    );
-  }
-
   return (
     <>
       <Box display={"flex"} flexDirection={"column"} width={"100%"}>
-        <Box
-          sx={{
-            width: "100%",
-            height: "500px",
-            overflow: "hidden",
-            borderRadius: 1,
-          }}
-        >
-          <PlotLoadingWrapper
+        {propagating && (
+          <CalculatingWarning
             height={plotStyle.height}
-            plotData={plotData}
+            dontShowText={true}
+          />
+        )}
+        {!propagating && plotData.length === 0 && (
+          <InsufficientDataWarning
+            fetchedJobCollections={fetchedJobCollections}
             filterSelectedJobList={filterSelectedJobList}
-          >
-            <Plot data={plotData} layout={layout} style={plotStyle} />
-          </PlotLoadingWrapper>
-        </Box>
+            height={plotStyle.height}
+          />
+        )}
+        {!propagating && plotData.length !== 0 && (
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+        )}
+      </Box>
 
-        <Box mt={2}>
-          <Header headerType="subTitle" infoText="" tabTitle="Selection" />
+      <Box mt={2}>
+        <Header headerType="subTitle" infoText="" tabTitle="Selection" />
+      </Box>
+      <Box
+        display={"flex"}
+        flexDirection={"column"}
+        gap={2}
+        p={4}
+        sx={(theme) => ({
+          backgroundColor: theme.palette.background.default,
+          borderRadius: theme.spacing(2),
+        })}
+      >
+        <Box display={"flex"} flexDirection={"row"} gap={2}>
+          <CreateSelect
+            axis={axis1}
+            idx={1}
+            setAxis={handleSetAxis1}
+            inputVars={inputVars}
+          />
+          <CreateSelect
+            axis={axis2}
+            idx={2}
+            setAxis={handleSetAxis2}
+            inputVars={inputVars}
+          />
         </Box>
-        <Box
-          display={"flex"}
-          flexDirection={"column"}
-          gap={2}
-          p={4}
-          sx={(theme) => ({
-            backgroundColor: theme.palette.background.default,
-            borderRadius: theme.spacing(2),
-          })}
-        >
-          <Box display={"flex"} flexDirection={"row"} gap={2}>
-            <CreateSelect
-              axis={axis1}
-              idx={1}
-              setAxis={handleSetAxis1}
-              inputVars={inputVars}
-            />
-            <CreateSelect
-              axis={axis2}
-              idx={2}
-              setAxis={handleSetAxis2}
-              inputVars={inputVars}
-            />
-          </Box>
-          {inputVars.length > 0 &&
-          distribution[selectedFunction?.uid || ""] !== undefined ? (
-            <>
-              {inputVars.map((key) => {
-                if (key === axis1 || key === axis2) {
-                  return null; // Skip the first variable as it is already selected
-                }
-                const dist = distribution[selectedFunction?.uid || ""];
-                return (
-                  <CreateSlider
-                    input={key}
-                    dist={dist[key]}
-                    otherAxis={otherAxis}
-                    setOtherAxis={setOtherAxis}
-                    key={key}
-                  />
-                );
-              })}
-            </>
-          ) : undefined}
-        </Box>
+        {inputVars.length > 0 &&
+        distribution[selectedFunction?.uid || ""] !== undefined ? (
+          <>
+            {inputVars.map((key) => {
+              if (key === axis1 || key === axis2) {
+                return null; // Skip the first variable as it is already selected
+              }
+              const dist = distribution[selectedFunction?.uid || ""];
+              return (
+                <CreateSlider
+                  input={key}
+                  dist={dist[key]}
+                  otherAxis={otherAxis}
+                  setOtherAxis={setOtherAxis}
+                  key={key}
+                />
+              );
+            })}
+          </>
+        ) : undefined}
       </Box>
     </>
   );

@@ -4,10 +4,15 @@ import Plot from "react-plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
-import PlotLoadingWrapper from "./PlotLoadingWrapper";
+import {
+  CreateSelect,
+  CreateSlider,
+  filterInputVars,
+  plotMargins,
+} from "./PlotTools";
 import Header from "../navigation/Header";
-import { DisplayMessage } from "../DisplayMessage";
+import CalculatingWarning from "../CalculatingWarning";
+import InsufficientDataWarning from "../InsufficientDataWarning";
 
 const IsoSurface3DPlot = () => {
   const theme = useTheme();
@@ -220,12 +225,7 @@ const IsoSurface3DPlot = () => {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
-    margin: {
-      l: 65,
-      r: 50,
-      b: 65,
-      t: 90,
-    },
+    margin: plotMargins,
     scene: {
       xaxis: { title: { text: axis1 }, tickangle: -45 },
       yaxis: { title: { text: axis2 }, tickangle: -45 },
@@ -246,39 +246,24 @@ const IsoSurface3DPlot = () => {
     overflow: "hidden",
   };
 
-  if (plotData.length === 0) {
-    return (
-      <DisplayMessage
-        mssg={
-          fetchedJobCollections.length === 0
-            ? "No data available. Please create more Samples."
-            : filterSelectedJobList().length === 0
-            ? "Not enough Samples selected"
-            : "Error during calculation, please contact support."
-        }
-      />
-    );
-  }
-
   return (
     <Box display={"flex"} flexDirection={"column"} width={"100%"}>
-      <Box
-        sx={{
-          width: "100%",
-          height: plotStyle.height,
-          overflow: plotStyle.overflow,
-          borderRadius: 1,
-        }}
-      >
-        <PlotLoadingWrapper
+      {propagating && (
+        <CalculatingWarning
           height={plotStyle.height}
-          plotData={plotData}
+          dontShowText={false}
+        />
+      )}
+      {!propagating && plotData.length === 0 && (
+        <InsufficientDataWarning
+          fetchedJobCollections={fetchedJobCollections}
           filterSelectedJobList={filterSelectedJobList}
-        >
-          <Plot data={plotData} layout={layout} style={plotStyle} />
-        </PlotLoadingWrapper>
-      </Box>
-
+          height={plotStyle.height}
+        />
+      )}
+      {!propagating && plotData.length !== 0 && (
+        <Plot data={plotData} layout={layout} style={plotStyle} />
+      )}
       <Box mt={2}>
         <Header headerType="subTitle" infoText="" tabTitle="Selection" />
       </Box>

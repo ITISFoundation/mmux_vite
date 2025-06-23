@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import Plot from "react-plotly.js";
 import { Box, useTheme } from "@mui/material";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import Metric from "./../Metric";
 import SuMoMetricRow from "./../SuMoMetricRow";
-import PlotLoadingWrapper from "./PlotLoadingWrapper";
+import { plotMargins } from "./PlotTools";
+import Plot from "react-plotly.js";
+import CalculatingWarning from "../CalculatingWarning";
+import InsufficientDataWarning from "../InsufficientDataWarning";
+import { Layout } from "plotly.js";
 
 const SuMoValidation = () => {
   const theme = useTheme();
@@ -15,6 +18,7 @@ const SuMoValidation = () => {
     inputVars,
     distribution,
     selectedQoI,
+    fetchedJobCollections,
     filterSelectedJobList,
   } = useMMUXContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
@@ -172,10 +176,24 @@ const SuMoValidation = () => {
     }
   }, [boxRef]);
 
-  const layout = {
+  const layout: Partial<Layout> = {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
+    title: {
+      text:
+        (selectedQoI ? selectedQoI : "Quantity of Interest") +
+        " Sample Distribution",
+    },
+    margin: plotMargins,
+    width: width,
+    barmode: "overlay",
+    legend: {
+      x: 1,
+      xanchor: "right",
+      y: 1,
+      bgcolor: "rgba(0,0,0,0)",
+    },
   };
 
   const plotStyle = {
@@ -188,87 +206,73 @@ const SuMoValidation = () => {
 
   return (
     <>
-      {plotData && selectedQoI && (
-        <Box
-          display="flex"
-          flex={1}
-          flexDirection="column"
-          width={"100%"}
-          justifyContent={"center"}
-          ref={boxRef}
-        >
-          <PlotLoadingWrapper
-            height={300}
-            plotData={plotData}
+      <Box
+        display="flex"
+        flex={1}
+        flexDirection="column"
+        width={"100%"}
+        justifyContent={"center"}
+        ref={boxRef}
+      >
+        {propagating && (
+          <CalculatingWarning
+            height={plotStyle.height}
+            dontShowText={true}
+          />
+        )}
+        {!propagating && plotData.length === 0 && (
+          <InsufficientDataWarning
+            fetchedJobCollections={fetchedJobCollections}
             filterSelectedJobList={filterSelectedJobList}
+            height={plotStyle.height}
+          />
+        )}
+        {!propagating && plotData.length !== 0 && (
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+        )}
+
+        {cvMetrics ? (
+          <Box
+            display="flex"
+            flexDirection="row"
+            flex={1}
+            justifyContent="space-around"
+            mt={4}
           >
-            <Plot
-              data={plotData}
-              layout={{
-                ...layout,
-                title: {
-                  text:
-                    (selectedQoI ? selectedQoI : "Quantity of Interest") +
-                    " Sample Distribution",
-                },
-                margin: { t: 40, l: 30, r: 30, b: 40 },
-                height: 400,
-                width: width,
-                barmode: "overlay",
-                legend: {
-                  x: 1,
-                  xanchor: "right",
-                  y: 1,
-                  bgcolor: "rgba(0,0,0,0)",
-                },
-              }}
-              style={plotStyle}
-              config={{ responsive: true }}
-            />
-          </PlotLoadingWrapper>
-          {cvMetrics ? (
-            <Box
-              display="flex"
-              flexDirection="row"
-              flex={1}
-              justifyContent="space-around"
-              mt={4}
-            >
-              <SuMoMetricRow width={width}>
-                <Metric
-                  metricName={"Mean"}
-                  metricValue={cvMetrics.mean_y}
-                  color={"rgb(41, 146, 221)"}
-                />
-                <Metric
-                  metricName={"Std"}
-                  metricValue={cvMetrics.std_y}
-                  color={"rgb(41, 146, 221)"}
-                />
-                {/* rgb(31, 119, 180) is the original; changed it slightly to improve visibility */}
-              </SuMoMetricRow>
-              <SuMoMetricRow width={width}>
-                <Metric
-                  metricName={"Mean"}
-                  metricValue={cvMetrics.mean_y_hat}
-                  color={"rgb(255, 127, 14)"}
-                />
-                <Metric
-                  metricName={"Std"}
-                  metricValue={cvMetrics.std_y_hat}
-                  color={"rgb(255, 127, 14)"}
-                />
-              </SuMoMetricRow>
-              <SuMoMetricRow width={width}>
-                <Metric metricName={"MAE"} metricValue={cvMetrics.mae} />
-                <Metric metricName={"RMSE"} metricValue={cvMetrics.rmse} />
-              </SuMoMetricRow>
-            </Box>
-          ) : (
-            <div>No data available.</div>
-          )}
-        </Box>
-      )}
+            <SuMoMetricRow width={width}>
+              <Metric
+                metricName={"Mean"}
+                metricValue={cvMetrics.mean_y}
+                color={"rgb(41, 146, 221)"}
+              />
+              <Metric
+                metricName={"Std"}
+                metricValue={cvMetrics.std_y}
+                color={"rgb(41, 146, 221)"}
+              />
+              {/* rgb(31, 119, 180) is the original; changed it slightly to improve visibility */}
+            </SuMoMetricRow>
+            <SuMoMetricRow width={width}>
+              <Metric
+                metricName={"Mean"}
+                metricValue={cvMetrics.mean_y_hat}
+                color={"rgb(255, 127, 14)"}
+              />
+              <Metric
+                metricName={"Std"}
+                metricValue={cvMetrics.std_y_hat}
+                color={"rgb(255, 127, 14)"}
+              />
+            </SuMoMetricRow>
+            <SuMoMetricRow width={width}>
+              <Metric metricName={"MAE"} metricValue={cvMetrics.mae} />
+              <Metric metricName={"RMSE"} metricValue={cvMetrics.rmse} />
+            </SuMoMetricRow>
+          </Box>
+        ) : (
+          <div></div>
+        )}
+      </Box>
     </>
   );
 };

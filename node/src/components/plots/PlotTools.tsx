@@ -101,7 +101,7 @@ const CustomSlider = styled(Slider)(({ theme }) => ({
   color: `color-mix(in srgb, ${theme.palette.primary.main} 90%, white)`,
 }));
 
-const sliderMarc = (value: number) => { return `~: ${value}`};
+const sliderMarc = (value: number) => { return `~: ${value}` };
 
 export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSliderProps) => {
   const context = useMMUXContext();
@@ -139,7 +139,7 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
 
   console.log("var", input, "min & max: ", min, max)
   console.log(uniqueValuesPerVar)
-  const step = (max - min) / 500
+  const step = (max - min) / 100
   const changeOtherAxis = (e: Event, value: number) => {
     const newAxis = { ...otherAxis };
     newAxis[input] = value as number;
@@ -148,7 +148,7 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
   }
   return (
     <InputLabel
-      sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center", paddingTop: 2, overflow: "visible"}}
+      sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center", paddingTop: 2, overflow: "visible" }}
     >
       <Typography
         variant="h6"
@@ -168,6 +168,7 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
         value={value} // TODO could not get slider to be in the middle for those w constant values
         onChange={(e, newValue) => {
           setValue(newValue as number);
+          changeOtherAxis(e as Event, newValue as number)
         }}
         onChangeCommitted={(e, newValue) => {
           changeOtherAxis(e as Event, newValue as number)
@@ -185,6 +186,16 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
             newAxis[input] = value;
             setOtherAxis(newAxis);
           }
+          if(e.key === "ArrowDown") {
+            const newAxis = { ...otherAxis };
+            newAxis[input] = Math.max(min, value - step);
+            setOtherAxis(newAxis);
+          }
+          if(e.key === "ArrowUp") {
+            const newAxis = { ...otherAxis };
+            newAxis[input] = Math.max(min, value - step);
+            setOtherAxis(newAxis);
+          }
         }}
         onBlur={(e) => {
           const newAxis = { ...otherAxis };
@@ -200,3 +211,6 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
     </InputLabel>
   );
 };
+
+// plot margings to be applied to all plots
+export const plotMargins = { l: 20, r: 40, b: 30, t: 55 }

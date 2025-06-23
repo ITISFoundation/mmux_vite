@@ -352,7 +352,6 @@ def test_job_retrieval_endpoints_speed(job_uid: str, N: int = 1):
             _logger.info(f"Iteration {_+1}/{N}: {result}")   # Print the result of each iteration
         end_time = time.time()
         return (end_time - start_time) / N
-
     time_job_full = _timeit(job_api_instance.get_function_job, N, job_uid)
     time_job_outputs = _timeit(job_api_instance.function_job_outputs, N, job_uid)
     time_job_status = _timeit(job_api_instance.function_job_status, N, job_uid)
@@ -360,9 +359,7 @@ def test_job_retrieval_endpoints_speed(job_uid: str, N: int = 1):
     _logger.debug(f"Average time to retrieve full job: {time_job_full:.4f} seconds")
     _logger.debug(f"Average time to retrieve job outputs: {time_job_outputs:.4f} seconds")
     _logger.debug(f"Average time to retrieve job status: {time_job_status:.4f} seconds")
-
 # test_job_retrieval_endpoints_speed(job_uid="aa5453be-d9e5-4e8a-a7a5-29acd113f1d2", N=30)
-
 
 def test_job_retrieval_paginated(function_uid: str):
     def _timeit(fun: Callable, *args, **kwargs):
@@ -375,7 +372,6 @@ def test_job_retrieval_paginated(function_uid: str):
         _logger.info(f"Last item: {result[-1] if result else 'No items retrieved'}")
         _logger.info(f"That is {(end_time - start_time)/len(result):.2f} seconds per item")
     _timeit(_get_all_items, api_call=functions_api_instance.list_function_jobs_for_functionid, function_id=function_uid)  # type: ignore
-
 # test_job_retrieval_paginated(function_uid="eea21c0d-6c2b-4cf4-91d1-116e6550cb22")
 
 def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str, folder_name: str = "evaluate") -> Path:
