@@ -174,7 +174,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         const id = jc.jobIds[subJobIdx];
         // check if job is already fetched in fetchedJobCollections
         const existingJob = fetchedJobCollections.find((j) =>
-          j.jobCollection.jobIds.includes(id) && j.subJobs.some((sj) => sj.job.uid === id && sj.job.status === "FAILED" || sj.job.status === "SUCCESS")
+          j.jobCollection.jobIds.includes(id) && j.subJobs.some((sj) => sj.job.uid === id && (sj.job.status === "FAILED" || sj.job.status === "SUCCESS"))
         );
         if (existingJob) {
           // console.info("Job already fetched: ", id, existingJob.subJobs.find((j) => j.job.uid === id));
