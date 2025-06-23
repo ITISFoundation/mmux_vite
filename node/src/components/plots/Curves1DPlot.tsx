@@ -46,6 +46,7 @@ const Curves1DPlots = () => {
 
   const createPlotData = (data: Record<string, GPPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
+      // warn if no data available
       console.warn("No data available for plotting.");
       setPlotData([]);
     } else {
