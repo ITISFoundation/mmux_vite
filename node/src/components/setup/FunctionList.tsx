@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { styled, Box, IconButton, Typography, useTheme, Button } from "@mui/material";
+import { styled, Box, IconButton, Typography, Button } from "@mui/material";
 import { toast } from "react-toastify";
 import { Refresh } from "@mui/icons-material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -29,7 +29,6 @@ const VarsHolder = styled("div")`
 `;
 
 export function FunctionList() {
-  const theme = useTheme();
   const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
@@ -160,6 +159,12 @@ export function FunctionList() {
   }
 
   function setRowSelection(fun: Function) {
+    if( selectedFunction && selectedFunction.uid === fun.uid) {
+      setSelectedFunction(undefined);
+      setInputVars([]);
+      setOutputVars([]);
+      return;
+    }
     setSelectedFunction(fun);
     setInputVars(
       fun.inputSchema?.schemaContent?.properties
@@ -352,7 +357,6 @@ export function FunctionList() {
             backgroundColor: (theme) => theme.palette.background.paper,
           },
         }}
-        onRowClick={(params) => setSelectedFunction(params.row)}
         getRowId={getRowId}
         initialState={{
           pagination: {
