@@ -1,12 +1,14 @@
 import { Box, Chip, InputLabel, MenuItem, Select, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
+import { useServiceContext } from "../../context/ServiceContext";
+import InputVariableDistDocument from "../documents/InputVariableDistDocument";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { InputBlock } from "../InputBlock";
 import Header from "../navigation/Header";
-import InputVariableDistDocument from "../documents/InputVariableDistDocument";
 
 export const InputVariableDist = () => {
   const { inputVars, distribution, setDistribution, selectedFunction } = useMMUXContext();
+  const { serviceMode } = useServiceContext();
   const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
 
@@ -21,7 +23,7 @@ export const InputVariableDist = () => {
   const handleSetValue = (inputVar: string, type: string, value: number) => {
     const newInputVars = { ...localDistribution };
     if (!newInputVars[inputVar]) {
-      newInputVars[inputVar] = { distribution: "normal" };
+      newInputVars[inputVar] = { distribution: serviceMode === 'SUMO' ? "uniform" : "normal" };
     }
     newInputVars[inputVar][type as variables] = value;
     handleSetLocalDistribution(newInputVars);
@@ -106,13 +108,13 @@ export const InputVariableDist = () => {
       if (inputVars.length > 0) {
         const initialInputVars = inputVars.reduce((acc, val) => {
           // TODO remove default values; just for development speed
-          acc[val] = { distribution: "normal", mean: 0.0, std: 1.0 }; 
+          acc[val] = { distribution: serviceMode === "SUMO" ? "uniform" : "normal", mean: 0.0, std: 1.0 };
           return acc;
         }, {} as typeof localDistribution);
         handleSetLocalDistribution(initialInputVars);
       }
     }
-  }, [distribution, handleSetLocalDistribution, inputVars, selectedFunction, setDistribution]);
+  }, [distribution, inputVars, selectedFunction]);
 
   if (inputVars.length === 0) {
     return <></>
@@ -158,6 +160,7 @@ export const InputVariableDist = () => {
                   variant="outlined"
                   size="small"
                   id={index + "selector"}
+                  disabled={serviceMode === "SUMO"}
                   value={localDistribution[inputVar]?.distribution || ""}
                   sx={{ minWidth: 132, width: '100%' }}
                   onChange={(e) => handleDistributionChange(inputVar, e.target.value as distribution)}
