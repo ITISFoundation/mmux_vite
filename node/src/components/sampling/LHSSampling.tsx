@@ -67,6 +67,12 @@ const LHSSampling = () => {
 
   const handleRunSampling = async () => {
     setLhsSamplingConfig(lhsInputs)
+    const nPoints = recommendedLHSSamples(inputVars)
+    // TODO should check how many jobs already have; and current launched number
+    if (nPoints > 50 && permissions === "WRITE") {
+      toast.warning(`For your number of non-constant input variables, we would recommend a total of ${nPoints} LHS samples. \n\n ` +
+        "However, currently the maximum supported number of samples per run is 50. Therefore, we encourage you to run additional campaigns with different seeds.");
+    }
     const jc = await runLhsSampling(context, lhsInputs);
     // New - include this job collection in the fetchedJobCollections
     if (!jc) {
@@ -114,6 +120,14 @@ const LHSSampling = () => {
     });
   }
 
+  const recommendedLHSSamples = (inputVars: string[]) => {
+    // TODO make wrt # input Vars which are NOT constant distribution
+    let nPoints: number;
+    nPoints = Math.sqrt(inputVars.length) * 30 * 1.2;
+    nPoints = Math.ceil(nPoints / 5) * 5;
+    return nPoints;
+  }
+
   useEffect(() => {
     const currentSampling: LHSamplingConfig = lhsSamplingConfig;
     if (lhsSamplingConfig.inputs.length === 0) {
@@ -135,15 +149,8 @@ const LHSSampling = () => {
 
   useEffect(() => {
     setLhsInputs((prevInputs) => {
-      const nPoints = Math.sqrt(inputVars.length) * 30 * 1.2;
-      // TODO make wrt # input Vars which are NOT constant distribution
-      const roundedPoints = Math.ceil(nPoints / 5) * 5;
-      if (roundedPoints > 50 && permissions === "WRITE") {
-        toast.warning(`For your number of non-constant input variables, we would recommend ${roundedPoints} samples in your LHS campaign. \n\n ` +
-          "However, currently the maximum supported number of samples per run is 50. Therefore, we encourage you to run multiple campaigns with different seeds.");
-      }
-      // TODO this will need to get changed
-      const lhsPoints = Math.min(Math.max(roundedPoints, 5), 50); // hardcode max points in backedn
+      const roundedPoints = recommendedLHSSamples(inputVars)
+      const lhsPoints = Math.min(Math.max(roundedPoints, 5), 50); // hardcoded max points limit in backedn
       const newInputs = { ...prevInputs, points: lhsPoints };
       return newInputs;
     });
