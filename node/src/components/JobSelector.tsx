@@ -488,6 +488,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             align: "right",
             headerAlign: "right",
             minWidth: 115,
+            maxWidth: 115,
             renderCell: (params) => (
               <CustomTooltip title={getMinMax(params.row.subJobs)} placement="left">
                 <Chip color="primary" variant="outlined" size="medium" label={(<Box alignItems={'center'} justifyContent={'center'} display={'flex'} gap={1}><InfoOutline/> Min-Max</Box>)}></Chip>
