@@ -308,6 +308,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     } else {
       console.info("Function selected: ", selectedFunction.uid);
       (async () => {
+        setJobCollections([]);
         await updateJobCollections(selectedFunction?.uid as string);
         console.info("Updated JobCollections");
       })();
