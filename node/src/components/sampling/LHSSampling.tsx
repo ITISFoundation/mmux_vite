@@ -13,6 +13,7 @@ import VariableConfig from "../setup/VariableConfig";
 import { getFunctionJob } from "../../utils/function_utils";
 import { toast } from "react-toastify";
 import { useServiceContext } from "../../context/ServiceContext";
+import { filterInputVars } from "../plots/PlotTools";
 
 async function runLhsSampling(
   context: MMUXContextType,
@@ -67,7 +68,7 @@ const LHSSampling = () => {
 
   const handleRunSampling = async () => {
     setLhsSamplingConfig(lhsInputs)
-    const nPoints = recommendedLHSSamples(inputVars)
+    const nPoints = recommendedLHSSamples(context)
     // TODO should check how many jobs already have; and current launched number
     if (nPoints > 50 && permissions === "WRITE") {
       toast.warning(`For your number of non-constant input variables, we would recommend a total of ${nPoints} LHS samples. \n\n ` +
@@ -120,10 +121,10 @@ const LHSSampling = () => {
     });
   }
 
-  const recommendedLHSSamples = (inputVars: string[]) => {
+  const recommendedLHSSamples = (context: MMUXContextType) => {
     // TODO make wrt # input Vars which are NOT constant distribution
     let nPoints: number;
-    nPoints = Math.sqrt(inputVars.length) * 30 * 1.2;
+    nPoints = Math.sqrt(filterInputVars(context).length) * 30 * 1.2;
     nPoints = Math.ceil(nPoints / 5) * 5;
     return nPoints;
   }
@@ -149,7 +150,7 @@ const LHSSampling = () => {
 
   useEffect(() => {
     setLhsInputs((prevInputs) => {
-      const roundedPoints = recommendedLHSSamples(inputVars)
+      const roundedPoints = recommendedLHSSamples(context)
       const lhsPoints = Math.min(Math.max(roundedPoints, 5), 50); // hardcoded max points limit in backedn
       const newInputs = { ...prevInputs, points: lhsPoints };
       return newInputs;
