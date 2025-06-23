@@ -134,7 +134,6 @@ const IsoSurface3DPlot = () => {
     // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
-    setPlotData([]);
     setPropagating(true);
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_grid_evaluation", {
       method: "POST",

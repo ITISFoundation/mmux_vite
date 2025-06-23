@@ -68,7 +68,6 @@ const Surface2DPlot = () => {
     // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
-    setPlotData([]);
     setPropagating(true);
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_grid_evaluation", {
       method: "POST",
@@ -182,12 +181,6 @@ const Surface2DPlot = () => {
   return (
     <>
       <Box display={"flex"} flexDirection={"column"} width={"100%"}>
-        {propagating && (
-          <CalculatingWarning
-            height={plotStyle.height}
-            dontShowText={true}
-          />
-        )}
         {!propagating && plotData.length === 0 && (
           <InsufficientDataWarning
             fetchedJobCollections={fetchedJobCollections}
@@ -195,7 +188,7 @@ const Surface2DPlot = () => {
             height={plotStyle.height}
           />
         )}
-        {!propagating && plotData.length !== 0 && (
+        {plotData.length !== 0 && (
           <Plot data={plotData} layout={layout} style={plotStyle} />
         )}
       </Box>

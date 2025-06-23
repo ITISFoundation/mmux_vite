@@ -134,6 +134,7 @@ const Curves1DPlots = () => {
       }
     };
     run();
+    console.log("axis: ", axis)
   }, [
     inputVars,
     selectedQoI,
@@ -161,7 +162,7 @@ const Curves1DPlots = () => {
       bgcolor: "rgba(0,0,0,0)",
     },
     xaxis: {
-      title: { text: axis },
+      title: { text: axis }, // FIXME axis is only showing for the first parameter in the list
     },
     yaxis: {
       title: { text: selectedQoI },
@@ -173,12 +174,6 @@ const Curves1DPlots = () => {
   return (
     <>
       <Box display={"flex"} flexDirection={"column"}>
-        {propagating && (
-          <CalculatingWarning
-            height={plotStyle.height}
-            dontShowText={true}
-          />
-        )}
         {!propagating && plotData.length === 0 && (
           <InsufficientDataWarning
             fetchedJobCollections={fetchedJobCollections}
@@ -186,7 +181,7 @@ const Curves1DPlots = () => {
             height={plotStyle.height}
           />
         )}
-        {!propagating && plotData.length !== 0 && (
+        {plotData.length !== 0 && (
           <Plot data={plotData} layout={layout} style={plotStyle} />
         )}
       </Box>
