@@ -261,11 +261,12 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(
       (jc) => {
         const auxJob = jc;
-        auxJob.selected = checked;
         auxJob.subJobs = jc.subJobs.map((subJob) => ({
           selected: checked === true ? subJob.job.status === "SUCCESS" : false,
           job: subJob.job,
         }));
+        const auxJobState = auxJob.subJobs.map((j) => j.selected);
+        auxJob.selected = checked === true ? !auxJobState.every((j) => j === false) : false;
         return auxJob;
       }
     );
@@ -278,11 +279,12 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(
       (jc) => {
         const auxJob = jc;
-        auxJob.selected = true;
         auxJob.subJobs = jc.subJobs.map((subJob) => ({
           selected: subJob.job.status === "SUCCESS",
           job: subJob.job,
         }));
+        const auxJobState = auxJob.subJobs.map((j) => j.selected);
+        auxJob.selected = !auxJobState.every((j) => j === false);
         return auxJob;
       }
     );
