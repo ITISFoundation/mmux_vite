@@ -1,16 +1,15 @@
 import { Box, Typography, Chip, useTheme } from "@mui/material";
-import { InputBlock } from "./InputBlock";
+import { InputBlock } from "./utils/InputBlock";
 
-const VariableConfig = ({
-  inputVar,
-  index,
-  handleInputChange,
-}: {
-  inputVar: SingleJobConfig;
+interface VariableConfigProps {
+  inputVar: SamplingInputsState;
   index: number;
-  handleInputChange: (index: number, field: string, value: string) => void;
-}) => {
+  handleInputChange: (index: number, field: fieldType, value: string) => void;
+}
+
+const VariableConfig = (props: VariableConfigProps) => {
   const theme = useTheme();
+  const { inputVar, index, handleInputChange } = props;
 
   return (
     <Box
@@ -39,13 +38,17 @@ const VariableConfig = ({
             borderRadius: "8px",
             backgroundColor: theme.palette.primary.main,
           }}
-        />
+        ></Chip>
       </Typography>
       <InputBlock
-        name="Value"
-        type="number"
-        value={inputVar.value !== undefined ? inputVar.value : NaN}
-        onChange={(n) => handleInputChange(index, "value", n as string)}
+        name="Start"
+        value={inputVar.start}
+        onChange={(n) => handleInputChange(index, "start", n as string)}
+      />
+      <InputBlock
+        name="End"
+        value={inputVar.end}
+        onChange={(n) => handleInputChange(index, "end", n as string)}
       />
     </Box>
   );

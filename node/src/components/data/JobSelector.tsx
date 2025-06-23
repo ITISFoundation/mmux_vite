@@ -26,7 +26,7 @@ import {
 import { Refresh } from "@mui/icons-material";
 import { DataGrid } from "@mui/x-data-grid";
 import JobRow from "./JobRow";
-import CustomTooltip from "./CustomTooltip";
+import CustomTooltip from "./utils/CustomTooltip";
 
 type JobSelectorPropsType = {
   loading: boolean
@@ -142,7 +142,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       setJobCollections(fetchedJobCollections);
       setLoading(false);
       return;
-    } else if( forceFetch ) {
+    } else if (forceFetch) {
       setLoading(true);
       setJobCollections([])
       setProgress(0);
@@ -348,13 +348,13 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   };
 
   type minMaxType = {
-    inputs: {[key: string]: {min: number, max: number}},
-    outputs: {[key: string]: {min: number, max: number}},
+    inputs: { [key: string]: { min: number, max: number } },
+    outputs: { [key: string]: { min: number, max: number } },
   };
 
   const getMinMax = (subJobs: SubJob[]) => {
-    const inputs = Object.entries(subJobs).map(([key, value], idx) => value.job.inputs as {[key: string]: number});
-    const outputs = Object.entries(subJobs).map(([key, value], idx) => value.job.outputs as {[key: string]: number});
+    const inputs = Object.entries(subJobs).map(([key, value], idx) => value.job.inputs as { [key: string]: number });
+    const outputs = Object.entries(subJobs).map(([key, value], idx) => value.job.outputs as { [key: string]: number });
 
     const minMax: minMaxType = {
       inputs: {},
@@ -491,7 +491,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             maxWidth: 115,
             renderCell: (params) => (
               <CustomTooltip title={getMinMax(params.row.subJobs)} placement="left">
-                <Chip color="primary" variant="outlined" size="medium" label={(<Box alignItems={'center'} justifyContent={'center'} display={'flex'} gap={1}><InfoOutline/> Min-Max</Box>)}></Chip>
+                <Chip color="primary" variant="outlined" size="medium" label={(<Box alignItems={'center'} justifyContent={'center'} display={'flex'} gap={1}><InfoOutline /> Min-Max</Box>)}></Chip>
               </CustomTooltip>
             ),
           },
@@ -576,13 +576,13 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       <ClickAwayListener onClickAway={handleClickAway}>
         <Popper open={poperID !== -1} anchorEl={anchorEl} placement="right">
           {poperID !== -1 && jobCollections[poperID] && (
-            <Card sx={(theme)=>({ borderRadius: theme.spacing(2) })}>
+            <Card sx={(theme) => ({ borderRadius: theme.spacing(2) })}>
               <Box style={{ padding: "16px" }}>
                 <TableContainer>
                   <Table
                     size="small"
                     aria-label="jobs"
-                    sx={(theme)=>({ borderRadius: theme.spacing(2), padding: theme.spacing(4) })}
+                    sx={(theme) => ({ borderRadius: theme.spacing(2), padding: theme.spacing(4) })}
                   >
                     <TableHead>
                       <TableRow>

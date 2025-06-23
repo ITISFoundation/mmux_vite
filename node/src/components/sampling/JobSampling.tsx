@@ -1,7 +1,7 @@
 import { InfoOutline } from "@mui/icons-material";
 import { Accordion, Button, AccordionDetails } from "@mui/material";
 import React, { useState } from "react";
-import CustomTooltip from "../CustomTooltip";
+import CustomTooltip from "../utils/CustomTooltip";
 import AdaptExtedSamplingDocument from "../documents/AdaptExtendSamplingDocument";
 import JobSelector from "../JobSelector";
 import PlusButton from "./PlusButton";

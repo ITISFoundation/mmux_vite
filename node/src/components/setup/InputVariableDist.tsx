@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useServiceContext } from "../../context/ServiceContext";
 import InputVariableDistDocument from "../documents/InputVariableDistDocument";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { InputBlock } from "../InputBlock";
+import { InputBlock } from "../utils/InputBlock";
 import Header from "../navigation/Header";
 
 export const InputVariableDist = () => {
@@ -15,7 +15,7 @@ export const InputVariableDist = () => {
   const handleSetLocalDistribution = useCallback((newInputVars: typeof localDistribution) => {
     setLocalDistribution(newInputVars);
     if (selectedFunction) {
-      const newDist =  { ...distribution, [selectedFunction.uid]: newInputVars };
+      const newDist = { ...distribution, [selectedFunction.uid]: newInputVars };
       setDistribution(newDist);
     }
   }, [distribution, selectedFunction, setDistribution]);
@@ -153,44 +153,44 @@ export const InputVariableDist = () => {
                   }}
                 ></Chip>
               </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px'}}>
-              <InputLabel sx={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'start' }}>
-                Distribution Form:
-                <Select
-                  variant="outlined"
-                  size="small"
-                  id={index + "selector"}
-                  disabled={serviceMode === "SUMO"}
-                  value={localDistribution[inputVar]?.distribution || ""}
-                  sx={{ minWidth: 132, width: '100%' }}
-                  onChange={(e) => handleDistributionChange(inputVar, e.target.value as distribution)}
-                >
-                  {/* TODO include info buttons about each distribution & their parameters */}
-                  <MenuItem value="constant">Constant</MenuItem>
-                  <MenuItem value="normal">Normal (Gaussian)</MenuItem>
-                  <MenuItem value="uniform">Uniform</MenuItem>
-                  <MenuItem value="log-normal" disabled={true}>LogNormal</MenuItem>
-                  <MenuItem value="exponential" disabled={true}>Exponential</MenuItem>
-                </Select>
-              </InputLabel>
-              <>
-                {localDistribution[inputVar]?.distribution === "constant" ? (
-                  <ConstantInputDistribution inputVar={inputVar} />
-                ) : localDistribution[inputVar]?.distribution === "normal" ? (
-                  <NormalInputDistribution inputVar={inputVar} />
-                ) : localDistribution[inputVar]?.distribution === "uniform" ? (
-                  <UniformInputDistribution inputVar={inputVar} />
-                ) : (
-                  "not found"
-                )}
-                {/* For v9 release, removed log-normal and exponential input distributions
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <InputLabel sx={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'start' }}>
+                  Distribution Form:
+                  <Select
+                    variant="outlined"
+                    size="small"
+                    id={index + "selector"}
+                    disabled={serviceMode === "SUMO"}
+                    value={localDistribution[inputVar]?.distribution || ""}
+                    sx={{ minWidth: 132, width: '100%' }}
+                    onChange={(e) => handleDistributionChange(inputVar, e.target.value as distribution)}
+                  >
+                    {/* TODO include info buttons about each distribution & their parameters */}
+                    <MenuItem value="constant">Constant</MenuItem>
+                    <MenuItem value="normal">Normal (Gaussian)</MenuItem>
+                    <MenuItem value="uniform">Uniform</MenuItem>
+                    <MenuItem value="log-normal" disabled={true}>LogNormal</MenuItem>
+                    <MenuItem value="exponential" disabled={true}>Exponential</MenuItem>
+                  </Select>
+                </InputLabel>
+                <>
+                  {localDistribution[inputVar]?.distribution === "constant" ? (
+                    <ConstantInputDistribution inputVar={inputVar} />
+                  ) : localDistribution[inputVar]?.distribution === "normal" ? (
+                    <NormalInputDistribution inputVar={inputVar} />
+                  ) : localDistribution[inputVar]?.distribution === "uniform" ? (
+                    <UniformInputDistribution inputVar={inputVar} />
+                  ) : (
+                    "not found"
+                  )}
+                  {/* For v9 release, removed log-normal and exponential input distributions
                   ) : localDistribution[inputVar]?.distribution === "log-normal" ? (
                       <LogNormalInputDistribution inputVar={inputVar} />
                     ) : localDistribution[inputVar]?.distribution === "exponential" ? (
                         <ExponentialInputDistribution inputVar={inputVar} />
                 */}
-              </>
-            </Box>
+                </>
+              </Box>
             </Box>
           );
         })}

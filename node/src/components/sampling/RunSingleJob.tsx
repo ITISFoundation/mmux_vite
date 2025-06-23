@@ -4,7 +4,7 @@ import { Box, Button, Skeleton, Typography } from "@mui/material";
 import { Function, FunctionJob, ProjectFunctionJob } from "../../osparc-api-ts-client";
 import { useMMUXContext, MMUXContextType } from "../../context/MMUXContext";
 import { RunSamplingButton } from "./RunSamplingButton";
-import ValueConfig from "../ValueConfig";
+import ValueConfig from "../setup/ValueConfig";
 import { toast } from "react-toastify";
 import { openStudyUid } from "../../utils/function_utils";
 

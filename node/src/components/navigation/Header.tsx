@@ -1,6 +1,6 @@
 import { HelpOutline, InfoOutline } from "@mui/icons-material";
 import { Box, Typography, styled } from "@mui/material";
-import CustomTooltip from "../CustomTooltip";
+import CustomTooltip from "../utils/CustomTooltip";
 
 const HeaderContainer = styled("div", {
   shouldForwardProp: (props) => props !== "headerType",

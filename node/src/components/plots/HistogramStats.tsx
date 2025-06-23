@@ -1,5 +1,5 @@
 import { Typography, Box, useTheme } from "@mui/material";
-import Header from "./navigation/Header";
+import Header from "../navigation/Header";
 
 const HistogramStats = (props: dataUQHistogramType) => {
   const theme = useTheme();

@@ -11,8 +11,8 @@ import {
   plotMargins,
 } from "./PlotTools";
 import Header from "../navigation/Header";
-import CalculatingWarning from "../CalculatingWarning";
-import InsufficientDataWarning from "../InsufficientDataWarning";
+import CalculatingWarning from "./CalculatingWarning";
+import InsufficientDataWarning from "./InsufficientDataWarning";
 
 const IsoSurface3DPlot = () => {
   const theme = useTheme();
@@ -304,7 +304,7 @@ const IsoSurface3DPlot = () => {
         </Box>
         <Box display={"flex"} flexDirection={"column"} gap={2}>
           {inputVars.length > 0 &&
-          distribution[selectedFunction?.uid || ""] !== undefined ? (
+            distribution[selectedFunction?.uid || ""] !== undefined ? (
             <>
               {inputVars.map((key) => {
                 if (key === axis1 || key === axis2 || key === axis3) {

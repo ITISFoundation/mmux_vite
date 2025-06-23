@@ -12,8 +12,8 @@ import {
   plotMargins,
 } from "./PlotTools";
 import Header from "../navigation/Header";
-import CalculatingWarning from "../CalculatingWarning";
-import InsufficientDataWarning from "../InsufficientDataWarning";
+import CalculatingWarning from "./CalculatingWarning";
+import InsufficientDataWarning from "./InsufficientDataWarning";
 
 const Surface2DPlot = () => {
   const theme = useTheme();
@@ -230,7 +230,7 @@ const Surface2DPlot = () => {
           />
         </Box>
         {inputVars.length > 0 &&
-        distribution[selectedFunction?.uid || ""] !== undefined ? (
+          distribution[selectedFunction?.uid || ""] !== undefined ? (
           <>
             {inputVars.map((key) => {
               if (key === axis1 || key === axis2) {

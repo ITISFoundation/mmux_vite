@@ -3,12 +3,12 @@ import { useMMUXContext } from "../../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, useTheme } from "@mui/material";
 import { FunctionJob } from "../../osparc-api-ts-client";
-import Metric from "./../Metric";
-import SuMoMetricRow from "./../SuMoMetricRow";
+import Metric from "./Metric";
+import SuMoMetricRow from "./SuMoMetricRow";
 import { plotMargins } from "./PlotTools";
 import Plot from "react-plotly.js";
-import CalculatingWarning from "../CalculatingWarning";
-import InsufficientDataWarning from "../InsufficientDataWarning";
+import CalculatingWarning from "./CalculatingWarning";
+import InsufficientDataWarning from "./InsufficientDataWarning";
 import { Layout } from "plotly.js";
 
 const SuMoValidation = () => {
@@ -48,7 +48,7 @@ const SuMoValidation = () => {
         (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
         0
       ) /
-        (y.length - 1)
+      (y.length - 1)
     );
     const mean_y_hat =
       y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
@@ -57,7 +57,7 @@ const SuMoValidation = () => {
         (sum: number, value: number) => sum + Math.pow(value - mean_y_hat, 2),
         0
       ) /
-        (y_hat.length - 1)
+      (y_hat.length - 1)
     );
     const cvMetricsData = {
       mean_y: mean_y,

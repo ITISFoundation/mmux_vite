@@ -4,7 +4,7 @@ import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { JobSampling } from "../components/sampling/JobSampling";
 import { useState, useRef, useEffect } from "react";
 import { JobsLoading } from "../components/JobsLoading";
-import { OutputSetup } from "../components/OutputSetup";
+import { OutputSetup } from "./OutputSetup";
 
 export default function SuMo() {
   const { selectedFunction, outputVars, setSelectedQoI } = useMMUXContext();

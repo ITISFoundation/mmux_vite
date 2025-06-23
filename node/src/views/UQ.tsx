@@ -3,7 +3,7 @@ import { useMMUXContext } from "../context/MMUXContext";
 import UncertainUQ from "../components/plots/UncertainUQ";
 import SuMoModal from "../components/SuMoModal";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
-import { OutputSetup } from "../components/OutputSetup";
+import { OutputSetup } from "./OutputSetup";
 import { JobSampling } from "../components/sampling/JobSampling";
 
 export default function UQ() {
