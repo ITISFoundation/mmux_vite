@@ -116,7 +116,7 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
     min = dist.min;
     max = dist.max;
   } else {
-    console.log("Could not define max & min for variable ", input)
+    console.warn("Could not define max & min for variable ", input)
     min = 0
     max = 1
   }

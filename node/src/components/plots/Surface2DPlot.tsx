@@ -93,7 +93,7 @@ const Surface2DPlot = () => {
         setPropagating(false);
       })
       .catch((error) => {
-        console.debug("Error:", error);
+        console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
       });

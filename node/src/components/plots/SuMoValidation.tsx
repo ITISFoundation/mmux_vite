@@ -139,7 +139,7 @@ const SuMoValidation = () => {
         }
       })
       .catch((error) => {
-        console.debug("Error:", error);
+        console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
         setCvMetrics(undefined);

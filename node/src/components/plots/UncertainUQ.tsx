@@ -87,7 +87,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
           setPropagating(false);
         } catch (error) {
-          console.debug("Error:", error);
+          console.warn("Error:", error);
           setPropagating(false);
           setDataUQHistogram(undefined);
         }
