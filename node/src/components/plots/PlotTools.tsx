@@ -168,9 +168,6 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
         value={value} // TODO could not get slider to be in the middle for those w constant values
         onChange={(e, newValue) => {
           setValue(newValue as number);
-          // FIXME Esra really liked the full-interactive feeling of having the plot change as you move the slider.
-          // Would be nice to have that back - maybe simply by having less possible steps?
-          // ideally, enable this ONLY for 1D plot (others are too much for this)
           changeOtherAxis(e as Event, newValue as number)
         }}
         onChangeCommitted={(e, newValue) => {
@@ -187,6 +184,16 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
           if (e.key === "Enter") {
             const newAxis = { ...otherAxis };
             newAxis[input] = value;
+            setOtherAxis(newAxis);
+          }
+          if(e.key === "ArrowDown") {
+            const newAxis = { ...otherAxis };
+            newAxis[input] = Math.max(min, value - step);
+            setOtherAxis(newAxis);
+          }
+          if(e.key === "ArrowUp") {
+            const newAxis = { ...otherAxis };
+            newAxis[input] = Math.max(min, value - step);
             setOtherAxis(newAxis);
           }
         }}
