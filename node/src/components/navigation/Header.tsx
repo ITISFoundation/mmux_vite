@@ -47,7 +47,6 @@ const types: { [key in HeaderTypes]: TypographyVariant } = {
 function Header(props: HeaderProps) {
   const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents } =
     props;
-  console.log("tabTitle: ", tabTitle, "infoText", infoText)
   return (
     <HeaderContainer headerType={headerType}>
       <Box flex={1} display="flex" alignItems="center">

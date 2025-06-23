@@ -30,7 +30,6 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     const run = async () => {
       const jobs = filterSelectedJobList();
       async function runUQ(jobs: FunctionJob[]) {
-        console.log("Running UQ...");
         setDataUQHistogram(undefined);
         setPlotData([]);
         setPropagating(true);

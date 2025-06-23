@@ -131,9 +131,9 @@ export function FunctionList() {
         <IconButton
           size="small"
           onClick={handleInfoClick}
-          sx={(theme)=>({color: theme.palette.primary.light, backgroundColor: theme.palette.background.default})}
+          sx={(theme) => ({ color: theme.palette.primary.light, backgroundColor: theme.palette.background.default })}
         >
-          <InfoOutlinedIcon fontSize="small"  />
+          <InfoOutlinedIcon fontSize="small" />
         </IconButton>
       );
     } else if ((fun as PythonCodeFunction).codeUrl) {
@@ -159,7 +159,7 @@ export function FunctionList() {
   }
 
   function setRowSelection(fun: Function) {
-    if( selectedFunction && selectedFunction.uid === fun.uid) {
+    if (selectedFunction && selectedFunction.uid === fun.uid) {
       setSelectedFunction(undefined);
       setInputVars([]);
       setOutputVars([]);
@@ -206,14 +206,13 @@ export function FunctionList() {
   }
 
   useEffect(() => {
-    console.log("FunctionList mounted, fetching functions...");
     (async () => {
       await fetchFunctions();
     })();
   }, []);
 
   useEffect(() => {
-    console.log("Selected function changed:", selectedFunction);
+    console.info("Selected function changed:", selectedFunction);
     if (selectedFunction) {
       rowSelectionModel.ids.add(getRowId(selectedFunction));
     }

@@ -93,12 +93,10 @@ const Curves1DPlots = () => {
         );
       }
       setPlotData(traces);
-      console.log("Registered plotData: ", traces);
     }
   };
 
   const RunCentralSuMoInterpolations = async (jobs: FunctionJob[]) => {
-    console.log("Evaluating SuMo for 1D curves...");
     setPropagating(true);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_along_axes", {
@@ -120,7 +118,6 @@ const Curves1DPlots = () => {
         setPropagating(false);
       })
       .catch((error) => {
-        console.log("Error in RunCentralSuMoInterpolations: ", error);
         setPlotData([]);
         setPropagating(false);
       });

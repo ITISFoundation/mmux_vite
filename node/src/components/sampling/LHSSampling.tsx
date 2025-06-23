@@ -21,7 +21,6 @@ async function runLhsSampling(
 ) {
   const fun = context.selectedFunction as Function;
   // send config to Python backend to create LHS
-  console.log("Running LHS Sampling with config: ", config);
   context.setLaunchingSampling(true);
   const jc = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/lhs_sampling", {
     method: "POST",
@@ -40,7 +39,6 @@ async function runLhsSampling(
       return response.json();
     })
     .then(function (jc: RegisteredFunctionJobCollection) {
-      console.log("JobCollection Uid: ", jc.uid);
       return jc;
     })
   context.setLaunchingSampling(false);
@@ -82,8 +80,6 @@ const LHSSampling = () => {
     }
     const newJobs: SelectedJobCollection[] = await Promise.all(
       [jc].map(async (jc) => {
-        console.log("Fetching sub-jobs for job collection:", jc);
-        console.log("Job IDs:", jc.jobIds);
         const subJobs = await Promise.all(
           jc.jobIds.map(async (id) => {
             const job = (await getFunctionJob(id)) as FunctionJob;
@@ -100,13 +96,11 @@ const LHSSampling = () => {
         };
       })
     );
-    console.log("Adding new job collection to fetchedJobCollections:", newJobs);
     setFetchedJobCollections([...fetchedJobCollections, ...newJobs]);
     // TODO Alex: how do I update the table without need to reload everything else?
   }
 
   function handleInputChange(index: number, field: string, value: string) {
-    console.log("Changed LHS inputs")
     setLhsInputs((prevInputs) => {
       const newInputs: LHSamplingConfig = { ...prevInputs };
       if (['points', 'seed'].includes(field)) {

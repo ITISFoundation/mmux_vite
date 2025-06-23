@@ -17,7 +17,6 @@ async function runGridSampling(
 ) {
   const fun = context.selectedFunction as Function;
   // send config to Python backend to create LHS
-  console.log("Running Grid Sampling with config: ", config);
   context.setLaunchingSampling(true);
   const jc = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/grid_sampling", {
     method: "POST",
@@ -34,7 +33,6 @@ async function runGridSampling(
       return response.json();
     })
     .then(function (jc: RegisteredFunctionJobCollection) {
-      console.log("JobCollection Uid: ", jc.uid);
       return jc;
     })
   context.setLaunchingSampling(false);

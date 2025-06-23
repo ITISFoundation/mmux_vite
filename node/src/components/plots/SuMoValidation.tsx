@@ -68,7 +68,6 @@ const SuMoValidation = () => {
       rmse: rmse,
     };
     setCvMetrics(cvMetricsData);
-    console.log("Registered cvMetrics: ", cvMetricsData);
   }
 
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
@@ -102,7 +101,6 @@ const SuMoValidation = () => {
         createViolinPlot(y_hat, "Predictions", "negative"),
       ];
       setPlotData(newPlotData);
-      console.log("Registered plotData: ", newPlotData);
       computeStatisticsCv(y, y_hat);
     } else {
       console.warn("No data available for SuMo validation.");
@@ -136,7 +134,6 @@ const SuMoValidation = () => {
           throw new Error(`Error running SuMo Validation: ${response.error}`);
         } else {
           const data = response;
-          console.log("SuMo Validation retrieved data: ", data);
           createDataAndMetrics(data);
           setPropagating(false);
         }
@@ -165,7 +162,6 @@ const SuMoValidation = () => {
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver((event) => {
-      console.log("ResizeObserver event: ", event);
       // Depending on the layout, you may need to swap inlineSize with blockSize
       // https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserverEntry/contentBoxSize
       setWidth(event[0].contentBoxSize[0].inlineSize);

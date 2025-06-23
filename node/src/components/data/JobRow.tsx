@@ -75,7 +75,6 @@ const JobRow = (props: JobRowProps) => {
       try {
         const projectJobId = job.projectJobId;
         const inputs = job.inputs
-        console.log("inputs: ", inputs)
         const study: StudyType = await fetch(
           PYTHON_DAKOTA_BACKEND + "/flask/clone_job", {
           method: "POST",
@@ -87,7 +86,6 @@ const JobRow = (props: JobRowProps) => {
         }).then(function (response) {
           return response.json()
         })
-        console.log("Clone study response: ", study)
 
         if (study && study.uid) {
           return study.uid

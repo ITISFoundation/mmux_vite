@@ -148,7 +148,6 @@ const IsoSurface3DPlot = () => {
       }),
     })
       .then(function (response) {
-        console.log(response);
         if (response && !response.ok) {
           console.warn("SuMo Surface plot error: ", response.body);
         } else {
@@ -156,7 +155,6 @@ const IsoSurface3DPlot = () => {
         }
       })
       .then(function (d) {
-        console.log("2D retrieved data: ", d);
         reshapePlotData(d);
         setPropagating(false);
       })
@@ -191,10 +189,8 @@ const IsoSurface3DPlot = () => {
         },
       ];
       setPlotData(newData);
-      console.log("Registered plotData: ", newData);
     } else {
       setPlotData([]);
-      console.log("Empty plotData");
     }
   };
 
@@ -204,7 +200,6 @@ const IsoSurface3DPlot = () => {
       return await RunSuMo3DInterpolation(jobs, axis1, axis2);
     };
     run();
-    console.log(axis1, axis2, axis3);
   }, [
     axis1,
     axis2,

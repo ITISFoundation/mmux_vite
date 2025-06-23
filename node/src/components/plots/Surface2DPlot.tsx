@@ -82,7 +82,6 @@ const Surface2DPlot = () => {
       }),
     })
       .then(function (response) {
-        console.log(response);
         if (response && !response.ok) {
           console.warn("SuMo Surface plot error: ", response.body);
         } else {
@@ -90,7 +89,6 @@ const Surface2DPlot = () => {
         }
       })
       .then(function (d) {
-        console.log("2D retrieved data: ", d);
         reshapePlotData(d);
         setPropagating(false);
       })
@@ -126,7 +124,7 @@ const Surface2DPlot = () => {
       setPlotData(newData);
     } else {
       setPlotData([]);
-      console.log("Empty plotData");
+      console.warn("Empty plotData");
     }
   };
 
