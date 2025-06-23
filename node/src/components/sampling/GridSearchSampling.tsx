@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Skeleton, Typography } from "@mui/material";
+import { Box, Skeleton, Typography } from "@mui/material";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { useMMUXContext, MMUXContextType } from "../../context/MMUXContext";
 import {
@@ -8,7 +8,7 @@ import {
 } from "../../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
-import VariableConfig from "./../VariableConfig";
+import VariableConfig from "./../setup/VariableConfig";
 
 // TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
 async function runGridSampling(

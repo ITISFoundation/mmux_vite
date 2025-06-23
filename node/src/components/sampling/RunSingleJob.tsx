@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Box, Button, Skeleton, Typography } from "@mui/material";
-import { Function, FunctionJob, ProjectFunctionJob } from "../../osparc-api-ts-client";
+import { Box, Skeleton, Typography } from "@mui/material";
+import { Function, FunctionJob } from "../../osparc-api-ts-client";
 import { useMMUXContext, MMUXContextType } from "../../context/MMUXContext";
 import { RunSamplingButton } from "./RunSamplingButton";
 import ValueConfig from "../setup/ValueConfig";

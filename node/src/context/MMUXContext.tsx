@@ -4,7 +4,6 @@ import {
   FunctionJob,
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
-import { toast } from "react-toastify";
 
 export interface MMUXContextType {
   selectedFunction: Function | undefined;

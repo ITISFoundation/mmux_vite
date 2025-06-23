@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Container,
   Card,
@@ -43,7 +42,7 @@ export const SplashScreen = () => {
         >
           MetaModelingUX
         </Typography>
-        <CircularProgress size="3rem" sx={{color: theme.palette.primary.main}} />
+        <CircularProgress size="3rem" sx={{ color: theme.palette.primary.main }} />
         <CardHeader
           title={
             <Typography

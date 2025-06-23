@@ -5,12 +5,12 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import { useMMUXContext } from "../context/MMUXContext";
-import { FunctionJob } from "../osparc-api-ts-client";
+import { useMMUXContext } from "../../context/MMUXContext";
+import { FunctionJob } from "../../osparc-api-ts-client";
 import {
   getFunctionJobCollections,
   getFunctionJob,
-} from "../utils/function_utils";
+} from "../../utils/function_utils";
 import {
   Box,
   Button,
@@ -26,7 +26,7 @@ import {
 import { Refresh } from "@mui/icons-material";
 import { DataGrid } from "@mui/x-data-grid";
 import JobRow from "./JobRow";
-import CustomTooltip from "./utils/CustomTooltip";
+import CustomTooltip from "./../utils/CustomTooltip";
 
 type JobSelectorPropsType = {
   loading: boolean

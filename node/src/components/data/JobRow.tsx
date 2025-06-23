@@ -1,13 +1,12 @@
 import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
-import { Box, Button, Checkbox, Chip, CircularProgress, Tooltip } from "@mui/material";
+import { Box, Button, Checkbox, CircularProgress, Tooltip } from "@mui/material";
 import { toast } from "react-toastify";
 import { useState } from "react";
-import { PYTHON_DAKOTA_BACKEND } from "../utils/api_objects";
-import { openStudyUid } from "../utils/function_utils";
-import { Function, ProjectFunctionJob } from "../osparc-api-ts-client";
-import { InfoOutline } from "@mui/icons-material";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
+import { openStudyUid } from "../../utils/function_utils";
+import { Function, ProjectFunctionJob } from "../../osparc-api-ts-client";
 
 interface JobRowProps {
   jobUid: string

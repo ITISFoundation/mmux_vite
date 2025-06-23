@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Box, Button, Input, Skeleton, Typography } from "@mui/material";
+import { Box, Input, Skeleton, Typography } from "@mui/material";
 import {
   Function,
   FunctionJob,
@@ -9,7 +9,7 @@ import {
 } from "../../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
-import VariableConfig from "../VariableConfig";
+import VariableConfig from "../setup/VariableConfig";
 import { getFunctionJob } from "../../utils/function_utils";
 import { toast } from "react-toastify";
 import { useServiceContext } from "../../context/ServiceContext";

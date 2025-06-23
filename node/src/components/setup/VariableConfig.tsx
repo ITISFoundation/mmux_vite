@@ -1,5 +1,5 @@
 import { Box, Typography, Chip, useTheme } from "@mui/material";
-import { InputBlock } from "./utils/InputBlock";
+import { InputBlock } from "./../utils/InputBlock";
 
 interface VariableConfigProps {
   inputVar: SamplingInputsState;

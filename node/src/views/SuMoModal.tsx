@@ -1,5 +1,5 @@
 import { Modal } from "@mui/material";
-import SuMoPlotsSteps from "./plots/SuMoPlotsSteps";
+import SuMoPlotsSteps from "./../components/plots/SuMoPlotsSteps";
 
 const SuMoModal = ({
   open,
