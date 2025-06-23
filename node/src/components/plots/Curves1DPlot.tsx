@@ -57,7 +57,7 @@ const Curves1DPlots = () => {
         {
           x: x,
           y: y_hat,
-          name: varName,
+          name: 'Model prediction',
           xaxis: `x${inputVars.indexOf(varName) + 1}`,
           yaxis: "y",
           mode: "lines",
@@ -75,20 +75,19 @@ const Curves1DPlots = () => {
             mode: "lines",
             line: { color: "rgba(0,0,0,0)" },
             fillcolor: fillColor,
-            fill: "tonexty",
             showlegend: false,
           },
           {
             x: x,
             y: y_hat.map((y, i) => y - 2 * std_hat[i]),
-            name: `${varName}-2σ`,
+            name: `${varName}+/-2σ (95% Confidence Interval)`,
             xaxis: `x${inputVars.indexOf(varName) + 1}`,
             yaxis: "y",
             mode: "lines",
             fill: "tonexty",
             line: { color: "rgba(0,0,0,0)" },
             fillcolor: fillColor,
-            showlegend: false,
+            showlegend: true,
           }
         );
       }
@@ -156,6 +155,13 @@ const Curves1DPlots = () => {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
+    legend: {
+      yanchor: "top",
+      xanchor: "right",
+      x: 1,
+      y: 1.4,
+      bgcolor: "rgba(0,0,0,0)",
+    },
     xaxis: {
       title: { text: axis },
     },
@@ -163,7 +169,7 @@ const Curves1DPlots = () => {
       title: { text: selectedQoI },
       anchor: "x",
     },
-    showlegend: false,
+    showlegend: true,
   };
 
   return (
