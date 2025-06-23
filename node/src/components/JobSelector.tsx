@@ -133,13 +133,20 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     setJobCollections(newJobCollections);
   };
 
-  async function updateJobCollections(functionUid: string) {
+  async function updateJobCollections(functionUid: string, forceFetch = false) {
     console.info("Fetching jobCollections for function: ", functionUid);
-    if (fetchedJobCollections.length > 0) {
+    if (fetchedJobCollections.length > 0 && !forceFetch) {
       console.info("Job collections already fetched, skipping fetch.");
       setJobCollections(fetchedJobCollections);
       setLoading(false);
       return;
+    } else if( forceFetch ) {
+      setLoading(true);
+      setJobCollections([])
+      setProgress(0);
+      setJobProgress(0);
+      jobsFetched.current = 0;
+      colsFetched.current = 0;
     }
     const jobsC = (await getFunctionJobCollections(
       functionUid as string
@@ -163,8 +170,18 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       const jc = jobsC[jcIdx];
       const subJobs = [];
       for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx++) {
+        let job: FunctionJob;
         const id = jc.jobIds[subJobIdx];
-        const job = (await getFunctionJob(id)) as FunctionJob;
+        // check if job is already fetched in fetchedJobCollections
+        const existingJob = fetchedJobCollections.find((j) =>
+          j.jobCollection.jobIds.includes(id) && j.subJobs.some((sj) => sj.job.uid === id && sj.job.status === "FAILED" || sj.job.status === "SUCCESS")
+        );
+        if (existingJob) {
+          // console.info("Job already fetched: ", id, existingJob.subJobs.find((j) => j.job.uid === id));
+          job = existingJob.subJobs.find((j) => j.job.uid === id)?.job;
+        } else {
+          job = (await getFunctionJob(id));
+        }
         jobsFetched.current += 1;
         const jobsProg = (jobsFetched.current / totalSubs) * 100;
         setJobProgress(jobsProg);
@@ -348,7 +365,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                   setProgress(0);
                   setJobProgress(0);
                   await updateJobCollections(
-                    selectedFunction?.uid ? selectedFunction.uid : ""
+                    selectedFunction?.uid ? selectedFunction.uid : "",
+                    true
                   );
                 }}
               >
