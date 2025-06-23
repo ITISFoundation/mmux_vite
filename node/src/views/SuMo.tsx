@@ -30,7 +30,7 @@ export default function SuMo() {
         <JobsLoading
           progress={progress}
           jobProgress={jobProgress}
-          message={"Creating SuMo AI model..."}
+          message={"Creating AI model..."}
         />
       ) : (
         <SuMoPlotsSteps />

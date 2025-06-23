@@ -167,6 +167,9 @@ def _deployment_mode() -> str:
 def _get_all_items(api_call: Callable, *args, **kwargs):
     """Helper function to get all items from a paginated API call."""
     list_len = api_call(limit=1,*args, **kwargs).total
+    if "limit" not in kwargs:
+        kwargs["limit"] = int(np.min([50, list_len])) ## max allowed is 50
+        
     retrieved = 0
     items = []
     page = 1
@@ -326,7 +329,7 @@ def flask_get_function_job_status():
     except Exception as e:
         _logger.error(f"Error while getting function job: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
-        
+
 @app.route("/flask/get_function_job_outputs", methods=["GET"])
 def flask_get_function_job_outputs():
     _logger.debug("Starting flask function: flask_get_function_job_outputs")
@@ -338,7 +341,7 @@ def flask_get_function_job_outputs():
     except Exception as e:
         _logger.error(f"Error while getting function job: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
-        
+
 def test_job_retrieval_endpoints_speed(job_uid: str, N: int = 1):
     def _timeit(fun: Callable, N: int, *args, **kwargs):
         """Helper function to time the execution of a function N times."""
@@ -349,17 +352,28 @@ def test_job_retrieval_endpoints_speed(job_uid: str, N: int = 1):
             _logger.info(f"Iteration {_+1}/{N}: {result}")   # Print the result of each iteration
         end_time = time.time()
         return (end_time - start_time) / N
-    
     time_job_full = _timeit(job_api_instance.get_function_job, N, job_uid)
     time_job_outputs = _timeit(job_api_instance.function_job_outputs, N, job_uid)
     time_job_status = _timeit(job_api_instance.function_job_status, N, job_uid)
-    
+
     _logger.debug(f"Average time to retrieve full job: {time_job_full:.4f} seconds")
     _logger.debug(f"Average time to retrieve job outputs: {time_job_outputs:.4f} seconds")
     _logger.debug(f"Average time to retrieve job status: {time_job_status:.4f} seconds")
-
 # test_job_retrieval_endpoints_speed(job_uid="aa5453be-d9e5-4e8a-a7a5-29acd113f1d2", N=30)
-        
+
+def test_job_retrieval_paginated(function_uid: str):
+    def _timeit(fun: Callable, *args, **kwargs):
+        import time
+        start_time = time.time()
+        result = fun(*args, **kwargs)
+        end_time = time.time()
+        _logger.info(f"Retrieved {len(result)} items in {end_time - start_time:.4f} seconds")
+        _logger.info(f"First item: {result[0] if result else 'No items retrieved'}")
+        _logger.info(f"Last item: {result[-1] if result else 'No items retrieved'}")
+        _logger.info(f"That is {(end_time - start_time)/len(result):.2f} seconds per item")
+    _timeit(_get_all_items, api_call=functions_api_instance.list_function_jobs_for_functionid, function_id=function_uid)  # type: ignore
+# test_job_retrieval_paginated(function_uid="eea21c0d-6c2b-4cf4-91d1-116e6550cb22")
+
 def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str, folder_name: str = "evaluate") -> Path:
     output_response_sanitized = sanitize_varnames(output_response)
     completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore

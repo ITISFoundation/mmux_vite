@@ -86,7 +86,7 @@ export function FunctionList() {
   const showInputOutputSchema = (
     schema: JSONFunctionInputSchema | JSONFunctionOutputSchema
   ) => {
-    if (!schema) {
+    if (schema === undefined || schema.schemaContent === undefined || schema.schemaContent.properties === undefined) {
       console.error("Invalid schema:", schema);
       return [];
     }
