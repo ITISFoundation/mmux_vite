@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Box, Button, Input, Skeleton, Typography } from "@mui/material";
+import { Box, Input, Skeleton, Typography } from "@mui/material";
 import {
   Function,
   FunctionJob,
@@ -9,10 +9,11 @@ import {
 } from "../../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
-import VariableConfig from "../VariableConfig";
+import VariableConfig from "../setup/VariableConfig";
 import { getFunctionJob } from "../../utils/function_utils";
 import { toast } from "react-toastify";
 import { useServiceContext } from "../../context/ServiceContext";
+import { filterInputVars } from "../plots/PlotTools";
 
 async function runLhsSampling(
   context: MMUXContextType,
@@ -20,7 +21,6 @@ async function runLhsSampling(
 ) {
   const fun = context.selectedFunction as Function;
   // send config to Python backend to create LHS
-  console.log("Running LHS Sampling with config: ", config);
   context.setLaunchingSampling(true);
   const jc = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/lhs_sampling", {
     method: "POST",
@@ -39,7 +39,6 @@ async function runLhsSampling(
       return response.json();
     })
     .then(function (jc: RegisteredFunctionJobCollection) {
-      console.log("JobCollection Uid: ", jc.uid);
       return jc;
     })
   context.setLaunchingSampling(false);
@@ -67,6 +66,12 @@ const LHSSampling = () => {
 
   const handleRunSampling = async () => {
     setLhsSamplingConfig(lhsInputs)
+    const nPoints = recommendedLHSSamples(context)
+    // TODO should check how many jobs already have; and current launched number
+    if (nPoints > 50 && permissions === "WRITE") {
+      toast.warning(`For your number of non-constant input variables, we would recommend a total of ${nPoints} LHS samples. \n\n ` +
+        "However, currently the maximum supported number of samples per run is 50. Therefore, we encourage you to run additional campaigns with different seeds.");
+    }
     const jc = await runLhsSampling(context, lhsInputs);
     // New - include this job collection in the fetchedJobCollections
     if (!jc) {
@@ -75,8 +80,6 @@ const LHSSampling = () => {
     }
     const newJobs: SelectedJobCollection[] = await Promise.all(
       [jc].map(async (jc) => {
-        console.log("Fetching sub-jobs for job collection:", jc);
-        console.log("Job IDs:", jc.jobIds);
         const subJobs = await Promise.all(
           jc.jobIds.map(async (id) => {
             const job = (await getFunctionJob(id)) as FunctionJob;
@@ -93,13 +96,11 @@ const LHSSampling = () => {
         };
       })
     );
-    console.log("Adding new job collection to fetchedJobCollections:", newJobs);
     setFetchedJobCollections([...fetchedJobCollections, ...newJobs]);
     // TODO Alex: how do I update the table without need to reload everything else?
   }
 
   function handleInputChange(index: number, field: string, value: string) {
-    console.log("Changed LHS inputs")
     setLhsInputs((prevInputs) => {
       const newInputs: LHSamplingConfig = { ...prevInputs };
       if (['points', 'seed'].includes(field)) {
@@ -112,6 +113,14 @@ const LHSSampling = () => {
       }
       return newInputs;
     });
+  }
+
+  const recommendedLHSSamples = (context: MMUXContextType) => {
+    // TODO make wrt # input Vars which are NOT constant distribution
+    let nPoints: number;
+    nPoints = Math.sqrt(filterInputVars(context).length) * 30 * 1.2;
+    nPoints = Math.ceil(nPoints / 5) * 5;
+    return nPoints;
   }
 
   useEffect(() => {
@@ -135,15 +144,8 @@ const LHSSampling = () => {
 
   useEffect(() => {
     setLhsInputs((prevInputs) => {
-      const nPoints = Math.sqrt(inputVars.length) * 30 * 1.2;
-      // TODO make wrt # input Vars which are NOT constant distribution
-      const roundedPoints = Math.ceil(nPoints / 5) * 5;
-      if (roundedPoints > 50 && permissions === "WRITE") {
-        toast.warning(`For your number of non-constant input variables, we would recommend ${roundedPoints} samples in your LHS campaign. \n\n ` +
-          "However, currently the maximum supported number of samples per run is 50. Therefore, we encourage you to run multiple campaigns with different seeds.");
-      }
-      // TODO this will need to get changed
-      const lhsPoints = Math.min(Math.max(roundedPoints, 5), 50); // hardcode max points in backedn
+      const roundedPoints = recommendedLHSSamples(context)
+      const lhsPoints = Math.min(Math.max(roundedPoints, 5), 50); // hardcoded max points limit in backedn
       const newInputs = { ...prevInputs, points: lhsPoints };
       return newInputs;
     });

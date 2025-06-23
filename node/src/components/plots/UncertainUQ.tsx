@@ -4,11 +4,11 @@ import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, useTheme } from "@mui/material";
 import { fetchWithRetry } from "../../utils/fetch_retry";
-import HistogramStats from "../HistogramStats";
-import { JobsLoading } from "../JobsLoading";
+import HistogramStats from "./HistogramStats";
+import { JobsLoading } from "../data/JobsLoading";
 import Plot from "react-plotly.js";
-import CalculatingWarning from "../CalculatingWarning";
-import InsufficientDataWarning from "../InsufficientDataWarning";
+import CalculatingWarning from "./CalculatingWarning";
+import InsufficientDataWarning from "./InsufficientDataWarning";
 
 export default function UncertainUQ(props: UncertainUQPropsType) {
   const { loading, progress, jobProgress } = props;
@@ -30,7 +30,6 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     const run = async () => {
       const jobs = filterSelectedJobList();
       async function runUQ(jobs: FunctionJob[]) {
-        console.log("Running UQ...");
         setDataUQHistogram(undefined);
         setPlotData([]);
         setPropagating(true);
@@ -44,7 +43,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           console.info("SelectedQoI: ", selectedQoI);
           const response = await fetchWithRetry(
             PYTHON_DAKOTA_BACKEND +
-              "/flask/manual_uq_propagation_with_uncertainty",
+            "/flask/manual_uq_propagation_with_uncertainty",
             {
               method: "POST",
               body: JSON.stringify({
@@ -71,7 +70,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
                 (_, i) =>
                   data.bins_start +
                   ((data.bins_end - data.bins_start) / data.bin_means.length) *
-                    (i + 0.5)
+                  (i + 0.5)
               ),
               y: data.bin_means,
               type: "bar",
@@ -88,7 +87,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
           setPropagating(false);
         } catch (error) {
-          console.debug("Error:", error);
+          console.warn("Error:", error);
           setPropagating(false);
           setDataUQHistogram(undefined);
         }

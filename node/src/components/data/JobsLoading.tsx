@@ -1,5 +1,4 @@
 import { Box, Typography, LinearProgress, useTheme } from "@mui/material";
-import React from "react";
 
 interface JobsLoadingProps {
   progress: number;

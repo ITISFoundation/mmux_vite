@@ -40,7 +40,7 @@ const App = () => {
   const theme = setupTheme(themeMode);
 
   const setThemeModeHandler = (newMode: "light" | "dark") => {
-    console.log("Setting theme mode to", newMode);
+    console.info("Setting theme mode to", newMode);
     setThemeMode(newMode);
     setMode(newMode);
   };
@@ -49,7 +49,7 @@ const App = () => {
     try {
       const responseHealth = await getHealth();
       const result = responseHealth === 200;
-      console.log("Health status response:", responseHealth, result);
+      console.info("Health status response:", responseHealth, result);
       if (result) {
         setHealthStatus(true);
       } else {
@@ -64,7 +64,7 @@ const App = () => {
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     const pollHealthStatus = async (retries: number) => {
-      console.log("Fetching health status from backend...", retries);
+      console.info("Fetching health status from backend...", retries);
       const result = await getHealthStatus();
       if (retries <= 0) {
         console.error("Failed to get health status after multiple attempts.");
@@ -100,8 +100,8 @@ const App = () => {
     const messageHandler = (e: MessageEvent) => {
       const msg: string = e.data;
       const OSPARC_MSG_PREFIX = 'osparc;'
-      if (typeof msg === 'string'  && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
-        console.log("Received message from parent window:", e);
+      if (typeof msg === 'string' && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
+        console.info("Received message from parent window:", e);
         const osparcMsg = msg.slice(OSPARC_MSG_PREFIX.length)
         osparcMsg.split('&').forEach(processKeyValue)
       }

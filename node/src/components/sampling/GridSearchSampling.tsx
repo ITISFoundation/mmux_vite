@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Skeleton, Typography } from "@mui/material";
+import { Box, Skeleton, Typography } from "@mui/material";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { useMMUXContext, MMUXContextType } from "../../context/MMUXContext";
 import {
@@ -8,7 +8,7 @@ import {
 } from "../../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
-import VariableConfig from "./../VariableConfig";
+import VariableConfig from "./../setup/VariableConfig";
 
 // TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
 async function runGridSampling(
@@ -17,7 +17,6 @@ async function runGridSampling(
 ) {
   const fun = context.selectedFunction as Function;
   // send config to Python backend to create LHS
-  console.log("Running Grid Sampling with config: ", config);
   context.setLaunchingSampling(true);
   const jc = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/grid_sampling", {
     method: "POST",
@@ -34,7 +33,6 @@ async function runGridSampling(
       return response.json();
     })
     .then(function (jc: RegisteredFunctionJobCollection) {
-      console.log("JobCollection Uid: ", jc.uid);
       return jc;
     })
   context.setLaunchingSampling(false);

@@ -1,9 +1,9 @@
 import { InfoOutline } from "@mui/icons-material";
 import { Accordion, Button, AccordionDetails } from "@mui/material";
 import React, { useState } from "react";
-import CustomTooltip from "../CustomTooltip";
+import CustomTooltip from "../utils/CustomTooltip";
 import AdaptExtedSamplingDocument from "../documents/AdaptExtendSamplingDocument";
-import JobSelector from "../JobSelector";
+import JobSelector from "../data/JobSelector";
 import PlusButton from "./PlusButton";
 import { Sampling } from "./Sampling";
 import { Function } from "../../osparc-api-ts-client";

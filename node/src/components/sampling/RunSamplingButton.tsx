@@ -2,7 +2,7 @@ import { Button, CircularProgress } from '@mui/material';
 import { useMMUXContext } from '../../context/MMUXContext';
 import { useServiceContext } from '../../context/ServiceContext';
 import { toast } from 'react-toastify';
-import CustomTooltip from '../CustomTooltip';
+import CustomTooltip from '../utils/CustomTooltip';
 
 type RunSamplingButtonProps = {
   handleRunSampling: () => void;

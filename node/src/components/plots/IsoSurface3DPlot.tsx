@@ -11,8 +11,8 @@ import {
   plotMargins,
 } from "./PlotTools";
 import Header from "../navigation/Header";
-import CalculatingWarning from "../CalculatingWarning";
-import InsufficientDataWarning from "../InsufficientDataWarning";
+import CalculatingWarning from "./CalculatingWarning";
+import InsufficientDataWarning from "./InsufficientDataWarning";
 
 const IsoSurface3DPlot = () => {
   const theme = useTheme();
@@ -134,7 +134,6 @@ const IsoSurface3DPlot = () => {
     // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
-    setPlotData([]);
     setPropagating(true);
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_grid_evaluation", {
       method: "POST",
@@ -148,7 +147,6 @@ const IsoSurface3DPlot = () => {
       }),
     })
       .then(function (response) {
-        console.log(response);
         if (response && !response.ok) {
           console.warn("SuMo Surface plot error: ", response.body);
         } else {
@@ -156,12 +154,11 @@ const IsoSurface3DPlot = () => {
         }
       })
       .then(function (d) {
-        console.log("2D retrieved data: ", d);
         reshapePlotData(d);
         setPropagating(false);
       })
       .catch((error) => {
-        console.debug("Error:", error);
+        console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
       });
@@ -191,10 +188,8 @@ const IsoSurface3DPlot = () => {
         },
       ];
       setPlotData(newData);
-      console.log("Registered plotData: ", newData);
     } else {
       setPlotData([]);
-      console.log("Empty plotData");
     }
   };
 
@@ -204,7 +199,6 @@ const IsoSurface3DPlot = () => {
       return await RunSuMo3DInterpolation(jobs, axis1, axis2);
     };
     run();
-    console.log(axis1, axis2, axis3);
   }, [
     axis1,
     axis2,
@@ -304,7 +298,7 @@ const IsoSurface3DPlot = () => {
         </Box>
         <Box display={"flex"} flexDirection={"column"} gap={2}>
           {inputVars.length > 0 &&
-          distribution[selectedFunction?.uid || ""] !== undefined ? (
+            distribution[selectedFunction?.uid || ""] !== undefined ? (
             <>
               {inputVars.map((key) => {
                 if (key === axis1 || key === axis2 || key === axis3) {

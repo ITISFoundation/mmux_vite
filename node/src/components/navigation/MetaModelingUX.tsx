@@ -1,6 +1,6 @@
 import { Card } from "@mui/material";
 import Header from "./Header";
-import StyledHyperLink from "../HyperLink";
+import StyledHyperLink from "../utils/HyperLink";
 
 export default function MetaModelingUX(props: MetaModelingUXProps) {
   const { children, tabTitle, infoText, ExtendedInfoText, headerType } = props;

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useServiceContext } from "../../context/ServiceContext";
 import InputVariableDistDocument from "../documents/InputVariableDistDocument";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { InputBlock } from "../InputBlock";
+import { InputBlock } from "../utils/InputBlock";
 import Header from "../navigation/Header";
 
 export const InputVariableDist = () => {
@@ -15,7 +15,7 @@ export const InputVariableDist = () => {
   const handleSetLocalDistribution = useCallback((newInputVars: typeof localDistribution) => {
     setLocalDistribution(newInputVars);
     if (selectedFunction) {
-      const newDist =  { ...distribution, [selectedFunction.uid]: newInputVars };
+      const newDist = { ...distribution, [selectedFunction.uid]: newInputVars };
       setDistribution(newDist);
     }
   }, [distribution, selectedFunction, setDistribution]);
@@ -101,6 +101,35 @@ export const InputVariableDist = () => {
     handleSetLocalDistribution(newInputVars);
   };
 
+  const setInitialValues = (inputVar: string): VarSelection => {
+    // Geometry demo
+    if (inputVar === "angle") {
+      return { distribution: "uniform", min: 30, max: 300 }
+    } else if (inputVar === "gap" || inputVar === "length") {
+      return { distribution: "uniform", min: 0.2, max: 2 }
+    } else if (inputVar === "length") {
+      return { distribution: "uniform", min: 0.2, max: 300 }
+    } else if (inputVar === "silicone_extra" || inputVar === "siliconeExtra") {
+      return { distribution: "uniform", min: 0.5, max: 2.5 }
+    }
+    // Parameters demo
+    else if (inputVar === "sigma_conn") {
+      return { distribution: "normal", mean: 0.08, std: 0.016 }
+    } else if (inputVar === "sigma_fasc_lon") {
+      return { distribution: "normal", mean: 0.57, std: 0.114 }
+    } else if (inputVar === "sigma_fasc_tra") {
+      return { distribution: "normal", mean: 0.16, std: 0.032 }
+    } else if (inputVar === "sigma_interst") {
+      return { distribution: "normal", mean: 0.08, std: 0.016 }
+    } else if (inputVar === "sigma_nerve") {
+      return { distribution: "normal", mean: 0.34, std: 0.068 }
+    }
+    // Normal default for new functions
+    else {
+      return { distribution: "uniform", mean: NaN, std: NaN, min: NaN, max: NaN }
+    }
+  }
+
   useEffect(() => {
     if (distribution && selectedFunction && distribution[selectedFunction.uid]) {
       setLocalDistribution(distribution[selectedFunction.uid]);
@@ -108,7 +137,7 @@ export const InputVariableDist = () => {
       if (inputVars.length > 0) {
         const initialInputVars = inputVars.reduce((acc, val) => {
           // TODO remove default values; just for development speed
-          acc[val] = { distribution: serviceMode === "SUMO" ? "uniform" : "normal", mean: 0.0, std: 1.0 };
+          acc[val] = setInitialValues(val);
           return acc;
         }, {} as typeof localDistribution);
         handleSetLocalDistribution(initialInputVars);
@@ -122,7 +151,12 @@ export const InputVariableDist = () => {
 
   return (
     <Box sx={{ marginTop: "8px", paddingTop: "8px", borderRadius: "8px" }}>
-      <Header headerType="subTitle" tabTitle="Input Variable Distributions" infoText="Define probability distributions for each input parameter (assumed independent)" ExtendedInfoText={InputVariableDistDocument} />
+      {serviceMode === "SUMO" ?
+        <Header headerType="subTitle" tabTitle="Parameter Ranges" infoText="Define the range of the parameters for which you would like to examine their impact on your Quantities of Interest" />
+        : serviceMode === "UQ" ?
+          <Header headerType="subTitle" tabTitle="Parameter Distributions" infoText="Define probability distributions for each input parameter (assumed independent)" ExtendedInfoText={InputVariableDistDocument} />
+          : undefined
+      }
       <Box sx={{ display: "flex", overflowX: "auto" }}>
         {Object.keys(localDistribution).map((inputVar, index) => {
           return (
@@ -134,7 +168,7 @@ export const InputVariableDist = () => {
                 flex: 1,
                 maxWidth: "240px",
                 minWidth: "240px",
-                padding: "8px 8px 16px",
+                padding: "16px 16px 16px",
                 marginRight: "16px",
                 backgroundColor: theme.palette.background.default,
                 gap: "16px",
@@ -153,44 +187,45 @@ export const InputVariableDist = () => {
                   }}
                 ></Chip>
               </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px'}}>
-              <InputLabel sx={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'start' }}>
-                Distribution Form:
-                <Select
-                  variant="outlined"
-                  size="small"
-                  id={index + "selector"}
-                  disabled={serviceMode === "SUMO"}
-                  value={localDistribution[inputVar]?.distribution || ""}
-                  sx={{ minWidth: 132, width: '100%' }}
-                  onChange={(e) => handleDistributionChange(inputVar, e.target.value as distribution)}
-                >
-                  {/* TODO include info buttons about each distribution & their parameters */}
-                  <MenuItem value="constant">Constant</MenuItem>
-                  <MenuItem value="normal">Normal (Gaussian)</MenuItem>
-                  <MenuItem value="uniform">Uniform</MenuItem>
-                  <MenuItem value="log-normal" disabled={true}>LogNormal</MenuItem>
-                  <MenuItem value="exponential" disabled={true}>Exponential</MenuItem>
-                </Select>
-              </InputLabel>
-              <>
-                {localDistribution[inputVar]?.distribution === "constant" ? (
-                  <ConstantInputDistribution inputVar={inputVar} />
-                ) : localDistribution[inputVar]?.distribution === "normal" ? (
-                  <NormalInputDistribution inputVar={inputVar} />
-                ) : localDistribution[inputVar]?.distribution === "uniform" ? (
-                  <UniformInputDistribution inputVar={inputVar} />
-                ) : (
-                  "not found"
-                )}
-                {/* For v9 release, removed log-normal and exponential input distributions
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {serviceMode !== "SUMO" &&
+                  <InputLabel sx={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'start' }}>
+                    Distribution Form:
+                    <Select
+                      variant="outlined"
+                      size="small"
+                      id={index + "selector"}
+                      value={localDistribution[inputVar]?.distribution || ""}
+                      sx={{ minWidth: 132, width: '100%' }}
+                      onChange={(e) => handleDistributionChange(inputVar, e.target.value as distribution)}
+                    >
+                      {/* TODO include info buttons about each distribution & their parameters */}
+                      <MenuItem value="constant">Constant</MenuItem>
+                      <MenuItem value="normal">Normal (Gaussian)</MenuItem>
+                      <MenuItem value="uniform">Uniform</MenuItem>
+                      <MenuItem value="log-normal" disabled={true}>LogNormal</MenuItem>
+                      <MenuItem value="exponential" disabled={true}>Exponential</MenuItem>
+                    </Select>
+                  </InputLabel>
+                }
+                <>
+                  {localDistribution[inputVar]?.distribution === "constant" ? (
+                    <ConstantInputDistribution inputVar={inputVar} />
+                  ) : localDistribution[inputVar]?.distribution === "normal" ? (
+                    <NormalInputDistribution inputVar={inputVar} />
+                  ) : localDistribution[inputVar]?.distribution === "uniform" ? (
+                    <UniformInputDistribution inputVar={inputVar} />
+                  ) : (
+                    "not found"
+                  )}
+                  {/* For v9 release, removed log-normal and exponential input distributions
                   ) : localDistribution[inputVar]?.distribution === "log-normal" ? (
                       <LogNormalInputDistribution inputVar={inputVar} />
                     ) : localDistribution[inputVar]?.distribution === "exponential" ? (
                         <ExponentialInputDistribution inputVar={inputVar} />
                 */}
-              </>
-            </Box>
+                </>
+              </Box>
             </Box>
           );
         })}

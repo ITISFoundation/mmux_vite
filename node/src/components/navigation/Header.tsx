@@ -1,6 +1,6 @@
 import { HelpOutline, InfoOutline } from "@mui/icons-material";
 import { Box, Typography, styled } from "@mui/material";
-import CustomTooltip from "../CustomTooltip";
+import CustomTooltip from "../utils/CustomTooltip";
 
 const HeaderContainer = styled("div", {
   shouldForwardProp: (props) => props !== "headerType",
@@ -47,7 +47,6 @@ const types: { [key in HeaderTypes]: TypographyVariant } = {
 function Header(props: HeaderProps) {
   const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents } =
     props;
-  console.log("tabTitle: ", tabTitle, "infoText", infoText)
   return (
     <HeaderContainer headerType={headerType}>
       <Box flex={1} display="flex" alignItems="center">

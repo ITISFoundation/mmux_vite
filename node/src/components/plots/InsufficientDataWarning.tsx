@@ -1,4 +1,4 @@
-import { DisplayMessage } from "./DisplayMessage";
+import { DisplayMessage } from "../utils/DisplayMessage";
 
 type InsufficientDataWarningPropsType = {
   fetchedJobCollections: any;

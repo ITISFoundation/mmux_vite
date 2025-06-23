@@ -619,6 +619,11 @@ def flask_manual_uq_propagation_with_uncertainty():
             "whisker_min": float(whisker_min),
             "whisker_max": float(whisker_max),
             "outliers": outliers.tolist(),
+            ## changed now the metrics that are displayed with the Histogram (instead of Whisker Plot)
+            "mean": float(np.mean(all_results)),
+            "std": float(np.std(all_results)),
+            "min": float(np.min(all_results)),
+            "max": float(np.max(all_results)),
         }
 
         _logger.debug("Done!!")

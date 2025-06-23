@@ -12,8 +12,8 @@ import {
   plotMargins,
 } from "./PlotTools";
 import Header from "../navigation/Header";
-import CalculatingWarning from "../CalculatingWarning";
-import InsufficientDataWarning from "../InsufficientDataWarning";
+import CalculatingWarning from "./CalculatingWarning";
+import InsufficientDataWarning from "./InsufficientDataWarning";
 
 const Surface2DPlot = () => {
   const theme = useTheme();
@@ -68,7 +68,6 @@ const Surface2DPlot = () => {
     // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
-    setPlotData([]);
     setPropagating(true);
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_grid_evaluation", {
       method: "POST",
@@ -82,7 +81,6 @@ const Surface2DPlot = () => {
       }),
     })
       .then(function (response) {
-        console.log(response);
         if (response && !response.ok) {
           console.warn("SuMo Surface plot error: ", response.body);
         } else {
@@ -90,12 +88,11 @@ const Surface2DPlot = () => {
         }
       })
       .then(function (d) {
-        console.log("2D retrieved data: ", d);
         reshapePlotData(d);
         setPropagating(false);
       })
       .catch((error) => {
-        console.debug("Error:", error);
+        console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
       });
@@ -126,7 +123,7 @@ const Surface2DPlot = () => {
       setPlotData(newData);
     } else {
       setPlotData([]);
-      console.log("Empty plotData");
+      console.warn("Empty plotData");
     }
   };
 
@@ -184,12 +181,6 @@ const Surface2DPlot = () => {
   return (
     <>
       <Box display={"flex"} flexDirection={"column"} width={"100%"}>
-        {propagating && (
-          <CalculatingWarning
-            height={plotStyle.height}
-            dontShowText={true}
-          />
-        )}
         {!propagating && plotData.length === 0 && (
           <InsufficientDataWarning
             fetchedJobCollections={fetchedJobCollections}
@@ -197,7 +188,7 @@ const Surface2DPlot = () => {
             height={plotStyle.height}
           />
         )}
-        {!propagating && plotData.length !== 0 && (
+        {plotData.length !== 0 && (
           <Plot data={plotData} layout={layout} style={plotStyle} />
         )}
       </Box>
@@ -230,7 +221,7 @@ const Surface2DPlot = () => {
           />
         </Box>
         {inputVars.length > 0 &&
-        distribution[selectedFunction?.uid || ""] !== undefined ? (
+          distribution[selectedFunction?.uid || ""] !== undefined ? (
           <>
             {inputVars.map((key) => {
               if (key === axis1 || key === axis2) {

@@ -7,8 +7,8 @@ import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
 import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
-import CalculatingWarning from "../CalculatingWarning";
-import InsufficientDataWarning from "../InsufficientDataWarning";
+import CalculatingWarning from "./CalculatingWarning";
+import InsufficientDataWarning from "./InsufficientDataWarning";
 
 type GPPrediction = {
   x: number[];
@@ -93,12 +93,10 @@ const Curves1DPlots = () => {
         );
       }
       setPlotData(traces);
-      console.log("Registered plotData: ", traces);
     }
   };
 
   const RunCentralSuMoInterpolations = async (jobs: FunctionJob[]) => {
-    console.log("Evaluating SuMo for 1D curves...");
     setPropagating(true);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
     fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_along_axes", {
@@ -120,7 +118,6 @@ const Curves1DPlots = () => {
         setPropagating(false);
       })
       .catch((error) => {
-        console.log("Error in RunCentralSuMoInterpolations: ", error);
         setPlotData([]);
         setPropagating(false);
       });
@@ -137,6 +134,7 @@ const Curves1DPlots = () => {
       }
     };
     run();
+    console.log("axis: ", axis)
   }, [
     inputVars,
     selectedQoI,
@@ -164,7 +162,7 @@ const Curves1DPlots = () => {
       bgcolor: "rgba(0,0,0,0)",
     },
     xaxis: {
-      title: { text: axis },
+      title: { text: axis }, // FIXME axis is only showing for the first parameter in the list
     },
     yaxis: {
       title: { text: selectedQoI },
@@ -176,12 +174,6 @@ const Curves1DPlots = () => {
   return (
     <>
       <Box display={"flex"} flexDirection={"column"}>
-        {propagating && (
-          <CalculatingWarning
-            height={plotStyle.height}
-            dontShowText={true}
-          />
-        )}
         {!propagating && plotData.length === 0 && (
           <InsufficientDataWarning
             fetchedJobCollections={fetchedJobCollections}
@@ -189,7 +181,7 @@ const Curves1DPlots = () => {
             height={plotStyle.height}
           />
         )}
-        {!propagating && plotData.length !== 0 && (
+        {plotData.length !== 0 && (
           <Plot data={plotData} layout={layout} style={plotStyle} />
         )}
       </Box>
@@ -209,7 +201,7 @@ const Curves1DPlots = () => {
       >
         <CreateSelect axis={axis} setAxis={setAxis} inputVars={inputVars} />
         {inputVars.length > 0 &&
-        distribution[selectedFunction?.uid || ""] !== undefined ? (
+          distribution[selectedFunction?.uid || ""] !== undefined ? (
           <>
             {inputVars.map((key) => {
               if (key === axis) {

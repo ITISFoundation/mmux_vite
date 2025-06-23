@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Box, Button, Skeleton, Typography } from "@mui/material";
-import { Function, FunctionJob, ProjectFunctionJob } from "../../osparc-api-ts-client";
+import { Box, Skeleton, Typography } from "@mui/material";
+import { Function, FunctionJob } from "../../osparc-api-ts-client";
 import { useMMUXContext, MMUXContextType } from "../../context/MMUXContext";
 import { RunSamplingButton } from "./RunSamplingButton";
-import ValueConfig from "../ValueConfig";
+import ValueConfig from "../setup/ValueConfig";
 import { toast } from "react-toastify";
 import { openStudyUid } from "../../utils/function_utils";
 
 async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
   const fun = context?.selectedFunction as Function;
   // send config to Python backend to create LHS
-  console.log("Running single job with config: ", config);
   context.setLaunchingSampling(true);
   const j = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/test_job", {
     method: "POST",
@@ -28,7 +27,6 @@ async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
       return response.json();
     })
     .then(function (j: FunctionJob) {
-      console.log("Job Uid: ", j.uid);
       return j;
     })
     .catch(function (error) {
@@ -48,7 +46,6 @@ const TestJob = () => {
   const handleRunSampling = async () => {
     setSingleJobConfig(jobInputs);
     const job = await runTestJob(context, jobInputs);
-    console.log("TestJob created: ", job);
     // open in a new window - like in "View" of the JobList
     if (!job) toast.warning("Test Job running failed! Please contact support");
     else if (job.functionClass && job.functionClass === "PROJECT") openStudyUid(job.projectJobId)

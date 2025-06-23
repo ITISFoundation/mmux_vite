@@ -3,12 +3,12 @@ import { useMMUXContext } from "../../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, useTheme } from "@mui/material";
 import { FunctionJob } from "../../osparc-api-ts-client";
-import Metric from "./../Metric";
-import SuMoMetricRow from "./../SuMoMetricRow";
+import Metric from "./Metric";
+import MetricRow from "./MetricRow";
 import { plotMargins } from "./PlotTools";
 import Plot from "react-plotly.js";
-import CalculatingWarning from "../CalculatingWarning";
-import InsufficientDataWarning from "../InsufficientDataWarning";
+import CalculatingWarning from "./CalculatingWarning";
+import InsufficientDataWarning from "./InsufficientDataWarning";
 import { Layout } from "plotly.js";
 
 const SuMoValidation = () => {
@@ -48,7 +48,7 @@ const SuMoValidation = () => {
         (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
         0
       ) /
-        (y.length - 1)
+      (y.length - 1)
     );
     const mean_y_hat =
       y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
@@ -57,7 +57,7 @@ const SuMoValidation = () => {
         (sum: number, value: number) => sum + Math.pow(value - mean_y_hat, 2),
         0
       ) /
-        (y_hat.length - 1)
+      (y_hat.length - 1)
     );
     const cvMetricsData = {
       mean_y: mean_y,
@@ -68,7 +68,6 @@ const SuMoValidation = () => {
       rmse: rmse,
     };
     setCvMetrics(cvMetricsData);
-    console.log("Registered cvMetrics: ", cvMetricsData);
   }
 
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
@@ -102,7 +101,6 @@ const SuMoValidation = () => {
         createViolinPlot(y_hat, "Predictions", "negative"),
       ];
       setPlotData(newPlotData);
-      console.log("Registered plotData: ", newPlotData);
       computeStatisticsCv(y, y_hat);
     } else {
       console.warn("No data available for SuMo validation.");
@@ -136,13 +134,12 @@ const SuMoValidation = () => {
           throw new Error(`Error running SuMo Validation: ${response.error}`);
         } else {
           const data = response;
-          console.log("SuMo Validation retrieved data: ", data);
           createDataAndMetrics(data);
           setPropagating(false);
         }
       })
       .catch((error) => {
-        console.debug("Error:", error);
+        console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
         setCvMetrics(undefined);
@@ -165,7 +162,6 @@ const SuMoValidation = () => {
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver((event) => {
-      console.log("ResizeObserver event: ", event);
       // Depending on the layout, you may need to swap inlineSize with blockSize
       // https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserverEntry/contentBoxSize
       setWidth(event[0].contentBoxSize[0].inlineSize);
@@ -239,7 +235,7 @@ const SuMoValidation = () => {
             justifyContent="space-around"
             mt={4}
           >
-            <SuMoMetricRow width={width}>
+            <MetricRow width={width}>
               <Metric
                 metricName={"Mean"}
                 metricValue={cvMetrics.mean_y}
@@ -251,8 +247,8 @@ const SuMoValidation = () => {
                 color={"rgb(41, 146, 221)"}
               />
               {/* rgb(31, 119, 180) is the original; changed it slightly to improve visibility */}
-            </SuMoMetricRow>
-            <SuMoMetricRow width={width}>
+            </MetricRow>
+            <MetricRow width={width}>
               <Metric
                 metricName={"Mean"}
                 metricValue={cvMetrics.mean_y_hat}
@@ -263,11 +259,11 @@ const SuMoValidation = () => {
                 metricValue={cvMetrics.std_y_hat}
                 color={"rgb(255, 127, 14)"}
               />
-            </SuMoMetricRow>
-            <SuMoMetricRow width={width}>
+            </MetricRow>
+            <MetricRow width={width}>
               <Metric metricName={"MAE"} metricValue={cvMetrics.mae} />
               <Metric metricName={"RMSE"} metricValue={cvMetrics.rmse} />
-            </SuMoMetricRow>
+            </MetricRow>
           </Box>
         ) : (
           <div></div>

@@ -2,7 +2,7 @@ import Setup from "./Setup";
 import UQ from "./UQ";
 import SuMo from "./SuMo";
 import { useServiceContext } from "../context/ServiceContext";
-import { DisplayMessage } from "../components/DisplayMessage";
+import { DisplayMessage } from "../components/utils/DisplayMessage";
 
 type ReturnCurrentViewPropsType = {
   currentView: number;

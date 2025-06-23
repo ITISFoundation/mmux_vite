@@ -105,30 +105,33 @@ const sliderMarc = (value: number) => { return `~: ${value}` };
 
 export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSliderProps) => {
   const context = useMMUXContext();
-  const [value, setValue] = useState(otherAxis[input] || 0);
   const filteredInputVars = filterInputVars(context)
   const uniqueValuesPerVar = _get_unique_values(context)
-  let min, max;
+  let min, max, val;
   if (dist.distribution === "normal" && dist.mean !== undefined && dist.std !== undefined) {
     min = dist.mean - 2.5 * dist.std;
     max = dist.mean + 2.5 * dist.std;
+    val = dist.mean
   } else if (dist.distribution === "uniform" && dist.min !== undefined && dist.max !== undefined) {
     min = dist.min;
     max = dist.max;
+    val = (dist.max + dist.min) / 2
   } else {
-    console.log("Could not define max & min for variable ", input)
+    console.warn("Could not define max & min for variable ", input)
     min = 0
     max = 1
+    val = 0.5
   }
+  const [value, setValue] = useState(val || 0);
+
   if (!filteredInputVars.includes(input)) {
     // min = uniqueValuesPerVar[input].values().next().value * 0.99
     // max = uniqueValuesPerVar[input].values().next().value * 1.01
-    const inputValues = uniqueValuesPerVar[input].values();
-    const firstVal = inputValues.next().value // get the first value
+    const singleVal = uniqueValuesPerVar[input].values().next().value // get the first value
 
-    if (firstVal !== undefined) {
-      min = firstVal * 0.99
-      max = firstVal * 1.01
+    if (singleVal !== undefined) {
+      min = singleVal * 0.99
+      max = singleVal * 1.01
     } else {
       console.warn("No values found for variable", input, "setting default min and max to 0 and 1")
       min = 0;
@@ -137,8 +140,6 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
     // setValue(uniqueValuesPerVar[input])
   } // TODO add the other distributions
 
-  console.log("var", input, "min & max: ", min, max)
-  console.log(uniqueValuesPerVar)
   const step = (max - min) / 100
   const changeOtherAxis = (e: Event, value: number) => {
     const newAxis = { ...otherAxis };
@@ -146,6 +147,7 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
     console.log("new otherAxis: ", newAxis)
     setOtherAxis(newAxis);
   }
+
   return (
     <InputLabel
       sx={{ flex: 1, display: "flex", gap: 2, alignItems: "center", paddingTop: 2, overflow: "visible" }}
@@ -176,30 +178,38 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
         disabled={!filteredInputVars.includes(input)}
       />
       <TextField
-        value={value}
+        value={parseFloat(value.toPrecision(3))}
         onChange={(e) => {
           setValue(parseFloat(e.target.value));
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             const newAxis = { ...otherAxis };
+            // const val = Math.max(Math.min(value, max), min)
+            // setValue(val) // For now, allow user to put any arbitrary number (do not restrain to min-max range)
             newAxis[input] = value;
             setOtherAxis(newAxis);
           }
-          if(e.key === "ArrowDown") {
+          if (e.key === "ArrowDown") {
             const newAxis = { ...otherAxis };
-            newAxis[input] = Math.max(min, value - step);
+            const val = Math.max(min, value - step);
+            setValue(val);
+            newAxis[input] = val;
             setOtherAxis(newAxis);
           }
-          if(e.key === "ArrowUp") {
+          if (e.key === "ArrowUp") {
             const newAxis = { ...otherAxis };
-            newAxis[input] = Math.max(min, value - step);
+            const val = Math.min(max, value + step);
+            setValue(val)
+            newAxis[input] = val
             setOtherAxis(newAxis);
           }
         }}
         onBlur={(e) => {
           const newAxis = { ...otherAxis };
-          newAxis[input] = parseFloat(e.target.value);
+          const val = parseFloat(e.target.value);
+          setValue(val);
+          newAxis[input] = val;
           setOtherAxis(newAxis);
         }}
         type="number"

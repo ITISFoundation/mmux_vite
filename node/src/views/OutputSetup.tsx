@@ -9,8 +9,8 @@ import {
   useTheme,
 } from "@mui/material";
 import { InfoOutline } from "@mui/icons-material";
-import CustomTooltip from "./CustomTooltip";
-import SelectQoIDocument from "./documents/SelectQoIDocument";
+import CustomTooltip from "../components/utils/CustomTooltip";
+import SelectQoIDocument from "../components/documents/SelectQoIDocument";
 import { useMMUXContext } from "../context/MMUXContext";
 
 interface UQSetupProps {
@@ -51,7 +51,6 @@ export const OutputSetup = (props: UQSetupProps) => {
 
   useEffect(() => {
     setLocalQoI(outputVars?.[0] || "");
-    console.log("changed localQoI")
   }, [outputVars]); // Update localQoI when selectedQoI changes due to selectedFunction change
 
   return (
