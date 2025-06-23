@@ -122,7 +122,12 @@ export const InputVariableDist = () => {
 
   return (
     <Box sx={{ marginTop: "8px", paddingTop: "8px", borderRadius: "8px" }}>
-      <Header headerType="subTitle" tabTitle="Input Variable Distributions" infoText="Define probability distributions for each input parameter (assumed independent)" ExtendedInfoText={InputVariableDistDocument} />
+      {serviceMode === "SUMO" ?
+        <Header headerType="subTitle" tabTitle="Parameter Ranges" infoText="Define the range of the parameters for which you would like to examine their impact on your Quantities of Interest" />
+        : serviceMode === "UQ" ?
+          <Header headerType="subTitle" tabTitle="Parameter Distributions" infoText="Define probability distributions for each input parameter (assumed independent)" ExtendedInfoText={InputVariableDistDocument} />
+          : undefined
+      }
       <Box sx={{ display: "flex", overflowX: "auto" }}>
         {Object.keys(localDistribution).map((inputVar, index) => {
           return (
@@ -134,7 +139,7 @@ export const InputVariableDist = () => {
                 flex: 1,
                 maxWidth: "240px",
                 minWidth: "240px",
-                padding: "8px 8px 16px",
+                padding: "16px 16px 16px",
                 marginRight: "16px",
                 backgroundColor: theme.palette.background.default,
                 gap: "16px",
@@ -154,25 +159,26 @@ export const InputVariableDist = () => {
                 ></Chip>
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <InputLabel sx={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'start' }}>
-                  Distribution Form:
-                  <Select
-                    variant="outlined"
-                    size="small"
-                    id={index + "selector"}
-                    disabled={serviceMode === "SUMO"}
-                    value={localDistribution[inputVar]?.distribution || ""}
-                    sx={{ minWidth: 132, width: '100%' }}
-                    onChange={(e) => handleDistributionChange(inputVar, e.target.value as distribution)}
-                  >
-                    {/* TODO include info buttons about each distribution & their parameters */}
-                    <MenuItem value="constant">Constant</MenuItem>
-                    <MenuItem value="normal">Normal (Gaussian)</MenuItem>
-                    <MenuItem value="uniform">Uniform</MenuItem>
-                    <MenuItem value="log-normal" disabled={true}>LogNormal</MenuItem>
-                    <MenuItem value="exponential" disabled={true}>Exponential</MenuItem>
-                  </Select>
-                </InputLabel>
+                {serviceMode !== "SUMO" &&
+                  <InputLabel sx={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'start' }}>
+                    Distribution Form:
+                    <Select
+                      variant="outlined"
+                      size="small"
+                      id={index + "selector"}
+                      value={localDistribution[inputVar]?.distribution || ""}
+                      sx={{ minWidth: 132, width: '100%' }}
+                      onChange={(e) => handleDistributionChange(inputVar, e.target.value as distribution)}
+                    >
+                      {/* TODO include info buttons about each distribution & their parameters */}
+                      <MenuItem value="constant">Constant</MenuItem>
+                      <MenuItem value="normal">Normal (Gaussian)</MenuItem>
+                      <MenuItem value="uniform">Uniform</MenuItem>
+                      <MenuItem value="log-normal" disabled={true}>LogNormal</MenuItem>
+                      <MenuItem value="exponential" disabled={true}>Exponential</MenuItem>
+                    </Select>
+                  </InputLabel>
+                }
                 <>
                   {localDistribution[inputVar]?.distribution === "constant" ? (
                     <ConstantInputDistribution inputVar={inputVar} />

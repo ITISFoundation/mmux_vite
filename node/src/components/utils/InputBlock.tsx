@@ -11,13 +11,13 @@ export const InputBlock = (props: InputBlockProps) => {
 
   return (
     <InputLabel size="small" sx={{ flex: '1', display: 'flex', flexDirection: 'column', transform: 'none' }}>
-      {name}:
+      <span style={{ marginLeft: '4px' }}>{name}:</span>
       <TextField
         type={type || "number"}
         variant="outlined"
         size="small"
         sx={{ marginTop: '8px' }}
-        value={ isNaN(currentValue) ? "" : currentValue }
+        value={isNaN(currentValue) ? "" : currentValue}
         onChange={(e) => setCurrentValue(parseFloat(e.target.value))}
         onBlur={(e) => handleChange(parseFloat(e.target.value))}
       />
