@@ -101,6 +101,35 @@ export const InputVariableDist = () => {
     handleSetLocalDistribution(newInputVars);
   };
 
+  const setInitialValues = (inputVar: string): VarSelection => {
+    // Geometry demo
+    if (inputVar === "angle") {
+      return { distribution: "uniform", min: 30, max: 300 }
+    } else if (inputVar === "gap" || inputVar === "length") {
+      return { distribution: "uniform", min: 0.2, max: 2 }
+    } else if (inputVar === "length") {
+      return { distribution: "uniform", min: 0.2, max: 300 }
+    } else if (inputVar === "silicone_extra" || inputVar === "siliconeExtra") {
+      return { distribution: "uniform", min: 0.5, max: 2.5 }
+    }
+    // Parameters demo
+    else if (inputVar === "sigma_conn") {
+      return { distribution: "normal", mean: 0.08, std: 0.016 }
+    } else if (inputVar === "sigma_fasc_lon") {
+      return { distribution: "normal", mean: 0.57, std: 0.114 }
+    } else if (inputVar === "sigma_fasc_tra") {
+      return { distribution: "normal", mean: 0.16, std: 0.032 }
+    } else if (inputVar === "sigma_interst") {
+      return { distribution: "normal", mean: 0.08, std: 0.016 }
+    } else if (inputVar === "sigma_nerve") {
+      return { distribution: "normal", mean: 0.34, std: 0.068 }
+    }
+    // Normal default for new functions
+    else {
+      return { distribution: "uniform", mean: NaN, std: NaN, min: NaN, max: NaN }
+    }
+  }
+
   useEffect(() => {
     if (distribution && selectedFunction && distribution[selectedFunction.uid]) {
       setLocalDistribution(distribution[selectedFunction.uid]);
@@ -108,7 +137,7 @@ export const InputVariableDist = () => {
       if (inputVars.length > 0) {
         const initialInputVars = inputVars.reduce((acc, val) => {
           // TODO remove default values; just for development speed
-          acc[val] = { distribution: serviceMode === "SUMO" ? "uniform" : "normal", mean: 0.0, std: 1.0 };
+          acc[val] = setInitialValues(val);
           return acc;
         }, {} as typeof localDistribution);
         handleSetLocalDistribution(initialInputVars);
