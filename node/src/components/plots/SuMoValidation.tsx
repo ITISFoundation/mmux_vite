@@ -5,8 +5,11 @@ import { Box, useTheme } from "@mui/material";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import Metric from "./../Metric";
 import SuMoMetricRow from "./../SuMoMetricRow";
-import ShowPlotOrWarning from "./ShowPlotOrWarning";
 import { plotMargins } from "./PlotTools";
+import Plot from "react-plotly.js";
+import CalculatingWarning from "../CalculatingWarning";
+import InsufficientDataWarning from "../InsufficientDataWarning";
+import { Layout } from "plotly.js";
 
 const SuMoValidation = () => {
   const theme = useTheme();
@@ -15,6 +18,7 @@ const SuMoValidation = () => {
     inputVars,
     distribution,
     selectedQoI,
+    fetchedJobCollections,
     filterSelectedJobList,
   } = useMMUXContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
@@ -44,7 +48,7 @@ const SuMoValidation = () => {
         (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
         0
       ) /
-      (y.length - 1)
+        (y.length - 1)
     );
     const mean_y_hat =
       y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
@@ -53,7 +57,7 @@ const SuMoValidation = () => {
         (sum: number, value: number) => sum + Math.pow(value - mean_y_hat, 2),
         0
       ) /
-      (y_hat.length - 1)
+        (y_hat.length - 1)
     );
     const cvMetricsData = {
       mean_y: mean_y,
@@ -172,7 +176,7 @@ const SuMoValidation = () => {
     }
   }, [boxRef]);
 
-  const layout = {
+  const layout: Partial<Layout> = {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
@@ -193,13 +197,12 @@ const SuMoValidation = () => {
   };
 
   const plotStyle = {
-    height: "400px",
+    height: 400,
     borderRadius: "8px",
     overflow: "hidden",
     margin: "0 auto", // Center the plot horizontally
     maxWidth: `${width}px`, // Match the width of the statistics box below
   };
-
 
   return (
     <>
@@ -211,7 +214,22 @@ const SuMoValidation = () => {
         justifyContent={"center"}
         ref={boxRef}
       >
-        <ShowPlotOrWarning plotData={plotData} plotStyle={plotStyle} layout={layout} calculating={propagating} />
+        {propagating && (
+          <CalculatingWarning
+            height={plotStyle.height}
+            dontShowText={true}
+          />
+        )}
+        {!propagating && plotData.length === 0 && (
+          <InsufficientDataWarning
+            fetchedJobCollections={fetchedJobCollections}
+            filterSelectedJobList={filterSelectedJobList}
+            height={plotStyle.height}
+          />
+        )}
+        {!propagating && plotData.length !== 0 && (
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+        )}
 
         {cvMetrics ? (
           <Box

@@ -4,12 +4,16 @@ import Plot from "react-plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Data } from "plotly.js";
-import { CreateSelect, CreateSlider, filterInputVars, plotMargins } from "./PlotTools";
+import { Data, Layout } from "plotly.js";
+import {
+  CreateSelect,
+  CreateSlider,
+  filterInputVars,
+  plotMargins,
+} from "./PlotTools";
 import Header from "../navigation/Header";
 import CalculatingWarning from "../CalculatingWarning";
 import InsufficientDataWarning from "../InsufficientDataWarning";
-import ShowPlotOrWarning from "./ShowPlotOrWarning";
 
 const Surface2DPlot = () => {
   const theme = useTheme();
@@ -142,7 +146,7 @@ const Surface2DPlot = () => {
     filterSelectedJobList,
   ]);
 
-  const layout = {
+  const layout: Partial<Layout> = {
     title: {
       text: selectedQoI + " Surface 2D Plot",
     },
@@ -152,7 +156,6 @@ const Surface2DPlot = () => {
       zaxis: { title: { text: selectedQoI } },
     },
     autosize: true,
-    willReadFrequently: true,
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
@@ -181,7 +184,22 @@ const Surface2DPlot = () => {
   return (
     <>
       <Box display={"flex"} flexDirection={"column"} width={"100%"}>
-        <ShowPlotOrWarning plotData={plotData} plotStyle={plotStyle} layout={layout} calculating={propagating} />
+        {propagating && (
+          <CalculatingWarning
+            height={plotStyle.height}
+            dontShowText={false}
+          />
+        )}
+        {!propagating && plotData.length === 0 && (
+          <InsufficientDataWarning
+            fetchedJobCollections={fetchedJobCollections}
+            filterSelectedJobList={filterSelectedJobList}
+            height={plotStyle.height}
+          />
+        )}
+        {!propagating && plotData.length !== 0 && (
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+        )}
       </Box>
 
       <Box mt={2}>
@@ -212,7 +230,7 @@ const Surface2DPlot = () => {
           />
         </Box>
         {inputVars.length > 0 &&
-          distribution[selectedFunction?.uid || ""] !== undefined ? (
+        distribution[selectedFunction?.uid || ""] !== undefined ? (
           <>
             {inputVars.map((key) => {
               if (key === axis1 || key === axis2) {

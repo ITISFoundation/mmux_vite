@@ -3,11 +3,12 @@ import Plot from "react-plotly.js";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { Data } from "plotly.js";
+import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
 import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
-import ShowPlotOrWarning from "./ShowPlotOrWarning";
+import CalculatingWarning from "../CalculatingWarning";
+import InsufficientDataWarning from "../InsufficientDataWarning";
 
 type GPPrediction = {
   x: number[];
@@ -23,7 +24,7 @@ const Curves1DPlots = () => {
     selectedFunction,
     distribution,
     filterSelectedJobList,
-    fetchedJobCollections
+    fetchedJobCollections,
   } = useMMUXContext();
   const context = useMMUXContext();
   const filteredInputVars = filterInputVars(context);
@@ -149,9 +150,9 @@ const Curves1DPlots = () => {
     height: 300,
     borderRadius: "8px",
     overflow: "hidden",
-  }
+  };
 
-  const layout = {
+  const layout: Partial<Layout> = {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
@@ -163,12 +164,27 @@ const Curves1DPlots = () => {
       anchor: "x",
     },
     showlegend: false,
-  }
+  };
 
   return (
     <>
       <Box display={"flex"} flexDirection={"column"}>
-        <ShowPlotOrWarning plotData={plotData} plotStyle={plotStyle} layout={layout} calculating={propagating} />
+        {propagating && (
+          <CalculatingWarning
+            height={plotStyle.height}
+            dontShowText={true}
+          />
+        )}
+        {!propagating && plotData.length === 0 && (
+          <InsufficientDataWarning
+            fetchedJobCollections={fetchedJobCollections}
+            filterSelectedJobList={filterSelectedJobList}
+            height={plotStyle.height}
+          />
+        )}
+        {!propagating && plotData.length !== 0 && (
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+        )}
       </Box>
       <Box>
         <Header headerType="subTitle" infoText="" tabTitle="Selection" />
@@ -186,7 +202,7 @@ const Curves1DPlots = () => {
       >
         <CreateSelect axis={axis} setAxis={setAxis} inputVars={inputVars} />
         {inputVars.length > 0 &&
-          distribution[selectedFunction?.uid || ""] !== undefined ? (
+        distribution[selectedFunction?.uid || ""] !== undefined ? (
           <>
             {inputVars.map((key) => {
               if (key === axis) {

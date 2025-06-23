@@ -6,16 +6,22 @@ import { Box, useTheme } from "@mui/material";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import HistogramStats from "../HistogramStats";
 import { JobsLoading } from "../JobsLoading";
-import ShowPlotOrWarning from "./ShowPlotOrWarning";
+import Plot from "react-plotly.js";
+import CalculatingWarning from "../CalculatingWarning";
+import InsufficientDataWarning from "../InsufficientDataWarning";
 
 export default function UncertainUQ(props: UncertainUQPropsType) {
-  const {
-    loading,
-    progress,
-    jobProgress,
-  } = props;
+  const { loading, progress, jobProgress } = props;
   const theme = useTheme();
-  const { numSamples, inputVars, selectedQoI, distribution, selectedFunction, filterSelectedJobList } = useMMUXContext();
+  const {
+    numSamples,
+    inputVars,
+    selectedQoI,
+    distribution,
+    selectedFunction,
+    fetchedJobCollections,
+    filterSelectedJobList,
+  } = useMMUXContext();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
@@ -26,7 +32,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
       async function runUQ(jobs: FunctionJob[]) {
         console.log("Running UQ...");
         setDataUQHistogram(undefined);
-        setPlotData([])
+        setPlotData([]);
         setPropagating(true);
         if (jobs.length === 0) {
           console.warn("No jobs selected for UQ propagation.");
@@ -34,11 +40,11 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           return;
         }
         try {
-          console.info("Propagating UQ...")
-          console.info("SelectedQoI: ", selectedQoI)
+          console.info("Propagating UQ...");
+          console.info("SelectedQoI: ", selectedQoI);
           const response = await fetchWithRetry(
             PYTHON_DAKOTA_BACKEND +
-            "/flask/manual_uq_propagation_with_uncertainty",
+              "/flask/manual_uq_propagation_with_uncertainty",
             {
               method: "POST",
               body: JSON.stringify({
@@ -51,9 +57,11 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
                 nHistograms: 50,
               }),
             }
-          )
+          );
           if (!response.ok) {
-            throw new Error(`Error in UQ response: ${response.status}, ${response.statusText}`);
+            throw new Error(
+              `Error in UQ response: ${response.status}, ${response.statusText}`
+            );
           }
           const data: dataUQHistogramType = await response.json();
           const newPlotData: Plotly.Data[] = [
@@ -62,9 +70,8 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
                 { length: data.bin_means.length },
                 (_, i) =>
                   data.bins_start +
-                  ((data.bins_end - data.bins_start) /
-                    data.bin_means.length) *
-                  (i + 0.5)
+                  ((data.bins_end - data.bins_start) / data.bin_means.length) *
+                    (i + 0.5)
               ),
               y: data.bin_means,
               type: "bar",
@@ -76,12 +83,12 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
                 visible: true,
               },
             },
-          ]
-          setPlotData(newPlotData)
+          ];
+          setPlotData(newPlotData);
           setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
           setPropagating(false);
         } catch (error) {
-          console.debug("Error:", error)
+          console.debug("Error:", error);
           setPropagating(false);
           setDataUQHistogram(undefined);
         }
@@ -89,7 +96,14 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
       return await runUQ(jobs);
     };
     run();
-  }, [numSamples, filterSelectedJobList, inputVars, distribution, selectedQoI, selectedFunction?.uid]);
+  }, [
+    numSamples,
+    filterSelectedJobList,
+    inputVars,
+    distribution,
+    selectedQoI,
+    selectedFunction?.uid,
+  ]);
   if (loading) {
     return (
       <JobsLoading
@@ -97,7 +111,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         jobProgress={jobProgress}
         message={"Creating AI model..."}
       />
-    )
+    );
   }
 
   const layout = {
@@ -107,15 +121,33 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
-  }
-  const plotStyle = { width: "100%", height: "400px", borderRadius: "8px", overflow: "hidden" }
+  };
+  const plotStyle = {
+    width: "100%",
+    height: 400,
+    borderRadius: "8px",
+    overflow: "hidden",
+  };
 
   return (
-    <Box display={'flex'} flexDirection={'column'} gap={1} width={'100%'}>
-      <ShowPlotOrWarning plotData={plotData} plotStyle={plotStyle} layout={layout} calculating={propagating} />
-      {(dataUQHistogram !== undefined) &&
-        <HistogramStats {...dataUQHistogram} />
-      }
-    </Box >
-  )
+    <Box display={"flex"} flexDirection={"column"} gap={1} width={"100%"}>
+      {propagating && (
+        <CalculatingWarning
+          height={plotStyle.height}
+          dontShowText={plotData.length !== 0}
+        />
+      )}
+      {!propagating && plotData.length === 0 && (
+        <InsufficientDataWarning
+          fetchedJobCollections={fetchedJobCollections}
+          filterSelectedJobList={filterSelectedJobList}
+          height={plotStyle.height}
+        />
+      )}
+      {!propagating && plotData.length !== 0 && (
+        <Plot data={plotData} layout={layout} style={plotStyle} />
+      )}
+      {dataUQHistogram !== undefined && <HistogramStats {...dataUQHistogram} />}
+    </Box>
+  );
 }

@@ -4,9 +4,15 @@ import Plot from "react-plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { CreateSelect, CreateSlider, filterInputVars, plotMargins } from "./PlotTools";
+import {
+  CreateSelect,
+  CreateSlider,
+  filterInputVars,
+  plotMargins,
+} from "./PlotTools";
 import Header from "../navigation/Header";
-import ShowPlotOrWarning from "./ShowPlotOrWarning";
+import CalculatingWarning from "../CalculatingWarning";
+import InsufficientDataWarning from "../InsufficientDataWarning";
 
 const IsoSurface3DPlot = () => {
   const theme = useTheme();
@@ -235,15 +241,29 @@ const IsoSurface3DPlot = () => {
   };
 
   const plotStyle = {
-    height: "500px",
+    height: 500,
     borderRadius: "8px",
     overflow: "hidden",
   };
 
   return (
     <Box display={"flex"} flexDirection={"column"} width={"100%"}>
-      <ShowPlotOrWarning plotStyle={plotStyle} layout={layout} calculating={propagating} plotData={plotData} />
-
+      {propagating && (
+        <CalculatingWarning
+          height={plotStyle.height}
+          dontShowText={false}
+        />
+      )}
+      {!propagating && plotData.length === 0 && (
+        <InsufficientDataWarning
+          fetchedJobCollections={fetchedJobCollections}
+          filterSelectedJobList={filterSelectedJobList}
+          height={plotStyle.height}
+        />
+      )}
+      {!propagating && plotData.length !== 0 && (
+        <Plot data={plotData} layout={layout} style={plotStyle} />
+      )}
       <Box mt={2}>
         <Header headerType="subTitle" infoText="" tabTitle="Selection" />
       </Box>
@@ -284,7 +304,7 @@ const IsoSurface3DPlot = () => {
         </Box>
         <Box display={"flex"} flexDirection={"column"} gap={2}>
           {inputVars.length > 0 &&
-            distribution[selectedFunction?.uid || ""] !== undefined ? (
+          distribution[selectedFunction?.uid || ""] !== undefined ? (
             <>
               {inputVars.map((key) => {
                 if (key === axis1 || key === axis2 || key === axis3) {
