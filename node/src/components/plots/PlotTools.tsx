@@ -185,23 +185,31 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             const newAxis = { ...otherAxis };
+            // const val = Math.max(Math.min(value, max), min)
+            // setValue(val) // For now, allow user to put any arbitrary number (do not restrain to min-max range)
             newAxis[input] = value;
             setOtherAxis(newAxis);
           }
-          if(e.key === "ArrowDown") {
+          if (e.key === "ArrowDown") {
             const newAxis = { ...otherAxis };
-            newAxis[input] = Math.max(min, value - step);
+            const val = Math.max(min, value - step);
+            setValue(val);
+            newAxis[input] = val;
             setOtherAxis(newAxis);
           }
-          if(e.key === "ArrowUp") {
+          if (e.key === "ArrowUp") {
             const newAxis = { ...otherAxis };
-            newAxis[input] = Math.max(min, value - step);
+            const val = Math.min(max, value + step);
+            setValue(val)
+            newAxis[input] = val
             setOtherAxis(newAxis);
           }
         }}
         onBlur={(e) => {
           const newAxis = { ...otherAxis };
-          newAxis[input] = parseFloat(e.target.value);
+          const val = parseFloat(e.target.value);
+          setValue(val);
+          newAxis[input] = val;
           setOtherAxis(newAxis);
         }}
         type="number"
