@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { KeyboardArrowUp, KeyboardArrowDown, InfoOutline } from "@mui/icons-material";
+import {
+  KeyboardArrowUp,
+  KeyboardArrowDown,
+  InfoOutline,
+} from "@mui/icons-material";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -29,15 +33,15 @@ import JobRow from "./JobRow";
 import CustomTooltip from "./../utils/CustomTooltip";
 
 type JobSelectorPropsType = {
-  loading: boolean
-  setLoading: (loading: boolean) => void
-  progress: number
-  setProgress: (progress: number) => void
-  jobProgress: number
-  setJobProgress: (progress: number) => void
-  jobsFetched: React.MutableRefObject<number>
-  colsFetched: React.MutableRefObject<number>
-}
+  loading: boolean;
+  setLoading: (loading: boolean) => void;
+  progress: number;
+  setProgress: (progress: number) => void;
+  jobProgress: number;
+  setJobProgress: (progress: number) => void;
+  jobsFetched: React.MutableRefObject<number>;
+  colsFetched: React.MutableRefObject<number>;
+};
 
 export default function JobsSelector(props: JobSelectorPropsType) {
   const {
@@ -47,7 +51,16 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     setFetchedJobCollections,
     setIsSuMoGenerated,
   } = useMMUXContext();
-  const { colsFetched, jobProgress, jobsFetched, loading, progress, setJobProgress, setLoading, setProgress } = props;
+  const {
+    colsFetched,
+    jobProgress,
+    jobsFetched,
+    loading,
+    progress,
+    setJobProgress,
+    setLoading,
+    setProgress,
+  } = props;
   const [jobCollections, setJobCollections] = useState<SelectedJobCollection[]>(
     []
   );
@@ -59,13 +72,15 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [page, setPage] = React.useState(0);
 
-
-  const updateJobContext = useCallback((jobs: SelectedJobCollection[]) => {
-    const newList = jobs
-      .map((j) => j.subJobs.filter((j) => j.selected).map((j) => j.job.uid))
-      .flat();
-    setSelectedJobUids(newList);
-  }, [setSelectedJobUids]);
+  const updateJobContext = useCallback(
+    (jobs: SelectedJobCollection[]) => {
+      const newList = jobs
+        .map((j) => j.subJobs.filter((j) => j.selected).map((j) => j.job.uid))
+        .flat();
+      setSelectedJobUids(newList);
+    },
+    [setSelectedJobUids]
+  );
 
   const selectMainJob = (uid: string, selected: boolean) => {
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(
@@ -144,7 +159,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       return;
     } else if (forceFetch) {
       setLoading(true);
-      setJobCollections([])
+      setJobCollections([]);
       setProgress(0);
       setJobProgress(0);
       jobsFetched.current = 0;
@@ -166,7 +181,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       return;
     }
 
-    const newJobCollections: SelectedJobCollection[] = []
+    const newJobCollections: SelectedJobCollection[] = [];
 
     for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx++) {
       const jc = jobsC[jcIdx];
@@ -175,14 +190,20 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         let job: FunctionJob;
         const id = jc.jobIds[subJobIdx];
         // check if job is already fetched in fetchedJobCollections
-        const existingJob = fetchedJobCollections.find((j) =>
-          j.jobCollection.jobIds.includes(id) && j.subJobs.some((sj) => sj.job.uid === id && (sj.job.status === "FAILED" || sj.job.status === "SUCCESS"))
+        const existingJob = fetchedJobCollections.find(
+          (j) =>
+            j.jobCollection.jobIds.includes(id) &&
+            j.subJobs.some(
+              (sj) =>
+                sj.job.uid === id &&
+                (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")
+            )
         );
         if (existingJob) {
           // console.info("Job already fetched: ", id, existingJob.subJobs.find((j) => j.job.uid === id));
           job = existingJob.subJobs.find((j) => j.job.uid === id)?.job;
         } else {
-          job = (await getFunctionJob(id));
+          job = await getFunctionJob(id);
         }
         jobsFetched.current += 1;
         const jobsProg = (jobsFetched.current / totalSubs) * 100;
@@ -230,7 +251,10 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   };
 
   const handleClickAway = (e: Event) => {
-    if((e.target as HTMLElement).localName && (e.target as HTMLElement).localName === "body") {
+    if (
+      (e.target as HTMLElement).localName &&
+      (e.target as HTMLElement).localName === "body"
+    ) {
       // If the click is on the select inside the popper, do not close it
       return;
     }
@@ -263,23 +287,28 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     return value.jobCollection.uid;
   }
 
-  const onToggleAll = useCallback((checked: boolean) => {
-    const newJobCollections: SelectedJobCollection[] = jobCollections.map(
-      (jc) => {
-        const auxJob = jc;
-        auxJob.subJobs = jc.subJobs.map((subJob) => ({
-          selected: checked === true ? subJob.job.status === "SUCCESS" : false,
-          job: subJob.job,
-        }));
-        const auxJobState = auxJob.subJobs.map((j) => j.selected);
-        auxJob.selected = checked === true ? !auxJobState.every((j) => j === false) : false;
-        return auxJob;
-      }
-    );
+  const onToggleAll = useCallback(
+    (checked: boolean) => {
+      const newJobCollections: SelectedJobCollection[] = jobCollections.map(
+        (jc) => {
+          const auxJob = jc;
+          auxJob.subJobs = jc.subJobs.map((subJob) => ({
+            selected:
+              checked === true ? subJob.job.status === "SUCCESS" : false,
+            job: subJob.job,
+          }));
+          const auxJobState = auxJob.subJobs.map((j) => j.selected);
+          auxJob.selected =
+            checked === true ? !auxJobState.every((j) => j === false) : false;
+          return auxJob;
+        }
+      );
 
-    setJobCollections(newJobCollections);
-    updateJobContext(newJobCollections);
-  }, [jobCollections, updateJobContext]);
+      setJobCollections(newJobCollections);
+      updateJobContext(newJobCollections);
+    },
+    [jobCollections, updateJobContext]
+  );
 
   const autoSelectJobs = useCallback(() => {
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(
@@ -305,7 +334,14 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       setLoading(false);
       setIsSuMoGenerated(true);
     }
-  }, [jobCollections, loading, onToggleAll, setIsSuMoGenerated, setLoading, updateJobContext]);
+  }, [
+    jobCollections,
+    loading,
+    onToggleAll,
+    setIsSuMoGenerated,
+    setLoading,
+    updateJobContext,
+  ]);
 
   useEffect(() => {
     console.info("useEffect in JobsSelector triggered");
@@ -324,17 +360,20 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
   const getJobCollectionStatus = (subJobs: SubJob[]) => {
     if (!subJobs || subJobs.length === 0) return "EMPTY";
-    const result = subJobs.filter((j) => j.job).map((j) => j.job.status).reduce(
-      (acc, status) => {
-        if (status === "SUCCESS") acc.success += 1;
-        else if (status === "STARTED") acc.running += 1;
-        else if (status === "FAILED") acc.failed += 1;
-        // else if (status === "PENDING") acc.pending += 1;
-        else acc.incomplete += 1;
-        return acc;
-      },
-      { success: 0, running: 0, failed: 0, incomplete: 0 }
-    );
+    const result = subJobs
+      .filter((j) => j.job)
+      .map((j) => j.job.status)
+      .reduce(
+        (acc, status) => {
+          if (status === "SUCCESS") acc.success += 1;
+          else if (status === "STARTED") acc.running += 1;
+          else if (status === "FAILED") acc.failed += 1;
+          // else if (status === "PENDING") acc.pending += 1;
+          else acc.incomplete += 1;
+          return acc;
+        },
+        { success: 0, running: 0, failed: 0, incomplete: 0 }
+      );
 
     const allComplete = result.success === subJobs.length;
     const anyComplete = result.success > 0;
@@ -352,13 +391,17 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   };
 
   type minMaxType = {
-    inputs: { [key: string]: { min: number, max: number } },
-    outputs: { [key: string]: { min: number, max: number } },
+    inputs: { [key: string]: { min: number; max: number } };
+    outputs: { [key: string]: { min: number; max: number } };
   };
 
   const getMinMax = (subJobs: SubJob[]) => {
-    const inputs = Object.entries(subJobs).map(([key, value], idx) => value.job.inputs as { [key: string]: number });
-    const outputs = Object.entries(subJobs).map(([key, value], idx) => value.job.outputs as { [key: string]: number });
+    const inputs = Object.entries(subJobs).map(
+      ([key, value], idx) => value.job.inputs as { [key: string]: number }
+    );
+    const outputs = Object.entries(subJobs).map(
+      ([key, value], idx) => value.job.outputs as { [key: string]: number }
+    );
 
     const minMax: minMaxType = {
       inputs: {},
@@ -387,7 +430,11 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           <strong>Inputs:</strong>
           {Object.entries(minMax.inputs).map(([key, value]) => (
             <Box key={key}>
-              {key}: {value.min.toPrecision(3)} - {value.max.toPrecision(3)}
+              {key}:{" "}
+              {value.min.toPrecision(3) === value.max.toPrecision(3)
+                ? "[ " + value.max.toPrecision(3) + " ]"
+                : "[ " + value.min.toPrecision(3)}{" "}
+              – {value.max.toPrecision(3) + " ]"}
             </Box>
           ))}
         </Box>
@@ -395,12 +442,16 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           <strong>Outputs:</strong>
           {Object.entries(minMax.outputs).map(([key, value]) => (
             <Box key={key}>
-              {key}: {value.min.toPrecision(3)} - {value.max.toPrecision(3)}
+              {key}:{" "}
+              {value.min.toPrecision(3) === value.max.toPrecision(3)
+                ? "[ " + value.max.toPrecision(3) + " ]"
+                : "[ " + value.min.toPrecision(3)}{" "}
+              – {value.max.toPrecision(3) + " ]"}
             </Box>
           ))}
         </Box>
       </Box>
-    )
+    );
   };
 
   return (
@@ -445,7 +496,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                 sx={(theme) => ({ color: theme.palette.primary.contrastText })}
               >
                 {poperID > -1 &&
-                  jobCollections[poperID].jobCollection.uid ===
+                jobCollections[poperID].jobCollection.uid ===
                   params.row.jobCollection.uid ? (
                   <KeyboardArrowDown style={{ transform: "rotate(90deg)" }} />
                 ) : (
@@ -494,8 +545,25 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             minWidth: 115,
             maxWidth: 115,
             renderCell: (params) => (
-              <CustomTooltip title={getMinMax(params.row.subJobs)} placement="left">
-                <Chip color="primary" variant="outlined" size="medium" label={(<Box alignItems={'center'} justifyContent={'center'} display={'flex'} gap={1}><InfoOutline /> Min-Max</Box>)}></Chip>
+              <CustomTooltip
+                title={getMinMax(params.row.subJobs)}
+                placement="left"
+              >
+                <Chip
+                  color="primary"
+                  variant="outlined"
+                  size="medium"
+                  label={
+                    <Box
+                      alignItems={"center"}
+                      justifyContent={"center"}
+                      display={"flex"}
+                      gap={1}
+                    >
+                      <InfoOutline /> Min-Max
+                    </Box>
+                  }
+                ></Chip>
               </CustomTooltip>
             ),
           },
@@ -540,17 +608,20 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           },
           "& .MuiDataGrid-row:hover": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+                theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-row.Mui-selected": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${
+                theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-row.Mui-selected:hover": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+                theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-sortButton": {
@@ -586,7 +657,10 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                   <Table
                     size="small"
                     aria-label="jobs"
-                    sx={(theme) => ({ borderRadius: theme.spacing(2), padding: theme.spacing(4) })}
+                    sx={(theme) => ({
+                      borderRadius: theme.spacing(2),
+                      padding: theme.spacing(4),
+                    })}
                   >
                     <TableHead>
                       <TableRow>
@@ -637,7 +711,14 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           )}
         </Popper>
       </ClickAwayListener>
-      <Box sx={{ display: "flex", justifyContent: 'center', alignItems: "center", gap: "16px" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "16px",
+        }}
+      >
         <Button
           variant="contained"
           size="medium"
