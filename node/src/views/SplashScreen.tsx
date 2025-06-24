@@ -2,11 +2,11 @@ import {
   Container,
   Card,
   Typography,
-  CircularProgress,
   CardHeader,
   useTheme,
+  CardMedia,
+  LinearProgress,
 } from "@mui/material";
-
 export const SplashScreen = () => {
   const theme = useTheme();
 
@@ -24,37 +24,33 @@ export const SplashScreen = () => {
         className="spinner"
         variant="outlined"
         style={{
-          height: "240px",
-          display: "block",
           justifyContent: "center",
           alignItems: "center",
-          borderRadius: "16px",
-          padding: "2rem",
+          borderRadius: "8px",
+          padding: "0rem",
           margin: "auto",
-          backgroundColor: theme.palette.grey[200]
+          backgroundColor: "black",
+          border: 'none'
         }}
       >
-        <Typography
-          variant="h3"
-          fontFamily={"inherit"}
-          fontWeight={"100"}
-          gutterBottom
-        >
-          MetaModelingUX
-        </Typography>
-        <CircularProgress size="3rem" sx={{ color: theme.palette.primary.main }} />
-        <CardHeader
-          title={
-            <Typography
-              variant="body1"
-              fontFamily={"inherit"}
-              fontWeight={"200"}
-            >
-              Starting up service
-            </Typography>
-          }
-          style={{ textAlign: "center" }}
+        <CardMedia
+          component="img"
+          // image="/NoBackgroundLogo.png"
+          image="/BlackLogo.png"
+          sx={{
+            height: '250px',
+          }}
+          alt="MetaModelingUX Logo"
         />
+
+        <Typography
+        variant="body1"
+        fontFamily={"inherit"}
+        fontWeight={"200"}
+        >
+          Starting up service
+        </Typography>
+        <LinearProgress sx={{ color: theme.palette.primary.main, marginTop: '8px', height: '6px' }} />
       </Card>
     </Container>
   );
