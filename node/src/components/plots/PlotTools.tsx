@@ -170,7 +170,6 @@ export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSli
         value={value} // TODO could not get slider to be in the middle for those w constant values
         onChange={(e, newValue) => {
           setValue(newValue as number);
-          changeOtherAxis(e as Event, newValue as number)
         }}
         onChangeCommitted={(e, newValue) => {
           changeOtherAxis(e as Event, newValue as number)
