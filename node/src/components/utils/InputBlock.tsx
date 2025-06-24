@@ -2,7 +2,7 @@ import { InputLabel, TextField } from "@mui/material";
 import { useState } from "react";
 
 export const InputBlock = (props: InputBlockProps) => {
-  const { name, value, type, onChange } = props;
+  const { name, value, type, error, onChange } = props;
   const [currentValue, setCurrentValue] = useState<number>(value)
 
   const handleChange = (newValue: number) => {
@@ -20,6 +20,7 @@ export const InputBlock = (props: InputBlockProps) => {
         value={isNaN(currentValue) ? "" : currentValue}
         onChange={(e) => setCurrentValue(parseFloat(e.target.value))}
         onBlur={(e) => handleChange(parseFloat(e.target.value))}
+        error={error}
       />
     </InputLabel>
   );

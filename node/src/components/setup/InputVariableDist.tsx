@@ -65,11 +65,13 @@ export const InputVariableDist = () => {
           name="Min"
           value={localDistribution[inputVar].min !== undefined ? localDistribution[inputVar].min : NaN}
           onChange={(value) => handleSetValue(inputVar, 'min', value as number)}
+          error={localDistribution[inputVar].min !== undefined && localDistribution[inputVar].max !== undefined && localDistribution[inputVar].min > localDistribution[inputVar].max ? true : false}
         />
         <InputBlock
           name="Max"
           value={localDistribution[inputVar].max !== undefined ? localDistribution[inputVar].max : NaN}
           onChange={(value) => handleSetValue(inputVar, 'max', value as number)}
+          error={localDistribution[inputVar].min !== undefined && localDistribution[inputVar].max !== undefined && localDistribution[inputVar].min > localDistribution[inputVar].max ? true : false}
         />
       </>
     );
@@ -168,7 +170,7 @@ export const InputVariableDist = () => {
                 flex: 1,
                 maxWidth: "240px",
                 minWidth: "240px",
-                padding: "16px 16px 16px",
+                padding: "8px",
                 marginRight: "16px",
                 backgroundColor: theme.palette.background.default,
                 gap: "16px",

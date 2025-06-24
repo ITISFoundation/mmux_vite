@@ -113,6 +113,7 @@ interface InputBlockProps {
   value: number,
   type?: 'number' | 'text',
   onChange: (value: unknown) => void
+  error?: boolean,
 }
 
 interface InputTextBlockProps {
