@@ -3,6 +3,7 @@ import { useMMUXContext } from '../../context/MMUXContext';
 import { useServiceContext } from '../../context/ServiceContext';
 import { toast } from 'react-toastify';
 import CustomTooltip from '../utils/CustomTooltip';
+import { getDeploymentUrl } from '../../utils/function_utils';
 
 type RunSamplingButtonProps = {
   handleRunSampling: () => void;
@@ -14,8 +15,7 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
   console.info("Current permissions: ", permissions)
   const { handleRunSampling, disabled } = props;
   const { launchingSampling, setLaunchingSampling, setRunningSampling } = useMMUXContext();
-  const serviceAddress = window.location.href
-
+  const deploymentUrl = getDeploymentUrl()
 
   const handleRunSamplingWithErrorHandling = async () => {
     try {
@@ -39,7 +39,7 @@ export const RunSamplingButton = (props: RunSamplingButtonProps) => {
             : disabled
               ? "Sampling is disabled"
               : permissions !== "WRITE"
-                ? `This is a preview version that runs on a precomputed demonstration application. If you want to explore it using your own Projects, please contact support@${serviceAddress}`
+                ? `This is a preview version that runs on a precomputed demonstration application. If you want to explore it using your own Projects, please contact support@${deploymentUrl}`
                 : ""
         }
         placement="top"
