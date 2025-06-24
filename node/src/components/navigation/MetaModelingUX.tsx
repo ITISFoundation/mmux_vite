@@ -1,9 +1,10 @@
 import { Card } from "@mui/material";
 import Header from "./Header";
-import StyledHyperLink from "../utils/HyperLink";
+import { getManualLink, getTutorialLink } from "./TutorialManualLinks";
 
 export default function MetaModelingUX(props: MetaModelingUXProps) {
   const { children, tabTitle, infoText, ExtendedInfoText, headerType } = props;
+
   return (
     <Card variant="outlined">
       <Header
@@ -13,16 +14,8 @@ export default function MetaModelingUX(props: MetaModelingUXProps) {
         headerType={headerType}
         helpContents={
           <>
-            For more information, please see the
-            <StyledHyperLink
-              text="Tutorial"
-              link="https://github.com/.../main/Tutorial.md"
-            />
-            and the
-            <StyledHyperLink
-              text="Manual"
-              link="https://github.com/.../main/Manual.md"
-            />
+            For more information, please see the {getTutorialLink()}
+            and the {getManualLink()}
           </>
         }
       />

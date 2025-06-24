@@ -91,6 +91,13 @@ export async function getFunctionJobsFromFunctionJobCollection(JobCollectionUid:
     })
 }
 
+export function getSimplifiedHost(): string {
+    const serviceAddress = window.location.href
+    const url = new URL(serviceAddress);
+    const simplifiedHost = url.hostname.replace(/^[^.]+\.services\./, ''); // get rid of the UUID and "services"
+    return simplifiedHost
+}
+
 export function getDeploymentUrl(): string {
     const serviceAddress = window.location.href
     const url = new URL(serviceAddress);
