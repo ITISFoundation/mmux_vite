@@ -2,7 +2,7 @@ import { Box, Chip, InputLabel, MenuItem, Select, Typography, useTheme } from "@
 import { useCallback, useEffect, useState } from "react";
 import { useServiceContext } from "../../context/ServiceContext";
 import InputVariableDistDocument from "../documents/InputVariableDistDocument";
-import { useMMUXContext } from "../../context/MMUXContext";
+import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
 import { InputBlock } from "../utils/InputBlock";
 import Header from "../navigation/Header";
 
@@ -103,31 +103,45 @@ export const InputVariableDist = () => {
     handleSetLocalDistribution(newInputVars);
   };
 
-  const setInitialValues = (inputVar: string): VarSelection => {
+  const setInitialValues = (inputVar: string, serviceMode: string): VarSelection => {
     // Geometry demo
-    if (inputVar === "angle") {
-      return { distribution: "uniform", min: 30, max: 300 }
-    } else if (inputVar === "gap" || inputVar === "length") {
-      return { distribution: "uniform", min: 0.2, max: 2 }
-    } else if (inputVar === "length") {
-      return { distribution: "uniform", min: 0.2, max: 300 }
-    } else if (inputVar === "silicone_extra" || inputVar === "siliconeExtra") {
-      return { distribution: "uniform", min: 0.5, max: 2.5 }
+    if (serviceMode === "SUMO") {
+      if (inputVar in ["angle", "angleWidth"]) {
+        return { distribution: "uniform", min: 30, max: 300 }
+      } else if (inputVar in ["gap", "length", "InterElectrodeSpacing", "interElectrodeSpacing"]) {
+        return { distribution: "uniform", min: 0.2, max: 2 }
+      } else if (inputVar in ["silicone_extra", "siliconeExtra", "siliconePadding"]) {
+        return { distribution: "uniform", min: 0.5, max: 2.5 }
+      }
     }
-    // Parameters demo
-    else if (inputVar === "sigma_conn") {
-      return { distribution: "normal", mean: 0.08, std: 0.016 }
-    } else if (inputVar === "sigma_fasc_lon") {
-      return { distribution: "normal", mean: 0.57, std: 0.114 }
-    } else if (inputVar === "sigma_fasc_tra") {
-      return { distribution: "normal", mean: 0.16, std: 0.032 }
-    } else if (inputVar === "sigma_interst") {
-      return { distribution: "normal", mean: 0.08, std: 0.016 }
-    } else if (inputVar === "sigma_nerve") {
-      return { distribution: "normal", mean: 0.34, std: 0.068 }
+
+    // Tissue Properties Demo
+    else if (serviceMode === "UQ") {
+      if (inputVar in ["sigma_conn", "sigmaConnectiveTissue"]
+        || inputVar in ["sigma_interst", "sigmaInterstitial"]) {
+        return { distribution: "normal", mean: 0.08, std: 0.016 }
+      } else if (inputVar in ["sigma_fasc_lon", "sigmaFascicleLongitudinal"]) {
+        return { distribution: "normal", mean: 0.57, std: 0.114 }
+      } else if (inputVar in ["sigma_fasc_tra", "sigmaFascicleTransversal"]) {
+        return { distribution: "normal", mean: 0.16, std: 0.032 }
+      } else if (inputVar in ["sigma_nerve", "sigmaNerve"]) {
+        return { distribution: "normal", mean: 0.34, std: 0.068 }
+      } else if (inputVar in ["sigma_blood", "sigmaBlood"]) {
+        return { distribution: "normal", mean: 0.662, std: 0.13 }
+      } else if (inputVar in ["sigma_saline", "sigmaSaline"]) {
+        return { distribution: "normal", mean: 2, std: 0.4 }
+      }
     }
-    // Normal default for new functions
+
+    // Normal defaults for new functions
+    if (serviceMode === "SUMO") {
+      return { distribution: "uniform", mean: NaN, std: NaN, min: NaN, max: NaN }
+    }
+    else if (serviceMode === "UQ") {
+      return { distribution: "normal", mean: NaN, std: NaN, min: NaN, max: NaN }
+    }
     else {
+      console.warn("Unknow serviceMode!: ", serviceMode)
       return { distribution: "uniform", mean: NaN, std: NaN, min: NaN, max: NaN }
     }
   }
@@ -138,8 +152,7 @@ export const InputVariableDist = () => {
     } else {
       if (inputVars.length > 0) {
         const initialInputVars = inputVars.reduce((acc, val) => {
-          // TODO remove default values; just for development speed
-          acc[val] = setInitialValues(val);
+          acc[val] = setInitialValues(val, serviceMode);
           return acc;
         }, {} as typeof localDistribution);
         handleSetLocalDistribution(initialInputVars);
