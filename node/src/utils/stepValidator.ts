@@ -26,7 +26,7 @@ export function stepValidator(context: MMUXContextType, step: number): boolean {
             dist.min !== undefined &&
             !isNaN(dist.min) &&
             dist.max !== undefined &&
-            !isNaN(dist.max)
+            !isNaN(dist.max) && dist.min <= dist.max
           );
         }
         if (dist.distribution === "log-normal") {
