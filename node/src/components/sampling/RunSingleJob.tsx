@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, Skeleton, Typography } from "@mui/material";
-import { Function, FunctionJob } from "../../osparc-api-ts-client";
+import { Function, FunctionJob, ProjectFunctionJob } from "../../osparc-api-ts-client";
 import { useMMUXContext, MMUXContextType } from "../../context/MMUXContext";
 import { RunSamplingButton } from "./RunSamplingButton";
 import ValueConfig from "../setup/ValueConfig";
 import { toast } from "react-toastify";
-import { openStudyUid } from "../../utils/function_utils";
+import { createJobStudyCopy, openStudyUid } from "../../utils/function_utils";
 
 async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
   const fun = context?.selectedFunction as Function;
@@ -38,7 +38,7 @@ async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
 
 const TestJob = () => {
   const context = useMMUXContext();
-  const { inputVars, singleJobConfig, setSingleJobConfig } = context;
+  const { selectedFunction, inputVars, singleJobConfig, setSingleJobConfig } = context;
   const [jobInputs, setJobInputs] =
     useState<Array<SingleJobConfig>>(singleJobConfig);
   const [loading, setLoading] = useState<boolean>(true);
@@ -46,9 +46,13 @@ const TestJob = () => {
   const handleRunSampling = async () => {
     setSingleJobConfig(jobInputs);
     const job = await runTestJob(context, jobInputs);
-    // open in a new window - like in "View" of the JobList
+    // necessary to make a copy of the test job bcs as of now, the run-job always generates a hidden copy
+    // thus, the copy allows the user to see their test run in their dashboard
+    // WOuld be nice to be able to abort/delete the TestJob or simply update the run-job endpoint to accept a "hidden" boolean parameter
+    const copy_uid = await createJobStudyCopy(selectedFunction?.title as string, job as ProjectFunctionJob);
     if (!job) toast.warning("Test Job running failed! Please contact support");
-    else if (job.functionClass && job.functionClass === "PROJECT") openStudyUid(job.projectJobId)
+    else if (!copy_uid) toast.warning("Not possible to open your test copy! Please contact support")
+    else if (job.functionClass && job.functionClass === "PROJECT") openStudyUid(copy_uid)
     else toast.warning("Only ProjectFunctionJob can be opened in a new window!");
   };
 

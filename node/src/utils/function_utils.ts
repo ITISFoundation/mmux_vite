@@ -1,4 +1,4 @@
-import { Function, FunctionJob, FunctionJobCollection} from '../osparc-api-ts-client';
+import { Function, ProjectFunctionJob, FunctionJob, FunctionJobCollection} from '../osparc-api-ts-client';
 import { PYTHON_DAKOTA_BACKEND } from './api_objects';
 import { fetchWithRetry } from './fetch_retry';
 import { toast } from "react-toastify";
@@ -91,11 +91,16 @@ export async function getFunctionJobsFromFunctionJobCollection(JobCollectionUid:
     })
 }
 
-export function openStudyUid(uid: string): void {
+export function getDeploymentUrl(): string {
     const serviceAddress = window.location.href
     const url = new URL(serviceAddress);
     const simplifiedHost = url.hostname.replace(/^[^.]+\.services\./, ''); // get rid of the UUID and "services"
     const deploymentUrl = `${url.protocol}//${simplifiedHost}`; // add the protocol
+    return deploymentUrl
+}
+
+export function openStudyUid(uid: string): void {
+    const deploymentUrl = getDeploymentUrl()
     const serviceUrl = deploymentUrl + `/#/study/${uid}`
     const newWindow = window.open(serviceUrl);
     if (newWindow) {
@@ -103,6 +108,36 @@ export function openStudyUid(uid: string): void {
     } else {
       toast.warning("Popup blocked! Please allow popups for this site to open the job in a new tab.");
     }
-
-
 }
+
+interface StudyType {
+    uid: string;
+    title: string;
+    description: string;
+  }
+export const createJobStudyCopy = async (functionName: string, job: ProjectFunctionJob) => {
+    try {
+      const projectJobId = job.projectJobId;
+      const inputs = job.inputs
+      const study: StudyType = await fetch(
+        PYTHON_DAKOTA_BACKEND + "/flask/clone_job", {
+        method: "POST",
+        body: JSON.stringify({
+          functionName: functionName, //
+          projectJobId: projectJobId,
+          projectInputs: inputs,
+        }),
+      }).then(function (response) {
+        return response.json()
+      })
+
+      if (study && study.uid) {
+        return study.uid
+      } else {
+        toast.error("Failed to open job copy: No UID returned");
+      }
+    } catch (error) {
+      console.error("Error creating Job Copy for inspection:", error);
+      toast.error("Error creating Job Copy for inspection");
+    }
+  }

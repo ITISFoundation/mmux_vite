@@ -4,9 +4,8 @@ import Typography from "@mui/material/Typography";
 import { Box, Button, Checkbox, CircularProgress, Tooltip } from "@mui/material";
 import { toast } from "react-toastify";
 import { useState } from "react";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { openStudyUid } from "../../utils/function_utils";
-import { Function, ProjectFunctionJob } from "../../osparc-api-ts-client";
+import { openStudyUid, createJobStudyCopy } from "../../utils/function_utils";
+import { Function } from "../../osparc-api-ts-client";
 
 interface JobRowProps {
   jobUid: string
@@ -66,37 +65,6 @@ const JobRow = (props: JobRowProps) => {
       );
     })
 
-    interface StudyType {
-      uid: string;
-      title: string;
-      description: string;
-    }
-    const createJobStudyCopy = async (job: ProjectFunctionJob) => {
-      try {
-        const projectJobId = job.projectJobId;
-        const inputs = job.inputs
-        const study: StudyType = await fetch(
-          PYTHON_DAKOTA_BACKEND + "/flask/clone_job", {
-          method: "POST",
-          body: JSON.stringify({
-            functionName: selectedFunction?.title,
-            projectJobId: projectJobId,
-            projectInputs: inputs,
-          }),
-        }).then(function (response) {
-          return response.json()
-        })
-
-        if (study && study.uid) {
-          return study.uid
-        } else {
-          toast.error("Failed to open job copy: No UID returned");
-        }
-      } catch (error) {
-        console.error("Error creating Job Copy for inspection:", error);
-        toast.error("Error creating Job Copy for inspection");
-      }
-    }
     return (
       <TableRow
         key={job.job.uid}
@@ -142,7 +110,7 @@ const JobRow = (props: JobRowProps) => {
               size="small"
               onClick={async () => {
                 setCreatingJobCopy(true)
-                const copy_uid = await createJobStudyCopy(job.job);
+                const copy_uid = await createJobStudyCopy(selectedFunction?.title as string, job.job);
                 setCreatingJobCopy(false)
                 if (copy_uid) openStudyUid(copy_uid)
                 else toast.warning("Could not open Job copy in new window!")
