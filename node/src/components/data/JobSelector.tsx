@@ -229,7 +229,11 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     }
   };
 
-  const handleClickAway = () => {
+  const handleClickAway = (e: Event) => {
+    if((e.target as HTMLElement).localName && (e.target as HTMLElement).localName === "body") {
+      // If the click is on the select inside the popper, do not close it
+      return;
+    }
     if (poperID !== -1 && anchorEl && poperOpen.current) {
       console.info("Closing job collection popper", poperID, anchorEl);
       setAnchorEl(null);
@@ -578,7 +582,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           {poperID !== -1 && jobCollections[poperID] && (
             <Card sx={(theme) => ({ borderRadius: theme.spacing(2) })}>
               <Box style={{ padding: "16px" }}>
-                <TableContainer>
+                <TableContainer sx={{ maxHeight: 800 }}>
                   <Table
                     size="small"
                     aria-label="jobs"
@@ -617,6 +621,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                   </Table>
                 </TableContainer>
                 <TablePagination
+                  id="job-collection-pagination"
                   rowsPerPageOptions={[10, 20, 30]}
                   component="div"
                   count={jobCollections[poperID].jobCollection.jobIds.length}
