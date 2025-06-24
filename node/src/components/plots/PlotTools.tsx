@@ -4,9 +4,9 @@ import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
 
 export const _get_unique_values = (context: MMUXContextType) => {
-  const { inputVars, filterSelectedJobList } = context;
+  const { inputVars, allJobsList } = context;
   const uniqueValuesPerVar: { [varName: string]: Set<number> } = {};
-  const jobs = filterSelectedJobList();
+  const jobs = allJobsList();
   inputVars.forEach((varName) => {
     uniqueValuesPerVar[varName] = new Set<number>();
   });
@@ -44,8 +44,11 @@ export const _filterOutConstantDistributionVars = (context: MMUXContextType) => 
   );
 }
 export const filterInputVars = (context: MMUXContextType) => {
-  // Wrapper to quickly change btw filtering mode
-  return _filterOutConstantDataVars(context)
+  const { allJobsList } = context;
+  // If there are no jobs, we have no information about the data distribution -- use the distribution set by the user
+  if (allJobsList().length === 0) return _filterOutConstantDistributionVars(context)
+  // if we have samples, then we can easily ascertain from it whether each parameter was modeled as constant or not
+  else return _filterOutConstantDataVars(context)
 }
 
 interface CreateSelectProps {
