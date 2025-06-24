@@ -104,31 +104,35 @@ export const InputVariableDist = () => {
   };
 
   const setInitialValues = (inputVar: string, serviceMode: string): VarSelection => {
+    inputVar = inputVar.toLowerCase() // avoid case sensitivity
+
     // Geometry demo
     if (serviceMode === "SUMO") {
-      if (inputVar in ["angle", "angleWidth"]) {
+      if (["angle", "anglewidth"].includes(inputVar)) {
         return { distribution: "uniform", min: 30, max: 300 }
-      } else if (inputVar in ["gap", "length", "InterElectrodeSpacing", "interElectrodeSpacing"]) {
+      } else if (["gap", "length", "interelectrodespacing"].includes(inputVar)) {
         return { distribution: "uniform", min: 0.2, max: 2 }
-      } else if (inputVar in ["silicone_extra", "siliconeExtra", "siliconePadding"]) {
+      } else if (["silicone_extra", "siliconeextra", "siliconepadding"].includes(inputVar)) {
         return { distribution: "uniform", min: 0.5, max: 2.5 }
+      } else {
+        console.log("inputVar ", inputVar, " could not be matched")
       }
     }
 
     // Tissue Properties Demo
     else if (serviceMode === "UQ") {
-      if (inputVar in ["sigma_conn", "sigmaConnectiveTissue"]
-        || inputVar in ["sigma_interst", "sigmaInterstitial"]) {
+      if (["sigma_conn", "sigmaconnectivetissue"].includes(inputVar)
+        || ["sigma_interst", "sigmainterstitial"].includes(inputVar)) {
         return { distribution: "normal", mean: 0.08, std: 0.016 }
-      } else if (inputVar in ["sigma_fasc_lon", "sigmaFascicleLongitudinal"]) {
+      } else if (["sigma_fasc_lon", "sigmafasciclelongitudinal"].includes(inputVar)) {
         return { distribution: "normal", mean: 0.57, std: 0.114 }
-      } else if (inputVar in ["sigma_fasc_tra", "sigmaFascicleTransversal"]) {
+      } else if (["sigma_fasc_tra", "sigmafascicletransversal"].includes(inputVar)) {
         return { distribution: "normal", mean: 0.16, std: 0.032 }
-      } else if (inputVar in ["sigma_nerve", "sigmaNerve"]) {
+      } else if (["sigma_nerve", "sigmanerve"].includes(inputVar)) {
         return { distribution: "normal", mean: 0.34, std: 0.068 }
-      } else if (inputVar in ["sigma_blood", "sigmaBlood"]) {
+      } else if (["sigma_blood", "sigmablood"].includes(inputVar)) {
         return { distribution: "normal", mean: 0.662, std: 0.13 }
-      } else if (inputVar in ["sigma_saline", "sigmaSaline"]) {
+      } else if (["sigma_saline", "sigmasaline"].includes(inputVar)) {
         return { distribution: "normal", mean: 2, std: 0.4 }
       }
     }
