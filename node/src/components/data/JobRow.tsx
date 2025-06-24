@@ -36,7 +36,6 @@ const JobRow = (props: JobRowProps) => {
   } else {
     const jobStatus = job.job.status;
     const outputs =
-      // (job.job.outputs) ?
       (jobStatus === "SUCCESS")
         ? Object.entries(job.job.outputs).map(([key, value], idx) => {
           return (
@@ -51,11 +50,13 @@ const JobRow = (props: JobRowProps) => {
               {"Running..."}
             </Box >
           ]
-          : (jobStatus === "FAILED")
-            ? "No outputs"
-            : (jobStatus === "PENDING") || (jobStatus === "WAITING_FOR_CLUSTER") || (jobStatus === "PUBLISHED") // both are valid options
+          : (jobStatus === "FAILED") || (jobStatus === "ABORTED")
+            ? "Failed - no outputs"
+            : (jobStatus === "PENDING") || (jobStatus === "WAITING_FOR_CLUSTER") || (jobStatus === "PUBLISHED")
+              || (jobStatus === "NOT_STARTED") || (jobStatus === "WAITING_FOR_RESOURCES") // all are valid options
               ? "Pending to run"
-              : "Unknown status, please contact support"
+              : (jobStatus === "UNKNOWN") ? "Please try again later"
+                : "Unknown status, please contact support"
 
     const inputs = Object.entries(job.job.inputs).map(([key, value], idx) => {
       return (
