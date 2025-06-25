@@ -1,5 +1,6 @@
-import { Card, CardContent, Typography, Link } from "@mui/material";
+import { Card, CardContent, Typography } from "@mui/material";
 import Header from "../navigation/Header";
+import { getManualLink } from "../navigation/TutorialManualLinks";
 
 const AdaptExtedSamplingDocument = (
   <Card sx={{ padding: "8px", borderRadius: "16px", maxWidth: "800px" }}>
@@ -23,9 +24,8 @@ const AdaptExtedSamplingDocument = (
       </Typography>
       <Typography variant="body1" fontFamily={"inherit"} flex={1} mb={1}>
         This reduces both the interpolation uncertainty of the Gaussian Process
-        and improves the overall reliability of your uncertainty propagation
-        results. Better sampling leads to more accurate uncertainty
-        quantification with tighter confidence bounds.
+        and improves the overall reliability of the results.
+        Better sampling leads to more accurate predictions with tighter confidence bounds.
       </Typography>
       <Typography
         variant="body1"
@@ -33,16 +33,7 @@ const AdaptExtedSamplingDocument = (
         sx={{ marginTop: "16px" }}
       >
         For additional information on how add variable distributions, please
-        refer to the{" "}
-        <Link
-          href="https://itis.swiss/osparc/docs/osparc-user-guide/#Distributions"
-          color="info"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          User Guide
-        </Link>
-        .
+        refer to the {getManualLink()}.
       </Typography>
     </CardContent>
   </Card>

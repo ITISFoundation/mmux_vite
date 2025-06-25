@@ -81,7 +81,7 @@ export const OutputSetup = (props: UQSetupProps) => {
         <Box sx={{ display: "flex", alignItems: "center" }}>
           Select Quantity of Interest
           <CustomTooltip
-            title="Choose the simulation output to analyze for uncertainty propagation"
+            title="Choose the simulation output to analyze"
             ExtendedTootlip={SelectQoIDocument}
             placement="right"
             arrow

@@ -1,5 +1,6 @@
-import { Card, CardContent, Typography, Link } from "@mui/material";
+import { Card, CardContent, Typography } from "@mui/material";
 import Header from "../navigation/Header";
+import { getManualLink } from "../navigation/TutorialManualLinks";
 
 const SelectFunctionDocument = (
   <Card sx={{ padding: "8px", borderRadius: "16px", maxWidth: "800px" }}>
@@ -30,16 +31,7 @@ const SelectFunctionDocument = (
         sx={{ marginTop: "16px" }}
       >
         For additional information on how to create functions, please refer to
-        the{" "}
-        <Link
-          href="https://itis.swiss/osparc/docs/osparc-user-guide/#functions"
-          color="info"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          User Guide
-        </Link>
-        .
+        the {getManualLink()}.
       </Typography>
     </CardContent>
   </Card>

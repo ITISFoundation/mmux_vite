@@ -1,5 +1,6 @@
-import { Card, CardContent, Typography, Link } from "@mui/material";
+import { Card, CardContent, Typography } from "@mui/material";
 import Header from "../navigation/Header";
+import { getManualLink } from "../navigation/TutorialManualLinks";
 
 const InputVariableDistDocument = (
   <Card sx={{ padding: "8px", borderRadius: "16px", maxWidth: "800px" }}>
@@ -37,16 +38,7 @@ const InputVariableDistDocument = (
         sx={{ marginTop: "16px" }}
       >
         For additional information on how add variable distributions, please
-        refer to the{" "}
-        <Link
-          href="https://itis.swiss/osparc/docs/osparc-user-guide/#Distributions"
-          color="info"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          User Guide
-        </Link>
-        .
+        refer to the {getManualLink()}.
       </Typography>
     </CardContent>
   </Card>
