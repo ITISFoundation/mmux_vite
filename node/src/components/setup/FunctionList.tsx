@@ -302,8 +302,8 @@ export function FunctionList() {
             headerName: "Further Info",
             align: 'center',
             flex: 1,
-            minWidth: 160,
-            maxWidth: 160,
+            minWidth: 100,
+            maxWidth: 100,
             renderCell: (params) => getFunctionSolver(params.row),
           },
           {
