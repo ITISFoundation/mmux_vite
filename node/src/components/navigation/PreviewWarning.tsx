@@ -12,8 +12,8 @@ const PreviewWarning = () => {
           This is a preview of the{" "}
           {serviceMode === "UQ"
             ? "Uncertainty Quantification"
-            : "Meta-Modeling Insights"}{" "}
-          Hypertool that runs on a precomputed demonstration application. If you
+            : "Response Surface Modeling"}{" "}
+          HyperTool that runs on a precomputed demonstration application. If you
           want to explore it using your own Projects, please contact support@
           {simplifiedHost}
         </Alert>
