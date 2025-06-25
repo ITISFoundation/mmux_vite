@@ -16,6 +16,7 @@ import {
   JSONFunctionOutputSchema,
 } from "../../osparc-api-ts-client";
 import { useMMUXContext } from "../../context/MMUXContext.tsx";
+import { getTutorialLink } from "../navigation/TutorialManualLinks.tsx";
 
 const VarsHolder = styled("div")`
   max-width: 150px;
@@ -249,15 +250,7 @@ export function FunctionList() {
           display="inline"
           mr={1}
         >
-          You have no Functions registered.Please check the{" "}
-          <a
-            href="https://your-tutorial-link.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: "underline" }}
-          >
-            Tutorial
-          </a>{" "}
+          You have no Functions registered.Please check the {getTutorialLink()}
           for guidance on how to create your first Function!
         </Typography >
       </Box >

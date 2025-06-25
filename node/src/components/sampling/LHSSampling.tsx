@@ -116,7 +116,6 @@ const LHSSampling = () => {
   }
 
   const recommendedLHSSamples = (context: MMUXContextType) => {
-    // TODO make wrt # input Vars which are NOT constant distribution
     let nPoints: number;
     nPoints = Math.sqrt(filterInputVars(context).length) * 30 * 1.2;
     nPoints = Math.ceil(nPoints / 5) * 5;
@@ -144,8 +143,8 @@ const LHSSampling = () => {
 
   useEffect(() => {
     setLhsInputs((prevInputs) => {
-      const roundedPoints = recommendedLHSSamples(context)
-      const lhsPoints = Math.min(Math.max(roundedPoints, 5), 50); // hardcoded max points limit in backedn
+      const nPoints = recommendedLHSSamples(context)
+      const lhsPoints = Math.min(Math.max(nPoints, 5), 50); // hardcoded max points limit in backedn
       const newInputs = { ...prevInputs, points: lhsPoints };
       return newInputs;
     });

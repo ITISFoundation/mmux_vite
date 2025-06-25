@@ -36,6 +36,7 @@ export interface MMUXContextType {
   setFetchedJobCollections: (jc: SelectedJobCollection[]) => void;
   selectedJobUids: string[];
   setSelectedJobUids: (selectedJobs: string[]) => void;
+  allJobsList: () => FunctionJob[];
   filterSelectedJobList: () => FunctionJob[];
   selectedQoI: string | undefined;
   setSelectedQoI: (response: string | undefined) => void;
@@ -110,6 +111,20 @@ export const MMUXContextProvider = ({ children }: Props) => {
       }
       return response;
     };
+
+    const allJobsList = () => {
+      const response: FunctionJob[] = fetchedJobCollections.flatMap(
+        (jobCollection) =>
+          jobCollection.subJobs
+            .map((subJob) => subJob.job)
+      );
+
+      if (fetchedJobCollections.length !== 0 && response.length <= 4) {
+        return []; // 5 samples are necessary to avoid Dakota crashing
+      }
+      return response;
+    };
+
     return {
       selectedFunction: funct,
       setSelectedFunction: handleSelectedFunction,
@@ -141,6 +156,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setFetchedJobCollections: setFetchedJobCollections,
       selectedJobUids: selectedJobUids,
       setSelectedJobUids: setSelectedJobUids,
+      allJobsList: allJobsList,
       filterSelectedJobList: filterSelectedJobList,
       isSuMoGenerated: isSuMoGenerated,
       setIsSuMoGenerated: setIsSuMoGenerated,
