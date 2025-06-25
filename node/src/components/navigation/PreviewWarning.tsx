@@ -1,9 +1,9 @@
 import { Alert, Container, Box } from "@mui/material";
 import { useServiceContext } from "../../context/ServiceContext";
-import { getDeploymentUrl } from "../../utils/function_utils";
+import { getSimplifiedHost } from "../../utils/function_utils";
 
 const PreviewWarning = () => {
-  const deploymentUrl = getDeploymentUrl();
+  const simplifiedHost = getSimplifiedHost();
   const { serviceMode, permissions } = useServiceContext();
   return permissions === "READ-ONLY" ? (
     <Container>
@@ -15,7 +15,7 @@ const PreviewWarning = () => {
             : "Meta-Modeling Insights"}{" "}
           Hypertool that runs on a precomputed demonstration application. If you
           want to explore it using your own Projects, please contact support@
-          {deploymentUrl}
+          {simplifiedHost}
         </Alert>
       </Box>
     </Container>
