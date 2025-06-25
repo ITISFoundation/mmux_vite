@@ -1,5 +1,6 @@
 import { Card, CardContent, Typography } from "@mui/material";
 import Header from "../navigation/Header";
+import { getManualLink } from "../navigation/TutorialManualLinks";
 
 const CrossValidationDocument = (
     <Card sx={{ padding: "8px", borderRadius: "16px", maxWidth: "800px" }}>
@@ -19,6 +20,14 @@ const CrossValidationDocument = (
             </Typography>
             <Typography variant="body1" fontFamily={"inherit"} flex={1} mb={1}>
                 The agreement between ‘Observations’ and ‘Predictions’ is a measure for the surrogate model quality.
+            </Typography>
+            <Typography
+                variant="body1"
+                fontFamily={"inherit"}
+                sx={{ marginTop: "16px" }}
+            >
+                For additional information on the cross-validation procedure, please
+                refer to the {getManualLink()}.
             </Typography>
         </CardContent>
     </Card>
