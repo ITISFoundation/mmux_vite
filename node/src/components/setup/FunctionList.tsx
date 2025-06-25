@@ -18,17 +18,6 @@ import {
 import { useMMUXContext } from "../../context/MMUXContext.tsx";
 import { getTutorialLink } from "../navigation/TutorialManualLinks.tsx";
 
-const VarsHolder = styled("div")`
-  max-width: 150px;
-  max-height: 50px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  position: relative;
-  display: flex;
-  gap: 16px;
-`;
-
 export function FunctionList() {
   const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
@@ -92,11 +81,7 @@ export function FunctionList() {
     }
 
     const vars = Object.keys(schema.schemaContent.properties);
-    return (
-      <VarsHolder title={schema ? vars.join(", ") : ""}>
-        {vars.join(", ")}
-      </VarsHolder>
-    );
+    return vars.join(", ");
   };
 
   const getFunctionSolver = (fun: Function) => {
