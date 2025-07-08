@@ -122,20 +122,22 @@ const LHSSampling = () => {
     return nPoints;
   }
 
+  const generateInputsList = (inputVar: string) => ({
+    variable: inputVar,
+    start: getSamplingStartValue(
+      inputVar,
+      distribution[selectedFunction?.uid || ""]
+    ) as number,
+    end: getSamplingEndValue(
+      inputVar,
+      distribution[selectedFunction?.uid || ""]
+    ) as number,
+  });
+
   useEffect(() => {
     const currentSampling: LHSamplingConfig = lhsSamplingConfig;
     if (lhsSamplingConfig.inputs.length === 0) {
-      currentSampling.inputs = inputVars.map((inputVar) => ({
-        variable: inputVar,
-        start: getSamplingStartValue(
-          inputVar,
-          distribution[selectedFunction?.uid || ""]
-        ) as number,
-        end: getSamplingEndValue(
-          inputVar,
-          distribution[selectedFunction?.uid || ""]
-        ) as number,
-      }));
+      currentSampling.inputs = inputVars.map(generateInputsList);
     }
     setLhsInputs(currentSampling);
     setLoading(false);
@@ -145,7 +147,7 @@ const LHSSampling = () => {
     setLhsInputs((prevInputs) => {
       const nPoints = recommendedLHSSamples(context)
       const lhsPoints = Math.min(Math.max(nPoints, 5), 50); // hardcoded max points limit in backedn
-      const newInputs = { ...prevInputs, points: lhsPoints };
+      const newInputs = {...prevInputs, inputs: inputVars.map(generateInputsList), points: lhsPoints };
       return newInputs;
     });
   }, [inputVars, selectedFunction]);
