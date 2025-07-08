@@ -135,7 +135,7 @@ const LHSSampling = () => {
   });
 
   useEffect(() => {
-    const currentSampling: LHSamplingConfig = lhsSamplingConfig;
+    const currentSampling: LHSamplingConfig = { ...lhsSamplingConfig };
     if (lhsSamplingConfig.inputs.length === 0) {
       currentSampling.inputs = inputVars.map(generateInputsList);
     }
