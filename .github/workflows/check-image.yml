@@ -27,6 +27,10 @@ jobs:
         uses: docker://itisfoundation/ci-service-integration-library:v2.1.16-dev
         with:
           args: ooil compose
+      - name: echo docker-compose.yml
+        uses: docker://itisfoundation/ci-service-integration-library:v2.1.16-dev
+        with:
+          args: cat docker-compose.yml
       - name: Build all images if multiple
         uses: docker://itisfoundation/ci-service-integration-library:v2.1.16-dev
         with:
