@@ -20,14 +20,14 @@ jobs:
       - name: Checkout repo content
         uses: actions/checkout@v2
       - name: ooil version
-        uses: docker://itisfoundation/ci-service-integration-library:v2.0.12
+        uses: docker://itisfoundation/ci-service-integration-library:v2.0.16-dev
         with:
           args: ooil --version
       - name: Assemble docker compose spec
-        uses: docker://itisfoundation/ci-service-integration-library:v2.0.12
+        uses: docker://itisfoundation/ci-service-integration-library:v2.0.16-dev
         with:
           args: ooil compose
       - name: Build all images if multiple
-        uses: docker://itisfoundation/ci-service-integration-library:v2.0.12
+        uses: docker://itisfoundation/ci-service-integration-library:v2.0.16-dev
         with:
           args: docker compose build
