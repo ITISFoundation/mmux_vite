@@ -26,7 +26,7 @@ jobs:
       - name: Assemble docker compose spec
         uses: docker://itisfoundation/ci-service-integration-library:v2.1.16-dev-3
         with:
-          args: ooil legacy-repalce && ooil compose
+          args: ooil legacy-escape && ooil compose
       - name: echo docker-compose.yml
         uses: docker://itisfoundation/ci-service-integration-library:v2.1.16-dev-3
         with:
