@@ -23,6 +23,10 @@ jobs:
         uses: docker://itisfoundation/ci-service-integration-library:v2.1.16-dev-4
         with:
           args: ooil --version
+      - name: list workdir
+        uses: docker://itisfoundation/ci-service-integration-library:v2.1.16-dev-4
+        with:
+          args: ls -lah
       - name: escape $${ in *.y*ml files configuration
         uses: docker://itisfoundation/ci-service-integration-library:v2.1.16-dev-4
         with:
