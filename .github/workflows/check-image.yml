@@ -31,3 +31,7 @@ jobs:
         uses: docker://itisfoundation/ci-service-integration-library:v2.0.16-dev
         with:
           args: docker compose build
+      - name: inspect image
+        uses: docker://itisfoundation/ci-service-integration-library:v2.0.16-dev
+        with:
+          args: simcore/services/dynamic/mmux-vite-app-sumo-read:1.3.7
