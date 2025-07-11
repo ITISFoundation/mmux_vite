@@ -20,16 +20,16 @@ compose-spec:
   version: "3.8"
   services:
     mmux-vite-backend:
-      image: $${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-backend:$${SERVICE_VERSION}
+      image: $$$${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-backend:$$$${SERVICE_VERSION}
       environment:
         - SERVICE_MODE=SUMO
         - PERMISSIONS=READ-ONLY
         - DEPLOYMENT_MODE=OSPARC
     mmux-vite-web:
-      image: $${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-web:$${SERVICE_VERSION}
+      image: $$$${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-web:$$$${SERVICE_VERSION}
 
     mmux-vite-app:
-      image: $${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-app-sumo-read:$${SERVICE_VERSION}
+      image: $$$${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-app-sumo-read:$$$${SERVICE_VERSION}
       depends_on:
         mmux-vite-backend:
           condition: service_healthy
