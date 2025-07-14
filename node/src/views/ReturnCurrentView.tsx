@@ -1,6 +1,7 @@
 import Setup from "./Setup";
 import UQ from "./UQ";
 import SuMo from "./SuMo";
+import MoGa from "./MoGa";
 import { useServiceContext } from "../context/ServiceContext";
 import { DisplayMessage } from "../components/utils/DisplayMessage";
 
@@ -19,7 +20,7 @@ const MessageComponent = () => {
 export const ReturnCurrentView = (props: ReturnCurrentViewPropsType) => {
   const { currentView } = props;
   const { serviceMode } = useServiceContext();
-  const validMode = ["UQ", "SUMO"].includes(serviceMode);
+  const validMode = ["UQ", "SUMO", "MOGA"].includes(serviceMode);
   console.info("service mode: ", serviceMode, " which is a " + (validMode ? "" : "not") + "a valid mode");
 
   return (
@@ -27,6 +28,7 @@ export const ReturnCurrentView = (props: ReturnCurrentViewPropsType) => {
       {currentView === 0 && <Setup />}
       {currentView === 1 && serviceMode === "UQ" && <UQ />}
       {currentView === 1 && serviceMode === "SUMO" && <SuMo />}
+      {currentView === 1 && serviceMode === "MOGA" && <MoGa />}
       {currentView === 1 && validMode === false && <MessageComponent />}
     </>
   );
