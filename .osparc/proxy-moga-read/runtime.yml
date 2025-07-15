@@ -1,0 +1,42 @@
+settings:
+  - name: ports
+    type: int
+    value: 8888
+  - name: Resources
+    type: Resources
+    value:
+      Limits:
+        NanoCPUs: 500000000
+        MemoryBytes: 268435456 # 256MB
+      Reservations:
+        NanoCPUs: 500000000
+        MemoryBytes: 268435456 # 256MB
+paths-mapping:
+  inputs_path: /tmp/inputs
+  outputs_path: /tmp/outputs
+  state_paths: []
+
+compose-spec:
+  version: "3.8"
+  services:
+    mmux-vite-backend:
+      image: $$$${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-backend:$$$${SERVICE_VERSION}
+      environment:
+        - SERVICE_MODE=MOGA
+        - PERMISSIONS=READ-ONLY
+        - DEPLOYMENT_MODE=OSPARC
+    mmux-vite-web:
+      image: $$$${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-web:$$$${SERVICE_VERSION}
+
+    mmux-vite-app:
+      image: $$$${SIMCORE_REGISTRY}/simcore/services/dynamic/mmux-vite-app-moga-read:$$$${SERVICE_VERSION}
+      depends_on:
+        mmux-vite-backend:
+          condition: service_healthy
+        mmux-vite-web:
+          condition: service_healthy
+      environment:
+        - BACKEND_SERVICE=%%container_name.mmux-vite-backend%%:5000
+        - WEB_SERVICE=%%container_name.mmux-vite-web%%:8080
+
+container-http-entrypoint: mmux-vite-app

@@ -1,0 +1,5 @@
+services:
+  mmux-vite-app-moga-read:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
