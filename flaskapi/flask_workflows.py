@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import json
 import logging
-from typing import List, Dict, Callable, NamedTuple
+from typing import List, Dict, Callable, NamedTuple, Final
 import numpy as np
 import pandas as pd
 from flask import Flask, request, abort, jsonify, make_response
@@ -123,6 +123,8 @@ _logger.info("User profile info:\n%s", profile.model_dump_json(indent=2))
 app = Flask(__name__)
 base_dir = Path(__file__).parent # this is the flaskapi directory
 app = Flask(__name__)
+
+FILES_STORAGE_DIR: Final[Path] = Path("/text-files")
 #############################################################
 
 
@@ -920,3 +922,55 @@ def flask_clone_job():
     except Exception as e:
         _logger.error(f"Error while cloning job {project_job_id}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))  # return an error response if the function mapping fails
+
+@app.route("/flask/text-file", methods=["POST"])
+def save_file():
+    """Create or update a text file in the FILES_STORAGE_DIR folder.
+    Request body should be JSON with 'filename' and 'content' fields."""
+    try:
+        request_data = json.loads(request.data.decode("utf-8"))
+        
+        if "filename" not in request_data or "content" not in request_data:
+            return jsonify({"error": "Request must include both filename and content"}), 400
+        
+        filename = request_data["filename"]
+        content = request_data["content"]
+        
+        # Basic filename validation - prevent path traversal
+        if "/" in filename or "\\" in filename:
+            return jsonify({"error": "Invalid filename. Must not contain path separators"}), 400
+            
+        file_path = FILES_STORAGE_DIR / filename
+        
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+            
+        _logger.info(f"File saved: {filename}")
+        return jsonify({"status": "success", "filename": filename}), 200
+    
+    except Exception as e:
+        _logger.error(f"Error saving file: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/flask/text-file/<filename>", methods=["GET"])
+def get_file(filename):
+    """Retrieve the content of a text file from the FILES_STORAGE_DIR folder."""
+    try:
+        # Basic filename validation - prevent path traversal
+        if "/" in filename or "\\" in filename:
+            return jsonify({"error": "Invalid filename. Must not contain path separators"}), 400
+            
+        file_path = FILES_STORAGE_DIR / filename
+        
+        if not file_path.exists():
+            return jsonify({"error": f"File {filename} not found"}), 404
+            
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        return jsonify({"filename": filename, "content": content}), 200
+    
+    except Exception as e:
+        _logger.error(f"Error retrieving file {filename}: {e}")
+        return jsonify({"error": str(e)}), 500
+    
