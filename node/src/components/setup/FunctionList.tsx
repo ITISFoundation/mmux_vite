@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { styled, Box, IconButton, Typography, Button } from "@mui/material";
+import { Box, IconButton, Typography, Button } from "@mui/material";
 import { toast } from "react-toastify";
 import { Refresh } from "@mui/icons-material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -296,8 +296,25 @@ export function FunctionList() {
             headerName: "",
             sortable: false,
             flex: 0.5,
+            headerAlign: "right",
             maxWidth: 130,
             minWidth: 130,
+            renderHeader: () => (
+              <IconButton
+                sx={(theme) => ({
+                  flex: 1,
+                  padding: "8px",
+                  alignSelf: "right",
+                  color: theme.palette.primary.contrastText,
+                })}
+                onClick={async () => {
+                  setLoading(true);
+                  await fetchFunctions();
+                }}
+              >
+                <Refresh />
+              </IconButton>
+            ),
             renderCell: (params) => (
               <Button
                 variant="contained"
