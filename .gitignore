@@ -44,3 +44,5 @@ dakota_*.txt
 stderr
 stdout
 fort.*
+
+validation/

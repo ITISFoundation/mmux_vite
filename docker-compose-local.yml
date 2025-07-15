@@ -10,6 +10,8 @@ services:
       - SERVICE_MODE=${SERVICE_MODE}
       - PERMISSIONS=${PERMISSIONS}
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE}
+    volumes:
+      - ./validation/text-files:/text-files
   mmux-vite-web:
     image: simcore/services/dynamic/mmux-vite-web:1.3.7
   mmux-vite-app:
