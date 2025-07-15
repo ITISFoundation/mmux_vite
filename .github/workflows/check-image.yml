@@ -23,7 +23,7 @@ jobs:
         uses: docker://itisfoundation/ci-service-integration-library:v2.1.23
         with:
           args: ooil --version
-      - name: escape $$$${ in *.y*ml files configuration
+      - name: escape $${ in *.y*ml files configuration
         uses: docker://itisfoundation/ci-service-integration-library:v2.1.23
         with:
           args: ooil legacy-escape
