@@ -9,10 +9,10 @@ const PreviewWarning = () => {
     <Container>
       <Box paddingTop={2}>
         <Alert variant="outlined" severity="info">
-          This is a preview of the{" "}
-          {serviceMode === "UQ"
-            ? "Uncertainty Quantification"
-            : "Response Surface Modeling"}{" "}
+          This is a preview of the
+          {serviceMode === "UQ" && " Uncertainty Quantification "}
+          {serviceMode === "SUMO" && " Response Surface Modeling "}
+          {serviceMode === "MOGA" && " Multi Objective Genetic Algorithm "}
           HyperTool that runs on a precomputed demonstration application. If you
           want to explore it using your own Projects, please contact support@
           {simplifiedHost}
