@@ -40,7 +40,7 @@ export const JobsLoading = (props: JobsLoadingProps) => {
       >
         <LinearProgress
           variant="determinate"
-          value={jobProgress}
+          value={jobProgress > 100 ? 100 : jobProgress}
           sx={{ height: "6px", width: "40%" }}
         />
       </Box>
@@ -51,7 +51,7 @@ export const JobsLoading = (props: JobsLoadingProps) => {
         textAlign={"center"}
         mt={1}
       >
-        <span>{Math.round(jobProgress)}%</span>
+        <span>{Math.round(jobProgress > 100 ? 100 : jobProgress)}%</span>
       </Typography>
     </Box>
   );
