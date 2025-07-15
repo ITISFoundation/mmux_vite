@@ -95,6 +95,10 @@ export const MMUXContextProvider = ({ children }: Props) => {
     setFunct(F);
     setSelectedJobUids([]);
     setFetchedJobCollections([]);
+    setInputVars([]);
+    setLhsSamplingConfig(defaultLHSamplingConfig);
+    setGridSamplingConfig(defaultGRIDamplingConfig);
+    setSingleJobConfig(defaultSingleJobConfig);
   };
 
   const memoState = useMemo(() => {

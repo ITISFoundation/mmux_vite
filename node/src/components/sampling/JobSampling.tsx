@@ -61,8 +61,8 @@ export const JobSampling = (props: JobSamplingProps) => {
         >
           <InfoOutline
             sx={(theme) => ({
-              color: theme.palette.primary.light,
-              backgroundColor: theme.palette.background.default,
+              color: loading? theme.palette.grey[400] : theme.palette.primary.light,
+              backgroundColor: loading? theme.palette.grey[200] : theme.palette.background.default,
               borderRadius: "50%",
               padding: "2px",
               marginLeft: "8px",
