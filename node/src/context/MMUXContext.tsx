@@ -4,7 +4,7 @@ import {
   FunctionJob,
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
-import { PersistenceContext, PersistenceContextProvider, usePersistenceContext } from "./PersistenceContext";
+import { usePersistenceContext } from "./PersistenceContext";
 
 export interface MMUXDataType {
   selectedFunction: Function | undefined;
