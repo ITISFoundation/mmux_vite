@@ -1,9 +1,29 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   Function,
   FunctionJob,
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
+import { PersistenceContext, PersistenceContextProvider, usePersistenceContext } from "./PersistenceContext";
+
+export interface MMUXDataType {
+  selectedFunction: Function | undefined;
+  distribution: { [key: string]: InputVarSelection };
+  inputVars: string[];
+  outputVars: string[] | undefined;
+  currentView: number;
+  launchingSampling: boolean;
+  runningSampling: boolean;
+  lhsSamplingConfig: LHSamplingConfig;
+  gridSamplingConfig: GRIDSamplingConfig;
+  singleJobConfig: SingleJobConfig[];
+  numSamples: { [key: string]: number };
+  runningJobCollection: RegisteredFunctionJobCollection | undefined;
+  fetchedJobCollections: SelectedJobCollection[];
+  selectedJobUids: string[];
+  selectedQoI: string | undefined;
+  isSuMoGenerated: boolean;
+}
 
 export interface MMUXContextType {
   selectedFunction: Function | undefined;
@@ -63,33 +83,35 @@ const defaultGRIDamplingConfig: GRIDSamplingConfig = [];
 const defaultSingleJobConfig: SingleJobConfig[] = [];
 
 export const MMUXContextProvider = ({ children }: Props) => {
-  const [currentView, setCurrentView] = useState(0);
-  const [funct, setFunct] = useState<Function | undefined>(undefined);
-  const [launchingSampling, setLaunchingSampling] = useState<boolean>(false);
-  const [runningSampling, setRunningSampling] = useState<boolean>(false);
+  const {persistence, saveState} = usePersistenceContext();
+  const [currentView, setCurrentView] = useState(persistence?.currentView || 0);
+  const [funct, setFunct] = useState<Function | undefined>(persistence?.selectedFunction || undefined);
+  const [launchingSampling, setLaunchingSampling] = useState<boolean>(persistence?.launchingSampling || false);
+  const [runningSampling, setRunningSampling] = useState<boolean>(persistence?.runningSampling || false);
   const [lhsSamplingConfig, setLhsSamplingConfig] = useState<LHSamplingConfig>(
-    defaultLHSamplingConfig
+    persistence?.lhsSamplingConfig || defaultLHSamplingConfig
   );
   const [gridSamplingConfig, setGridSamplingConfig] =
-    useState<GRIDSamplingConfig>(defaultGRIDamplingConfig);
+    useState<GRIDSamplingConfig>(persistence?.gridSamplingConfig || defaultGRIDamplingConfig);
   const [singleJobConfig, setSingleJobConfig] = useState<SingleJobConfig[]>(
-    defaultSingleJobConfig
+    persistence?.singleJobConfig || defaultSingleJobConfig
   );
-  const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
+  const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>(persistence?.selectedJobUids || []);
   const [fetchedJobCollections, setFetchedJobCollections] = useState<
     SelectedJobCollection[]
-  >([]);
-  const [inputVars, setInputVars] = useState<string[]>([]);
+  >(persistence?.fetchedJobCollections || []);
+  const [inputVars, setInputVars] = useState<string[]>(persistence?.inputVars || []);
   const [distribution, setDistribution] = useState<{
     [key: string]: InputVarSelection;
-  }>({});
-  const [numSamples, setNumSamples] = useState<{ [key: string]: number }>({});
-  const [outputVars, setOutputVars] = useState<string[] | undefined>(undefined);
-  const [selectedQoI, setSelectedQoI] = useState<string | undefined>(undefined);
+  }>(persistence?.distribution || {});
+  const [numSamples, setNumSamples] = useState<{ [key: string]: number }>(persistence?.numSamples || {});
+  const [outputVars, setOutputVars] = useState<string[] | undefined>(persistence?.outputVars || undefined);
+  const [selectedQoI, setSelectedQoI] = useState<string | undefined>(persistence?.selectedQoI || undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<
     RegisteredFunctionJobCollection | undefined
-  >(undefined);
-  const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
+  >(persistence?.runningJobCollection || undefined);
+  const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(persistence?.isSuMoGenerated || false);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const handleSelectedFunction = (F: Function | undefined) => {
     setFunct(F);
@@ -101,34 +123,103 @@ export const MMUXContextProvider = ({ children }: Props) => {
     setSingleJobConfig(defaultSingleJobConfig);
   };
 
+  const filterSelectedJobList = () => {
+    const response: FunctionJob[] = fetchedJobCollections.flatMap(
+      (jobCollection) =>
+        jobCollection.subJobs
+          .filter((subJob) => subJob.selected)
+          .map((subJob) => subJob.job)
+    );
+
+    if (fetchedJobCollections.length !== 0 && response.length < 5) {
+      return []; // 5 samples are necessary to avoid Dakota crashing
+    }
+    return response;
+  };
+
+  const allJobsList = () => {
+    const response: FunctionJob[] = fetchedJobCollections.flatMap(
+      (jobCollection) =>
+        jobCollection.subJobs
+          .map((subJob) => subJob.job)
+    );
+
+    if (fetchedJobCollections.length !== 0 && response.length <= 4) {
+      return []; // 5 samples are necessary to avoid Dakota crashing
+    }
+    return response;
+  };
+
+  // persist the state of the MMUX context using the persistenceContext provider every time any of the state variables change
+  useEffect(() => {
+    if(loading) return; // Avoid saving state while loading
+    console.info("Saving MMUX context state to persistence...");
+    saveState({
+      selectedFunction: funct,
+      distribution: distribution,
+      inputVars: inputVars,
+      outputVars: outputVars,
+      currentView: currentView,
+      launchingSampling: launchingSampling,
+      lhsSamplingConfig: lhsSamplingConfig,
+      gridSamplingConfig: gridSamplingConfig,
+      singleJobConfig: singleJobConfig,
+      runningSampling: runningSampling,
+      numSamples: numSamples,
+      selectedQoI: selectedQoI,
+      runningJobCollection: runningJobCollection,
+      fetchedJobCollections: fetchedJobCollections,
+      selectedJobUids: selectedJobUids,
+      isSuMoGenerated: isSuMoGenerated,
+    });
+  }, [
+    currentView,
+    funct,
+    launchingSampling,
+    runningSampling,
+    lhsSamplingConfig,
+    gridSamplingConfig,
+    singleJobConfig,
+    selectedJobUids,
+    fetchedJobCollections,
+    inputVars,
+    distribution,
+    numSamples,
+    outputVars,
+    selectedQoI,
+    runningJobCollection,
+    isSuMoGenerated,
+  ]);
+
+  useEffect(() => {
+    if(loading && persistence !== undefined) {
+      console.info("Loading MMUX context state from persistence...", JSON.stringify(persistence), typeof persistence.currentView !== 'number');
+      if(typeof persistence.currentView !== 'number') {
+        console.info("Persistence file is empty, initializing with default values.");
+        setLoading(false);
+        return;
+      }
+      setFunct(persistence.selectedFunction);
+      setDistribution(persistence.distribution);
+      setInputVars(persistence.inputVars);
+      setOutputVars(persistence.outputVars);
+      setCurrentView(persistence.currentView);
+      setLaunchingSampling(persistence.launchingSampling);
+      setRunningSampling(persistence.runningSampling);
+      setLhsSamplingConfig(persistence.lhsSamplingConfig);
+      setGridSamplingConfig(persistence.gridSamplingConfig);
+      setSingleJobConfig(persistence.singleJobConfig);
+      setNumSamples(persistence.numSamples);
+      setSelectedQoI(persistence.selectedQoI);
+      setRunningJobCollection(persistence.runningJobCollection);
+      setFetchedJobCollections(persistence.fetchedJobCollections);
+      setSelectedJobUids(persistence.selectedJobUids);
+      setIsSuMoGenerated(persistence.isSuMoGenerated);
+      setLoading(false); // Set loading to false after loading the state
+    }
+  }, [persistence, loading]);
+
   const memoState = useMemo(() => {
-    const filterSelectedJobList = () => {
-      const response: FunctionJob[] = fetchedJobCollections.flatMap(
-        (jobCollection) =>
-          jobCollection.subJobs
-            .filter((subJob) => subJob.selected)
-            .map((subJob) => subJob.job)
-      );
-
-      if (fetchedJobCollections.length !== 0 && response.length < 5) {
-        return []; // 5 samples are necessary to avoid Dakota crashing
-      }
-      return response;
-    };
-
-    const allJobsList = () => {
-      const response: FunctionJob[] = fetchedJobCollections.flatMap(
-        (jobCollection) =>
-          jobCollection.subJobs
-            .map((subJob) => subJob.job)
-      );
-
-      if (fetchedJobCollections.length !== 0 && response.length <= 4) {
-        return []; // 5 samples are necessary to avoid Dakota crashing
-      }
-      return response;
-    };
-
     return {
       selectedFunction: funct,
       setSelectedFunction: handleSelectedFunction,
