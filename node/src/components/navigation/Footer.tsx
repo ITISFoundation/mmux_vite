@@ -3,6 +3,7 @@ import { Button, Modal, Paper } from "@mui/material";
 import { useMMUXContext } from "../../context/MMUXContext";
 import JobsDashboard from "../../views/ParallelRunner";
 import { stepValidator } from "../../utils/stepValidator";
+import { useNavigationContext } from "../../context/NavigationContext";
 
 type FooterProps = {
   steps: Step[];
@@ -10,8 +11,9 @@ type FooterProps = {
 
 export const Footer = (props: FooterProps) => {
   const { steps } = props;
+  const { currentView, setCurrentView } = useNavigationContext();
   const context = useMMUXContext();
-  const { currentView, setCurrentView, runningSampling } = context;
+  const { runningSampling } = context;
   const [modal, setModal] = React.useState(false);
   const isJobsRunning = runningSampling;
 

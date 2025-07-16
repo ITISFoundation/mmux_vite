@@ -11,7 +11,6 @@ export interface MMUXDataType {
   distribution: { [key: string]: InputVarSelection };
   inputVars: string[];
   outputVars: string[] | undefined;
-  currentView: number;
   launchingSampling: boolean;
   runningSampling: boolean;
   lhsSamplingConfig: LHSamplingConfig;
@@ -34,8 +33,6 @@ export interface MMUXContextType {
   setInputVars: (vars: string[]) => void;
   outputVars: string[] | undefined;
   setOutputVars: (vars: string[]) => void;
-  currentView: number;
-  setCurrentView: (i: number) => void;
   launchingSampling: boolean;
   setLaunchingSampling: (b: boolean) => void;
   runningSampling: boolean;
@@ -84,7 +81,6 @@ const defaultSingleJobConfig: SingleJobConfig[] = [];
 
 export const MMUXContextProvider = ({ children }: Props) => {
   const {persistence, saveState} = usePersistenceContext();
-  const [currentView, setCurrentView] = useState(persistence?.currentView || 0);
   const [funct, setFunct] = useState<Function | undefined>(persistence?.selectedFunction || undefined);
   const [launchingSampling, setLaunchingSampling] = useState<boolean>(persistence?.launchingSampling || false);
   const [runningSampling, setRunningSampling] = useState<boolean>(persistence?.runningSampling || false);
@@ -159,7 +155,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       distribution: distribution,
       inputVars: inputVars,
       outputVars: outputVars,
-      currentView: currentView,
       launchingSampling: launchingSampling,
       lhsSamplingConfig: lhsSamplingConfig,
       gridSamplingConfig: gridSamplingConfig,
@@ -173,7 +168,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       isSuMoGenerated: isSuMoGenerated,
     });
   }, [
-    currentView,
     funct,
     launchingSampling,
     runningSampling,
@@ -194,8 +188,8 @@ export const MMUXContextProvider = ({ children }: Props) => {
 
   useEffect(() => {
     if(loading && persistence !== undefined) {
-      console.info("Loading MMUX context state from persistence...", JSON.stringify(persistence), typeof persistence.currentView !== 'number');
-      if(typeof persistence.currentView !== 'number') {
+      console.info("Loading MMUX context state from persistence...", JSON.stringify(persistence), typeof persistence.launchingSampling !== 'boolean');
+      if(typeof persistence.launchingSampling !== 'boolean') {
         console.info("Persistence file is empty, initializing with default values.");
         setLoading(false);
         return;
@@ -204,7 +198,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setDistribution(persistence.distribution);
       setInputVars(persistence.inputVars);
       setOutputVars(persistence.outputVars);
-      setCurrentView(persistence.currentView);
       setLaunchingSampling(persistence.launchingSampling);
       setRunningSampling(persistence.runningSampling);
       setLhsSamplingConfig(persistence.lhsSamplingConfig);
@@ -230,8 +223,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setInputVars: setInputVars,
       outputVars: outputVars,
       setOutputVars: setOutputVars,
-      currentView: currentView,
-      setCurrentView: setCurrentView,
       launchingSampling: launchingSampling,
       setLaunchingSampling: setLaunchingSampling,
       lhsSamplingConfig: lhsSamplingConfig,
@@ -262,7 +253,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
     distribution,
     inputVars,
     outputVars,
-    currentView,
     launchingSampling,
     lhsSamplingConfig,
     gridSamplingConfig,

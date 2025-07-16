@@ -5,14 +5,15 @@ import { toast, ToastContainer } from "react-toastify";
 import { setupTheme } from "./theme";
 import Navigation from "./components/navigation/Navigation";
 import { Footer } from "./components/navigation/Footer";
-import { useMMUXContext } from "./context/MMUXContext";
+import { useNavigationContext } from "./context/NavigationContext";
 import { getHealth } from "./utils/function_utils";
 import { SplashScreen } from "./views/SplashScreen";
 import { ServiceContextProvider } from "./context/ServiceContext";
 import PreviewWarning from "./components/navigation/PreviewWarning";
 import { ReturnCurrentView } from "./views/ReturnCurrentView";
+import { MMUXContextProvider } from "./context/MMUXContext";
 
-const FakeRoot = styled("div")(
+const AppRoot = styled("div")(
   ({ theme }) => `
   min-height: 100vh;
   height: 100%;
@@ -23,11 +24,7 @@ const FakeRoot = styled("div")(
 const App = () => {
   const [healthStatus, setHealthStatus] = useState<boolean>(false);
 
-  const steps: Step[] = [
-    { id: 0, label: "Setup" },
-    { id: 1, label: "Results" },
-  ];
-  const { currentView } = useMMUXContext();
+  const { currentView, steps } = useNavigationContext();
   const { mode, systemMode, setMode } = useColorScheme();
   const finalMode = mode
     ? mode === "system"
@@ -112,18 +109,20 @@ const App = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <FakeRoot>
+      <AppRoot>
         {!healthStatus ? (
           <SplashScreen />
         ) : (
-          <ServiceContextProvider>
-            <PreviewWarning />
-            <Container sx={{ paddingBottom: 4 }}>
-              <Navigation steps={steps} activeStep={currentView} />
-              <ReturnCurrentView currentView={currentView} />
-              <Footer steps={steps} />
-            </Container>
-          </ServiceContextProvider>
+          <MMUXContextProvider>
+            <ServiceContextProvider>
+              <PreviewWarning />
+              <Container sx={{ paddingBottom: 4 }}>
+                <Navigation steps={steps} activeStep={currentView} />
+                <ReturnCurrentView currentView={currentView} />
+                <Footer steps={steps} />
+              </Container>
+            </ServiceContextProvider>
+          </MMUXContextProvider>
         )}
         <ToastContainer
           theme={themeMode}
@@ -137,7 +136,7 @@ const App = () => {
           draggable={false}
           pauseOnHover
         />
-      </FakeRoot>
+      </AppRoot>
     </ThemeProvider>
   );
 };
