@@ -101,7 +101,6 @@ export function FunctionList() {
             type: "openFunction",
             message: {
               functionId: (fun as ProjectFunction).projectId,
-              templateId: (fun as ProjectFunction).projectId,
               uuid: (fun as ProjectFunction).uid,
             },
           },
