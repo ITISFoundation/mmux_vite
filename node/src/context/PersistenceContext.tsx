@@ -2,10 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { MMUXDataType } from './MMUXContext';
 import { toast } from 'react-toastify';
 
-const LOCAL_BASE_URL = "http://localhost:8888";
-const PRODUCTION_URL = "";
-const BASE_URL = process.env.NODE_ENV === "development" ? LOCAL_BASE_URL : PRODUCTION_URL;
-
 interface PersistenceContextType {
   persistence: MMUXDataType | undefined;
   saveState: (state: MMUXDataType) => Promise<void>;
@@ -25,7 +21,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
   }
 
   const setFile = async (filename: string, content: string) => {
-    const response = await fetch(`${BASE_URL}/flask/text-file`, {
+    const response = await fetch('/flask/text-file', {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({ filename, content }),
@@ -45,7 +41,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
   }
 
   const getFile = async (filename: string): Promise<MMUXDataType | undefined> => {
-    const response = await fetch(`${BASE_URL}/flask/text-file/${encodeURIComponent(filename)}`, {
+    const response = await fetch(`/flask/text-file/${encodeURIComponent(filename)}`, {
       method: "GET",
       headers: getHeaders(false),
       credentials: "include"
