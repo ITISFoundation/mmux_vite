@@ -189,6 +189,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
     selectedQoI,
     runningJobCollection,
     isSuMoGenerated,
+    loading,
   ]);
 
   useEffect(() => {

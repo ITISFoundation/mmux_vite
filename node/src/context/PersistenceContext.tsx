@@ -3,11 +3,8 @@ import { MMUXDataType } from './MMUXContext';
 import { toast } from 'react-toastify';
 
 const LOCAL_BASE_URL = "http://localhost:8888";
-const DOCKER_BASE_URL = "http://67316004-27e9-4493-9885-23305dc65db3.services.10.43.103.168.nip.io:9081";
-const BASE_URL = process.env.NODE_ENV === "development" ? LOCAL_BASE_URL : DOCKER_BASE_URL;
-const COOKIE_NAME = "osparc-sc2";
-const COOKIE_VALUE = "gAAAAABodgUAlkp8gMu1vJQ2BTAeRCPCwhDkEEJF1CK2pJcpCXQh5PNTNLF6bPIdYum4cDVUFYEwMXTdw2gRseN4p7mGvWi8NlJu6xA8EiXx0nvqDtzXzEXS9VWHYO-uLbpFHbqJLrCN1gfwH-CUcgxmncsy1KWCTDkUmQNCJm9EauHBw7WdcgbQnOuksYO2H71jHGKRGO1JUugqpHhM0Pr5IGjsP-EpvEwEj0-EcrL0hAILZNPtGrG1yFjgizA-K6Drn8EMnXjjfgEFr8V9cK12j3oWRBN9i6-_dgv3V8k97f6m9CTROUgRUtnyBADCkWjGiC7Gk0Go3JQ2THDp1dAISnRskwN9MLS8uSKvxa5hRpWANLvEx91IFxUxSZmWJopxWtWn0mv6jWK8035OzCCcY910V8w-Kb7FV7Un6jshMXqGVdVJIUHhZN7Oa4jvMeRTBZ9SgHBfu6GEIfjpB8bN8Lt-x7Gv6OJnA0vjUcQzEuUYABWHQZmwJ5dgNwPr3Herp6RqOrOxTND0JjU65eMPmZIW0Edn7Q==";
-
+const PRODUCTION_URL = "";
+const BASE_URL = process.env.NODE_ENV === "development" ? LOCAL_BASE_URL : PRODUCTION_URL;
 
 interface PersistenceContextType {
   persistence: MMUXDataType | undefined;
@@ -24,10 +21,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
   const [persistence, setPersistence] = useState<MMUXDataType | undefined>(undefined);
 
   const getHeaders = (contentType = true): HeadersInit => {
-    return {
-      ...(contentType ? { "Content-Type": "application/json" } : {}),
-      "Cookie": `${COOKIE_NAME}=${COOKIE_VALUE}`
-    };
+    return (contentType ? { "Content-Type": "application/json" } : {});
   }
 
   const setFile = async (filename: string, content: string) => {
