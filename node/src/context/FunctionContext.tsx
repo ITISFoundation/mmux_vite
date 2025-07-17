@@ -56,7 +56,7 @@ export const FunctionContextProvider = ({ children }: Props) => {
       setOutputVars(persistence.outputVars);
       setLoading(false);
     }
-  }, [loading, persistence]);
+  }, [loading]);
 
   useEffect(() => {
     const fetchStatus = async () => {

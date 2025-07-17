@@ -156,7 +156,7 @@ export const InputVariableDist = () => {
     if (distribution && selectedFunction && distribution[selectedFunction.uid]) {
       setLocalDistribution(distribution[selectedFunction.uid]);
     } else {
-      if (inputVars.length > 0) {
+      if (inputVars && inputVars.length > 0) {
         const initialInputVars = inputVars.reduce((acc, val) => {
           acc[val] = setInitialValues(val, serviceMode);
           return acc;
@@ -166,7 +166,7 @@ export const InputVariableDist = () => {
     }
   }, [distribution, inputVars, selectedFunction]);
 
-  if (inputVars.length === 0) {
+  if (inputVars && inputVars.length === 0) {
     return <></>
   }
 

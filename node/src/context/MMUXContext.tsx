@@ -194,7 +194,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setIsSuMoGenerated(persistence.isSuMoGenerated);
       setLoading(false); // Set loading to false after loading the state
     }
-  }, [persistence, loading]);
+  }, [loading]);
 
   const memoState = useMemo(() => {
     return {
