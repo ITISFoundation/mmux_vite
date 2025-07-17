@@ -13,16 +13,6 @@ import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
 
 export interface MMUXContextType {
-  launchingSampling: boolean;
-  setLaunchingSampling: (b: boolean) => void;
-  runningSampling: boolean;
-  setRunningSampling: (b: boolean) => void;
-  lhsSamplingConfig: LHSamplingConfig;
-  setLhsSamplingConfig: (config: LHSamplingConfig) => void;
-  gridSamplingConfig: GRIDSamplingConfig;
-  setGridSamplingConfig: (config: GRIDSamplingConfig) => void;
-  singleJobConfig: SingleJobConfig[];
-  setSingleJobConfig: (config: SingleJobConfig[]) => void;
   numSamples: { [key: string]: number };
   setNumSamples: (ns: { [key: string]: number }) => void;
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
@@ -49,29 +39,9 @@ type Props = {
   children: React.ReactNode;
 };
 
-const defaultLHSamplingConfig: LHSamplingConfig = {
-  inputs: [],
-  points: 50,
-  seed: 0,
-};
-
-const defaultGRIDamplingConfig: GRIDSamplingConfig = [];
-
-const defaultSingleJobConfig: SingleJobConfig[] = [];
-
 export const MMUXContextProvider = ({ children }: Props) => {
   const { persistence, saveState, loading } = usePersistenceContext();
   const [localLoading, setLocalLoading] = useState(true);
-  const [launchingSampling, setLaunchingSampling] = useState<boolean>(false);
-  const [runningSampling, setRunningSampling] = useState<boolean>(false);
-  const [lhsSamplingConfig, setLhsSamplingConfig] = useState<LHSamplingConfig>(
-    defaultLHSamplingConfig
-  );
-  const [gridSamplingConfig, setGridSamplingConfig] =
-    useState<GRIDSamplingConfig>(defaultGRIDamplingConfig);
-  const [singleJobConfig, setSingleJobConfig] = useState<SingleJobConfig[]>(
-    defaultSingleJobConfig
-  );
   const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
   const [fetchedJobCollections, setFetchedJobCollections] = useState<
     SelectedJobCollection[]
@@ -114,11 +84,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
     console.info("Saving MMUX context state to persistence...");
     const newPersistence: PersistenceType = {
       ...(persistence as PersistenceType),
-      launchingSampling: launchingSampling,
-      runningSampling: runningSampling,
-      lhsSamplingConfig: lhsSamplingConfig,
-      gridSamplingConfig: gridSamplingConfig,
-      singleJobConfig: singleJobConfig,
       numSamples: numSamples,
       selectedQoI: selectedQoI,
       runningJobCollection: runningJobCollection,
@@ -128,11 +93,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
     };
     saveState(newPersistence);
   }, [
-    launchingSampling,
-    runningSampling,
-    lhsSamplingConfig,
-    gridSamplingConfig,
-    singleJobConfig,
     selectedJobUids,
     fetchedJobCollections,
     numSamples,
@@ -148,11 +108,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       persistence.launchingSampling !== undefined
     ) {
       console.info("Loading MMUX context from persistence...");
-      setLaunchingSampling(persistence.launchingSampling);
-      setRunningSampling(persistence.runningSampling);
-      setLhsSamplingConfig(persistence.lhsSamplingConfig);
-      setGridSamplingConfig(persistence.gridSamplingConfig);
-      setSingleJobConfig(persistence.singleJobConfig);
       setNumSamples(persistence.numSamples);
       setSelectedQoI(persistence.selectedQoI);
       setRunningJobCollection(persistence.runningJobCollection);
@@ -169,11 +124,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       console.warn(
         "Persistence is not initialized or broken, resetting to defaults."
       );
-      setLaunchingSampling(false);
-      setRunningSampling(false);
-      setLhsSamplingConfig(defaultLHSamplingConfig);
-      setGridSamplingConfig(defaultGRIDamplingConfig);
-      setSingleJobConfig(defaultSingleJobConfig);
       setNumSamples({});
       setSelectedQoI(undefined);
       setRunningJobCollection(undefined);
@@ -186,16 +136,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
 
   const memoState = useMemo(() => {
     return {
-      launchingSampling: launchingSampling,
-      setLaunchingSampling: setLaunchingSampling,
-      lhsSamplingConfig: lhsSamplingConfig,
-      setLhsSamplingConfig: setLhsSamplingConfig,
-      gridSamplingConfig: gridSamplingConfig,
-      setGridSamplingConfig: setGridSamplingConfig,
-      singleJobConfig: singleJobConfig,
-      setSingleJobConfig: setSingleJobConfig,
-      runningSampling: runningSampling,
-      setRunningSampling: setRunningSampling,
       numSamples: numSamples,
       setNumSamples: setNumSamples,
       selectedQoI: selectedQoI,
@@ -212,11 +152,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setIsSuMoGenerated: setIsSuMoGenerated,
     };
   }, [
-    launchingSampling,
-    lhsSamplingConfig,
-    gridSamplingConfig,
-    singleJobConfig,
-    runningSampling,
     numSamples,
     selectedQoI,
     runningJobCollection,

@@ -21,16 +21,19 @@ import {
 import { getTutorialLink } from "../navigation/TutorialManualLinks.tsx";
 import { useFunctionContext } from "../../context/FunctionContext.tsx";
 import { useMMUXContext } from "../../context/MMUXContext.tsx";
+import { useSamplingContext } from "../../context/SamplingContext.tsx";
 
 export function FunctionList() {
   const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } =
     useFunctionContext();
   const {
-    setSelectedJobUids,
-    setFetchedJobCollections,
     setLhsSamplingConfig,
     setGridSamplingConfig,
     setSingleJobConfig,
+  } = useSamplingContext();
+  const {
+    setSelectedJobUids,
+    setFetchedJobCollections,
   } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);

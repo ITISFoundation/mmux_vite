@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { useMMUXContext, MMUXContextType } from "../../context/MMUXContext";
+import { useMMUXContext } from "../../context/MMUXContext";
 import {
   Function,
   RegisteredFunctionJobCollection,
@@ -10,11 +10,13 @@ import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling
 import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "./../setup/VariableConfig";
 import { useFunctionContext } from "../../context/FunctionContext";
+import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
 
 // TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
 async function runGridSampling(
   selectedFunction: Function | undefined,
-  context: MMUXContextType,
+  context: SamplingContextType,
+  setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void,
   config: GRIDSamplingConfig
 ) {
   const fun = selectedFunction as Function;
@@ -39,13 +41,14 @@ async function runGridSampling(
     })
   context.setLaunchingSampling(false);
   context.setRunningSampling(true);
-  context.setRunningJobCollection(jc ? jc : undefined);
+  setRunningJobCollection(jc ? jc : undefined);
   return jc;
 }
 
 const GridSearchSampling = () => {
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const context = useMMUXContext();
+  const context = useSamplingContext();
+  const { setRunningJobCollection } = useMMUXContext();
   const {
     gridSamplingConfig,
     setGridSamplingConfig,
@@ -57,7 +60,7 @@ const GridSearchSampling = () => {
 
   const handleRunSampling = async () => {
     setGridSamplingConfig(gridSamplingInputs);
-    await runGridSampling(selectedFunction, context, gridSamplingInputs);
+    await runGridSampling(selectedFunction, context, setRunningJobCollection, gridSamplingInputs);
   };
 
   function handleInputChange(index: number, field: string, value: string) {

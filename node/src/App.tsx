@@ -12,7 +12,8 @@ import { ServiceContextProvider } from "./context/ServiceContext";
 import PreviewWarning from "./components/navigation/PreviewWarning";
 import { ReturnCurrentView } from "./views/ReturnCurrentView";
 import { MMUXContextProvider } from "./context/MMUXContext";
-import { FunctionContext, FunctionContextProvider } from "./context/FunctionContext";
+import { FunctionContextProvider } from "./context/FunctionContext";
+import { SamplingContextProvider } from "./context/SamplingContext";
 
 const AppRoot = styled("div")(
   ({ theme }) => `
@@ -114,16 +115,18 @@ const App = () => {
           <SplashScreen />
         ) : (
           <FunctionContextProvider>
-            <MMUXContextProvider>
-              <ServiceContextProvider>
-                <PreviewWarning />
-                <Container sx={{ paddingBottom: 4 }}>
-                  <Navigation steps={steps} activeStep={currentView} />
-                  <ReturnCurrentView currentView={currentView} />
-                  <Footer steps={steps} />
-                </Container>
-              </ServiceContextProvider>
-            </MMUXContextProvider>
+            <SamplingContextProvider>
+              <MMUXContextProvider>
+                <ServiceContextProvider>
+                  <PreviewWarning />
+                  <Container sx={{ paddingBottom: 4 }}>
+                    <Navigation steps={steps} activeStep={currentView} />
+                    <ReturnCurrentView currentView={currentView} />
+                    <Footer steps={steps} />
+                  </Container>
+                </ServiceContextProvider>
+              </MMUXContextProvider>
+            </SamplingContextProvider>
           </FunctionContextProvider>
         )}
         <ToastContainer

@@ -5,6 +5,7 @@ import JobsDashboard from "../../views/ParallelRunner";
 import { stepValidator } from "../../utils/stepValidator";
 import { useNavigationContext } from "../../context/NavigationContext";
 import { useFunctionContext } from "../../context/FunctionContext";
+import { useSamplingContext } from "../../context/SamplingContext";
 
 type FooterProps = {
   steps: Step[];
@@ -14,8 +15,8 @@ export const Footer = (props: FooterProps) => {
   const { steps } = props;
   const functionContext = useFunctionContext();
   const { currentView, setCurrentView } = useNavigationContext();
+  const { runningSampling } = useSamplingContext();
   const context = useMMUXContext();
-  const { runningSampling } = context;
   const [modal, setModal] = React.useState(false);
   const isJobsRunning = runningSampling;
 
