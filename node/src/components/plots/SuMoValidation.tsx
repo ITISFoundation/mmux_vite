@@ -14,9 +14,8 @@ import { useFunctionContext } from "../../context/FunctionContext";
 
 const SuMoValidation = () => {
   const theme = useTheme();
-  const { selectedFunction, inputVars } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const {
-    distribution,
     selectedQoI,
     fetchedJobCollections,
     filterSelectedJobList,

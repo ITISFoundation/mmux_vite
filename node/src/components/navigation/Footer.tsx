@@ -12,7 +12,7 @@ type FooterProps = {
 
 export const Footer = (props: FooterProps) => {
   const { steps } = props;
-  const { selectedFunction } = useFunctionContext();
+  const functionContext = useFunctionContext();
   const { currentView, setCurrentView } = useNavigationContext();
   const context = useMMUXContext();
   const { runningSampling } = context;
@@ -59,7 +59,7 @@ export const Footer = (props: FooterProps) => {
           }
           disabled={
             currentView >= steps.length - 1 ||
-            !stepValidator(selectedFunction, context, currentView)
+            !stepValidator(functionContext, context, currentView)
           }
         >
           Next

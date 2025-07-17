@@ -50,10 +50,9 @@ async function runLhsSampling(
 }
 
 const LHSSampling = () => {
-  const { selectedFunction, inputVars } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const context = useMMUXContext();
   const {
-    distribution,
     lhsSamplingConfig,
     setLhsSamplingConfig,
     fetchedJobCollections,
@@ -118,7 +117,7 @@ const LHSSampling = () => {
 
   const recommendedLHSSamples = (context: MMUXContextType) => {
     let nPoints: number;
-    nPoints = Math.sqrt(filterInputVars({...context, selectedFunction, inputVars}).length) * 30 * 1.2;
+    nPoints = Math.sqrt(filterInputVars({...context, selectedFunction, inputVars, distribution}).length) * 30 * 1.2;
     nPoints = Math.ceil(nPoints / 5) * 5;
     return nPoints;
   }

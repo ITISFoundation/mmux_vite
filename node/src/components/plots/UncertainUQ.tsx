@@ -14,11 +14,10 @@ import { useFunctionContext } from "../../context/FunctionContext";
 export default function UncertainUQ(props: UncertainUQPropsType) {
   const { loading, progress, jobProgress } = props;
   const theme = useTheme();
-  const { selectedFunction, inputVars } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const {
     numSamples,
     selectedQoI,
-    distribution,
     fetchedJobCollections,
     filterSelectedJobList,
   } = useMMUXContext();

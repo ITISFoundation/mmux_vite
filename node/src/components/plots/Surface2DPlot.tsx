@@ -12,21 +12,19 @@ import {
   plotMargins,
 } from "./PlotTools";
 import Header from "../navigation/Header";
-import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 
 const Surface2DPlot = () => {
   const theme = useTheme();
-  const { selectedFunction, inputVars } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const context = useMMUXContext();
   const {
-    distribution,
     selectedQoI,
     filterSelectedJobList,
     fetchedJobCollections,
   } = context;
-  const filteredInputVars = filterInputVars({...context, selectedFunction, inputVars});
+  const filteredInputVars = filterInputVars({...context, selectedFunction, inputVars, distribution});
   const [axis1, setAxis1] = useState(filteredInputVars[0]);
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [propagating, setPropagating] = useState(false);

@@ -17,9 +17,8 @@ import { useFunctionContext } from "../../context/FunctionContext";
 
 const IsoSurface3DPlot = () => {
   const theme = useTheme();
-  const { selectedFunction, inputVars } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const {
-    distribution,
     selectedQoI,
     filterSelectedJobList,
     fetchedJobCollections,
@@ -29,6 +28,7 @@ const IsoSurface3DPlot = () => {
     ...context,
     selectedFunction,
     inputVars,
+    distribution
   });
   const [propagating, setPropagating] = useState(false);
   const [axis1, setAxis1] = useState(filteredInputVars[0]);

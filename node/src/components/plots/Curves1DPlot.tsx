@@ -7,7 +7,6 @@ import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
 import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
-import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 
@@ -19,10 +18,9 @@ type GPPrediction = {
 
 const Curves1DPlots = () => {
   const theme = useTheme();
-  const { selectedFunction, inputVars } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const {
     selectedQoI,
-    distribution,
     filterSelectedJobList,
     fetchedJobCollections,
   } = useMMUXContext();
@@ -31,6 +29,7 @@ const Curves1DPlots = () => {
     ...context,
     selectedFunction,
     inputVars,
+    distribution,
   });
   const [plotData, setPlotData] = useState<Array<Data>>([]);
   const [axis, setAxis] = useState(filteredInputVars[0]);

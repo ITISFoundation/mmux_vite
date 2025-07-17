@@ -44,10 +44,9 @@ async function runGridSampling(
 }
 
 const GridSearchSampling = () => {
-  const { selectedFunction, inputVars } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const context = useMMUXContext();
   const {
-    distribution,
     gridSamplingConfig,
     setGridSamplingConfig,
   } = context;

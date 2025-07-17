@@ -6,16 +6,13 @@ import React, {
   useState,
 } from "react";
 import {
-  Function,
   FunctionJob,
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
-import { PersistenceType, usePersistenceContext } from "./PersistenceContext";
-import { useFunctionContext } from "./FunctionContext";
+import { usePersistenceContext } from "./PersistenceContext";
+import { PersistenceType } from "./types";
 
 export interface MMUXContextType {
-  distribution: { [key: string]: InputVarSelection };
-  setDistribution: (d: { [key: string]: InputVarSelection }) => void;
   launchingSampling: boolean;
   setLaunchingSampling: (b: boolean) => void;
   runningSampling: boolean;
@@ -79,9 +76,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
   const [fetchedJobCollections, setFetchedJobCollections] = useState<
     SelectedJobCollection[]
   >([]);
-  const [distribution, setDistribution] = useState<{
-    [key: string]: InputVarSelection;
-  }>({});
   const [numSamples, setNumSamples] = useState<{ [key: string]: number }>({});
   const [selectedQoI, setSelectedQoI] = useState<string | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<
@@ -120,7 +114,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
     console.info("Saving MMUX context state to persistence...");
     const newPersistence: PersistenceType = {
       ...(persistence as PersistenceType),
-      distribution: distribution,
       launchingSampling: launchingSampling,
       runningSampling: runningSampling,
       lhsSamplingConfig: lhsSamplingConfig,
@@ -142,7 +135,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
     singleJobConfig,
     selectedJobUids,
     fetchedJobCollections,
-    distribution,
     numSamples,
     selectedQoI,
     runningJobCollection,
@@ -156,7 +148,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       persistence.launchingSampling !== undefined
     ) {
       console.info("Loading MMUX context from persistence...");
-      setDistribution(persistence.distribution);
       setLaunchingSampling(persistence.launchingSampling);
       setRunningSampling(persistence.runningSampling);
       setLhsSamplingConfig(persistence.lhsSamplingConfig);
@@ -178,7 +169,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       console.warn(
         "Persistence is not initialized or broken, resetting to defaults."
       );
-      setDistribution({});
       setLaunchingSampling(false);
       setRunningSampling(false);
       setLhsSamplingConfig(defaultLHSamplingConfig);
@@ -196,8 +186,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
 
   const memoState = useMemo(() => {
     return {
-      distribution: distribution,
-      setDistribution: setDistribution,
       launchingSampling: launchingSampling,
       setLaunchingSampling: setLaunchingSampling,
       lhsSamplingConfig: lhsSamplingConfig,
@@ -224,7 +212,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setIsSuMoGenerated: setIsSuMoGenerated,
     };
   }, [
-    distribution,
     launchingSampling,
     lhsSamplingConfig,
     gridSamplingConfig,

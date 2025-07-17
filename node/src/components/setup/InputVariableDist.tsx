@@ -2,14 +2,12 @@ import { Box, Chip, InputLabel, MenuItem, Select, Typography, useTheme } from "@
 import { useCallback, useEffect, useState } from "react";
 import { useServiceContext } from "../../context/ServiceContext";
 import InputVariableDistDocument from "../documents/InputVariableDistDocument";
-import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
 import { InputBlock } from "../utils/InputBlock";
 import Header from "../navigation/Header";
 import { useFunctionContext } from "../../context/FunctionContext";
 
 export const InputVariableDist = () => {
-  const { selectedFunction, inputVars } = useFunctionContext();
-  const { distribution, setDistribution } = useMMUXContext();
+  const { selectedFunction, inputVars, distribution, setDistribution } = useFunctionContext();
   const { serviceMode } = useServiceContext();
   const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();

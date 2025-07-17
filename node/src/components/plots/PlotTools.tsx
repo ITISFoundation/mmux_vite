@@ -8,6 +8,7 @@ import { Function } from "../../osparc-api-ts-client";
 interface fullContext extends MMUXContextType {
   selectedFunction: Function | undefined;
   inputVars: string[];
+  distribution: { [key: string]: InputVarSelection };
 }
 
 export const _get_unique_values = (context: fullContext) => {
@@ -64,11 +65,11 @@ interface CreateSelectProps {
   idx?: number;
   setAxis: (value: string) => void;
 }
-export const CreateSelect = ({ axis, idx, inputVars: localInputVars, setAxis }: CreateSelectProps) => {
-  const { selectedFunction, inputVars } = useFunctionContext();
+export const CreateSelect = ({ axis, idx, setAxis }: CreateSelectProps) => {
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const context = useMMUXContext();
   // NB: could have other filtering (based on distribution === "constant")
-  const filteredInputVars = filterInputVars({...context, selectedFunction, inputVars});
+  const filteredInputVars = filterInputVars({...context, selectedFunction, inputVars, distribution});
 
   return (
     <InputLabel sx={{ display: 'flex', gap: 2, alignItems: "center" }}>
@@ -115,10 +116,10 @@ const CustomSlider = styled(Slider)(({ theme }) => ({
 const sliderMarc = (value: number) => { return `~: ${value}` };
 
 export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSliderProps) => {
-  const { selectedFunction, inputVars } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const context = useMMUXContext();
-  const filteredInputVars = filterInputVars({...context, selectedFunction, inputVars});
-  const uniqueValuesPerVar = _get_unique_values({...context, selectedFunction, inputVars});
+  const filteredInputVars = filterInputVars({...context, selectedFunction, inputVars, distribution});
+  const uniqueValuesPerVar = _get_unique_values({...context, selectedFunction, inputVars, distribution});
   let min, max, val;
   if (dist.distribution === "normal" && dist.mean !== undefined && dist.std !== undefined) {
     min = dist.mean - 2.5 * dist.std;

@@ -1,14 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { PersistenceType, usePersistenceContext } from "./PersistenceContext";
+import { usePersistenceContext } from "./PersistenceContext";
 import { Function } from "../osparc-api-ts-client";
+import { PersistenceType } from "./types";
 
-interface FunctionContextType {
+export interface FunctionContextType {
   selectedFunction: Function | undefined;
   setSelectedFunction: (F: Function | undefined) => void;
   inputVars: string[];
   setInputVars: (vars: string[]) => void;
   outputVars: string[] | undefined;
   setOutputVars: (vars: string[]) => void;
+  distribution: { [key: string]: InputVarSelection };
+  setDistribution: (d: { [key: string]: InputVarSelection }) => void;
 }
 
 export const FunctionContext = createContext<FunctionContextType>(undefined!);
@@ -19,10 +22,13 @@ type Props = {
 
 export const FunctionContextProvider = ({ children }: Props) => {
   const { persistence, saveState, loading } = usePersistenceContext();
-  const [ localLoading, setLocalLoading ] = useState(true);
+  const [localLoading, setLocalLoading] = useState(true);
   const [selectedFunction, setSelectedFunction] = useState<
     Function | undefined
-  >(persistence?.selectedFunction);
+  >(undefined);
+  const [distribution, setDistribution] = useState<{
+    [key: string]: InputVarSelection;
+  }>({});
   const [inputVars, setInputVars] = useState<string[]>([]);
   const [outputVars, setOutputVars] = useState<string[] | undefined>([]);
 
@@ -34,24 +40,37 @@ export const FunctionContextProvider = ({ children }: Props) => {
       selectedFunction,
       inputVars,
       outputVars,
+      distribution,
     };
     saveState(newPersistence);
-  }, [selectedFunction, inputVars, outputVars]);
+  }, [selectedFunction, inputVars, outputVars, distribution]);
 
   useEffect(() => {
-    if (loading === false && persistence && persistence.launchingSampling !== undefined) {
+    if (
+      loading === false &&
+      persistence &&
+      persistence.launchingSampling !== undefined
+    ) {
       console.info("Loading Function context from persistence...");
       setSelectedFunction(persistence.selectedFunction);
       setInputVars(persistence.inputVars);
       setOutputVars(persistence.outputVars);
+      setDistribution(persistence.distribution);
       setLocalLoading(false);
       return;
-    } else if (loading === false && (persistence === undefined || persistence?.launchingSampling === undefined)) {
+    } else if (
+      loading === false &&
+      (persistence === undefined ||
+        persistence?.launchingSampling === undefined)
+    ) {
       // when this happens, the persistence is either broken or not yet initialized
-      console.warn("Persistence is not initialized or broken, resetting to defaults.");
+      console.warn(
+        "Persistence is not initialized or broken, resetting to defaults."
+      );
       setSelectedFunction(undefined);
       setInputVars([]);
       setOutputVars(undefined);
+      setDistribution({});
       setLocalLoading(false);
     }
   }, [loading]);
@@ -64,6 +83,8 @@ export const FunctionContextProvider = ({ children }: Props) => {
       setInputVars,
       outputVars,
       setOutputVars,
+      distribution,
+      setDistribution,
     }),
     [
       selectedFunction,
@@ -72,6 +93,8 @@ export const FunctionContextProvider = ({ children }: Props) => {
       setInputVars,
       outputVars,
       setOutputVars,
+      distribution,
+      setDistribution,
     ]
   );
 

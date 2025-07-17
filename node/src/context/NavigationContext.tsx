@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { PersistenceType, usePersistenceContext } from './PersistenceContext';
-
+import { usePersistenceContext } from './PersistenceContext';
+import { PersistenceType } from './types';
 interface NavigationContextType {
   currentView: number;
   setCurrentView: (view: number) => void;

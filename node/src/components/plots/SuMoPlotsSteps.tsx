@@ -21,7 +21,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 
 const SuMoPlotsSteps = () => {
   const theme = useTheme();
-  const { inputVars, selectedFunction } = useFunctionContext();
+  const { inputVars, selectedFunction, distribution } = useFunctionContext();
   const context = useMMUXContext();
   const { filterSelectedJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);
@@ -58,7 +58,7 @@ const SuMoPlotsSteps = () => {
       setFilteredInputVars(inputVars);
     } else {
       setFilteredInputVars(
-        filterInputVars({ ...context, selectedFunction, inputVars })
+        filterInputVars({ ...context, selectedFunction, inputVars, distribution })
       );
     }
     setMaxSteps(Math.min(filteredInputVars.length + 1, stepTitles.length));
