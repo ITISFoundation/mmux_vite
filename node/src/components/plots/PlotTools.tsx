@@ -2,8 +2,15 @@ import { InputLabel, Typography, Select, MenuItem, TextField, styled, Slider } f
 import { useState } from "react";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { Function } from "../../osparc-api-ts-client";
 
-export const _get_unique_values = (context: MMUXContextType) => {
+interface fullContext extends MMUXContextType {
+  selectedFunction: Function | undefined;
+  inputVars: string[];
+}
+
+export const _get_unique_values = (context: fullContext) => {
   const { inputVars, allJobsList } = context;
   const uniqueValuesPerVar: { [varName: string]: Set<number> } = {};
   const jobs = allJobsList();
@@ -23,7 +30,7 @@ export const _get_unique_values = (context: MMUXContextType) => {
   return uniqueValuesPerVar
 }
 
-export const _filterOutConstantDataVars = (context: MMUXContextType) => {
+export const _filterOutConstantDataVars = (context: fullContext) => {
   // Filter out variables with only one unique value
   const uniqueValuesPerVar: { [varName: string]: Set<number> } = _get_unique_values(context)
   const newFilteredInputVars = Object.entries(uniqueValuesPerVar)
@@ -31,11 +38,11 @@ export const _filterOutConstantDataVars = (context: MMUXContextType) => {
     .map(([varName]) => varName);
   return newFilteredInputVars
 }
-export const _filterOutConstantDistributionVars = (context: MMUXContextType) => {
+export const _filterOutConstantDistributionVars = (context: fullContext) => {
   const {
-    inputVars,
-    selectedFunction,
     distribution,
+    inputVars,
+    selectedFunction
   } = context;
   return inputVars.filter(
     (i) =>
@@ -43,7 +50,7 @@ export const _filterOutConstantDistributionVars = (context: MMUXContextType) => 
         .distribution as distribution) !== "constant"
   );
 }
-export const filterInputVars = (context: MMUXContextType) => {
+export const filterInputVars = (context: fullContext) => {
   const { allJobsList } = context;
   // If there are no jobs, we have no information about the data distribution -- use the distribution set by the user
   if (allJobsList().length === 0) return _filterOutConstantDistributionVars(context)
@@ -57,10 +64,11 @@ interface CreateSelectProps {
   idx?: number;
   setAxis: (value: string) => void;
 }
-export const CreateSelect = ({ axis, idx, inputVars, setAxis }: CreateSelectProps) => {
+export const CreateSelect = ({ axis, idx, inputVars: localInputVars, setAxis }: CreateSelectProps) => {
+  const { selectedFunction, inputVars } = useFunctionContext();
   const context = useMMUXContext();
   // NB: could have other filtering (based on distribution === "constant")
-  const filteredInputVars = filterInputVars(context)
+  const filteredInputVars = filterInputVars({...context, selectedFunction, inputVars});
 
   return (
     <InputLabel sx={{ display: 'flex', gap: 2, alignItems: "center" }}>
@@ -107,9 +115,10 @@ const CustomSlider = styled(Slider)(({ theme }) => ({
 const sliderMarc = (value: number) => { return `~: ${value}` };
 
 export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSliderProps) => {
+  const { selectedFunction, inputVars } = useFunctionContext();
   const context = useMMUXContext();
-  const filteredInputVars = filterInputVars(context)
-  const uniqueValuesPerVar = _get_unique_values(context)
+  const filteredInputVars = filterInputVars({...context, selectedFunction, inputVars});
+  const uniqueValuesPerVar = _get_unique_values({...context, selectedFunction, inputVars});
   let min, max, val;
   if (dist.distribution === "normal" && dist.mean !== undefined && dist.std !== undefined) {
     min = dist.mean - 2.5 * dist.std;

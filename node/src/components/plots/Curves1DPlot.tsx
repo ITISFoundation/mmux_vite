@@ -9,6 +9,7 @@ import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
+import { useFunctionContext } from "../../context/FunctionContext";
 
 type GPPrediction = {
   x: number[];
@@ -18,10 +19,9 @@ type GPPrediction = {
 
 const Curves1DPlots = () => {
   const theme = useTheme();
+  const { selectedFunction, inputVars } = useFunctionContext();
   const {
-    inputVars,
     selectedQoI,
-    selectedFunction,
     distribution,
     filterSelectedJobList,
     fetchedJobCollections,

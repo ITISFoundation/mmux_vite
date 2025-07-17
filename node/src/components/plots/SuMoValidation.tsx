@@ -10,12 +10,12 @@ import Plot from "react-plotly.js";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { Layout } from "plotly.js";
+import { useFunctionContext } from "../../context/FunctionContext";
 
 const SuMoValidation = () => {
   const theme = useTheme();
+  const { selectedFunction, inputVars } = useFunctionContext();
   const {
-    selectedFunction,
-    inputVars,
     distribution,
     selectedQoI,
     fetchedJobCollections,

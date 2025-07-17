@@ -12,6 +12,7 @@ import { InfoOutline } from "@mui/icons-material";
 import CustomTooltip from "../components/utils/CustomTooltip";
 import SelectQoIDocument from "../components/documents/SelectQoIDocument";
 import { useMMUXContext } from "../context/MMUXContext";
+import { useFunctionContext } from "../context/FunctionContext";
 
 interface UQSetupProps {
   loading: boolean;
@@ -22,11 +23,10 @@ interface UQSetupProps {
 export const OutputSetup = (props: UQSetupProps) => {
   const { loading, onlyQoI, setSumoModal } = props;
   const theme = useTheme();
+  const { selectedFunction, outputVars } = useFunctionContext();
   const {
     selectedQoI,
     setSelectedQoI,
-    outputVars,
-    selectedFunction,
     numSamples,
     setNumSamples,
     filterSelectedJobList,

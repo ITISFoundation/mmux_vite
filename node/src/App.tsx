@@ -12,6 +12,7 @@ import { ServiceContextProvider } from "./context/ServiceContext";
 import PreviewWarning from "./components/navigation/PreviewWarning";
 import { ReturnCurrentView } from "./views/ReturnCurrentView";
 import { MMUXContextProvider } from "./context/MMUXContext";
+import { FunctionContext, FunctionContextProvider } from "./context/FunctionContext";
 
 const AppRoot = styled("div")(
   ({ theme }) => `
@@ -84,28 +85,27 @@ const App = () => {
   useEffect(() => {
     // Message handler (from parent window, when in an iframe zB.)
     const processKeyValue = (keyValue: string) => {
-      const [key, value] = keyValue.split('=')
-      if (key === 'theme') {
-        if (value.toLowerCase().includes('dark')) {
-          setThemeModeHandler('dark')
-        }
-        else if (value.toLowerCase().includes('light')) {
-          setThemeModeHandler('light')
+      const [key, value] = keyValue.split("=");
+      if (key === "theme") {
+        if (value.toLowerCase().includes("dark")) {
+          setThemeModeHandler("dark");
+        } else if (value.toLowerCase().includes("light")) {
+          setThemeModeHandler("light");
         }
       }
-    }
+    };
     const messageHandler = (e: MessageEvent) => {
       const msg: string = e.data;
-      const OSPARC_MSG_PREFIX = 'osparc;'
-      if (typeof msg === 'string' && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
+      const OSPARC_MSG_PREFIX = "osparc;";
+      if (typeof msg === "string" && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
         console.info("Received message from parent window:", e);
-        const osparcMsg = msg.slice(OSPARC_MSG_PREFIX.length)
-        osparcMsg.split('&').forEach(processKeyValue)
+        const osparcMsg = msg.slice(OSPARC_MSG_PREFIX.length);
+        osparcMsg.split("&").forEach(processKeyValue);
       }
-    }
-    window.addEventListener('message', messageHandler)
-    return () => window.removeEventListener('message', messageHandler)
-  }, [])
+    };
+    window.addEventListener("message", messageHandler);
+    return () => window.removeEventListener("message", messageHandler);
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
@@ -113,16 +113,18 @@ const App = () => {
         {!healthStatus ? (
           <SplashScreen />
         ) : (
-          <MMUXContextProvider>
-            <ServiceContextProvider>
-              <PreviewWarning />
-              <Container sx={{ paddingBottom: 4 }}>
-                <Navigation steps={steps} activeStep={currentView} />
-                <ReturnCurrentView currentView={currentView} />
-                <Footer steps={steps} />
-              </Container>
-            </ServiceContextProvider>
-          </MMUXContextProvider>
+          <FunctionContextProvider>
+            <MMUXContextProvider>
+              <ServiceContextProvider>
+                <PreviewWarning />
+                <Container sx={{ paddingBottom: 4 }}>
+                  <Navigation steps={steps} activeStep={currentView} />
+                  <ReturnCurrentView currentView={currentView} />
+                  <Footer steps={steps} />
+                </Container>
+              </ServiceContextProvider>
+            </MMUXContextProvider>
+          </FunctionContextProvider>
         )}
         <ToastContainer
           theme={themeMode}

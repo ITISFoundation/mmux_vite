@@ -5,9 +5,11 @@ import InputVariableDistDocument from "../documents/InputVariableDistDocument";
 import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
 import { InputBlock } from "../utils/InputBlock";
 import Header from "../navigation/Header";
+import { useFunctionContext } from "../../context/FunctionContext";
 
 export const InputVariableDist = () => {
-  const { inputVars, distribution, setDistribution, selectedFunction } = useMMUXContext();
+  const { selectedFunction, inputVars } = useFunctionContext();
+  const { distribution, setDistribution } = useMMUXContext();
   const { serviceMode } = useServiceContext();
   const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();

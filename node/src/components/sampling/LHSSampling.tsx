@@ -14,12 +14,14 @@ import { getFunctionJob } from "../../utils/function_utils";
 import { toast } from "react-toastify";
 import { useServiceContext } from "../../context/ServiceContext";
 import { filterInputVars } from "../plots/PlotTools";
+import { useFunctionContext } from "../../context/FunctionContext";
 
 async function runLhsSampling(
+  selectedFunction: Function | undefined,
   context: MMUXContextType,
   config: LHSamplingConfig
 ) {
-  const fun = context.selectedFunction as Function;
+  const fun = selectedFunction as Function;
   // send config to Python backend to create LHS
   context.setLaunchingSampling(true);
   const jc = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/lhs_sampling", {
@@ -48,11 +50,10 @@ async function runLhsSampling(
 }
 
 const LHSSampling = () => {
+  const { selectedFunction, inputVars } = useFunctionContext();
   const context = useMMUXContext();
   const {
-    inputVars,
     distribution,
-    selectedFunction,
     lhsSamplingConfig,
     setLhsSamplingConfig,
     fetchedJobCollections,
@@ -72,7 +73,7 @@ const LHSSampling = () => {
       toast.warning(`For your number of non-constant input variables, we would recommend a total of ${nPoints} LHS samples. \n\n ` +
         "However, currently the maximum supported number of samples per run is 50. Therefore, we encourage you to run additional campaigns with different seeds.");
     }
-    const jc = await runLhsSampling(context, lhsInputs);
+    const jc = await runLhsSampling(selectedFunction, context, lhsInputs);
     // New - include this job collection in the fetchedJobCollections
     if (!jc) {
       console.error("Job collection is undefined. Cannot add to fetchedJobCollections.");
@@ -117,7 +118,7 @@ const LHSSampling = () => {
 
   const recommendedLHSSamples = (context: MMUXContextType) => {
     let nPoints: number;
-    nPoints = Math.sqrt(filterInputVars(context).length) * 30 * 1.2;
+    nPoints = Math.sqrt(filterInputVars({...context, selectedFunction, inputVars}).length) * 30 * 1.2;
     nPoints = Math.ceil(nPoints / 5) * 5;
     return nPoints;
   }

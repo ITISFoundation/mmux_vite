@@ -10,35 +10,54 @@ import {
   ProjectFunction,
   PythonCodeFunction,
 } from "../../osparc-api-ts-client/index.ts";
-import { listFunctions, getFunctionJobCollections } from "../../utils/function_utils.ts";
+import {
+  listFunctions,
+  getFunctionJobCollections,
+} from "../../utils/function_utils.ts";
 import {
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,
 } from "../../osparc-api-ts-client";
-import { useMMUXContext } from "../../context/MMUXContext.tsx";
 import { getTutorialLink } from "../navigation/TutorialManualLinks.tsx";
+import { useFunctionContext } from "../../context/FunctionContext.tsx";
+import { useMMUXContext } from "../../context/MMUXContext.tsx";
 
 export function FunctionList() {
-  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } = useMMUXContext();
+  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } =
+    useFunctionContext();
+  const {
+    setSelectedJobUids,
+    setFetchedJobCollections,
+    setLhsSamplingConfig,
+    setGridSamplingConfig,
+    setSingleJobConfig,
+  } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [functions, setFunctions] = useState<Function[]>([]);
-  const [jobCollectionCount, setJobCollectionCount] = useState<{ [key: string]: number }>({});
+  const [jobCollectionCount, setJobCollectionCount] = useState<{
+    [key: string]: number;
+  }>({});
   const [jobCount, setJobCount] = useState<{ [key: string]: number }>({});
-  const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
+  const [rowSelectionModel, setRowSelectionModel] =
+    useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
   const fetchJobJobCollectionCount = async (fun: Function) => {
     try {
       const jcs = await getFunctionJobCollections(fun.uid);
       const jc_length = jcs.length;
-      const j_length = jcs.map(jc => { return jc.jobIds ? jc.jobIds.length : 0 }).reduce((a, b) => a + b, 0);
+      const j_length = jcs
+        .map((jc) => {
+          return jc.jobIds ? jc.jobIds.length : 0;
+        })
+        .reduce((a, b) => a + b, 0);
       return {
         "Function Uid": fun.uid,
         "Job Collection Count": jc_length,
-        "Job Count": j_length
-      }
+        "Job Count": j_length,
+      };
     } catch (err) {
-      console.warn("Error fetching job count for Function ", fun.uid)
+      console.warn("Error fetching job count for Function ", fun.uid);
       console.error(err);
     }
   };
@@ -51,7 +70,9 @@ export function FunctionList() {
       if (funs.length === 0) {
         toast.info("No functions available. Please create a function first.");
       } else {
-        const fetchedCounts = await Promise.all(funs.map((fun) => fetchJobJobCollectionCount(fun)));
+        const fetchedCounts = await Promise.all(
+          funs.map((fun) => fetchJobJobCollectionCount(fun))
+        );
         const jcCount: { [key: string]: number } = {};
         const jCount: { [key: string]: number } = {};
         fetchedCounts.forEach((item) => {
@@ -75,7 +96,11 @@ export function FunctionList() {
   const showInputOutputSchema = (
     schema: JSONFunctionInputSchema | JSONFunctionOutputSchema
   ) => {
-    if (schema === undefined || schema.schemaContent === undefined || schema.schemaContent.properties === undefined) {
+    if (
+      schema === undefined ||
+      schema.schemaContent === undefined ||
+      schema.schemaContent.properties === undefined
+    ) {
       console.error("Invalid schema:", schema);
       return [];
     }
@@ -111,7 +136,10 @@ export function FunctionList() {
         <IconButton
           size="small"
           onClick={handleInfoClick}
-          sx={(theme) => ({ color: theme.palette.primary.light, backgroundColor: theme.palette.background.default })}
+          sx={(theme) => ({
+            color: theme.palette.primary.light,
+            backgroundColor: theme.palette.background.default,
+          })}
         >
           <InfoOutlinedIcon fontSize="small" />
         </IconButton>
@@ -123,34 +151,51 @@ export function FunctionList() {
     }
   };
 
-  const NFunctionJobCollections = (props: { fun: Function }): React.ReactNode => {
+  const NFunctionJobCollections = (props: {
+    fun: Function;
+  }): React.ReactNode => {
     const fun = props.fun;
     return (
       <Box>
-        {jobCollectionCount[fun.uid] === undefined || jobCount[fun.uid] === undefined
+        {jobCollectionCount[fun.uid] === undefined ||
+        jobCount[fun.uid] === undefined
           ? "Loading..."
-          : `Campaigns: ${jobCollectionCount[fun.uid]} (${jobCount[fun.uid]} total evaluations)`}
+          : `Campaigns: ${jobCollectionCount[fun.uid]} (${
+              jobCount[fun.uid]
+            } total evaluations)`}
       </Box>
     );
-  }
+  };
 
   function getRowId(row: Function) {
     return row.uid ? row.uid : "" + row.title + row.description;
   }
 
+  const handleSelectedFunction = (F: Function | undefined) => {
+    setSelectedFunction(F);
+    setSelectedJobUids([]);
+    setFetchedJobCollections([]);
+    setInputVars([]);
+    setLhsSamplingConfig({
+      inputs: [],
+      points: 50,
+      seed: 0,
+    });
+    setGridSamplingConfig([]);
+    setSingleJobConfig([]);
+  };
+
   function setRowSelection(fun: Function) {
     if (selectedFunction && selectedFunction.uid === fun.uid) {
-      setSelectedFunction(undefined);
+      handleSelectedFunction(undefined);
       setInputVars([]);
       setOutputVars([]);
       return;
     }
-    setSelectedFunction(fun);
+    handleSelectedFunction(fun);
     setInputVars(
       fun.inputSchema?.schemaContent?.properties
-        ? Object.keys(
-          fun.inputSchema.schemaContent.properties
-        )
+        ? Object.keys(fun.inputSchema.schemaContent.properties)
         : []
     );
     console.log(
@@ -159,31 +204,30 @@ export function FunctionList() {
     );
     setOutputVars(
       fun.outputSchema?.schemaContent?.properties
-        ? Object.keys(
-          fun.outputSchema.schemaContent.properties
-        )
+        ? Object.keys(fun.outputSchema.schemaContent.properties)
         : []
     );
     console.log(
       "outputVars registered:",
       Object.keys(fun.outputSchema.schemaContent.properties)
-    )
+    );
   }
 
   const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {
     setRowSelectionModel(newRowSelectionModel);
     if (newRowSelectionModel.ids.size > 0) {
-      const selectedRow = functions.find((row) =>
-        getRowId(row) === newRowSelectionModel.ids.values().next().value
+      const selectedRow = functions.find(
+        (row) =>
+          getRowId(row) === newRowSelectionModel.ids.values().next().value
       );
       if (selectedRow) setRowSelection(selectedRow);
       else {
-        setSelectedFunction(undefined);
+        handleSelectedFunction(undefined);
         setInputVars([]);
         setOutputVars([]);
       }
     }
-  }
+  };
 
   useEffect(() => {
     (async () => {
@@ -209,7 +253,8 @@ export function FunctionList() {
           display="inline"
           mr={1}
         >
-          Error fetching functions from the server. Please try again after some time.
+          Error fetching functions from the server. Please try again after some
+          time.
         </Typography>
         <IconButton size="small" onClick={async () => await fetchFunctions()}>
           <Refresh color="primary" />
@@ -231,8 +276,8 @@ export function FunctionList() {
         >
           You have no Functions registered.Please check the {getTutorialLink()}
           for guidance on how to create your first Function!
-        </Typography >
-      </Box >
+        </Typography>
+      </Box>
     );
   } else {
     return (
@@ -248,7 +293,7 @@ export function FunctionList() {
             headerName: "Name",
             flex: 1,
             minWidth: 80,
-            maxWidth: 200
+            maxWidth: 200,
           },
           {
             field: "description",
@@ -263,7 +308,8 @@ export function FunctionList() {
             flex: 1,
             minWidth: 20,
             maxWidth: 100,
-            renderCell: (params) => showInputOutputSchema(params.row.inputSchema),
+            renderCell: (params) =>
+              showInputOutputSchema(params.row.inputSchema),
           },
           {
             field: "outputSchema",
@@ -280,12 +326,14 @@ export function FunctionList() {
             flex: 1,
             minWidth: 100,
             maxWidth: 250,
-            renderCell: (params) => <NFunctionJobCollections fun={params.row} />,
+            renderCell: (params) => (
+              <NFunctionJobCollections fun={params.row} />
+            ),
           },
           {
             field: "solverKey",
             headerName: "Further Info",
-            align: 'center',
+            align: "center",
             flex: 1,
             minWidth: 100,
             maxWidth: 100,
@@ -321,7 +369,9 @@ export function FunctionList() {
                 fullWidth
                 onClick={() => setRowSelection(params.row)}
               >
-                {selectedFunction?.uid === params.row.uid ? "Unselect" : "Select"}
+                {selectedFunction?.uid === params.row.uid
+                  ? "Unselect"
+                  : "Select"}
               </Button>
             ),
           },
@@ -336,17 +386,20 @@ export function FunctionList() {
           },
           "& .MuiDataGrid-row:hover": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+                theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-row.Mui-selected": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${
+                theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-row.Mui-selected:hover": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+                theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-sortButton": {
@@ -364,15 +417,14 @@ export function FunctionList() {
           filter: {
             filterModel: {
               items: [],
-            }
-          }
+            },
+          },
         }}
         pageSizeOptions={[5, 10, 20, 50]}
         loading={loading}
         disableColumnMenu
         disableColumnSelector
-      ></DataGrid >
+      ></DataGrid>
     );
   }
 }
-

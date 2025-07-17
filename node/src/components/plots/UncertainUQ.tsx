@@ -9,16 +9,16 @@ import { JobsLoading } from "../data/JobsLoading";
 import Plot from "react-plotly.js";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
+import { useFunctionContext } from "../../context/FunctionContext";
 
 export default function UncertainUQ(props: UncertainUQPropsType) {
   const { loading, progress, jobProgress } = props;
   const theme = useTheme();
+  const { selectedFunction, inputVars } = useFunctionContext();
   const {
     numSamples,
-    inputVars,
     selectedQoI,
     distribution,
-    selectedFunction,
     fetchedJobCollections,
     filterSelectedJobList,
   } = useMMUXContext();

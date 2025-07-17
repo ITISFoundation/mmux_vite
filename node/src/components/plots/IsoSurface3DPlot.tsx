@@ -13,13 +13,13 @@ import {
 import Header from "../navigation/Header";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
+import { useFunctionContext } from "../../context/FunctionContext";
 
 const IsoSurface3DPlot = () => {
   const theme = useTheme();
+  const { selectedFunction, inputVars } = useFunctionContext();
   const {
-    selectedFunction,
     distribution,
-    inputVars,
     selectedQoI,
     filterSelectedJobList,
     fetchedJobCollections,

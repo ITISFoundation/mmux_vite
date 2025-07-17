@@ -9,13 +9,15 @@ import {
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "./../setup/VariableConfig";
+import { useFunctionContext } from "../../context/FunctionContext";
 
 // TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
 async function runGridSampling(
+  selectedFunction: Function | undefined,
   context: MMUXContextType,
   config: GRIDSamplingConfig
 ) {
-  const fun = context.selectedFunction as Function;
+  const fun = selectedFunction as Function;
   // send config to Python backend to create LHS
   context.setLaunchingSampling(true);
   const jc = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/grid_sampling", {
@@ -42,11 +44,10 @@ async function runGridSampling(
 }
 
 const GridSearchSampling = () => {
+  const { selectedFunction, inputVars } = useFunctionContext();
   const context = useMMUXContext();
   const {
-    inputVars,
     distribution,
-    selectedFunction,
     gridSamplingConfig,
     setGridSamplingConfig,
   } = context;
@@ -57,7 +58,7 @@ const GridSearchSampling = () => {
 
   const handleRunSampling = async () => {
     setGridSamplingConfig(gridSamplingInputs);
-    await runGridSampling(context, gridSamplingInputs);
+    await runGridSampling(selectedFunction, context, gridSamplingInputs);
   };
 
   function handleInputChange(index: number, field: string, value: string) {

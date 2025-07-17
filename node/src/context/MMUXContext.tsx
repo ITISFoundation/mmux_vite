@@ -5,34 +5,11 @@ import {
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
 import { usePersistenceContext } from "./PersistenceContext";
-
-export interface MMUXDataType {
-  selectedFunction: Function | undefined;
-  distribution: { [key: string]: InputVarSelection };
-  inputVars: string[];
-  outputVars: string[] | undefined;
-  launchingSampling: boolean;
-  runningSampling: boolean;
-  lhsSamplingConfig: LHSamplingConfig;
-  gridSamplingConfig: GRIDSamplingConfig;
-  singleJobConfig: SingleJobConfig[];
-  numSamples: { [key: string]: number };
-  runningJobCollection: RegisteredFunctionJobCollection | undefined;
-  fetchedJobCollections: SelectedJobCollection[];
-  selectedJobUids: string[];
-  selectedQoI: string | undefined;
-  isSuMoGenerated: boolean;
-}
+import { useFunctionContext } from "./FunctionContext";
 
 export interface MMUXContextType {
-  selectedFunction: Function | undefined;
-  setSelectedFunction: (F: Function | undefined) => void;
   distribution: { [key: string]: InputVarSelection };
   setDistribution: (d: { [key: string]: InputVarSelection }) => void;
-  inputVars: string[];
-  setInputVars: (vars: string[]) => void;
-  outputVars: string[] | undefined;
-  setOutputVars: (vars: string[]) => void;
   launchingSampling: boolean;
   setLaunchingSampling: (b: boolean) => void;
   runningSampling: boolean;
@@ -81,7 +58,7 @@ const defaultSingleJobConfig: SingleJobConfig[] = [];
 
 export const MMUXContextProvider = ({ children }: Props) => {
   const {persistence, saveState} = usePersistenceContext();
-  const [funct, setFunct] = useState<Function | undefined>(persistence?.selectedFunction || undefined);
+  const { setSelectedFunction, setInputVars, setOutputVars } = useFunctionContext();
   const [launchingSampling, setLaunchingSampling] = useState<boolean>(persistence?.launchingSampling || false);
   const [runningSampling, setRunningSampling] = useState<boolean>(persistence?.runningSampling || false);
   const [lhsSamplingConfig, setLhsSamplingConfig] = useState<LHSamplingConfig>(
@@ -96,28 +73,16 @@ export const MMUXContextProvider = ({ children }: Props) => {
   const [fetchedJobCollections, setFetchedJobCollections] = useState<
     SelectedJobCollection[]
   >(persistence?.fetchedJobCollections || []);
-  const [inputVars, setInputVars] = useState<string[]>(persistence?.inputVars || []);
   const [distribution, setDistribution] = useState<{
     [key: string]: InputVarSelection;
   }>(persistence?.distribution || {});
   const [numSamples, setNumSamples] = useState<{ [key: string]: number }>(persistence?.numSamples || {});
-  const [outputVars, setOutputVars] = useState<string[] | undefined>(persistence?.outputVars || undefined);
   const [selectedQoI, setSelectedQoI] = useState<string | undefined>(persistence?.selectedQoI || undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<
     RegisteredFunctionJobCollection | undefined
   >(persistence?.runningJobCollection || undefined);
   const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(persistence?.isSuMoGenerated || false);
   const [loading, setLoading] = useState<boolean>(true);
-
-  const handleSelectedFunction = (F: Function | undefined) => {
-    setFunct(F);
-    setSelectedJobUids([]);
-    setFetchedJobCollections([]);
-    setInputVars([]);
-    setLhsSamplingConfig(defaultLHSamplingConfig);
-    setGridSamplingConfig(defaultGRIDamplingConfig);
-    setSingleJobConfig(defaultSingleJobConfig);
-  };
 
   const filterSelectedJobList = () => {
     const response: FunctionJob[] = fetchedJobCollections.flatMap(
@@ -151,10 +116,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
     if(loading) return; // Avoid saving state while loading
     console.info("Saving MMUX context state to persistence...");
     saveState({
-      selectedFunction: funct,
       distribution: distribution,
-      inputVars: inputVars,
-      outputVars: outputVars,
       launchingSampling: launchingSampling,
       lhsSamplingConfig: lhsSamplingConfig,
       gridSamplingConfig: gridSamplingConfig,
@@ -168,7 +130,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       isSuMoGenerated: isSuMoGenerated,
     });
   }, [
-    funct,
     launchingSampling,
     runningSampling,
     lhsSamplingConfig,
@@ -176,10 +137,8 @@ export const MMUXContextProvider = ({ children }: Props) => {
     singleJobConfig,
     selectedJobUids,
     fetchedJobCollections,
-    inputVars,
     distribution,
     numSamples,
-    outputVars,
     selectedQoI,
     runningJobCollection,
     isSuMoGenerated,
@@ -194,7 +153,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
         setLoading(false);
         return;
       }
-      setFunct(persistence.selectedFunction);
+      setSelectedFunction(persistence.selectedFunction);
       setDistribution(persistence.distribution);
       setInputVars(persistence.inputVars);
       setOutputVars(persistence.outputVars);
@@ -215,14 +174,8 @@ export const MMUXContextProvider = ({ children }: Props) => {
 
   const memoState = useMemo(() => {
     return {
-      selectedFunction: funct,
-      setSelectedFunction: handleSelectedFunction,
       distribution: distribution,
       setDistribution: setDistribution,
-      inputVars: inputVars,
-      setInputVars: setInputVars,
-      outputVars: outputVars,
-      setOutputVars: setOutputVars,
       launchingSampling: launchingSampling,
       setLaunchingSampling: setLaunchingSampling,
       lhsSamplingConfig: lhsSamplingConfig,
@@ -249,10 +202,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setIsSuMoGenerated: setIsSuMoGenerated,
     };
   }, [
-    funct,
     distribution,
-    inputVars,
-    outputVars,
     launchingSampling,
     lhsSamplingConfig,
     gridSamplingConfig,

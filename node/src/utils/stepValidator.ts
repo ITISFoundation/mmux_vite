@@ -1,9 +1,9 @@
 import { MMUXContextType } from "../context/MMUXContext";
+import { Function } from "../osparc-api-ts-client";
 
-export function stepValidator(context: MMUXContextType, step: number): boolean {
+export function stepValidator(selectedFunction: Function | undefined, context: MMUXContextType, step: number): boolean {
   if (step === 0) {
     // Step 0: Check if a function is selected
-    const selectedFunction = context?.selectedFunction;
     const selectedDistribution = context?.distribution[selectedFunction?.uid || ""];
     if(!selectedFunction || !selectedDistribution) {
       return false; // No function or distribution selected
@@ -46,7 +46,7 @@ export function stepValidator(context: MMUXContextType, step: number): boolean {
         return false; // If the distribution type is not recognized or is missing values
       }
     );
-    return context?.selectedFunction !== undefined && correctDistributions
+    return selectedFunction !== undefined && correctDistributions
   } else if (step === 1) {
     // Step 1: Check if a job is selected
     return context ? context.selectedJobUids.length > 0 : false;
