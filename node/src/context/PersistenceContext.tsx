@@ -99,14 +99,20 @@ export const PersistenceContextProvider = ({ children }: Props) => {
       content: string;
       filename: string;
     };
-    const data = JSON.parse(envelope.content) as PersistenceType;
-    console.info(`File ${filename} fetched successfully.`, data);
-    return data;
+    try {
+      console.log("Fetched persistence:", envelope.content);
+      const data = JSON.parse(envelope.content) as PersistenceType;
+      console.info(`File ${filename} fetched successfully.`, data);
+      return data;
+    } catch (error) {
+      console.error("Error parsing fetched data:", error);
+      return {} as PersistenceType; // Return empty object on parse error
+    }
   };
 
   const saveState = async (state: PersistenceType) => {
     const content = JSON.stringify(state, null, 2);
-    console.log("Saving state to persistence file:", content);
+    console.log("Saving state to persistence file:", state);
     try {
       await setFile("persistence.json", content);
       setPersistence(state);

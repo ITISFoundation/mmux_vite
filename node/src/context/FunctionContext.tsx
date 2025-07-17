@@ -19,19 +19,17 @@ type Props = {
 
 export const FunctionContextProvider = ({ children }: Props) => {
   const { persistence, saveState, loading } = usePersistenceContext();
+  const [ localLoading, setLocalLoading ] = useState(true);
   const [selectedFunction, setSelectedFunction] = useState<
     Function | undefined
   >(persistence?.selectedFunction);
-  const [inputVars, setInputVars] = useState<string[]>(
-    persistence?.inputVars || []
-  );
-  const [outputVars, setOutputVars] = useState<string[] | undefined>(
-    persistence?.outputVars || undefined
-  );
+  const [inputVars, setInputVars] = useState<string[]>([]);
+  const [outputVars, setOutputVars] = useState<string[] | undefined>([]);
 
   useEffect(() => {
-    if (loading) return; // Avoid saving state while loading
-    console.info("Saving MMUX context state to persistence...");
+    console.info("Outside saving function...", localLoading);
+    if (localLoading === true) return; // Avoid saving state while loading
+    console.info("Saving Function context state to persistence...");
     const newPersistence: PersistenceType = {
       ...(persistence as PersistenceType),
       selectedFunction,
@@ -39,32 +37,25 @@ export const FunctionContextProvider = ({ children }: Props) => {
       outputVars,
     };
     saveState(newPersistence);
-  }, [selectedFunction, inputVars, outputVars, saveState, loading]);
+  }, [selectedFunction, inputVars, outputVars]);
 
   useEffect(() => {
-    if (loading === false && persistence && typeof persistence.selectedFunction === "boolean") {
+    console.info("Outside loading function persistence", loading, persistence?.launchingSampling);
+    if (loading === false && persistence && persistence.launchingSampling !== undefined) {
       setSelectedFunction(persistence.selectedFunction);
       setInputVars(persistence.inputVars);
       setOutputVars(persistence.outputVars);
+      setLocalLoading(false);
       return;
-    } else if (loading === false) {
+    } else if (loading === false && (persistence === undefined || persistence?.launchingSampling === undefined)) {
+      // when this happens, the persistence is either broken or not yet initialized
+      console.warn("Persistence is not initialized or broken, resetting to defaults.");
       setSelectedFunction(undefined);
       setInputVars([]);
       setOutputVars(undefined);
+      setLocalLoading(false);
     }
   }, [loading]);
-
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        // setCurrentView(0);
-      } catch (error) {
-        // console.error("Backend is not responding with permissions:", error);
-      }
-    };
-
-    fetchStatus();
-  }, []);
 
   const memo = React.useMemo(
     () => ({
