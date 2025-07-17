@@ -27,7 +27,6 @@ export const FunctionContextProvider = ({ children }: Props) => {
   const [outputVars, setOutputVars] = useState<string[] | undefined>([]);
 
   useEffect(() => {
-    console.info("Outside saving function...", localLoading);
     if (localLoading === true) return; // Avoid saving state while loading
     console.info("Saving Function context state to persistence...");
     const newPersistence: PersistenceType = {
@@ -40,8 +39,8 @@ export const FunctionContextProvider = ({ children }: Props) => {
   }, [selectedFunction, inputVars, outputVars]);
 
   useEffect(() => {
-    console.info("Outside loading function persistence", loading, persistence?.launchingSampling);
     if (loading === false && persistence && persistence.launchingSampling !== undefined) {
+      console.info("Loading Function context from persistence...");
       setSelectedFunction(persistence.selectedFunction);
       setInputVars(persistence.inputVars);
       setOutputVars(persistence.outputVars);

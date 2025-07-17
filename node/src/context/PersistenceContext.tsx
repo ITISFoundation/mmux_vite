@@ -6,6 +6,7 @@ import {
 } from "../osparc-api-ts-client";
 
 export interface PersistenceType {
+  currentView: number;
   selectedFunction: Function | undefined;
   inputVars: string[];
   outputVars: string[] | undefined;

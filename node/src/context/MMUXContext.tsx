@@ -64,44 +64,30 @@ const defaultSingleJobConfig: SingleJobConfig[] = [];
 
 export const MMUXContextProvider = ({ children }: Props) => {
   const { persistence, saveState, loading } = usePersistenceContext();
-  const [ localLoading, setLocalLoading ] = useState(true);
-  const [launchingSampling, setLaunchingSampling] = useState<boolean>(
-    persistence?.launchingSampling || false
-  );
-  const [runningSampling, setRunningSampling] = useState<boolean>(
-    persistence?.runningSampling || false
-  );
+  const [localLoading, setLocalLoading] = useState(true);
+  const [launchingSampling, setLaunchingSampling] = useState<boolean>(false);
+  const [runningSampling, setRunningSampling] = useState<boolean>(false);
   const [lhsSamplingConfig, setLhsSamplingConfig] = useState<LHSamplingConfig>(
-    persistence?.lhsSamplingConfig || defaultLHSamplingConfig
+    defaultLHSamplingConfig
   );
   const [gridSamplingConfig, setGridSamplingConfig] =
-    useState<GRIDSamplingConfig>(
-      persistence?.gridSamplingConfig || defaultGRIDamplingConfig
-    );
+    useState<GRIDSamplingConfig>(defaultGRIDamplingConfig);
   const [singleJobConfig, setSingleJobConfig] = useState<SingleJobConfig[]>(
-    persistence?.singleJobConfig || defaultSingleJobConfig
+    defaultSingleJobConfig
   );
-  const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>(
-    persistence?.selectedJobUids || []
-  );
+  const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
   const [fetchedJobCollections, setFetchedJobCollections] = useState<
     SelectedJobCollection[]
-  >(persistence?.fetchedJobCollections || []);
+  >([]);
   const [distribution, setDistribution] = useState<{
     [key: string]: InputVarSelection;
-  }>(persistence?.distribution || {});
-  const [numSamples, setNumSamples] = useState<{ [key: string]: number }>(
-    persistence?.numSamples || {}
-  );
-  const [selectedQoI, setSelectedQoI] = useState<string | undefined>(
-    persistence?.selectedQoI || undefined
-  );
+  }>({});
+  const [numSamples, setNumSamples] = useState<{ [key: string]: number }>({});
+  const [selectedQoI, setSelectedQoI] = useState<string | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<
     RegisteredFunctionJobCollection | undefined
-  >(persistence?.runningJobCollection || undefined);
-  const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(
-    persistence?.isSuMoGenerated || false
-  );
+  >(undefined);
+  const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
 
   const filterSelectedJobList = () => {
     const response: FunctionJob[] = fetchedJobCollections.flatMap(
@@ -130,7 +116,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
 
   // persist the state of the MMUX context using the persistenceContext provider every time any of the state variables change
   useEffect(() => {
-    console.info("Outside saving mmux...", localLoading);
     if (localLoading === true) return; // Avoid saving state while loading
     console.info("Saving MMUX context state to persistence...");
     const newPersistence: PersistenceType = {
@@ -165,8 +150,12 @@ export const MMUXContextProvider = ({ children }: Props) => {
   ]);
 
   useEffect(() => {
-    console.info("Outside loading mmux persistence", loading, persistence?.launchingSampling);
-    if (loading === false && persistence && persistence.launchingSampling !== undefined) {
+    if (
+      loading === false &&
+      persistence &&
+      persistence.launchingSampling !== undefined
+    ) {
+      console.info("Loading MMUX context from persistence...");
       setDistribution(persistence.distribution);
       setLaunchingSampling(persistence.launchingSampling);
       setRunningSampling(persistence.runningSampling);
@@ -180,9 +169,15 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setSelectedJobUids(persistence.selectedJobUids);
       setIsSuMoGenerated(persistence.isSuMoGenerated);
       setLocalLoading(false);
-    } else if (loading === false && (persistence === undefined || persistence?.launchingSampling === undefined)) {
+    } else if (
+      loading === false &&
+      (persistence === undefined ||
+        persistence?.launchingSampling === undefined)
+    ) {
       // when this happens, the persistence is either broken or not yet initialized
-      console.warn("Persistence is not initialized or broken, resetting to defaults.");
+      console.warn(
+        "Persistence is not initialized or broken, resetting to defaults."
+      );
       setDistribution({});
       setLaunchingSampling(false);
       setRunningSampling(false);
@@ -197,7 +192,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setIsSuMoGenerated(false);
       setLocalLoading(false);
     }
-
   }, [loading]);
 
   const memoState = useMemo(() => {
