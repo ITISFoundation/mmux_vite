@@ -1,10 +1,16 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   Function,
   FunctionJob,
   RegisteredFunctionJobCollection,
 } from "../osparc-api-ts-client";
-import { usePersistenceContext } from "./PersistenceContext";
+import { PersistenceType, usePersistenceContext } from "./PersistenceContext";
 import { useFunctionContext } from "./FunctionContext";
 
 export interface MMUXContextType {
@@ -57,31 +63,46 @@ const defaultGRIDamplingConfig: GRIDSamplingConfig = [];
 const defaultSingleJobConfig: SingleJobConfig[] = [];
 
 export const MMUXContextProvider = ({ children }: Props) => {
-  const {persistence, saveState} = usePersistenceContext();
-  const { setSelectedFunction, setInputVars, setOutputVars } = useFunctionContext();
-  const [launchingSampling, setLaunchingSampling] = useState<boolean>(persistence?.launchingSampling || false);
-  const [runningSampling, setRunningSampling] = useState<boolean>(persistence?.runningSampling || false);
+  const { persistence, saveState } = usePersistenceContext();
+  const { setSelectedFunction, setInputVars, setOutputVars } =
+    useFunctionContext();
+  const [launchingSampling, setLaunchingSampling] = useState<boolean>(
+    persistence?.launchingSampling || false
+  );
+  const [runningSampling, setRunningSampling] = useState<boolean>(
+    persistence?.runningSampling || false
+  );
   const [lhsSamplingConfig, setLhsSamplingConfig] = useState<LHSamplingConfig>(
     persistence?.lhsSamplingConfig || defaultLHSamplingConfig
   );
   const [gridSamplingConfig, setGridSamplingConfig] =
-    useState<GRIDSamplingConfig>(persistence?.gridSamplingConfig || defaultGRIDamplingConfig);
+    useState<GRIDSamplingConfig>(
+      persistence?.gridSamplingConfig || defaultGRIDamplingConfig
+    );
   const [singleJobConfig, setSingleJobConfig] = useState<SingleJobConfig[]>(
     persistence?.singleJobConfig || defaultSingleJobConfig
   );
-  const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>(persistence?.selectedJobUids || []);
+  const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>(
+    persistence?.selectedJobUids || []
+  );
   const [fetchedJobCollections, setFetchedJobCollections] = useState<
     SelectedJobCollection[]
   >(persistence?.fetchedJobCollections || []);
   const [distribution, setDistribution] = useState<{
     [key: string]: InputVarSelection;
   }>(persistence?.distribution || {});
-  const [numSamples, setNumSamples] = useState<{ [key: string]: number }>(persistence?.numSamples || {});
-  const [selectedQoI, setSelectedQoI] = useState<string | undefined>(persistence?.selectedQoI || undefined);
+  const [numSamples, setNumSamples] = useState<{ [key: string]: number }>(
+    persistence?.numSamples || {}
+  );
+  const [selectedQoI, setSelectedQoI] = useState<string | undefined>(
+    persistence?.selectedQoI || undefined
+  );
   const [runningJobCollection, setRunningJobCollection] = useState<
     RegisteredFunctionJobCollection | undefined
   >(persistence?.runningJobCollection || undefined);
-  const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(persistence?.isSuMoGenerated || false);
+  const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(
+    persistence?.isSuMoGenerated || false
+  );
   const [loading, setLoading] = useState<boolean>(true);
 
   const filterSelectedJobList = () => {
@@ -100,9 +121,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
 
   const allJobsList = () => {
     const response: FunctionJob[] = fetchedJobCollections.flatMap(
-      (jobCollection) =>
-        jobCollection.subJobs
-          .map((subJob) => subJob.job)
+      (jobCollection) => jobCollection.subJobs.map((subJob) => subJob.job)
     );
 
     if (fetchedJobCollections.length !== 0 && response.length <= 4) {
@@ -113,22 +132,24 @@ export const MMUXContextProvider = ({ children }: Props) => {
 
   // persist the state of the MMUX context using the persistenceContext provider every time any of the state variables change
   useEffect(() => {
-    if(loading) return; // Avoid saving state while loading
+    if (loading) return; // Avoid saving state while loading
     console.info("Saving MMUX context state to persistence...");
-    saveState({
+    const newPersistence: PersistenceType = {
+      ...(persistence as PersistenceType),
       distribution: distribution,
       launchingSampling: launchingSampling,
+      runningSampling: runningSampling,
       lhsSamplingConfig: lhsSamplingConfig,
       gridSamplingConfig: gridSamplingConfig,
       singleJobConfig: singleJobConfig,
-      runningSampling: runningSampling,
       numSamples: numSamples,
       selectedQoI: selectedQoI,
       runningJobCollection: runningJobCollection,
       fetchedJobCollections: fetchedJobCollections,
       selectedJobUids: selectedJobUids,
       isSuMoGenerated: isSuMoGenerated,
-    });
+    };
+    saveState(newPersistence);
   }, [
     launchingSampling,
     runningSampling,
@@ -146,17 +167,20 @@ export const MMUXContextProvider = ({ children }: Props) => {
   ]);
 
   useEffect(() => {
-    if(loading && persistence !== undefined) {
-      console.info("Loading MMUX context state from persistence...", JSON.stringify(persistence), typeof persistence.launchingSampling !== 'boolean');
-      if(typeof persistence.launchingSampling !== 'boolean') {
-        console.info("Persistence file is empty, initializing with default values.");
+    if (loading && persistence !== undefined) {
+      console.info(
+        "Loading MMUX context state from persistence...",
+        JSON.stringify(persistence),
+        typeof persistence.launchingSampling !== "boolean"
+      );
+      if (typeof persistence.launchingSampling !== "boolean") {
+        console.info(
+          "Persistence file is empty, initializing with default values."
+        );
         setLoading(false);
         return;
       }
-      setSelectedFunction(persistence.selectedFunction);
       setDistribution(persistence.distribution);
-      setInputVars(persistence.inputVars);
-      setOutputVars(persistence.outputVars);
       setLaunchingSampling(persistence.launchingSampling);
       setRunningSampling(persistence.runningSampling);
       setLhsSamplingConfig(persistence.lhsSamplingConfig);

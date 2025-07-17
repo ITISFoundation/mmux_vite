@@ -146,21 +146,3 @@ type cvMetricsType = {
   mae: number;
   rmse: number;
 };
-
-interface MMUXDataType {
-  selectedFunction: Function | undefined;
-  inputVars: string[];
-  outputVars: string[] | undefined;
-  distribution: { [key: string]: InputVarSelection };
-  launchingSampling: boolean;
-  runningSampling: boolean;
-  lhsSamplingConfig: LHSamplingConfig;
-  gridSamplingConfig: GRIDSamplingConfig;
-  singleJobConfig: SingleJobConfig[];
-  numSamples: { [key: string]: number };
-  runningJobCollection: RegisteredFunctionJobCollection | undefined;
-  fetchedJobCollections: SelectedJobCollection[];
-  selectedJobUids: string[];
-  selectedQoI: string | undefined;
-  isSuMoGenerated: boolean;
-}

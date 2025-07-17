@@ -4,6 +4,7 @@ import { useMMUXContext } from "../../context/MMUXContext";
 import JobsDashboard from "../../views/ParallelRunner";
 import { stepValidator } from "../../utils/stepValidator";
 import { useNavigationContext } from "../../context/NavigationContext";
+import { useFunctionContext } from "../../context/FunctionContext";
 
 type FooterProps = {
   steps: Step[];
@@ -11,6 +12,7 @@ type FooterProps = {
 
 export const Footer = (props: FooterProps) => {
   const { steps } = props;
+  const { selectedFunction } = useFunctionContext();
   const { currentView, setCurrentView } = useNavigationContext();
   const context = useMMUXContext();
   const { runningSampling } = context;
@@ -19,13 +21,18 @@ export const Footer = (props: FooterProps) => {
 
   return (
     <>
-      <Paper sx={{marginTop: '32px', display: 'flex', justifyContent: 'space-between'}} variant="outlined">
+      <Paper
+        sx={{
+          marginTop: "32px",
+          display: "flex",
+          justifyContent: "space-between",
+        }}
+        variant="outlined"
+      >
         <Button
           className="footerBtn footerBtnFirst"
           variant="contained"
-          onClick={() =>
-            setCurrentView(currentView <= 0 ? 0 : currentView - 1)
-          }
+          onClick={() => setCurrentView(currentView <= 0 ? 0 : currentView - 1)}
           disabled={currentView <= 0}
         >
           Previous
@@ -44,9 +51,16 @@ export const Footer = (props: FooterProps) => {
           className="footerBtn footerBtnLast"
           variant="contained"
           onClick={() =>
-            setCurrentView(currentView >= (steps.length -1) ? (steps.length -1) : currentView + 1)
+            setCurrentView(
+              currentView >= steps.length - 1
+                ? steps.length - 1
+                : currentView + 1
+            )
           }
-          disabled={currentView >= (steps.length -1) || !stepValidator(context, currentView)}
+          disabled={
+            currentView >= steps.length - 1 ||
+            !stepValidator(selectedFunction, context, currentView)
+          }
         >
           Next
         </Button>

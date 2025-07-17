@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { usePersistenceContext } from './PersistenceContext';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { PersistenceType, usePersistenceContext } from "./PersistenceContext";
 import { Function } from "../osparc-api-ts-client";
 
 interface FunctionContextType {
@@ -18,10 +18,45 @@ type Props = {
 };
 
 export const FunctionContextProvider = ({ children }: Props) => {
-  const {persistence, saveState} = usePersistenceContext();
-  const [selectedFunction, setSelectedFunction] = useState<Function | undefined>(persistence?.selectedFunction || undefined);
-  const [inputVars, setInputVars] = useState<string[]>(persistence?.inputVars || []);
-  const [outputVars, setOutputVars] = useState<string[] | undefined>(persistence?.outputVars || undefined);
+  const { persistence, saveState } = usePersistenceContext();
+  const [loading, setLoading] = useState(true);
+  const [selectedFunction, setSelectedFunction] = useState<
+    Function | undefined
+  >(persistence?.selectedFunction);
+  const [inputVars, setInputVars] = useState<string[]>(
+    persistence?.inputVars || []
+  );
+  const [outputVars, setOutputVars] = useState<string[] | undefined>(
+    persistence?.outputVars || undefined
+  );
+
+  useEffect(() => {
+    if (loading) return; // Avoid saving state while loading
+    console.info("Saving MMUX context state to persistence...");
+    const newPersistence: PersistenceType = {
+      ...(persistence as PersistenceType),
+      selectedFunction,
+      inputVars,
+      outputVars,
+    };
+    saveState(newPersistence);
+  }, [selectedFunction, inputVars, outputVars, saveState, loading]);
+
+  useEffect(() => {
+    if (loading && persistence !== undefined) {
+      if (typeof persistence.launchingSampling !== "boolean") {
+        console.info(
+          "Persistence file is empty, initializing with default values."
+        );
+        setLoading(false);
+        return;
+      }
+      setSelectedFunction(persistence.selectedFunction);
+      setInputVars(persistence.inputVars);
+      setOutputVars(persistence.outputVars);
+      setLoading(false);
+    }
+  }, [loading, persistence]);
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -35,26 +70,36 @@ export const FunctionContextProvider = ({ children }: Props) => {
     fetchStatus();
   }, []);
 
-  const memo = React.useMemo(() => ({
-    selectedFunction,
-    setSelectedFunction,
-    inputVars,
-    setInputVars,
-    outputVars,
-    setOutputVars,
-  }), [selectedFunction, setSelectedFunction, inputVars, setInputVars, outputVars, setOutputVars]);
+  const memo = React.useMemo(
+    () => ({
+      selectedFunction,
+      setSelectedFunction,
+      inputVars,
+      setInputVars,
+      outputVars,
+      setOutputVars,
+    }),
+    [
+      selectedFunction,
+      setSelectedFunction,
+      inputVars,
+      setInputVars,
+      outputVars,
+      setOutputVars,
+    ]
+  );
 
   return (
-    <FunctionContext.Provider value={memo}>
-      {children}
-    </FunctionContext.Provider>
+    <FunctionContext.Provider value={memo}>{children}</FunctionContext.Provider>
   );
 };
 
 export const useFunctionContext = () => {
   const context = useContext(FunctionContext);
   if (context === undefined) {
-    throw new Error('useFunctionContext must be used within a FunctionContextProvider');
+    throw new Error(
+      "useFunctionContext must be used within a FunctionContextProvider"
+    );
   }
   return context;
-}
+};
