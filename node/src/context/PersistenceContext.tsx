@@ -26,6 +26,7 @@ export interface PersistenceType {
 interface PersistenceContextType {
   persistence: PersistenceType | undefined;
   saveState: (state: PersistenceType) => Promise<void>;
+  loading: boolean;
 }
 
 export const PersistenceContext = createContext<PersistenceContextType>(
@@ -37,6 +38,7 @@ type Props = {
 };
 
 export const PersistenceContextProvider = ({ children }: Props) => {
+  const [loading, setLoading] = useState(true);
   const [persistence, setPersistence] = useState<PersistenceType>();
 
   const getHeaders = (contentType = true): HeadersInit => {
@@ -128,6 +130,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
         console.error("Error when fetching persistence file:", error);
         toast.error("Failed to fetch user state, starting from scratch.");
       }
+      setLoading(false);
     };
 
     fetchFile();
@@ -137,8 +140,9 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     () => ({
       persistence,
       saveState,
+      loading
     }),
-    [persistence]
+    [persistence, loading, saveState]
   );
 
   return (

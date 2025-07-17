@@ -18,8 +18,7 @@ type Props = {
 };
 
 export const FunctionContextProvider = ({ children }: Props) => {
-  const { persistence, saveState } = usePersistenceContext();
-  const [loading, setLoading] = useState(true);
+  const { persistence, saveState, loading } = usePersistenceContext();
   const [selectedFunction, setSelectedFunction] = useState<
     Function | undefined
   >(persistence?.selectedFunction);
@@ -43,18 +42,15 @@ export const FunctionContextProvider = ({ children }: Props) => {
   }, [selectedFunction, inputVars, outputVars, saveState, loading]);
 
   useEffect(() => {
-    if (loading && persistence !== undefined) {
-      if (typeof persistence.launchingSampling !== "boolean") {
-        console.info(
-          "Persistence file is empty, initializing with default values."
-        );
-        setLoading(false);
-        return;
-      }
+    if (loading === false && persistence && typeof persistence.selectedFunction === "boolean") {
       setSelectedFunction(persistence.selectedFunction);
       setInputVars(persistence.inputVars);
       setOutputVars(persistence.outputVars);
-      setLoading(false);
+      return;
+    } else if (loading === false) {
+      setSelectedFunction(undefined);
+      setInputVars([]);
+      setOutputVars(undefined);
     }
   }, [loading]);
 

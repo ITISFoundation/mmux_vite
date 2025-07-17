@@ -63,9 +63,7 @@ const defaultGRIDamplingConfig: GRIDSamplingConfig = [];
 const defaultSingleJobConfig: SingleJobConfig[] = [];
 
 export const MMUXContextProvider = ({ children }: Props) => {
-  const { persistence, saveState } = usePersistenceContext();
-  const { setSelectedFunction, setInputVars, setOutputVars } =
-    useFunctionContext();
+  const { persistence, saveState, loading } = usePersistenceContext();
   const [launchingSampling, setLaunchingSampling] = useState<boolean>(
     persistence?.launchingSampling || false
   );
@@ -103,7 +101,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
   const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(
     persistence?.isSuMoGenerated || false
   );
-  const [loading, setLoading] = useState<boolean>(true);
 
   const filterSelectedJobList = () => {
     const response: FunctionJob[] = fetchedJobCollections.flatMap(
@@ -167,19 +164,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
   ]);
 
   useEffect(() => {
-    if (loading && persistence !== undefined) {
-      console.info(
-        "Loading MMUX context state from persistence...",
-        JSON.stringify(persistence),
-        typeof persistence.launchingSampling !== "boolean"
-      );
-      if (typeof persistence.launchingSampling !== "boolean") {
-        console.info(
-          "Persistence file is empty, initializing with default values."
-        );
-        setLoading(false);
-        return;
-      }
+    if (loading === false && persistence && typeof persistence.launchingSampling === "boolean") {
       setDistribution(persistence.distribution);
       setLaunchingSampling(persistence.launchingSampling);
       setRunningSampling(persistence.runningSampling);
@@ -192,7 +177,19 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setFetchedJobCollections(persistence.fetchedJobCollections);
       setSelectedJobUids(persistence.selectedJobUids);
       setIsSuMoGenerated(persistence.isSuMoGenerated);
-      setLoading(false); // Set loading to false after loading the state
+    } else if (loading === false) {
+      setDistribution({});
+      setLaunchingSampling(false);
+      setRunningSampling(false);
+      setLhsSamplingConfig(defaultLHSamplingConfig);
+      setGridSamplingConfig(defaultGRIDamplingConfig);
+      setSingleJobConfig(defaultSingleJobConfig);
+      setNumSamples({});
+      setSelectedQoI(undefined);
+      setRunningJobCollection(undefined);
+      setFetchedJobCollections([]);
+      setSelectedJobUids([]);
+      setIsSuMoGenerated(false);
     }
   }, [loading]);
 
