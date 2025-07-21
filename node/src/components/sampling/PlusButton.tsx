@@ -1,13 +1,13 @@
-import { JSX, useState } from "react";
+import { JSX, useEffect, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
   Box,
-  Button,
   IconButton,
 } from "@mui/material";
 import { AddBox, IndeterminateCheckBox } from "@mui/icons-material";
+import { useSamplingContext } from "../../context/SamplingContext";
 
 // This element is a generic + button with a few extra elements
 // - Shows a text specifying what will be added
@@ -21,7 +21,16 @@ type PlusButtonProps = {
 };
 function PlusButton(props: PlusButtonProps) {
   const { enabled, text, onClickFun, PlotFunComponent } = props;
+  const { launchingSampling } = useSamplingContext();
   const [showElement, setShowElement] = useState(false);
+
+  // if sampling was launched and just finished, we want to close the accordion
+  useEffect(() => {
+    if (launchingSampling === false && showElement === true) {
+      setShowElement(false);
+    }
+  }, [launchingSampling]);
+
   return (
     <Accordion
       expanded={showElement}
