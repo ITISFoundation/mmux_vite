@@ -60,7 +60,6 @@ export const filterInputVars = (context: fullContext) => {
 }
 
 interface CreateSelectProps {
-  inputVars: string[];
   axis: string;
   idx?: number;
   setAxis: (value: string) => void;
