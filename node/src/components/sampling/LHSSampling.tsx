@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, Input, Skeleton, Typography } from "@mui/material";
 import {
@@ -12,14 +11,19 @@ import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "../setup/VariableConfig";
 import { getFunctionJob } from "../../utils/function_utils";
 import { toast } from "react-toastify";
+import { useFunctionContext } from "../../context/FunctionContext";
 import { useServiceContext } from "../../context/ServiceContext";
 import { filterInputVars } from "../plots/PlotTools";
+import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
+import { useJobContext } from "../../context/JobContext";
 
 async function runLhsSampling(
-  context: MMUXContextType,
+  selectedFunction: Function | undefined,
+  context: SamplingContextType,
+  setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void,
   config: LHSamplingConfig
 ) {
-  const fun = context.selectedFunction as Function;
+  const fun = selectedFunction as Function;
   // send config to Python backend to create LHS
   context.setLaunchingSampling(true);
   const jc = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/lhs_sampling", {
@@ -43,21 +47,19 @@ async function runLhsSampling(
     })
   context.setLaunchingSampling(false);
   context.setRunningSampling(true);
-  context.setRunningJobCollection(jc ? jc : undefined);
+  setRunningJobCollection(jc ? jc : undefined);
   return jc;
 }
 
 const LHSSampling = () => {
-  const context = useMMUXContext();
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const context = useSamplingContext();
+  const { setLhsSamplingConfig, lhsSamplingConfig } = context;
   const {
-    inputVars,
-    distribution,
-    selectedFunction,
-    lhsSamplingConfig,
-    setLhsSamplingConfig,
     fetchedJobCollections,
-    setFetchedJobCollections
-  } = context;
+    setFetchedJobCollections,
+    setRunningJobCollection
+  } = useJobContext();
   const { permissions } = useServiceContext()
 
   const [lhsInputs, setLhsInputs] =
@@ -66,13 +68,13 @@ const LHSSampling = () => {
 
   const handleRunSampling = async () => {
     setLhsSamplingConfig(lhsInputs)
-    const nPoints = recommendedLHSSamples(context)
+    const nPoints = recommendedLHSSamples()
     // TODO should check how many jobs already have; and current launched number
     if (nPoints > 50 && permissions === "WRITE") {
       toast.warning(`For your number of non-constant input variables, we would recommend a total of ${nPoints} LHS samples. \n\n ` +
         "However, currently the maximum supported number of samples per run is 50. Therefore, we encourage you to run additional campaigns with different seeds.");
     }
-    const jc = await runLhsSampling(context, lhsInputs);
+    const jc = await runLhsSampling(selectedFunction, context, setRunningJobCollection, lhsInputs);
     // New - include this job collection in the fetchedJobCollections
     if (!jc) {
       console.error("Job collection is undefined. Cannot add to fetchedJobCollections.");
@@ -115,9 +117,12 @@ const LHSSampling = () => {
     });
   }
 
-  const recommendedLHSSamples = (context: MMUXContextType) => {
+  const recommendedLHSSamples = () => {
+    const jobContext = useJobContext();
+    const SamplingContext = useSamplingContext();
+    const functionContext = useFunctionContext();
     let nPoints: number;
-    nPoints = Math.sqrt(filterInputVars(context).length) * 30 * 1.2;
+    nPoints = Math.sqrt(filterInputVars({...jobContext, ...functionContext, ...SamplingContext}).length) * 30 * 1.2;
     nPoints = Math.ceil(nPoints / 5) * 5;
     return nPoints;
   }
@@ -145,7 +150,7 @@ const LHSSampling = () => {
 
   useEffect(() => {
     setLhsInputs((prevInputs) => {
-      const nPoints = recommendedLHSSamples(context)
+      const nPoints = recommendedLHSSamples()
       const lhsPoints = Math.min(Math.max(nPoints, 5), 50); // hardcoded max points limit in backedn
       const newInputs = {...prevInputs, inputs: inputVars.map(generateInputsList), points: lhsPoints };
       return newInputs;

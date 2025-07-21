@@ -1,8 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useCallback } from "react";
 import type { FunctionJob } from "../osparc-api-ts-client";
-import { useMMUXContext } from "../context/MMUXContext";
 import { getFunctionJobsFromFunctionJobCollection } from "../utils/function_utils";
+import { useSamplingContext } from "../context/SamplingContext";
+import { useJobContext } from "../context/JobContext";
 
 const statusColors = {
   PENDING: "bg-gray-300",
@@ -259,7 +260,8 @@ interface JobDashboardProps {
   progressBarOnly?: boolean;
 }
 export function Dashboard(props: JobDashboardProps) {
-  const { runningJobCollection, setRunningSampling } = useMMUXContext();
+  const { runningJobCollection } = useJobContext();
+  const { setRunningSampling } = useSamplingContext();
   const { progressBarOnly } = props;
   const [jobs, setJobs] = useState<FunctionJob[]>([]);
   const [loading, setLoading] = useState(true);

@@ -7,8 +7,9 @@ import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
 import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
-import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 
 type GPPrediction = {
   x: number[];
@@ -18,16 +19,19 @@ type GPPrediction = {
 
 const Curves1DPlots = () => {
   const theme = useTheme();
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedQoI } = useMMUXContext();
+  const context = useJobContext();
   const {
-    inputVars,
-    selectedQoI,
-    selectedFunction,
-    distribution,
     filterSelectedJobList,
     fetchedJobCollections,
-  } = useMMUXContext();
-  const context = useMMUXContext();
-  const filteredInputVars = filterInputVars(context);
+  } = context;
+  const filteredInputVars = filterInputVars({
+    ...context,
+    selectedFunction,
+    inputVars,
+    distribution,
+  });
   const [plotData, setPlotData] = useState<Array<Data>>([]);
   const [axis, setAxis] = useState(filteredInputVars[0]);
   const [propagating, setPropagating] = useState(false);
@@ -58,7 +62,7 @@ const Curves1DPlots = () => {
         {
           x: x,
           y: y_hat,
-          name: 'Model prediction',
+          name: "Model prediction",
           xaxis: `x${inputVars.indexOf(varName) + 1}`,
           yaxis: "y",
           mode: "lines",
@@ -134,7 +138,7 @@ const Curves1DPlots = () => {
       }
     };
     run();
-    console.log("axis: ", axis)
+    console.log("axis: ", axis);
   }, [
     inputVars,
     selectedQoI,
@@ -201,7 +205,7 @@ const Curves1DPlots = () => {
       >
         <CreateSelect axis={axis} setAxis={setAxis} inputVars={inputVars} />
         {inputVars.length > 0 &&
-          distribution[selectedFunction?.uid || ""] !== undefined ? (
+        distribution[selectedFunction?.uid || ""] !== undefined ? (
           <>
             {inputVars.map((key) => {
               if (key === axis) {

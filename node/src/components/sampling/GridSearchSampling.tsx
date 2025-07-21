@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { useMMUXContext, MMUXContextType } from "../../context/MMUXContext";
 import {
   Function,
   RegisteredFunctionJobCollection,
@@ -9,13 +8,18 @@ import {
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "./../setup/VariableConfig";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
+import { useJobContext } from "../../context/JobContext";
 
 // TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
 async function runGridSampling(
-  context: MMUXContextType,
+  selectedFunction: Function | undefined,
+  context: SamplingContextType,
+  setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void,
   config: GRIDSamplingConfig
 ) {
-  const fun = context.selectedFunction as Function;
+  const fun = selectedFunction as Function;
   // send config to Python backend to create LHS
   context.setLaunchingSampling(true);
   const jc = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/grid_sampling", {
@@ -37,16 +41,15 @@ async function runGridSampling(
     })
   context.setLaunchingSampling(false);
   context.setRunningSampling(true);
-  context.setRunningJobCollection(jc ? jc : undefined);
+  setRunningJobCollection(jc ? jc : undefined);
   return jc;
 }
 
 const GridSearchSampling = () => {
-  const context = useMMUXContext();
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const context = useSamplingContext();
+  const { setRunningJobCollection } = useJobContext();
   const {
-    inputVars,
-    distribution,
-    selectedFunction,
     gridSamplingConfig,
     setGridSamplingConfig,
   } = context;
@@ -57,7 +60,7 @@ const GridSearchSampling = () => {
 
   const handleRunSampling = async () => {
     setGridSamplingConfig(gridSamplingInputs);
-    await runGridSampling(context, gridSamplingInputs);
+    await runGridSampling(selectedFunction, context, setRunningJobCollection, gridSamplingInputs);
   };
 
   function handleInputChange(index: number, field: string, value: string) {

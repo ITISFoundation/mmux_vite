@@ -5,9 +5,11 @@ import { JobSampling } from "../components/sampling/JobSampling";
 import { useState, useRef, useEffect } from "react";
 import { JobsLoading } from "../components/data/JobsLoading";
 import { OutputSetup } from "./OutputSetup";
+import { useFunctionContext } from "../context/FunctionContext";
 
 export default function SuMo() {
-  const { selectedFunction, outputVars, setSelectedQoI } = useMMUXContext();
+  const { selectedFunction, outputVars } = useFunctionContext();
+  const { setSelectedQoI } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [progress, setProgress] = useState<number>(0);
   const [jobProgress, setJobProgress] = useState<number>(0);

@@ -15,13 +15,15 @@ import SuMoValidation from "./SuMoValidation";
 import Surface2DPlot from "./Surface2DPlot";
 import Header from "../navigation/Header";
 import { filterInputVars } from "./PlotTools";
-import { useMMUXContext } from "../../context/MMUXContext";
 import CrossValidationDocument from "../documents/CrossValidationDocument";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 
 const SuMoPlotsSteps = () => {
   const theme = useTheme();
-  const context = useMMUXContext();
-  const { inputVars, filterSelectedJobList, selectedJobUids } = context;
+  const { inputVars, selectedFunction, distribution } = useFunctionContext();
+  const context = useJobContext();
+  const { filterSelectedJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);
   const [filteredInputVars, setFilteredInputVars] = React.useState(inputVars);
   const [maxSteps, setMaxSteps] = React.useState(0);
@@ -35,13 +37,15 @@ const SuMoPlotsSteps = () => {
 
   const stepTitles = ["Validation", "1D Curves", "2D Surface", "3D IsoSurface"];
   const stepInfoTexts: { [key: string]: string | undefined } = {
-    "Validation": "Assessment of model quality through Cross-Validation ",
+    Validation: "Assessment of model quality through Cross-Validation ",
     "1D Curves": undefined,
     "2D Surface": undefined,
     "3D IsoSurface": undefined,
   };
-  const stepExtendedInfoTexts: { [key: string]: React.ReactElement | undefined } = {
-    "Validation": CrossValidationDocument,
+  const stepExtendedInfoTexts: {
+    [key: string]: React.ReactElement | undefined;
+  } = {
+    Validation: CrossValidationDocument,
     "1D Curves": undefined,
     "2D Surface": undefined,
     "3D IsoSurface": undefined,
@@ -53,7 +57,9 @@ const SuMoPlotsSteps = () => {
       // avoid everything disappearing when there are not enough selected jobs
       setFilteredInputVars(inputVars);
     } else {
-      setFilteredInputVars(filterInputVars(context));
+      setFilteredInputVars(
+        filterInputVars({ ...context, selectedFunction, inputVars, distribution })
+      );
     }
     setMaxSteps(Math.min(filteredInputVars.length + 1, stepTitles.length));
   }, [selectedJobUids, filterSelectedJobList]);

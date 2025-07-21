@@ -32,6 +32,8 @@ import { DataGrid } from "@mui/x-data-grid";
 import JobRow from "./JobRow";
 import CustomTooltip from "./../utils/CustomTooltip";
 import getMinMax from "../minmax";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 
 type JobSelectorPropsType = {
   loading: boolean;
@@ -45,11 +47,13 @@ type JobSelectorPropsType = {
 };
 
 export default function JobsSelector(props: JobSelectorPropsType) {
+  const { selectedFunction } = useFunctionContext();
   const {
-    selectedFunction,
     setSelectedJobUids,
     fetchedJobCollections,
     setFetchedJobCollections,
+  } = useJobContext();
+  const {
     setIsSuMoGenerated,
   } = useMMUXContext();
   const {

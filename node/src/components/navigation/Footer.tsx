@@ -1,8 +1,11 @@
 import React from "react";
 import { Button, Modal, Paper } from "@mui/material";
-import { useMMUXContext } from "../../context/MMUXContext";
 import JobsDashboard from "../../views/ParallelRunner";
 import { stepValidator } from "../../utils/stepValidator";
+import { useNavigationContext } from "../../context/NavigationContext";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { useSamplingContext } from "../../context/SamplingContext";
+import { useJobContext } from "../../context/JobContext";
 
 type FooterProps = {
   steps: Step[];
@@ -10,20 +13,27 @@ type FooterProps = {
 
 export const Footer = (props: FooterProps) => {
   const { steps } = props;
-  const context = useMMUXContext();
-  const { currentView, setCurrentView, runningSampling } = context;
+  const functionContext = useFunctionContext();
+  const { currentView, setCurrentView } = useNavigationContext();
+  const { runningSampling } = useSamplingContext();
+  const context = useJobContext();
   const [modal, setModal] = React.useState(false);
   const isJobsRunning = runningSampling;
 
   return (
     <>
-      <Paper sx={{marginTop: '32px', display: 'flex', justifyContent: 'space-between'}} variant="outlined">
+      <Paper
+        sx={{
+          marginTop: "32px",
+          display: "flex",
+          justifyContent: "space-between",
+        }}
+        variant="outlined"
+      >
         <Button
           className="footerBtn footerBtnFirst"
           variant="contained"
-          onClick={() =>
-            setCurrentView(currentView <= 0 ? 0 : currentView - 1)
-          }
+          onClick={() => setCurrentView(currentView <= 0 ? 0 : currentView - 1)}
           disabled={currentView <= 0}
         >
           Previous
@@ -42,9 +52,16 @@ export const Footer = (props: FooterProps) => {
           className="footerBtn footerBtnLast"
           variant="contained"
           onClick={() =>
-            setCurrentView(currentView >= (steps.length -1) ? (steps.length -1) : currentView + 1)
+            setCurrentView(
+              currentView >= steps.length - 1
+                ? steps.length - 1
+                : currentView + 1
+            )
           }
-          disabled={currentView >= (steps.length -1) || !stepValidator(context, currentView)}
+          disabled={
+            currentView >= steps.length - 1 ||
+            !stepValidator(functionContext, context, currentView)
+          }
         >
           Next
         </Button>

@@ -2,12 +2,12 @@ import { Box, Chip, InputLabel, MenuItem, Select, Typography, useTheme } from "@
 import { useCallback, useEffect, useState } from "react";
 import { useServiceContext } from "../../context/ServiceContext";
 import InputVariableDistDocument from "../documents/InputVariableDistDocument";
-import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
 import { InputBlock } from "../utils/InputBlock";
 import Header from "../navigation/Header";
+import { useFunctionContext } from "../../context/FunctionContext";
 
 export const InputVariableDist = () => {
-  const { inputVars, distribution, setDistribution, selectedFunction } = useMMUXContext();
+  const { selectedFunction, inputVars, distribution, setDistribution } = useFunctionContext();
   const { serviceMode } = useServiceContext();
   const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
@@ -154,7 +154,7 @@ export const InputVariableDist = () => {
     if (distribution && selectedFunction && distribution[selectedFunction.uid]) {
       setLocalDistribution(distribution[selectedFunction.uid]);
     } else {
-      if (inputVars.length > 0) {
+      if (inputVars && inputVars.length > 0) {
         const initialInputVars = inputVars.reduce((acc, val) => {
           acc[val] = setInitialValues(val, serviceMode);
           return acc;
@@ -164,7 +164,7 @@ export const InputVariableDist = () => {
     }
   }, [distribution, inputVars, selectedFunction]);
 
-  if (inputVars.length === 0) {
+  if (inputVars && inputVars.length === 0) {
     return <></>
   }
 

@@ -2,16 +2,17 @@ import { useEffect, useState } from "react";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { Function, FunctionJob, ProjectFunctionJob } from "../../osparc-api-ts-client";
-import { useMMUXContext, MMUXContextType } from "../../context/MMUXContext";
 import { RunSamplingButton } from "./RunSamplingButton";
 import ValueConfig from "../setup/ValueConfig";
 import { toast } from "react-toastify";
 import { createJobStudyCopy, openStudyUid } from "../../utils/function_utils";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { useSamplingContext } from "../../context/SamplingContext";
 
-async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
-  const fun = context?.selectedFunction as Function;
+async function runTestJob(selectedFunction: Function | undefined, setLaunchingSampling: (value: boolean) => void, config: SingleJobConfig[]) {
+  const fun = selectedFunction as Function;
   // send config to Python backend to create LHS
-  context.setLaunchingSampling(true);
+  setLaunchingSampling(true);
   const j = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/test_job", {
     method: "POST",
     body: JSON.stringify({
@@ -32,20 +33,20 @@ async function runTestJob(context: MMUXContextType, config: SingleJobConfig[]) {
     .catch(function (error) {
       console.error("Error running single job: ", error);
     });
-  context.setLaunchingSampling(false);
+  setLaunchingSampling(false);
   return j;
 }
 
 const TestJob = () => {
-  const context = useMMUXContext();
-  const { selectedFunction, inputVars, singleJobConfig, setSingleJobConfig } = context;
+  const { selectedFunction, inputVars } = useFunctionContext();
+  const { singleJobConfig, setSingleJobConfig, setLaunchingSampling } = useSamplingContext();
   const [jobInputs, setJobInputs] =
     useState<Array<SingleJobConfig>>(singleJobConfig);
   const [loading, setLoading] = useState<boolean>(true);
 
   const handleRunSampling = async () => {
     setSingleJobConfig(jobInputs);
-    const job = await runTestJob(context, jobInputs);
+    const job = await runTestJob(selectedFunction, setLaunchingSampling, jobInputs);
     // necessary to make a copy of the test job bcs as of now, the run-job always generates a hidden copy
     // thus, the copy allows the user to see their test run in their dashboard
     // WOuld be nice to be able to abort/delete the TestJob or simply update the run-job endpoint to accept a "hidden" boolean parameter

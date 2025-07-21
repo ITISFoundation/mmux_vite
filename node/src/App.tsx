@@ -5,14 +5,18 @@ import { toast, ToastContainer } from "react-toastify";
 import { setupTheme } from "./theme";
 import Navigation from "./components/navigation/Navigation";
 import { Footer } from "./components/navigation/Footer";
-import { useMMUXContext } from "./context/MMUXContext";
+import { useNavigationContext } from "./context/NavigationContext";
 import { getHealth } from "./utils/function_utils";
 import { SplashScreen } from "./views/SplashScreen";
 import { ServiceContextProvider } from "./context/ServiceContext";
 import PreviewWarning from "./components/navigation/PreviewWarning";
 import { ReturnCurrentView } from "./views/ReturnCurrentView";
+import { MMUXContextProvider } from "./context/MMUXContext";
+import { FunctionContextProvider } from "./context/FunctionContext";
+import { SamplingContextProvider } from "./context/SamplingContext";
+import { JobContextProvider } from "./context/JobContext";
 
-const FakeRoot = styled("div")(
+const AppRoot = styled("div")(
   ({ theme }) => `
   min-height: 100vh;
   height: 100%;
@@ -23,11 +27,7 @@ const FakeRoot = styled("div")(
 const App = () => {
   const [healthStatus, setHealthStatus] = useState<boolean>(false);
 
-  const steps: Step[] = [
-    { id: 0, label: "Setup" },
-    { id: 1, label: "Results" },
-  ];
-  const { currentView } = useMMUXContext();
+  const { currentView, steps } = useNavigationContext();
   const { mode, systemMode, setMode } = useColorScheme();
   const finalMode = mode
     ? mode === "system"
@@ -87,42 +87,49 @@ const App = () => {
   useEffect(() => {
     // Message handler (from parent window, when in an iframe zB.)
     const processKeyValue = (keyValue: string) => {
-      const [key, value] = keyValue.split('=')
-      if (key === 'theme') {
-        if (value.toLowerCase().includes('dark')) {
-          setThemeModeHandler('dark')
-        }
-        else if (value.toLowerCase().includes('light')) {
-          setThemeModeHandler('light')
+      const [key, value] = keyValue.split("=");
+      if (key === "theme") {
+        if (value.toLowerCase().includes("dark")) {
+          setThemeModeHandler("dark");
+        } else if (value.toLowerCase().includes("light")) {
+          setThemeModeHandler("light");
         }
       }
-    }
+    };
     const messageHandler = (e: MessageEvent) => {
       const msg: string = e.data;
-      const OSPARC_MSG_PREFIX = 'osparc;'
-      if (typeof msg === 'string' && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
+      const OSPARC_MSG_PREFIX = "osparc;";
+      if (typeof msg === "string" && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
         console.info("Received message from parent window:", e);
-        const osparcMsg = msg.slice(OSPARC_MSG_PREFIX.length)
-        osparcMsg.split('&').forEach(processKeyValue)
+        const osparcMsg = msg.slice(OSPARC_MSG_PREFIX.length);
+        osparcMsg.split("&").forEach(processKeyValue);
       }
-    }
-    window.addEventListener('message', messageHandler)
-    return () => window.removeEventListener('message', messageHandler)
-  }, [])
+    };
+    window.addEventListener("message", messageHandler);
+    return () => window.removeEventListener("message", messageHandler);
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
-      <FakeRoot>
+      <AppRoot>
         {!healthStatus ? (
           <SplashScreen />
         ) : (
           <ServiceContextProvider>
-            <PreviewWarning />
-            <Container sx={{ paddingBottom: 4 }}>
-              <Navigation steps={steps} activeStep={currentView} />
-              <ReturnCurrentView currentView={currentView} />
-              <Footer steps={steps} />
-            </Container>
+            <FunctionContextProvider>
+              <SamplingContextProvider>
+                <JobContextProvider>
+                  <MMUXContextProvider>
+                    <PreviewWarning />
+                    <Container sx={{ paddingBottom: 4 }}>
+                      <Navigation steps={steps} activeStep={currentView} />
+                      <ReturnCurrentView currentView={currentView} />
+                      <Footer steps={steps} />
+                    </Container>
+                  </MMUXContextProvider>
+                </JobContextProvider>
+              </SamplingContextProvider>
+            </FunctionContextProvider>
           </ServiceContextProvider>
         )}
         <ToastContainer
@@ -137,7 +144,7 @@ const App = () => {
           draggable={false}
           pauseOnHover
         />
-      </FakeRoot>
+      </AppRoot>
     </ThemeProvider>
   );
 };

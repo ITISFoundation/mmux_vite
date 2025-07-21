@@ -13,19 +13,24 @@ import {
 import Header from "../navigation/Header";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 
 const IsoSurface3DPlot = () => {
   const theme = useTheme();
+  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedQoI } = useMMUXContext();
+  const context = useJobContext();
   const {
-    selectedFunction,
-    distribution,
-    inputVars,
-    selectedQoI,
     filterSelectedJobList,
     fetchedJobCollections,
-  } = useMMUXContext();
-  const context = useMMUXContext();
-  const filteredInputVars = filterInputVars(context);
+  } = context;
+  const filteredInputVars = filterInputVars({
+    ...context,
+    selectedFunction,
+    inputVars,
+    distribution
+  });
   const [propagating, setPropagating] = useState(false);
   const [axis1, setAxis1] = useState(filteredInputVars[0]);
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
@@ -243,10 +248,7 @@ const IsoSurface3DPlot = () => {
   return (
     <Box display={"flex"} flexDirection={"column"} width={"100%"}>
       {propagating && (
-        <CalculatingWarning
-          height={plotStyle.height}
-          dontShowText={false}
-        />
+        <CalculatingWarning height={plotStyle.height} dontShowText={false} />
       )}
       {!propagating && plotData.length === 0 && (
         <InsufficientDataWarning
@@ -298,7 +300,7 @@ const IsoSurface3DPlot = () => {
         </Box>
         <Box display={"flex"} flexDirection={"column"} gap={2}>
           {inputVars.length > 0 &&
-            distribution[selectedFunction?.uid || ""] !== undefined ? (
+          distribution[selectedFunction?.uid || ""] !== undefined ? (
             <>
               {inputVars.map((key) => {
                 if (key === axis1 || key === axis2 || key === axis3) {
