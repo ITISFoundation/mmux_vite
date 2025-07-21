@@ -53,13 +53,15 @@ async function runLhsSampling(
 
 const LHSSampling = () => {
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const context = useSamplingContext();
-  const { setLhsSamplingConfig, lhsSamplingConfig } = context;
+  const jobContext = useJobContext();
+  const SamplingContext = useSamplingContext();
+  const functionContext = useFunctionContext();
+  const { setLhsSamplingConfig, lhsSamplingConfig } = SamplingContext;
   const {
     fetchedJobCollections,
     setFetchedJobCollections,
     setRunningJobCollection
-  } = useJobContext();
+  } = jobContext;
   const { permissions } = useServiceContext()
 
   const [lhsInputs, setLhsInputs] =
@@ -74,7 +76,7 @@ const LHSSampling = () => {
       toast.warning(`For your number of non-constant input variables, we would recommend a total of ${nPoints} LHS samples. \n\n ` +
         "However, currently the maximum supported number of samples per run is 50. Therefore, we encourage you to run additional campaigns with different seeds.");
     }
-    const jc = await runLhsSampling(selectedFunction, context, setRunningJobCollection, lhsInputs);
+    const jc = await runLhsSampling(selectedFunction, SamplingContext, setRunningJobCollection, lhsInputs);
     // New - include this job collection in the fetchedJobCollections
     if (!jc) {
       console.error("Job collection is undefined. Cannot add to fetchedJobCollections.");
@@ -118,9 +120,6 @@ const LHSSampling = () => {
   }
 
   const recommendedLHSSamples = () => {
-    const jobContext = useJobContext();
-    const SamplingContext = useSamplingContext();
-    const functionContext = useFunctionContext();
     let nPoints: number;
     nPoints = Math.sqrt(filterInputVars({...jobContext, ...functionContext, ...SamplingContext}).length) * 30 * 1.2;
     nPoints = Math.ceil(nPoints / 5) * 5;

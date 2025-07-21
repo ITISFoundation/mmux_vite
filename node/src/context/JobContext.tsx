@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -44,7 +45,7 @@ export const JobContextProvider = ({ children }: Props) => {
     RegisteredFunctionJobCollection | undefined
   >(undefined);
 
-  const filterSelectedJobList = () => {
+  const filterSelectedJobList = useCallback(() => {
     const response: FunctionJob[] = fetchedJobCollections.flatMap(
       (jobCollection) =>
         jobCollection.subJobs
@@ -56,9 +57,9 @@ export const JobContextProvider = ({ children }: Props) => {
       return []; // 5 samples are necessary to avoid Dakota crashing
     }
     return response;
-  };
+  }, [fetchedJobCollections]);
 
-  const allJobsList = () => {
+  const allJobsList = useCallback(() => {
     const response: FunctionJob[] = fetchedJobCollections.flatMap(
       (jobCollection) => jobCollection.subJobs.map((subJob) => subJob.job)
     );
@@ -67,7 +68,7 @@ export const JobContextProvider = ({ children }: Props) => {
       return []; // 5 samples are necessary to avoid Dakota crashing
     }
     return response;
-  };
+  }, [fetchedJobCollections]);
 
   // persist the state of the Job context using the persistenceContext provider every time any of the state variables change
   useEffect(() => {
@@ -128,6 +129,11 @@ export const JobContextProvider = ({ children }: Props) => {
     runningJobCollection,
     fetchedJobCollections,
     selectedJobUids,
+    setRunningJobCollection,
+    setFetchedJobCollections,
+    setSelectedJobUids,
+    allJobsList,
+    filterSelectedJobList,
   ]);
   return (
     <JobContext.Provider value={memoState}>{children}</JobContext.Provider>

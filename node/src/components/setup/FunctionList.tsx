@@ -30,6 +30,7 @@ export function FunctionList() {
     setLhsSamplingConfig,
     setGridSamplingConfig,
     setSingleJobConfig,
+    clearSampling,
   } = useSamplingContext();
   const {
     setSelectedJobUids,
@@ -186,6 +187,7 @@ export function FunctionList() {
     });
     setGridSamplingConfig([]);
     setSingleJobConfig([]);
+    clearSampling()
   };
 
   function setRowSelection(fun: Function) {

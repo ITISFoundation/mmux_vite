@@ -14,6 +14,7 @@ export interface SamplingContextType {
   setGridSamplingConfig: (config: GRIDSamplingConfig) => void;
   singleJobConfig: SingleJobConfig[];
   setSingleJobConfig: (config: SingleJobConfig[]) => void;
+  clearSampling: () => void;
 }
 
 export const SamplingContext = createContext<SamplingContextType>(undefined!);
@@ -46,12 +47,13 @@ export const SamplingContextProvider = ({ children }: Props) => {
     defaultSingleJobConfig
   );
 
-  // show toast when sampling is running
-  useEffect(() => {
-    if (runningSampling) {
-      toast.info("Sampling started running successfully, please wait for completion.");
-    }
-  }, [runningSampling]);
+  const clearSampling = () => {
+    setLaunchingSampling(false);
+    setRunningSampling(false);
+    setLhsSamplingConfig(defaultLHSamplingConfig);
+    setGridSamplingConfig(defaultGRIDamplingConfig);
+    setSingleJobConfig(defaultSingleJobConfig);
+  };
 
   useEffect(() => {
     if (localLoading === true) return; // Avoid saving state while loading
@@ -107,6 +109,7 @@ export const SamplingContextProvider = ({ children }: Props) => {
       setGridSamplingConfig,
       singleJobConfig,
       setSingleJobConfig,
+      clearSampling,
     }),
     [
       launchingSampling,
@@ -119,6 +122,7 @@ export const SamplingContextProvider = ({ children }: Props) => {
       setGridSamplingConfig,
       singleJobConfig,
       setSingleJobConfig,
+      clearSampling,
     ]
   );
 
