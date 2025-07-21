@@ -13,6 +13,7 @@ import CustomTooltip from "../components/utils/CustomTooltip";
 import SelectQoIDocument from "../components/documents/SelectQoIDocument";
 import { useMMUXContext } from "../context/MMUXContext";
 import { useFunctionContext } from "../context/FunctionContext";
+import { useJobContext } from "../context/JobContext";
 
 interface UQSetupProps {
   loading: boolean;
@@ -24,12 +25,12 @@ export const OutputSetup = (props: UQSetupProps) => {
   const { loading, onlyQoI, setSumoModal } = props;
   const theme = useTheme();
   const { selectedFunction, outputVars } = useFunctionContext();
+  const { filterSelectedJobList } = useJobContext();
   const {
     selectedQoI,
     setSelectedQoI,
     numSamples,
     setNumSamples,
-    filterSelectedJobList,
   } = useMMUXContext();
   const [localQoI, setLocalQoI] = useState<string | undefined>(selectedQoI);
   const [localNumSamples, setLocalNumSamples] = useState(

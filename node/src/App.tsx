@@ -14,6 +14,7 @@ import { ReturnCurrentView } from "./views/ReturnCurrentView";
 import { MMUXContextProvider } from "./context/MMUXContext";
 import { FunctionContextProvider } from "./context/FunctionContext";
 import { SamplingContextProvider } from "./context/SamplingContext";
+import { JobContextProvider } from "./context/JobContext";
 
 const AppRoot = styled("div")(
   ({ theme }) => `
@@ -116,21 +117,23 @@ const App = () => {
         ) : (
           <FunctionContextProvider>
             <SamplingContextProvider>
-              <MMUXContextProvider>
-                <ServiceContextProvider>
-                  <PreviewWarning />
-                  <Container sx={{ paddingBottom: 4 }}>
-                    <Navigation steps={steps} activeStep={currentView} />
-                    <ReturnCurrentView currentView={currentView} />
-                    <Footer steps={steps} />
-                  </Container>
-                </ServiceContextProvider>
-              </MMUXContextProvider>
+              <JobContextProvider>
+                <MMUXContextProvider>
+                  <ServiceContextProvider>
+                    <PreviewWarning />
+                    <Container sx={{ paddingBottom: 4 }}>
+                      <Navigation steps={steps} activeStep={currentView} />
+                      <ReturnCurrentView currentView={currentView} />
+                      <Footer steps={steps} />
+                    </Container>
+                  </ServiceContextProvider>
+                </MMUXContextProvider>
+              </JobContextProvider>
             </SamplingContextProvider>
           </FunctionContextProvider>
         )}
-        <ToastContainer
-          theme={themeMode}
+      <ToastContainer
+        theme={themeMode}
           position="top-right"
           autoClose={5000}
           hideProgressBar={false}

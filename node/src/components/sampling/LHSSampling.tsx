@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useMMUXContext } from "../../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, Input, Skeleton, Typography } from "@mui/material";
 import {
@@ -16,6 +15,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useServiceContext } from "../../context/ServiceContext";
 import { filterInputVars } from "../plots/PlotTools";
 import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
+import { useJobContext } from "../../context/JobContext";
 
 async function runLhsSampling(
   selectedFunction: Function | undefined,
@@ -59,7 +59,7 @@ const LHSSampling = () => {
     fetchedJobCollections,
     setFetchedJobCollections,
     setRunningJobCollection
-  } = useMMUXContext();
+  } = useJobContext();
   const { permissions } = useServiceContext()
 
   const [lhsInputs, setLhsInputs] =
@@ -118,11 +118,11 @@ const LHSSampling = () => {
   }
 
   const recommendedLHSSamples = () => {
-    const mmuxContext = useMMUXContext();
+    const jobContext = useJobContext();
     const SamplingContext = useSamplingContext();
     const functionContext = useFunctionContext();
     let nPoints: number;
-    nPoints = Math.sqrt(filterInputVars({...mmuxContext, ...functionContext, ...SamplingContext}).length) * 30 * 1.2;
+    nPoints = Math.sqrt(filterInputVars({...jobContext, ...functionContext, ...SamplingContext}).length) * 30 * 1.2;
     nPoints = Math.ceil(nPoints / 5) * 5;
     return nPoints;
   }

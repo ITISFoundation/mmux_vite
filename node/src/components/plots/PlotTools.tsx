@@ -1,11 +1,11 @@
 import { InputLabel, Typography, Select, MenuItem, TextField, styled, Slider } from "@mui/material";
 import { useState } from "react";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
-import { MMUXContextType, useMMUXContext } from "../../context/MMUXContext";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { Function } from "../../osparc-api-ts-client";
+import { JobContextType, useJobContext } from "../../context/JobContext";
 
-interface fullContext extends MMUXContextType {
+interface fullContext extends JobContextType {
   selectedFunction: Function | undefined;
   inputVars: string[];
   distribution: { [key: string]: InputVarSelection };
@@ -67,7 +67,7 @@ interface CreateSelectProps {
 }
 export const CreateSelect = ({ axis, idx, setAxis }: CreateSelectProps) => {
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const context = useMMUXContext();
+  const context = useJobContext();
   // NB: could have other filtering (based on distribution === "constant")
   const filteredInputVars = filterInputVars({...context, selectedFunction, inputVars, distribution});
 
@@ -117,7 +117,7 @@ const sliderMarc = (value: number) => { return `~: ${value}` };
 
 export const CreateSlider = ({ dist, input, otherAxis, setOtherAxis }: CreateSliderProps) => {
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const context = useMMUXContext();
+  const context = useJobContext();
   const filteredInputVars = filterInputVars({...context, selectedFunction, inputVars, distribution});
   const uniqueValuesPerVar = _get_unique_values({...context, selectedFunction, inputVars, distribution});
   let min, max, val;

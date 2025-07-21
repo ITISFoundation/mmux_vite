@@ -9,6 +9,7 @@ import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 
 type GPPrediction = {
   x: number[];
@@ -19,12 +20,12 @@ type GPPrediction = {
 const Curves1DPlots = () => {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedQoI } = useMMUXContext();
+  const context = useJobContext();
   const {
-    selectedQoI,
     filterSelectedJobList,
     fetchedJobCollections,
-  } = useMMUXContext();
-  const context = useMMUXContext();
+  } = context;
   const filteredInputVars = filterInputVars({
     ...context,
     selectedFunction,

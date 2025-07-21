@@ -20,8 +20,8 @@ import {
 } from "../../osparc-api-ts-client";
 import { getTutorialLink } from "../navigation/TutorialManualLinks.tsx";
 import { useFunctionContext } from "../../context/FunctionContext.tsx";
-import { useMMUXContext } from "../../context/MMUXContext.tsx";
 import { useSamplingContext } from "../../context/SamplingContext.tsx";
+import { useJobContext } from "../../context/JobContext.tsx";
 
 export function FunctionList() {
   const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } =
@@ -34,7 +34,7 @@ export function FunctionList() {
   const {
     setSelectedJobUids,
     setFetchedJobCollections,
-  } = useMMUXContext();
+  } = useJobContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [functions, setFunctions] = useState<Function[]>([]);

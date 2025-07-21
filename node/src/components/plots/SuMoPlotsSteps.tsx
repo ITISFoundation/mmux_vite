@@ -15,14 +15,14 @@ import SuMoValidation from "./SuMoValidation";
 import Surface2DPlot from "./Surface2DPlot";
 import Header from "../navigation/Header";
 import { filterInputVars } from "./PlotTools";
-import { useMMUXContext } from "../../context/MMUXContext";
 import CrossValidationDocument from "../documents/CrossValidationDocument";
 import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 
 const SuMoPlotsSteps = () => {
   const theme = useTheme();
   const { inputVars, selectedFunction, distribution } = useFunctionContext();
-  const context = useMMUXContext();
+  const context = useJobContext();
   const { filterSelectedJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);
   const [filteredInputVars, setFilteredInputVars] = React.useState(inputVars);

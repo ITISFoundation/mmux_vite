@@ -1,7 +1,7 @@
 import { FunctionContextType } from "../context/FunctionContext";
-import { MMUXContextType } from "../context/MMUXContext";
+import { JobContextType } from "../context/JobContext";
 
-export function stepValidator(functionContext: FunctionContextType | undefined, context: MMUXContextType, step: number): boolean {
+export function stepValidator(functionContext: FunctionContextType | undefined, context: JobContextType, step: number): boolean {
   if (step === 0) {
     // Step 0: Check if a function is selected
     const selectedDistribution = functionContext?.distribution[functionContext?.selectedFunction?.uid || ""];

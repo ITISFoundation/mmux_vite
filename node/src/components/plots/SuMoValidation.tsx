@@ -11,15 +11,16 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { Layout } from "plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 
 const SuMoValidation = () => {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedQoI } = useMMUXContext();
   const {
-    selectedQoI,
     fetchedJobCollections,
     filterSelectedJobList,
-  } = useMMUXContext();
+  } = useJobContext();
   const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
   const [propagating, setPropagating] = useState(false);

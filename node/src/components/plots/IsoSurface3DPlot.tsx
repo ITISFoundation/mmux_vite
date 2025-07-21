@@ -14,16 +14,17 @@ import Header from "../navigation/Header";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 
 const IsoSurface3DPlot = () => {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedQoI } = useMMUXContext();
+  const context = useJobContext();
   const {
-    selectedQoI,
     filterSelectedJobList,
     fetchedJobCollections,
-  } = useMMUXContext();
-  const context = useMMUXContext();
+  } = context;
   const filteredInputVars = filterInputVars({
     ...context,
     selectedFunction,

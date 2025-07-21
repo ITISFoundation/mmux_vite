@@ -14,13 +14,14 @@ import {
 import Header from "../navigation/Header";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 
 const Surface2DPlot = () => {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const context = useMMUXContext();
+  const { selectedQoI } = useMMUXContext();
+  const context = useJobContext();
   const {
-    selectedQoI,
     filterSelectedJobList,
     fetchedJobCollections,
   } = context;

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { useMMUXContext } from "../../context/MMUXContext";
 import {
   Function,
   RegisteredFunctionJobCollection,
@@ -11,6 +10,7 @@ import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "./../setup/VariableConfig";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
+import { useJobContext } from "../../context/JobContext";
 
 // TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
 async function runGridSampling(
@@ -48,7 +48,7 @@ async function runGridSampling(
 const GridSearchSampling = () => {
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const context = useSamplingContext();
-  const { setRunningJobCollection } = useMMUXContext();
+  const { setRunningJobCollection } = useJobContext();
   const {
     gridSamplingConfig,
     setGridSamplingConfig,

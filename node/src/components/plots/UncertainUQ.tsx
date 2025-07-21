@@ -10,6 +10,7 @@ import Plot from "react-plotly.js";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 
 export default function UncertainUQ(props: UncertainUQPropsType) {
   const { loading, progress, jobProgress } = props;
@@ -18,9 +19,11 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
   const {
     numSamples,
     selectedQoI,
+  } = useMMUXContext();
+  const {
     fetchedJobCollections,
     filterSelectedJobList,
-  } = useMMUXContext();
+  } = useJobContext();
   const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
