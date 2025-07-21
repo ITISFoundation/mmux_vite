@@ -281,20 +281,17 @@ const IsoSurface3DPlot = () => {
         >
           <CreateSelect
             idx={1}
-            inputVars={inputVars}
             axis={axis1}
             setAxis={handleSetAxis1}
           />
           <CreateSelect
             idx={2}
-            inputVars={inputVars}
             axis={axis2}
             setAxis={handleSetAxis2}
           />
           <CreateSelect
             idx={3}
             axis={axis3}
-            inputVars={inputVars}
             setAxis={handleSetAxis3}
           />
         </Box>
