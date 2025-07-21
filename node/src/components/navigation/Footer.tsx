@@ -38,16 +38,14 @@ export const Footer = (props: FooterProps) => {
         >
           Previous
         </Button>
-        {/* <Box>
-          <Button
-            className="footerBtn"
-            variant="contained"
-            onClick={() => setModal(!modal)}
-            disabled={!isJobsRunning}
-          >
-            TASK MANAGER
-          </Button>
-        </Box> */}
+        <Button
+          className="footerBtn"
+          variant="contained"
+          onClick={() => setModal(!modal)}
+          disabled={!isJobsRunning}
+        >
+          TASK MANAGER
+        </Button>
         <Button
           className="footerBtn footerBtnLast"
           variant="contained"

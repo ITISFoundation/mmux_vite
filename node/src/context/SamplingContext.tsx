@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
+import { toast } from "react-toastify";
 
 export interface SamplingContextType {
   launchingSampling: boolean;
@@ -44,6 +45,13 @@ export const SamplingContextProvider = ({ children }: Props) => {
   const [singleJobConfig, setSingleJobConfig] = useState<SingleJobConfig[]>(
     defaultSingleJobConfig
   );
+
+  // show toast when sampling is running
+  useEffect(() => {
+    if (runningSampling) {
+      toast.info("Sampling started running successfully, please wait for completion.");
+    }
+  }, [runningSampling]);
 
   useEffect(() => {
     if (localLoading === true) return; // Avoid saving state while loading
