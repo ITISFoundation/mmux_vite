@@ -55,7 +55,7 @@ export const SamplingContextProvider = ({ children }: Props) => {
 
   useEffect(() => {
     if (localLoading === true) return; // Avoid saving state while loading
-    console.info("Saving Function context state to persistence...");
+    console.info("Saving Sampling context state to persistence...");
     const newPersistence: PersistenceType = {
       ...(persistence as PersistenceType),
       launchingSampling,
