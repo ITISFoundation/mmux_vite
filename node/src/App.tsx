@@ -115,25 +115,25 @@ const App = () => {
         {!healthStatus ? (
           <SplashScreen />
         ) : (
-          <FunctionContextProvider>
-            <SamplingContextProvider>
-              <JobContextProvider>
-                <MMUXContextProvider>
-                  <ServiceContextProvider>
+          <ServiceContextProvider>
+            <FunctionContextProvider>
+              <SamplingContextProvider>
+                <JobContextProvider>
+                  <MMUXContextProvider>
                     <PreviewWarning />
                     <Container sx={{ paddingBottom: 4 }}>
                       <Navigation steps={steps} activeStep={currentView} />
                       <ReturnCurrentView currentView={currentView} />
                       <Footer steps={steps} />
                     </Container>
-                  </ServiceContextProvider>
-                </MMUXContextProvider>
-              </JobContextProvider>
-            </SamplingContextProvider>
-          </FunctionContextProvider>
+                  </MMUXContextProvider>
+                </JobContextProvider>
+              </SamplingContextProvider>
+            </FunctionContextProvider>
+          </ServiceContextProvider>
         )}
-      <ToastContainer
-        theme={themeMode}
+        <ToastContainer
+          theme={themeMode}
           position="top-right"
           autoClose={5000}
           hideProgressBar={false}
