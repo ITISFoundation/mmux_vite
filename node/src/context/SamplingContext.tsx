@@ -75,7 +75,7 @@ export const SamplingContextProvider = ({ children }: Props) => {
 
   useEffect(() => {
     if (loading === false && persistence && persistence.launchingSampling !== undefined) {
-      console.info("Loading Function context from persistence...");
+      console.info("Loading Sampling context from persistence...");
       setLaunchingSampling(persistence.launchingSampling);
       setRunningSampling(persistence.runningSampling);
       setLhsSamplingConfig(persistence.lhsSamplingConfig);
