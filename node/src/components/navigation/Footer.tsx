@@ -6,6 +6,7 @@ import { useNavigationContext } from "../../context/NavigationContext";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useSamplingContext } from "../../context/SamplingContext";
 import { useJobContext } from "../../context/JobContext";
+import { useServiceContext } from "../../context/ServiceContext";
 
 type FooterProps = {
   steps: Step[];
@@ -13,12 +14,12 @@ type FooterProps = {
 
 export const Footer = (props: FooterProps) => {
   const { steps } = props;
+  const { permissions } = useServiceContext();
   const functionContext = useFunctionContext();
   const { currentView, setCurrentView } = useNavigationContext();
   const { runningSampling } = useSamplingContext();
   const context = useJobContext();
   const [modal, setModal] = React.useState(false);
-  const isJobsRunning = runningSampling;
 
   return (
     <>
@@ -38,14 +39,16 @@ export const Footer = (props: FooterProps) => {
         >
           Previous
         </Button>
-        <Button
-          className="footerBtn"
-          variant="contained"
-          onClick={() => setModal(!modal)}
-          disabled={!isJobsRunning}
-        >
-          TASK MANAGER
-        </Button>
+        {permissions === "WRITE" && (
+          <Button
+            className="footerBtn"
+            variant="contained"
+            onClick={() => setModal(!modal)}
+            disabled={!runningSampling}
+          >
+            TASK MANAGER
+          </Button>
+        )}
         <Button
           className="footerBtn footerBtnLast"
           variant="contained"
@@ -75,7 +78,7 @@ export const Footer = (props: FooterProps) => {
           height: "80vh",
         }}
       >
-        {isJobsRunning && isJobsRunning === true ? (
+        {runningSampling && runningSampling === true ? (
           <JobsDashboard progressBarOnly={false} />
         ) : (
           <></>
