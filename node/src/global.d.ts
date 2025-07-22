@@ -49,6 +49,14 @@ type UncertainUQPropsType = {
   jobsFetched: React.MutableRefObject<number>;
 };
 
+type MogaParetoPropsType = {
+  loading: boolean;
+  progress: number;
+  jobProgress: number;
+  colsFetched: React.MutableRefObject<number>;
+  jobsFetched: React.MutableRefObject<number>;
+};
+
 interface NavigationProps {
   steps: Step[];
   activeStep: number;

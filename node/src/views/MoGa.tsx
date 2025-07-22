@@ -4,8 +4,8 @@ import SuMoModal from "./SuMoModal";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { OutputSetup } from "./OutputSetup";
 import { JobSampling } from "../components/sampling/JobSampling";
-import { Box, Typography } from "@mui/material";
 import { useFunctionContext } from "../context/FunctionContext";
+import { MoGaPareto } from "../components/plots/MoGaPareto";
 
 export default function MoGa() {
   const { selectedFunction, outputVars } = useFunctionContext();
@@ -28,16 +28,14 @@ export default function MoGa() {
       headerType="title"
       tabTitle={`Multi Objective Genetic Algorithm: ${selectedFunction?.title}`}
     >
-      <OutputSetup loading={loading} setSumoModal={setSumoModal} />
-      <Box sx={{ padding: 2, justifyContent: "center", alignItems: "center" }}>
-        <Typography variant="h4" gutterBottom>
-          Multi Objective Genetic Algorithm Placeholder
-        </Typography>
-        <Typography variant="body1" gutterBottom>
-          This section will contain the Multi Objective Genetic Algorithm
-          functionality in the future.
-        </Typography>
-      </Box>
+      <OutputSetup loading={loading} setSumoModal={setSumoModal} mode="moga" />
+      <MoGaPareto
+        colsFetched={colsFetched}
+        jobProgress={jobProgress}
+        jobsFetched={jobsFetched}
+        loading={loading}
+        progress={progress}
+      />
       <SuMoModal open={sumoModal} setOpen={setSumoModal} />
       <JobSampling
         loading={loading}
