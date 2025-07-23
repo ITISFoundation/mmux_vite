@@ -3,7 +3,23 @@ import { Typography, Button, Box, Chip, Popover, Slider } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import { useMMUXContext } from "../../context/MMUXContext";
 
-const dummyData = [
+interface MogaDataType {
+    id: number;
+    inputs: {
+        w: number;
+        x: number;
+        y: number;
+        z: number;
+    };
+    outputs: {
+        longVar1: number;
+        LongVar2: number;
+        LongVar3: number;
+    };
+    Performance: number;
+}
+
+const dummyData: MogaDataType[] = [
   {
     id: 1,
     inputs: { w: 1, x: 2, y: 3, z: 4 },
@@ -26,6 +42,7 @@ const dummyData = [
 
 const MogaParetoTable = () => {
   const { weights, setWeights, sortModel, setSortModel } = useMMUXContext();
+  const [data, setData] = useState<MogaDataType[]>();
   const [localWeights, setLocalWeights] = useState(weights ? weights : {});
   const [loading, setLoading] = useState(true);
   const [anchorElms, setAnchorElms] = useState<{
@@ -58,14 +75,15 @@ const MogaParetoTable = () => {
     setAnchorElms((prev) => ({ ...prev, [key]: null }));
   };
 
-  function getRowId(value: (typeof dummyData)[0]) {
+  function getRowId(value: MogaDataType) {
     return value.id;
   }
 
   useEffect(() => {
     // Simulate loading data
     setTimeout(() => {
-      if(localWeights && Object.keys(localWeights).length > 0) {
+      setData(dummyData);
+      if(weights !== undefined && Object.keys(weights).length === 0) {
         const outputKeys: string[] = Object.keys(dummyData[0].outputs);
         const generatedWeights: { [key: string]: number } = {};
         for (let i = 0; i < outputKeys.length; i++) {
@@ -85,7 +103,7 @@ const MogaParetoTable = () => {
     sortable: true,
   };
 
-  let columns: GridColDef[] = Object.keys(dummyData[0].inputs).map((key) => ({
+  let columns: GridColDef[] = Object.keys(data ? data[0].inputs : {}).map((key) => ({
     ...columnProps,
     field: key,
     maxWidth: 90,
@@ -96,7 +114,7 @@ const MogaParetoTable = () => {
   }));
 
   columns = columns.concat(
-    Object.keys(dummyData[0].outputs).map((key) => ({
+    Object.keys(data ? data[0].outputs : {}).map((key) => ({
       ...columnProps,
       field: key,
       headerName: key.toUpperCase(),
@@ -194,7 +212,7 @@ const MogaParetoTable = () => {
 
   return (
     <DataGrid
-      rows={dummyData}
+      rows={data}
       columns={columns}
       sx={(theme) => ({
         borderRadius: theme.spacing(2),
@@ -242,7 +260,7 @@ const MogaParetoTable = () => {
       slotProps={{
         loadingOverlay: {
           variant: "linear-progress",
-          noRowsVariant: "skeleton",
+          noRowsVariant: "linear-progress",
         },
       }}
       sortModel={localSortModel}
