@@ -17,21 +17,17 @@ import { useJobContext } from "../context/JobContext";
 
 interface UQSetupProps {
   loading: boolean;
-  onlyQoI?: boolean;
+  mode?: "onlyQoI" | "full" | "moga";
   setSumoModal?: (value: boolean) => void;
 }
 
 export const OutputSetup = (props: UQSetupProps) => {
-  const { loading, onlyQoI, setSumoModal } = props;
+  const { loading, mode, setSumoModal } = props;
   const theme = useTheme();
   const { selectedFunction, outputVars } = useFunctionContext();
   const { filterSelectedJobList } = useJobContext();
-  const {
-    selectedQoI,
-    setSelectedQoI,
-    numSamples,
-    setNumSamples,
-  } = useMMUXContext();
+  const { selectedQoI, setSelectedQoI, numSamples, setNumSamples } =
+    useMMUXContext();
   const [localQoI, setLocalQoI] = useState<string | undefined>(selectedQoI);
   const [localNumSamples, setLocalNumSamples] = useState(
     numSamples[selectedFunction?.uid || ""] || 10000
@@ -54,6 +50,34 @@ export const OutputSetup = (props: UQSetupProps) => {
     setLocalQoI(outputVars?.[0] || "");
   }, [outputVars]); // Update localQoI when selectedQoI changes due to selectedFunction change
 
+  if (mode === "moga" && setSumoModal) {
+    return (
+      <Box
+        sx={{
+          justifyContent: "right",
+          flex: 1,
+          display: "flex",
+          gap: "16px",
+          color: `${theme.palette.text.primary}`,
+          padding: "0px 4px 16px",
+          width: "100%",
+        }}
+      >
+        <Button
+          variant="contained"
+          size="small"
+          disabled={
+            loading || !selectedFunction || filterSelectedJobList().length === 0
+          }
+          onClick={() => setSumoModal(true)}
+          sx={{ padding: "8px 16px" }}
+        >
+          Inspect Model
+        </Button>
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -63,7 +87,7 @@ export const OutputSetup = (props: UQSetupProps) => {
         gap: "16px",
         color: `${theme.palette.text.primary}`,
         padding: "0px 4px 16px",
-        width: onlyQoI ? "50%" : "100%",
+        width: mode === "onlyQoI" ? "50%" : "100%",
       }}
     >
       <InputLabel
@@ -115,7 +139,7 @@ export const OutputSetup = (props: UQSetupProps) => {
           ))}
         </Select>
       </InputLabel>
-      {(onlyQoI === undefined || onlyQoI === false) && setSumoModal && (
+      {mode !== "onlyQoI" && setSumoModal && (
         <>
           <InputLabel
             size="small"

@@ -28,7 +28,7 @@ export default function UQ() {
       headerType="title"
       tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}
     >
-      <OutputSetup loading={loading} setSumoModal={setSumoModal} />
+      <OutputSetup loading={loading} setSumoModal={setSumoModal} mode="full" />
       <UncertainUQ
         colsFetched={colsFetched}
         jobProgress={jobProgress}
