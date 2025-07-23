@@ -123,7 +123,7 @@ const MogaParetoTable = () => {
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Typography variant="subtitle2">{key.toUpperCase()}</Typography>
           <Chip
-            label={localWeights[key].toFixed(2)}
+            label={(localWeights[key] ?? 0).toFixed(2)}
             size="small"
             color="primary"
             onClick={(e) => handleClick(e as any, key)}
