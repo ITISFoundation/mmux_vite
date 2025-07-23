@@ -55,7 +55,7 @@ export const MoGaPareto = (props: MogaParetoPropsType) => {
             marker: { color: "green", size: 10 },
           },
           {
-            name: "data Points",
+            name: "Data Points",
             x: [9, 10, 12, 13, 14, 16, 10, 11, 12, 13, 14, 15, 16],
             y: [30, 23, 19, 13, 9, 6, 33, 31, 28, 24, 25, 21, 19],
             mode: "markers",
