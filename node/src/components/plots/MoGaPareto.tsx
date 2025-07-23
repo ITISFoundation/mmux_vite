@@ -70,7 +70,7 @@ export const MoGaPareto = (props: MogaParetoPropsType) => {
   };
 
   const layout = {
-    title: { text: "Pareto front Diagram" },
+    title: { text: "Pareto Front Diagram" },
     xaxis: { title: { text: "LongVar2" } },
     yaxis: { title: { text: "LongVar1" } },
     plot_bgcolor: `${theme.palette.background.default}`,
