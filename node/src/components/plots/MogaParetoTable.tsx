@@ -49,7 +49,7 @@ const MogaParetoTable = () => {
     [key: string]: HTMLButtonElement | null;
   }>({});
   const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel || [{
-      field: 'performance',
+      field: 'Performance',
       sort: 'desc',
     }]);
 
