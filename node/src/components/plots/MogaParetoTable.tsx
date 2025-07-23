@@ -1,122 +1,257 @@
-import {
-  TableRow,
-  TableCell,
-  Typography,
-  TableBody,
-  TableContainer,
-  TableHead,
-  styled,
-  Button,
-} from "@mui/material";
+import { useEffect, useState } from "react";
+import { Typography, Button, Box, Chip, Popover, Slider } from "@mui/material";
+import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
+import { useMMUXContext } from "../../context/MMUXContext";
 
-const MogaParetoTable = (props: any) => {
-  const dummyData = [
-    { w: 1, x: 2, y: 3, z: 4, a: 5, b: 6, c: 7, Performance: 0.7 },
-    { w: 8, x: 9, y: 10, z: 11, a: 12, b: 13, c: 14, Performance: 0.8 },
-    { w: 15, x: 16, y: 17, z: 18, a: 19, b: 20, c: 21, Performance: 0.9 },
-  ];
+const dummyData = [
+  {
+    id: 1,
+    inputs: { w: 1, x: 2, y: 3, z: 4 },
+    outputs: { longVar1: 5, LongVar2: 6, LongVar3: 7 },
+    Performance: 0.7,
+  },
+  {
+    id: 2,
+    inputs: { w: 8, x: 9, y: 10, z: 11 },
+    outputs: { longVar1: 12, LongVar2: 13, LongVar3: 14 },
+    Performance: 0.8,
+  },
+  {
+    id: 3,
+    inputs: { w: 15, x: 16, y: 17, z: 18 },
+    outputs: { longVar1: 19, LongVar2: 20, LongVar3: 21 },
+    Performance: 0.9,
+  },
+];
+
+const MogaParetoTable = () => {
+  const { weights, setWeights, sortModel, setSortModel } = useMMUXContext();
+  const [localWeights, setLocalWeights] = useState(weights ? weights : {});
+  const [loading, setLoading] = useState(true);
+  const [anchorElms, setAnchorElms] = useState<{
+    [key: string]: HTMLButtonElement | null;
+  }>({});
+  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel || [{
+      field: 'performance',
+      sort: 'desc',
+    }]);
+
+  const handleWeightsChange = (key: string, newValue: number) => {
+    const newWeights = { ...localWeights, [key]: newValue };
+    setWeights(newWeights);
+    setLocalWeights(newWeights);
+  };
+
+  const handleSortModelChange = (model: GridSortModel) => {
+    setSortModel(model);
+    setLocalSortModel(model);
+  };
+
+  const handleClick = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    key: string
+  ) => {
+    setAnchorElms((prev) => ({ ...prev, [key]: event.currentTarget }));
+  };
+
+  const handleClose = (key: string) => {
+    setAnchorElms((prev) => ({ ...prev, [key]: null }));
+  };
+
+  function getRowId(value: (typeof dummyData)[0]) {
+    return value.id;
+  }
+
+  useEffect(() => {
+    // Simulate loading data
+    setTimeout(() => {
+      if(localWeights && Object.keys(localWeights).length > 0) {
+        const outputKeys: string[] = Object.keys(dummyData[0].outputs);
+        const generatedWeights: { [key: string]: number } = {};
+        for (let i = 0; i < outputKeys.length; i++) {
+          generatedWeights[outputKeys[i]] = 0.5; // Example weight, can be adjusted
+        }
+        setLocalWeights(generatedWeights);
+        setWeights(generatedWeights);
+      }
+      setLoading(false);
+    }, 2000);
+  }, []);
+
+  const columnProps: Partial<GridColDef> = {
+    headerAlign: "center",
+    align: "center",
+    flex: 1,
+    sortable: true,
+  };
+
+  let columns: GridColDef[] = Object.keys(dummyData[0].inputs).map((key) => ({
+    ...columnProps,
+    field: key,
+    maxWidth: 90,
+    headerName: key.toUpperCase(),
+    type: "number",
+    renderCell: (params: any) => params.row.inputs[key],
+    valueGetter: (value, row) => row.inputs[key],
+  }));
+
+  columns = columns.concat(
+    Object.keys(dummyData[0].outputs).map((key) => ({
+      ...columnProps,
+      field: key,
+      headerName: key.toUpperCase(),
+      type: "number",
+      renderHeader: () => (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography variant="subtitle2">{key.toUpperCase()}</Typography>
+          <Chip
+            label={localWeights[key].toFixed(2)}
+            size="small"
+            color="primary"
+            onClick={(e) => handleClick(e as any, key)}
+          />
+          <Popover
+            id={`popover-${key}`}
+            sx={{
+              "& .MuiPaper-root": {
+                width: "280px",
+                padding: "8px 16px",
+                display: "flex",
+                boxShadow: "none",
+              },
+            }}
+            open={Boolean(anchorElms[key])}
+            anchorEl={anchorElms[key]}
+            onClose={() => handleClose(key)}
+            anchorOrigin={{
+              vertical: "top",
+              horizontal: "center",
+            }}
+            transformOrigin={{
+              vertical: "bottom",
+              horizontal: "center",
+            }}
+          >
+            <Box>
+              <Typography variant="body1" gutterBottom>
+                Adjust Weight for {key.toUpperCase()}
+              </Typography>
+              <Slider
+                value={localWeights[key]}
+                sx={{ width: 240 }}
+                min={0}
+                max={1}
+                step={0.01}
+                defaultValue={0.5}
+                onChange={(event, newValue) => {
+                  setLocalWeights((prev) => ({ ...prev, [key]: newValue }));
+                }}
+                onChangeCommitted={() => {
+                  handleWeightsChange(key, localWeights[key]);
+                }}
+                valueLabelDisplay="auto"
+                aria-labelledby={`slider-${key}`}
+              />
+              <Typography variant="caption" color="textSecondary">
+                Adjust the weight for {key.toUpperCase()} to influence the
+                Pareto front.
+              </Typography>
+            </Box>
+          </Popover>
+        </Box>
+      ),
+      renderCell: (params: any) => params.row.outputs[key],
+      valueGetter: (value, row) => row.outputs[key],
+    }))
+  );
+
+  columns = columns.concat([
+    {
+      ...columnProps,
+      field: "performance",
+      headerName: "Performance",
+      minWidth: 105,
+      maxWidth: 105,
+      type: "number",
+      renderCell: (params: any) => params.row.Performance.toFixed(2),
+      valueGetter: (value, row) => row.Performance,
+    },
+    {
+      ...columnProps,
+      field: "action",
+      headerName: "",
+      minWidth: 95,
+      maxWidth: 95,
+      type: "actions",
+      sortable: false,
+      renderCell: () => (
+        <Button variant="contained" color="primary">
+          Show
+        </Button>
+      ),
+    },
+  ]);
 
   return (
-    <TableContainer aria-label="Pareto Table" {...props}>
-      <TableHead className="moga-pareto-table-head">
-        <TableRow className="moga-pareto-table-row">
-          {Object.keys(dummyData[0]).map((key) => (
-            <TableCell key={key}>
-              <Typography variant="subtitle2">{key}</Typography>
-            </TableCell>
-          ))}
-          <TableCell key={dummyData.length}>
-            <Typography></Typography>
-          </TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody className="moga-pareto-table-body">
-        {dummyData.map((row, index) => (
-          <TableRow className="moga-pareto-table-row" key={index}>
-            {Object.keys(row).map((key) => (
-              <TableCell key={key}>
-                <Typography variant="body2">{`${
-                  row[key as keyof typeof row]
-                }`}</Typography>
-              </TableCell>
-            ))}
-            <TableCell key={Object.keys(row).length}>
-              <Typography variant="body2">
-                <Button
-                  variant="contained"
-                  className="moga-pareto-table-action-button"
-                >
-                  Action
-                </Button>
-              </Typography>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </TableContainer>
+    <DataGrid
+      rows={dummyData}
+      columns={columns}
+      sx={(theme) => ({
+        borderRadius: theme.spacing(2),
+        overflow: "hidden",
+        fontFamily: "inherit",
+        padding: "0px 8px",
+        "& .MuiDataGrid-cell": {
+          fontWeight: 400,
+        },
+        "& .MuiDataGrid-row:hover": {
+          backgroundColor: (theme) =>
+            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+              theme.palette.mode === "dark" ? "black" : "white"
+            })`,
+        },
+        "& .MuiDataGrid-row.Mui-selected": {
+          backgroundColor: (theme) =>
+            `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${
+              theme.palette.mode === "dark" ? "black" : "white"
+            })`,
+        },
+        "& .MuiDataGrid-row.Mui-selected:hover": {
+          backgroundColor: (theme) =>
+            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
+              theme.palette.mode === "dark" ? "black" : "white"
+            })`,
+        },
+        "& .MuiDataGrid-sortButton": {
+          backgroundColor: (theme) => theme.palette.background.paper,
+        },
+      })}
+      getRowId={getRowId}
+      initialState={{
+        pagination: {
+          paginationModel: { pageSize: 10 },
+        },
+        filter: {
+          filterModel: {
+            items: [],
+          },
+        },
+      }}
+      pageSizeOptions={[5, 10, 20, 50]}
+      loading={loading}
+      slotProps={{
+        loadingOverlay: {
+          variant: "linear-progress",
+          noRowsVariant: "skeleton",
+        },
+      }}
+      sortModel={localSortModel}
+      onSortModelChange={handleSortModelChange}
+      disableColumnMenu
+      disableColumnSelector
+      disableRowSelectionOnClick
+    ></DataGrid>
   );
 };
 
-export default styled(MogaParetoTable)(
-  ({ theme }) => `
-  font-family: inherit;
-  background-color: ${theme.palette.background.default};
-  border-radius: ${theme.spacing(2)};
-  padding: ${theme.spacing(2)};
-  margin-top: ${theme.spacing(2)};
-  max-height: 800px;
-  & .moga-pareto-table-head {
-    display: flex;
-    > .moga-pareto-table-row {
-      > .MuiTableCell-root {
-        border: none;
-        background-color: ${theme.palette.background.paper};
-        margin: 0px 4px;
-        padding: ${theme.spacing(2)};
-        border-radius: ${theme.spacing(2)};
-        color: ${theme.palette.text.primary};
-        > .MuiTypography-root {
-          font-weight: 600;
-          font-size: 1.2em;
-        }
-      :last-child {
-        background-color: ${theme.palette.background.default};
-      }
-    }
-    }
-  }
-  & .moga-pareto-table-body {
-    display: flex;
-    flex-direction: column;
-    > .moga-pareto-table-row {
-      > .MuiTableCell-root {
-        border: none;
-        padding: 8px;
-      }
-    }
-  }
-  & .moga-pareto-table-row {
-    display: flex;
-    border: none;
-    width: 100%;
-    .MuiTableCell-root {
-      flex: 1;
-      text-align: center;
-      :last-child {
-        text-align: right;
-      }
-    }
-  & .moga-pareto-table-action-button {
-      width: 100%;
-      background-color: ${theme.palette.primary.main};
-      color: ${theme.palette.primary.contrastText};
-      margin: ${theme.spacing(0)};
-      padding: 4px;
-      &:hover {
-        background-color: ${theme.palette.primary.dark};
-        color: ${theme.palette.primary.contrastText};
-      }
-    }
-  }
-`
-);
+export default MogaParetoTable;

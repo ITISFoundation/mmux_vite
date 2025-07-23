@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
+import { GridSortModel } from "@mui/x-data-grid";
 
 export interface MMUXContextType {
   numSamples: { [key: string]: number };
@@ -15,6 +16,10 @@ export interface MMUXContextType {
   setSelectedQoI: (response: string | undefined) => void;
   isSuMoGenerated: boolean;
   setIsSuMoGenerated: (is: boolean) => void;
+  weights: { [key: string]: number } | undefined;
+  setWeights: (weights: { [key: string]: number } | undefined) => void;
+  sortModel: GridSortModel | undefined;
+  setSortModel: (sortModel: GridSortModel | undefined) => void;
 }
 
 export const MMUXContext = createContext<MMUXContextType | undefined>(
@@ -31,6 +36,8 @@ export const MMUXContextProvider = ({ children }: Props) => {
   const [numSamples, setNumSamples] = useState<{ [key: string]: number }>({});
   const [selectedQoI, setSelectedQoI] = useState<string | undefined>(undefined);
   const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
+  const [weights, setWeights] = useState<{ [key: string]: number }>();
+  const [sortModel, setSortModel] = useState<GridSortModel>();
 
   // persist the state of the MMUX context using the persistenceContext provider every time any of the state variables change
   useEffect(() => {
@@ -41,12 +48,16 @@ export const MMUXContextProvider = ({ children }: Props) => {
       numSamples: numSamples,
       selectedQoI: selectedQoI,
       isSuMoGenerated: isSuMoGenerated,
+      weights: weights,
+      sortModel: sortModel,
     };
     saveState(newPersistence);
   }, [
     numSamples,
     selectedQoI,
     isSuMoGenerated,
+    weights,
+    sortModel,
   ]);
 
   useEffect(() => {
@@ -59,6 +70,8 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setNumSamples(persistence.numSamples);
       setSelectedQoI(persistence.selectedQoI);
       setIsSuMoGenerated(persistence.isSuMoGenerated);
+      setWeights(persistence.weights);
+      setSortModel(persistence.sortModel);
       setLocalLoading(false);
     } else if (
       loading === false &&
@@ -73,6 +86,8 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setSelectedQoI(undefined);
       setIsSuMoGenerated(false);
       setLocalLoading(false);
+      setSortModel(undefined);
+      setWeights({});
     }
   }, [loading]);
 
@@ -84,11 +99,17 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setSelectedQoI: setSelectedQoI,
       isSuMoGenerated: isSuMoGenerated,
       setIsSuMoGenerated: setIsSuMoGenerated,
+      weights: weights,
+      setWeights: setWeights,
+      sortModel: sortModel,
+      setSortModel: setSortModel,
     };
   }, [
     numSamples,
     selectedQoI,
     isSuMoGenerated,
+    weights,
+    sortModel,
   ]);
   return (
     <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>

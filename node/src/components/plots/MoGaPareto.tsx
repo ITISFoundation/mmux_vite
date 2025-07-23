@@ -47,12 +47,23 @@ export const MoGaPareto = (props: MogaParetoPropsType) => {
       setTimeout(() => {
         resolve([
           {
-            x: jobs.map(job => job[selectedQoI as keyof FunctionJob]),
-            type: "histogram",
-            histnorm: "probability density",
+            name: "Pareto Front",
+            x: [9, 10, 12, 13, 14, 16],
+            y: [30, 23, 19, 13, 9, 6],
+            mode: "lines",
+            type: "scatter",
+            marker: { color: "green", size: 10 },
+          },
+          {
+            name: "data Points",
+            x: [9, 10, 12, 13, 14, 16, 10, 11, 12, 13, 14, 15, 16],
+            y: [30, 23, 19, 13, 9, 6, 33, 31, 28, 24, 25, 21, 19],
+            mode: "markers",
+            type: "scatter",
+            marker: { color: "lightblue", size: 10 },
           },
         ]);
-      }, 2000);
+      }, 1000);
     });
     setPlotData(data);
     setPropagating(false);
@@ -60,8 +71,8 @@ export const MoGaPareto = (props: MogaParetoPropsType) => {
 
   const layout = {
     title: { text: "Pareto front Diagram" },
-    xaxis: { title: { text: selectedQoI || "Output" } },
-    yaxis: { title: { text: "Density" } },
+    xaxis: { title: { text: "LongVar2" } },
+    yaxis: { title: { text: "LongVar1" } },
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
