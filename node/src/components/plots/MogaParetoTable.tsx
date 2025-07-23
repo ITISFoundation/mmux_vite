@@ -83,7 +83,7 @@ const MogaParetoTable = () => {
     // Simulate loading data
     setTimeout(() => {
       setData(dummyData);
-      if(weights !== undefined && Object.keys(weights).length === 0) {
+      if(weights === undefined || Object.keys(weights).length === 0) {
         const outputKeys: string[] = Object.keys(dummyData[0].outputs);
         const generatedWeights: { [key: string]: number } = {};
         for (let i = 0; i < outputKeys.length; i++) {
