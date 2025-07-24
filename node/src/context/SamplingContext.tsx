@@ -29,7 +29,7 @@ const defaultLHSamplingConfig: LHSamplingConfig = {
   seed: 0,
 };
 
-const defaultGRIDamplingConfig: GRIDSamplingConfig = [];
+const defaultGRIDSamplingConfig: GRIDSamplingConfig = [];
 
 const defaultSingleJobConfig: SingleJobConfig[] = [];
 
@@ -42,7 +42,7 @@ export const SamplingContextProvider = ({ children }: Props) => {
     defaultLHSamplingConfig
   );
   const [gridSamplingConfig, setGridSamplingConfig] =
-    useState<GRIDSamplingConfig>(defaultGRIDamplingConfig);
+    useState<GRIDSamplingConfig>(defaultGRIDSamplingConfig);
   const [singleJobConfig, setSingleJobConfig] = useState<SingleJobConfig[]>(
     defaultSingleJobConfig
   );
@@ -91,7 +91,7 @@ export const SamplingContextProvider = ({ children }: Props) => {
       setLaunchingSampling(false);
       setRunningSampling(false);
       setLhsSamplingConfig(defaultLHSamplingConfig);
-      setGridSamplingConfig(defaultGRIDamplingConfig);
+      setGridSamplingConfig(defaultGRIDSamplingConfig);
       setSingleJobConfig(defaultSingleJobConfig);
       setLocalLoading(false);
     }

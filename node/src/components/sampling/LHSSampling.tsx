@@ -43,11 +43,11 @@ async function runLhsSampling(
       return response.json();
     })
     .then(function (jc: RegisteredFunctionJobCollection) {
+      context.setLaunchingSampling(false);
+      context.setRunningSampling(true);
+      setRunningJobCollection(jc ? jc : undefined);
       return jc;
     })
-  context.setLaunchingSampling(false);
-  context.setRunningSampling(true);
-  setRunningJobCollection(jc ? jc : undefined);
   return jc;
 }
 
