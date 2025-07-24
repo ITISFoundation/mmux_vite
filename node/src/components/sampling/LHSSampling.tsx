@@ -120,8 +120,7 @@ const LHSSampling = () => {
   }
 
   const recommendedLHSSamples = () => {
-    let nPoints: number;
-    nPoints = Math.sqrt(filterInputVars({...jobContext, ...functionContext, ...SamplingContext}).length) * 30 * 1.2;
+    let nPoints: number = Math.sqrt(filterInputVars({...jobContext, ...functionContext, ...SamplingContext}).length) * 30 * 1.2;
     nPoints = Math.ceil(nPoints / 5) * 5;
     return nPoints;
   }
