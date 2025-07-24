@@ -51,7 +51,7 @@ export const SamplingContextProvider = ({ children }: Props) => {
     setLaunchingSampling(false);
     setRunningSampling(false);
     setLhsSamplingConfig(defaultLHSamplingConfig);
-    setGridSamplingConfig(defaultGRIDamplingConfig);
+    setGridSamplingConfig(defaultGRIDSamplingConfig);
     setSingleJobConfig(defaultSingleJobConfig);
   };
 
