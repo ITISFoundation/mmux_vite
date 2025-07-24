@@ -20,4 +20,6 @@ interface PersistenceType {
   selectedJobUids: string[];
   selectedQoI: string | undefined;
   isSuMoGenerated: boolean;
+  weights: { [key: string]: number } | undefined;
+  sortModel: GridSortModel | undefined;
 }

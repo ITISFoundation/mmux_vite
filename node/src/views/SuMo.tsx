@@ -27,7 +27,7 @@ export default function SuMo() {
       headerType="title"
       tabTitle={`Response Surface Modeling: ${selectedFunction?.title}`}
     >
-      <OutputSetup loading={loading} onlyQoI />
+      <OutputSetup loading={loading} mode="onlyQoI" />
       {loading ? (
         <JobsLoading
           progress={progress}
