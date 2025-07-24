@@ -188,7 +188,7 @@ export function FunctionList() {
     });
     setGridSamplingConfig([]);
     setSingleJobConfig([]);
-    clearSampling()
+    clearSampling();
   };
 
   function setRowSelection(fun: Function) {
