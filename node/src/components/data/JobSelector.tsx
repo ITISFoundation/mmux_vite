@@ -34,6 +34,8 @@ import CustomTooltip from "./../utils/CustomTooltip";
 import getMinMax from "../minmax";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { useSamplingContext } from "../../context/SamplingContext";
+import { toast } from "react-toastify";
 
 type JobSelectorPropsType = {
   loading: boolean;
@@ -48,6 +50,7 @@ type JobSelectorPropsType = {
 
 export default function JobsSelector(props: JobSelectorPropsType) {
   const { selectedFunction } = useFunctionContext();
+  const { launchingSampling, runningSampling } = useSamplingContext();
   const {
     setSelectedJobUids,
     fetchedJobCollections,
@@ -362,6 +365,21 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFunction]);
+
+  useEffect(() => {
+    console.info("Reloading job collections after functions run");
+    if (selectedFunction !== undefined && launchingSampling === false && runningSampling === true) {
+      (async () => {
+        toast.success("Sampling started running successfully, please wait for completion.");
+        await updateJobCollections(
+          selectedFunction?.uid ? selectedFunction.uid : "",
+          true
+        );
+        console.info("Updated JobCollections");
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFunction, launchingSampling, runningSampling]);
 
   const getJobCollectionStatus = (subJobs: SubJob[]) => {
     if (!subJobs || subJobs.length === 0) return "EMPTY";

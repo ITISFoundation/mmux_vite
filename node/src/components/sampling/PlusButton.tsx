@@ -1,6 +1,13 @@
-import { JSX, useState } from "react";
-import { Box, IconButton } from "@mui/material";
+import { JSX, useEffect, useState } from "react";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  IconButton,
+} from "@mui/material";
 import { AddBox, IndeterminateCheckBox } from "@mui/icons-material";
+import { useSamplingContext } from "../../context/SamplingContext";
 
 // This element is a generic + button with a few extra elements
 // - Shows a text specifying what will be added
@@ -14,41 +21,76 @@ type PlusButtonProps = {
 };
 function PlusButton(props: PlusButtonProps) {
   const { enabled, text, onClickFun, PlotFunComponent } = props;
+  const { launchingSampling } = useSamplingContext();
   const [showElement, setShowElement] = useState(false);
+
+  // if sampling was launched and just finished, we want to close the accordion
+  useEffect(() => {
+    if (launchingSampling === false && showElement === true) {
+      setShowElement(false);
+    }
+  }, [launchingSampling]);
+
   return (
-    <>
-      <Box
+    <Accordion
+      expanded={showElement}
+      disableGutters
+      variant="outlined"
+      sx={{
+        margin: "0px",
+        marginTop: "16px",
+        padding: "0px",
+        border: "none",
+        "&:before": { display: "none" },
+      }}
+    >
+      <AccordionSummary
+        onClick={() => {
+          setShowElement(!showElement);
+          if (showElement) {
+            onClickFun();
+          }
+        }}
         sx={{
-          justifySelf: "left",
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          gap: "8px",
+          margin: "0px",
+          padding: "0px",
         }}
       >
-        <IconButton
-          onClick={() => {
-            setShowElement(!showElement);
-            if (showElement) {
-              onClickFun();
-            }
+        <Box
+          sx={{
+            justifySelf: "left",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: "8px",
           }}
-          disabled={!enabled}
-          color="primary"
-          sx={(theme) => ({
-            padding: "8px",
-            borderRadius: "8px",
-            backgroundColor: theme.palette.background.default,
-          })}
         >
-          {!showElement ? <AddBox /> : <IndeterminateCheckBox />}
-        </IconButton>
-        <span>{text}</span>
-      </Box>
-      <Box sx={{ display: "flex", width: "100%", overflowX: "auto", marginTop: showElement ? "16px" : '' }}>
-        {showElement && <PlotFunComponent />}
-      </Box>
-    </>
+          <IconButton
+            disabled={!enabled}
+            color="primary"
+            sx={(theme) => ({
+              padding: "8px",
+              borderRadius: "8px",
+              backgroundColor: theme.palette.background.default,
+            })}
+          >
+            {!showElement ? <AddBox /> : <IndeterminateCheckBox />}
+          </IconButton>
+          <span>{text}</span>
+        </Box>
+      </AccordionSummary>
+      <AccordionDetails
+        sx={{
+          display: "flex",
+          width: "100%",
+          overflowX: "auto",
+          padding: "0px",
+          margin: "0px",
+        }}
+      >
+        <PlotFunComponent />
+      </AccordionDetails>
+    </Accordion>
   );
 }
 

@@ -210,13 +210,11 @@ const Surface2DPlot = () => {
             axis={axis1}
             idx={1}
             setAxis={handleSetAxis1}
-            inputVars={inputVars}
           />
           <CreateSelect
             axis={axis2}
             idx={2}
             setAxis={handleSetAxis2}
-            inputVars={inputVars}
           />
         </Box>
         {inputVars.length > 0 &&

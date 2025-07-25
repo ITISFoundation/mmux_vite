@@ -203,7 +203,7 @@ const Curves1DPlots = () => {
           borderRadius: theme.spacing(2),
         })}
       >
-        <CreateSelect axis={axis} setAxis={setAxis} inputVars={inputVars} />
+        <CreateSelect axis={axis} setAxis={setAxis} />
         {inputVars.length > 0 &&
         distribution[selectedFunction?.uid || ""] !== undefined ? (
           <>

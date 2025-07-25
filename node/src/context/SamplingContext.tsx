@@ -13,6 +13,7 @@ export interface SamplingContextType {
   setGridSamplingConfig: (config: GRIDSamplingConfig) => void;
   singleJobConfig: SingleJobConfig[];
   setSingleJobConfig: (config: SingleJobConfig[]) => void;
+  clearSampling: () => void;
 }
 
 export const SamplingContext = createContext<SamplingContextType>(undefined!);
@@ -27,7 +28,7 @@ const defaultLHSamplingConfig: LHSamplingConfig = {
   seed: 0,
 };
 
-const defaultGRIDamplingConfig: GRIDSamplingConfig = [];
+const defaultGRIDSamplingConfig: GRIDSamplingConfig = [];
 
 const defaultSingleJobConfig: SingleJobConfig[] = [];
 
@@ -40,26 +41,30 @@ export const SamplingContextProvider = ({ children }: Props) => {
     defaultLHSamplingConfig
   );
   const [gridSamplingConfig, setGridSamplingConfig] =
-    useState<GRIDSamplingConfig>(defaultGRIDamplingConfig);
+    useState<GRIDSamplingConfig>(defaultGRIDSamplingConfig);
   const [singleJobConfig, setSingleJobConfig] = useState<SingleJobConfig[]>(
     defaultSingleJobConfig
   );
 
+  const clearSampling = () => {
+    setLaunchingSampling(false);
+    setRunningSampling(false);
+    setLhsSamplingConfig(defaultLHSamplingConfig);
+    setGridSamplingConfig(defaultGRIDSamplingConfig);
+    setSingleJobConfig(defaultSingleJobConfig);
+  };
+
   useEffect(() => {
     if (localLoading === true) return; // Avoid saving state while loading
-    console.info("Saving Function context state to persistence...");
+    console.info("Saving Sampling context state to persistence...");
     const newPersistence: PersistenceType = {
       ...(persistence as PersistenceType),
-      launchingSampling,
-      runningSampling,
       lhsSamplingConfig,
       gridSamplingConfig,
       singleJobConfig,
     };
     saveState(newPersistence);
   }, [
-    launchingSampling,
-    runningSampling,
     lhsSamplingConfig,
     gridSamplingConfig,
     singleJobConfig,
@@ -67,9 +72,7 @@ export const SamplingContextProvider = ({ children }: Props) => {
 
   useEffect(() => {
     if (loading === false && persistence && persistence.launchingSampling !== undefined) {
-      console.info("Loading Function context from persistence...");
-      setLaunchingSampling(persistence.launchingSampling);
-      setRunningSampling(persistence.runningSampling);
+      console.info("Loading Sampling context from persistence...");
       setLhsSamplingConfig(persistence.lhsSamplingConfig);
       setGridSamplingConfig(persistence.gridSamplingConfig);
       setSingleJobConfig(persistence.singleJobConfig);
@@ -78,10 +81,8 @@ export const SamplingContextProvider = ({ children }: Props) => {
     } else if (loading === false && (persistence === undefined || persistence?.launchingSampling === undefined)) {
       // when this happens, the persistence is either broken or not yet initialized
       console.warn("Persistence is not initialized or broken, resetting to defaults.");
-      setLaunchingSampling(false);
-      setRunningSampling(false);
       setLhsSamplingConfig(defaultLHSamplingConfig);
-      setGridSamplingConfig(defaultGRIDamplingConfig);
+      setGridSamplingConfig(defaultGRIDSamplingConfig);
       setSingleJobConfig(defaultSingleJobConfig);
       setLocalLoading(false);
     }
@@ -99,6 +100,7 @@ export const SamplingContextProvider = ({ children }: Props) => {
       setGridSamplingConfig,
       singleJobConfig,
       setSingleJobConfig,
+      clearSampling,
     }),
     [
       launchingSampling,
@@ -111,6 +113,7 @@ export const SamplingContextProvider = ({ children }: Props) => {
       setGridSamplingConfig,
       singleJobConfig,
       setSingleJobConfig,
+      clearSampling,
     ]
   );
 

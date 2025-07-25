@@ -34,7 +34,6 @@ const getMinMax = (subJobs: SubJob[]) => {
       max: Math.max(...values),
     };
   });
-  console.log("Min-Max values: ", minMax);
   return (
     <Box>
       <Box>

@@ -6,13 +6,12 @@ import { getSimplifiedHost } from '../../utils/function_utils';
 import { useSamplingContext } from '../../context/SamplingContext';
 
 type RunSamplingButtonProps = {
-  handleRunSampling: () => void;
+  handleRunSampling: () => Promise<void>;
   disabled?: boolean;
 };
 
 export const RunSamplingButton = (props: RunSamplingButtonProps) => {
   const { permissions } = useServiceContext()
-  console.info("Current permissions: ", permissions)
   const { handleRunSampling, disabled } = props;
   const { launchingSampling, setLaunchingSampling, setRunningSampling } = useSamplingContext();
   const simplifiedHost = getSimplifiedHost()
