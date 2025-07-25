@@ -204,6 +204,7 @@ const IsoSurface3DPlot = () => {
       return await RunSuMo3DInterpolation(jobs, axis1, axis2);
     };
     run();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     axis1,
     axis2,

@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
 
@@ -46,13 +48,13 @@ export const SamplingContextProvider = ({ children }: Props) => {
     defaultSingleJobConfig
   );
 
-  const clearSampling = () => {
+  const clearSampling = useCallback(() => {
     setLaunchingSampling(false);
     setRunningSampling(false);
     setLhsSamplingConfig(defaultLHSamplingConfig);
     setGridSamplingConfig(defaultGRIDSamplingConfig);
     setSingleJobConfig(defaultSingleJobConfig);
-  };
+  }, [setLaunchingSampling, setRunningSampling, setLhsSamplingConfig, setGridSamplingConfig, setSingleJobConfig]);
 
   useEffect(() => {
     if (localLoading === true) return; // Avoid saving state while loading

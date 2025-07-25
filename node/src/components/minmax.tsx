@@ -8,10 +8,10 @@ type minMaxType = {
 
 const getMinMax = (subJobs: SubJob[]) => {
   const inputs = Object.entries(subJobs).map(
-    ([key, value], idx) => value.job.inputs as { [key: string]: number }
+    ([_key, value], _idx) => value.job.inputs as { [key: string]: number }
   );
   const outputs = Object.entries(subJobs).map(
-    ([key, value], idx) => value.job.outputs as { [key: string]: number }
+    ([_key, value], _idx) => value.job.outputs as { [key: string]: number }
   );
 
   const minMax: minMaxType = {

@@ -162,6 +162,7 @@ export const InputVariableDist = () => {
         handleSetLocalDistribution(initialInputVars);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [distribution, inputVars, selectedFunction]);
 
   if (inputVars && inputVars.length === 0) {

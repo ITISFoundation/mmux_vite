@@ -4,7 +4,6 @@ import {
   AccordionDetails,
   AccordionSummary,
   Box,
-  IconButton,
 } from "@mui/material";
 import { AddBox, IndeterminateCheckBox } from "@mui/icons-material";
 import { useSamplingContext } from "../../context/SamplingContext";
@@ -29,6 +28,7 @@ function PlusButton(props: PlusButtonProps) {
     if (launchingSampling === false && showElement === true) {
       setShowElement(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [launchingSampling]);
 
   return (
@@ -45,6 +45,7 @@ function PlusButton(props: PlusButtonProps) {
       }}
     >
       <AccordionSummary
+        disabled={!enabled}
         onClick={() => {
           setShowElement(!showElement);
           if (showElement) {
@@ -65,17 +66,15 @@ function PlusButton(props: PlusButtonProps) {
             gap: "8px",
           }}
         >
-          <IconButton
-            disabled={!enabled}
+          <Box
             color="primary"
             sx={(theme) => ({
               padding: "8px",
               borderRadius: "8px",
               backgroundColor: theme.palette.background.default,
-            })}
-          >
-            {!showElement ? <AddBox /> : <IndeterminateCheckBox />}
-          </IconButton>
+            })}>
+            {!showElement ? <AddBox color="primary" /> : <IndeterminateCheckBox color="primary" />}
+          </Box>
           <span>{text}</span>
         </Box>
       </AccordionSummary>

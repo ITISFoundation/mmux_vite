@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { InputLabel, Typography, Select, MenuItem, TextField, styled, Slider } from "@mui/material";
 import { useState } from "react";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
