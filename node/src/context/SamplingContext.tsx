@@ -54,7 +54,7 @@ export const SamplingContextProvider = ({ children }: Props) => {
     setLhsSamplingConfig(defaultLHSamplingConfig);
     setGridSamplingConfig(defaultGRIDSamplingConfig);
     setSingleJobConfig(defaultSingleJobConfig);
-  }, []);
+  }, [setLaunchingSampling, setRunningSampling, setLhsSamplingConfig, setGridSamplingConfig, setSingleJobConfig]);
 
   useEffect(() => {
     if (localLoading === true) return; // Avoid saving state while loading
