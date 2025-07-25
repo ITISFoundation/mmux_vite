@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, Input, Skeleton, Typography } from "@mui/material";
 import {
@@ -119,13 +119,13 @@ const LHSSampling = () => {
     });
   }
 
-  const recommendedLHSSamples = () => {
+  const recommendedLHSSamples = useCallback(() => {
     let nPoints: number = Math.sqrt(filterInputVars({...jobContext, ...functionContext, ...SamplingContext}).length) * 30 * 1.2;
     nPoints = Math.ceil(nPoints / 5) * 5;
     return nPoints;
-  }
+  }, [functionContext, jobContext, SamplingContext]);
 
-  const generateInputsList = (inputVar: string) => ({
+  const generateInputsList = useCallback((inputVar: string) => ({
     variable: inputVar,
     start: getSamplingStartValue(
       inputVar,
@@ -135,7 +135,7 @@ const LHSSampling = () => {
       inputVar,
       distribution[selectedFunction?.uid || ""]
     ) as number,
-  });
+  }), [distribution, selectedFunction]);
 
   useEffect(() => {
     const currentSampling: LHSamplingConfig = { ...lhsSamplingConfig };
@@ -144,6 +144,7 @@ const LHSSampling = () => {
     }
     setLhsInputs(currentSampling);
     setLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -153,7 +154,7 @@ const LHSSampling = () => {
       const newInputs = {...prevInputs, inputs: inputVars.map(generateInputsList), points: lhsPoints };
       return newInputs;
     });
-  }, [inputVars, selectedFunction]);
+  }, [generateInputsList, inputVars, recommendedLHSSamples, selectedFunction]);
 
   return (
     <>

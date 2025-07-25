@@ -152,13 +152,8 @@ const SuMoValidation = () => {
       return await RunSuMoValidation(jobs);
     };
     run();
-  }, [
-    selectedQoI,
-    inputVars,
-    selectedFunction,
-    distribution,
-    filterSelectedJobList,
-  ]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedQoI, inputVars, selectedFunction, distribution, filterSelectedJobList]);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver((event) => {

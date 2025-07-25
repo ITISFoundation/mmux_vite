@@ -82,6 +82,7 @@ const App = () => {
     return () => {
       clearTimeout(timeoutId);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -107,6 +108,7 @@ const App = () => {
     };
     window.addEventListener("message", messageHandler);
     return () => window.removeEventListener("message", messageHandler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

@@ -7,7 +7,7 @@ import { plotMargins } from "./PlotTools";
 const WhiskerPlot: React.FC<dataUQHistogramType> = (
   props: dataUQHistogramType
 ) => {
-  const { q1, median, q3, whisker_min, whisker_max, outliers } = props;
+  const { q1, median, q3, whisker_min, whisker_max, outliers: _outliers } = props;
   const theme = useTheme();
   // Create data for Plotly box plot
   const data: Data[] = [

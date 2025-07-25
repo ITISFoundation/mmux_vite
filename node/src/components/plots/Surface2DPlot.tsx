@@ -1,5 +1,5 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Plot from "react-plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
@@ -59,12 +59,43 @@ const Surface2DPlot = () => {
     }
   };
 
-  const RunSuMo2DInterpolation = async (
-    jobs: FunctionJob[],
-    key1: string,
-    key2: string
+
+  const reshapePlotData = useCallback((
+    data: { [key: string]: number[] } | { [key: string]: number[][] }
   ) => {
-    // This should create the "data" state variable to be plotted
+    if (data && selectedQoI) {
+      const uniqueX: Array<number> = Array.from(
+        new Set(data[axis1] as number[])
+      );
+      const uniqueY: Array<number> = Array.from(
+        new Set(data[axis2] as number[])
+      );
+      const z: Array<Array<number>> = data[selectedQoI] as number[][];
+
+      const newData: Data[] = [
+        {
+          x: uniqueX,
+          y: uniqueY,
+          z: z,
+          type: "surface",
+          colorscale: "Electric",
+          showscale: true,
+        },
+      ];
+      setPlotData(newData);
+    } else {
+      setPlotData([]);
+      console.warn("Empty plotData");
+    }
+  }, [axis1, axis2, selectedQoI]);
+
+  const RunSuMo2DInterpolation = useCallback(
+    async (
+      jobs: FunctionJob[],
+      key1: string,
+      key2: string
+    ) => {
+      // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
     setPropagating(true);
@@ -95,36 +126,7 @@ const Surface2DPlot = () => {
         setPropagating(false);
         setPlotData([]);
       });
-  };
-
-  const reshapePlotData = (
-    data: { [key: string]: number[] } | { [key: string]: number[][] }
-  ) => {
-    if (data && selectedQoI) {
-      const uniqueX: Array<number> = Array.from(
-        new Set(data[axis1] as number[])
-      );
-      const uniqueY: Array<number> = Array.from(
-        new Set(data[axis2] as number[])
-      );
-      const z: Array<Array<number>> = data[selectedQoI] as number[][];
-
-      const newData: Data[] = [
-        {
-          x: uniqueX,
-          y: uniqueY,
-          z: z,
-          type: "surface",
-          colorscale: "Electric",
-          showscale: true,
-        },
-      ];
-      setPlotData(newData);
-    } else {
-      setPlotData([]);
-      console.warn("Empty plotData");
-    }
-  };
+  }, [inputVars, selectedQoI, otherAxis, reshapePlotData]);
 
   useEffect(() => {
     const run = async () => {
@@ -132,15 +134,7 @@ const Surface2DPlot = () => {
       return await RunSuMo2DInterpolation(jobs, axis1, axis2);
     };
     run();
-  }, [
-    axis1,
-    axis2,
-    inputVars,
-    selectedQoI,
-    selectedFunction,
-    otherAxis,
-    filterSelectedJobList,
-  ]);
+  }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis, filterSelectedJobList, RunSuMo2DInterpolation]);
 
   const layout: Partial<Layout> = {
     title: {

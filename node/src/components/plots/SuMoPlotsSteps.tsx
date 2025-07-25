@@ -62,6 +62,7 @@ const SuMoPlotsSteps = () => {
       );
     }
     setMaxSteps(Math.min(filteredInputVars.length + 1, stepTitles.length));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedJobUids, filterSelectedJobList]);
 
   return (

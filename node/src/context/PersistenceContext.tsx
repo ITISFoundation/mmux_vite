@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { PersistenceType } from "./types";
 
@@ -89,7 +91,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     }
   };
 
-  const saveState = async (state: PersistenceType) => {
+  const saveState = useCallback(async (state: PersistenceType) => {
     const content = JSON.stringify(state, null, 2);
     console.log("Saving state to persistence file:", state);
     try {
@@ -98,7 +100,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     } catch (error) {
       console.error("Error saving state:", error);
     }
-  };
+  }, [setFile]);
 
   useEffect(() => {
     const fetchFile = async () => {

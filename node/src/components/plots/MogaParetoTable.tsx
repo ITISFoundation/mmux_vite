@@ -94,6 +94,7 @@ const MogaParetoTable = () => {
       }
       setLoading(false);
     }, 2000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const columnProps: Partial<GridColDef> = {
@@ -109,7 +110,7 @@ const MogaParetoTable = () => {
     maxWidth: 90,
     headerName: key.toUpperCase(),
     type: "number",
-    renderCell: (params: any) => params.row.inputs[key],
+    renderCell: (params) => params.row.inputs[key],
     valueGetter: (value, row) => row.inputs[key],
   }));
 
@@ -126,7 +127,7 @@ const MogaParetoTable = () => {
             label={(localWeights[key] ?? 0).toFixed(2)}
             size="small"
             color="primary"
-            onClick={(e) => handleClick(e as any, key)}
+            onClick={(e) => handleClick(e as unknown as React.MouseEvent<HTMLButtonElement>, key)}
           />
           <Popover
             id={`popover-${key}`}
@@ -178,7 +179,7 @@ const MogaParetoTable = () => {
           </Popover>
         </Box>
       ),
-      renderCell: (params: any) => params.row.outputs[key],
+      renderCell: (params) => params.row.outputs[key],
       valueGetter: (value, row) => row.outputs[key],
     }))
   );
@@ -191,7 +192,7 @@ const MogaParetoTable = () => {
       minWidth: 105,
       maxWidth: 105,
       type: "number",
-      renderCell: (params: any) => params.row.Performance.toFixed(2),
+      renderCell: (params) => params.row.Performance.toFixed(2),
       valueGetter: (value, row) => row.Performance,
     },
     {

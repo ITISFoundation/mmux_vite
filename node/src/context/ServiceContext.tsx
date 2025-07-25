@@ -1,3 +1,5 @@
+ 
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getPermissions, getServiceMode } from '../utils/function_utils';
 

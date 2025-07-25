@@ -11,9 +11,9 @@ import { FunctionJob } from "../../osparc-api-ts-client";
 import MogaParetoTable from "./MogaParetoTable";
 
 export const MoGaPareto = (props: MogaParetoPropsType) => {
-  const { loading, progress, jobProgress, colsFetched, jobsFetched } = props;
+  const { loading, progress, jobProgress, colsFetched: _colsFetched, jobsFetched: _jobsFetched } = props;
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction: _selectedFunction, inputVars, distribution } = useFunctionContext();
   const { numSamples, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
@@ -40,7 +40,7 @@ export const MoGaPareto = (props: MogaParetoPropsType) => {
     run();
   }, [filterSelectedJobList, selectedQoI, numSamples, inputVars, distribution]);
 
-  const runMoGa = async (jobs: FunctionJob[]) => {
+  const runMoGa = async (_jobs: FunctionJob[]) => {
     setPropagating(true);
     // Simulate fetching data and processing it
     const data = await new Promise<Plotly.Data[]>(resolve => {

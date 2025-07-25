@@ -26,7 +26,7 @@ MOCKUP_FUNCTIONS[0].outputSchema.schemaContent = {
 /////////////////////////////////
 
 function jobGenerator(fun: Function, uuid: string): FunctionJob {
-    let j = new SolverFunctionJob()
+    const j = new SolverFunctionJob()
     j.functionUid = fun.uid
     j.inputs = { "x": 0.0, "y": 0.0 }
     j.outputs = { "result": 0.0 }
@@ -58,7 +58,7 @@ export function createInputOutputSchema(vars: string[]) {
         "properties": vars.reduce((acc, curr) => {
             acc[curr] = { "type": "number" };
             return acc;
-        }, {} as Record<string, any>),
+        }, {} as Record<string, unknown>),
         "required": vars,
     }
 }
@@ -82,10 +82,10 @@ export async function getFunctionJob(jobUid: string): Promise<FunctionJob> {
     }
 }
 
-export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<FunctionJob[]> {
+export async function getFunctionJobsFromFunctionUid(_functionUid: string): Promise<FunctionJob[]> {
     return MOCKUP_JOBS
 }
 
-export async function getFunctionJobCollections(functionUid: string): Promise<FunctionJobCollection[]> {
+export async function getFunctionJobCollections(_functionUid: string): Promise<FunctionJobCollection[]> {
     return MOCKUP_JOB_COLLECTIONS
 }

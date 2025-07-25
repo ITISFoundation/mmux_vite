@@ -2,7 +2,6 @@ import {
   Container,
   Card,
   Typography,
-  CardHeader,
   useTheme,
   CardMedia,
   LinearProgress,

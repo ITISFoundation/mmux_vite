@@ -121,7 +121,7 @@ const Curves1DPlots = () => {
         createPlotData(data);
         setPropagating(false);
       })
-      .catch((error) => {
+      .catch((_error) => {
         setPlotData([]);
         setPropagating(false);
       });
@@ -139,6 +139,7 @@ const Curves1DPlots = () => {
     };
     run();
     console.log("axis: ", axis);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     inputVars,
     selectedQoI,
