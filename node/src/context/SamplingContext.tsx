@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
-import { toast } from "react-toastify";
 
 export interface SamplingContextType {
   launchingSampling: boolean;
@@ -60,16 +59,12 @@ export const SamplingContextProvider = ({ children }: Props) => {
     console.info("Saving Sampling context state to persistence...");
     const newPersistence: PersistenceType = {
       ...(persistence as PersistenceType),
-      launchingSampling,
-      runningSampling,
       lhsSamplingConfig,
       gridSamplingConfig,
       singleJobConfig,
     };
     saveState(newPersistence);
   }, [
-    launchingSampling,
-    runningSampling,
     lhsSamplingConfig,
     gridSamplingConfig,
     singleJobConfig,
@@ -78,8 +73,6 @@ export const SamplingContextProvider = ({ children }: Props) => {
   useEffect(() => {
     if (loading === false && persistence && persistence.launchingSampling !== undefined) {
       console.info("Loading Sampling context from persistence...");
-      setLaunchingSampling(persistence.launchingSampling);
-      setRunningSampling(persistence.runningSampling);
       setLhsSamplingConfig(persistence.lhsSamplingConfig);
       setGridSamplingConfig(persistence.gridSamplingConfig);
       setSingleJobConfig(persistence.singleJobConfig);
@@ -88,8 +81,6 @@ export const SamplingContextProvider = ({ children }: Props) => {
     } else if (loading === false && (persistence === undefined || persistence?.launchingSampling === undefined)) {
       // when this happens, the persistence is either broken or not yet initialized
       console.warn("Persistence is not initialized or broken, resetting to defaults.");
-      setLaunchingSampling(false);
-      setRunningSampling(false);
       setLhsSamplingConfig(defaultLHSamplingConfig);
       setGridSamplingConfig(defaultGRIDSamplingConfig);
       setSingleJobConfig(defaultSingleJobConfig);
