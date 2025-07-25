@@ -100,7 +100,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     } catch (error) {
       console.error("Error saving state:", error);
     }
-  }, [setFile]);
+  }, []);
 
   useEffect(() => {
     const fetchFile = async () => {
