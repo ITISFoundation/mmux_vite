@@ -7,10 +7,8 @@ interface PersistenceType {
   currentView: number;
   selectedFunction: Function | undefined;
   inputVars: string[];
-  outputVars: string[] | undefined;
+  outputVars: string[];
   distribution: { [key: string]: InputVarSelection };
-  launchingSampling: boolean;
-  runningSampling: boolean;
   lhsSamplingConfig: LHSamplingConfig;
   gridSamplingConfig: GRIDSamplingConfig;
   singleJobConfig: SingleJobConfig[];

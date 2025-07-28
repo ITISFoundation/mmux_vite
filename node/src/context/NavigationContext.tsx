@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { usePersistenceContext } from './PersistenceContext';
 import { PersistenceType } from './types';
 interface NavigationContextType {
@@ -25,14 +25,18 @@ export const NavigationContextProvider = ({ children }: Props) => {
   const [currentView, setCurrentView] = useState(0);
   const [localLoading, setLocalLoading] = useState(true);
 
-  useEffect(() => {
-    if (localLoading === true) return; // Avoid saving state while loading
+  const setPersistence = useCallback(() => {
     console.info("Saving navigation context state to persistence...");
     const newPersistence: PersistenceType = {
       ...(persistence as PersistenceType),
       currentView,
     };
     saveState(newPersistence);
+  }, [persistence, currentView]);
+
+  useEffect(() => {
+    if (localLoading === true) return; // Avoid saving state while loading
+    setPersistence();
   }, [currentView]);
 
   useEffect(() => {
@@ -41,25 +45,8 @@ export const NavigationContextProvider = ({ children }: Props) => {
       setCurrentView(persistence.currentView);
       setLocalLoading(false);
       return;
-    } else if (loading === false && (persistence === undefined || persistence?.currentView === undefined)) {
-      // when this happens, the persistence is either broken or not yet initialized
-      console.warn("Persistence is not initialized or broken, resetting to defaults.");
-      setCurrentView(0);
-      setLocalLoading(false);
     }
   }, [loading]);
-
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        setCurrentView(0);
-      } catch (error) {
-        console.error("Backend is not responding with permissions:", error);
-      }
-    };
-
-    fetchStatus();
-  }, []);
 
   const memo = React.useMemo(() => ({
     currentView,

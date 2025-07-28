@@ -66,7 +66,7 @@ export const MMUXContextProvider = ({ children }: Props) => {
     if (
       loading === false &&
       persistence &&
-      persistence.launchingSampling !== undefined
+      persistence.currentView !== undefined
     ) {
       console.info("Loading MMUX context from persistence...");
       setNumSamples(persistence.numSamples);
@@ -75,21 +75,6 @@ export const MMUXContextProvider = ({ children }: Props) => {
       setWeights(persistence.weights);
       setSortModel(persistence.sortModel);
       setLocalLoading(false);
-    } else if (
-      loading === false &&
-      (persistence === undefined ||
-        persistence?.launchingSampling === undefined)
-    ) {
-      // when this happens, the persistence is either broken or not yet initialized
-      console.warn(
-        "Persistence is not initialized or broken, resetting to defaults."
-      );
-      setNumSamples({});
-      setSelectedQoI(undefined);
-      setIsSuMoGenerated(false);
-      setLocalLoading(false);
-      setSortModel(undefined);
-      setWeights({});
     }
   }, [loading]);
 

@@ -15,6 +15,7 @@ import { MMUXContextProvider } from "./context/MMUXContext";
 import { FunctionContextProvider } from "./context/FunctionContext";
 import { SamplingContextProvider } from "./context/SamplingContext";
 import { JobContextProvider } from "./context/JobContext";
+import { usePersistenceContext } from "./context/PersistenceContext";
 
 const AppRoot = styled("div")(
   ({ theme }) => `
@@ -28,6 +29,7 @@ const App = () => {
   const [healthStatus, setHealthStatus] = useState<boolean>(false);
 
   const { currentView, steps } = useNavigationContext();
+  const { loading } = usePersistenceContext();
   const { mode, systemMode, setMode } = useColorScheme();
   const finalMode = mode
     ? mode === "system"
@@ -114,7 +116,7 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <AppRoot>
-        {!healthStatus ? (
+        {!healthStatus || loading ? (
           <SplashScreen />
         ) : (
           <ServiceContextProvider>

@@ -18,64 +18,38 @@ export interface FunctionContextType {
 
 export const FunctionContext = createContext<FunctionContextType>(undefined!);
 
-type Props = {
+interface Props {
   children: React.ReactNode;
-};
+}
 
 export const FunctionContextProvider = ({ children }: Props) => {
-  const { persistence, saveState, loading } = usePersistenceContext();
-  const [localLoading, setLocalLoading] = useState(true);
+  const { getFunctionValues, setFunctionValues, loading } =
+    usePersistenceContext();
+  const {
+    selectedFunction: isf,
+    inputVars: iiv,
+    outputVars: iov,
+    distribution: id,
+  } = getFunctionValues() as PersistenceType;
   const [selectedFunction, setSelectedFunction] = useState<
     Function | undefined
-  >(undefined);
+  >(isf);
   const [distribution, setDistribution] = useState<{
     [key: string]: InputVarSelection;
-  }>({});
-  const [inputVars, setInputVars] = useState<string[]>([]);
-  const [outputVars, setOutputVars] = useState<string[] | undefined>([]);
+  }>(id || {});
+  const [inputVars, setInputVars] = useState<string[]>(iiv || []);
+  const [outputVars, setOutputVars] = useState<string[]>(iov || []);
 
   useEffect(() => {
-    if (localLoading === true) return; // Avoid saving state while loading
-    console.info("Saving Function context state to persistence...");
-    const newPersistence: PersistenceType = {
-      ...(persistence as PersistenceType),
-      selectedFunction,
-      inputVars,
-      outputVars,
-      distribution,
-    };
-    saveState(newPersistence);
-  }, [selectedFunction, inputVars, outputVars, distribution]);
-
-  useEffect(() => {
-    if (
-      loading === false &&
-      persistence &&
-      persistence.launchingSampling !== undefined
-    ) {
-      console.info("Loading Function context from persistence...");
-      setSelectedFunction(persistence.selectedFunction);
-      setInputVars(persistence.inputVars);
-      setOutputVars(persistence.outputVars);
-      setDistribution(persistence.distribution);
-      setLocalLoading(false);
-      return;
-    } else if (
-      loading === false &&
-      (persistence === undefined ||
-        persistence?.launchingSampling === undefined)
-    ) {
-      // when this happens, the persistence is either broken or not yet initialized
-      console.warn(
-        "Persistence is not initialized or broken, resetting to defaults."
-      );
-      setSelectedFunction(undefined);
-      setInputVars([]);
-      setOutputVars(undefined);
-      setDistribution({});
-      setLocalLoading(false);
+    if (loading === false) {
+      setFunctionValues({
+        selectedFunction,
+        inputVars,
+        outputVars,
+        distribution,
+      });
     }
-  }, [loading]);
+  }, [selectedFunction, inputVars, outputVars, distribution]);
 
   const memo = React.useMemo(
     () => ({

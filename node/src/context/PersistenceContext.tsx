@@ -7,6 +7,8 @@ import { PersistenceType } from "./types";
 interface PersistenceContextType {
   persistence: PersistenceType | undefined;
   saveState: (state: PersistenceType) => Promise<void>;
+  getFunctionValues: () => Partial<PersistenceType> | undefined;
+  setFunctionValues: (values: Partial<PersistenceType>) => void;
   loading: boolean;
 }
 
@@ -18,9 +20,32 @@ type Props = {
   children: React.ReactNode;
 };
 
+const defaultPersistence: PersistenceType = {
+  currentView: 0,
+  numSamples: {},
+  selectedQoI: undefined,
+  isSuMoGenerated: false,
+  weights: undefined,
+  sortModel: undefined,
+  selectedFunction: undefined,
+  inputVars: [],
+  outputVars: [],
+  distribution: {},
+  lhsSamplingConfig: {
+    inputs: [],
+    points: 0,
+    seed: 0
+  },
+  gridSamplingConfig: [],
+  singleJobConfig: [],
+  runningJobCollection: undefined,
+  fetchedJobCollections: [],
+  selectedJobUids: []
+};
+
 export const PersistenceContextProvider = ({ children }: Props) => {
   const [loading, setLoading] = useState(true);
-  const [persistence, setPersistence] = useState<PersistenceType>();
+  const [persistence, setPersistence] = useState<PersistenceType | undefined>(undefined);
 
   const getHeaders = (contentType = true): HeadersInit => {
     return contentType ? { "Content-Type": "application/json" } : {};
@@ -68,7 +93,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
         console.warn(
           `⚠️ Could not retrieve file (${response.status}): ${response.statusText}`
         );
-        return {} as PersistenceType; // Return empty object if file not found
+        return defaultPersistence; // Return default persistence if file not found
       } else {
         throw new Error(
           `Failed to fetch file: ${response.status} ${response.statusText}`
@@ -102,6 +127,44 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     }
   }, []);
 
+  const getFunctionValues = useCallback((): Partial<PersistenceType> | undefined => {
+    if (persistence !== undefined) {
+      return {
+        selectedFunction: persistence.selectedFunction,
+        inputVars: persistence.inputVars,
+        outputVars: persistence.outputVars,
+        distribution: persistence.distribution,
+      };
+    }
+    return undefined;
+  }, [persistence]);
+
+  const setFunctionValues = useCallback(({
+    selectedFunction,
+    inputVars,
+    outputVars,
+    distribution
+  }: Partial<PersistenceType>) => {
+      if (persistence !== undefined) {
+        console.info("Persisting Function context state...");
+        const newPersistence: PersistenceType = {
+          ...persistence,
+          selectedFunction,
+          inputVars: inputVars ? inputVars : [],
+          outputVars: outputVars ? outputVars : [],
+          distribution: distribution ? distribution : {},
+        };
+        saveState(newPersistence);
+      }
+  }, [persistence]);
+
+  useEffect(() => {
+    if(persistence !== undefined) {
+      setLoading(false);
+      return;
+    }
+  }, [persistence]);
+
   useEffect(() => {
     const fetchFile = async () => {
       try {
@@ -110,16 +173,21 @@ export const PersistenceContextProvider = ({ children }: Props) => {
           console.info(
             "No persistence file found, initializing with empty state."
           );
+          setPersistence(defaultPersistence);
+        } else if (Object.keys(persistenceFile).length !== Object.keys(defaultPersistence).length) {
+          console.warn(
+            "Persistence file structure has changed, resetting to defaults."
+          );
+          setPersistence(defaultPersistence);
         } else {
+          console.info("Persistence file loaded successfully.", persistenceFile);
           setPersistence(persistenceFile);
         }
       } catch (error) {
         console.error("Error when fetching persistence file:", error);
-        toast.error("Failed to fetch user state, starting from scratch.");
+        toast.warn("Failed to fetch user state, contact support.");
       }
-      setLoading(false);
     };
-
     fetchFile();
   }, []);
 
@@ -127,9 +195,11 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     () => ({
       persistence,
       saveState,
+      getFunctionValues,
+      setFunctionValues,
       loading
     }),
-    [persistence, loading, saveState]
+    [persistence, loading, saveState, getFunctionValues, setFunctionValues]
   );
 
   return (
