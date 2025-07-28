@@ -25,12 +25,13 @@ interface Props {
 export const FunctionContextProvider = ({ children }: Props) => {
   const { getFunctionValues, setFunctionValues, loading } =
     usePersistenceContext();
+  const functionValues = getFunctionValues() || {};
   const {
     selectedFunction: isf,
     inputVars: iiv,
     outputVars: iov,
     distribution: id,
-  } = getFunctionValues() as PersistenceType;
+  } = functionValues as Partial<PersistenceType>;
   const [selectedFunction, setSelectedFunction] = useState<
     Function | undefined
   >(isf);
