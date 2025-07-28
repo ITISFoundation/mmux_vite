@@ -174,9 +174,11 @@ export const PersistenceContextProvider = ({ children }: Props) => {
             "No persistence file found, initializing with empty state."
           );
           setPersistence(defaultPersistence);
-        } else if (Object.keys(persistenceFile).length !== Object.keys(defaultPersistence).length) {
+        } else if (Object.keys(persistenceFile).length < 11 && Object.keys(defaultPersistence).length > 16) {
           console.warn(
-            "Persistence file structure has changed, resetting to defaults."
+            "Persistence file structure has changed, resetting to defaults.",
+            Object.keys(persistenceFile).length,
+            Object.keys(defaultPersistence).length
           );
           setPersistence(defaultPersistence);
         } else {
