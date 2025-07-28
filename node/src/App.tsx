@@ -139,7 +139,7 @@ const App = () => {
         <ToastContainer
           theme={themeMode}
           position="top-right"
-          autoClose={5000}
+          autoClose={8000}
           hideProgressBar={false}
           newestOnTop={false}
           closeOnClick
