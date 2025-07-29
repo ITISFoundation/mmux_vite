@@ -93,25 +93,12 @@ export const JobContextProvider = ({ children }: Props) => {
     if (
       loading === false &&
       persistence &&
-      persistence.launchingSampling !== undefined
+      persistence.currentView !== undefined
     ) {
       console.info("Loading Job context from persistence...");
       setRunningJobCollection(persistence.runningJobCollection);
       setFetchedJobCollections(persistence.fetchedJobCollections);
       setSelectedJobUids(persistence.selectedJobUids);
-      setLocalLoading(false);
-    } else if (
-      loading === false &&
-      (persistence === undefined ||
-        persistence?.launchingSampling === undefined)
-    ) {
-      // when this happens, the persistence is either broken or not yet initialized
-      console.warn(
-        "Persistence is not initialized or broken, resetting to defaults."
-      );
-      setRunningJobCollection(undefined);
-      setFetchedJobCollections([]);
-      setSelectedJobUids([]);
       setLocalLoading(false);
     }
   }, [loading]);
