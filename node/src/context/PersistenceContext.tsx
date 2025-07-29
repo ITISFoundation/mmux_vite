@@ -47,6 +47,27 @@ export const PersistenceContextProvider = ({ children }: Props) => {
   const [loading, setLoading] = useState(true);
   const [persistence, setPersistence] = useState<PersistenceType | undefined>(undefined);
 
+  // Validate persistence structure
+  const isValidPersistenceFile = (value: unknown): value is PersistenceType => {
+    const data = value as PersistenceType;
+    return (
+      data &&
+      typeof data === "object" &&
+      "currentView" in data &&
+      "numSamples" in data &&
+      "isSuMoGenerated" in data &&
+      "inputVars" in data &&
+      "outputVars" in data &&
+      "distribution" in data &&
+      "lhsSamplingConfig" in data &&
+      "gridSamplingConfig" in data &&
+      "singleJobConfig" in data &&
+      "fetchedJobCollections" in data &&
+      "selectedJobUids" in data &&
+      Object.keys(data).length <= Object.keys(defaultPersistence).length
+    );
+  };
+
   const getHeaders = (contentType = true): HeadersInit => {
     return contentType ? { "Content-Type": "application/json" } : {};
   };
@@ -174,7 +195,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
             "No persistence file found, initializing with empty state."
           );
           setPersistence(defaultPersistence);
-        } else if (Object.keys(persistenceFile).length < 11 && Object.keys(defaultPersistence).length > 16) {
+        } else if (isValidPersistenceFile(persistenceFile) === false) {
           console.warn(
             "Persistence file structure has changed, resetting to defaults.",
             Object.keys(persistenceFile).length,
