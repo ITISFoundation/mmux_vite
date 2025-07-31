@@ -214,7 +214,9 @@ export const PersistenceContextProvider = ({ children }: Props) => {
         toast.warn("Failed to fetch user state, contact support.");
       }
     };
-    fetchFile();
+    if (healthOK) {
+      fetchFile();
+    }
   }, [healthOK]);
 
   const memo = React.useMemo(
