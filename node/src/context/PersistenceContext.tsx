@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { PersistenceType } from "./types";
+import { fetchWithRetry } from '../utils/fetch_retry';
 
 interface PersistenceContextType {
   persistence: PersistenceType | undefined;
@@ -100,7 +101,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
   const getFile = async (
     filename: string
   ): Promise<PersistenceType | undefined> => {
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `/flask/text-file/${encodeURIComponent(filename)}`,
       {
         method: "GET",
