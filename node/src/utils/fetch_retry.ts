@@ -13,8 +13,8 @@ export const fetchWithRetry = async (url: string, options: RequestInit = {}, ret
         ErrorToRetry = error as Error; // Re-throw the error after all retries have failed
       }
     }
-    if( response && response.ok) {
-      return response; // If the response is successful, return it immediately
+    if( response && response.ok || response && response.status === 404 ) {
+      return response; // If the response is successful or not found, return it immediately
     }
 
     // Exponential backoff with jitter
