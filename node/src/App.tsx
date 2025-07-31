@@ -29,7 +29,7 @@ const App = () => {
   const [healthStatus, setHealthStatus] = useState<boolean>(false);
 
   const { currentView, steps } = useNavigationContext();
-  const { loading } = usePersistenceContext();
+  const { loading, setHealthOK } = usePersistenceContext();
   const { mode, systemMode, setMode } = useColorScheme();
   const finalMode = mode
     ? mode === "system"
@@ -54,6 +54,7 @@ const App = () => {
       console.info("Health status response:", responseHealth, result);
       if (result) {
         setHealthStatus(true);
+        setHealthOK(true);
       } else {
         setHealthStatus(false);
       }

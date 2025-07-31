@@ -10,6 +10,7 @@ interface PersistenceContextType {
   saveState: (state: PersistenceType) => Promise<void>;
   getFunctionValues: () => Partial<PersistenceType> | undefined;
   setFunctionValues: (values: Partial<PersistenceType>) => void;
+  setHealthOK: (status: boolean) => void;
   loading: boolean;
 }
 
@@ -46,6 +47,7 @@ const defaultPersistence: PersistenceType = {
 
 export const PersistenceContextProvider = ({ children }: Props) => {
   const [loading, setLoading] = useState(true);
+  const [healthOK, setHealthOK] = useState<boolean>(false);
   const [persistence, setPersistence] = useState<PersistenceType | undefined>(undefined);
 
   // Validate persistence structure
@@ -212,8 +214,10 @@ export const PersistenceContextProvider = ({ children }: Props) => {
         toast.warn("Failed to fetch user state, contact support.");
       }
     };
-    fetchFile();
-  }, []);
+    if (healthOK) {
+      fetchFile();
+    }
+  }, [healthOK]);
 
   const memo = React.useMemo(
     () => ({
@@ -221,9 +225,10 @@ export const PersistenceContextProvider = ({ children }: Props) => {
       saveState,
       getFunctionValues,
       setFunctionValues,
-      loading
+      loading,
+      setHealthOK
     }),
-    [persistence, loading, saveState, getFunctionValues, setFunctionValues]
+    [persistence, loading, saveState, getFunctionValues, setFunctionValues, setHealthOK]
   );
 
   return (
