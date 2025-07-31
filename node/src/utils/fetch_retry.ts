@@ -19,8 +19,8 @@ export const fetchWithRetry = async (url: string, options: RequestInit = {}, ret
 
     // Exponential backoff with jitter
     const exponentialWait = Math.min(baseWait * Math.pow(2, attempt), maxWait);
-    const jitter = Math.random() * exponentialWait;
-    await delay(jitter);
+    const jitter = Math.random() * (exponentialWait * 0.2);
+    await delay(exponentialWait + jitter);
   }
 
   // If we reach here, it means all retries failed
