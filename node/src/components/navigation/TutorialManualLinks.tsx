@@ -31,7 +31,7 @@ export function getTutorialLink(): React.ReactNode | undefined {
 export function getManualLink(): React.ReactNode {
   const check = checkSimplifiedHost();
   const simplifiedHost = getSimplifiedHost();
-  if (check === 'unknown') {
+  if (check === "unknown") {
     return <StyledHyperLink text="Manual" link={undefined} />;
   }
   // no specific manual for osparc, refer them to the sim4life manual as well
@@ -42,11 +42,11 @@ export function getManualLink(): React.ReactNode {
 type HelpType = "MMHeaderHelp" | "FunctionsHelp";
 
 export const HelpContents = ({ type }: { type: HelpType }) => {
-  const [hostType, setHostType] = useState<HostType>(checkSimplifiedHost());
-
+  const [hostType, setHostType] = useState<HostType|undefined>(undefined);
   const dismiss = (id: Id) => toast.dismiss({ containerId: id });
 
   useEffect(() => {
+    if (hostType === undefined) return;
     const isActive = toast.isActive("HostLinkWarning");
     if (hostType === "unknown" && isActive === false) {
       toast(
@@ -67,7 +67,6 @@ export const HelpContents = ({ type }: { type: HelpType }) => {
     }
   }, [hostType]);
 
-  // use a useEffect to fetch the links every minute
   useEffect(() => {
     setHostType(checkSimplifiedHost());
   }, []);
