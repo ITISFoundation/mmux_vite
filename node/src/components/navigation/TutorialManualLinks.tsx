@@ -42,14 +42,13 @@ export function getManualLink(): React.ReactNode {
 type HelpType = "MMHeaderHelp" | "FunctionsHelp";
 
 export const HelpContents = ({ type }: { type: HelpType }) => {
-  const [tutorialLink, setTutorialLink] = useState(getTutorialLink());
-  const [manualLink, setManualLink] = useState(getManualLink());
+  const [hostType, setHostType] = useState<HostType>(checkSimplifiedHost());
 
   const dismiss = (id: Id) => toast.dismiss({ containerId: id });
 
   useEffect(() => {
     const isActive = toast.isActive("HostLinkWarning");
-    if (tutorialLink === undefined && isActive === false) {
+    if (hostType === "unknown" && isActive === false) {
       toast(
         "Host could not be detected - links to Tutorials & Manuals will not work",
         {
@@ -63,29 +62,28 @@ export const HelpContents = ({ type }: { type: HelpType }) => {
         }
       );
     }
-    if (tutorialLink !== undefined && isActive === true) {
+    if (hostType !== "unknown" && isActive === true) {
       dismiss("HostLinkWarning");
     }
-  }, [tutorialLink]);
+  }, [hostType]);
 
   // use a useEffect to fetch the links every minute
   useEffect(() => {
-    setTutorialLink(getTutorialLink());
-    setManualLink(getManualLink());
+    setHostType(checkSimplifiedHost());
   }, []);
 
   if (type === "MMHeaderHelp") {
     return (
       <>
-        For more information, please see the {tutorialLink}
-        and the {manualLink}
+        For more information, please see the {getTutorialLink()}
+        and the {getManualLink()}
       </>
     );
   }
   if (type === "FunctionsHelp") {
     return (
       <>
-        You have no Functions registered. Please check the {tutorialLink}
+        You have no Functions registered. Please check the {getTutorialLink()}
         for guidance on how to create your first Function!
       </>
     );
