@@ -15,24 +15,23 @@ const checkSimplifiedHost = (): HostType => {
 };
 
 export function getTutorialLink(): React.ReactNode | undefined {
-  const simplifiedHost = checkSimplifiedHost();
+  const simplifiedHost = getSimplifiedHost();
+  const check = checkSimplifiedHost();
   let link: string | undefined;
-  if (simplifiedHost === "sim4life") {
+  if (check === "sim4life") {
     link = `https://manual.${simplifiedHost}/manual/Tutorials/MetaModeling/MetaModelingTutorials.html`;
-  } else if (simplifiedHost === "osparc") {
+  } else if (check === "osparc") {
     link = "https://docs.sparc.science/docs/tutorial-metamodeling-hypertools#/";
   } else {
-    link = undefined;
-  }
-  if (link === undefined) {
     return undefined;
   }
   return <StyledHyperLink text="Tutorials" link={link} />;
 }
 
 export function getManualLink(): React.ReactNode {
+  const check = checkSimplifiedHost();
   const simplifiedHost = getSimplifiedHost();
-  if (simplifiedHost === 'unknown') {
+  if (check === 'unknown') {
     return <StyledHyperLink text="Manual" link={undefined} />;
   }
   // no specific manual for osparc, refer them to the sim4life manual as well
