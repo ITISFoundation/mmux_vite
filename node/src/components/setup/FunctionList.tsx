@@ -18,7 +18,7 @@ import {
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,
 } from "../../osparc-api-ts-client";
-import { getTutorialLink } from "../navigation/TutorialManualLinks.tsx";
+import { HelpContents } from "../navigation/TutorialManualLinks.tsx";
 import { useFunctionContext } from "../../context/FunctionContext.tsx";
 import { useSamplingContext } from "../../context/SamplingContext.tsx";
 import { useJobContext } from "../../context/JobContext.tsx";
@@ -281,8 +281,7 @@ export function FunctionList() {
           display="inline"
           mr={1}
         >
-          You have no Functions registered.Please check the {getTutorialLink()}
-          for guidance on how to create your first Function!
+          <HelpContents type="FunctionsHelp" />
         </Typography>
       </Box>
     );

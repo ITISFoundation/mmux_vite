@@ -1,6 +1,6 @@
 import { Card } from "@mui/material";
 import Header from "./Header";
-import { getManualLink, getTutorialLink } from "./TutorialManualLinks";
+import { HelpContents } from "./TutorialManualLinks";
 
 export default function MetaModelingUX(props: MetaModelingUXProps) {
   const { children, tabTitle, infoText, ExtendedInfoText, headerType } = props;
@@ -12,12 +12,7 @@ export default function MetaModelingUX(props: MetaModelingUXProps) {
         infoText={infoText}
         ExtendedInfoText={ExtendedInfoText}
         headerType={headerType}
-        helpContents={
-          <>
-            For more information, please see the {getTutorialLink()}
-            and the {getManualLink()}
-          </>
-        }
+        helpContents={<HelpContents type="MMHeaderHelp" />}
       />
       {children}
     </Card>
