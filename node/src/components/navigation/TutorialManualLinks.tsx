@@ -32,6 +32,9 @@ export function getTutorialLink(): React.ReactNode | undefined {
 
 export function getManualLink(): React.ReactNode {
   const simplifiedHost = getSimplifiedHost();
+  if (simplifiedHost === 'unknown') {
+    return <StyledHyperLink text="Manual" link={undefined} />;
+  }
   // no specific manual for osparc, refer them to the sim4life manual as well
   const link = `https://manual.${simplifiedHost}/manual/Manual/MetaModeling/MetaModeling.html`;
   return <StyledHyperLink text="Manual" link={link} />;
@@ -64,15 +67,12 @@ export const HelpContents = ({ type }: { type: HelpType }) => {
     if (tutorialLink !== undefined && isActive === true) {
       dismiss("HostLinkWarning");
     }
-  }, [tutorialLink, manualLink]);
+  }, [tutorialLink]);
 
   // use a useEffect to fetch the links every minute
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTutorialLink(getTutorialLink());
-      setManualLink(getManualLink());
-    }, 60000);
-    return () => clearInterval(interval);
+    setTutorialLink(getTutorialLink());
+    setManualLink(getManualLink());
   }, []);
 
   if (type === "MMHeaderHelp") {
