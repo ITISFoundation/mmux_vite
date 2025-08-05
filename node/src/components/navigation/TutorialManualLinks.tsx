@@ -23,7 +23,7 @@ export function getTutorialLink(): React.ReactNode | undefined {
   } else if (check === "osparc") {
     link = "https://docs.sparc.science/docs/tutorial-metamodeling-hypertools#/";
   } else {
-    return undefined;
+    return <StyledHyperLink text="Tutorials" link={undefined} />;
   }
   return <StyledHyperLink text="Tutorials" link={link} />;
 }
