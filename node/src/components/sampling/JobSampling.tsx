@@ -36,7 +36,7 @@ export const JobSampling = (props: JobSamplingProps) => {
 
   return (
     <Accordion
-      expanded={jobPanelOpen}
+      expanded={jobPanelOpen && !loading}
       disableGutters
       variant="outlined"
       sx={{
