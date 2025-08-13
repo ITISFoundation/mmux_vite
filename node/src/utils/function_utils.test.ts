@@ -13,9 +13,6 @@ import {
   getFunctionJobsFromFunctionUid,
   getFunctionJobCollections,
   getFunctionJobsFromFunctionJobCollection,
-  getSimplifiedHost,
-  getDeploymentUrl,
-  openStudyUid,
 } from "./function_utils";
 import { FunctionJob } from "../osparc-api-ts-client";
 
@@ -80,11 +77,11 @@ describe("Function Utils", () => {
 
   it("should get health status", async () => {
     const mockResponse = { status: 200 };
-    global.fetch = vi.fn(() =>
+    vi.stubGlobal('fetch', vi.fn(() =>
       Promise.resolve({
         status: mockResponse.status,
       })
-    ) as unknown as typeof fetch;
+    ));
 
     const status = await getHealth();
     expect(status).toBe(200);
@@ -92,11 +89,11 @@ describe("Function Utils", () => {
 
   it("should get permissions", async () => {
     const mockResponse = { permissions: "read,write" };
-    global.fetch = vi.fn(() =>
+    vi.stubGlobal('fetch', vi.fn(() =>
       Promise.resolve({
         json: () => Promise.resolve(mockResponse),
       })
-    ) as unknown as typeof fetch;
+    ));
 
     const permissions = await getPermissions();
     expect(permissions).toBe(mockResponse.permissions);
@@ -104,11 +101,11 @@ describe("Function Utils", () => {
 
   it("should get service mode", async () => {
     const mockResponse = { service_mode: "production" };
-    global.fetch = vi.fn(() =>
+    vi.stubGlobal('fetch', vi.fn(() =>
       Promise.resolve({
         json: () => Promise.resolve(mockResponse),
       })
-    ) as unknown as typeof fetch;
+    ));
 
     const serviceMode = await getServiceMode();
     expect(serviceMode).toBe(mockResponse.service_mode);
@@ -116,11 +113,11 @@ describe("Function Utils", () => {
 
   it("should list functions", async () => {
     const mockFunctions = [{ uid: "func1" }, { uid: "func2" }];
-    global.fetch = vi.fn(() =>
+    vi.stubGlobal('fetch', vi.fn(() =>
       Promise.resolve({
         json: () => Promise.resolve(mockFunctions),
       })
-    ) as unknown as typeof fetch;
+    ));
 
     const functions = await listFunctions();
     expect(functions).toEqual(mockFunctions);
@@ -166,11 +163,11 @@ describe("Function Utils", () => {
 
   it("should get function jobs from function UID", async () => {
     const mockJobs = [{ uid: "job1" }, { uid: "job2" }];
-    global.fetch = vi.fn(() =>
+    vi.stubGlobal('fetch', vi.fn(() =>
       Promise.resolve({
         json: () => Promise.resolve(mockJobs),
       })
-    ) as unknown as typeof fetch;
+    ));
 
     const jobs = await getFunctionJobsFromFunctionUid("func1");
     expect(jobs).toEqual(mockJobs);
@@ -178,11 +175,11 @@ describe("Function Utils", () => {
 
   it("should get function job collections", async () => {
     const mockCollections = [{ uid: "collection1" }, { uid: "collection2" }];
-    global.fetch = vi.fn(() =>
+    vi.stubGlobal('fetch', vi.fn(() =>
       Promise.resolve({
         json: () => Promise.resolve(mockCollections),
       })
-    ) as unknown as typeof fetch;
+    ));
 
     const collections = await getFunctionJobCollections("func1");
     expect(collections).toEqual(mockCollections);
@@ -190,11 +187,11 @@ describe("Function Utils", () => {
 
   it("should get function jobs from a job collection", async () => {
     const mockJobs = [{ uid: "job1" }, { uid: "job2" }];
-    global.fetch = vi.fn(() =>
+    vi.stubGlobal('fetch', vi.fn(() =>
       Promise.resolve({
         json: () => Promise.resolve(mockJobs),
       })
-    ) as unknown as typeof fetch;
+    ));
 
     const jobs = await getFunctionJobsFromFunctionJobCollection("collection1");
     expect(jobs).toEqual(mockJobs);
