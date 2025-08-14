@@ -22,7 +22,6 @@ describe("CSV Functions", () => {
         );
       });
     const result: File = await pickCsv("path/to/file.csv");
-    console.log((await result.text()).toString());
     const data = await readCsvData(result);
     expect(spy).toHaveBeenCalled();
     expect(data).toBeDefined();
