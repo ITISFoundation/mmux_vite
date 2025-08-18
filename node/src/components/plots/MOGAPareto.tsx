@@ -8,9 +8,9 @@ import { useMMUXContext } from "../../context/MMUXContext";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { FunctionJob } from "../../osparc-api-ts-client";
-import MogaParetoTable from "./MogaParetoTable";
+import MogaParetoTable from "./MOGAParetoTable";
 
-export const MoGaPareto = (props: MogaParetoPropsType) => {
+export const MOGAPareto = (props: MogaParetoPropsType) => {
   const { loading, progress, jobProgress, colsFetched: _colsFetched, jobsFetched: _jobsFetched } = props;
   const theme = useTheme();
   const { selectedFunction: _selectedFunction, inputVars, distribution } = useFunctionContext();
@@ -23,16 +23,16 @@ export const MoGaPareto = (props: MogaParetoPropsType) => {
     const run = async () => {
       const jobs = filterSelectedJobList();
       if (jobs.length === 0) {
-        console.warn("No jobs selected for MoGa Pareto plot.");
+        console.warn("No jobs selected for MOGA Pareto plot.");
         return;
       }
       setPropagating(true);
       try {
-        console.info("Fetching MoGa Pareto data...");
+        console.info("Fetching MOGA Pareto data...");
         // Simulate fetching data
-        await runMoGa(jobs);
+        await runMOGA(jobs);
       } catch (error) {
-        console.error("Error fetching MoGa Pareto data:", error);
+        console.error("Error fetching MOGA Pareto data:", error);
       } finally {
         setPropagating(false);
       }
@@ -40,7 +40,7 @@ export const MoGaPareto = (props: MogaParetoPropsType) => {
     run();
   }, [filterSelectedJobList, selectedQoI, numSamples, inputVars, distribution]);
 
-  const runMoGa = async (_jobs: FunctionJob[]) => {
+  const runMOGA = async (_jobs: FunctionJob[]) => {
     setPropagating(true);
     // Simulate fetching data and processing it
     const data = await new Promise<Plotly.Data[]>(resolve => {

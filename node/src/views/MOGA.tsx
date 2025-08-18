@@ -5,9 +5,9 @@ import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { OutputSetup } from "./OutputSetup";
 import { JobSampling } from "../components/sampling/JobSampling";
 import { useFunctionContext } from "../context/FunctionContext";
-import { MoGaPareto } from "../components/plots/MoGaPareto";
+import { MOGAPareto } from "../components/plots/MOGAPareto";
 
-export default function MoGa() {
+export default function MOGA() {
   const { selectedFunction, outputVars } = useFunctionContext();
   const { setSelectedQoI } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
@@ -29,7 +29,7 @@ export default function MoGa() {
       tabTitle={`Multi Objective Genetic Algorithm: ${selectedFunction?.title}`}
     >
       <OutputSetup loading={loading} setSumoModal={setSumoModal} mode="moga" />
-      <MoGaPareto
+      <MOGAPareto
         colsFetched={colsFetched}
         jobProgress={jobProgress}
         jobsFetched={jobsFetched}
