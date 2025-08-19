@@ -22,8 +22,8 @@ from mmux_python.utils.funs_data_processing import (
     sanitize_varnames,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
-from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid
-
+from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid, perform_moga_optimization
+from mmux_python.utils.funs_plotting import plot_objective_space
 ### Logger configuration ####################################
 _logger = logging.getLogger(__name__)
 
@@ -376,7 +376,7 @@ def test_job_retrieval_paginated(function_uid: str):
     _timeit(_get_all_items, api_call=functions_api_instance.list_function_jobs_for_functionid, function_id=function_uid)  # type: ignore
 # test_job_retrieval_paginated(function_uid="eea21c0d-6c2b-4cf4-91d1-116e6550cb22")
 
-def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str, folder_name: str = "evaluate") -> Path:
+def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str | List[str], folder_name: str = "evaluate") -> Path:
     output_response_sanitized = sanitize_varnames(output_response)
     completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
@@ -389,8 +389,10 @@ def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[st
     def get_job_dict(job):
         d = {sanitize_varnames(key): job["inputs"][key] for key in input_vars}
         assert "outputs" in job.keys(), f"Outputs not in job: {job}"
-        assert output_response in job["outputs"].keys(), f"Output {output_response} not in job: {job}"
-        d[output_response_sanitized] = job["outputs"][output_response] # type: ignore
+        output_response_sanitized_list = [output_response_sanitized] if isinstance(output_response_sanitized, str) else output_response_sanitized
+        for res in output_response_sanitized_list:
+            assert res in job["outputs"].keys(), f"Output {res} not in job: {job}"
+            d[res] = job["outputs"][res] # type: ignore
         return d
     df_jobs = pd.DataFrame(
             [get_job_dict(job) for job in completed_jobs]
@@ -974,3 +976,80 @@ def get_file(filename):
         _logger.error(f"Error retrieving file {filename}: {e}")
         return jsonify({"error": str(e)}), 500
     
+@app.route("/flask/perform_moga_optimization")
+def flask_perform_moga_optimization():
+    _logger.debug("Starting flask function: flask/perform_moga_optimization")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+
+    try:
+        # Convert request data into a Python dictionary
+        request_data: dict = json.loads(request.data.decode("utf-8"))
+        input_vars: List[str] = request_data["inputs"]
+        output_responses = request_data["outputs"] ## TODO now this is diff (pass several)
+        output_responses = [output_responses] if isinstance(output_responses, str) else output_responses  # ensure it's a list
+        make_log = request_data.get("log", False)
+        jobs = request_data["FunctionJobs"]
+
+        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses)
+        run_dir = TRAINING_FILE.parent
+
+        PROCESSED_TRAINING_FILE = process_input_file(
+            TRAINING_FILE,
+            make_log=make_log,
+            columns_to_keep=input_vars + output_responses, # type: ignore
+        )
+
+    const data = await new Promise<Plotly.Data[]>(resolve => {
+      setTimeout(() => {
+        resolve([
+          {
+            name: "Pareto Front",
+            x: [9, 10, 12, 13, 14, 16],
+            y: [30, 23, 19, 13, 9, 6],
+            mode: "lines",
+            type: "scatter",
+            marker: { color: "green", size: 10 },
+          },
+          {
+            name: "Data Points",
+            x: [9, 10, 12, 13, 14, 16, 10, 11, 12, 13, 14, 15, 16],
+            y: [30, 23, 19, 13, 9, 6, 33, 31, 28, 24, 25, 21, 19],
+            mode: "markers",
+            type: "scatter",
+            marker: { color: "lightblue", size: 10 },
+          },
+        ]);
+      }, 1000);
+    });
+    setPlotData(data);
+
+
+        results, non_dominated_indices = perform_moga_optimization(
+            run_dir,
+            PROCESSED_TRAINING_FILE,
+            input_vars,
+            output_responses, # type: ignore
+        )
+
+        ## TODO temporary, remove after testing & implementation of frontend plot
+        results_df = pd.DataFrame(results, columns=input_vars+output_responses)
+        import matplotlib.pyplot as plt
+        ax = plt.subplots(figsize=(10, 10))[1]
+        plot_objective_space(
+            results_df,
+            ax=ax,
+            non_dominated_indices=non_dominated_indices,
+            xvar=input_vars[0],
+            yvar=input_vars[1],
+            title="Sampled Objective Space",
+            facecolors="none",
+            scattersize=30,
+            savedir=run_dir,
+            savefmt="png",
+        )
+
+        _logger.debug("Done!!")
+        return jsonify({"results": results, "non_dominated_indices": non_dominated_indices})
+    except Exception as e:
+        _logger.error(f"Error while performing MOGA optimization: {e}")
+        abort(make_response(jsonify({"error": str(e)}), 500))

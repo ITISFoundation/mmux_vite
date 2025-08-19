@@ -9,6 +9,8 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import MogaParetoTable from "./MOGAParetoTable";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
+import { fetchWithRetry } from "../../utils/fetch_retry";
 
 export const MOGAPareto = (props: MogaParetoPropsType) => {
   const { loading, progress, jobProgress, colsFetched: _colsFetched, jobsFetched: _jobsFetched } = props;
@@ -40,39 +42,59 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
     run();
   }, [filterSelectedJobList, selectedQoI, numSamples, inputVars, distribution]);
 
-  const runMOGA = async (_jobs: FunctionJob[]) => {
-    setPropagating(true);
-    // Simulate fetching data and processing it
-    const data = await new Promise<Plotly.Data[]>(resolve => {
-      setTimeout(() => {
-        resolve([
-          {
-            name: "Pareto Front",
-            x: [9, 10, 12, 13, 14, 16],
-            y: [30, 23, 19, 13, 9, 6],
-            mode: "lines",
-            type: "scatter",
-            marker: { color: "green", size: 10 },
-          },
-          {
-            name: "Data Points",
-            x: [9, 10, 12, 13, 14, 16, 10, 11, 12, 13, 14, 15, 16],
-            y: [30, 23, 19, 13, 9, 6, 33, 31, 28, 24, 25, 21, 19],
-            mode: "markers",
-            type: "scatter",
-            marker: { color: "lightblue", size: 10 },
-          },
-        ]);
-      }, 1000);
-    });
-    setPlotData(data);
+  const runMOGA = async (jobs: FunctionJob[]) => {
+    console.info("Propagating UQ...");
+    console.info("SelectedQoI: ", selectedQoI);
+    const response = await fetchWithRetry(
+      PYTHON_DAKOTA_BACKEND +
+      "/flask/perform_moga_optimization",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          inputVars: inputVars,
+          outputs: inputVars, // TODO implement way to select min, max, or none
+          FunctionJobs: jobs,
+        }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Error in MOGA response: ${response.status}, ${response.statusText}`
+      );
+    }
+
+    interface MogaResponse {
+      results: { [key: string]: number[] };
+      non_dominated_indices: number[];
+    }
+    const { results, non_dominated_indices } = await response.json() as MogaResponse;
+
+    const newPlotData: Plotly.Data[] = [
+      {
+        name: "MOGA Samples",
+        x: results[inputVars[0]],
+        y: results[inputVars[1]],
+        mode: "lines",
+        type: "scatter",
+        marker: { color: "green", size: 10 },
+      },
+      {
+        name: "Pareto Samples",
+        x: non_dominated_indices.map(i => results[inputVars[0]][i]),
+        y: non_dominated_indices.map(i => results[inputVars[1]][i]),
+        mode: "markers",
+        type: "scatter",
+        marker: { color: "lightblue", size: 10 },
+      }
+    ];
+    setPlotData(newPlotData);
     setPropagating(false);
   };
 
   const layout = {
     title: { text: "Pareto Front Diagram" },
-    xaxis: { title: { text: "LongVar2" } },
-    yaxis: { title: { text: "LongVar1" } },
+    xaxis: { title: { text: inputVars[0] } },
+    yaxis: { title: { text: inputVars[1] } },
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
@@ -114,6 +136,7 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
         <>
           <Plot data={plotData} layout={layout} style={plotStyle} />
           <MogaParetoTable />
+          {/* TODO still need to implement real data in there */}
         </>
       )}
     </Box>
