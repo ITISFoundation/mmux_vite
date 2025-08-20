@@ -7,6 +7,7 @@ DOCKER_IMAGE_TAG := 1.4.6
 FLASKAPI_DIR := ./flaskapi
 VENV_DIR := $(FLASKAPI_DIR)/.venv
 MMUX_PYTHON_DIR := $(FLASKAPI_DIR)/mmux_python
+MMUX_PYTHON_COMMIT := 49a1a645140ee73859c491736fcea15dc130ca53
 #
 NODE_DIR := ./node
 
@@ -23,6 +24,7 @@ start-frontend:
 install-mmux-python:
 	apt install python3.11 python3.11-venv # install python venv
 	git clone https://github.com/ITISFoundation/mmux_python $(MMUX_PYTHON_DIR)
+	cd $(MMUX_PYTHON_DIR) && git checkout $(MMUX_PYTHON_COMMIT)
 	python3.11 -m venv $(VENV_DIR)
 	$(VENV_DIR)/bin/python -m pip install flask python-dotenv
 	$(VENV_DIR)/bin/python -m pip install -r $(MMUX_PYTHON_DIR)/requirements.txt
