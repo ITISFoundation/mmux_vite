@@ -4,17 +4,17 @@ from pathlib import Path
 import json
 import logging
 from typing import List, Dict, Callable, NamedTuple, Final
-import numpy as np
-import pandas as pd
-from flask import Flask, request, abort, jsonify, make_response
-from osparc import Configuration as OsparcConfiguration
-from osparc import ApiClient, UsersApi, StudiesApi
-from osparc_client.api.functions_api import FunctionsApi
-from osparc_client.api.function_jobs_api import FunctionJobsApi
-from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi
-from osparc_client.models.function_job import FunctionJob
-from osparc_client.models.function_job_status import FunctionJobStatus
-from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost
+import numpy as np # type: ignore
+import pandas as pd # type: ignore
+from flask import Flask, request, abort, jsonify, make_response # type: ignore
+from osparc import Configuration as OsparcConfiguration # type: ignore
+from osparc import ApiClient, UsersApi, StudiesApi # type: ignore
+from osparc_client.api.functions_api import FunctionsApi # type: ignore
+from osparc_client.api.function_jobs_api import FunctionJobsApi # type: ignore
+from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi # type: ignore
+from osparc_client.models.function_job import FunctionJob # type: ignore
+from osparc_client.models.function_job_status import FunctionJobStatus # type: ignore
+from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost # type: ignore
 
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
@@ -579,7 +579,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         assert output_response + "_std_hat" in results, f"Cannot perform uncertainty of UQ if there is no prediction of the uncertainty"
         
         ## TODO change by normal (gaussian) sampling
-        from scipy.special import erfinv
+        from scipy.special import erfinv # type: ignore
         all_results = np.empty(shape=(n_histograms, num_samples), dtype=float) # create an empty array to store the results
         for i in range(n_histograms):
             r = erfinv(np.random.uniform(-1, 1, size=num_samples)) # generate random samples from an uniform distribution
