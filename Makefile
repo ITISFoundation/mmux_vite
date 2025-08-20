@@ -20,6 +20,8 @@ start-frontend:
 	cd ${NODE_DIR} && npm run dev
 
 ## Python Backend
+## NB for making & saving edits inside the mmux_python folder, you might need to run
+## sudo chown -R youruser:youruser ./flaskapi/mmux_python/
 install-mmux-python:
 	apt install python3.11 python3.11-venv # install python venv
 	git clone https://github.com/ITISFoundation/mmux_python $(MMUX_PYTHON_DIR)

@@ -999,31 +999,6 @@ def flask_perform_moga_optimization():
             columns_to_keep=input_vars + output_responses, # type: ignore
         )
 
-    const data = await new Promise<Plotly.Data[]>(resolve => {
-      setTimeout(() => {
-        resolve([
-          {
-            name: "Pareto Front",
-            x: [9, 10, 12, 13, 14, 16],
-            y: [30, 23, 19, 13, 9, 6],
-            mode: "lines",
-            type: "scatter",
-            marker: { color: "green", size: 10 },
-          },
-          {
-            name: "Data Points",
-            x: [9, 10, 12, 13, 14, 16, 10, 11, 12, 13, 14, 15, 16],
-            y: [30, 23, 19, 13, 9, 6, 33, 31, 28, 24, 25, 21, 19],
-            mode: "markers",
-            type: "scatter",
-            marker: { color: "lightblue", size: 10 },
-          },
-        ]);
-      }, 1000);
-    });
-    setPlotData(data);
-
-
         results, non_dominated_indices = perform_moga_optimization(
             run_dir,
             PROCESSED_TRAINING_FILE,
