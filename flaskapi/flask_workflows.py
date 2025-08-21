@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import json
 import logging
-from typing import List, Dict, Callable, NamedTuple, Final
+from typing import List, Dict, Callable, NamedTuple, Final, Optional
 import numpy as np # type: ignore
 import pandas as pd # type: ignore
 from flask import Flask, request, abort, jsonify, make_response # type: ignore
@@ -99,16 +99,18 @@ configuration = OsparcConfiguration(
         username=os.environ["OSPARC_API_KEY"],
         password=os.environ["OSPARC_API_SECRET"],
 )
-def _anonymize(s, n=4):
+def _anonymize(s: str, n: int=4, m: Optional[int]=None):
     if not s:
         return ""
-    return s[:n] + "*" * (len(s) - n)
+    if m is None:
+        m = len(s) - n
+    return s[:n] + "*" * m
 
 _logger.info(
     "Detected osparc_client configuration: host=%s, username=%s, password=%s",
     configuration.host,
-    _anonymize(configuration.username),
-    _anonymize(configuration.password)
+    _anonymize(configuration.username, 4, 6),
+    _anonymize(configuration.password, 4, 6)
 )
 
 api_client = ApiClient(configuration)
