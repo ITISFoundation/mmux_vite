@@ -27,7 +27,7 @@ const Consumer = () => {
     <div>
       <span data-testid="selectedFunction">{ctx.selectedFunction?.title}</span>
       <span data-testid="inputVars">{ctx.inputVars.join(",")}</span>
-      <span data-testid="outputVars">{ctx.outputVars?.join(",")}</span>
+      <span data-testid="outputVars">{ctx.outputVars.join(",")}</span>
       <span data-testid="distribution">
         {Object.keys(ctx.distribution).join(",")}
       </span>
@@ -79,7 +79,7 @@ describe("FunctionContextProvider", () => {
   });
 
   it("throws error if used outside provider", () => {
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const spy = vi.spyOn(console, "error").mockImplementation(() => { });
     const BrokenConsumer = () => {
       useFunctionContext();
       return null;
