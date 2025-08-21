@@ -11,15 +11,19 @@ import { FunctionJob } from "../../osparc-api-ts-client";
 import MogaParetoTable from "./MOGAParetoTable";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
+import { Result } from "postcss";
 
 export const MOGAPareto = (props: MogaParetoPropsType) => {
   const { loading, progress, jobProgress, colsFetched: _colsFetched, jobsFetched: _jobsFetched } = props;
   const theme = useTheme();
-  const { selectedFunction: _selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, outputVars, distribution } = useFunctionContext();
   const { numSamples, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
+
+  const minimize_var_1 = outputVars[7] // isop50
+  const minimize_var_2 = outputVars[11] // shannon50
 
   useEffect(() => {
     const run = async () => {
@@ -31,7 +35,6 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
       setPropagating(true);
       try {
         console.info("Fetching MOGA Pareto data...");
-        // Simulate fetching data
         await runMOGA(jobs);
       } catch (error) {
         console.error("Error fetching MOGA Pareto data:", error);
@@ -40,11 +43,10 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
       }
     };
     run();
-  }, [filterSelectedJobList, selectedQoI, numSamples, inputVars, distribution]);
+  }, [filterSelectedJobList, selectedQoI, numSamples, inputVars, outputVars, distribution]);
 
   const runMOGA = async (jobs: FunctionJob[]) => {
-    console.info("Propagating UQ...");
-    console.info("SelectedQoI: ", selectedQoI);
+    console.info("Running MOGA...");
     const response = await fetchWithRetry(
       PYTHON_DAKOTA_BACKEND +
       "/flask/perform_moga_optimization",
@@ -52,7 +54,8 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
         method: "POST",
         body: JSON.stringify({
           inputVars: inputVars,
-          outputs: inputVars, // TODO implement way to select min, max, or none
+          outputVars: [minimize_var_1, minimize_var_2], // TODO implement way to select min, max, or none
+          distributions: distribution[selectedFunction?.uid || ""],
           FunctionJobs: jobs,
         }),
       }
@@ -63,29 +66,27 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
       );
     }
 
-    interface MogaResponse {
-      results: { [key: string]: number[] };
-      non_dominated_indices: number[];
-    }
-    const { results, non_dominated_indices } = await response.json() as MogaResponse;
+    const results: { [key: string]: number[] } = await response.json()
+    console.log("results MOGA: ", results)
 
     const newPlotData: Plotly.Data[] = [
       {
         name: "MOGA Samples",
-        x: results[inputVars[0]],
-        y: results[inputVars[1]],
-        mode: "lines",
+        x: results[minimize_var_1],
+        y: results[minimize_var_2],
+        mode: "markers",
         type: "scatter",
-        marker: { color: "green", size: 10 },
+        marker: { color: "green", size: 3 },
       },
       {
         name: "Pareto Samples",
-        x: non_dominated_indices.map(i => results[inputVars[0]][i]),
-        y: non_dominated_indices.map(i => results[inputVars[1]][i]),
-        mode: "markers",
+        x: results["non_dominated_indices"].map(i => results[minimize_var_1][i]),
+        y: results["non_dominated_indices"].map(i => results[minimize_var_2][i]),
+        mode: "lines",
         type: "scatter",
         marker: { color: "lightblue", size: 10 },
       }
+      // TODO add the true sample points (jobs) for comparison
     ];
     setPlotData(newPlotData);
     setPropagating(false);
@@ -93,8 +94,8 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
 
   const layout = {
     title: { text: "Pareto Front Diagram" },
-    xaxis: { title: { text: inputVars[0] } },
-    yaxis: { title: { text: inputVars[1] } },
+    xaxis: { title: { text: minimize_var_1 } },
+    yaxis: { title: { text: minimize_var_2 } },
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },

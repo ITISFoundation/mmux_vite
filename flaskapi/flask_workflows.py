@@ -24,6 +24,7 @@ from mmux_python.utils.funs_data_processing import (
 from mmux_python.utils.funs_evaluate import create_run_dir
 from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid, perform_moga_optimization
 from mmux_python.utils.funs_plotting import plot_objective_space
+
 ### Logger configuration ####################################
 _logger = logging.getLogger(__name__)
 
@@ -98,10 +99,16 @@ configuration = OsparcConfiguration(
         username=os.environ["OSPARC_API_KEY"],
         password=os.environ["OSPARC_API_SECRET"],
 )
-_logger.info("Detected osparc_client configuration: host=%s, username=%s, password=%s",
+def _anonymize(s, n=4):
+    if not s:
+        return ""
+    return s[:n] + "*" * (len(s) - n)
+
+_logger.info(
+    "Detected osparc_client configuration: host=%s, username=%s, password=%s",
     configuration.host,
-    configuration.username,
-    configuration.password
+    _anonymize(configuration.username),
+    _anonymize(configuration.password)
 )
 
 api_client = ApiClient(configuration)
@@ -512,6 +519,7 @@ def flask_manual_uq_propagation():
         _logger.debug("Done!!")
         # return jsonify(results) 
         return jsonify(results[output_response+"_hat"]) # for compatibility w normal dakota UQ
+    
     except Exception as e:
         _logger.error(f"Error during manual UQ propagation: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
@@ -976,7 +984,7 @@ def get_file(filename):
         _logger.error(f"Error retrieving file {filename}: {e}")
         return jsonify({"error": str(e)}), 500
     
-@app.route("/flask/perform_moga_optimization")
+@app.route("/flask/perform_moga_optimization", methods=["POST"])
 def flask_perform_moga_optimization():
     _logger.debug("Starting flask function: flask/perform_moga_optimization")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -984,30 +992,46 @@ def flask_perform_moga_optimization():
     try:
         # Convert request data into a Python dictionary
         request_data: dict = json.loads(request.data.decode("utf-8"))
-        input_vars: List[str] = request_data["inputs"]
-        output_responses = request_data["outputs"] ## TODO now this is diff (pass several)
+        input_vars: List[str] = request_data["inputVars"]
+        output_responses = request_data["outputVars"] ## TODO now this is diff (pass several)
         output_responses = [output_responses] if isinstance(output_responses, str) else output_responses  # ensure it's a list
+        distributions: Dict[str, Dict[str, float]] = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
         make_log = request_data.get("log", False)
         jobs = request_data["FunctionJobs"]
 
-        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses)
+        distributions_sanitized = sanitize_varnames(distributions)
+        input_vars_sanitized = sanitize_varnames(input_vars)
+        output_responses_sanitized = sanitize_varnames(output_responses)
+
+        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses, folder_name="moga")
         run_dir = TRAINING_FILE.parent
 
         PROCESSED_TRAINING_FILE = process_input_file(
             TRAINING_FILE,
             make_log=make_log,
-            columns_to_keep=input_vars + output_responses, # type: ignore
+            columns_to_keep=input_vars_sanitized + output_responses_sanitized, # type: ignore
         )
 
-        results, non_dominated_indices = perform_moga_optimization(
+        results_sanitized = perform_moga_optimization(
             run_dir,
             PROCESSED_TRAINING_FILE,
-            input_vars,
-            output_responses, # type: ignore
+            input_vars_sanitized,
+            distributions_sanitized,
+            output_responses_sanitized,
+            moga_kwargs={"max_function_evaluations": 1000},
         )
+        print("results sanitized: ", results_sanitized)
+        ## need to check this works
+        results = {
+            key.replace(output_response_sanitized, output_response): val for key, val in results_sanitized.items()
+            for output_response_sanitized, output_response in zip(output_responses_sanitized, output_responses)
+            }
+        print("results: ", results)
+
 
         ## TODO temporary, remove after testing & implementation of frontend plot
-        results_df = pd.DataFrame(results, columns=input_vars+output_responses)
+        results_df = pd.DataFrame(results_sanitized, columns=input_vars+output_responses)
+        non_dominated_indices: List[int] = results_sanitized["non_dominated_indices"] # type: ignore
         import matplotlib.pyplot as plt
         ax = plt.subplots(figsize=(10, 10))[1]
         plot_objective_space(
@@ -1024,7 +1048,8 @@ def flask_perform_moga_optimization():
         )
 
         _logger.debug("Done!!")
-        return jsonify({"results": results, "non_dominated_indices": non_dominated_indices})
+        return jsonify(results)
+    
     except Exception as e:
         _logger.error(f"Error while performing MOGA optimization: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
