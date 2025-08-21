@@ -11,7 +11,7 @@ import { FunctionJob } from "../../osparc-api-ts-client";
 import MogaParetoTable from "./MOGAParetoTable";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
-import { Result } from "postcss";
+import { aggregateOutputValues } from "../../utils/function_utils";
 
 export const MOGAPareto = (props: MogaParetoPropsType) => {
   const { loading, progress, jobProgress, colsFetched: _colsFetched, jobsFetched: _jobsFetched } = props;
@@ -67,16 +67,24 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
     }
 
     const results: { [key: string]: number[] } = await response.json()
-    console.log("results MOGA: ", results)
+    const outputValues = aggregateOutputValues(jobs)
 
     const newPlotData: Plotly.Data[] = [
+      {
+        name: "Original Samples",
+        x: outputValues[minimize_var_1],
+        y: outputValues[minimize_var_2],
+        mode: "markers",
+        type: "scatter",
+        marker: { color: "rgb(41, 146, 221)", size: 4, symbol: "x" },
+      },
       {
         name: "MOGA Samples",
         x: results[minimize_var_1],
         y: results[minimize_var_2],
         mode: "markers",
         type: "scatter",
-        marker: { color: "green", size: 3 },
+        marker: { color: "rgb(255, 127, 14)", size: 2 },
       },
       {
         name: "Pareto Samples",
