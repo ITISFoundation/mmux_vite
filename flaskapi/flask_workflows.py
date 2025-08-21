@@ -1020,36 +1020,15 @@ def flask_perform_moga_optimization():
             output_responses_sanitized,
             moga_kwargs={"max_function_evaluations": 1000},
         )
-        print("results sanitized: ", results_sanitized)
-        ## need to check this works
+
         results = {
             key.replace(output_response_sanitized, output_response): val for key, val in results_sanitized.items()
             for output_response_sanitized, output_response in zip(output_responses_sanitized, output_responses)
             }
-        print("results: ", results)
-
-
-        ## TODO temporary, remove after testing & implementation of frontend plot
-        results_df = pd.DataFrame(results_sanitized, columns=input_vars+output_responses)
-        non_dominated_indices: List[int] = results_sanitized["non_dominated_indices"] # type: ignore
-        import matplotlib.pyplot as plt
-        ax = plt.subplots(figsize=(10, 10))[1]
-        plot_objective_space(
-            results_df,
-            ax=ax,
-            non_dominated_indices=non_dominated_indices,
-            xvar=input_vars[0],
-            yvar=input_vars[1],
-            title="Sampled Objective Space",
-            facecolors="none",
-            scattersize=30,
-            savedir=run_dir,
-            savefmt="png",
-        )
 
         _logger.debug("Done!!")
         return jsonify(results)
     
     except Exception as e:
         _logger.error(f"Error while performing MOGA optimization: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
+        abort(make_response(jsonify({"error": str(e)}), 500)) 
