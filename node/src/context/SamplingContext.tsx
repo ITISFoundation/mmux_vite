@@ -1,7 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { toast } from "react-toastify";
 import { usePersistenceContext } from "./PersistenceContext";
+import { useFunctionContext } from "./FunctionContext"
 import { PersistenceType } from "./types";
 
 export interface SamplingContextType {
@@ -36,6 +38,7 @@ const defaultSingleJobConfig: SingleJobConfig[] = [];
 
 export const SamplingContextProvider = ({ children }: Props) => {
   const { persistence, saveState, loading } = usePersistenceContext();
+  const { selectedFunction } = useFunctionContext();
   const [ localLoading, setLocalLoading ] = useState(true);
   const [launchingSampling, setLaunchingSampling] = useState<boolean>(false);
   const [runningSampling, setRunningSampling] = useState<boolean>(false);
@@ -82,6 +85,15 @@ export const SamplingContextProvider = ({ children }: Props) => {
       return;
     }
   }, [loading]);
+
+    useEffect(() => {
+    console.info("Reloading job collections after functions run");
+    if (selectedFunction !== undefined && launchingSampling === false && runningSampling === true) {
+      (async () => {
+        toast.success("Sampling started running successfully, please wait for completion.");
+      })();
+    }
+  }, [selectedFunction, launchingSampling, runningSampling]);
 
   const memo = React.useMemo(
     () => ({
