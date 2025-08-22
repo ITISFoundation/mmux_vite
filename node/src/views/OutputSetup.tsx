@@ -159,6 +159,11 @@ export const OutputSetup = (props: UQSetupProps) => {
               type="number"
               variant="outlined"
               size="small"
+              InputProps={{
+                inputProps: {
+                  min: 1,
+                },
+              }}
               sx={{ flex: 1 }}
               value={localNumSamples}
               onChange={(e) =>
