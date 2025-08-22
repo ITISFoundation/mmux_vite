@@ -14,7 +14,7 @@ on:
       - reopened
 
 jobs:
-  nodejstest:
+  node-tests:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -36,6 +36,7 @@ jobs:
     - name: Run tests
       run: npm test
   verify-image-build:
+    needs: node-tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo content
