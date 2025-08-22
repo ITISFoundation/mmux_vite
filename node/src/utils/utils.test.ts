@@ -165,7 +165,7 @@ describe("stepValidator", () => {
       setInputVars: (_vars: string[]): void => {
         throw new Error("Function not implemented.");
       },
-      outputVars: undefined,
+      outputVars: [],
       setOutputVars: (_vars: string[]): void => {
         throw new Error("Function not implemented.");
       },

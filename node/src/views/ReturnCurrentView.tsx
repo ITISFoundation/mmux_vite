@@ -1,7 +1,7 @@
 import Setup from "./Setup";
 import UQ from "./UQ";
 import SuMo from "./SuMo";
-import MoGa from "./MoGa";
+import MOGA from "./MOGA";
 import { useServiceContext } from "../context/ServiceContext";
 import { DisplayMessage } from "../components/utils/DisplayMessage";
 
@@ -28,7 +28,7 @@ export const ReturnCurrentView = (props: ReturnCurrentViewPropsType) => {
       {currentView === 0 && <Setup />}
       {currentView === 1 && serviceMode === "UQ" && <UQ />}
       {currentView === 1 && serviceMode === "SUMO" && <SuMo />}
-      {currentView === 1 && serviceMode === "MOGA" && <MoGa />}
+      {currentView === 1 && serviceMode === "MOGA" && <MOGA />}
       {currentView === 1 && validMode === false && <MessageComponent />}
     </>
   );

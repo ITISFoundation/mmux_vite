@@ -3,18 +3,18 @@ import os
 from pathlib import Path
 import json
 import logging
-from typing import List, Dict, Callable, NamedTuple, Final
-import numpy as np
-import pandas as pd
-from flask import Flask, request, abort, jsonify, make_response
-from osparc import Configuration as OsparcConfiguration
-from osparc import ApiClient, UsersApi, StudiesApi
-from osparc_client.api.functions_api import FunctionsApi
-from osparc_client.api.function_jobs_api import FunctionJobsApi
-from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi
-from osparc_client.models.function_job import FunctionJob
-from osparc_client.models.function_job_status import FunctionJobStatus
-from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost
+from typing import List, Dict, Callable, NamedTuple, Final, Optional
+import numpy as np # type: ignore
+import pandas as pd # type: ignore
+from flask import Flask, request, abort, jsonify, make_response # type: ignore
+from osparc import Configuration as OsparcConfiguration # type: ignore
+from osparc import ApiClient, UsersApi, StudiesApi # type: ignore
+from osparc_client.api.functions_api import FunctionsApi # type: ignore
+from osparc_client.api.function_jobs_api import FunctionJobsApi # type: ignore
+from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi # type: ignore
+from osparc_client.models.function_job import FunctionJob # type: ignore
+from osparc_client.models.function_job_status import FunctionJobStatus # type: ignore
+from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost # type: ignore
 
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
@@ -22,7 +22,8 @@ from mmux_python.utils.funs_data_processing import (
     sanitize_varnames,
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
-from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, propagate_uq, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid
+from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid, perform_moga_optimization
+from mmux_python.utils.funs_plotting import plot_objective_space
 
 ### Logger configuration ####################################
 _logger = logging.getLogger(__name__)
@@ -98,10 +99,18 @@ configuration = OsparcConfiguration(
         username=os.environ["OSPARC_API_KEY"],
         password=os.environ["OSPARC_API_SECRET"],
 )
-_logger.info("Detected osparc_client configuration: host=%s, username=%s, password=%s",
+def _anonymize(s: str, n: int=4, m: Optional[int]=None):
+    if not s:
+        return ""
+    if m is None:
+        m = len(s) - n
+    return s[:n] + "*" * m
+
+_logger.info(
+    "Detected osparc_client configuration: host=%s, username=%s, password=%s",
     configuration.host,
-    configuration.username,
-    configuration.password
+    _anonymize(configuration.username, 4, 6),
+    _anonymize(configuration.password, 4, 6)
 )
 
 api_client = ApiClient(configuration)
@@ -376,7 +385,7 @@ def test_job_retrieval_paginated(function_uid: str):
     _timeit(_get_all_items, api_call=functions_api_instance.list_function_jobs_for_functionid, function_id=function_uid)  # type: ignore
 # test_job_retrieval_paginated(function_uid="eea21c0d-6c2b-4cf4-91d1-116e6550cb22")
 
-def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str, folder_name: str = "evaluate") -> Path:
+def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str | List[str], folder_name: str = "evaluate") -> Path:
     output_response_sanitized = sanitize_varnames(output_response)
     completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
@@ -389,8 +398,10 @@ def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[st
     def get_job_dict(job):
         d = {sanitize_varnames(key): job["inputs"][key] for key in input_vars}
         assert "outputs" in job.keys(), f"Outputs not in job: {job}"
-        assert output_response in job["outputs"].keys(), f"Output {output_response} not in job: {job}"
-        d[output_response_sanitized] = job["outputs"][output_response] # type: ignore
+        output_response_sanitized_list = [output_response_sanitized] if isinstance(output_response_sanitized, str) else output_response_sanitized
+        for res in output_response_sanitized_list:
+            assert res in job["outputs"].keys(), f"Output {res} not in job: {job}"
+            d[res] = job["outputs"][res] # type: ignore
         return d
     df_jobs = pd.DataFrame(
             [get_job_dict(job) for job in completed_jobs]
@@ -510,6 +521,7 @@ def flask_manual_uq_propagation():
         _logger.debug("Done!!")
         # return jsonify(results) 
         return jsonify(results[output_response+"_hat"]) # for compatibility w normal dakota UQ
+    
     except Exception as e:
         _logger.error(f"Error during manual UQ propagation: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
@@ -577,7 +589,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         assert output_response + "_std_hat" in results, f"Cannot perform uncertainty of UQ if there is no prediction of the uncertainty"
         
         ## TODO change by normal (gaussian) sampling
-        from scipy.special import erfinv
+        from scipy.special import erfinv # type: ignore
         all_results = np.empty(shape=(n_histograms, num_samples), dtype=float) # create an empty array to store the results
         for i in range(n_histograms):
             r = erfinv(np.random.uniform(-1, 1, size=num_samples)) # generate random samples from an uniform distribution
@@ -974,3 +986,51 @@ def get_file(filename):
         _logger.error(f"Error retrieving file {filename}: {e}")
         return jsonify({"error": str(e)}), 500
     
+@app.route("/flask/perform_moga_optimization", methods=["POST"])
+def flask_perform_moga_optimization():
+    _logger.debug("Starting flask function: flask/perform_moga_optimization")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+
+    try:
+        # Convert request data into a Python dictionary
+        request_data: dict = json.loads(request.data.decode("utf-8"))
+        input_vars: List[str] = request_data["inputVars"]
+        output_responses = request_data["outputVars"] ## TODO now this is diff (pass several)
+        output_responses = [output_responses] if isinstance(output_responses, str) else output_responses  # ensure it's a list
+        distributions: Dict[str, Dict[str, float]] = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
+        make_log = request_data.get("log", False)
+        jobs = request_data["FunctionJobs"]
+
+        distributions_sanitized = sanitize_varnames(distributions)
+        input_vars_sanitized = sanitize_varnames(input_vars)
+        output_responses_sanitized = sanitize_varnames(output_responses)
+
+        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses, folder_name="moga")
+        run_dir = TRAINING_FILE.parent
+
+        PROCESSED_TRAINING_FILE = process_input_file(
+            TRAINING_FILE,
+            make_log=make_log,
+            columns_to_keep=input_vars_sanitized + output_responses_sanitized, # type: ignore
+        )
+
+        results_sanitized = perform_moga_optimization(
+            run_dir,
+            PROCESSED_TRAINING_FILE,
+            input_vars_sanitized,
+            distributions_sanitized,
+            output_responses_sanitized,
+            moga_kwargs={"max_function_evaluations": 1000},
+        )
+
+        results = {
+            key.replace(output_response_sanitized, output_response): val for key, val in results_sanitized.items()
+            for output_response_sanitized, output_response in zip(output_responses_sanitized, output_responses)
+            }
+
+        _logger.debug("Done!!")
+        return jsonify(results)
+    
+    except Exception as e:
+        _logger.error(f"Error while performing MOGA optimization: {e}")
+        abort(make_response(jsonify({"error": str(e)}), 500)) 
