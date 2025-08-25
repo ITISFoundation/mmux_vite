@@ -380,16 +380,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   }, [selectedFunction]);
 
   useEffect(() => {
-    console.info("Reloading job collections after functions run");
-    if (
-      selectedFunction !== undefined &&
-      launchingSampling === false &&
-      runningSampling === true
-    ) {
+    if (selectedFunction !== undefined && launchingSampling === false && runningSampling === true) {
       (async () => {
-        toast.success(
-          "Sampling started running successfully, please wait for completion."
-        );
         await updateJobCollections(
           selectedFunction?.uid ? selectedFunction.uid : "",
           true
