@@ -131,6 +131,7 @@ export const OutputSetup = (props: UQSetupProps) => {
           onChange={(e) => {
             handlesetLocalQoI(e.target.value);
           }}
+          data-testid="qoi-select"
         >
           {outputVars.map((qoi, idx) => (
             <MenuItem key={idx} value={qoi}>
@@ -159,11 +160,18 @@ export const OutputSetup = (props: UQSetupProps) => {
               type="number"
               variant="outlined"
               size="small"
+              InputProps={{
+                inputProps: {
+                  min: 1,
+                  max: 1000000
+                },
+              }}
               sx={{ flex: 1 }}
               value={localNumSamples}
-              onChange={(e) =>
-                handlesetLocalNumSamples(parseInt(e.target.value))
-              }
+              onChange={(e) => {
+                const value = Math.max(1, Math.min(1000000, parseInt(e.target.value)));
+                return handlesetLocalNumSamples(value);
+              }}
             />
           </InputLabel>
           <Button
@@ -176,6 +184,7 @@ export const OutputSetup = (props: UQSetupProps) => {
             }
             onClick={() => setSumoModal(true)}
             sx={{ padding: "8px 16px" }}
+            data-testid="inspect-model-button"
           >
             Inspect Model
           </Button>
