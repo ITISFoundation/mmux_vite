@@ -162,13 +162,15 @@ export const OutputSetup = (props: UQSetupProps) => {
               InputProps={{
                 inputProps: {
                   min: 1,
+                  max: 1000000
                 },
               }}
               sx={{ flex: 1 }}
               value={localNumSamples}
-              onChange={(e) =>
-                handlesetLocalNumSamples(parseInt(e.target.value))
-              }
+              onChange={(e) => {
+                const value = Math.max(1, Math.min(1000000, parseInt(e.target.value)));
+                handlesetLocalNumSamples(value);
+              }}
             />
           </InputLabel>
           <Button
