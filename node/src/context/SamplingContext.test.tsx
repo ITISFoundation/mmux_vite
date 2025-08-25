@@ -19,6 +19,16 @@ vi.mock("./PersistenceContext", () => {
   };
 });
 
+// Mock usePersistenceContext
+vi.mock("./FunctionContext", () => {
+  return {
+    useFunctionContext: () => ({
+      selectedFunction: { uid: "1", name: "Test Function" },
+      outputVars: ["output1", "output2"],
+    }),
+  };
+});
+
 const TestComponent = () => {
   const {
     launchingSampling,
