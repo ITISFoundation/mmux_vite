@@ -148,13 +148,14 @@ const LHSSampling = () => {
   }, []);
 
   useEffect(() => {
+    if(lhsInputs.points >= 5 && lhsInputs.points <= 50) return;
     setLhsInputs((prevInputs) => {
       const nPoints = recommendedLHSSamples()
       const lhsPoints = Math.min(Math.max(nPoints, 5), 50); // hardcoded max points limit in backedn
       const newInputs = {...prevInputs, inputs: inputVars.map(generateInputsList), points: lhsPoints };
       return newInputs;
     });
-  }, [generateInputsList, inputVars, recommendedLHSSamples, selectedFunction]);
+  }, [generateInputsList, inputVars, lhsInputs.points, recommendedLHSSamples, selectedFunction]);
 
   return (
     <>
