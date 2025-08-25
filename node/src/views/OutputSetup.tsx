@@ -47,7 +47,7 @@ export const OutputSetup = (props: UQSetupProps) => {
   };
 
   useEffect(() => {
-    setLocalQoI(outputVars?.[0] || "");
+    setLocalQoI(outputVars[0] || "");
   }, [outputVars]); // Update localQoI when selectedQoI changes due to selectedFunction change
 
   if (mode === "moga" && setSumoModal) {
@@ -127,12 +127,12 @@ export const OutputSetup = (props: UQSetupProps) => {
           variant="outlined"
           sx={{ flex: 1 }}
           value={localQoI}
-          defaultValue={outputVars?.[0] || ""}
+          defaultValue={outputVars[0] || ""}
           onChange={(e) => {
             handlesetLocalQoI(e.target.value);
           }}
         >
-          {outputVars?.map((qoi, idx) => (
+          {outputVars.map((qoi, idx) => (
             <MenuItem key={idx} value={qoi}>
               {qoi}
             </MenuItem>

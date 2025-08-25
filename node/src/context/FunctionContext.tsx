@@ -10,7 +10,7 @@ export interface FunctionContextType {
   setSelectedFunction: (F: Function | undefined) => void;
   inputVars: string[];
   setInputVars: (vars: string[]) => void;
-  outputVars: string[] | undefined;
+  outputVars: string[];
   setOutputVars: (vars: string[]) => void;
   distribution: { [key: string]: InputVarSelection };
   setDistribution: (d: { [key: string]: InputVarSelection }) => void;

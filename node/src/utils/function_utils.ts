@@ -148,3 +148,38 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
       toast.error("Error creating Job Copy for inspection");
     }
   }
+
+
+export function aggregateInputValues(jobs: FunctionJob[]): Record<string, number[]> {
+    const inputValues: Record<string, number[]> = {};
+
+    jobs.forEach(job => {
+        if (job.inputs && typeof job.inputs === 'object') {
+            Object.entries(job.inputs).forEach(([key, value]) => {
+                if (typeof value === 'number') {
+                    if (!inputValues[key]) inputValues[key] = [];
+                    inputValues[key].push(value);
+                }
+            });
+        }
+    });
+
+    return inputValues;
+}
+
+export function aggregateOutputValues(jobs: FunctionJob[]): Record<string, number[]> {
+    const outputValues: Record<string, number[]> = {};
+
+    jobs.forEach(job => {
+        if (job.outputs && typeof job.outputs === 'object') {
+            Object.entries(job.outputs).forEach(([key, value]) => {
+                if (typeof value === 'number') {
+                    if (!outputValues[key]) outputValues[key] = [];
+                    outputValues[key].push(value);
+                }
+            });
+        }
+    });
+
+    return outputValues;
+} 

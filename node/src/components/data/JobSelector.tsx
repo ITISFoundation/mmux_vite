@@ -56,9 +56,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     fetchedJobCollections,
     setFetchedJobCollections,
   } = useJobContext();
-  const {
-    setIsSuMoGenerated,
-  } = useMMUXContext();
+  const { setIsSuMoGenerated } = useMMUXContext();
   const {
     colsFetched,
     jobProgress,
@@ -163,9 +161,26 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     if (fetchedJobCollections.length > 0 && !forceFetch) {
       console.info("Job collections already fetched, skipping fetch.");
       setJobCollections(fetchedJobCollections);
-      setLoading(false);
       return;
-    } else if (forceFetch) {
+    }
+
+    const jobsC = (await getFunctionJobCollections(
+      functionUid as string
+    )) as FunctionJobCollection[];
+
+    const equalJC =
+      fetchedJobCollections.length === jobsC.length &&
+      fetchedJobCollections.map((jc, idx) =>
+        jc.jobCollection.jobIds.join(",") === jobsC[idx].jobIds.join(",")
+      ).every((v) => v === true);
+
+    if (equalJC) {
+      console.info("Job collections already fetched, skipping fetch.");
+      setJobCollections(fetchedJobCollections);
+      return;
+    }
+
+    if (forceFetch) {
       setLoading(true);
       setJobCollections([]);
       setProgress(0);
@@ -173,9 +188,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       jobsFetched.current = 0;
       colsFetched.current = 0;
     }
-    const jobsC = (await getFunctionJobCollections(
-      functionUid as string
-    )) as FunctionJobCollection[];
+
     const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
     colsFetched.current = 0;
     jobsFetched.current = 0;
@@ -367,10 +380,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   }, [selectedFunction]);
 
   useEffect(() => {
-    console.info("Reloading job collections after functions run");
     if (selectedFunction !== undefined && launchingSampling === false && runningSampling === true) {
       (async () => {
-        toast.success("Sampling started running successfully, please wait for completion.");
         await updateJobCollections(
           selectedFunction?.uid ? selectedFunction.uid : "",
           true
@@ -432,9 +443,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                   color: theme.palette.primary.contrastText,
                 })}
                 onClick={async () => {
-                  setLoading(true);
-                  setProgress(0);
-                  setJobProgress(0);
                   await updateJobCollections(
                     selectedFunction?.uid ? selectedFunction.uid : "",
                     true
