@@ -45,7 +45,7 @@ const types: { [key in HeaderTypes]: TypographyVariant } = {
 };
 
 function Header(props: HeaderProps) {
-  const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents } =
+  const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents, fontWeight } =
     props;
   return (
     <HeaderContainer headerType={headerType}>
@@ -53,7 +53,7 @@ function Header(props: HeaderProps) {
         <Typography
           variant={types[headerType]}
           component="h1"
-          fontWeight={headerType === "subTitle" ? 100 : 100}
+          fontWeight={fontWeight ? fontWeight : headerType === "subTitle" ? 100 : 100}
           fontFamily={"inherit"}
         >
           {tabTitle}
