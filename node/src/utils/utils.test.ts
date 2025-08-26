@@ -158,7 +158,8 @@ describe("stepValidator", () => {
           y: { distribution: "normal", mean: 5, std: 2 },
         },
       },
-      setSelectedFunction:  (_F: Function | undefined): void => {
+      outputDistribution: {},
+      setSelectedFunction: (_F: Function | undefined): void => {
         throw new Error("Function not implemented.");
       },
       inputVars: [],
@@ -170,6 +171,9 @@ describe("stepValidator", () => {
         throw new Error("Function not implemented.");
       },
       setDistribution: (_d: { [key: string]: InputVarSelection; }): void => {
+        throw new Error("Function not implemented.");
+      },
+      setOutputDistribution: function (_d: { [key: string]: OutputVarSelection; }): void {
         throw new Error("Function not implemented.");
       }
     };

@@ -42,7 +42,8 @@ const defaultPersistence: PersistenceType = {
   singleJobConfig: [],
   runningJobCollection: undefined,
   fetchedJobCollections: [],
-  selectedJobUids: []
+  selectedJobUids: [],
+  outputDistribution: {}
 };
 
 export const PersistenceContextProvider = ({ children }: Props) => {
@@ -62,6 +63,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
       "inputVars" in data &&
       "outputVars" in data &&
       "distribution" in data &&
+      "outputDistribution" in data &&
       "lhsSamplingConfig" in data &&
       "gridSamplingConfig" in data &&
       "singleJobConfig" in data &&
@@ -158,6 +160,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
         inputVars: persistence.inputVars,
         outputVars: persistence.outputVars,
         distribution: persistence.distribution,
+        outputDistribution: persistence.outputDistribution
       };
     }
     return undefined;
@@ -167,7 +170,8 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     selectedFunction,
     inputVars,
     outputVars,
-    distribution
+    distribution,
+    outputDistribution
   }: Partial<PersistenceType>) => {
       if (persistence !== undefined) {
         console.info("Persisting Function context state...");
@@ -177,6 +181,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
           inputVars: inputVars ? inputVars : [],
           outputVars: outputVars ? outputVars : [],
           distribution: distribution ? distribution : {},
+          outputDistribution: outputDistribution ? outputDistribution : {}
         };
         saveState(newPersistence);
       }
