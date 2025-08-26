@@ -55,7 +55,7 @@ export const OutputVariableDist = () => {
         infoText="Optimize the output variables by minimizing or maximizing their range"
       />
       <Box sx={{ display: "flex", overflowX: "auto" }}>
-        {Object.keys(configuredOutputs).map((inputVar, index) => {
+        {Object.keys(configuredOutputs).map((outputVar, index) => {
           return (
             <Box
               key={index}
@@ -88,7 +88,7 @@ export const OutputVariableDist = () => {
                 }}
               >
                 <Chip
-                  label={inputVar}
+                  label={outputVar}
                   sx={{
                     width: "100%",
                     fontSize: "0.8em",
@@ -102,7 +102,7 @@ export const OutputVariableDist = () => {
                   aria-label="remove"
                   onClick={() => {
                     const newOutputs = { ...configuredOutputs };
-                    delete newOutputs[inputVar];
+                    delete newOutputs[outputVar];
                     handlesetConfiguredOutputs(newOutputs);
                   }}
                   sx={{
@@ -141,48 +141,52 @@ export const OutputVariableDist = () => {
                 </InputLabel>
                 <CustomAnimatedToggle
                   data={["minimize", "maximize"]}
-                  value={configuredOutputs[inputVar] === "minimize" ? 0 : 1}
+                  value={configuredOutputs[outputVar] === "minimize" ? 0 : 1}
                   disabled={false}
                   onChange={(value) => {
-                    setConfiguredOutputs((prev) => ({ ...prev, [inputVar]: value === 0 ? "minimize" : "maximize" }));
+                    handlesetConfiguredOutputs({
+                      ...configuredOutputs,
+                      [outputVar]: value === 0 ? "minimize" : "maximize",
+                    });
                   }}
                 />
               </Box>
             </Box>
           );
         })}
-        { Object.keys(configuredOutputs).length < outputVars.length &&
-        <Box
-          key={"add-output"}
-          sx={(theme) => ({
-            display: "block",
-            maxWidth: "210px",
-            minWidth: "210px",
-            padding: "8px",
-            marginRight: "16px",
-            backgroundColor: theme.palette.background.default,
-            gap: "16px",
-            borderRadius: "8px",
-            textAlign: "center",
-          })}
-        >
-          <IconButton
-            sx={{
-              width: "100px",
-              height: "100px",
-              padding: 0,
-              justifySelf: "center",
-              backgroundColor: "transparent",
-              "&:hover": {
-                backgroundColor: "transparent",
-              },
-            }}
-            disableRipple
-            onClick={() => setOpenModal(!openModal)}
+        {Object.keys(configuredOutputs).length < outputVars.length && (
+          <Box
+            key={"add-output"}
+            sx={(theme) => ({
+              display: "block",
+              maxWidth: "210px",
+              minWidth: "210px",
+              padding: "8px",
+              marginRight: "16px",
+              backgroundColor: theme.palette.background.default,
+              gap: "16px",
+              borderRadius: "8px",
+              textAlign: "center",
+            })}
           >
-            <Add sx={{ fontSize: "2em" }} />
-          </IconButton>
-        </Box> }
+            <IconButton
+              sx={{
+                width: "100px",
+                height: "100px",
+                padding: 0,
+                justifySelf: "center",
+                backgroundColor: "transparent",
+                "&:hover": {
+                  backgroundColor: "transparent",
+                },
+              }}
+              disableRipple
+              onClick={() => setOpenModal(!openModal)}
+            >
+              <Add sx={{ fontSize: "2em" }} />
+            </IconButton>
+          </Box>
+        )}
       </Box>
       <AddOutputModal
         open={openModal}
@@ -190,7 +194,10 @@ export const OutputVariableDist = () => {
         data={outputVars.filter((v) => !(v in configuredOutputs))}
         onChange={(value) => {
           // Handle the change event
-          setConfiguredOutputs((prev) => ({ ...prev, [value]: "minimize" }));
+          handlesetConfiguredOutputs({
+            ...configuredOutputs,
+            [value]: "minimize",
+          });
           setOpenModal(false);
         }}
       />

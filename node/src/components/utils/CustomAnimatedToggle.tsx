@@ -10,9 +10,9 @@ interface CustomAnimatedToggleProps {
 }
 
 export const CustomAnimatedToggle = (props: CustomAnimatedToggleProps) => {
-  const { disabled, data, onChange } = props;
+  const { disabled, data, onChange, value } = props;
   const theme = useTheme();
-  const [selected, setSelected] = React.useState<number>(0);
+  const [selected, setSelected] = React.useState<number>(value);
 
   const handleClick = (index: number) => {
     setSelected(index);
