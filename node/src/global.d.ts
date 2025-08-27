@@ -77,6 +77,7 @@ interface HeaderProps {
     infoText?: string;
     ExtendedInfoText?: ReactElement;
     helpContents?: ReactElement;
+    fontWeight?: React.CSSProperties['fontWeight'];
 }
 
 interface SubJob {
@@ -132,6 +133,7 @@ interface InputTextBlockProps {
 
 type distribution = 'constant' | 'normal' | 'uniform' | 'log-normal' | 'exponential';
 type variables = 'value' | 'mean' | 'std' | 'min' | 'max' | 'location' | 'scale';
+type outputOptimization = 'minimize' | 'maximize';
 
 interface VarSelection {
   distribution: distribution;
@@ -144,6 +146,7 @@ interface VarSelection {
   scale?: number;
 }
 
+interface OutputVarSelection {[x: string]: outputOptimization}
 interface InputVarSelection {[x: string]: VarSelection}
 
 type cvMetricsType = {

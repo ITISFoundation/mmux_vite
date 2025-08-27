@@ -12,8 +12,10 @@ export interface FunctionContextType {
   setInputVars: (vars: string[]) => void;
   outputVars: string[];
   setOutputVars: (vars: string[]) => void;
-  distribution: { [key: string]: InputVarSelection };
-  setDistribution: (d: { [key: string]: InputVarSelection }) => void;
+  distribution: { [key: string]: InputVarSelection },
+  setDistribution: (d: { [key: string]: InputVarSelection } ) => void;
+  outputDistribution: { [key: string]: OutputVarSelection };
+  setOutputDistribution: (d: { [key: string]: OutputVarSelection }) => void;
 }
 
 export const FunctionContext = createContext<FunctionContextType>(undefined!);
@@ -31,6 +33,7 @@ export const FunctionContextProvider = ({ children }: Props) => {
     inputVars: iiv,
     outputVars: iov,
     distribution: id,
+    outputDistribution: od,
   } = functionValues as Partial<PersistenceType>;
   const [selectedFunction, setSelectedFunction] = useState<
     Function | undefined
@@ -40,6 +43,9 @@ export const FunctionContextProvider = ({ children }: Props) => {
   }>(id || {});
   const [inputVars, setInputVars] = useState<string[]>(iiv || []);
   const [outputVars, setOutputVars] = useState<string[]>(iov || []);
+  const [outputDistribution, setOutputDistribution] = useState<{
+    [key: string]: OutputVarSelection;
+  }>(od || {});
 
   useEffect(() => {
     if (loading === false) {
@@ -48,9 +54,10 @@ export const FunctionContextProvider = ({ children }: Props) => {
         inputVars,
         outputVars,
         distribution,
+        outputDistribution,
       });
     }
-  }, [selectedFunction, inputVars, outputVars, distribution]);
+  }, [selectedFunction, inputVars, outputVars, distribution, outputDistribution]);
 
   const memo = React.useMemo(
     () => ({
@@ -62,6 +69,8 @@ export const FunctionContextProvider = ({ children }: Props) => {
       setOutputVars,
       distribution,
       setDistribution,
+      outputDistribution,
+      setOutputDistribution,
     }),
     [
       selectedFunction,
@@ -72,6 +81,8 @@ export const FunctionContextProvider = ({ children }: Props) => {
       setOutputVars,
       distribution,
       setDistribution,
+      outputDistribution,
+      setOutputDistribution,
     ]
   );
 
