@@ -544,6 +544,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         jobs: List[FunctionJob] = request_data["FunctionJobs"]
         make_log: bool = request_data.get("log", False)
         n_histograms: int = request_data["nHistograms"] # number of histograms - to give uncertainty over it
+        seed: int = request_data["seed"] 
     
         # Sanitize variable names
         input_vars_sanitized = sanitize_varnames(input_vars)
@@ -565,7 +566,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         #     stds = {f"log_{key}": np.log(val) for key, val in stds.items()}
 
         ## for some reason, much more noisy than Dakota's sampling
-        samples = create_manual_uq_samples(input_vars_sanitized, distributions, num_samples)
+        samples = create_manual_uq_samples(input_vars_sanitized, distributions, num_samples, seed)
         df = pd.DataFrame(samples)
         UQ_SAMPLES_FILE = run_dir / "manual_uq_samples.csv"
         df.to_csv(UQ_SAMPLES_FILE, index=False)

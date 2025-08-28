@@ -31,7 +31,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
   useEffect(() => {
     const run = async () => {
       const jobs = filterSelectedJobList();
-      
+
       async function runUQ(jobs: FunctionJob[]) {
         setDataUQHistogram(undefined);
         setPlotData([]);
@@ -57,6 +57,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
                 numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
                 log: false,
                 nHistograms: 50,
+                seed: 0,
               }),
             }
           );
@@ -98,7 +99,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
       return await runUQ(jobs);
     };
     run();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numSamples, inputVars, distribution, selectedQoI, selectedFunction?.uid]);
   if (loading) {
     return (
