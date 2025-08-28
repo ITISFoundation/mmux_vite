@@ -174,7 +174,7 @@ export const InputVariableDist = () => {
     inputVar = inputVar.toLowerCase(); // avoid case sensitivity
 
     // Geometry demo
-    if (serviceMode === "SUMO") {
+    if (serviceMode === "SUMO" || serviceMode === "MOGA") {
       if (["angle", "anglewidth"].includes(inputVar)) {
         return { distribution: "uniform", min: 30, max: 300 };
       } else if (
