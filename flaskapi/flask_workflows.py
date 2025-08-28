@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import json
 import logging
-from typing import List, Dict, Callable, NamedTuple, Final, Optional
+from typing import List, Dict, Callable, NamedTuple, Final, Optional, Literal
 import numpy as np # type: ignore
 import pandas as pd # type: ignore
 from flask import Flask, request, abort, jsonify, make_response # type: ignore
@@ -995,17 +995,18 @@ def flask_perform_moga_optimization():
         # Convert request data into a Python dictionary
         request_data: dict = json.loads(request.data.decode("utf-8"))
         input_vars: List[str] = request_data["inputVars"]
-        output_responses = request_data["outputVars"] ## TODO now this is diff (pass several)
-        output_responses = [output_responses] if isinstance(output_responses, str) else output_responses  # ensure it's a list
-        distributions: Dict[str, Dict[str, float]] = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
+        input_distributions: Dict[str, Dict[str, float]] = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
+        output_var_selection: Dict[str, Literal["minimize", "maximize"]] = request_data["outputVarSelection"]
+        output_responses = [k for k in output_var_selection.keys()]
         make_log = request_data.get("log", False)
         jobs = request_data["FunctionJobs"]
 
-        distributions_sanitized = sanitize_varnames(distributions)
+        input_distributions_sanitized = sanitize_varnames(input_distributions)
         input_vars_sanitized = sanitize_varnames(input_vars)
-        output_responses_sanitized = sanitize_varnames(output_responses)
+        output_var_selection_sanitized = sanitize_varnames(output_var_selection)
+        output_responses_sanitized = [k for k in output_var_selection_sanitized.keys()]
 
-        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses, folder_name="moga")
+        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses_sanitized, folder_name="moga")
         run_dir = TRAINING_FILE.parent
 
         PROCESSED_TRAINING_FILE = process_input_file(
@@ -1018,8 +1019,8 @@ def flask_perform_moga_optimization():
             run_dir,
             PROCESSED_TRAINING_FILE,
             input_vars_sanitized,
-            distributions_sanitized,
-            output_responses_sanitized,
+            input_distributions_sanitized,
+            output_var_selection_sanitized,
             moga_kwargs={"max_function_evaluations": 1000},
         )
 
