@@ -188,7 +188,7 @@ export const InputVariableDist = () => {
       ) {
         return { distribution: "uniform", min: 0.5, max: 2.5 };
       } else {
-        console.log("inputVar ", inputVar, " could not be matched");
+        // console.debug("inputVar ", inputVar, " could not be matched");
       }
     }
 

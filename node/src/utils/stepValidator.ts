@@ -22,15 +22,15 @@ export function stepValidator(functionContext: FunctionContextType | undefined, 
       }
 
       // not enough output variables selected yet
-      console.log("output Distribution: ",  functionContext.outputDistribution)
+      // console.debug("output Distribution: ",  functionContext.outputDistribution)
       const outDist = functionContext.outputDistribution[functionContext.selectedFunction.uid]
-      console.log("output Distribution for this function: ", outDist)
+      // console.debug("output Distribution for this function: ", outDist)
       if (!outDist) {
-        console.log("output Distribution not defined yet")
+        // console.debug("output Distribution not defined yet")
         return false
       }
-      else if (Object.keys(outDist).length < 2) {
-        console.log("MOGA needs at least two output target variables")
+      if (Object.keys(outDist).length < 2) {
+        // console.debug("MOGA needs at least two output target variables")
         return false
       }
     }
