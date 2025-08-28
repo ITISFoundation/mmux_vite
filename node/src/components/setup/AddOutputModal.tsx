@@ -66,7 +66,10 @@ export const AddOutputModal = (props: AddOutputModalProps) => {
             </MenuItem>
           ))}
         </Select>
-        <Button onClick={() => onChange(selected)} sx={{ backgroundColor: theme.palette.primary.main, marginTop: "16px" }}>
+        <Button
+          onClick={() => onChange(selected)}
+          sx={{ backgroundColor: theme.palette.primary.main, marginTop: "16px" }}
+        >
           <Typography variant="body1" color={theme.palette.text.primary}>
             Add
           </Typography>

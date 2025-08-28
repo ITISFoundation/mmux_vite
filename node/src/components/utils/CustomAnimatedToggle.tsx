@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Box, Button, useTheme } from "@mui/material";
 
 interface CustomAnimatedToggleProps {
@@ -18,6 +18,10 @@ export const CustomAnimatedToggle = (props: CustomAnimatedToggleProps) => {
     setSelected(index);
     onChange(index);
   };
+
+  useEffect(() => {
+    setSelected(value);
+  }, [value]);
 
   return (
     <Box

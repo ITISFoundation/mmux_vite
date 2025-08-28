@@ -42,6 +42,25 @@ export const OutputVariableDist = () => {
     [outputDistribution, selectedFunction, setOutputDistribution]
   );
 
+  useEffect(() => {
+    if (
+      outputDistribution &&
+      selectedFunction &&
+      outputDistribution[selectedFunction.uid]
+    ) {
+      setConfiguredOutputs(outputDistribution[selectedFunction.uid]);
+    } else {
+      if (outputVars && outputVars.length > 0) {
+        handlesetConfiguredOutputs(
+          Object.fromEntries(outputVars.map((v) => [v, "minimize"]))
+        );
+      } else {
+        handlesetConfiguredOutputs({});
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outputDistribution, outputVars, selectedFunction]);
+
   if (outputVars && outputVars.length === 0) {
     return <></>;
   }
