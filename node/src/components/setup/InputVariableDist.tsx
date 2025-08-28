@@ -104,8 +104,8 @@ export const InputVariableDist = () => {
           onChange={(value) => handleSetValue(inputVar, "min", value as number)}
           error={
             localDistribution[inputVar].min !== undefined &&
-            localDistribution[inputVar].max !== undefined &&
-            localDistribution[inputVar].min > localDistribution[inputVar].max
+              localDistribution[inputVar].max !== undefined &&
+              localDistribution[inputVar].min > localDistribution[inputVar].max
               ? true
               : false
           }
@@ -120,8 +120,8 @@ export const InputVariableDist = () => {
           onChange={(value) => handleSetValue(inputVar, "max", value as number)}
           error={
             localDistribution[inputVar].min !== undefined &&
-            localDistribution[inputVar].max !== undefined &&
-            localDistribution[inputVar].min > localDistribution[inputVar].max
+              localDistribution[inputVar].max !== undefined &&
+              localDistribution[inputVar].min > localDistribution[inputVar].max
               ? true
               : false
           }
@@ -217,7 +217,7 @@ export const InputVariableDist = () => {
     }
 
     // Normal defaults for new functions
-    if (serviceMode === "SUMO") {
+    if (serviceMode === "SUMO" || serviceMode === "MOGA") {
       return {
         distribution: "uniform",
         mean: NaN,
@@ -234,7 +234,7 @@ export const InputVariableDist = () => {
         max: NaN,
       };
     } else {
-      console.warn("Unknow serviceMode!: ", serviceMode);
+      console.warn("Unknow serviceMode: ", serviceMode, " for inputDistribution default!");
       return {
         distribution: "uniform",
         mean: NaN,

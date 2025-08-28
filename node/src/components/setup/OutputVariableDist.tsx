@@ -29,12 +29,12 @@ export const OutputVariableDist = () => {
   const theme = useTheme();
 
   const handlesetConfiguredOutputs = useCallback(
-    (newInputVars: typeof configuredOutputs) => {
-      setConfiguredOutputs(newInputVars);
+    (newOutputVars: typeof configuredOutputs) => {
+      setConfiguredOutputs(newOutputVars);
       if (selectedFunction) {
         const newDist = {
           ...outputDistribution,
-          [selectedFunction.uid]: newInputVars,
+          [selectedFunction.uid]: newOutputVars,
         };
         setOutputDistribution(newDist);
       }
