@@ -17,7 +17,7 @@ export const Footer = (props: FooterProps) => {
   const { permissions } = useServiceContext();
   const functionContext = useFunctionContext();
   const jobContext = useJobContext();
-  const serviceContext = useServiceContext();
+  const { serviceMode } = useServiceContext();
   const { currentView, setCurrentView } = useNavigationContext();
   const { runningSampling } = useSamplingContext();
   const [modal, setModal] = React.useState(false);
@@ -62,7 +62,7 @@ export const Footer = (props: FooterProps) => {
           }
           disabled={
             currentView >= steps.length - 1 ||
-            !stepValidator(functionContext, jobContext, serviceContext, currentView)
+            !stepValidator(functionContext, jobContext, serviceMode, currentView)
           }
         >
           Next

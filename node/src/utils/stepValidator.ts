@@ -3,14 +3,14 @@ import { FunctionContextType } from "../context/FunctionContext";
 import { JobContextType } from "../context/JobContext";
 import { ServiceContextType } from "../context/ServiceContext";
 
-export function stepValidator(functionContext: FunctionContextType | undefined, jobContext: JobContextType, serviceContext: ServiceContextType, step: number): boolean {
+export function stepValidator(functionContext: FunctionContextType | undefined, jobContext: JobContextType, serviceMode: string, step: number): boolean {
   if (step === 0) {
     // Step 0: Check if a function is selected
     const selectedDistribution = functionContext?.distribution[functionContext?.selectedFunction?.uid || ""];
     if(!functionContext?.selectedFunction || !selectedDistribution) {
       return false; // No function or distribution selected
     }
-    if (serviceContext.serviceMode === "MOGA") {
+    if (serviceMode === "MOGA") {
       // no outputDistribution generated for any function yet
       if (Object.keys(functionContext?.outputDistribution).length === 0) return false
 
