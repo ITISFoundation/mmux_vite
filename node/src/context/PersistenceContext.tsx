@@ -132,7 +132,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
       filename: string;
     };
     try {
-      console.log("Fetched persistence:", envelope.content);
+      // console.debug("Fetched persistence:", envelope.content);
       const data = JSON.parse(envelope.content) as PersistenceType;
       console.info(`File ${filename} fetched successfully.`, data);
       return data;
@@ -144,7 +144,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
 
   const saveState = useCallback(async (state: PersistenceType) => {
     const content = JSON.stringify(state, null, 2);
-    console.log("Saving state to persistence file:", state);
+    // console.debug("Saving state to persistence file:", state);
     try {
       await setFile("persistence.json", content);
       setPersistence(state);
@@ -173,22 +173,22 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     distribution,
     outputDistribution
   }: Partial<PersistenceType>) => {
-      if (persistence !== undefined) {
-        console.info("Persisting Function context state...");
-        const newPersistence: PersistenceType = {
-          ...persistence,
-          selectedFunction,
-          inputVars: inputVars ? inputVars : [],
-          outputVars: outputVars ? outputVars : [],
-          distribution: distribution ? distribution : {},
-          outputDistribution: outputDistribution ? outputDistribution : {}
-        };
-        saveState(newPersistence);
-      }
+    if (persistence !== undefined) {
+      console.info("Persisting Function context state...");
+      const newPersistence: PersistenceType = {
+        ...persistence,
+        selectedFunction,
+        inputVars: inputVars ? inputVars : [],
+        outputVars: outputVars ? outputVars : [],
+        distribution: distribution ? distribution : {},
+        outputDistribution: outputDistribution ? outputDistribution : {}
+      };
+      saveState(newPersistence);
+    }
   }, [persistence]);
 
   useEffect(() => {
-    if(persistence !== undefined) {
+    if (persistence !== undefined) {
       setLoading(false);
       return;
     }

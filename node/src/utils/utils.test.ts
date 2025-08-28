@@ -199,13 +199,17 @@ describe("stepValidator", () => {
       }
     };
 
-    expect(stepValidator(functionContext, jobContext, 0)).toBe(true);
-    expect(stepValidator(functionContext, jobContext, 1)).toBe(true);
-    expect(stepValidator(functionContext, jobContext, 2)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, '', 0)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, '', 1)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, '', 2)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, 'MOGA', 0)).toBe(false);
+    expect(stepValidator(functionContext, jobContext, 'MOGA', 1)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, 'MOGA', 2)).toBe(true);
     functionContext.distribution = {};
     jobContext.selectedJobUids = [];
-    expect(stepValidator(undefined, jobContext, 0)).toBe(false);
-    expect(stepValidator(functionContext, jobContext, 0)).toBe(false);
-    expect(stepValidator(functionContext, jobContext, 1)).toBe(false);
+    expect(stepValidator(undefined, jobContext, '', 0)).toBe(false);
+    expect(stepValidator(undefined, jobContext, 'MOGA', 0)).toBe(false);
+    expect(stepValidator(functionContext, jobContext, '', 0)).toBe(false);
+    expect(stepValidator(functionContext, jobContext, '', 1)).toBe(false);
   });
 });

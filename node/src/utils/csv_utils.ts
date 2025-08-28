@@ -27,7 +27,7 @@ export async function pickCsv(filePath?: string): Promise<File> {
         return file
     } else {
         let selectedFile: File | null = null;
-        console.log("start");
+        // console.debug("start");
         const inputElement = document.createElement('input');
         inputElement.type = 'file';
         inputElement.accept = '.csv';

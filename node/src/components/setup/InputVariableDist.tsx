@@ -104,8 +104,8 @@ export const InputVariableDist = () => {
           onChange={(value) => handleSetValue(inputVar, "min", value as number)}
           error={
             localDistribution[inputVar].min !== undefined &&
-            localDistribution[inputVar].max !== undefined &&
-            localDistribution[inputVar].min > localDistribution[inputVar].max
+              localDistribution[inputVar].max !== undefined &&
+              localDistribution[inputVar].min > localDistribution[inputVar].max
               ? true
               : false
           }
@@ -120,8 +120,8 @@ export const InputVariableDist = () => {
           onChange={(value) => handleSetValue(inputVar, "max", value as number)}
           error={
             localDistribution[inputVar].min !== undefined &&
-            localDistribution[inputVar].max !== undefined &&
-            localDistribution[inputVar].min > localDistribution[inputVar].max
+              localDistribution[inputVar].max !== undefined &&
+              localDistribution[inputVar].min > localDistribution[inputVar].max
               ? true
               : false
           }
@@ -174,7 +174,7 @@ export const InputVariableDist = () => {
     inputVar = inputVar.toLowerCase(); // avoid case sensitivity
 
     // Geometry demo
-    if (serviceMode === "SUMO") {
+    if (serviceMode === "SUMO" || serviceMode === "MOGA") {
       if (["angle", "anglewidth"].includes(inputVar)) {
         return { distribution: "uniform", min: 30, max: 300 };
       } else if (
@@ -188,7 +188,7 @@ export const InputVariableDist = () => {
       ) {
         return { distribution: "uniform", min: 0.5, max: 2.5 };
       } else {
-        console.log("inputVar ", inputVar, " could not be matched");
+        // console.debug("inputVar ", inputVar, " could not be matched");
       }
     }
 
@@ -217,7 +217,7 @@ export const InputVariableDist = () => {
     }
 
     // Normal defaults for new functions
-    if (serviceMode === "SUMO") {
+    if (serviceMode === "SUMO" || serviceMode === "MOGA") {
       return {
         distribution: "uniform",
         mean: NaN,
@@ -234,7 +234,7 @@ export const InputVariableDist = () => {
         max: NaN,
       };
     } else {
-      console.warn("Unknow serviceMode!: ", serviceMode);
+      console.warn("Unknow serviceMode: ", serviceMode, " for inputDistribution default!");
       return {
         distribution: "uniform",
         mean: NaN,
