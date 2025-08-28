@@ -1,9 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { PersistenceType } from "./types";
 import { fetchWithRetry } from '../utils/fetch_retry';
+import { PersistenceType } from "./types";
 
 interface PersistenceContextType {
   persistence: PersistenceType | undefined;
@@ -169,21 +169,21 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     outputVars,
     distribution
   }: Partial<PersistenceType>) => {
-      if (persistence !== undefined) {
-        console.info("Persisting Function context state...");
-        const newPersistence: PersistenceType = {
-          ...persistence,
-          selectedFunction,
-          inputVars: inputVars ? inputVars : [],
-          outputVars: outputVars ? outputVars : [],
-          distribution: distribution ? distribution : {},
-        };
-        saveState(newPersistence);
-      }
+    if (persistence !== undefined) {
+      console.info("Persisting Function context state...");
+      const newPersistence: PersistenceType = {
+        ...persistence,
+        selectedFunction,
+        inputVars: inputVars ? inputVars : [],
+        outputVars: outputVars ? outputVars : [],
+        distribution: distribution ? distribution : {},
+      };
+      saveState(newPersistence);
+    }
   }, [persistence]);
 
   useEffect(() => {
-    if(persistence !== undefined) {
+    if (persistence !== undefined) {
       setLoading(false);
       return;
     }

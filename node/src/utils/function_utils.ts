@@ -1,10 +1,10 @@
-import { Function, ProjectFunctionJob, FunctionJob, FunctionJobCollection} from '../osparc-api-ts-client';
+import { toast } from "react-toastify";
+import { Function, FunctionJob, FunctionJobCollection, ProjectFunctionJob } from '../osparc-api-ts-client';
 import { PYTHON_DAKOTA_BACKEND } from './api_objects';
 import { fetchWithRetry } from './fetch_retry';
-import { toast } from "react-toastify";
 
 export function delay(ms: number) {
-    return new Promise( resolve => setTimeout(resolve, ms) );
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 export function createInputOutputSchema(vars: string[]) {
@@ -65,6 +65,22 @@ export async function getFunctionJob(jobUid: string): Promise<FunctionJob> {
 
 }
 
+export async function getFunctionJobStatus(jobUid: string): Promise<string> {
+    return await fetchWithRetry(
+        PYTHON_DAKOTA_BACKEND + '/flask/get_function_job_status?jobUid=' + jobUid,
+    ).then(function (response) {
+        return response.json()
+    })
+}
+
+// export async function getFunctionJobOutputs(jobUid: string): Promise<FunctionJobOutputs> {
+//     return await fetchWithRetry(
+//         PYTHON_DAKOTA_BACKEND + '/flask/get_function_job_outputs?jobUid=' + jobUid,
+//     ).then(function (response) {
+//         return response.json()
+//     })
+// }
+
 export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<FunctionJob[]> {
     return await fetch(
         PYTHON_DAKOTA_BACKEND + '/flask/list_function_jobs_for_functionid?functionUid=' + functionUid,
@@ -73,6 +89,8 @@ export async function getFunctionJobsFromFunctionUid(functionUid: string): Promi
     })
     // return MOCKUP_JOBS
 }
+
+
 
 export async function getFunctionJobCollections(functionUid: string): Promise<FunctionJobCollection[]> {
     return await fetch(
@@ -111,9 +129,9 @@ export function openStudyUid(uid: string): void {
     const serviceUrl = deploymentUrl + `/#/study/${uid}`
     const newWindow = window.open(serviceUrl);
     if (newWindow) {
-      console.info("Window opened successfully")
+        console.info("Window opened successfully")
     } else {
-      toast.warning("Popup blocked! Please allow popups for this site to open the job in a new tab.");
+        toast.warning("Popup blocked! Please allow popups for this site to open the job in a new tab.");
     }
 }
 
@@ -121,33 +139,33 @@ interface StudyType {
     uid: string;
     title: string;
     description: string;
-  }
+}
 export const createJobStudyCopy = async (functionName: string, job: ProjectFunctionJob) => {
     try {
-      const projectJobId = job.projectJobId;
-      const inputs = job.inputs
-      const study: StudyType = await fetch(
-        PYTHON_DAKOTA_BACKEND + "/flask/clone_job", {
-        method: "POST",
-        body: JSON.stringify({
-          functionName: functionName, //
-          projectJobId: projectJobId,
-          projectInputs: inputs,
-        }),
-      }).then(function (response) {
-        return response.json()
-      })
+        const projectJobId = job.projectJobId;
+        const inputs = job.inputs
+        const study: StudyType = await fetch(
+            PYTHON_DAKOTA_BACKEND + "/flask/clone_job", {
+            method: "POST",
+            body: JSON.stringify({
+                functionName: functionName, //
+                projectJobId: projectJobId,
+                projectInputs: inputs,
+            }),
+        }).then(function (response) {
+            return response.json()
+        })
 
-      if (study && study.uid) {
-        return study.uid
-      } else {
-        toast.error("Failed to open job copy: No UID returned");
-      }
+        if (study && study.uid) {
+            return study.uid
+        } else {
+            toast.error("Failed to open job copy: No UID returned");
+        }
     } catch (error) {
-      console.error("Error creating Job Copy for inspection:", error);
-      toast.error("Error creating Job Copy for inspection");
+        console.error("Error creating Job Copy for inspection:", error);
+        toast.error("Error creating Job Copy for inspection");
     }
-  }
+}
 
 
 export function aggregateInputValues(jobs: FunctionJob[]): Record<string, number[]> {

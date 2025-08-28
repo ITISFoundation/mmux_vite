@@ -10,7 +10,6 @@
  * Do not edit the class manually.
  */
 
-import { HttpFile } from '../http/http';
 
 export class ProjectFunctionJob {
     'title'?: string;
@@ -25,9 +24,9 @@ export class ProjectFunctionJob {
 
     static readonly discriminator: string | undefined = undefined;
 
-    static readonly mapping: {[index: string]: string} | undefined = undefined;
+    static readonly mapping: { [index: string]: string } | undefined = undefined;
 
-    static readonly attributeTypeMap: Array<{name: string, baseName: string, type: string, format: string}> = [
+    static readonly attributeTypeMap: Array<{ name: string, baseName: string, type: string, format: string }> = [
         {
             "name": "title",
             "baseName": "title",
@@ -69,7 +68,7 @@ export class ProjectFunctionJob {
             "baseName": "project_job_id",
             "type": "string",
             "format": "uuid"
-        }    ];
+        }];
 
     static getAttributeTypeMap() {
         return ProjectFunctionJob.attributeTypeMap;

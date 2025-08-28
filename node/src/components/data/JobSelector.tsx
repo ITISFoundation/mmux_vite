@@ -1,20 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  KeyboardArrowUp,
-  KeyboardArrowDown,
   InfoOutline,
+  KeyboardArrowDown,
+  KeyboardArrowUp,
+  Refresh,
 } from "@mui/icons-material";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import { useMMUXContext } from "../../context/MMUXContext";
-import { FunctionJob } from "../../osparc-api-ts-client";
-import {
-  getFunctionJobCollections,
-  getFunctionJob,
-} from "../../utils/function_utils";
 import {
   Box,
   Button,
@@ -27,15 +16,25 @@ import {
   TableContainer,
   TablePagination,
 } from "@mui/material";
-import { Refresh } from "@mui/icons-material";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
 import { DataGrid } from "@mui/x-data-grid";
-import JobRow from "./JobRow";
-import CustomTooltip from "./../utils/CustomTooltip";
-import getMinMax from "../minmax";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { useMMUXContext } from "../../context/MMUXContext";
 import { useSamplingContext } from "../../context/SamplingContext";
-import { toast } from "react-toastify";
+import { FunctionJob } from "../../osparc-api-ts-client/models/all";
+import {
+  getFunctionJobCollections,
+  getFunctionJobsFromFunctionJobCollection
+} from "../../utils/function_utils";
+import getMinMax from "../minmax";
+import CustomTooltip from "./../utils/CustomTooltip";
+import JobRow from "./JobRow";
 
 type JobSelectorPropsType = {
   loading: boolean;
@@ -206,26 +205,50 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
     for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx++) {
       const jc = jobsC[jcIdx];
+      // for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx++) {
+      let job: FunctionJob;
+      //   const id = jc.jobIds[subJobIdx];
+      //   // check if job is already fetched in fetchedJobCollections
+      //   const existingJob = fetchedJobCollections.find(
+      //     (j) =>
+      //       j.jobCollection.jobIds.includes(id) &&
+      //       j.subJobs.some(
+      //         (sj) =>
+      //           sj.job.uid === id &&
+      //           (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")
+      //       )
+      //   );
+      //   if (false) {
+      //     // console.info("Job already fetched: ", id, existingJob.subJobs.find((j) => j.job.uid === id));
+      //     job = existingJob.subJobs.find((j) => j.job.uid === id)?.job;
+      //   } else {
+      //     job = await getFunctionJob(id);
+      //   }
+      //   jobsFetched.current += 1;
+      //   const jobsProg = (jobsFetched.current / totalSubs) * 100;
+      //   setJobProgress(jobsProg);
+      //   subJobs.push({
+      //     selected: false,
+      //     job,
+      //   });
+      // }
+      const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
       const subJobs = [];
       for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx++) {
         let job: FunctionJob;
         const id = jc.jobIds[subJobIdx];
         // check if job is already fetched in fetchedJobCollections
-        const existingJob = fetchedJobCollections.find(
-          (j) =>
-            j.jobCollection.jobIds.includes(id) &&
-            j.subJobs.some(
-              (sj) =>
-                sj.job.uid === id &&
-                (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")
-            )
-        );
-        if (existingJob) {
-          // console.info("Job already fetched: ", id, existingJob.subJobs.find((j) => j.job.uid === id));
-          job = existingJob.subJobs.find((j) => j.job.uid === id)?.job;
-        } else {
-          job = await getFunctionJob(id);
-        }
+        // const existingJob = fetchedJobCollections.find(
+        //   (j) =>
+        //     j.jobCollection.jobIds.includes(id) &&
+        //     j.subJobs.some(
+        //       (sj) =>
+        //         sj.job.uid === id &&
+        //         (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")
+        //     )
+        // );
+        job = functionJobs[subJobIdx]
+        //job.status = await getFunctionJobStatus(job.uid);
         jobsFetched.current += 1;
         const jobsProg = (jobsFetched.current / totalSubs) * 100;
         setJobProgress(jobsProg);
@@ -463,7 +486,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                 sx={(theme) => ({ color: theme.palette.primary.contrastText })}
               >
                 {poperID > -1 &&
-                jobCollections[poperID].jobCollection.uid ===
+                  jobCollections[poperID].jobCollection.uid ===
                   params.row.jobCollection.uid ? (
                   <KeyboardArrowDown style={{ transform: "rotate(90deg)" }} />
                 ) : (
@@ -575,20 +598,17 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           },
           "& .MuiDataGrid-row:hover": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
-                theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-row.Mui-selected": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${
-                theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-row.Mui-selected:hover": {
             backgroundColor: (theme) =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
-                theme.palette.mode === "dark" ? "black" : "white"
+              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"
               })`,
           },
           "& .MuiDataGrid-sortButton": {

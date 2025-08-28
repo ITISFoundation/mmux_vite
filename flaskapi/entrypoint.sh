@@ -19,7 +19,7 @@ export LOG_LEVEL=${LOG_LEVEL:-INFO}
 
 # NOTE: only required to test in local oSPARC deployment
 # uncomment and adjust with correct IP and PORT where the api servver is exposed
-# export OSPARC_API_BASE_URL=api.10.43.103.168.nip.io:8006
+export OSPARC_API_BASE_URL=api.10.43.103.149.nip.io:8006
 
 if [ "$DEVELOPMENT_MODE" = "true" ]; then
   # Development mode - use Flask's built-in server
