@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, useTheme } from "@mui/material";
 import { JobsLoading } from "../data/JobsLoading";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { useMMUXContext } from "../../context/MMUXContext";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { FunctionJob } from "../../osparc-api-ts-client";
@@ -16,13 +15,23 @@ import { aggregateOutputValues } from "../../utils/function_utils";
 export const MOGAPareto = (props: MogaParetoPropsType) => {
   const { loading, progress, jobProgress, colsFetched: _colsFetched, jobsFetched: _jobsFetched } = props;
   const theme = useTheme();
-  const { selectedFunction, inputVars, outputVars, distribution, outputDistribution } = useFunctionContext();
-  const { numSamples, selectedQoI } = useMMUXContext();
+  const { selectedFunction, inputVars, distribution, outputDistribution } = useFunctionContext();
   const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
   const [outputVarSelection, setOutputVarSelection] = useState<OutputVarSelection>({})
   const [optVars, setOptVars] = useState<Array<string>>([])
+
+  useEffect(() => {
+    if (!selectedFunction) {
+      console.warn("No function selected!!")
+    }
+    else {
+      setOutputVarSelection(outputDistribution[selectedFunction.uid])
+      setOptVars(Object.keys(outputDistribution[selectedFunction?.uid as string]))
+      console.debug("Information about optimization vars fetched")
+    }
+  }, [selectedFunction, outputDistribution]);
 
   useEffect(() => {
     const run = async () => {
@@ -42,19 +51,8 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
       }
     };
     run();
-  }, [filterSelectedJobList, selectedQoI, numSamples, inputVars, outputVars, distribution]);
-
-  useEffect(() => {
-    if (!selectedFunction) {
-      console.warn("No function selected!!")
-    }
-    else {
-      setOutputVarSelection(outputDistribution[selectedFunction.uid])
-      setOptVars(Object.keys(outputDistribution[selectedFunction?.uid as string]))
-      console.log("Information about optimization vars fetched")
-    }
-  }, [selectedFunction, outputDistribution]);
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outputVarSelection]);
 
   const runMOGA = async (jobs: FunctionJob[]) => {
     console.info("Running MOGA...");

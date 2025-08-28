@@ -1006,7 +1006,7 @@ def flask_perform_moga_optimization():
         output_var_selection_sanitized = sanitize_varnames(output_var_selection)
         output_responses_sanitized = [k for k in output_var_selection_sanitized.keys()]
 
-        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses_sanitized, folder_name="moga")
+        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses, folder_name="moga")
         run_dir = TRAINING_FILE.parent
 
         PROCESSED_TRAINING_FILE = process_input_file(
