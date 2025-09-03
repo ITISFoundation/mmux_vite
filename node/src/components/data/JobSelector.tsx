@@ -159,6 +159,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     console.info("Fetching jobCollections for function: ", functionUid);
     if (fetchedJobCollections.length > 0 && !forceFetch) {
       console.info("Job collections already fetched, skipping fetch.");
+      setLoading(false);
       setJobCollections(fetchedJobCollections);
       return;
     }
@@ -175,6 +176,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
     if (equalJC) {
       console.info("Job collections already fetched, skipping fetch.");
+      setLoading(false);
       setJobCollections(fetchedJobCollections);
       return;
     }
@@ -238,17 +240,22 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         let job: FunctionJob;
         const id = jc.jobIds[subJobIdx];
         // check if job is already fetched in fetchedJobCollections
-        // const existingJob = fetchedJobCollections.find(
-        //   (j) =>
-        //     j.jobCollection.jobIds.includes(id) &&
-        //     j.subJobs.some(
-        //       (sj) =>
-        //         sj.job.uid === id &&
-        //         (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")
-        //     )
-        // );
-        job = functionJobs[subJobIdx]
-        //job.status = await getFunctionJobStatus(job.uid);
+        const existingJob = fetchedJobCollections.find(
+          (j) =>
+            j.jobCollection.jobIds.includes(id) &&
+            j.subJobs.some(
+              (sj) =>
+                sj.job.uid === id &&
+                (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")
+            )
+        );
+        if (existingJob) {
+          // console.info("Job already fetched: ", id, existingJob.subJobs.find((j) => j.job.uid === id));
+          job = existingJob.subJobs.find((j) => j.job.uid === id)?.job;
+        } else {
+          //job = await getFunctionJob(id);
+          job = functionJobs[subJobIdx]
+        }
         jobsFetched.current += 1;
         const jobsProg = (jobsFetched.current / totalSubs) * 100;
         setJobProgress(jobsProg);
