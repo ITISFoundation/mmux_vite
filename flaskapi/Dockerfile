@@ -22,13 +22,8 @@ RUN git clone --single-branch \
   https://github.com/ITISFoundation/mmux_python /mmux_python \
   && cp -R /mmux_python /app/mmux_python
 
-# Install Python packages directly with system Python
-RUN uv pip install --system -r ./mmux_python/requirements.txt \
-  && uv pip install --system --prerelease=allow osparc==0.8.3.post0.dev30 \
-  && uv pip install --system \
-  # depnendcies usd by production wsgi server
-  gunicorn==23.0.0 \
-  gevent==25.5.1
+# Install Python packages (for MMUX_Python and the Flask API)
+RUN install-deps.sh
 
 COPY . .
 
