@@ -158,7 +158,8 @@ describe("stepValidator", () => {
           y: { distribution: "normal", mean: 5, std: 2 },
         },
       },
-      setSelectedFunction:  (_F: Function | undefined): void => {
+      outputDistribution: {},
+      setSelectedFunction: (_F: Function | undefined): void => {
         throw new Error("Function not implemented.");
       },
       inputVars: [],
@@ -170,6 +171,9 @@ describe("stepValidator", () => {
         throw new Error("Function not implemented.");
       },
       setDistribution: (_d: { [key: string]: InputVarSelection; }): void => {
+        throw new Error("Function not implemented.");
+      },
+      setOutputDistribution: function (_d: { [key: string]: OutputVarSelection; }): void {
         throw new Error("Function not implemented.");
       }
     };
@@ -195,13 +199,17 @@ describe("stepValidator", () => {
       }
     };
 
-    expect(stepValidator(functionContext, jobContext, 0)).toBe(true);
-    expect(stepValidator(functionContext, jobContext, 1)).toBe(true);
-    expect(stepValidator(functionContext, jobContext, 2)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, '', 0)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, '', 1)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, '', 2)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, 'MOGA', 0)).toBe(false);
+    expect(stepValidator(functionContext, jobContext, 'MOGA', 1)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, 'MOGA', 2)).toBe(true);
     functionContext.distribution = {};
     jobContext.selectedJobUids = [];
-    expect(stepValidator(undefined, jobContext, 0)).toBe(false);
-    expect(stepValidator(functionContext, jobContext, 0)).toBe(false);
-    expect(stepValidator(functionContext, jobContext, 1)).toBe(false);
+    expect(stepValidator(undefined, jobContext, '', 0)).toBe(false);
+    expect(stepValidator(undefined, jobContext, 'MOGA', 0)).toBe(false);
+    expect(stepValidator(functionContext, jobContext, '', 0)).toBe(false);
+    expect(stepValidator(functionContext, jobContext, '', 1)).toBe(false);
   });
 });

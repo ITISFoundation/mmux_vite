@@ -75,7 +75,7 @@ export async function getFunctionJob(jobUid: string): Promise<FunctionJob> {
     // get the MOCKUP_JOB with the right UID
     const j = MOCKUP_JOBS.find(j => j.uid === jobUid);
     if (!j) {
-        console.log("Job with ID " + jobUid + " not found");
+        // console.debug("Job with ID " + jobUid + " not found");
         return MOCKUP_JOBS[0];
     } else {
         return j;

@@ -57,6 +57,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
                 numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
                 log: false,
                 nHistograms: 50,
+                seed: 0,
               }),
             }
           );

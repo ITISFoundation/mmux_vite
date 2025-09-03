@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, useTheme } from "@mui/material";
 import { JobsLoading } from "../data/JobsLoading";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { useMMUXContext } from "../../context/MMUXContext";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { FunctionJob } from "../../osparc-api-ts-client";
@@ -16,14 +15,23 @@ import { aggregateOutputValues } from "../../utils/function_utils";
 export const MOGAPareto = (props: MogaParetoPropsType) => {
   const { loading, progress, jobProgress, colsFetched: _colsFetched, jobsFetched: _jobsFetched } = props;
   const theme = useTheme();
-  const { selectedFunction, inputVars, outputVars, distribution } = useFunctionContext();
-  const { numSamples, selectedQoI } = useMMUXContext();
+  const { selectedFunction, inputVars, distribution, outputDistribution } = useFunctionContext();
   const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
+  const [outputVarSelection, setOutputVarSelection] = useState<OutputVarSelection>({})
+  const [optVars, setOptVars] = useState<Array<string>>([])
 
-  const minimize_var_1 = outputVars[7] // isop50
-  const minimize_var_2 = outputVars[11] // shannon50
+  useEffect(() => {
+    if (!selectedFunction) {
+      console.warn("No function selected!!")
+    }
+    else {
+      setOutputVarSelection(outputDistribution[selectedFunction.uid])
+      setOptVars(Object.keys(outputDistribution[selectedFunction?.uid as string]))
+      console.debug("Information about optimization vars fetched")
+    }
+  }, [selectedFunction, outputDistribution]);
 
   useEffect(() => {
     const run = async () => {
@@ -43,7 +51,8 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
       }
     };
     run();
-  }, [filterSelectedJobList, selectedQoI, numSamples, inputVars, outputVars, distribution]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outputVarSelection]);
 
   const runMOGA = async (jobs: FunctionJob[]) => {
     console.info("Running MOGA...");
@@ -54,7 +63,7 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
         method: "POST",
         body: JSON.stringify({
           inputVars: inputVars,
-          outputVars: [minimize_var_1, minimize_var_2], // TODO implement way to select min, max, or none
+          outputVarSelection: outputVarSelection,
           distributions: distribution[selectedFunction?.uid || ""],
           FunctionJobs: jobs,
         }),
@@ -72,29 +81,28 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
     const newPlotData: Plotly.Data[] = [
       {
         name: "Original Samples",
-        x: outputValues[minimize_var_1],
-        y: outputValues[minimize_var_2],
+        x: outputValues[optVars[0]],
+        y: outputValues[optVars[1]], // TODO enable selection, when more than 2
         mode: "markers",
         type: "scatter",
         marker: { color: "rgb(41, 146, 221)", size: 4, symbol: "x" },
       },
       {
         name: "MOGA Samples",
-        x: results[minimize_var_1],
-        y: results[minimize_var_2],
+        x: results[optVars[0]],
+        y: results[optVars[1]],
         mode: "markers",
         type: "scatter",
         marker: { color: "rgb(255, 127, 14)", size: 2 },
       },
       {
         name: "Pareto Samples",
-        x: results["non_dominated_indices"].map(i => results[minimize_var_1][i]),
-        y: results["non_dominated_indices"].map(i => results[minimize_var_2][i]),
+        x: results["non_dominated_indices"].map(i => results[optVars[0]][i]),
+        y: results["non_dominated_indices"].map(i => results[optVars[1]][i]),
         mode: "lines",
         type: "scatter",
         marker: { color: "lightblue", size: 10 },
       }
-      // TODO add the true sample points (jobs) for comparison
     ];
     setPlotData(newPlotData);
     setPropagating(false);
@@ -102,8 +110,8 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
 
   const layout = {
     title: { text: "Pareto Front Diagram" },
-    xaxis: { title: { text: minimize_var_1 } },
-    yaxis: { title: { text: minimize_var_2 } },
+    xaxis: { title: { text: optVars[0] } },
+    yaxis: { title: { text: optVars[1] } },
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },

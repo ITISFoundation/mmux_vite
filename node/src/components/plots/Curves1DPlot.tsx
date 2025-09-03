@@ -138,8 +138,8 @@ const Curves1DPlots = () => {
       }
     };
     run();
-    console.log("axis: ", axis);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // console.debug("axis: ", axis);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     inputVars,
     selectedQoI,
@@ -206,7 +206,7 @@ const Curves1DPlots = () => {
       >
         <CreateSelect axis={axis} setAxis={setAxis} />
         {inputVars.length > 0 &&
-        distribution[selectedFunction?.uid || ""] !== undefined ? (
+          distribution[selectedFunction?.uid || ""] !== undefined ? (
           <>
             {inputVars.map((key) => {
               if (key === axis) {

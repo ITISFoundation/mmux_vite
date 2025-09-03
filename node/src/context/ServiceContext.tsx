@@ -5,7 +5,7 @@ import { getPermissions, getServiceMode } from '../utils/function_utils';
 type PermissionsEnum = 'WRITE' | 'READ-ONLY';
 type ServiceModeEnum = 'UQ' | 'SUMO' | 'MOGA' // this will need to be expanded as we include more flavours
 
-interface ServiceContextType {
+export interface ServiceContextType {
   permissions: PermissionsEnum;
   serviceMode: ServiceModeEnum;
 }

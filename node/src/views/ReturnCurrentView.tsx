@@ -25,7 +25,7 @@ export const ReturnCurrentView = (props: ReturnCurrentViewPropsType) => {
 
   return (
     <>
-      {currentView === 0 && <Setup />}
+      {currentView === 0 && <Setup serviceMode={serviceMode} />}
       {currentView === 1 && serviceMode === "UQ" && <UQ />}
       {currentView === 1 && serviceMode === "SUMO" && <SuMo />}
       {currentView === 1 && serviceMode === "MOGA" && <MOGA />}
