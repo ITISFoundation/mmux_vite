@@ -50,11 +50,6 @@ jobs:
       with:
         python-version: '3.11'
     
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
-    
     - name: Install dependencies (single source-of-truth)
       run: |
         ./install-deps.sh
@@ -63,7 +58,7 @@ jobs:
     - name: Run Python tests
       run: |
         . .venv/bin/activate
-        uv run python -m pytest tests/ -v --cov=flask_workflows --cov-report=xml --cov-report=html
+        python -m pytest tests/ -v --cov=flask_workflows --cov-report=xml --cov-report=html
       env:
         LOG_LEVEL: DEBUG
         OSPARC_API_BASE_URL: https://test.osparc.io

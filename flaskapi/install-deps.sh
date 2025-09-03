@@ -1,6 +1,6 @@
 #!/bin/bash
 # Single source-of-truth for installing Flask API dependencies
-# Uses uv with system Python to mirror Docker environment
+# will also be run upon local testing - to ensure the same dependencies are installed
 
 set -euo pipefail
 
@@ -9,25 +9,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$SCRIPT_DIR"
 cd "$PROJECT_DIR"
 
-# Ensure uv is available; install if missing
-if ! command -v uv >/dev/null 2>&1; then
-  echo "uv not found. Installing uv..."
-  
-  # Check
-  if ! command -v uv >/dev/null 2>&1; then
-    echo "Failed to install uv or add it to PATH." >&2
-    exit 1
-  fi
-  
-  echo "uv installed successfully at: $(which uv)"
-fi
-
-echo "Installing dependencies via uv..."
-uv venv --python 3.11 --clear
-source .venv/bin/activate
-uv pip install --prerelease=allow osparc==0.8.3.post0.dev30
-uv pip install -r ./requirements.txt  \
+# Install Python packages directly with system Python
+echo "Installing dependencies..."
+uv pip install --system -r ./requirements.txt  \
                         -r ./requirements-test.txt \
                         -r ./mmux_python/requirements.txt
-
+uv pip install --system --prerelease=allow osparc==0.8.3.post0.dev30
 echo "Dependencies installed successfully."
