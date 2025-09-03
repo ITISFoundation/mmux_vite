@@ -22,9 +22,9 @@ RUN git clone --single-branch \
   https://github.com/ITISFoundation/mmux_python /mmux_python \
   && cp -R /mmux_python /app/mmux_python
 
-# Install Python packages (for MMUX_Python and the Flask API)
-RUN install-deps.sh
-
 COPY . .
-
+  
+# Install Python packages (for MMUX_Python and the Flask API)
+RUN ./install-deps.sh
+  
 ENTRYPOINT ["./entrypoint.sh"]
