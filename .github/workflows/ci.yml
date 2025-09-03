@@ -62,7 +62,8 @@ jobs:
     
     - name: Run Python tests
       run: |
-        python -m pytest tests/ -v --cov=flask_workflows --cov-report=xml --cov-report=html
+        . .venv/bin/activate
+        uv run python -m pytest tests/ -v --cov=flask_workflows --cov-report=xml --cov-report=html
       env:
         LOG_LEVEL: DEBUG
         OSPARC_API_BASE_URL: https://test.osparc.io

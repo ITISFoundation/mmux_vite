@@ -23,7 +23,8 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 echo "Installing dependencies via uv..."
-uv venv --python 3.11
+uv venv --python 3.11 --clear
+source .venv/bin/activate
 uv pip install --prerelease=allow osparc==0.8.3.post0.dev30
 uv pip install -r ./requirements.txt  \
                         -r ./requirements-test.txt \
