@@ -35,6 +35,50 @@ jobs:
       run: npm ci
     - name: Run tests
       run: npm test
+
+  python-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./flaskapi
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+    
+    - name: Install dependencies (single source-of-truth)
+      run: |
+        ./install-deps.sh
+
+    
+    - name: Run Python tests
+      run: |
+        python -m pytest tests/ -v --cov=flask_workflows --cov-report=xml --cov-report=html
+      env:
+        LOG_LEVEL: DEBUG
+        OSPARC_API_BASE_URL: https://test.osparc.io
+        OSPARC_API_KEY: test_key
+        OSPARC_API_SECRET: test_secret
+        SERVICE_MODE: TEST
+        PERMISSIONS: READ-ONLY
+        DEPLOYMENT_MODE: LOCAL
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./flaskapi/coverage.xml
+        flags: backend
+        name: backend-coverage
+
   verify-image-build:
     needs: node-tests
     runs-on: ubuntu-latest

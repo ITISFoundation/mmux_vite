@@ -181,6 +181,20 @@ publish-local: ## push to local throw away registry to test integration
 	@echo "WARNING ##### $@ does not exist, cloning $< as $@ ############"; cp $< $@)
 
 
+# TESTING
+.PHONY: test-frontend
+test-frontend: ## run Node.js frontend tests
+	cd ${NODE_DIR} && npm test
+
+.PHONY: test-backend
+test-backend: ## run Flask backend tests
+	cd ${FLASKAPI_DIR} && \
+	bash install-deps.sh && \
+	uv run python -m pytest tests/ -v --cov=flask_workflows --cov-report=html --cov-report=term-missing
+
+.PHONY: ci
+ci: test-backend test-frontend ## run all tests
+
 .PHONY: help
 help: ## this colorful help
 	@echo "Recipes for '$(notdir $(CURDIR))':"
