@@ -3,19 +3,19 @@ import os
 from pathlib import Path
 import json
 import logging
-from typing import List, Dict, Callable, NamedTuple, Final, Optional, Literal
-import numpy as np # type: ignore
-import pandas as pd # type: ignore
-from flask import Flask, request, abort, jsonify, make_response # type: ignore
-from osparc import Configuration as OsparcConfiguration # type: ignore
-from osparc import ApiClient, UsersApi, StudiesApi # type: ignore
-from osparc_client.api.functions_api import FunctionsApi # type: ignore
-from osparc_client.api.function_jobs_api import FunctionJobsApi # type: ignore
-from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi # type: ignore
-from osparc_client.models.function_job import FunctionJob # type: ignore
-from osparc_client.models.function_job_status import FunctionJobStatus # type: ignore
-from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost # type: ignore
-
+from typing import List, Dict, Callable, NamedTuple, Final, Literal
+#
+import numpy as np
+import pandas as pd
+from flask import Flask, request, abort, jsonify, make_response
+#
+from osparc_client.models.function_job import FunctionJob
+from osparc_client.models.function_job_status import FunctionJobStatus
+from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost
+#
+from webserver_config import OsparcConfig
+from helpers import is_test_environment, recursive_dict_keys_camel_to_snake, dict_keys_camel_to_snake, dict_keys_snake_to_camel
+#
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
     create_manual_uq_samples,
@@ -28,11 +28,17 @@ from mmux_python.utils.funs_plotting import plot_objective_space
 ### Logger configuration ####################################
 _logger = logging.getLogger(__name__)
 
+# Create logs directory - use environment variable or default to user's home
+### TODO put it back if flaskapi directory but w the right user permissions
+log_path = os.environ.get("MMUX_LOG_PATH", str(Path.home() / "mmux_logs" / "flask_workflows.log"))
+log_file = Path(log_path)
+log_file.parent.mkdir(parents=True, exist_ok=True)
+
 logging.basicConfig(
     level=os.environ["LOG_LEVEL"],
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("flask_workflows.log"),
+        logging.FileHandler(log_file),
         logging.StreamHandler()
     ]
 )
@@ -46,85 +52,16 @@ werkzeug_logger.propagate = True
 _logger.info("Logging started")
 #############################################################
 
-### TypeScript expects camelCase, but Python API is getting snake_case. 
-# Convert before sending to frontend.
- 
-def camel_to_snake(s: str) -> str:
-    res = re.sub(r'_([a-z])', lambda match: match.group(1).upper(),s)
-    return res
-
-def snake_to_camel(s: str) -> str:
-    """Convert snake_case to camelCase."""
-    components = s.split('_')
-    return components[0] + ''.join(x.title() for x in components[1:])
-
-def dict_keys_camel_to_snake(d: dict) -> dict:
-    return {camel_to_snake(k): v for k, v in d.items()}
-
-def dict_keys_snake_to_camel(d: dict) -> dict:
-    """Convert dictionary keys from snake_case to camelCase."""
-    return {snake_to_camel(k): v for k, v in d.items()}
-
-def recursive_dict_keys_camel_to_snake(d: dict, max_depth: int = -1, current_depth: int = 0) -> dict:
-    # Process nested values
-    for k, v in d.items():
-        if isinstance(v, dict) and (max_depth == -1 or current_depth < max_depth):
-            d[k] = recursive_dict_keys_camel_to_snake(v, max_depth, current_depth + 1)
-        elif isinstance(v, list) and (max_depth == -1 or current_depth < max_depth):
-            d[k] = [
-                recursive_dict_keys_camel_to_snake(i, max_depth, current_depth + 1) if isinstance(i, dict) else i 
-                for i in v
-            ]
-    
-    # Convert keys and return
-    return {camel_to_snake(k): v for k, v in d.items()}
-
-def recursive_dict_keys_snake_to_camel(d: dict, max_depth: int = -1, current_depth: int = 0) -> dict:
-    for k, v in d.items():
-        if isinstance(v, dict) and (max_depth == -1 or current_depth < max_depth):
-            d[k] = recursive_dict_keys_snake_to_camel(v, max_depth, current_depth + 1)
-        elif isinstance(v, list) and (max_depth == -1 or current_depth < max_depth):
-            d[k] = [
-                recursive_dict_keys_snake_to_camel(i, max_depth, current_depth + 1) if isinstance(i, dict) else i
-                for i in v
-            ]
-    return {snake_to_camel(k): v for k, v in d.items()}
 
 
 ### osparc client configuration #############################    
 os.chdir(os.path.dirname(__file__))
 
-configuration = OsparcConfiguration(
-        host=os.environ["OSPARC_API_BASE_URL"].rstrip("/"),  # Ensure no trailing slash
-        username=os.environ["OSPARC_API_KEY"],
-        password=os.environ["OSPARC_API_SECRET"],
-)
-def _anonymize(s: str, n: int=4, m: Optional[int]=None):
-    if not s:
-        return ""
-    if m is None:
-        m = len(s) - n
-    return s[:n] + "*" * m
-
-_logger.info(
-    "Detected osparc_client configuration: host=%s, username=%s, password=%s",
-    configuration.host,
-    _anonymize(configuration.username, 4, 6),
-    _anonymize(configuration.password, 4, 6)
-)
-
-api_client = ApiClient(configuration)
-studies_api_instance = StudiesApi(api_client)
-functions_api_instance = FunctionsApi(api_client)
-job_api_instance = FunctionJobsApi(api_client)
-job_collection_api_instance = FunctionJobCollectionsApi(api_client)
-
-
-# check that API is responsive
-_logger.info("Checking if the API is responsive...")
-users_api = UsersApi(api_client)
-profile = users_api.get_my_profile()
-_logger.info("User profile info:\n%s", profile.model_dump_json(indent=2))
+# Get the OSPARC configuration instance
+osparc_config = OsparcConfig()
+if not is_test_environment():
+    _logger.info("Testing API connection...")
+    osparc_config.test_connection()
 
 #############################################################
 
@@ -218,7 +155,7 @@ def flask_list_functions():
     _logger.debug("Starting flask function: flask_list_functions")
     _logger.debug("Cwd: " + str(Path.cwd()))
     try: 
-        functions = _get_all_items(functions_api_instance.list_functions)
+        functions = _get_all_items(osparc_config.get_functions_api().list_functions)
         # functions = get_first_N_items(functions_api_instance.list_functions, N=5)
         # functions = get_last_N_items(functions_api_instance.list_functions, N=50)
         functions = functions[::-1] # put last-created first? FIXME still need to expose "created_at" in the response
@@ -238,7 +175,7 @@ def flask_list_jobs():
     _logger.debug("Starting flask function: flask_list_jobs")
     _logger.debug("Cwd: " + str(Path.cwd()))
     try:
-        jobs = _get_all_items(job_api_instance.list_function_jobs)
+        jobs = _get_all_items(osparc_config.get_job_api().list_function_jobs)
         _logger.debug(f"N Jobs: {len(jobs)}")
         return jsonify(jobs)
     except Exception as e:
@@ -249,13 +186,14 @@ def flask_list_jobs():
 def flask_list_function_jobs_for_functionid():
     _logger.debug("Starting flask function: flask_list_function_jobs_for_functionid")
     _logger.debug("Cwd: " + str(Path.cwd()))
+    function_uid = None
     try:
         function_uid = request.args["functionUid"]
         _logger.info(f"Function ID: {function_uid}")
-        jobs = _get_all_items(functions_api_instance.list_function_jobs_for_functionid, function_uid)
+        jobs = _get_all_items(osparc_config.get_functions_api().list_function_jobs_for_functionid, function_uid)
         _logger.debug(f"N Jobs for function {function_uid}: {len(jobs)}")
         for j in jobs:
-            status : FunctionJobStatus = job_api_instance.function_job_status(j["uid"]) 
+            status : FunctionJobStatus = osparc_config.get_job_api().function_job_status(j["uid"]) 
             j["status"] = status.status
         return jsonify(jobs)
     except Exception as e:
@@ -269,7 +207,7 @@ def flask_list_function_jobs_for_jobcollectionid():
     try:
         jc_uid = request.args["JobCollectionUid"]
         _logger.debug(f"jc ID: {jc_uid}")
-        jc = job_collection_api_instance.get_function_job_collection(jc_uid)
+        jc = osparc_config.get_job_collection_api().get_function_job_collection(jc_uid)
         jobs = [_get_function_job_from_uid(job_uid) for job_uid in jc.job_ids] # type: ignore
         _logger.debug(f"N Jobs for job collection {jc_uid}: {len(jobs)}")
         return jsonify(jobs)
@@ -283,7 +221,7 @@ def flask_get_function_job_collections():
     _logger.debug("Cwd: " + str(Path.cwd()))
     try:
         ## this is a list of items of Paginated object -- deserialize into a list of JobCollection objects
-        job_collections = _get_all_items(job_collection_api_instance.list_function_job_collections)
+        job_collections = _get_all_items(osparc_config.get_job_collection_api().list_function_job_collections)
         _logger.debug(f"N Job collections: {len(job_collections)}")
         return jsonify(job_collections)
     except Exception as e:  
@@ -299,7 +237,7 @@ def flask_get_function_job_collections_for_functionid():
         function_uid = request.args["functionUid"]
         _logger.debug(f"Function ID: {function_uid}")
         # job_collections = get_all_items(job_collection_api_instance.list_function_job_collections, has_function_id=function_uid)
-        response = job_collection_api_instance.list_function_job_collections(has_function_id=function_uid)
+        response = osparc_config.get_job_collection_api().list_function_job_collections(has_function_id=function_uid)
         job_collections = [dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
         _logger.debug(f"N Job collections for function {function_uid}: {len(job_collections)}")
         return jsonify(job_collections)
@@ -320,11 +258,11 @@ def flask_get_function_job():
 def _get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
     """Helper function to get a Job information (including status) from its UID."""
     _logger.debug(f"Job ID: {job_uid}")
-    job = job_api_instance.get_function_job(job_uid)
+    job = osparc_config.get_job_api().get_function_job(job_uid)
     job_dict = dict_keys_camel_to_snake(job.to_dict()) # type: ignore
     _logger.debug(f"'Raw' Job: {job_dict}")
-    job_dict["status"] = job_api_instance.function_job_status(job_uid).status
-    job_dict["outputs"] = job_api_instance.function_job_outputs(job_uid)
+    job_dict["status"] = osparc_config.get_job_api().function_job_status(job_uid).status
+    job_dict["outputs"] = osparc_config.get_job_api().function_job_outputs(job_uid)
     _logger.debug(f"Job: {job_dict}")
 
     return job_dict
@@ -335,7 +273,7 @@ def flask_get_function_job_status():
     _logger.debug("Cwd: " + str(Path.cwd()))
     try: 
         job_uid = request.args["jobUid"]
-        job_status = job_api_instance.function_job_status(job_uid).status
+        job_status = osparc_config.get_job_api().function_job_status(job_uid).status
         return jsonify(job_status)
     except Exception as e:
         _logger.error(f"Error while getting function job: {e}")
@@ -347,7 +285,7 @@ def flask_get_function_job_outputs():
     _logger.debug("Cwd: " + str(Path.cwd()))
     try: 
         job_uid = request.args["jobUid"]
-        job_outputs = job_api_instance.function_job_outputs(job_uid)
+        job_outputs = osparc_config.get_job_api().function_job_outputs(job_uid)
         return jsonify(job_outputs)
     except Exception as e:
         _logger.error(f"Error while getting function job: {e}")
@@ -363,9 +301,9 @@ def test_job_retrieval_endpoints_speed(job_uid: str, N: int = 1):
             _logger.info(f"Iteration {_+1}/{N}: {result}")   # Print the result of each iteration
         end_time = time.time()
         return (end_time - start_time) / N
-    time_job_full = _timeit(job_api_instance.get_function_job, N, job_uid)
-    time_job_outputs = _timeit(job_api_instance.function_job_outputs, N, job_uid)
-    time_job_status = _timeit(job_api_instance.function_job_status, N, job_uid)
+    time_job_full = _timeit(osparc_config.get_job_api().get_function_job, N, job_uid)
+    time_job_outputs = _timeit(osparc_config.get_job_api().function_job_outputs, N, job_uid)
+    time_job_status = _timeit(osparc_config.get_job_api().function_job_status, N, job_uid)
 
     _logger.debug(f"Average time to retrieve full job: {time_job_full:.4f} seconds")
     _logger.debug(f"Average time to retrieve job outputs: {time_job_outputs:.4f} seconds")
@@ -382,7 +320,7 @@ def test_job_retrieval_paginated(function_uid: str):
         _logger.info(f"First item: {result[0] if result else 'No items retrieved'}")
         _logger.info(f"Last item: {result[-1] if result else 'No items retrieved'}")
         _logger.info(f"That is {(end_time - start_time)/len(result):.2f} seconds per item")
-    _timeit(_get_all_items, api_call=functions_api_instance.list_function_jobs_for_functionid, function_id=function_uid)  # type: ignore
+    _timeit(_get_all_items, api_call=osparc_config.get_functions_api().list_function_jobs_for_functionid, function_id=function_uid)  # type: ignore
 # test_job_retrieval_paginated(function_uid="eea21c0d-6c2b-4cf4-91d1-116e6550cb22")
 
 def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str | List[str], folder_name: str = "evaluate") -> Path:
@@ -747,10 +685,10 @@ def flask_test_job():
         sample = {config[i]["variable"]: config[i]["value"] for i in range(len(config))} 
 
         _logger.debug("Input to validate_function_inputs: %s" , sample)
-        val = functions_api_instance.validate_function_inputs(function_uid, sample)  # this is working - changing the name of the variable does return a validation error
+        val = osparc_config.get_functions_api().validate_function_inputs(function_uid, sample)  # this is working - changing the name of the variable does return a validation error
         _logger.debug(f"Validated function inputs for function {function_uid} with sample {sample}: {val}")
         parent_info = _get_parent_ids()
-        response = functions_api_instance.run_function(function_uid, body=sample,
+        response = osparc_config.get_functions_api().run_function(function_uid, body=sample,
                                                        x_simcore_parent_node_id=parent_info.parent_node_id,
                                                        x_simcore_parent_project_uuid=parent_info.parent_project_id)
         _logger.debug(f"Response from run_function with sample {sample}: {response}")
@@ -787,7 +725,7 @@ def _get_parent_ids() -> ParentInfo:
 
 def _run_sampling_map(function_uid, samples):
     parent_info = _get_parent_ids()
-    jc = functions_api_instance.map_function(function_id=function_uid, request_body=samples, 
+    jc = osparc_config.get_functions_api().map_function(function_id=function_uid, request_body=samples, 
                                              x_simcore_parent_node_id=parent_info.parent_node_id, 
                                              x_simcore_parent_project_uuid=parent_info.parent_project_id) 
     return dict_keys_snake_to_camel(jc.to_dict())
@@ -797,6 +735,7 @@ def _run_sampling_map(function_uid, samples):
 def flask_lhs():
     _logger.debug("Starting flask function: flask/lhs_sampling")
     _logger.debug("Cwd: " + str(Path.cwd()))
+    function_uid = None
 
     try:
         # Convert request data into a Python dictionary
@@ -927,7 +866,7 @@ def flask_clone_job():
         study_data = BodyCloneStudyV0StudiesStudyIdClonePost(title="Job " + function_name, 
                                      description=f"Clone of job *{project_job_id}* from function *{function_name}*.\n\n{formatted_inputs}",)
         _logger.debug("Study data: ", study_data)
-        study = studies_api_instance.clone_study(project_job_id, hidden=False,
+        study = osparc_config.get_studies_api().clone_study(project_job_id, hidden=False,
                                                  body_clone_study_v0_studies_study_id_clone_post=study_data,)
         _logger.debug(f"Cloned study: {study.to_dict()}")
         _logger.debug("Done!!")
