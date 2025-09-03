@@ -1,9 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
-import { fetchWithRetry } from '../utils/fetch_retry';
 import { PersistenceType } from "./types";
+import { fetchWithRetry } from '../utils/fetch_retry';
 
 interface PersistenceContextType {
   persistence: PersistenceType | undefined;
@@ -42,7 +42,8 @@ const defaultPersistence: PersistenceType = {
   singleJobConfig: [],
   runningJobCollection: undefined,
   fetchedJobCollections: [],
-  selectedJobUids: []
+  selectedJobUids: [],
+  outputDistribution: {}
 };
 
 export const PersistenceContextProvider = ({ children }: Props) => {
@@ -62,6 +63,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
       "inputVars" in data &&
       "outputVars" in data &&
       "distribution" in data &&
+      "outputDistribution" in data &&
       "lhsSamplingConfig" in data &&
       "gridSamplingConfig" in data &&
       "singleJobConfig" in data &&
@@ -130,7 +132,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
       filename: string;
     };
     try {
-      console.log("Fetched persistence:", envelope.content);
+      // console.debug("Fetched persistence:", envelope.content);
       const data = JSON.parse(envelope.content) as PersistenceType;
       console.info(`File ${filename} fetched successfully.`, data);
       return data;
@@ -142,7 +144,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
 
   const saveState = useCallback(async (state: PersistenceType) => {
     const content = JSON.stringify(state, null, 2);
-    console.log("Saving state to persistence file:", state);
+    // console.debug("Saving state to persistence file:", state);
     try {
       await setFile("persistence.json", content);
       setPersistence(state);
@@ -158,6 +160,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
         inputVars: persistence.inputVars,
         outputVars: persistence.outputVars,
         distribution: persistence.distribution,
+        outputDistribution: persistence.outputDistribution
       };
     }
     return undefined;
@@ -167,7 +170,8 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     selectedFunction,
     inputVars,
     outputVars,
-    distribution
+    distribution,
+    outputDistribution
   }: Partial<PersistenceType>) => {
     if (persistence !== undefined) {
       console.info("Persisting Function context state...");
@@ -177,6 +181,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
         inputVars: inputVars ? inputVars : [],
         outputVars: outputVars ? outputVars : [],
         distribution: distribution ? distribution : {},
+        outputDistribution: outputDistribution ? outputDistribution : {}
       };
       saveState(newPersistence);
     }
