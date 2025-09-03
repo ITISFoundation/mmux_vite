@@ -209,37 +209,11 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       const jc = jobsC[jcIdx];
       // for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx++) {
       let job: FunctionJob;
-      //   const id = jc.jobIds[subJobIdx];
-      //   // check if job is already fetched in fetchedJobCollections
-      //   const existingJob = fetchedJobCollections.find(
-      //     (j) =>
-      //       j.jobCollection.jobIds.includes(id) &&
-      //       j.subJobs.some(
-      //         (sj) =>
-      //           sj.job.uid === id &&
-      //           (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")
-      //       )
-      //   );
-      //   if (false) {
-      //     // console.info("Job already fetched: ", id, existingJob.subJobs.find((j) => j.job.uid === id));
-      //     job = existingJob.subJobs.find((j) => j.job.uid === id)?.job;
-      //   } else {
-      //     job = await getFunctionJob(id);
-      //   }
-      //   jobsFetched.current += 1;
-      //   const jobsProg = (jobsFetched.current / totalSubs) * 100;
-      //   setJobProgress(jobsProg);
-      //   subJobs.push({
-      //     selected: false,
-      //     job,
-      //   });
-      // }
       const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
       const subJobs = [];
       for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx++) {
         let job: FunctionJob;
         const id = jc.jobIds[subJobIdx];
-        // check if job is already fetched in fetchedJobCollections
         const existingJob = fetchedJobCollections.find(
           (j) =>
             j.jobCollection.jobIds.includes(id) &&
@@ -250,10 +224,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             )
         );
         if (existingJob) {
-          // console.info("Job already fetched: ", id, existingJob.subJobs.find((j) => j.job.uid === id));
           job = existingJob.subJobs.find((j) => j.job.uid === id)?.job;
         } else {
-          //job = await getFunctionJob(id);
           job = functionJobs[subJobIdx]
         }
         jobsFetched.current += 1;
