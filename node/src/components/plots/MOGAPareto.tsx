@@ -15,7 +15,7 @@ import { aggregateOutputValues } from "../../utils/function_utils";
 export function MOGAPareto(props: MogaParetoPropsType) {
   const { loading, progress, jobProgress } = props;
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution, outputDistribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
   const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
@@ -26,11 +26,11 @@ export function MOGAPareto(props: MogaParetoPropsType) {
     if (!selectedFunction) {
       console.warn("No function selected!!");
     } else {
-      setOutputVarSelection(outputDistribution[selectedFunction.uid]);
-      setOptVars(Object.keys(outputDistribution[selectedFunction?.uid as string]));
+      setOutputVarSelection(outputTargets[selectedFunction.uid]);
+      setOptVars(Object.keys(outputTargets[selectedFunction?.uid as string]));
       console.debug("Information about optimization vars fetched");
     }
-  }, [selectedFunction, outputDistribution]);
+  }, [selectedFunction, outputTargets]);
 
   const runMOGA = async (jobs: FunctionJob[]) => {
     console.info("Running MOGA...");

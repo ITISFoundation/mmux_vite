@@ -8,10 +8,10 @@ import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import { AddOutputModal } from "./AddOutputModal";
 
 export function OutputVariableDist() {
-  const { selectedFunction, outputVars, outputDistribution, setOutputDistribution } = useFunctionContext();
+  const { selectedFunction, outputVars, outputTargets: outputTargets, setOutputTargets: setOutputTargets } = useFunctionContext();
   // const { ServiceMode } = useServiceContext();
   const [openModal, setOpenModal] = useState(false);
-  const [configuredOutputs, setConfiguredOutputs] = useState(outputDistribution[selectedFunction?.uid || ""] || {});
+  const [configuredOutputs, setConfiguredOutputs] = useState(outputTargets[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
 
   const handlesetConfiguredOutputs = useCallback(
@@ -19,25 +19,25 @@ export function OutputVariableDist() {
       setConfiguredOutputs(newOutputVars);
       if (selectedFunction) {
         const newDist = {
-          ...outputDistribution,
+          ...outputTargets,
           [selectedFunction.uid]: newOutputVars,
         };
-        setOutputDistribution(newDist);
+        setOutputTargets(newDist);
       }
     },
-    [outputDistribution, selectedFunction, setOutputDistribution],
+    [outputTargets, selectedFunction, setOutputTargets],
   );
 
   useEffect(() => {
-    if (outputDistribution && selectedFunction && outputDistribution[selectedFunction.uid]) {
-      setConfiguredOutputs(outputDistribution[selectedFunction.uid]);
+    if (outputTargets && selectedFunction && outputTargets[selectedFunction.uid]) {
+      setConfiguredOutputs(outputTargets[selectedFunction.uid]);
     } else if (outputVars && outputVars.length > 0) {
       handlesetConfiguredOutputs(Object.fromEntries(outputVars.map(v => [v, "minimize"])));
     } else {
       handlesetConfiguredOutputs({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outputDistribution, outputVars, selectedFunction]);
+  }, [outputTargets, outputVars, selectedFunction]);
 
   if (outputVars && outputVars.length === 0) {
     return <></>;
