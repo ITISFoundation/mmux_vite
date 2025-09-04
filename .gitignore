@@ -1,9 +1,5 @@
 ## Custom
-flaskapi/runs/*
-*__pycache__*
-src/assets/*Inputs*.json
-*.conf.json
-flaskapi/mmux_python
+
 
 # Logs
 logs
@@ -18,9 +14,6 @@ node_modules
 dist
 dist-ssr
 *.local
-
-# testing
-.coverage
 
 # Editor directories and files
 .vscode/*
@@ -38,15 +31,5 @@ dist-ssr
 docker-compose.yml
 *.env
 *.ignore.*
-
-# Run data values
-predictions.dat
-results.dat
-variances.dat
-dakota.rst
-dakota_*.txt
-stderr
-stdout
-fort.*
 
 validation/

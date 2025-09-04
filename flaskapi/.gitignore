@@ -1,0 +1,27 @@
+*__pycache__*
+mmux_python
+
+# Logs
+logs
+*.log
+
+# testing
+.coverage
+.pytest_cache
+htmlcov
+coverage.xml
+
+## cache & dist
+__pycache__
+*.egg-info
+
+# Dakota runs data values
+runs/*
+predictions.dat
+results.dat
+variances.dat
+dakota.rst
+dakota_*.txt
+stderr
+stdout
+fort.*
