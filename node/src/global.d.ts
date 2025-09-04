@@ -1,30 +1,30 @@
 type Step = {
-  id: number,
-  label: string
-}
+  id: number;
+  label: string;
+};
 
 type SamplingInputsState = {
   variable: string;
   start: number;
   end: number;
-}
+};
 
 type SingleJobConfig = {
   variable: string;
   value: number;
-}
+};
 
-type fieldType = "start" | "end" | "points" | "seed";
+type FieldType = "start" | "end" | "points" | "seed";
 
 type LHSamplingConfig = {
   inputs: SamplingInputsState[];
   points: number;
   seed: number;
-}
+};
 
 type GRIDSamplingConfig = SamplingInputsState[];
 
-type dataUQHistogramType = {
+type DataUQHistogramType = {
   bins_start: number;
   bins_end: number;
   bin_means: number[];
@@ -61,7 +61,7 @@ interface NavigationProps {
   steps: Step[];
   activeStep: number;
 }
-type HeaderTypes = 'title' | 'titleNoMargin' | 'bigTitle' | 'subTitle';
+type HeaderTypes = "title" | "titleNoMargin" | "bigTitle" | "subTitle";
 
 interface MetaModelingUXProps {
   tabTitle?: string;
@@ -72,12 +72,12 @@ interface MetaModelingUXProps {
   children: React.ReactNode;
 }
 interface HeaderProps {
-    headerType: HeaderTypes;
-    tabTitle?: string;
-    infoText?: string;
-    ExtendedInfoText?: ReactElement;
-    helpContents?: ReactElement;
-    fontWeight?: React.CSSProperties['fontWeight'];
+  headerType: HeaderTypes;
+  tabTitle?: string;
+  infoText?: string;
+  ExtendedInfoText?: ReactElement;
+  helpContents?: ReactElement;
+  fontWeight?: React.CSSProperties["fontWeight"];
 }
 
 interface SubJob {
@@ -92,8 +92,8 @@ interface SelectedJobCollection {
 }
 
 interface FooterProps {
-  mode: 'light' | 'dark' | 'system' | undefined;
-  setMode: ( mode: 'light' | 'dark' ) => void;
+  mode: "light" | "dark" | "system" | undefined;
+  setMode: (mode: "light" | "dark") => void;
   activeStep: number;
   setActiveStep: (step: number) => void;
 }
@@ -105,9 +105,9 @@ interface TabPanelProps {
 }
 
 interface PersistentJSONStateOptions<T> {
-    defaultState: T;
-    filePath: string;
-    onStateLoaded?: (state: T) => void;
+  defaultState: T;
+  filePath: string;
+  onStateLoaded?: (state: T) => void;
 }
 
 interface FunctionJobCollection {
@@ -118,25 +118,25 @@ interface FunctionJobCollection {
 }
 
 interface InputBlockProps {
-  name: string,
-  value: number,
-  type?: 'number' | 'text',
-  onChange: (value: unknown) => void
-  error?: boolean,
+  name: string;
+  value: number;
+  type?: "number" | "text";
+  onChange: (value: unknown) => void;
+  error?: boolean;
 }
 
 interface InputTextBlockProps {
-  name: string,
-  value: string,
-  onChange: (value: string) => void
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
 }
 
-type distribution = 'constant' | 'normal' | 'uniform' | 'log-normal' | 'exponential';
-type variables = 'value' | 'mean' | 'std' | 'min' | 'max' | 'location' | 'scale';
-type outputOptimization = 'minimize' | 'maximize';
+type Distribution = "constant" | "normal" | "uniform" | "log-normal" | "exponential";
+type Variables = "value" | "mean" | "std" | "min" | "max" | "location" | "scale";
+type OutputOptimization = "minimize" | "maximize";
 
 interface VarSelection {
-  distribution: distribution;
+  distribution: Distribution;
   value?: number;
   mean?: number;
   std?: number;
@@ -146,10 +146,14 @@ interface VarSelection {
   scale?: number;
 }
 
-interface OutputVarSelection {[x: string]: outputOptimization}
-interface InputVarSelection {[x: string]: VarSelection}
+interface OutputVarSelection {
+  [x: string]: OutputOptimization;
+}
+interface InputVarSelection {
+  [x: string]: VarSelection;
+}
 
-type cvMetricsType = {
+type CvMetricsType = {
   mean_y: number;
   std_y: number;
   mean_y_hat: number;

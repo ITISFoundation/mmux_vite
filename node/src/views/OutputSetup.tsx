@@ -1,13 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Box,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  Button,
-  useTheme,
-} from "@mui/material";
+import { Box, InputLabel, Select, MenuItem, TextField, Button, useTheme } from "@mui/material";
 import { InfoOutline } from "@mui/icons-material";
 import CustomTooltip from "../components/utils/CustomTooltip";
 import SelectQoIDocument from "../components/documents/SelectQoIDocument";
@@ -21,17 +13,14 @@ interface UQSetupProps {
   setSumoModal?: (value: boolean) => void;
 }
 
-export const OutputSetup = (props: UQSetupProps) => {
+export function OutputSetup(props: UQSetupProps) {
   const { loading, mode, setSumoModal } = props;
   const theme = useTheme();
   const { selectedFunction, outputVars } = useFunctionContext();
   const { filterSelectedJobList } = useJobContext();
-  const { selectedQoI, setSelectedQoI, numSamples, setNumSamples } =
-    useMMUXContext();
+  const { selectedQoI, setSelectedQoI, numSamples, setNumSamples } = useMMUXContext();
   const [localQoI, setLocalQoI] = useState<string | undefined>(selectedQoI);
-  const [localNumSamples, setLocalNumSamples] = useState(
-    numSamples[selectedFunction?.uid || ""] || 10000
-  );
+  const [localNumSamples, setLocalNumSamples] = useState(numSamples[selectedFunction?.uid || ""] || 10000);
 
   const handlesetLocalQoI = (value: string) => {
     setLocalQoI(value);
@@ -66,9 +55,7 @@ export const OutputSetup = (props: UQSetupProps) => {
         <Button
           variant="contained"
           size="small"
-          disabled={
-            loading || !selectedFunction || filterSelectedJobList().length === 0
-          }
+          disabled={loading || !selectedFunction || filterSelectedJobList().length === 0}
           onClick={() => setSumoModal(true)}
           sx={{ padding: "8px 16px" }}
         >
@@ -112,13 +99,13 @@ export const OutputSetup = (props: UQSetupProps) => {
             arrow
           >
             <InfoOutline
-              sx={(theme) => ({
+              sx={{
                 color: theme.palette.primary.light,
                 backgroundColor: theme.palette.background.default,
                 borderRadius: "50%",
                 padding: "2px",
                 marginLeft: "4px",
-              })}
+              }}
             />
           </CustomTooltip>
         </Box>
@@ -128,13 +115,13 @@ export const OutputSetup = (props: UQSetupProps) => {
           sx={{ flex: 1 }}
           value={localQoI}
           defaultValue={outputVars[0] || ""}
-          onChange={(e) => {
+          onChange={e => {
             handlesetLocalQoI(e.target.value);
           }}
           data-testid="qoi-select"
         >
-          {outputVars.map((qoi, idx) => (
-            <MenuItem key={idx} value={qoi}>
+          {outputVars.map(qoi => (
+            <MenuItem key={`qoi-${qoi}`} value={qoi}>
               {qoi}
             </MenuItem>
           ))}
@@ -163,13 +150,13 @@ export const OutputSetup = (props: UQSetupProps) => {
               InputProps={{
                 inputProps: {
                   min: 1,
-                  max: 1000000
+                  max: 1000000,
                 },
               }}
               sx={{ flex: 1 }}
               value={localNumSamples}
-              onChange={(e) => {
-                const value = Math.max(1, Math.min(1000000, parseInt(e.target.value)));
+              onChange={e => {
+                const value = Math.max(1, Math.min(1000000, parseInt(e.target.value, 10)));
                 return handlesetLocalNumSamples(value);
               }}
             />
@@ -177,11 +164,7 @@ export const OutputSetup = (props: UQSetupProps) => {
           <Button
             variant="contained"
             size="small"
-            disabled={
-              loading ||
-              !selectedFunction ||
-              filterSelectedJobList().length === 0
-            }
+            disabled={loading || !selectedFunction || filterSelectedJobList().length === 0}
             onClick={() => setSumoModal(true)}
             sx={{ padding: "8px 16px" }}
             data-testid="inspect-model-button"
@@ -192,4 +175,4 @@ export const OutputSetup = (props: UQSetupProps) => {
       )}
     </Box>
   );
-};
+}

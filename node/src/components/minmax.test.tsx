@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import getMinMax from "./minmax";
 import { vi, describe, expect, it } from "vitest";
+import getMinMax from "./minmax";
 
 // Mock MUI Box
 vi.mock("@mui/material", () => ({
@@ -35,7 +35,7 @@ describe("getMinMax", () => {
       [
         { x: 10, y: 20 },
         { x: 30, y: 40 },
-      ]
+      ],
     );
 
     render(getMinMax(subJobs));
@@ -50,10 +50,7 @@ describe("getMinMax", () => {
   });
 
   it("renders single value if min equals max", () => {
-    const subJobs = makeSubJobs(
-      [{ a: 5 }],
-      [{ x: 42 }]
-    );
+    const subJobs = makeSubJobs([{ a: 5 }], [{ x: 42 }]);
 
     render(getMinMax(subJobs));
 
@@ -62,16 +59,7 @@ describe("getMinMax", () => {
   });
 
   it("handles float precision correctly", () => {
-    const subJobs = makeSubJobs(
-      [
-        { a: 1.23456 },
-        { a: 2.34567 },
-      ],
-      [
-        { x: 9.87654 },
-        { x: 8.76543 },
-      ]
-    );
+    const subJobs = makeSubJobs([{ a: 1.23456 }, { a: 2.34567 }], [{ x: 9.87654 }, { x: 8.76543 }]);
 
     render(getMinMax(subJobs));
 

@@ -1,31 +1,17 @@
-import {
-  Box,
-  Chip,
-  IconButton,
-  InputLabel,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { Box, Chip, IconButton, InputLabel, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
-import { useServiceContext } from "../../context/ServiceContext";
+import { Add, Delete } from "@mui/icons-material";
+// import { useServiceContext } from "../../context/ServiceContext";
 import Header from "../navigation/Header";
 import { useFunctionContext } from "../../context/FunctionContext";
-import { Add, Delete } from "@mui/icons-material";
 import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import { AddOutputModal } from "./AddOutputModal";
 
-export const OutputVariableDist = () => {
-  const {
-    selectedFunction,
-    outputVars,
-    outputDistribution,
-    setOutputDistribution,
-  } = useFunctionContext();
-  const { serviceMode: _serviceMode } = useServiceContext();
+export function OutputVariableDist() {
+  const { selectedFunction, outputVars, outputDistribution, setOutputDistribution } = useFunctionContext();
+  // const { ServiceMode } = useServiceContext();
   const [openModal, setOpenModal] = useState(false);
-  const [configuredOutputs, setConfiguredOutputs] = useState(
-    outputDistribution[selectedFunction?.uid || ""] || {}
-  );
+  const [configuredOutputs, setConfiguredOutputs] = useState(outputDistribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
 
   const handlesetConfiguredOutputs = useCallback(
@@ -39,24 +25,16 @@ export const OutputVariableDist = () => {
         setOutputDistribution(newDist);
       }
     },
-    [outputDistribution, selectedFunction, setOutputDistribution]
+    [outputDistribution, selectedFunction, setOutputDistribution],
   );
 
   useEffect(() => {
-    if (
-      outputDistribution &&
-      selectedFunction &&
-      outputDistribution[selectedFunction.uid]
-    ) {
+    if (outputDistribution && selectedFunction && outputDistribution[selectedFunction.uid]) {
       setConfiguredOutputs(outputDistribution[selectedFunction.uid]);
+    } else if (outputVars && outputVars.length > 0) {
+      handlesetConfiguredOutputs(Object.fromEntries(outputVars.map(v => [v, "minimize"])));
     } else {
-      if (outputVars && outputVars.length > 0) {
-        handlesetConfiguredOutputs(
-          Object.fromEntries(outputVars.map((v) => [v, "minimize"]))
-        );
-      } else {
-        handlesetConfiguredOutputs({});
-      }
+      handlesetConfiguredOutputs({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outputDistribution, outputVars, selectedFunction]);
@@ -74,109 +52,105 @@ export const OutputVariableDist = () => {
         infoText="Optimize the output variables by minimizing or maximizing their range"
       />
       <Box sx={{ display: "flex", overflowX: "auto" }}>
-        {Object.keys(configuredOutputs).map((outputVar, index) => {
-          return (
-            <Box
-              key={index}
-              sx={(theme) => ({
+        {Object.keys(configuredOutputs).map(outputVar => (
+          <Box
+            key={`output-var-${outputVar}`}
+            sx={{
+              display: "flex",
+              position: "relative",
+              flexDirection: "column",
+              flex: 1,
+              maxWidth: "240px",
+              minWidth: "240px",
+              padding: "8px",
+              marginRight: "16px",
+              backgroundColor: theme.palette.background.default,
+              gap: "16px",
+              borderRadius: "8px",
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                fontSize: "1.2em",
                 display: "flex",
-                position: "relative",
-                flexDirection: "column",
-                flex: 1,
-                maxWidth: "240px",
-                minWidth: "240px",
-                padding: "8px",
-                marginRight: "16px",
-                backgroundColor: theme.palette.background.default,
-                gap: "16px",
-                borderRadius: "8px",
-              })}
+                gap: "4px",
+                "&:hover": {
+                  "& .MuiButtonBase-root": {
+                    display: "block",
+                    backgroundColor: "transparent",
+                  },
+                },
+              }}
             >
-              <Typography
-                variant="h6"
+              <Chip
+                label={outputVar}
                 sx={{
-                  fontSize: "1.2em",
-                  display: "flex",
-                  gap: "4px",
+                  width: "100%",
+                  fontSize: "0.8em",
+                  fontWeight: "100",
+                  textTransform: "uppercase",
+                  borderRadius: "8px",
+                  backgroundColor: theme.palette.primary.main,
+                }}
+              />
+              <IconButton
+                aria-label="remove"
+                onClick={() => {
+                  const newOutputs = { ...configuredOutputs };
+                  delete newOutputs[outputVar];
+                  handlesetConfiguredOutputs(newOutputs);
+                }}
+                sx={{
+                  position: "absolute",
+                  zIndex: 10,
+                  right: "8px",
+                  display: "none",
+                  fontSize: "0.8em",
+                  fontWeight: "100",
+                  textTransform: "uppercase",
+                  borderRadius: "8px",
+                  padding: "4px",
+                  backgroundColor: "transparent",
                   "&:hover": {
-                    "& .MuiButtonBase-root": {
-                      display: "block",
-                      backgroundColor: "transparent",
-                    },
+                    display: "block",
+                    backgroundColor: "transparent",
+                    color: theme.palette.text.primary,
                   },
                 }}
               >
-                <Chip
-                  label={outputVar}
-                  sx={{
-                    width: "100%",
-                    fontSize: "0.8em",
-                    fontWeight: "100",
-                    textTransform: "uppercase",
-                    borderRadius: "8px",
-                    backgroundColor: theme.palette.primary.main,
-                  }}
-                />
-                <IconButton
-                  aria-label="remove"
-                  onClick={() => {
-                    const newOutputs = { ...configuredOutputs };
-                    delete newOutputs[outputVar];
-                    handlesetConfiguredOutputs(newOutputs);
-                  }}
-                  sx={{
-                    position: "absolute",
-                    zIndex: 10,
-                    right: "8px",
-                    display: "none",
-                    fontSize: "0.8em",
-                    fontWeight: "100",
-                    textTransform: "uppercase",
-                    borderRadius: "8px",
-                    padding: "4px",
-                    backgroundColor: "transparent",
-                    "&:hover": {
-                      display: "block",
-                      backgroundColor: "transparent",
-                      color: theme.palette.text.primary,
-                    },
-                  }}
-                >
-                  <Delete />
-                </IconButton>
-              </Typography>
-              <Box
-                sx={{ display: "flex", flexDirection: "column", gap: "8px" }}
+                <Delete />
+              </IconButton>
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <InputLabel
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  alignItems: "start",
+                }}
               >
-                <InputLabel
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                    alignItems: "start",
-                  }}
-                >
-                  Optimization Target:
-                </InputLabel>
-                <CustomAnimatedToggle
-                  data={["minimize", "maximize"]}
-                  value={configuredOutputs[outputVar] === "minimize" ? 0 : 1}
-                  disabled={false}
-                  onChange={(value) => {
-                    handlesetConfiguredOutputs({
-                      ...configuredOutputs,
-                      [outputVar]: value === 0 ? "minimize" : "maximize",
-                    });
-                  }}
-                />
-              </Box>
+                Optimization Target:
+              </InputLabel>
+              <CustomAnimatedToggle
+                data={["minimize", "maximize"]}
+                value={configuredOutputs[outputVar] === "minimize" ? 0 : 1}
+                disabled={false}
+                onChange={value => {
+                  handlesetConfiguredOutputs({
+                    ...configuredOutputs,
+                    [outputVar]: value === 0 ? "minimize" : "maximize",
+                  });
+                }}
+              />
             </Box>
-          );
-        })}
+          </Box>
+        ))}
         {Object.keys(configuredOutputs).length < outputVars.length && (
           <Box
-            key={"add-output"}
-            sx={(theme) => ({
+            key="add-output"
+            sx={{
               display: "block",
               maxWidth: "210px",
               minWidth: "210px",
@@ -186,7 +160,7 @@ export const OutputVariableDist = () => {
               gap: "16px",
               borderRadius: "8px",
               textAlign: "center",
-            })}
+            }}
           >
             <IconButton
               sx={{
@@ -210,8 +184,8 @@ export const OutputVariableDist = () => {
       <AddOutputModal
         open={openModal}
         setOpen={setOpenModal}
-        data={outputVars.filter((v) => !(v in configuredOutputs))}
-        onChange={(value) => {
+        data={outputVars.filter(v => !(v in configuredOutputs))}
+        onChange={value => {
           // Handle the change event
           handlesetConfiguredOutputs({
             ...configuredOutputs,
@@ -222,4 +196,4 @@ export const OutputVariableDist = () => {
       />
     </Box>
   );
-};
+}

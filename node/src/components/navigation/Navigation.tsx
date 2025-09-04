@@ -1,15 +1,16 @@
-import { Step, StepLabel, Stepper, styled } from '@mui/material';
+import { Step, StepLabel, Stepper, styled } from "@mui/material";
 
-const NavBar = styled('div')`
-display: flex;
-justify-content: center;
-align-items: center;
-gap: 30px;
-padding-top: 10px;
-padding-bottom: 10px;
+const NavBar = styled("div")`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 `;
 
-const Navi = styled(NavBar)(({ theme }) => `
+const Navi = styled(NavBar)(
+  ({ theme }) => `
   width: 100%;
   height: 64px;
   padding: 2em 2em;
@@ -34,14 +35,15 @@ const Navi = styled(NavBar)(({ theme }) => `
       }
     }
   }
-`);
+`,
+);
 
 function Navigation(props: NavigationProps) {
   const { steps, activeStep, ...rest } = props;
   return (
     <Navi {...rest}>
-      <Stepper activeStep={activeStep} className='stepper'>
-        {steps.map((step) => {
+      <Stepper activeStep={activeStep} className="stepper">
+        {steps.map(step => {
           const stepProps: { completed?: boolean } = {};
           const labelProps: {
             optional?: React.ReactNode;
@@ -56,4 +58,4 @@ function Navigation(props: NavigationProps) {
     </Navi>
   );
 }
-export default Navigation
+export default Navigation;

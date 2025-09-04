@@ -1,13 +1,15 @@
-import React from 'react'
-import { Box, Tabs, Tab, styled} from '@mui/material';
-import LHSSampling from './LHSSampling';
-import GridSearchSampling from './GridSearchSampling';
-import TestJob from './RunSingleJob';
+import React from "react";
+import { Box, Tabs, Tab, styled } from "@mui/material";
+import LHSSampling from "./LHSSampling";
+import GridSearchSampling from "./GridSearchSampling";
+import TestJob from "./RunSingleJob";
 
-const Container = styled('div')(({ theme }) => `
+const Container = styled("div")(
+  ({ theme }) => `
   width: 100%;
   background-color: ${theme.palette.background.default};
-`);
+`,
+);
 
 const TabContainer = styled(Box)`
   border-bottom: 1px solid;
@@ -33,11 +35,11 @@ function CustomTabPanel(props: TabPanelProps) {
 function a11yProps(index: number) {
   return {
     id: `simple-tab-${index}`,
-    'aria-controls': `simple-tabpanel-${index}`,
+    "aria-controls": `simple-tabpanel-${index}`,
   };
 }
 
-export const Sampling = () => {
+export function Sampling() {
   const [value, setValue] = React.useState(0);
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -45,7 +47,7 @@ export const Sampling = () => {
   };
 
   return (
-    <Container sx={(theme)=>({ borderRadius: theme.spacing(2) })}>
+    <Container sx={theme => ({ borderRadius: theme.spacing(2) })}>
       <TabContainer>
         <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
           <Tab label="LHS Sampling" {...a11yProps(0)} />
@@ -54,14 +56,14 @@ export const Sampling = () => {
         </Tabs>
       </TabContainer>
       <CustomTabPanel value={value} index={0}>
-        {<LHSSampling />}
+        <LHSSampling />
       </CustomTabPanel>
       <CustomTabPanel value={value} index={1}>
-        {<GridSearchSampling />}
+        <GridSearchSampling />
       </CustomTabPanel>
       <CustomTabPanel value={value} index={2}>
-        {<TestJob />}
+        <TestJob />
       </CustomTabPanel>
     </Container>
-  )
+  );
 }

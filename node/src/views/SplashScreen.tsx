@@ -1,12 +1,7 @@
-import {
-  Container,
-  Card,
-  Typography,
-  useTheme,
-  CardMedia,
-  LinearProgress,
-} from "@mui/material";
-export const SplashScreen = () => {
+import React from "react";
+import { Container, Card, Typography, useTheme, CardMedia, LinearProgress } from "@mui/material";
+
+export default function SplashScreen() {
   const theme = useTheme();
 
   return (
@@ -29,7 +24,7 @@ export const SplashScreen = () => {
           padding: "0rem",
           margin: "auto",
           backgroundColor: "black",
-          border: 'none'
+          border: "none",
         }}
       >
         <CardMedia
@@ -37,20 +32,16 @@ export const SplashScreen = () => {
           // image="/NoBackgroundLogo.png"
           image="/BlackLogo.png"
           sx={{
-            height: '250px',
+            height: "250px",
           }}
           alt="MetaModelingUX Logo"
         />
 
-        <Typography
-        variant="body1"
-        fontFamily={"inherit"}
-        fontWeight={"200"}
-        >
+        <Typography variant="body1" fontFamily="inherit" fontWeight="200">
           Starting up service
         </Typography>
-        <LinearProgress sx={{ color: theme.palette.primary.main, marginTop: '8px', height: '6px' }} />
+        <LinearProgress sx={{ color: theme.palette.primary.main, marginTop: "8px", height: "6px" }} />
       </Card>
     </Container>
   );
-};
+}

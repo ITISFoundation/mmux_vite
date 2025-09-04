@@ -12,12 +12,12 @@ type FooterProps = {
   steps: Step[];
 };
 
-export const Footer = (props: FooterProps) => {
+export function Footer(props: FooterProps) {
   const { steps } = props;
   const { permissions } = useServiceContext();
   const functionContext = useFunctionContext();
   const jobContext = useJobContext();
-  const { serviceMode } = useServiceContext();
+  const { ServiceMode } = useServiceContext();
   const { currentView, setCurrentView } = useNavigationContext();
   const { runningSampling } = useSamplingContext();
   const [modal, setModal] = React.useState(false);
@@ -41,29 +41,15 @@ export const Footer = (props: FooterProps) => {
           Previous
         </Button>
         {permissions === "WRITE" && (
-          <Button
-            className="footerBtn"
-            variant="contained"
-            onClick={() => setModal(!modal)}
-            disabled={!runningSampling}
-          >
+          <Button className="footerBtn" variant="contained" onClick={() => setModal(!modal)} disabled={!runningSampling}>
             TASK MANAGER
           </Button>
         )}
         <Button
           className="footerBtn footerBtnLast"
           variant="contained"
-          onClick={() =>
-            setCurrentView(
-              currentView >= steps.length - 1
-                ? steps.length - 1
-                : currentView + 1
-            )
-          }
-          disabled={
-            currentView >= steps.length - 1 ||
-            !stepValidator(functionContext, jobContext, serviceMode, currentView)
-          }
+          onClick={() => setCurrentView(currentView >= steps.length - 1 ? steps.length - 1 : currentView + 1)}
+          disabled={currentView >= steps.length - 1 || !stepValidator(functionContext, jobContext, ServiceMode, currentView)}
         >
           Next
         </Button>
@@ -79,12 +65,8 @@ export const Footer = (props: FooterProps) => {
           height: "80vh",
         }}
       >
-        {runningSampling && runningSampling === true ? (
-          <JobsDashboard progressBarOnly={false} />
-        ) : (
-          <></>
-        )}
+        {runningSampling && runningSampling === true ? <JobsDashboard progressBarOnly={false} /> : <></>}
       </Modal>
     </>
   );
-};
+}

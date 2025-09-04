@@ -1,3 +1,4 @@
+import React from "react";
 import Setup from "./Setup";
 import UQ from "./UQ";
 import SuMo from "./SuMo";
@@ -9,27 +10,23 @@ type ReturnCurrentViewPropsType = {
   currentView: number;
 };
 
-const MessageComponent = () => {
-  return (
-    <DisplayMessage mssg="Service mode not supported">
-      Please contact support for assistance.
-    </DisplayMessage>
-  );
-};
+function MessageComponent() {
+  return <DisplayMessage mssg="Service mode not supported">Please contact support for assistance.</DisplayMessage>;
+}
 
-export const ReturnCurrentView = (props: ReturnCurrentViewPropsType) => {
+export function ReturnCurrentView(props: ReturnCurrentViewPropsType) {
   const { currentView } = props;
-  const { serviceMode } = useServiceContext();
-  const validMode = ["UQ", "SUMO", "MOGA"].includes(serviceMode);
-  console.info("service mode: ", serviceMode, " which is a " + (validMode ? "" : "not") + "a valid mode");
+  const { ServiceMode } = useServiceContext();
+  const validMode = ["UQ", "SUMO", "MOGA"].includes(ServiceMode);
+  console.info("service mode: ", ServiceMode, ` which is a ${validMode ? "" : "not"}a valid mode`);
 
   return (
     <>
-      {currentView === 0 && <Setup serviceMode={serviceMode} />}
-      {currentView === 1 && serviceMode === "UQ" && <UQ />}
-      {currentView === 1 && serviceMode === "SUMO" && <SuMo />}
-      {currentView === 1 && serviceMode === "MOGA" && <MOGA />}
+      {currentView === 0 && <Setup ServiceMode={ServiceMode} />}
+      {currentView === 1 && ServiceMode === "UQ" && <UQ />}
+      {currentView === 1 && ServiceMode === "SUMO" && <SuMo />}
+      {currentView === 1 && ServiceMode === "MOGA" && <MOGA />}
       {currentView === 1 && validMode === false && <MessageComponent />}
     </>
   );
-};
+}
