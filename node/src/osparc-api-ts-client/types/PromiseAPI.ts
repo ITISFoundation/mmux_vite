@@ -11,7 +11,7 @@ import { ClientFileUploadData } from "../models/ClientFileUploadData";
 import { ErrorGet } from "../models/ErrorGet";
 import { FileUploadCompletionBody } from "../models/FileUploadCompletionBody";
 import { FileUploadData } from "../models/FileUploadData";
-import { OsparcFunction } from "../models/Function";
+import { Function } from "../models/Function";
 import { FunctionJob } from "../models/FunctionJob";
 import { FunctionJobCollection } from "../models/FunctionJobCollection";
 import { FunctionJobCollectionListFunctionJobs200ResponseInner } from "../models/FunctionJobCollectionListFunctionJobs200ResponseInner";
@@ -1004,7 +1004,7 @@ export class PromiseFunctionsApi {
    * @param _function
    */
   public registerFunctionWithHttpInfo(
-    _function: OsparcFunction,
+    _function: Function,
     _options?: PromiseConfigurationOptions,
   ): Promise<HttpInfo<ResponseRegisterFunctionV0FunctionsPost>> {
     const observableOptions = wrapOptions(_options);
@@ -1018,7 +1018,7 @@ export class PromiseFunctionsApi {
    * @param _function
    */
   public registerFunction(
-    _function: OsparcFunction,
+    _function: Function,
     _options?: PromiseConfigurationOptions,
   ): Promise<ResponseRegisterFunctionV0FunctionsPost> {
     const observableOptions = wrapOptions(_options);

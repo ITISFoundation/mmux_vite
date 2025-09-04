@@ -5,13 +5,13 @@ import { Box, Button, Checkbox, CircularProgress, Tooltip } from "@mui/material"
 import { toast } from "react-toastify";
 import { useState } from "react";
 import { openStudyUid, createJobStudyCopy } from "../../utils/function_utils";
-import { Function } from "../../osparc-api-ts-client";
+import { Function as OsparcFunction } from "../../osparc-api-ts-client";
 
 interface JobRowProps {
   jobUid: string;
   setSelected: (selected: boolean, subJob: string) => void;
   jobList: SubJob[];
-  selectedFunction?: Function;
+  selectedFunction?: OsparcFunction;
 }
 
 function JobRow(props: JobRowProps) {
@@ -35,34 +35,38 @@ function JobRow(props: JobRowProps) {
     );
   }
   const jobStatus = job.job.status;
-  const outputs =
-    jobStatus === "SUCCESS"
-      ? Object.entries(job.job.outputs).map(([key, value], idx) => (
-          <Box key={idx} display="inline">
-            {key} : {(value as number).toExponential(3)}
-            {", "}
-          </Box>
-        ))
-      : jobStatus === "STARTED"
-        ? [
-            <Box key={0} display="inline">
-              Running...
-            </Box>,
-          ]
-        : jobStatus === "FAILED" || jobStatus === "ABORTED"
-          ? "Failed - no outputs"
-          : jobStatus === "PENDING" ||
-              jobStatus === "WAITING_FOR_CLUSTER" ||
-              jobStatus === "PUBLISHED" ||
-              jobStatus === "NOT_STARTED" ||
-              jobStatus === "WAITING_FOR_RESOURCES" // all are valid options
-            ? "Pending to run"
-            : jobStatus === "UNKNOWN"
-              ? "Please try again later"
-              : "Unknown status, please contact support";
+  let outputs;
+  if (jobStatus === "SUCCESS") {
+    outputs = Object.entries(job.job.outputs).map(([key, value]) => (
+      <Box key={`job-row-output-${key}`} display="inline">
+        {key} : {(value as number).toExponential(3)}
+        {", "}
+      </Box>
+    ));
+  } else if (jobStatus === "STARTED") {
+    outputs = [
+      <Box key={0} display="inline">
+        Running...
+      </Box>,
+    ];
+  } else if (jobStatus === "FAILED" || jobStatus === "ABORTED") {
+    outputs = "Failed - no outputs";
+  } else if (
+    jobStatus === "PENDING" ||
+    jobStatus === "WAITING_FOR_CLUSTER" ||
+    jobStatus === "PUBLISHED" ||
+    jobStatus === "NOT_STARTED" ||
+    jobStatus === "WAITING_FOR_RESOURCES" // all are valid options
+  ) {
+    outputs = "Pending to run";
+  } else if (jobStatus === "UNKNOWN") {
+    outputs = "Please try again later";
+  } else {
+    outputs = "Unknown status, please contact support";
+  }
 
-  const inputs = Object.entries(job.job.inputs).map(([key, value], idx) => (
-    <Box key={idx} display="inline">
+  const inputs = Object.entries(job.job.inputs).map(([key, value]) => (
+    <Box key={`job-row-input-${key}`} display="inline">
       {key} : {(value as number).toExponential(3)}
       {", "}
     </Box>
@@ -117,21 +121,20 @@ function JobRow(props: JobRowProps) {
             size="small"
             onClick={async () => {
               setCreatingJobCopy(true);
-              const copy_uid = await createJobStudyCopy(selectedFunction?.title as string, job.job);
+              const copyUID = (await createJobStudyCopy(selectedFunction?.title as string, job.job)) as string;
               setCreatingJobCopy(false);
-              if (copy_uid) openStudyUid(copy_uid);
+              if (copyUID) openStudyUid(copyUID);
               else toast.warning("Could not open Job copy in new window!");
             }}
-            children={
-              creatingJobCopy ? (
-                <Box sx={{ display: "flex" }}>
-                  <CircularProgress size={21} />
-                </Box>
-              ) : (
-                <Typography variant="body2">View</Typography>
-              )
-            }
-          />
+          >
+            {creatingJobCopy ? (
+              <Box sx={{ display: "flex" }}>
+                <CircularProgress size={21} />
+              </Box>
+            ) : (
+              <Typography variant="body2">View</Typography>
+            )}
+          </Button>
         </>
       </TableCell>
     </TableRow>

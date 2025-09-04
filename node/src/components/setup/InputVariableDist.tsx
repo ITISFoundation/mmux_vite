@@ -84,7 +84,7 @@ const LogNormalInputDistribution = ({ inputVar, distribution, handleSetValue }: 
 
 export function InputVariableDist() {
   const { selectedFunction, inputVars, distribution, setDistribution } = useFunctionContext();
-  const { ServiceMode: serviceMode } = useServiceContext();
+  const { ServiceMode } = useServiceContext();
   const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
 
@@ -106,7 +106,7 @@ export function InputVariableDist() {
     const newInputVars = { ...localDistribution };
     if (!newInputVars[inputVar]) {
       newInputVars[inputVar] = {
-        distribution: serviceMode === "SUMO" ? "uniform" : "normal",
+        distribution: ServiceMode === "SUMO" ? "uniform" : "normal",
       };
     }
     newInputVars[inputVar][type as Variables] = value;
@@ -181,7 +181,7 @@ export function InputVariableDist() {
         max: NaN,
       };
     }
-    console.warn("Unknow serviceMode: ", operationMode, " for inputDistribution default!");
+    console.warn("Unknow ServiceMode: ", operationMode, " for inputDistribution default!");
     return {
       distribution: "uniform",
       mean: NaN,
@@ -197,7 +197,7 @@ export function InputVariableDist() {
     } else if (inputVars && inputVars.length > 0) {
       const initialInputVars = inputVars.reduce(
         (acc, val) => {
-          acc[val] = setInitialValues(val, serviceMode);
+          acc[val] = setInitialValues(val, ServiceMode);
           return acc;
         },
         {} as typeof localDistribution,
@@ -213,7 +213,7 @@ export function InputVariableDist() {
 
   return (
     <Box sx={{ marginTop: "8px", paddingTop: "8px", borderRadius: "8px" }}>
-      {serviceMode === "SUMO" && (
+      {ServiceMode === "SUMO" && (
         <Header
           fontWeight={300}
           headerType="subTitle"
@@ -221,7 +221,7 @@ export function InputVariableDist() {
           infoText="Define the range of the parameters for which you would like to examine their impact on your Quantities of Interest"
         />
       )}
-      {serviceMode === "UQ" && (
+      {ServiceMode === "UQ" && (
         <Header
           fontWeight={300}
           headerType="subTitle"
@@ -230,7 +230,7 @@ export function InputVariableDist() {
           ExtendedInfoText={InputVariableDistDocument}
         />
       )}
-      {serviceMode === "MOGA" && (
+      {ServiceMode === "MOGA" && (
         <Header
           fontWeight={300}
           headerType="subTitle"
@@ -269,7 +269,7 @@ export function InputVariableDist() {
               />
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {serviceMode !== "SUMO" && (
+              {ServiceMode !== "SUMO" && (
                 <InputLabel
                   sx={{
                     display: "flex",

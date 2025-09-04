@@ -26,11 +26,11 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     const run = async () => {
       const jobs = filterSelectedJobList();
 
-      async function runUQ(jobs: FunctionJob[]) {
+      async function runUQ(localJobs: FunctionJob[]) {
         setDataUQHistogram(undefined);
         setPlotData([]);
         setPropagating(true);
-        if (jobs.length === 0) {
+        if (localJobs.length === 0) {
           console.warn("No jobs selected for UQ propagation.");
           setPropagating(false);
           return;
@@ -44,7 +44,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
               inputVars,
               output: selectedQoI,
               distributions: distribution[selectedFunction?.uid || ""],
-              FunctionJobs: jobs,
+              FunctionJobs: localJobs,
               numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
               log: false,
               nHistograms: 50,

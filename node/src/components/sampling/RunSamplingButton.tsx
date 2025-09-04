@@ -10,6 +10,13 @@ type RunSamplingButtonProps = {
   disabled?: boolean;
 };
 
+const tooltipMessage = {
+  launching:
+    "Sampling is being launched... Please wait until the current sampling operation is fully launched before launching a new campaign / job",
+  disabled: "Sampling is disabled",
+  preview: `This is a preview version that runs on a precomputed demonstration application. If you want to explore it using your own Projects, please contact support@`,
+};
+
 export function RunSamplingButton(props: RunSamplingButtonProps) {
   const { permissions } = useServiceContext();
   const { handleRunSampling, disabled } = props;
@@ -29,17 +36,14 @@ export function RunSamplingButton(props: RunSamplingButtonProps) {
     }
   };
 
+  let state = "";
+  if (launchingSampling) state = tooltipMessage.launching;
+  else if (disabled) state = tooltipMessage.disabled;
+  else if (permissions !== "WRITE") state = tooltipMessage.preview.concat(simplifiedHost);
+
   return (
     <CustomTooltip
-      title={
-        launchingSampling
-          ? "Sampling is being launched... Please wait until the current sampling operation is fully launched before launching a new campaign / job"
-          : disabled
-            ? "Sampling is disabled"
-            : permissions !== "WRITE"
-              ? `This is a preview version that runs on a precomputed demonstration application. If you want to explore it using your own Projects, please contact support@${simplifiedHost}`
-              : ""
-      }
+      title={state}
       placement="top"
       disableHoverListener={!launchingSampling && !disabled && permissions === "WRITE"}
     >

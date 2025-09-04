@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
-import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
+import { FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { useMMUXContext } from "../../context/MMUXContext";
 import Header from "../navigation/Header";
@@ -53,12 +53,12 @@ function Curves1DPlots() {
     } else {
       const varName = axis;
       const x = data[varName]?.x || [];
-      const y_hat = data[varName]?.y_hat || [];
-      const std_hat = data[varName]?.std_hat || [];
+      const yHat = data[varName]?.y_hat || [];
+      const stdHat = data[varName]?.std_hat || [];
       const traces: Data[] = [
         {
           x,
-          y: y_hat,
+          y: yHat,
           name: "Model prediction",
           xaxis: `x${inputVars.indexOf(varName) + 1}`,
           yaxis: "y",
@@ -66,11 +66,11 @@ function Curves1DPlots() {
           line: { color: plotColor },
         },
       ];
-      if (std_hat.length === y_hat.length) {
+      if (stdHat.length === yHat.length) {
         traces.push(
           {
             x,
-            y: y_hat.map((y, i) => y + 2 * std_hat[i]),
+            y: yHat.map((y, i) => y + 2 * stdHat[i]),
             name: `${varName}+2σ`,
             xaxis: `x${inputVars.indexOf(varName) + 1}`,
             yaxis: "y",
@@ -81,7 +81,7 @@ function Curves1DPlots() {
           },
           {
             x,
-            y: y_hat.map((y, i) => y - 2 * std_hat[i]),
+            y: yHat.map((y, i) => y - 2 * stdHat[i]),
             name: `${varName}+/-2σ (95% Confidence Interval)`,
             xaxis: `x${inputVars.indexOf(varName) + 1}`,
             yaxis: "y",
@@ -97,7 +97,7 @@ function Curves1DPlots() {
     }
   };
 
-  const RunCentralSuMoInterpolations = async (jobs: FunctionJob[]) => {
+  const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[]) => {
     setPropagating(true);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
     fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_along_axes`, {
@@ -129,7 +129,7 @@ function Curves1DPlots() {
         return RunCentralSuMoInterpolations(jobs);
       }
       // Not enough jobs to build model - then returns empty list
-      setPlotData([]);
+      return setPlotData([]);
     };
     run();
     // console.debug("axis: ", axis);
@@ -184,10 +184,10 @@ function Curves1DPlots() {
         overflow="visible"
         gap={2}
         p={4}
-        sx={theme => ({
+        sx={{
           backgroundColor: theme.palette.background.default,
           borderRadius: theme.spacing(2),
-        })}
+        }}
       >
         <CreateSelect axis={axis} setAxis={setAxis} />
         {inputVars.length > 0 && distribution[selectedFunction?.uid || ""] !== undefined ? (

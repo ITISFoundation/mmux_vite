@@ -30,8 +30,8 @@ export async function getPermissions(): Promise<string> {
 
 export async function getServiceMode(): Promise<string> {
   const result = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/service-mode`);
-  const serviceModeJson = await result.json();
-  return serviceModeJson.service_mode;
+  const ServiceModeJson = await result.json();
+  return ServiceModeJson.service_mode;
 }
 
 export async function listFunctions(): Promise<OsparcFunction[]> {

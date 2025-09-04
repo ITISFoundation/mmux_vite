@@ -17,7 +17,7 @@ type Props = {
 
 export function ServiceContextProvider({ children }: Props) {
   const [permissions, setPermissions] = useState<PermissionsEnum>("READ-ONLY");
-  const [serviceMode, setServiceMode] = useState<ServiceModeEnum>("UQ");
+  const [ServiceMode, setServiceMode] = useState<ServiceModeEnum>("UQ");
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -37,9 +37,9 @@ export function ServiceContextProvider({ children }: Props) {
   const memo = React.useMemo(
     () => ({
       permissions,
-      serviceMode,
+      ServiceMode,
     }),
-    [permissions, serviceMode],
+    [permissions, ServiceMode],
   );
 
   return <ServiceContext.Provider value={memo}>{children}</ServiceContext.Provider>;

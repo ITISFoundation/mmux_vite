@@ -76,12 +76,12 @@ function SuMoPlotsSteps() {
         />
       </Box>
       <CardContent
-        sx={theme => ({
+        sx={{
           padding: 0,
           margin: "16px 0px",
           borderRadius: theme.spacing(2),
           overflow: "hidden",
-        })}
+        }}
       >
         {activeStep === 0 && filteredInputVars.length > 0 ? <SuMoValidation /> : undefined}
         {activeStep === 1 && filteredInputVars.length > 0 ? <Curves1DPlots /> : undefined}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Function, RegisteredFunctionJobCollection } from "../../osparc-api-ts-client";
+import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "../../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "../setup/VariableConfig";
@@ -11,12 +11,12 @@ import { useJobContext } from "../../context/JobContext";
 
 // TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
 async function runGridSampling(
-  selectedFunction: Function | undefined,
+  selectedFunction: OsparcFunction | undefined,
   context: SamplingContextType,
   setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void,
   config: GRIDSamplingConfig,
 ) {
-  const fun = selectedFunction as Function;
+  const fun = selectedFunction as OsparcFunction;
   // send config to Python backend to create LHS
   context.setLaunchingSampling(true);
   const jc = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/grid_sampling`, {
@@ -33,11 +33,11 @@ async function runGridSampling(
       }
       return response.json();
     })
-    .then((jc: RegisteredFunctionJobCollection) => {
+    .then((localJC: RegisteredFunctionJobCollection) => {
       context.setLaunchingSampling(false);
       context.setRunningSampling(true);
-      setRunningJobCollection(jc || undefined);
-      return jc;
+      setRunningJobCollection(localJC || undefined);
+      return localJC;
     });
   return jc;
 }
@@ -56,7 +56,7 @@ function GridSearchSampling() {
     await runGridSampling(selectedFunction, context, setRunningJobCollection, gridSamplingInputs);
   };
 
-  function handleInputChange(index: number, field: string, value: string) {
+  const handleInputChange = (index: number, field: string, value: string) => {
     setGridSamplingInputs((prevInputs: GRIDSamplingConfig) => {
       const newInputs = [...prevInputs];
       newInputs[index] = {
@@ -65,7 +65,7 @@ function GridSearchSampling() {
       };
       return newInputs;
     });
-  }
+  };
 
   useEffect(() => {
     let currentSampling: GRIDSamplingConfig = gridSamplingConfig;
@@ -111,7 +111,12 @@ function GridSearchSampling() {
           <Skeleton variant="rounded" width="800px" height="232px" />
         ) : (
           gridSamplingInputs?.map((inputVar, index) => (
-            <VariableConfig index={index} inputVar={inputVar} key={index} handleInputChange={handleInputChange} />
+            <VariableConfig
+              index={index}
+              inputVar={inputVar}
+              key={`grid-input-${inputVar.variable}`}
+              handleInputChange={handleInputChange}
+            />
           ))
         )}
       </Box>

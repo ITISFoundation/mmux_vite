@@ -1,25 +1,23 @@
-/* eslint-disable react-refresh/only-export-components */
 import { InputLabel, Typography, Select, MenuItem, TextField, styled, Slider } from "@mui/material";
 import { useState } from "react";
-import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { useFunctionContext } from "../../context/FunctionContext";
-import { Function } from "../../osparc-api-ts-client";
+import { Function as OsparcFunction, FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
 import { JobContextType, useJobContext } from "../../context/JobContext";
 
-interface fullContext extends JobContextType {
-  selectedFunction: Function | undefined;
+interface FullContext extends JobContextType {
+  selectedFunction: OsparcFunction | undefined;
   inputVars: string[];
   distribution: { [key: string]: InputVarSelection };
 }
 
-export const _get_unique_values = (context: fullContext) => {
+export const GetUniqueValues = (context: FullContext) => {
   const { inputVars, allJobsList } = context;
   const uniqueValuesPerVar: { [varName: string]: Set<number> } = {};
   const jobs = allJobsList();
   inputVars.forEach(varName => {
     uniqueValuesPerVar[varName] = new Set<number>();
   });
-  jobs.forEach((job: FunctionJob) => {
+  jobs.forEach((job: OsparcFunctionJob) => {
     if (job.inputs) {
       inputVars.forEach(varName => {
         const value = job.inputs[varName];
@@ -32,24 +30,24 @@ export const _get_unique_values = (context: fullContext) => {
   return uniqueValuesPerVar;
 };
 
-export const _filterOutConstantDataVars = (context: fullContext) => {
+export const filterOutConstantDataVars = (context: FullContext) => {
   // Filter out variables with only one unique value
-  const uniqueValuesPerVar: { [varName: string]: Set<number> } = _get_unique_values(context);
+  const uniqueValuesPerVar: { [varName: string]: Set<number> } = GetUniqueValues(context);
   const newFilteredInputVars = Object.entries(uniqueValuesPerVar)
     .filter(([_value, valueSet]) => valueSet.size > 1)
     .map(([varName]) => varName);
   return newFilteredInputVars;
 };
-export const _filterOutConstantDistributionVars = (context: fullContext) => {
+export const filterOutConstantDistributionVars = (context: FullContext) => {
   const { distribution, inputVars, selectedFunction } = context;
   return inputVars.filter(i => (distribution[selectedFunction?.uid || ""][i].distribution as Distribution) !== "constant");
 };
-export const filterInputVars = (context: fullContext) => {
+export const filterInputVars = (context: FullContext) => {
   const { allJobsList } = context;
   // If there are no jobs, we have no information about the data distribution -- use the distribution set by the user
-  if (allJobsList().length === 0) return _filterOutConstantDistributionVars(context);
+  if (allJobsList().length === 0) return filterOutConstantDistributionVars(context);
   // if we have samples, then we can easily ascertain from it whether each parameter was modeled as constant or not
-  return _filterOutConstantDataVars(context);
+  return filterOutConstantDataVars(context);
 };
 
 interface CreateSelectProps {
@@ -103,7 +101,7 @@ export function CreateSlider({ dist, input, otherAxis, setOtherAxis }: CreateSli
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const context = useJobContext();
   const filteredInputVars = filterInputVars({ ...context, selectedFunction, inputVars, distribution });
-  const uniqueValuesPerVar = _get_unique_values({ ...context, selectedFunction, inputVars, distribution });
+  const uniqueValuesPerVar = GetUniqueValues({ ...context, selectedFunction, inputVars, distribution });
   let min;
   let max;
   let val;
@@ -140,9 +138,9 @@ export function CreateSlider({ dist, input, otherAxis, setOtherAxis }: CreateSli
   } // TODO add the other distributions
 
   const step = (max - min) / 100;
-  const changeOtherAxis = (e: Event, value: number) => {
+  const changeOtherAxis = (_e: Event, newAxisValue: number) => {
     const newAxis = { ...otherAxis };
-    newAxis[input] = value as number;
+    newAxis[input] = newAxisValue as number;
     console.log("new otherAxis: ", newAxis);
     setOtherAxis(newAxis);
   };
@@ -160,7 +158,7 @@ export function CreateSlider({ dist, input, otherAxis, setOtherAxis }: CreateSli
         min={min}
         max={max}
         value={value} // TODO could not get slider to be in the middle for those w constant values
-        onChange={(e, newValue) => {
+        onChange={(_e, newValue) => {
           setValue(newValue as number);
         }}
         onChangeCommitted={(e, newValue) => {
@@ -183,24 +181,24 @@ export function CreateSlider({ dist, input, otherAxis, setOtherAxis }: CreateSli
           }
           if (e.key === "ArrowDown") {
             const newAxis = { ...otherAxis };
-            const val = Math.max(min, value - step);
-            setValue(val);
-            newAxis[input] = val;
+            const arrowDownVal = Math.max(min, value - step);
+            setValue(arrowDownVal);
+            newAxis[input] = arrowDownVal;
             setOtherAxis(newAxis);
           }
           if (e.key === "ArrowUp") {
             const newAxis = { ...otherAxis };
-            const val = Math.min(max, value + step);
-            setValue(val);
-            newAxis[input] = val;
+            const arrowUpVal = Math.min(max, value + step);
+            setValue(arrowUpVal);
+            newAxis[input] = arrowUpVal;
             setOtherAxis(newAxis);
           }
         }}
         onBlur={e => {
           const newAxis = { ...otherAxis };
-          const val = parseFloat(e.target.value);
-          setValue(val);
-          newAxis[input] = val;
+          const Blurval = parseFloat(e.target.value);
+          setValue(Blurval);
+          newAxis[input] = Blurval;
           setOtherAxis(newAxis);
         }}
         type="number"

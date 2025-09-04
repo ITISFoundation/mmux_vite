@@ -6,11 +6,11 @@ import { InputVariableDist } from "../components/setup/InputVariableDist";
 import { OutputVariableDist } from "../components/setup/OutputVariableDist";
 
 interface SetupProps {
-  serviceMode: string;
+  ServiceMode: string;
 }
 
 export default function Setup(props: SetupProps) {
-  const { serviceMode } = props;
+  const { ServiceMode } = props;
   return (
     <MetaModelingUX
       tabTitle="Select Function"
@@ -20,7 +20,7 @@ export default function Setup(props: SetupProps) {
     >
       <FunctionList />
       <InputVariableDist />
-      {serviceMode === "MOGA" && <OutputVariableDist />}
+      {ServiceMode === "MOGA" && <OutputVariableDist />}
     </MetaModelingUX>
   );
 }

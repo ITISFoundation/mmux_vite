@@ -8,7 +8,7 @@ import { canConsumeForm, isCodeInRange } from "../util";
 import { SecurityAuthentication } from "../auth/auth";
 
 import { ErrorGet } from "../models/ErrorGet";
-import { OsparcFunction } from "../models/Function";
+import { Function } from "../models/Function";
 import { HTTPValidationError } from "../models/HTTPValidationError";
 import { JSONFunctionInputSchema } from "../models/JSONFunctionInputSchema";
 import { PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass } from "../models/PageAnnotatedUnionRegisteredProjectFunctionJobRegisteredPythonCodeFunctionJobRegisteredSolverFunctionJobFieldInfoAnnotationNoneTypeRequiredTrueDiscriminatorFunctionClass";
@@ -286,7 +286,7 @@ export class FunctionsApiRequestFactory extends BaseAPIRequestFactory {
    * Register Function
    * @param _function
    */
-  public async registerFunction(_function: OsparcFunction, _options?: Configuration): Promise<RequestContext> {
+  public async registerFunction(_function: Function, _options?: Configuration): Promise<RequestContext> {
     let _config = _options || this.configuration;
 
     // verify required parameter '_function' is not null or undefined

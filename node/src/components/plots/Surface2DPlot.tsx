@@ -97,9 +97,9 @@ function Surface2DPlot() {
         .then(response => {
           if (response && !response.ok) {
             console.warn("SuMo Surface plot error: ", response.body);
-          } else {
-            return response.json();
+            return new Error("SuMo Surface plot response not ok");
           }
+          return response.json();
         })
         .then(d => {
           reshapePlotData(d);
@@ -173,10 +173,10 @@ function Surface2DPlot() {
         flexDirection="column"
         gap={2}
         p={4}
-        sx={theme => ({
+        sx={{
           backgroundColor: theme.palette.background.default,
           borderRadius: theme.spacing(2),
-        })}
+        }}
       >
         <Box display="flex" flexDirection="row" gap={2}>
           <CreateSelect axis={axis1} idx={1} setAxis={handleSetAxis1} />

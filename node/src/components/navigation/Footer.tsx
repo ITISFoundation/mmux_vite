@@ -17,7 +17,7 @@ export function Footer(props: FooterProps) {
   const { permissions } = useServiceContext();
   const functionContext = useFunctionContext();
   const jobContext = useJobContext();
-  const { ServiceMode: serviceMode } = useServiceContext();
+  const { ServiceMode } = useServiceContext();
   const { currentView, setCurrentView } = useNavigationContext();
   const { runningSampling } = useSamplingContext();
   const [modal, setModal] = React.useState(false);
@@ -49,7 +49,7 @@ export function Footer(props: FooterProps) {
           className="footerBtn footerBtnLast"
           variant="contained"
           onClick={() => setCurrentView(currentView >= steps.length - 1 ? steps.length - 1 : currentView + 1)}
-          disabled={currentView >= steps.length - 1 || !stepValidator(functionContext, jobContext, serviceMode, currentView)}
+          disabled={currentView >= steps.length - 1 || !stepValidator(functionContext, jobContext, ServiceMode, currentView)}
         >
           Next
         </Button>

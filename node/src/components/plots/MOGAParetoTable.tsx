@@ -40,6 +40,10 @@ const dummyData: MogaDataType[] = [
   },
 ];
 
+function getRowId(value: MogaDataType) {
+  return value.id;
+}
+
 function MogaParetoTable() {
   const { weights, setWeights, sortModel, setSortModel } = useMMUXContext();
   const [data, setData] = useState<MogaDataType[]>();
@@ -76,10 +80,6 @@ function MogaParetoTable() {
     setAnchorElms(prev => ({ ...prev, [key]: null }));
   };
 
-  function getRowId(value: MogaDataType) {
-    return value.id;
-  }
-
   useEffect(() => {
     // Simulate loading data
     setTimeout(() => {
@@ -87,7 +87,7 @@ function MogaParetoTable() {
       if (weights === undefined || Object.keys(weights).length === 0) {
         const outputKeys: string[] = Object.keys(dummyData[0].outputs);
         const generatedWeights: { [key: string]: number } = {};
-        for (let i = 0; i < outputKeys.length; i++) {
+        for (let i = 0; i < outputKeys.length; i += 1) {
           generatedWeights[outputKeys[i]] = 0.5; // Example weight, can be adjusted
         }
         setLocalWeights(generatedWeights);
@@ -112,7 +112,7 @@ function MogaParetoTable() {
     headerName: key.toUpperCase(),
     type: "number",
     renderCell: params => params.row.inputs[key],
-    valueGetter: (value, row) => row.inputs[key],
+    valueGetter: (_value, row) => row.inputs[key],
   }));
 
   columns = columns.concat(
@@ -163,7 +163,7 @@ function MogaParetoTable() {
                 max={1}
                 step={0.01}
                 defaultValue={0.5}
-                onChange={(event, newValue) => {
+                onChange={(_event, newValue) => {
                   setLocalWeights(prev => ({ ...prev, [key]: newValue }));
                 }}
                 onChangeCommitted={() => {
@@ -180,7 +180,7 @@ function MogaParetoTable() {
         </Box>
       ),
       renderCell: params => params.row.outputs[key],
-      valueGetter: (value, row) => row.outputs[key],
+      valueGetter: (_value, row) => row.outputs[key],
     })),
   );
 
@@ -193,7 +193,7 @@ function MogaParetoTable() {
       maxWidth: 105,
       type: "number",
       renderCell: params => params.row.Performance.toFixed(2),
-      valueGetter: (value, row) => row.Performance,
+      valueGetter: (_value, row) => row.Performance,
     },
     {
       ...columnProps,
@@ -224,19 +224,16 @@ function MogaParetoTable() {
           fontWeight: 400,
         },
         "& .MuiDataGrid-row:hover": {
-          backgroundColor: theme =>
-            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"})`,
+          backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
         },
         "& .MuiDataGrid-row.Mui-selected": {
-          backgroundColor: theme =>
-            `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"})`,
+          backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
         },
         "& .MuiDataGrid-row.Mui-selected:hover": {
-          backgroundColor: theme =>
-            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"})`,
+          backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
         },
         "& .MuiDataGrid-sortButton": {
-          backgroundColor: theme => theme.palette.background.paper,
+          backgroundColor: theme.palette.background.paper,
         },
       })}
       getRowId={getRowId}

@@ -5,14 +5,14 @@ import { useTheme } from "@mui/material";
 import { plotMargins } from "./PlotTools";
 
 const WhiskerPlot: React.FC<DataUQHistogramType> = (props: DataUQHistogramType) => {
-  const { q1, median, q3, whisker_min, whisker_max, outliers: _outliers } = props;
+  const { q1, median, q3, whisker_min: whiskerMin, whisker_max: whiskerMax } = props;
   const theme = useTheme();
   // Create data for Plotly box plot
   const data: Data[] = [
     // Main horizontal whisker line
     {
       type: "scatter",
-      x: [whisker_min, whisker_max],
+      x: [whiskerMin, whiskerMax],
       y: [0, 0],
       mode: "lines",
       line: {
@@ -25,7 +25,7 @@ const WhiskerPlot: React.FC<DataUQHistogramType> = (props: DataUQHistogramType) 
     // Vertical lines at the ends of whiskers
     {
       type: "scatter",
-      x: [whisker_min, whisker_min],
+      x: [whiskerMin, whiskerMin],
       y: [-0.15, 0.15],
       mode: "lines",
       line: {
@@ -37,7 +37,7 @@ const WhiskerPlot: React.FC<DataUQHistogramType> = (props: DataUQHistogramType) 
     },
     {
       type: "scatter",
-      x: [whisker_max, whisker_max],
+      x: [whiskerMax, whiskerMax],
       y: [-0.15, 0.15],
       mode: "lines",
       line: {

@@ -48,8 +48,8 @@ export function AddOutputModal(props: AddOutputModalProps) {
       >
         <Header headerType="title" tabTitle="Add Output Variable" fontWeight={300} />
         <Select value={selected} onChange={e => setSelected(e.target.value)}>
-          {data.map((d, id) => (
-            <MenuItem key={id} value={d}>
+          {data.map(d => (
+            <MenuItem key={`output-variable-${d}`} value={d}>
               {d}
             </MenuItem>
           ))}

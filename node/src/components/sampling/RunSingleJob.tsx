@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { toast } from "react-toastify";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Function, FunctionJob, ProjectFunctionJob } from "../../osparc-api-ts-client";
+import { Function as OsparcFunction, FunctionJob as OsparcFunctionJob, ProjectFunctionJob } from "../../osparc-api-ts-client";
 import { RunSamplingButton } from "./RunSamplingButton";
 import ValueConfig from "../setup/ValueConfig";
 import { createJobStudyCopy, openStudyUid } from "../../utils/function_utils";
@@ -10,11 +10,11 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useSamplingContext } from "../../context/SamplingContext";
 
 async function runTestJob(
-  selectedFunction: Function | undefined,
+  selectedFunction: OsparcFunction | undefined,
   setLaunchingSampling: (value: boolean) => void,
   config: SingleJobConfig[],
 ) {
-  const fun = selectedFunction as Function;
+  const fun = selectedFunction as OsparcFunction;
   // send config to Python backend to create LHS
   setLaunchingSampling(true);
   const j = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/test_job`, {
@@ -31,7 +31,7 @@ async function runTestJob(
       }
       return response.json();
     })
-    .then((j: FunctionJob) => j)
+    .then((k: OsparcFunctionJob) => k)
     .catch(error => {
       console.error("Error running single job: ", error);
     });
@@ -51,14 +51,14 @@ function TestJob() {
     // necessary to make a copy of the test job bcs as of now, the run-job always generates a hidden copy
     // thus, the copy allows the user to see their test run in their dashboard
     // WOuld be nice to be able to abort/delete the TestJob or simply update the run-job endpoint to accept a "hidden" boolean parameter
-    const copy_uid = await createJobStudyCopy(selectedFunction?.title as string, job as ProjectFunctionJob);
+    const copyUid: string = (await createJobStudyCopy(selectedFunction?.title as string, job as ProjectFunctionJob)) as string;
     if (!job) toast.warning("Test Job running failed! Please contact support");
-    else if (!copy_uid) toast.warning("Not possible to open your test copy! Please contact support");
-    else if (job.functionClass && job.functionClass === "PROJECT") openStudyUid(copy_uid);
+    else if (!copyUid) toast.warning("Not possible to open your test copy! Please contact support");
+    else if (job.functionClass && job.functionClass === "PROJECT") openStudyUid(copyUid);
     else toast.warning("Only ProjectFunctionJob can be opened in a new window!");
   };
 
-  function handleInputChange(index: number, field: string, value: string) {
+  const handleInputChange = (index: number, field: string, value: string) => {
     setJobInputs(prevInputs => {
       const newInputs = [...prevInputs];
       newInputs[index] = {
@@ -67,7 +67,7 @@ function TestJob() {
       };
       return newInputs;
     });
-  }
+  };
 
   useEffect(() => {
     let currentSampling: SingleJobConfig[] = singleJobConfig;

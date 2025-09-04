@@ -4,15 +4,15 @@ import { getSimplifiedHost } from "../../utils/function_utils";
 
 function PreviewWarning() {
   const simplifiedHost = getSimplifiedHost();
-  const { ServiceMode: serviceMode, permissions } = useServiceContext();
+  const { ServiceMode, permissions } = useServiceContext();
   return permissions === "READ-ONLY" ? (
     <Container>
       <Box paddingTop={2}>
         <Alert variant="outlined" severity="info">
           This is a preview of the
-          {serviceMode === "UQ" && " Uncertainty Quantification "}
-          {serviceMode === "SUMO" && " Response Surface Modeling "}
-          {serviceMode === "MOGA" && " Multi Objective Genetic Algorithm "}
+          {ServiceMode === "UQ" && " Uncertainty Quantification "}
+          {ServiceMode === "SUMO" && " Response Surface Modeling "}
+          {ServiceMode === "MOGA" && " Multi Objective Genetic Algorithm "}
           HyperTool that runs on a precomputed demonstration application. If you want to explore it using your own Projects,
           please contact support@
           {simplifiedHost}

@@ -2,7 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Box, Input, Skeleton, Typography } from "@mui/material";
 import { toast } from "react-toastify";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Function, FunctionJob, RegisteredFunctionJobCollection } from "../../osparc-api-ts-client";
+import {
+  Function as OsparcFunction,
+  FunctionJob as OsparcFunctionJob,
+  RegisteredFunctionJobCollection,
+} from "../../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "../setup/VariableConfig";
@@ -14,12 +18,12 @@ import { SamplingContextType, useSamplingContext } from "../../context/SamplingC
 import { useJobContext } from "../../context/JobContext";
 
 async function runLhsSampling(
-  selectedFunction: Function | undefined,
+  selectedFunction: OsparcFunction | undefined,
   context: SamplingContextType,
   setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void,
   config: LHSamplingConfig,
 ) {
-  const fun = selectedFunction as Function;
+  const fun = selectedFunction as OsparcFunction;
   // send config to Python backend to create LHS
   context.setLaunchingSampling(true);
   const jc = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/lhs_sampling`, {
@@ -38,11 +42,11 @@ async function runLhsSampling(
       }
       return response.json();
     })
-    .then((jc: RegisteredFunctionJobCollection) => {
+    .then((localJC: RegisteredFunctionJobCollection) => {
       context.setLaunchingSampling(false);
       context.setRunningSampling(true);
-      setRunningJobCollection(jc || undefined);
-      return jc;
+      setRunningJobCollection(localJC || undefined);
+      return localJC;
     });
   return jc;
 }
@@ -58,6 +62,12 @@ function LHSSampling() {
 
   const [lhsInputs, setLhsInputs] = useState<LHSamplingConfig>(lhsSamplingConfig);
   const [loading, setLoading] = useState<boolean>(true);
+
+  const recommendedLHSSamples = useCallback(() => {
+    let nPoints: number = Math.sqrt(filterInputVars({ ...jobContext, ...functionContext, ...SamplingContext }).length) * 30 * 1.2;
+    nPoints = Math.ceil(nPoints / 5) * 5;
+    return nPoints;
+  }, [functionContext, jobContext, SamplingContext]);
 
   const handleRunSampling = async () => {
     setLhsSamplingConfig(lhsInputs);
@@ -76,10 +86,10 @@ function LHSSampling() {
       return;
     }
     const newJobs: SelectedJobCollection[] = await Promise.all(
-      [jc].map(async jc => {
+      [jc].map(async localJC => {
         const subJobs = await Promise.all(
-          jc.jobIds.map(async id => {
-            const job = (await getFunctionJob(id)) as FunctionJob;
+          localJC.jobIds.map(async id => {
+            const job = (await getFunctionJob(id)) as OsparcFunctionJob;
             return {
               selected: false,
               job,
@@ -87,7 +97,7 @@ function LHSSampling() {
           }),
         );
         return {
-          jobCollection: jc,
+          jobCollection: localJC,
           selected: true,
           subJobs,
         };
@@ -97,11 +107,11 @@ function LHSSampling() {
     // TODO Alex: how do I update the table without need to reload everything else?
   };
 
-  function handleInputChange(index: number, field: string, value: string) {
+  const handleInputChange = (index: number, field: string, value: string) => {
     setLhsInputs(prevInputs => {
       const newInputs: LHSamplingConfig = { ...prevInputs };
       if (["points", "seed"].includes(field)) {
-        newInputs[field as "seed" | "points"] = field === "seed" ? parseFloat(value) : parseInt(value);
+        newInputs[field as "seed" | "points"] = field === "seed" ? parseFloat(value) : parseInt(value, 10);
       } else {
         newInputs.inputs[index] = {
           ...newInputs.inputs[index],
@@ -110,13 +120,7 @@ function LHSSampling() {
       }
       return newInputs;
     });
-  }
-
-  const recommendedLHSSamples = useCallback(() => {
-    let nPoints: number = Math.sqrt(filterInputVars({ ...jobContext, ...functionContext, ...SamplingContext }).length) * 30 * 1.2;
-    nPoints = Math.ceil(nPoints / 5) * 5;
-    return nPoints;
-  }, [functionContext, jobContext, SamplingContext]);
+  };
 
   const generateInputsList = useCallback(
     (inputVar: string) => ({
@@ -177,7 +181,12 @@ function LHSSampling() {
           <Skeleton variant="rounded" width="800px" height="232px" />
         ) : (
           lhsInputs.inputs.map((inputVar, index) => (
-            <VariableConfig index={index} inputVar={inputVar} key={index} handleInputChange={handleInputChange} />
+            <VariableConfig
+              index={index}
+              inputVar={inputVar}
+              key={`lhs-input-${inputVar.variable}`}
+              handleInputChange={handleInputChange}
+            />
           ))
         )}
       </Box>

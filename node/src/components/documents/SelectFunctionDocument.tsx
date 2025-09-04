@@ -7,8 +7,8 @@ const SelectFunctionDocument = (
     <CardContent sx={{ display: "flex", flexDirection: "column", alignItems: "left" }}>
       <Header headerType="subTitle" tabTitle="Function Creation" infoText="" />
       <Typography variant="body1" fontFamily="inherit" flex={1}>
-        Functions are created from parameterized pipelines using the 'Create Function' tab when clicking on a Project on the
-        Dashboard
+        {`Functions are created from parameterized pipelines using the 'Create Function' tab when clicking on a Project on the
+        Dashboard`}
       </Typography>
       <img
         src="https://itis.swiss/assets/images/News-and-Events/2024/20240314_oSPARC_Sim4Life_square__FocusFillMaxWyIwLjAwIiwiMC4wMCIsNTEyLDUxMl0.png"

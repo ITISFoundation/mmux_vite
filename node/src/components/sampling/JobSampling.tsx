@@ -6,7 +6,7 @@ import AdaptExtedSamplingDocument from "../documents/AdaptExtendSamplingDocument
 import JobSelector from "../data/JobSelector";
 import PlusButton from "./PlusButton";
 import { Sampling } from "./Sampling";
-import { Function } from "../../osparc-api-ts-client";
+import { Function as OsparcFunction } from "../../osparc-api-ts-client";
 
 interface JobSamplingProps {
   loading: boolean;
@@ -17,7 +17,7 @@ interface JobSamplingProps {
   setJobProgress: (value: number) => void;
   jobsFetched: React.MutableRefObject<number>;
   colsFetched: React.MutableRefObject<number>;
-  selectedFunction: Function | undefined;
+  selectedFunction: OsparcFunction | undefined;
 }
 
 export function JobSampling(props: JobSamplingProps) {
@@ -75,7 +75,7 @@ export function JobSampling(props: JobSamplingProps) {
         {selectedFunction !== undefined ? (
           <PlusButton
             onClickFun={() => null}
-            PlotFunComponent={() => <Sampling />}
+            PlotFunComponent={Sampling}
             text="Create new sampling campaign"
             enabled={selectedFunction !== undefined}
           />

@@ -19,8 +19,8 @@ const SelectQoIDocument = (
         sampling runs and the interpolation uncertainty inherent in the Gaussian Process surrogate model itself.
       </Typography>
       <Typography variant="body1" fontFamily="inherit" flex={1} mb={1}>
-        This "uncertainty of uncertainty propagation" is visualized using whiskers in the results, giving you confidence bounds on
-        your uncertainty estimates.
+        {`This "uncertainty of uncertainty propagation" is visualized using whiskers in the results, giving you confidence bounds on
+        your uncertainty estimates.`}
       </Typography>
       <Typography variant="body1" fontFamily="inherit" sx={{ marginTop: "16px" }}>
         For additional information on how add variable distributions, please refer to the {getManualLink()}.

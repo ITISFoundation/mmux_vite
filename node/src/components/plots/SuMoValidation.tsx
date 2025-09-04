@@ -30,17 +30,17 @@ function SuMoValidation() {
     const rmse = Math.sqrt(
       y.reduce((sum: number, value: number, index: number) => sum + (value - y_hat[index]) ** 2, 0) / y.length,
     );
-    const mean_y = y.reduce((a: number, b: number) => a + b, 0) / y.length;
-    const std_y = Math.sqrt(y.reduce((sum: number, value: number) => sum + (value - mean_y) ** 2, 0) / (y.length - 1));
-    const mean_y_hat = y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
-    const std_y_hat = Math.sqrt(
-      y_hat.reduce((sum: number, value: number) => sum + (value - mean_y_hat) ** 2, 0) / (y_hat.length - 1),
+    const meanY = y.reduce((a: number, b: number) => a + b, 0) / y.length;
+    const stdY = Math.sqrt(y.reduce((sum: number, value: number) => sum + (value - meanY) ** 2, 0) / (y.length - 1));
+    const meanYhat = y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
+    const stdYhat = Math.sqrt(
+      y_hat.reduce((sum: number, value: number) => sum + (value - meanYhat) ** 2, 0) / (y_hat.length - 1),
     );
     const cvMetricsData = {
-      mean_y,
-      std_y,
-      mean_y_hat,
-      std_y_hat,
+      mean_y: meanY,
+      std_y: stdY,
+      mean_y_hat: meanYhat,
+      std_y_hat: stdYhat,
       mae,
       rmse,
     };
@@ -50,12 +50,16 @@ function SuMoValidation() {
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
     if (data && selectedQoI) {
       const y = data[selectedQoI];
-      const y_hat = data[`${selectedQoI}_hat`];
+      const yHat = data[`${selectedQoI}_hat`];
 
       // For violin plots, y should be the data and x should be the label
-      const createViolinPlot = (data: number[], name: string, side: "positive" | "negative"): Partial<Plotly.ViolinData> => ({
-        x: data,
-        y: Array(data.length).fill(""), // Use same x value to overlay
+      const createViolinPlot = (
+        localData: number[],
+        name: string,
+        side: "positive" | "negative",
+      ): Partial<Plotly.ViolinData> => ({
+        x: localData,
+        y: Array(localData.length).fill(""), // Use same x value to overlay
         orientation: "h",
         type: "violin",
         name,
@@ -69,10 +73,10 @@ function SuMoValidation() {
       });
       const newPlotData: Partial<Plotly.ViolinData>[] = [
         createViolinPlot(y, "Observations", "positive"),
-        createViolinPlot(y_hat, "Predictions", "negative"),
+        createViolinPlot(yHat, "Predictions", "negative"),
       ];
       setPlotData(newPlotData);
-      computeStatisticsCv(y, y_hat);
+      computeStatisticsCv(y, yHat);
     } else {
       console.warn("No data available for SuMo validation.");
       setPlotData([]);

@@ -18,7 +18,6 @@ import {
   TablePagination,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { toast } from "react-toastify";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import { getFunctionJobCollections, getFunctionJob } from "../../utils/function_utils";
@@ -40,6 +39,10 @@ type JobSelectorPropsType = {
   colsFetched: React.MutableRefObject<number>;
 };
 
+function getRowId(value: SelectedJobCollection) {
+  return value.jobCollection.uid;
+}
+
 export default function JobsSelector(props: JobSelectorPropsType) {
   const { selectedFunction } = useFunctionContext();
   const { launchingSampling, runningSampling } = useSamplingContext();
@@ -55,7 +58,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
   const updateJobContext = useCallback(
     (jobs: SelectedJobCollection[]) => {
-      const newList = jobs.map(j => j.subJobs.filter(j => j.selected).map(j => j.job.uid)).flat();
+      const newList = jobs.map(j => j.subJobs.filter(k => k.selected).map(l => l.job.uid)).flat();
       setSelectedJobUids(newList);
     },
     [setSelectedJobUids],
@@ -87,7 +90,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         auxJob.subJobs[jobId].selected = selected;
         const subJobState = auxJob.subJobs.map(j => j.selected);
         if (subJobState.every(j => j === true) || subJobState.every(j => j === false)) {
-          auxJob.selected = subJobState[0];
+          [auxJob.selected] = subJobState;
         }
       }
       return auxJob;
@@ -159,10 +162,10 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
     const newJobCollections: SelectedJobCollection[] = [];
 
-    for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx++) {
+    for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx = +1) {
       const jc = jobsC[jcIdx];
       const subJobs = [];
-      for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx++) {
+      for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx = +1) {
         let job: FunctionJob;
         const id = jc.jobIds[subJobIdx];
         // check if job is already fetched in fetchedJobCollections
@@ -201,12 +204,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     setProgress(100);
   }
 
-  const handleAnchor = (target: HTMLButtonElement, uid: string) => {
-    console.info("Opening job collection with uid: ", target, uid);
-    setAnchorEl(target);
-    openJobCollection(uid);
-  };
-
   const openJobCollection = (uid: string) => {
     const idx = jobCollections.findIndex(jc => jc.jobCollection.uid === uid);
     if (poperID !== idx) {
@@ -215,6 +212,12 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       setPopperID(-1);
       poperOpen.current = false;
     }
+  };
+
+  const handleAnchor = (target: HTMLButtonElement, uid: string) => {
+    console.info("Opening job collection with uid: ", target, uid);
+    setAnchorEl(target);
+    openJobCollection(uid);
   };
 
   const handleClickAway = (e: Event) => {
@@ -238,10 +241,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     }
     return [];
   }, [jobCollections, page, poperID, rowsPerPage]);
-
-  function getRowId(value: SelectedJobCollection) {
-    return value.jobCollection.uid;
-  }
 
   const onToggleAll = useCallback(
     (checked: boolean) => {
@@ -288,8 +287,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
   useEffect(() => {
     console.info("useEffect in JobsSelector triggered");
-    if (selectedFunction === undefined || jobCollections.length > 0) {
-    } else {
+    if (selectedFunction !== undefined && jobCollections.length > 0) {
       console.info("Function selected: ", selectedFunction.uid);
       (async () => {
         setJobCollections([]);
@@ -465,19 +463,16 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             fontWeight: 400,
           },
           "& .MuiDataGrid-row:hover": {
-            backgroundColor: theme =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"})`,
+            backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
           },
           "& .MuiDataGrid-row.Mui-selected": {
-            backgroundColor: theme =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"})`,
+            backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
           },
           "& .MuiDataGrid-row.Mui-selected:hover": {
-            backgroundColor: theme =>
-              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"})`,
+            backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
           },
           "& .MuiDataGrid-sortButton": {
-            backgroundColor: theme => theme.palette.background.paper,
+            backgroundColor: theme.palette.background.paper,
           },
         })}
         getRowId={getRowId}

@@ -5,7 +5,7 @@ import { JobContextType } from "../context/JobContext";
 export function stepValidator(
   functionContext: FunctionContextType | undefined,
   jobContext: JobContextType,
-  serviceMode: string,
+  ServiceMode: string,
   step: number,
 ): boolean {
   if (step === 0) {
@@ -14,7 +14,7 @@ export function stepValidator(
     if (!functionContext?.selectedFunction || !selectedDistribution) {
       return false; // No function or distribution selected
     }
-    if (serviceMode === "MOGA") {
+    if (ServiceMode === "MOGA") {
       // no outputDistribution generated for any function yet
       if (Object.keys(functionContext?.outputDistribution).length === 0) return false;
 

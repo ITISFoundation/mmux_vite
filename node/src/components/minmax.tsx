@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import React from "react";
 
-type minMaxType = {
+type MinMaxType = {
   inputs: { [key: string]: { min: number; max: number } };
   outputs: { [key: string]: { min: number; max: number } };
 };
@@ -10,7 +10,7 @@ const getMinMax = (subJobs: SubJob[]) => {
   const inputs = Object.entries(subJobs).map(([_key, value], _idx) => value.job.inputs as { [key: string]: number });
   const outputs = Object.entries(subJobs).map(([_key, value], _idx) => value.job.outputs as { [key: string]: number });
 
-  const minMax: minMaxType = {
+  const minMax: MinMaxType = {
     inputs: {},
     outputs: {},
   };

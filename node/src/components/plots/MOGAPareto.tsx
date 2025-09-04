@@ -13,7 +13,7 @@ import { fetchWithRetry } from "../../utils/fetch_retry";
 import { aggregateOutputValues } from "../../utils/function_utils";
 
 export function MOGAPareto(props: MogaParetoPropsType) {
-  const { loading, progress, jobProgress, colsFetched: _colsFetched, jobsFetched: _jobsFetched } = props;
+  const { loading, progress, jobProgress } = props;
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution, outputDistribution } = useFunctionContext();
   const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
@@ -31,27 +31,6 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       console.debug("Information about optimization vars fetched");
     }
   }, [selectedFunction, outputDistribution]);
-
-  useEffect(() => {
-    const run = async () => {
-      const jobs = filterSelectedJobList();
-      if (jobs.length === 0) {
-        console.warn("No jobs selected for MOGA Pareto plot.");
-        return;
-      }
-      setPropagating(true);
-      try {
-        console.info("Fetching MOGA Pareto data...");
-        await runMOGA(jobs);
-      } catch (error) {
-        console.error("Error fetching MOGA Pareto data:", error);
-      } finally {
-        setPropagating(false);
-      }
-    };
-    run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outputVarSelection]);
 
   const runMOGA = async (jobs: FunctionJob[]) => {
     console.info("Running MOGA...");
@@ -100,6 +79,27 @@ export function MOGAPareto(props: MogaParetoPropsType) {
     setPlotData(newPlotData);
     setPropagating(false);
   };
+
+  useEffect(() => {
+    const run = async () => {
+      const jobs = filterSelectedJobList();
+      if (jobs.length === 0) {
+        console.warn("No jobs selected for MOGA Pareto plot.");
+        return;
+      }
+      setPropagating(true);
+      try {
+        console.info("Fetching MOGA Pareto data...");
+        await runMOGA(jobs);
+      } catch (error) {
+        console.error("Error fetching MOGA Pareto data:", error);
+      } finally {
+        setPropagating(false);
+      }
+    };
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outputVarSelection]);
 
   const layout = {
     title: { text: "Pareto Front Diagram" },

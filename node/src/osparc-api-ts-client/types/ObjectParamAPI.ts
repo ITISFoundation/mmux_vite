@@ -10,7 +10,7 @@ import { ClientFileUploadData } from "../models/ClientFileUploadData";
 import { ErrorGet } from "../models/ErrorGet";
 import { FileUploadCompletionBody } from "../models/FileUploadCompletionBody";
 import { FileUploadData } from "../models/FileUploadData";
-import { OsparcFunction } from "../models/Function";
+import { Function } from "../models/Function";
 import { FunctionJob } from "../models/FunctionJob";
 import { FunctionJobCollection } from "../models/FunctionJobCollection";
 import { FunctionJobCollectionListFunctionJobs200ResponseInner } from "../models/FunctionJobCollectionListFunctionJobs200ResponseInner";
@@ -1059,10 +1059,10 @@ export interface FunctionsApiMapFunctionRequest {
 export interface FunctionsApiRegisterFunctionRequest {
   /**
    *
-   * @type OsparcFunction
+   * @type Function
    * @memberof FunctionsApiregisterFunction
    */
-  _function: OsparcFunction;
+  _function: Function;
 }
 
 export interface FunctionsApiRunFunctionRequest {

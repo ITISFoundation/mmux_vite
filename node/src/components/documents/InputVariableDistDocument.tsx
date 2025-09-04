@@ -10,16 +10,16 @@ const InputVariableDistDocument = (
         Specify the probability distribution for every input parameter in your selected function.
       </Typography>
       <Typography variant="body1" fontFamily="inherit" flex={1} mb={1}>
-        Each parameter's uncertainty is characterized by a statistical distribution (such as Normal, Log-Normal or Constant) that
-        describes the range and likelihood of possible values.
+        {`Each parameter's uncertainty is characterized by a statistical distribution (such as Normal, Log-Normal or Constant) that
+          describes the range and likelihood of possible values.`}
       </Typography>
       <Typography variant="body1" fontFamily="inherit" flex={1} mb={1}>
-        Input parameters are assumed to be stochastically independent, meaning the value of one parameter doesn't influence the
-        probability distribution of another.
+        {`Input parameters are assumed to be stochastically independent, meaning the value of one parameter doesn't influence the
+        probability distribution of another.`}
       </Typography>
       <Typography variant="body1" fontFamily="inherit" flex={1} mb={1}>
-        This assumption simplifies the mathematical treatment but should be verified against your physical understanding of the
-        system. The distributions you define here determine how uncertainty propagates through your simulation.
+        {`This assumption simplifies the mathematical treatment but should be verified against your physical understanding of the
+        system. The distributions you define here determine how uncertainty propagates through your simulation.`}
       </Typography>
       <Typography variant="body1" fontFamily="inherit" sx={{ marginTop: "16px" }}>
         For additional information on how add variable distributions, please refer to the {getManualLink()}.

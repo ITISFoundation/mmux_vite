@@ -2,7 +2,7 @@ import { Box, useTheme } from "@mui/material";
 import { useState, useEffect } from "react";
 import Plot from "react-plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
+import { FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { CreateSelect, CreateSlider, filterInputVars, plotMargins } from "./PlotTools";
 import Header from "../navigation/Header";
@@ -123,40 +123,6 @@ function IsoSurface3DPlot() {
     }
   };
 
-  const RunSuMo3DInterpolation = async (jobs: FunctionJob[], axis1: string, axis2: string) => {
-    // This should create the "data" state variable to be plotted
-    console.info("Evaluating SuMo for 2D surface...");
-    console.info("Jobs to build SuMo: ", jobs);
-    setPropagating(true);
-    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_grid_evaluation`, {
-      method: "POST",
-      body: JSON.stringify({
-        gridVars: [axis1, axis2, axis3],
-        inputVars,
-        output: selectedQoI,
-        sliderValues: otherAxis,
-        FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
-        log: false,
-      }),
-    })
-      .then(response => {
-        if (response && !response.ok) {
-          console.warn("SuMo Surface plot error: ", response.body);
-        } else {
-          return response.json();
-        }
-      })
-      .then(d => {
-        reshapePlotData(d);
-        setPropagating(false);
-      })
-      .catch(error => {
-        console.warn("Error:", error);
-        setPropagating(false);
-        setPlotData([]);
-      });
-  };
-
   interface IsoSurfaceData extends Plotly.PlotData {
     surface: { show: boolean; count: number }; // Just to make TypeScript happy. Edit if necessary.
   }
@@ -179,6 +145,40 @@ function IsoSurface3DPlot() {
     } else {
       setPlotData([]);
     }
+  };
+
+  const RunSuMo3DInterpolation = async (jobs: OsparcFunctionJob[], localAxis1: string, localAxis2: string) => {
+    // This should create the "data" state variable to be plotted
+    console.info("Evaluating SuMo for 2D surface...");
+    console.info("Jobs to build SuMo: ", jobs);
+    setPropagating(true);
+    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_grid_evaluation`, {
+      method: "POST",
+      body: JSON.stringify({
+        gridVars: [localAxis1, localAxis2, axis3],
+        inputVars,
+        output: selectedQoI,
+        sliderValues: otherAxis,
+        FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
+        log: false,
+      }),
+    })
+      .then(response => {
+        if (response && !response.ok) {
+          console.warn("SuMo Surface plot error: ", response.body);
+          return Promise.reject(new Error(`Error running SuMo Surface plot: ${response.status}, ${response.statusText}`));
+        }
+        return response.json();
+      })
+      .then(d => {
+        reshapePlotData(d);
+        setPropagating(false);
+      })
+      .catch(error => {
+        console.warn("Error:", error);
+        setPropagating(false);
+        setPlotData([]);
+      });
   };
 
   useEffect(() => {
@@ -239,10 +239,10 @@ function IsoSurface3DPlot() {
         flexDirection="column"
         gap={2}
         p={4}
-        sx={theme => ({
+        sx={{
           backgroundColor: theme.palette.background.default,
           borderRadius: theme.spacing(2),
-        })}
+        }}
       >
         <Box display="flex" flex={1} flexDirection="row" justifyContent="space-between">
           <CreateSelect idx={1} axis={axis1} setAxis={handleSetAxis1} />
