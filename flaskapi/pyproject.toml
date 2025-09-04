@@ -1,7 +1,7 @@
 [project]
-name = "flaskapi"
+name = "mmux_flaskapi"
 version = "1.5.1"
-description = "Add your description here"
+description = "MMUX Flask API"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -10,6 +10,9 @@ dependencies = [
 ]
 
 [dependency-groups]
+dev = [
+  {include-group = "test"}
+]
 test = [
     "coverage>=7.0.0",
     "pytest>=7.0.0",
@@ -17,3 +20,34 @@ test = [
     "pytest-mock>=3.10.0",
     "pytest-xdist>=3.0.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+    "--cov=flask_workflows",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[build-system]
+requires = ["setuptools>=65.5", "wheel>=0.44", "setuptools_scm[toml]>=7.1.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"mmux_flaskapi" = ["py.typed"]

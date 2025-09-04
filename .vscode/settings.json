@@ -8,5 +8,7 @@
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "eslint.workingDirectories": [
     { "directory": "./node", "changeProcessCWD": true }
-  ]
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
 }

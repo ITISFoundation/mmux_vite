@@ -11,8 +11,6 @@ cd "$PROJECT_DIR"
 
 # Install Python packages directly with system Python
 echo "Installing dependencies..."
-uv pip install --system -r ./requirements.txt  \
-                        -r ./requirements-test.txt \
-                        -r ./mmux_python/requirements.txt
+uv pip install --system -r ./mmux_python/requirements.txt
 uv pip install --system --prerelease=allow osparc==0.8.3.post0.dev30
 echo "Dependencies installed successfully."
