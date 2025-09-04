@@ -121,6 +121,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     if (fetchedJobCollections.length > 0 && !forceFetch) {
       console.info("Job collections already fetched, skipping fetch.");
       setJobCollections(fetchedJobCollections);
+      setLoading(false);
       return;
     }
 
@@ -135,6 +136,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     if (equalJC) {
       console.info("Job collections already fetched, skipping fetch.");
       setJobCollections(fetchedJobCollections);
+      setLoading(false);
       return;
     }
 

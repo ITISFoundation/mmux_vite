@@ -19,6 +19,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
   const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [outputVarSelection, setOutputVarSelection] = useState<OutputVarSelection>({});
   const [optVars, setOptVars] = useState<Array<string>>([]);
   const [tableData, setTableData] = useState<MogaDataType | undefined>(undefined);
@@ -40,14 +41,14 @@ export function MOGAPareto(props: MogaParetoPropsType) {
         throw new Error(`Error in MOGA response: ${response.status}, ${response.statusText}`);
       }
 
-      const results: any = await response.json();
+      const results: { [key: string]: number[] } = await response.json();
       console.log("MOGA results:", results);
 
       // set table data
       const newTableData: MogaDataType = {
         inputs: inputVars,
         outputs: optVars,
-        rows: results.non_dominated_indices.map(ndi => ({
+        rows: results.non_dominated_indices.map((ndi: number) => ({
           ...optVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
           Performance: 0,
           NDI: ndi,
@@ -114,7 +115,8 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       };
       run();
     }
-  }, [selectedFunction, outputTargets, filterSelectedJobList]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFunction, outputTargets]);
 
   const layout = {
     title: { text: "Pareto Front Diagram" },
