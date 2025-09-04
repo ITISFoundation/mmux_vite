@@ -23,17 +23,10 @@ export default function SuMo() {
   }, [outputVars, selectedFunction, setSelectedQoI]);
 
   return (
-    <MetaModelingUX
-      headerType="title"
-      tabTitle={`Response Surface Modeling: ${selectedFunction?.title}`}
-    >
+    <MetaModelingUX headerType="title" tabTitle={`Response Surface Modeling: ${selectedFunction?.title}`}>
       <OutputSetup loading={loading} mode="onlyQoI" />
       {loading ? (
-        <JobsLoading
-          progress={progress}
-          jobProgress={jobProgress}
-          message={"Creating AI model..."}
-        />
+        <JobsLoading progress={progress} jobProgress={jobProgress} message={"Creating AI model..."} />
       ) : (
         <SuMoPlotsSteps />
       )}
