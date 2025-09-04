@@ -1,8 +1,8 @@
-import re
 import os
 from pathlib import Path
 import json
 import logging
+from datetime import datetime
 from typing import List, Dict, Callable, NamedTuple, Final, Literal
 #
 import numpy as np
@@ -21,8 +21,7 @@ from mmux_python.utils.funs_data_processing import (
     create_manual_uq_samples,
     sanitize_varnames,
 )
-from mmux_python.utils.funs_evaluate import create_run_dir
-from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid, perform_moga_optimization
+from mmux_python.utils.funs_evaluate import create_run_dir, evaluate_sumo_along_axes, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid, perform_moga_optimization
 
 ### Logger configuration ####################################
 _logger = logging.getLogger(__name__)
@@ -32,7 +31,7 @@ _logger = logging.getLogger(__name__)
 # log_path = os.environ.get("MMUX_LOG_PATH", str(Path.home() / "mmux_logs" / "flask_workflows.log"))
 # log_file = Path(log_path)
 # log_file.parent.mkdir(parents=True, exist_ok=True)
-log_file = Path(__file__).parent / "flask_workflows.log"
+log_file = Path(__file__).parent / f"flask_workflows_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
 logging.basicConfig(
     level=os.environ["LOG_LEVEL"],
@@ -68,7 +67,6 @@ if not is_test_environment():
 ### Flask app configuration #################################
 app = Flask(__name__)
 base_dir = Path(__file__).parent # this is the flaskapi directory
-app = Flask(__name__)
 
 FILES_STORAGE_DIR: Final[Path] = Path("/text-files")
 #############################################################
