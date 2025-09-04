@@ -1,47 +1,48 @@
 import { useEffect, useState } from "react";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Box, Skeleton, Typography } from "@mui/material";
-import { Function, FunctionJob, ProjectFunctionJob } from "../../osparc-api-ts-client";
+import { toast } from "react-toastify";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
+import { Function as OsparcFunction, FunctionJob as OsparcFunctionJob, ProjectFunctionJob } from "../../osparc-api-ts-client";
 import { RunSamplingButton } from "./RunSamplingButton";
 import ValueConfig from "../setup/ValueConfig";
-import { toast } from "react-toastify";
 import { createJobStudyCopy, openStudyUid } from "../../utils/function_utils";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useSamplingContext } from "../../context/SamplingContext";
 
-async function runTestJob(selectedFunction: Function | undefined, setLaunchingSampling: (value: boolean) => void, config: SingleJobConfig[]) {
-  const fun = selectedFunction as Function;
+async function runTestJob(
+  selectedFunction: OsparcFunction | undefined,
+  setLaunchingSampling: (value: boolean) => void,
+  config: SingleJobConfig[],
+) {
+  const fun = selectedFunction as OsparcFunction;
   // send config to Python backend to create LHS
   setLaunchingSampling(true);
-  const j = await fetch(PYTHON_DAKOTA_BACKEND + "/flask/test_job", {
+  const j = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/test_job`, {
     method: "POST",
     body: JSON.stringify({
       funUid: fun.uid,
-      config: config,
+      config,
     }),
   })
-    .then(async function (response) {
+    .then(async response => {
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Error running Single Job ${response.status}: ${errorText}`);
       }
       return response.json();
     })
-    .then(function (j: FunctionJob) {
-      return j;
-    })
-    .catch(function (error) {
+    .then((k: OsparcFunctionJob) => k)
+    .catch(error => {
       console.error("Error running single job: ", error);
     });
   setLaunchingSampling(false);
   return j;
 }
 
-const TestJob = () => {
+function TestJob() {
   const { selectedFunction, inputVars } = useFunctionContext();
   const { singleJobConfig, setSingleJobConfig, setLaunchingSampling } = useSamplingContext();
-  const [jobInputs, setJobInputs] =
-    useState<Array<SingleJobConfig>>(singleJobConfig);
+  const [jobInputs, setJobInputs] = useState<Array<SingleJobConfig>>(singleJobConfig);
   const [loading, setLoading] = useState<boolean>(true);
 
   const handleRunSampling = async () => {
@@ -50,15 +51,15 @@ const TestJob = () => {
     // necessary to make a copy of the test job bcs as of now, the run-job always generates a hidden copy
     // thus, the copy allows the user to see their test run in their dashboard
     // WOuld be nice to be able to abort/delete the TestJob or simply update the run-job endpoint to accept a "hidden" boolean parameter
-    const copy_uid = await createJobStudyCopy(selectedFunction?.title as string, job as ProjectFunctionJob);
+    const copyUid: string = (await createJobStudyCopy(selectedFunction?.title as string, job as ProjectFunctionJob)) as string;
     if (!job) toast.warning("Test Job running failed! Please contact support");
-    else if (!copy_uid) toast.warning("Not possible to open your test copy! Please contact support")
-    else if (job.functionClass && job.functionClass === "PROJECT") openStudyUid(copy_uid)
+    else if (!copyUid) toast.warning("Not possible to open your test copy! Please contact support");
+    else if (job.functionClass && job.functionClass === "PROJECT") openStudyUid(copyUid);
     else toast.warning("Only ProjectFunctionJob can be opened in a new window!");
   };
 
-  function handleInputChange(index: number, field: string, value: string) {
-    setJobInputs((prevInputs) => {
+  const handleInputChange = (index: number, field: string, value: string) => {
+    setJobInputs(prevInputs => {
       const newInputs = [...prevInputs];
       newInputs[index] = {
         ...newInputs[index],
@@ -66,12 +67,12 @@ const TestJob = () => {
       };
       return newInputs;
     });
-  }
+  };
 
   useEffect(() => {
     let currentSampling: SingleJobConfig[] = singleJobConfig;
     if (currentSampling.length === 0) {
-      currentSampling = inputVars.map((inputVar) => ({
+      currentSampling = inputVars.map(inputVar => ({
         variable: inputVar,
         value: 0.0,
       }));
@@ -82,31 +83,16 @@ const TestJob = () => {
 
   return (
     <>
-      <Typography
-        variant="h5"
-        fontFamily="inherit"
-        fontWeight={300}
-        marginBottom={1}
-      >
+      <Typography variant="h5" fontFamily="inherit" fontWeight={300} marginBottom={1}>
         {loading ? (
-          <Skeleton
-            variant="text"
-            width={"300px"}
-            height={"32px"}
-            sx={{ fontSize: "2rem", marginBottom: "8px" }}
-          />
+          <Skeleton variant="text" width="300px" height="32px" sx={{ fontSize: "2rem", marginBottom: "8px" }} />
         ) : (
           "Single Test Run"
         )}
       </Typography>
-      <Typography
-        variant="body1"
-        fontFamily="inherit"
-        fontWeight={200}
-        marginBottom={1}
-      >
+      <Typography variant="body1" fontFamily="inherit" fontWeight={200} marginBottom={1}>
         {loading ? (
-          <Skeleton variant="text" width={"600px"} height={"24px"} />
+          <Skeleton variant="text" width="600px" height="24px" />
         ) : (
           "Run a single parameter combination. The generated study will be opened in a new window for user inspection."
         )}
@@ -122,25 +108,18 @@ const TestJob = () => {
         }}
       >
         {loading ? (
-          <Skeleton variant="rounded" width={"800px"} height={"232px"} />
+          <Skeleton variant="rounded" width="800px" height="232px" />
         ) : (
           jobInputs?.map((inputVar, index) => (
-            <ValueConfig
-              index={index}
-              inputVar={inputVar}
-              handleInputChange={handleInputChange}
-            />
+            <ValueConfig index={index} inputVar={inputVar} handleInputChange={handleInputChange} />
           ))
         )}
       </Box>
-      <Box display={"flex"} flexDirection="row" justifyContent={'space-between'} marginTop={2}>
-        <RunSamplingButton
-          disabled={loading}
-          handleRunSampling={handleRunSampling}
-        />
+      <Box display="flex" flexDirection="row" justifyContent="space-between" marginTop={2}>
+        <RunSamplingButton disabled={loading} handleRunSampling={handleRunSampling} />
       </Box>
     </>
   );
-};
+}
 
 export default TestJob;

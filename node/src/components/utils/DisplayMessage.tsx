@@ -7,29 +7,24 @@ type DisplayMessageProps = {
   height?: number;
 };
 
-export const DisplayMessage = (props: DisplayMessageProps) => {
+export function DisplayMessage(props: DisplayMessageProps) {
   const theme = useTheme();
   const { mssg, children, height } = props;
   return (
     <Box
-      width={"100%"}
-      height={height ? height : "400px"}
-      display={"flex"}
-      flexDirection={"column"}
-      alignItems={"center"}
-      justifyContent={"center"}
+      width="100%"
+      height={height || "400px"}
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
       bgcolor={theme.palette.background.default}
       borderRadius={theme.spacing(2)}
     >
-      <Typography
-        variant="body1"
-        fontFamily={"inherit"}
-        fontWeight={100}
-        textAlign={"center"}
-      >
+      <Typography variant="body1" fontFamily="inherit" fontWeight={100} textAlign="center">
         {mssg}
       </Typography>
       {children}
     </Box>
   );
-};
+}

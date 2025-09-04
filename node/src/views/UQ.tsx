@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import UncertainUQ from "../components/plots/UncertainUQ";
 import SuMoModal from "./SuMoModal";
@@ -9,7 +9,7 @@ import { useFunctionContext } from "../context/FunctionContext";
 
 export default function UQ() {
   const { selectedFunction, outputVars } = useFunctionContext();
-  const {setSelectedQoI } = useMMUXContext();
+  const { setSelectedQoI } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [sumoModal, setSumoModal] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
@@ -24,10 +24,7 @@ export default function UQ() {
   }, [outputVars, selectedFunction, setSelectedQoI]);
 
   return (
-    <MetaModelingUX
-      headerType="title"
-      tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}
-    >
+    <MetaModelingUX headerType="title" tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}>
       <OutputSetup loading={loading} setSumoModal={setSumoModal} mode="full" />
       <UncertainUQ
         colsFetched={colsFetched}

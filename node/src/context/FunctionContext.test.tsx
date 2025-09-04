@@ -21,19 +21,17 @@ vi.mock("./PersistenceContext", () => ({
 }));
 
 // Test consumer
-const Consumer = () => {
+function Consumer() {
   const ctx = useFunctionContext();
   return (
     <div>
       <span data-testid="selectedFunction">{ctx.selectedFunction?.title}</span>
       <span data-testid="inputVars">{ctx.inputVars.join(",")}</span>
       <span data-testid="outputVars">{ctx.outputVars.join(",")}</span>
-      <span data-testid="distribution">
-        {Object.keys(ctx.distribution).join(",")}
-      </span>
+      <span data-testid="distribution">{Object.keys(ctx.distribution).join(",")}</span>
     </div>
   );
-};
+}
 
 describe("FunctionContextProvider", () => {
   beforeEach(() => {
@@ -43,35 +41,30 @@ describe("FunctionContextProvider", () => {
     render(
       <FunctionContextProvider>
         <Consumer />
-      </FunctionContextProvider>
+      </FunctionContextProvider>,
     );
-    expect(screen.getByTestId("selectedFunction").textContent).toBe(
-      "Test Function"
-    );
+    expect(screen.getByTestId("selectedFunction").textContent).toBe("Test Function");
     expect(screen.getByTestId("inputVars").textContent).toBe("x,y");
     expect(screen.getByTestId("outputVars").textContent).toBe("z");
     expect(screen.getByTestId("distribution").textContent).toBe("x,y");
   });
 
   it("updates context values", async () => {
-    const TestComponent = () => {
+    function TestComponent() {
       const ctx = useFunctionContext();
       return (
         <div>
-          <button
-            onClick={() => ctx.setInputVars(["a", "b"])}
-            data-testid="setInputVars"
-          >
+          <button type="button" onClick={() => ctx.setInputVars(["a", "b"])} data-testid="setInputVars">
             Set Input Vars
           </button>
           <span data-testid="inputVars">{ctx.inputVars.join(",")}</span>
         </div>
       );
-    };
+    }
     render(
       <FunctionContextProvider>
         <TestComponent />
-      </FunctionContextProvider>
+      </FunctionContextProvider>,
     );
     expect(screen.getByTestId("inputVars").textContent).toBe("x,y");
     await screen.getByTestId("setInputVars").click();
@@ -79,14 +72,12 @@ describe("FunctionContextProvider", () => {
   });
 
   it("throws error if used outside provider", () => {
-    const spy = vi.spyOn(console, "error").mockImplementation(() => { });
-    const BrokenConsumer = () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    function BrokenConsumer() {
       useFunctionContext();
       return null;
-    };
-    expect(() => render(<BrokenConsumer />)).toThrow(
-      /useFunctionContext must be used within a FunctionContextProvider/
-    );
+    }
+    expect(() => render(<BrokenConsumer />)).toThrow(/useFunctionContext must be used within a FunctionContextProvider/);
     spy.mockRestore();
   });
 });

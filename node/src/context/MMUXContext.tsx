@@ -1,15 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-refresh/only-export-components */
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { GridSortModel } from "@mui/x-data-grid";
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
-import { GridSortModel } from "@mui/x-data-grid";
 
 export interface MMUXContextType {
   numSamples: { [key: string]: number };
@@ -24,15 +17,13 @@ export interface MMUXContextType {
   setSortModel: (sortModel: GridSortModel | undefined) => void;
 }
 
-export const MMUXContext = createContext<MMUXContextType | undefined>(
-  undefined
-);
+export const MMUXContext = createContext<MMUXContextType | undefined>(undefined);
 
 type Props = {
   children: React.ReactNode;
 };
 
-export const MMUXContextProvider = ({ children }: Props) => {
+export function MMUXContextProvider({ children }: Props) {
   const { persistence, saveState, loading } = usePersistenceContext();
   const [localLoading, setLocalLoading] = useState(true);
   const [numSamples, setNumSamples] = useState<{ [key: string]: number }>({});
@@ -47,27 +38,17 @@ export const MMUXContextProvider = ({ children }: Props) => {
     console.info("Saving MMUX context state to persistence...");
     const newPersistence: PersistenceType = {
       ...(persistence as PersistenceType),
-      numSamples: numSamples,
-      selectedQoI: selectedQoI,
-      isSuMoGenerated: isSuMoGenerated,
-      weights: weights,
-      sortModel: sortModel,
+      numSamples,
+      selectedQoI,
+      isSuMoGenerated,
+      weights,
+      sortModel,
     };
     saveState(newPersistence);
-  }, [
-    numSamples,
-    selectedQoI,
-    isSuMoGenerated,
-    weights,
-    sortModel,
-  ]);
+  }, [numSamples, selectedQoI, isSuMoGenerated, weights, sortModel]);
 
   useEffect(() => {
-    if (
-      loading === false &&
-      persistence &&
-      persistence.currentView !== undefined
-    ) {
+    if (loading === false && persistence && persistence.currentView !== undefined) {
       console.info("Loading MMUX context from persistence...");
       setNumSamples(persistence.numSamples);
       setSelectedQoI(persistence.selectedQoI);
@@ -78,30 +59,23 @@ export const MMUXContextProvider = ({ children }: Props) => {
     }
   }, [loading]);
 
-  const memoState = useMemo(() => {
-    return {
-      numSamples: numSamples,
-      setNumSamples: setNumSamples,
-      selectedQoI: selectedQoI,
-      setSelectedQoI: setSelectedQoI,
-      isSuMoGenerated: isSuMoGenerated,
-      setIsSuMoGenerated: setIsSuMoGenerated,
-      weights: weights,
-      setWeights: setWeights,
-      sortModel: sortModel,
-      setSortModel: setSortModel,
-    };
-  }, [
-    numSamples,
-    selectedQoI,
-    isSuMoGenerated,
-    weights,
-    sortModel,
-  ]);
-  return (
-    <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>
+  const memoState = useMemo(
+    () => ({
+      numSamples,
+      setNumSamples,
+      selectedQoI,
+      setSelectedQoI,
+      isSuMoGenerated,
+      setIsSuMoGenerated,
+      weights,
+      setWeights,
+      sortModel,
+      setSortModel,
+    }),
+    [numSamples, selectedQoI, isSuMoGenerated, weights, sortModel],
   );
-};
+  return <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>;
+}
 
 export const useMMUXContext = () => {
   const context = useContext(MMUXContext);

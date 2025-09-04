@@ -4,19 +4,19 @@ import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import { useMMUXContext } from "../../context/MMUXContext";
 
 interface MogaDataType {
-    id: number;
-    inputs: {
-        w: number;
-        x: number;
-        y: number;
-        z: number;
-    };
-    outputs: {
-        longVar1: number;
-        LongVar2: number;
-        LongVar3: number;
-    };
-    Performance: number;
+  id: number;
+  inputs: {
+    w: number;
+    x: number;
+    y: number;
+    z: number;
+  };
+  outputs: {
+    longVar1: number;
+    LongVar2: number;
+    LongVar3: number;
+  };
+  Performance: number;
 }
 
 const dummyData: MogaDataType[] = [
@@ -40,18 +40,26 @@ const dummyData: MogaDataType[] = [
   },
 ];
 
-const MogaParetoTable = () => {
+function getRowId(value: MogaDataType) {
+  return value.id;
+}
+
+function MogaParetoTable() {
   const { weights, setWeights, sortModel, setSortModel } = useMMUXContext();
   const [data, setData] = useState<MogaDataType[]>();
-  const [localWeights, setLocalWeights] = useState(weights ? weights : {});
+  const [localWeights, setLocalWeights] = useState(weights || {});
   const [loading, setLoading] = useState(true);
   const [anchorElms, setAnchorElms] = useState<{
     [key: string]: HTMLButtonElement | null;
   }>({});
-  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel || [{
-      field: 'Performance',
-      sort: 'desc',
-    }]);
+  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(
+    sortModel || [
+      {
+        field: "Performance",
+        sort: "desc",
+      },
+    ],
+  );
 
   const handleWeightsChange = (key: string, newValue: number) => {
     const newWeights = { ...localWeights, [key]: newValue };
@@ -64,29 +72,22 @@ const MogaParetoTable = () => {
     setLocalSortModel(model);
   };
 
-  const handleClick = (
-    event: React.MouseEvent<HTMLButtonElement>,
-    key: string
-  ) => {
-    setAnchorElms((prev) => ({ ...prev, [key]: event.currentTarget }));
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>, key: string) => {
+    setAnchorElms(prev => ({ ...prev, [key]: event.currentTarget }));
   };
 
   const handleClose = (key: string) => {
-    setAnchorElms((prev) => ({ ...prev, [key]: null }));
+    setAnchorElms(prev => ({ ...prev, [key]: null }));
   };
-
-  function getRowId(value: MogaDataType) {
-    return value.id;
-  }
 
   useEffect(() => {
     // Simulate loading data
     setTimeout(() => {
       setData(dummyData);
-      if(weights === undefined || Object.keys(weights).length === 0) {
+      if (weights === undefined || Object.keys(weights).length === 0) {
         const outputKeys: string[] = Object.keys(dummyData[0].outputs);
         const generatedWeights: { [key: string]: number } = {};
-        for (let i = 0; i < outputKeys.length; i++) {
+        for (let i = 0; i < outputKeys.length; i += 1) {
           generatedWeights[outputKeys[i]] = 0.5; // Example weight, can be adjusted
         }
         setLocalWeights(generatedWeights);
@@ -94,7 +95,7 @@ const MogaParetoTable = () => {
       }
       setLoading(false);
     }, 2000);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const columnProps: Partial<GridColDef> = {
@@ -104,18 +105,18 @@ const MogaParetoTable = () => {
     sortable: true,
   };
 
-  let columns: GridColDef[] = Object.keys(data ? data[0].inputs : {}).map((key) => ({
+  let columns: GridColDef[] = Object.keys(data ? data[0].inputs : {}).map(key => ({
     ...columnProps,
     field: key,
     maxWidth: 90,
     headerName: key.toUpperCase(),
     type: "number",
-    renderCell: (params) => params.row.inputs[key],
-    valueGetter: (value, row) => row.inputs[key],
+    renderCell: params => params.row.inputs[key],
+    valueGetter: (_value, row) => row.inputs[key],
   }));
 
   columns = columns.concat(
-    Object.keys(data ? data[0].outputs : {}).map((key) => ({
+    Object.keys(data ? data[0].outputs : {}).map(key => ({
       ...columnProps,
       field: key,
       headerName: key.toUpperCase(),
@@ -127,7 +128,7 @@ const MogaParetoTable = () => {
             label={(localWeights[key] ?? 0).toFixed(2)}
             size="small"
             color="primary"
-            onClick={(e) => handleClick(e as unknown as React.MouseEvent<HTMLButtonElement>, key)}
+            onClick={e => handleClick(e as unknown as React.MouseEvent<HTMLButtonElement>, key)}
           />
           <Popover
             id={`popover-${key}`}
@@ -162,8 +163,8 @@ const MogaParetoTable = () => {
                 max={1}
                 step={0.01}
                 defaultValue={0.5}
-                onChange={(event, newValue) => {
-                  setLocalWeights((prev) => ({ ...prev, [key]: newValue }));
+                onChange={(_event, newValue) => {
+                  setLocalWeights(prev => ({ ...prev, [key]: newValue }));
                 }}
                 onChangeCommitted={() => {
                   handleWeightsChange(key, localWeights[key]);
@@ -172,16 +173,15 @@ const MogaParetoTable = () => {
                 aria-labelledby={`slider-${key}`}
               />
               <Typography variant="caption" color="textSecondary">
-                Adjust the weight for {key.toUpperCase()} to influence the
-                Pareto front.
+                Adjust the weight for {key.toUpperCase()} to influence the Pareto front.
               </Typography>
             </Box>
           </Popover>
         </Box>
       ),
-      renderCell: (params) => params.row.outputs[key],
-      valueGetter: (value, row) => row.outputs[key],
-    }))
+      renderCell: params => params.row.outputs[key],
+      valueGetter: (_value, row) => row.outputs[key],
+    })),
   );
 
   columns = columns.concat([
@@ -192,8 +192,8 @@ const MogaParetoTable = () => {
       minWidth: 105,
       maxWidth: 105,
       type: "number",
-      renderCell: (params) => params.row.Performance.toFixed(2),
-      valueGetter: (value, row) => row.Performance,
+      renderCell: params => params.row.Performance.toFixed(2),
+      valueGetter: (_value, row) => row.Performance,
     },
     {
       ...columnProps,
@@ -215,7 +215,7 @@ const MogaParetoTable = () => {
     <DataGrid
       rows={data}
       columns={columns}
-      sx={(theme) => ({
+      sx={theme => ({
         borderRadius: theme.spacing(2),
         overflow: "hidden",
         fontFamily: "inherit",
@@ -224,25 +224,16 @@ const MogaParetoTable = () => {
           fontWeight: 400,
         },
         "& .MuiDataGrid-row:hover": {
-          backgroundColor: (theme) =>
-            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
-              theme.palette.mode === "dark" ? "black" : "white"
-            })`,
+          backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
         },
         "& .MuiDataGrid-row.Mui-selected": {
-          backgroundColor: (theme) =>
-            `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${
-              theme.palette.mode === "dark" ? "black" : "white"
-            })`,
+          backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
         },
         "& .MuiDataGrid-row.Mui-selected:hover": {
-          backgroundColor: (theme) =>
-            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${
-              theme.palette.mode === "dark" ? "black" : "white"
-            })`,
+          backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
         },
         "& .MuiDataGrid-sortButton": {
-          backgroundColor: (theme) => theme.palette.background.paper,
+          backgroundColor: theme.palette.background.paper,
         },
       })}
       getRowId={getRowId}
@@ -269,8 +260,8 @@ const MogaParetoTable = () => {
       disableColumnMenu
       disableColumnSelector
       disableRowSelectionOnClick
-    ></DataGrid>
+    />
   );
-};
+}
 
 export default MogaParetoTable;

@@ -1,13 +1,5 @@
 import React from "react";
-import {
-  Box,
-  Button,
-  Card,
-  CardActions,
-  CardContent,
-  MobileStepper,
-  useTheme,
-} from "@mui/material";
+import { Box, Button, Card, CardActions, CardContent, MobileStepper, useTheme } from "@mui/material";
 import { KeyboardArrowLeft, KeyboardArrowRight } from "@mui/icons-material";
 import IsoSurface3DPlot from "./IsoSurface3DPlot";
 import Curves1DPlots from "./Curves1DPlot";
@@ -19,7 +11,7 @@ import CrossValidationDocument from "../documents/CrossValidationDocument";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 
-const SuMoPlotsSteps = () => {
+function SuMoPlotsSteps() {
   const theme = useTheme();
   const { inputVars, selectedFunction, distribution } = useFunctionContext();
   const context = useJobContext();
@@ -28,11 +20,11 @@ const SuMoPlotsSteps = () => {
   const [filteredInputVars, setFilteredInputVars] = React.useState(inputVars);
   const [maxSteps, setMaxSteps] = React.useState(0);
   const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    setActiveStep(prevActiveStep => prevActiveStep + 1);
   };
 
   const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    setActiveStep(prevActiveStep => prevActiveStep - 1);
   };
 
   const stepTitles = ["Validation", "1D Curves", "2D Surface", "3D IsoSurface"];
@@ -57,12 +49,10 @@ const SuMoPlotsSteps = () => {
       // avoid everything disappearing when there are not enough selected jobs
       setFilteredInputVars(inputVars);
     } else {
-      setFilteredInputVars(
-        filterInputVars({ ...context, selectedFunction, inputVars, distribution })
-      );
+      setFilteredInputVars(filterInputVars({ ...context, selectedFunction, inputVars, distribution }));
     }
     setMaxSteps(Math.min(filteredInputVars.length + 1, stepTitles.length));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedJobUids, filterSelectedJobList]);
 
   return (
@@ -86,25 +76,17 @@ const SuMoPlotsSteps = () => {
         />
       </Box>
       <CardContent
-        sx={(theme) => ({
+        sx={{
           padding: 0,
           margin: "16px 0px",
           borderRadius: theme.spacing(2),
           overflow: "hidden",
-        })}
+        }}
       >
-        {activeStep === 0 && filteredInputVars.length > 0 ? (
-          <SuMoValidation />
-        ) : undefined}
-        {activeStep === 1 && filteredInputVars.length > 0 ? (
-          <Curves1DPlots />
-        ) : undefined}
-        {activeStep === 2 && filteredInputVars.length > 1 ? (
-          <Surface2DPlot />
-        ) : undefined}
-        {activeStep === 3 && filteredInputVars.length > 2 ? (
-          <IsoSurface3DPlot />
-        ) : undefined}
+        {activeStep === 0 && filteredInputVars.length > 0 ? <SuMoValidation /> : undefined}
+        {activeStep === 1 && filteredInputVars.length > 0 ? <Curves1DPlots /> : undefined}
+        {activeStep === 2 && filteredInputVars.length > 1 ? <Surface2DPlot /> : undefined}
+        {activeStep === 3 && filteredInputVars.length > 2 ? <IsoSurface3DPlot /> : undefined}
       </CardContent>
       <CardActions sx={{ padding: 0 }}>
         <MobileStepper
@@ -128,26 +110,12 @@ const SuMoPlotsSteps = () => {
               sx={{ alignItems: "end" }}
             >
               Next
-              {theme.direction === "rtl" ? (
-                <KeyboardArrowLeft />
-              ) : (
-                <KeyboardArrowRight />
-              )}
+              {theme.direction === "rtl" ? <KeyboardArrowLeft /> : <KeyboardArrowRight />}
             </Button>
           }
           backButton={
-            <Button
-              size="small"
-              variant="contained"
-              onClick={handleBack}
-              disabled={activeStep === 0}
-              sx={{ alignItems: "end" }}
-            >
-              {theme.direction === "rtl" ? (
-                <KeyboardArrowRight />
-              ) : (
-                <KeyboardArrowLeft />
-              )}
+            <Button size="small" variant="contained" onClick={handleBack} disabled={activeStep === 0} sx={{ alignItems: "end" }}>
+              {theme.direction === "rtl" ? <KeyboardArrowRight /> : <KeyboardArrowLeft />}
               Back
             </Button>
           }
@@ -155,6 +123,6 @@ const SuMoPlotsSteps = () => {
       </CardActions>
     </Card>
   );
-};
+}
 
 export default SuMoPlotsSteps;

@@ -24,10 +24,7 @@ export default function MOGA() {
   }, [outputVars, selectedFunction, setSelectedQoI]);
 
   return (
-    <MetaModelingUX
-      headerType="title"
-      tabTitle={`Multi Objective Genetic Algorithm: ${selectedFunction?.title}`}
-    >
+    <MetaModelingUX headerType="title" tabTitle={`Multi Objective Genetic Algorithm: ${selectedFunction?.title}`}>
       <OutputSetup loading={loading} setSumoModal={setSumoModal} mode="moga" />
       <MOGAPareto
         colsFetched={colsFetched}

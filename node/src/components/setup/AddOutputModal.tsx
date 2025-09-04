@@ -1,13 +1,5 @@
 import React, { useEffect } from "react";
-import {
-  Box,
-  Button,
-  MenuItem,
-  Modal,
-  Select,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { Box, Button, MenuItem, Modal, Select, Typography, useTheme } from "@mui/material";
 import Header from "../navigation/Header";
 
 interface AddOutputModalProps {
@@ -17,7 +9,7 @@ interface AddOutputModalProps {
   onChange: (value: string) => void;
 }
 
-export const AddOutputModal = (props: AddOutputModalProps) => {
+export function AddOutputModal(props: AddOutputModalProps) {
   const { open, setOpen, data, onChange } = props;
   const theme = useTheme();
 
@@ -54,22 +46,15 @@ export const AddOutputModal = (props: AddOutputModalProps) => {
           gap: "16px",
         }}
       >
-        <Header
-          headerType="title"
-          tabTitle="Add Output Variable"
-          fontWeight={300}
-        />
-        <Select value={selected} onChange={(e) => setSelected(e.target.value)}>
-          {data.map((d, id) => (
-            <MenuItem key={id} value={d}>
+        <Header headerType="title" tabTitle="Add Output Variable" fontWeight={300} />
+        <Select value={selected} onChange={e => setSelected(e.target.value)}>
+          {data.map(d => (
+            <MenuItem key={`output-variable-${d}`} value={d}>
               {d}
             </MenuItem>
           ))}
         </Select>
-        <Button
-          onClick={() => onChange(selected)}
-          sx={{ backgroundColor: theme.palette.primary.main, marginTop: "16px" }}
-        >
+        <Button onClick={() => onChange(selected)} sx={{ backgroundColor: theme.palette.primary.main, marginTop: "16px" }}>
           <Typography variant="body1" color={theme.palette.text.primary}>
             Add
           </Typography>
@@ -77,4 +62,4 @@ export const AddOutputModal = (props: AddOutputModalProps) => {
       </Box>
     </Modal>
   );
-};
+}

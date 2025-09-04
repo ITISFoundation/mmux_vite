@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { styled, ThemeProvider } from "@mui/material/styles";
 import { Container, useColorScheme } from "@mui/material";
 import { toast, ToastContainer } from "react-toastify";
@@ -7,7 +7,7 @@ import Navigation from "./components/navigation/Navigation";
 import { Footer } from "./components/navigation/Footer";
 import { useNavigationContext } from "./context/NavigationContext";
 import { getHealth } from "./utils/function_utils";
-import { SplashScreen } from "./views/SplashScreen";
+import SplashScreen from "./views/SplashScreen";
 import { ServiceContextProvider } from "./context/ServiceContext";
 import PreviewWarning from "./components/navigation/PreviewWarning";
 import { ReturnCurrentView } from "./views/ReturnCurrentView";
@@ -22,23 +22,17 @@ const AppRoot = styled("div")(
   min-height: 100vh;
   height: 100%;
   background-color: ${theme.palette.background.default};
-`
+`,
 );
 
-const App = () => {
+function App() {
   const [healthStatus, setHealthStatus] = useState<boolean>(false);
 
   const { currentView, steps } = useNavigationContext();
   const { loading, setHealthOK } = usePersistenceContext();
   const { mode, systemMode, setMode } = useColorScheme();
-  const finalMode = mode
-    ? mode === "system"
-      ? systemMode
-        ? systemMode
-        : "dark"
-      : mode
-    : "dark";
-  const [themeMode, setThemeMode] = useState<"light" | "dark">(finalMode);
+  const finalMode = mode && mode === "system" ? systemMode || "dark" : mode;
+  const [themeMode, setThemeMode] = useState<"light" | "dark">(finalMode ?? "dark");
   const theme = setupTheme(themeMode);
 
   const setThemeModeHandler = (newMode: "light" | "dark") => {
@@ -62,6 +56,7 @@ const App = () => {
     } catch (error) {
       console.error("Backend is not healthy:", error);
     }
+    return false;
   };
 
   useEffect(() => {
@@ -71,9 +66,7 @@ const App = () => {
       const result = await getHealthStatus();
       if (retries <= 0) {
         console.error("Failed to get health status after multiple attempts.");
-        toast.error(
-          "Failed to connect to the backend after multiple attempts. Please check the server status."
-        );
+        toast.error("Failed to connect to the backend after multiple attempts. Please check the server status.");
         return;
       }
       if (result) return;
@@ -85,7 +78,7 @@ const App = () => {
     return () => {
       clearTimeout(timeoutId);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -111,7 +104,7 @@ const App = () => {
     };
     window.addEventListener("message", messageHandler);
     return () => window.removeEventListener("message", messageHandler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -152,6 +145,6 @@ const App = () => {
       </AppRoot>
     </ThemeProvider>
   );
-};
+}
 
 export default App;

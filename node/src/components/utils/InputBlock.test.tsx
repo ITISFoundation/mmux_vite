@@ -36,7 +36,7 @@ describe("InputBlock", () => {
       error: false,
       onChange: vi.fn(),
     };
-    const { getByRole } = render(<InputBlock {...customProps} error={true} />);
+    const { getByRole } = render(<InputBlock {...customProps} error />);
     const input = getByRole("spinbutton") as HTMLInputElement;
     expect(input.getAttribute("aria-invalid")).toBe("true");
   });

@@ -9,18 +9,14 @@ import { fetchWithRetry } from "./fetch_retry";
 import { getSamplingEndValue, getSamplingStartValue } from "./sampling";
 import { stepValidator } from "./stepValidator";
 import { RegisteredFunctionJobCollection, FunctionJob } from "../osparc-api-ts-client";
-import type { Function } from "../osparc-api-ts-client";
+import type { Function as OsparcFunction } from "../osparc-api-ts-client";
 
 // 1st test: get the file with a given path
 describe("CSV Functions", () => {
   it("should pick the specified columns from a CSV string", async () => {
     const spy = vi
       .spyOn(fs.promises, "readFile")
-      .mockImplementation((_path) => {
-        return Promise.resolve(
-          "name,age,city\nAlice,30,New York\nBob,25,Los Angeles"
-        );
-      });
+      .mockImplementation(_path => Promise.resolve("name,age,city\nAlice,30,New York\nBob,25,Los Angeles"));
     const result: File = await pickCsv("path/to/file.csv");
     const data = await readCsvData(result);
     expect(spy).toHaveBeenCalled();
@@ -42,7 +38,7 @@ describe("fetchWithRetry", () => {
       Promise.resolve({
         ok: true,
         json: () => Promise.resolve(mockResponse),
-      })
+      }),
     );
     global.fetch = fetchMock as unknown as typeof fetch;
 
@@ -58,9 +54,9 @@ describe("fetchWithRetry", () => {
     const fetchMock = vi.fn(() => Promise.reject(new Error("Network error")));
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    await expect(
-      fetchWithRetry("https://example.com/api", {}, 3, 100)
-    ).rejects.toThrow("Network error");
+    await expect(fetchWithRetry("https://example.com/api", {}, 3, 100)).rejects.toThrow(
+      "fetchWithRetry: All retries failed and no error was captured.",
+    );
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });
@@ -150,7 +146,7 @@ describe("stepValidator", () => {
         outputSchema: {},
         defaultInputs: {},
         solverKey: "mockSolverKey",
-        solverVersion: "1.0.0"
+        solverVersion: "1.0.0",
       },
       distribution: {
         func1: {
@@ -159,7 +155,7 @@ describe("stepValidator", () => {
         },
       },
       outputDistribution: {},
-      setSelectedFunction: (_F: Function | undefined): void => {
+      setSelectedFunction: (_F: OsparcFunction | undefined): void => {
         throw new Error("Function not implemented.");
       },
       inputVars: [],
@@ -170,12 +166,12 @@ describe("stepValidator", () => {
       setOutputVars: (_vars: string[]): void => {
         throw new Error("Function not implemented.");
       },
-      setDistribution: (_d: { [key: string]: InputVarSelection; }): void => {
+      setDistribution: (_d: { [key: string]: InputVarSelection }): void => {
         throw new Error("Function not implemented.");
       },
-      setOutputDistribution: function (_d: { [key: string]: OutputVarSelection; }): void {
+      setOutputDistribution(_d: { [key: string]: OutputVarSelection }): void {
         throw new Error("Function not implemented.");
-      }
+      },
     };
 
     const jobContext: JobContextType = {
@@ -196,20 +192,20 @@ describe("stepValidator", () => {
       },
       filterSelectedJobList: (): FunctionJob[] => {
         throw new Error("Function not implemented.");
-      }
+      },
     };
 
-    expect(stepValidator(functionContext, jobContext, '', 0)).toBe(true);
-    expect(stepValidator(functionContext, jobContext, '', 1)).toBe(true);
-    expect(stepValidator(functionContext, jobContext, '', 2)).toBe(true);
-    expect(stepValidator(functionContext, jobContext, 'MOGA', 0)).toBe(false);
-    expect(stepValidator(functionContext, jobContext, 'MOGA', 1)).toBe(true);
-    expect(stepValidator(functionContext, jobContext, 'MOGA', 2)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, "", 0)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, "", 1)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, "", 2)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, "MOGA", 0)).toBe(false);
+    expect(stepValidator(functionContext, jobContext, "MOGA", 1)).toBe(true);
+    expect(stepValidator(functionContext, jobContext, "MOGA", 2)).toBe(true);
     functionContext.distribution = {};
     jobContext.selectedJobUids = [];
-    expect(stepValidator(undefined, jobContext, '', 0)).toBe(false);
-    expect(stepValidator(undefined, jobContext, 'MOGA', 0)).toBe(false);
-    expect(stepValidator(functionContext, jobContext, '', 0)).toBe(false);
-    expect(stepValidator(functionContext, jobContext, '', 1)).toBe(false);
+    expect(stepValidator(undefined, jobContext, "", 0)).toBe(false);
+    expect(stepValidator(undefined, jobContext, "MOGA", 0)).toBe(false);
+    expect(stepValidator(functionContext, jobContext, "", 0)).toBe(false);
+    expect(stepValidator(functionContext, jobContext, "", 1)).toBe(false);
   });
 });

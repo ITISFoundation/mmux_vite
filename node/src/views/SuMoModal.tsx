@@ -1,14 +1,8 @@
+import React from "react";
 import { Modal } from "@mui/material";
-import SuMoPlotsSteps from "./../components/plots/SuMoPlotsSteps";
+import SuMoPlotsSteps from "../components/plots/SuMoPlotsSteps";
 
-const SuMoModal = ({
-  open,
-  setOpen,
-}: {
-  open: boolean;
-  setOpen: (value: boolean) => void;
-}) => {
-
+function SuMoModal({ open, setOpen }: { open: boolean; setOpen: (value: boolean) => void }) {
   return (
     <Modal
       open={open}
@@ -21,11 +15,10 @@ const SuMoModal = ({
         maxWidth: "1080px",
         height: "80%",
       }}
-      children={
-        <SuMoPlotsSteps />
-      }
-    />
+    >
+      <SuMoPlotsSteps />
+    </Modal>
   );
-};
+}
 
 export default SuMoModal;
