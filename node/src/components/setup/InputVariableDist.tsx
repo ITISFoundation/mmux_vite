@@ -106,7 +106,7 @@ export function InputVariableDist() {
     const newInputVars = { ...localDistribution };
     if (!newInputVars[inputVar]) {
       newInputVars[inputVar] = {
-        distribution: ServiceMode === "SUMO" ? "uniform" : "normal",
+        distribution: ["SUMO", "MOGA"].includes(ServiceMode) ? "normal" : "uniform",
       };
     }
     newInputVars[inputVar][type as Variables] = value;
@@ -269,7 +269,7 @@ export function InputVariableDist() {
               />
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {ServiceMode !== "SUMO" && (
+              {["UQ"].includes(ServiceMode) && (
                 <InputLabel
                   sx={{
                     display: "flex",
