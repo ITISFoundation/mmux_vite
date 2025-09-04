@@ -21,6 +21,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
   const [propagating, setPropagating] = useState(false);
   const [outputVarSelection, setOutputVarSelection] = useState<OutputVarSelection>({});
   const [optVars, setOptVars] = useState<Array<string>>([]);
+  const [tableData, setTableData] = useState<MogaDataType | undefined>(undefined);
 
   useEffect(() => {
     if (!selectedFunction) {
@@ -48,6 +49,19 @@ export function MOGAPareto(props: MogaParetoPropsType) {
     }
 
     const results: { [key: string]: number[] } = await response.json();
+
+    // set table data
+    const newTableData: MogaDataType = {
+      inputs: inputVars,
+      outputs: optVars,
+      rows: results.non_dominated_indices.map(ndi => ({
+        ...optVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
+        Performance: 0,
+        NDI: ndi,
+      })),
+    };
+    setTableData(newTableData);
+
     const outputValues = aggregateOutputValues(jobs);
 
     const newPlotData: Plotly.Data[] = [
@@ -134,7 +148,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       {!propagating && plotData.length !== 0 && (
         <>
           <Plot data={plotData} layout={layout} style={plotStyle} />
-          <MogaParetoTable />
+          <MogaParetoTable tableData={tableData} />
           {/* TODO still need to implement real data in there */}
         </>
       )}

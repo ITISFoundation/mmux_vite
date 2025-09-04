@@ -161,3 +161,11 @@ type CvMetricsType = {
   mae: number;
   rmse: number;
 };
+
+type MogaDataRowType = { [key: string]: number; Performance: number; NDI: number };
+
+interface MogaDataType {
+  inputs: string[];
+  outputs: string[];
+  rows: Array<MogaDataRowType>;
+}
