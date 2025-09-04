@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, act, cleanup, Matcher, MatcherOptions } from "@testing-library/react";
+import { render, act, cleanup, Matcher, MatcherOptions, waitFor } from "@testing-library/react";
 import { SamplingContextProvider, useSamplingContext } from "./SamplingContext";
 
 // Mock usePersistenceContext
@@ -119,6 +119,8 @@ describe("SamplingContextProvider", async () => {
     await act(() => {
       getByText("Set Launching").click();
       getByText("Set Running").click();
+    });
+    await waitFor(() => {
       expect(getByTestId("launching").textContent).toBe("true");
       expect(getByTestId("running").textContent).toBe("true");
     });
@@ -139,6 +141,8 @@ describe("SamplingContextProvider", async () => {
     });
     await act(() => {
       getByText("Set LHS").click();
+    });
+    await waitFor(() => {
       expect(Number(getByTestId("lhs").textContent)).toBe(99);
     });
   });
@@ -158,17 +162,19 @@ describe("SamplingContextProvider", async () => {
     });
     await act(() => {
       getByText("Set Grid").click();
+    });
+    await waitFor(() =>
       expect(getByTestId("grid").textContent).toBe(
         `[{"variable":"1","start":0,"end":10},{"variable":"2","start":0,"end":10},{"variable":"3","start":0,"end":10}]`,
-      );
-    });
+      ),
+    );
   });
 
   it("updates singleJobConfig", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let getByTestId: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     let getByText: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
-    await act(() => {
+    await waitFor(() => {
       const utils = render(
         <SamplingContextProvider>
           <TestComponent />
@@ -177,8 +183,10 @@ describe("SamplingContextProvider", async () => {
       getByTestId = utils.getByTestId;
       getByText = utils.getByText;
     });
-    await act(() => {
+    await waitFor(() => {
       getByText("Set Single").click();
+    });
+    await waitFor(() => {
       expect(getByTestId("single").textContent).toContain(`[{"variable":"1","value":5}]`);
     });
   });
@@ -187,7 +195,7 @@ describe("SamplingContextProvider", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let getByTestId: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     let getByText: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
-    await act(() => {
+    await waitFor(() => {
       const utils = render(
         <SamplingContextProvider>
           <TestComponent />
@@ -196,15 +204,17 @@ describe("SamplingContextProvider", async () => {
       getByTestId = utils.getByTestId;
       getByText = utils.getByText;
     });
-    await act(() => {
+    await waitFor(() => {
       getByText("Set Launching").click();
       getByText("Set Running").click();
       getByText("Set LHS").click();
       getByText("Set Grid").click();
       getByText("Set Single").click();
     });
-    await act(() => {
+    await waitFor(() => {
       getByText("Clear").click();
+    });
+    await waitFor(() => {
       expect(getByTestId("launching").textContent).toBe("false");
       expect(getByTestId("running").textContent).toBe("false");
       expect(Number(getByTestId("lhs").textContent)).toBe(50); // default
