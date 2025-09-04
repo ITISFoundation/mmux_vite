@@ -4,32 +4,24 @@ import Plot from "react-plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import {
-  CreateSelect,
-  CreateSlider,
-  filterInputVars,
-  plotMargins,
-} from "./PlotTools";
+import { CreateSelect, CreateSlider, filterInputVars, plotMargins } from "./PlotTools";
 import Header from "../navigation/Header";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 
-const IsoSurface3DPlot = () => {
+function IsoSurface3DPlot() {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const context = useJobContext();
-  const {
-    filterSelectedJobList,
-    fetchedJobCollections,
-  } = context;
+  const { filterSelectedJobList, fetchedJobCollections } = context;
   const filteredInputVars = filterInputVars({
     ...context,
     selectedFunction,
     inputVars,
-    distribution
+    distribution,
   });
   const [propagating, setPropagating] = useState(false);
   const [axis1, setAxis1] = useState(filteredInputVars[0]);
@@ -44,24 +36,24 @@ const IsoSurface3DPlot = () => {
         distribution[selectedFunction?.uid || ""][key].min ||
         0;
       return acc;
-    }, {})
+    }, {}),
   );
 
   const handleSetAxis1 = (newAxis: string) => {
     if (axis3 === newAxis || axis2 === newAxis) {
-      const newVars = filteredInputVars.filter((i) => i !== newAxis);
-      let newVar2 = newVars.find((i) => i === axis2);
-      let newVar3 = newVars.find((i) => i === axis3);
+      const newVars = filteredInputVars.filter(i => i !== newAxis);
+      let newVar2 = newVars.find(i => i === axis2);
+      let newVar3 = newVars.find(i => i === axis3);
       if (newVar2 || newVar3) {
         if (newVar2 && newVar3) {
           setAxis2(newVar2);
           setAxis3(newVar3);
         } else if (newVar2) {
-          newVar3 = newVars.find((i) => i !== newAxis && i !== axis2) || "";
+          newVar3 = newVars.find(i => i !== newAxis && i !== axis2) || "";
           setAxis2(newVar2);
           setAxis3(newVar3);
         } else if (newVar3) {
-          newVar2 = newVars.find((i) => i !== newAxis && i !== axis3) || "";
+          newVar2 = newVars.find(i => i !== newAxis && i !== axis3) || "";
           setAxis2(newVar2);
           setAxis3(newVar3);
         }
@@ -77,19 +69,19 @@ const IsoSurface3DPlot = () => {
 
   const handleSetAxis2 = (newAxis: string) => {
     if (axis3 === newAxis || axis1 === newAxis) {
-      const newVars = filteredInputVars.filter((i) => i !== newAxis);
-      let newVar1 = newVars.find((i) => i === axis1);
-      let newVar3 = newVars.find((i) => i === axis3);
+      const newVars = filteredInputVars.filter(i => i !== newAxis);
+      let newVar1 = newVars.find(i => i === axis1);
+      let newVar3 = newVars.find(i => i === axis3);
       if (newVar1 || newVar3) {
         if (newVar1 && newVar3) {
           setAxis1(newVar1);
           setAxis3(newVar3);
         } else if (newVar1) {
-          newVar3 = newVars.find((i) => i !== newAxis && i !== axis1) || "";
+          newVar3 = newVars.find(i => i !== newAxis && i !== axis1) || "";
           setAxis1(newVar1);
           setAxis3(newVar3);
         } else if (newVar3) {
-          newVar1 = newVars.find((i) => i !== newAxis && i !== axis3) || "";
+          newVar1 = newVars.find(i => i !== newAxis && i !== axis3) || "";
           setAxis1(newVar1);
           setAxis3(newVar3);
         }
@@ -105,19 +97,19 @@ const IsoSurface3DPlot = () => {
 
   const handleSetAxis3 = (newAxis: string) => {
     if (axis1 === newAxis || axis2 === newAxis) {
-      const newVars = filteredInputVars.filter((i) => i !== newAxis);
-      let newVar1 = newVars.find((i) => i === axis1);
-      let newVar2 = newVars.find((i) => i === axis2);
+      const newVars = filteredInputVars.filter(i => i !== newAxis);
+      let newVar1 = newVars.find(i => i === axis1);
+      let newVar2 = newVars.find(i => i === axis2);
       if (newVar1 || newVar2) {
         if (newVar1 && newVar2) {
           setAxis1(newVar1);
           setAxis2(newVar2);
         } else if (newVar1) {
-          newVar2 = newVars.find((i) => i !== newAxis && i !== newVar1) || "";
+          newVar2 = newVars.find(i => i !== newAxis && i !== newVar1) || "";
           setAxis1(newVar1);
           setAxis2(newVar2);
         } else if (newVar2) {
-          newVar1 = newVars.find((i) => i !== newAxis && i !== newVar2) || "";
+          newVar1 = newVars.find(i => i !== newAxis && i !== newVar2) || "";
           setAxis1(newVar1);
           setAxis2(newVar2);
         }
@@ -131,38 +123,34 @@ const IsoSurface3DPlot = () => {
     }
   };
 
-  const RunSuMo3DInterpolation = async (
-    jobs: FunctionJob[],
-    axis1: string,
-    axis2: string
-  ) => {
+  const RunSuMo3DInterpolation = async (jobs: FunctionJob[], axis1: string, axis2: string) => {
     // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
     setPropagating(true);
-    fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_grid_evaluation", {
+    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_grid_evaluation`, {
       method: "POST",
       body: JSON.stringify({
         gridVars: [axis1, axis2, axis3],
-        inputVars: inputVars,
+        inputVars,
         output: selectedQoI,
         sliderValues: otherAxis,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false,
       }),
     })
-      .then(function (response) {
+      .then(response => {
         if (response && !response.ok) {
           console.warn("SuMo Surface plot error: ", response.body);
         } else {
           return response.json();
         }
       })
-      .then(function (d) {
+      .then(d => {
         reshapePlotData(d);
         setPropagating(false);
       })
-      .catch((error) => {
+      .catch(error => {
         console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
@@ -172,12 +160,7 @@ const IsoSurface3DPlot = () => {
   interface IsoSurfaceData extends Plotly.PlotData {
     surface: { show: boolean; count: number }; // Just to make TypeScript happy. Edit if necessary.
   }
-  const reshapePlotData = (
-    data:
-      | { [key: string]: number[] }
-      | { [key: string]: number[][] }
-      | { [key: string]: number }
-  ) => {
+  const reshapePlotData = (data: { [key: string]: number[] } | { [key: string]: number[][] } | { [key: string]: number }) => {
     if (data && selectedQoI) {
       const newData: Partial<IsoSurfaceData>[] = [
         {
@@ -201,24 +184,15 @@ const IsoSurface3DPlot = () => {
   useEffect(() => {
     const run = async () => {
       const jobs = filterSelectedJobList();
-      return await RunSuMo3DInterpolation(jobs, axis1, axis2);
+      return RunSuMo3DInterpolation(jobs, axis1, axis2);
     };
     run();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    axis1,
-    axis2,
-    axis3,
-    inputVars,
-    selectedQoI,
-    selectedFunction,
-    otherAxis,
-    filterSelectedJobList,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [axis1, axis2, axis3, inputVars, selectedQoI, selectedFunction, otherAxis, filterSelectedJobList]);
 
   const layout = {
     title: {
-      text: selectedQoI + " IsoSurface 3D Plot",
+      text: `${selectedQoI} IsoSurface 3D Plot`,
     },
     autosize: true,
     willReadFrequently: true,
@@ -247,10 +221,8 @@ const IsoSurface3DPlot = () => {
   };
 
   return (
-    <Box display={"flex"} flexDirection={"column"} width={"100%"}>
-      {propagating && (
-        <CalculatingWarning height={plotStyle.height} dontShowText={false} />
-      )}
+    <Box display="flex" flexDirection="column" width="100%">
+      {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={false} />}
       {!propagating && plotData.length === 0 && (
         <InsufficientDataWarning
           fetchedJobCollections={fetchedJobCollections}
@@ -258,62 +230,34 @@ const IsoSurface3DPlot = () => {
           height={plotStyle.height}
         />
       )}
-      {!propagating && plotData.length !== 0 && (
-        <Plot data={plotData} layout={layout} style={plotStyle} />
-      )}
+      {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
       <Box mt={2}>
         <Header headerType="subTitle" infoText="" tabTitle="Selection" />
       </Box>
       <Box
-        display={"flex"}
-        flexDirection={"column"}
+        display="flex"
+        flexDirection="column"
         gap={2}
         p={4}
-        sx={(theme) => ({
+        sx={theme => ({
           backgroundColor: theme.palette.background.default,
           borderRadius: theme.spacing(2),
         })}
       >
-        <Box
-          display={"flex"}
-          flex={1}
-          flexDirection={"row"}
-          justifyContent={"space-between"}
-        >
-          <CreateSelect
-            idx={1}
-            axis={axis1}
-            setAxis={handleSetAxis1}
-          />
-          <CreateSelect
-            idx={2}
-            axis={axis2}
-            setAxis={handleSetAxis2}
-          />
-          <CreateSelect
-            idx={3}
-            axis={axis3}
-            setAxis={handleSetAxis3}
-          />
+        <Box display="flex" flex={1} flexDirection="row" justifyContent="space-between">
+          <CreateSelect idx={1} axis={axis1} setAxis={handleSetAxis1} />
+          <CreateSelect idx={2} axis={axis2} setAxis={handleSetAxis2} />
+          <CreateSelect idx={3} axis={axis3} setAxis={handleSetAxis3} />
         </Box>
-        <Box display={"flex"} flexDirection={"column"} gap={2}>
-          {inputVars.length > 0 &&
-          distribution[selectedFunction?.uid || ""] !== undefined ? (
+        <Box display="flex" flexDirection="column" gap={2}>
+          {inputVars.length > 0 && distribution[selectedFunction?.uid || ""] !== undefined ? (
             <>
-              {inputVars.map((key) => {
+              {inputVars.map(key => {
                 if (key === axis1 || key === axis2 || key === axis3) {
                   return null; // Skip the first variable as it is already selected
                 }
                 const dist = distribution[selectedFunction?.uid || ""];
-                return (
-                  <CreateSlider
-                    input={key}
-                    dist={dist[key]}
-                    otherAxis={otherAxis}
-                    setOtherAxis={setOtherAxis}
-                    key={key}
-                  />
-                );
+                return <CreateSlider input={key} dist={dist[key]} otherAxis={otherAxis} setOtherAxis={setOtherAxis} key={key} />;
               })}
             </>
           ) : undefined}
@@ -321,6 +265,6 @@ const IsoSurface3DPlot = () => {
       </Box>
     </Box>
   );
-};
+}
 
 export default IsoSurface3DPlot;

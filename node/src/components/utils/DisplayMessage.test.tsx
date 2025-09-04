@@ -1,8 +1,8 @@
 import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
-import { DisplayMessage } from "./DisplayMessage";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { beforeEach, describe, expect, it } from "vitest";
+import { DisplayMessage } from "./DisplayMessage";
 
 describe("DisplayMessage", () => {
   beforeEach(() => {
@@ -22,7 +22,7 @@ describe("DisplayMessage", () => {
     renderWithTheme(
       <DisplayMessage mssg="Parent">
         <div data-testid="child">Child</div>
-      </DisplayMessage>
+      </DisplayMessage>,
     );
     expect(screen.getByTestId("child")).toBeDefined();
     expect(screen.getByText("Child")).toBeDefined();

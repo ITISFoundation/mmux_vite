@@ -1,19 +1,19 @@
 import { Box, Typography, Chip, useTheme } from "@mui/material";
-import { InputBlock } from "./../utils/InputBlock";
+import { InputBlock } from "../utils/InputBlock";
 
 interface VariableConfigProps {
   inputVar: SamplingInputsState;
   index: number;
-  handleInputChange: (index: number, field: fieldType, value: string) => void;
+  handleInputChange: (index: number, field: FieldType, value: string) => void;
 }
 
-const VariableConfig = (props: VariableConfigProps) => {
+function VariableConfig(props: VariableConfigProps) {
   const theme = useTheme();
   const { inputVar, index, handleInputChange } = props;
 
   return (
     <Box
-      sx={(theme) => ({
+      sx={theme => ({
         display: "flex",
         flexDirection: "column",
         flex: 1,
@@ -38,20 +38,12 @@ const VariableConfig = (props: VariableConfigProps) => {
             borderRadius: "8px",
             backgroundColor: theme.palette.primary.main,
           }}
-        ></Chip>
+        />
       </Typography>
-      <InputBlock
-        name="Start"
-        value={inputVar.start}
-        onChange={(n) => handleInputChange(index, "start", n as string)}
-      />
-      <InputBlock
-        name="End"
-        value={inputVar.end}
-        onChange={(n) => handleInputChange(index, "end", n as string)}
-      />
+      <InputBlock name="Start" value={inputVar.start} onChange={n => handleInputChange(index, "start", n as string)} />
+      <InputBlock name="End" value={inputVar.end} onChange={n => handleInputChange(index, "end", n as string)} />
     </Box>
   );
-};
+}
 
 export default VariableConfig;

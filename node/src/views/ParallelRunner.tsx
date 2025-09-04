@@ -17,7 +17,7 @@ type StatusIconProps = {
 };
 // "RunningState": {
 // "type": "string", "enum": ["UNKNOWN", "PUBLISHED", "NOT_STARTED", "PENDING", "WAITING_FOR_RESOURCES", "STARTED", "SUCCESS", "FAILED", "ABORTED", "WAITING_FOR_CLUSTER"]
-type jobsByStatusType = {
+type JobsByStatusType = {
   PENDING: Record<string, FunctionJob>;
   RUNNING: Record<string, FunctionJob>;
   COMPLETED: Record<string, FunctionJob>;
@@ -25,12 +25,12 @@ type jobsByStatusType = {
 };
 
 type ProgressBarProps = {
-  jobsByStatus: jobsByStatusType;
+  jobsByStatus: JobsByStatusType;
   totalETA?: number;
 };
 
-const StatusIcon = (props: StatusIconProps) => {
-  const status: string = props.status;
+function StatusIcon(props: StatusIconProps) {
+  const { status } = props;
   switch (status) {
     case "PENDING":
       return (
@@ -41,12 +41,7 @@ const StatusIcon = (props: StatusIconProps) => {
           viewBox="0 0 24 24"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M8 9l4-4 4 4m0 6l-4 4-4-4"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
         </svg>
       );
     case "RUNNING":
@@ -75,12 +70,7 @@ const StatusIcon = (props: StatusIconProps) => {
           viewBox="0 0 24 24"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M5 13l4 4L19 7"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       );
     case "FAILED":
@@ -92,37 +82,24 @@ const StatusIcon = (props: StatusIconProps) => {
           viewBox="0 0 24 24"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 18L18 6M6 6l12 12"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       );
     default:
       return null;
   }
-};
+}
 
 const formatDuration = (seconds: number) => {
   if (seconds === null) return "Unknown";
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
-  return `${hours.toString().padStart(2, "0")}:${minutes
-    .toString()
-    .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
-export const ProgressBar: React.FC<ProgressBarProps> = ({
-  jobsByStatus,
-  totalETA = 0,
-}) => {
-  const total: number = Object.values(jobsByStatus).reduce(
-    (acc, jobs) => acc + Object.keys(jobs).length,
-    0
-  );
+export const ProgressBar: React.FC<ProgressBarProps> = ({ jobsByStatus, totalETA = 0 }) => {
+  const total: number = Object.values(jobsByStatus).reduce((acc, jobs) => acc + Object.keys(jobs).length, 0);
   const widths = {
     COMPLETED: (Object.keys(jobsByStatus.COMPLETED).length / total) * 100,
     RUNNING: (Object.keys(jobsByStatus.RUNNING).length / total) * 100,
@@ -133,11 +110,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   return (
     <div className="w-full mb-4">
       <div className="h-8 flex mb-2">
-        {(
-          ["COMPLETED", "RUNNING", "PENDING", "FAILED"] as Array<
-            keyof typeof widths
-          >
-        ).map((status) => (
+        {(["COMPLETED", "RUNNING", "PENDING", "FAILED"] as Array<keyof typeof widths>).map(status => (
           <div
             key={status}
             className={`${statusColors[status]} relative overflow-hidden`}
@@ -162,77 +135,54 @@ type JobCardProps = {
   job: FunctionJob;
 };
 function JobCard(props: JobCardProps) {
-  const job = props.job;
+  const { job } = props;
   if (!job) {
     return <span>JobCard could not be rendered</span>;
-  } else {
-    const jobtitle = job.uid?.toString() + ": " + JSON.stringify(job.inputs);
-    return (
-      <div className="relative mb-2 group">
-        <div
-          className={`p-3 rounded shadow ${
-            statusColors[job.status as keyof typeof statusColors]
-          } transition-all duration-300 ease-in-out`}
-        >
-          <div className="flex justify-between items-center">
-            <h3
-              className={`font-bold ${
-                job.status === "PENDING" ? "text-gray-800" : "text-white"
-              } truncate`}
-            >
-              {jobtitle}
-            </h3>
-            <StatusIcon status={job.status} />
-          </div>
-          {job.status === "RUNNING" && (
-            <div className="mt-2 text-sm text-white">
-              {/* <p>Running Time: {formatDuration(job.RUNNINGTime)}</p>
-                            <p>ETA: {formatDuration(job.eta)}</p> */}
-            </div>
-          )}
-          {job.status === "COMPLETED" && (
-            <div className="mt-2 text-sm text-white">
-              {/* <p>Completed in: {formatDuration(job.completionTime)}</p> */}
-            </div>
-          )}
-        </div>
-        <div
-          className={`absolute top-0 left-0 w-full p-3 rounded shadow ${
-            statusColors[job.status as keyof typeof statusColors]
-          } opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out z-10`}
-        >
-          <div className="flex justify-between items-center mb-2">
-            <h3
-              className={`font-bold ${
-                job.status === "PENDING" ? "text-gray-800" : "text-white"
-              }`}
-            >
-              {jobtitle}
-            </h3>
-            <StatusIcon status={job.status} />
-          </div>
-          <p
-            className={
-              job.status === "PENDING" ? "text-gray-700" : "text-gray-300"
-            }
-          >
-            {jobtitle}
-          </p>
-          {job.status === "RUNNING" && (
-            <div className="mt-2 text-sm text-white">
-              {/* <p>Running Time: {formatDuration(job.RUNNINGTime)}</p>
-                            <p>ETA: {formatDuration(job.eta)}</p> */}
-            </div>
-          )}
-          {job.status === "COMPLETED" && (
-            <div className="mt-2 text-sm text-white">
-              {/* <p>Completed in: {formatDuration(job.completionTime)}</p> */}
-            </div>
-          )}
-        </div>
-      </div>
-    );
   }
+  const jobtitle = `${job.uid?.toString()}: ${JSON.stringify(job.inputs)}`;
+  return (
+    <div className="relative mb-2 group">
+      <div
+        className={`p-3 rounded shadow ${
+          statusColors[job.status as keyof typeof statusColors]
+        } transition-all duration-300 ease-in-out`}
+      >
+        <div className="flex justify-between items-center">
+          <h3 className={`font-bold ${job.status === "PENDING" ? "text-gray-800" : "text-white"} truncate`}>{jobtitle}</h3>
+          <StatusIcon status={job.status} />
+        </div>
+        {job.status === "RUNNING" && (
+          <div className="mt-2 text-sm text-white">
+            {/* <p>Running Time: {formatDuration(job.RUNNINGTime)}</p>
+                            <p>ETA: {formatDuration(job.eta)}</p> */}
+          </div>
+        )}
+        {job.status === "COMPLETED" && (
+          <div className="mt-2 text-sm text-white">{/* <p>Completed in: {formatDuration(job.completionTime)}</p> */}</div>
+        )}
+      </div>
+      <div
+        className={`absolute top-0 left-0 w-full p-3 rounded shadow ${
+          statusColors[job.status as keyof typeof statusColors]
+        } opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out z-10`}
+      >
+        <div className="flex justify-between items-center mb-2">
+          <h3 className={`font-bold ${job.status === "PENDING" ? "text-gray-800" : "text-white"}`}>{jobtitle}</h3>
+          <StatusIcon status={job.status} />
+        </div>
+        <p className={job.status === "PENDING" ? "text-gray-700" : "text-gray-300"}>{jobtitle}</p>
+        {job.status === "RUNNING" && (
+          <div className="mt-2 text-sm text-white">
+            {/* <p>Running Time: {formatDuration(job.RUNNINGTime)}</p>
+                            <p>ETA: {formatDuration(job.eta)}</p> */}
+          </div>
+        )}
+        {job.status === "COMPLETED" && (
+          <div className="mt-2 text-sm text-white">{/* <p>Completed in: {formatDuration(job.completionTime)}</p> */}</div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 type StatusColumnProps = {
@@ -244,9 +194,7 @@ function StatusColumn(props: StatusColumnProps) {
   return (
     <div className="flex-1 flex flex-col h-full p-4 overflow-hidden border-r border-gray-700">
       <h2 className="text-xl font-bold mb-2 text-gray-200">{title}</h2>
-      <p className="text-sm text-gray-400 mb-4">
-        Jobs: {Object.keys(jobs).length}
-      </p>
+      <p className="text-sm text-gray-400 mb-4">Jobs: {Object.keys(jobs).length}</p>
       <div className="flex-1 overflow-y-auto pr-2">
         {Object.entries(jobs).map(([id, job]) => (
           <JobCard key={id} job={job} />
@@ -271,9 +219,7 @@ export function Dashboard(props: JobDashboardProps) {
   const fetchJobs = useCallback(async () => {
     try {
       // TODO get jobs for JobCollection (instead of all related to that function) when Werner exposes that
-      const jobList = await getFunctionJobsFromFunctionJobCollection(
-        runningJobCollection?.uid as string
-      );
+      const jobList = await getFunctionJobsFromFunctionJobCollection(runningJobCollection?.uid as string);
       console.log("Fetched jobs:", jobList);
       if (jobList !== undefined) {
         setJobs(jobList);
@@ -322,8 +268,8 @@ export function Dashboard(props: JobDashboardProps) {
     }
   };
 
-  const jobsByStatus: jobsByStatusType = Object.entries(jobs).reduce(
-    (acc: jobsByStatusType, [id, job]) => {
+  const jobsByStatus: JobsByStatusType = Object.entries(jobs).reduce(
+    (acc: JobsByStatusType, [id, job]) => {
       if (job.status) {
         const s = classifyJobStatus(job.status);
         if (s !== undefined) {
@@ -331,19 +277,17 @@ export function Dashboard(props: JobDashboardProps) {
           acc[s][id] = job;
         }
         return acc;
-      } else {
-        console.error("Job has no status:", job);
-        return acc;
       }
+      console.error("Job has no status:", job);
+      return acc;
     },
-    { PENDING: {}, RUNNING: {}, COMPLETED: {}, FAILED: {} }
+    { PENDING: {}, RUNNING: {}, COMPLETED: {}, FAILED: {} },
   );
 
   const checkIfFinished = () => {
     // Check if all jobs are either COMPLETED or FAILED, and none are PENDING or RUNNING
     if (
-      (Object.keys(jobsByStatus.COMPLETED).length > 0 ||
-        Object.keys(jobsByStatus.FAILED).length > 0) &&
+      (Object.keys(jobsByStatus.COMPLETED).length > 0 || Object.keys(jobsByStatus.FAILED).length > 0) &&
       Object.keys(jobsByStatus.PENDING).length === 0 &&
       Object.keys(jobsByStatus.RUNNING).length === 0
     ) {
@@ -356,11 +300,7 @@ export function Dashboard(props: JobDashboardProps) {
   }, [jobsByStatus]);
 
   if (loading) {
-    return (
-      <div className="flex h-screen bg-gray-900 text-white items-center justify-center">
-        Loading...
-      </div>
-    );
+    return <div className="flex h-screen bg-gray-900 text-white items-center justify-center">Loading...</div>;
   }
 
   console.log("Error: ", error);

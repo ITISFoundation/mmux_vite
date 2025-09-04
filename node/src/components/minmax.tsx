@@ -7,12 +7,8 @@ type minMaxType = {
 };
 
 const getMinMax = (subJobs: SubJob[]) => {
-  const inputs = Object.entries(subJobs).map(
-    ([_key, value], _idx) => value.job.inputs as { [key: string]: number }
-  );
-  const outputs = Object.entries(subJobs).map(
-    ([_key, value], _idx) => value.job.outputs as { [key: string]: number }
-  );
+  const inputs = Object.entries(subJobs).map(([_key, value], _idx) => value.job.inputs as { [key: string]: number });
+  const outputs = Object.entries(subJobs).map(([_key, value], _idx) => value.job.outputs as { [key: string]: number });
 
   const minMax: minMaxType = {
     inputs: {},
@@ -20,15 +16,15 @@ const getMinMax = (subJobs: SubJob[]) => {
   };
   const inputKeys = Object.keys(inputs[0]);
   const outputKeys = Object.keys(outputs[0]);
-  inputKeys.forEach((key) => {
-    const values = inputs.map((input) => input[key]);
+  inputKeys.forEach(key => {
+    const values = inputs.map(input => input[key]);
     minMax.inputs[key] = {
       min: Math.min(...values),
       max: Math.max(...values),
     };
   });
-  outputKeys.forEach((key) => {
-    const values = outputs.map((output) => output[key]);
+  outputKeys.forEach(key => {
+    const values = outputs.map(output => output[key]);
     minMax.outputs[key] = {
       min: Math.min(...values),
       max: Math.max(...values),
@@ -42,12 +38,8 @@ const getMinMax = (subJobs: SubJob[]) => {
           <Box key={key}>
             {key}:{" "}
             {value.min.toPrecision(3) === value.max.toPrecision(3)
-              ? "[ " + value.max.toPrecision(3) + " ]"
-              : "[ " +
-                value.min.toPrecision(3) +
-                " – " +
-                value.max.toPrecision(3) +
-                " ]"}
+              ? `[ ${value.max.toPrecision(3)} ]`
+              : `[ ${value.min.toPrecision(3)} – ${value.max.toPrecision(3)} ]`}
           </Box>
         ))}
       </Box>
@@ -57,12 +49,8 @@ const getMinMax = (subJobs: SubJob[]) => {
           <Box key={key}>
             {key}:{" "}
             {value.min.toPrecision(3) === value.max.toPrecision(3)
-              ? "[ " + value.max.toPrecision(3) + " ]"
-              : "[ " +
-                value.min.toPrecision(3) +
-                " – " +
-                value.max.toPrecision(3) +
-                " ]"}
+              ? `[ ${value.max.toPrecision(3)} ]`
+              : `[ ${value.min.toPrecision(3)} – ${value.max.toPrecision(3)} ]`}
           </Box>
         ))}
       </Box>

@@ -4,7 +4,7 @@ type StyledHyperLinkPropsType = {
   text: string;
   link: string | undefined;
 };
-const StyledHyperLink = ({ text, link }: StyledHyperLinkPropsType) => {
+function StyledHyperLink({ text, link }: StyledHyperLinkPropsType) {
   const theme = useTheme();
 
   return (
@@ -17,11 +17,12 @@ const StyledHyperLink = ({ text, link }: StyledHyperLinkPropsType) => {
           color: theme.palette.primary.main,
           textDecoration: "underline",
         }}
+        rel="noreferrer"
       >
         {text}
       </a>{" "}
     </>
   );
-};
+}
 
 export default StyledHyperLink;

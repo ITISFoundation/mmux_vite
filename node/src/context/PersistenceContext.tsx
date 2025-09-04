@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { PersistenceType } from "./types";
-import { fetchWithRetry } from '../utils/fetch_retry';
+import { fetchWithRetry } from "../utils/fetch_retry";
 
 interface PersistenceContextType {
   persistence: PersistenceType | undefined;
@@ -14,9 +14,7 @@ interface PersistenceContextType {
   loading: boolean;
 }
 
-export const PersistenceContext = createContext<PersistenceContextType>(
-  undefined!
-);
+export const PersistenceContext = createContext<PersistenceContextType>(undefined!);
 
 type Props = {
   children: React.ReactNode;
@@ -36,17 +34,17 @@ const defaultPersistence: PersistenceType = {
   lhsSamplingConfig: {
     inputs: [],
     points: 0,
-    seed: 0
+    seed: 0,
   },
   gridSamplingConfig: [],
   singleJobConfig: [],
   runningJobCollection: undefined,
   fetchedJobCollections: [],
   selectedJobUids: [],
-  outputDistribution: {}
+  outputDistribution: {},
 };
 
-export const PersistenceContextProvider = ({ children }: Props) => {
+export function PersistenceContextProvider({ children }: Props) {
   const [loading, setLoading] = useState(true);
   const [healthOK, setHealthOK] = useState<boolean>(false);
   const [persistence, setPersistence] = useState<PersistenceType | undefined>(undefined);
@@ -73,9 +71,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     );
   };
 
-  const getHeaders = (contentType = true): HeadersInit => {
-    return contentType ? { "Content-Type": "application/json" } : {};
-  };
+  const getHeaders = (contentType = true): HeadersInit => (contentType ? { "Content-Type": "application/json" } : {});
 
   const setFile = async (filename: string, content: string) => {
     const response = await fetch("/flask/text-file", {
@@ -86,9 +82,7 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Failed to set file: ${response.status} ${response.statusText}`
-      );
+      throw new Error(`Failed to set file: ${response.status} ${response.statusText}`);
     }
 
     const data = (await response.json()) as {
@@ -102,29 +96,19 @@ export const PersistenceContextProvider = ({ children }: Props) => {
     console.info(`File ${data.filename} saved successfully.`);
   };
 
-  const getFile = async (
-    filename: string
-  ): Promise<PersistenceType | undefined> => {
-    const response = await fetchWithRetry(
-      `/flask/text-file/${encodeURIComponent(filename)}`,
-      {
-        method: "GET",
-        headers: getHeaders(false),
-        credentials: "include",
-      }
-    );
+  const getFile = async (filename: string): Promise<PersistenceType | undefined> => {
+    const response = await fetchWithRetry(`/flask/text-file/${encodeURIComponent(filename)}`, {
+      method: "GET",
+      headers: getHeaders(false),
+      credentials: "include",
+    });
 
     if (!response.ok) {
       if (response.status === 404) {
-        console.warn(
-          `⚠️ Could not retrieve file (${response.status}): ${response.statusText}`
-        );
+        console.warn(`⚠️ Could not retrieve file (${response.status}): ${response.statusText}`);
         return defaultPersistence; // Return default persistence if file not found
-      } else {
-        throw new Error(
-          `Failed to fetch file: ${response.status} ${response.statusText}`
-        );
       }
+      throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
     }
 
     const envelope = (await response.json()) as {
@@ -160,37 +144,33 @@ export const PersistenceContextProvider = ({ children }: Props) => {
         inputVars: persistence.inputVars,
         outputVars: persistence.outputVars,
         distribution: persistence.distribution,
-        outputDistribution: persistence.outputDistribution
+        outputDistribution: persistence.outputDistribution,
       };
     }
     return undefined;
   }, [persistence]);
 
-  const setFunctionValues = useCallback(({
-    selectedFunction,
-    inputVars,
-    outputVars,
-    distribution,
-    outputDistribution
-  }: Partial<PersistenceType>) => {
-    if (persistence !== undefined) {
-      console.info("Persisting Function context state...");
-      const newPersistence: PersistenceType = {
-        ...persistence,
-        selectedFunction,
-        inputVars: inputVars ? inputVars : [],
-        outputVars: outputVars ? outputVars : [],
-        distribution: distribution ? distribution : {},
-        outputDistribution: outputDistribution ? outputDistribution : {}
-      };
-      saveState(newPersistence);
-    }
-  }, [persistence]);
+  const setFunctionValues = useCallback(
+    ({ selectedFunction, inputVars, outputVars, distribution, outputDistribution }: Partial<PersistenceType>) => {
+      if (persistence !== undefined) {
+        console.info("Persisting Function context state...");
+        const newPersistence: PersistenceType = {
+          ...persistence,
+          selectedFunction,
+          inputVars: inputVars || [],
+          outputVars: outputVars || [],
+          distribution: distribution || {},
+          outputDistribution: outputDistribution || {},
+        };
+        saveState(newPersistence);
+      }
+    },
+    [persistence],
+  );
 
   useEffect(() => {
     if (persistence !== undefined) {
       setLoading(false);
-      return;
     }
   }, [persistence]);
 
@@ -199,15 +179,13 @@ export const PersistenceContextProvider = ({ children }: Props) => {
       try {
         const persistenceFile = await getFile("persistence.json");
         if (persistenceFile === undefined) {
-          console.info(
-            "No persistence file found, initializing with empty state."
-          );
+          console.info("No persistence file found, initializing with empty state.");
           setPersistence(defaultPersistence);
         } else if (isValidPersistenceFile(persistenceFile) === false) {
           console.warn(
             "Persistence file structure has changed, resetting to defaults.",
             Object.keys(persistenceFile).length,
-            Object.keys(defaultPersistence).length
+            Object.keys(defaultPersistence).length,
           );
           setPersistence(defaultPersistence);
         } else {
@@ -231,24 +209,18 @@ export const PersistenceContextProvider = ({ children }: Props) => {
       getFunctionValues,
       setFunctionValues,
       loading,
-      setHealthOK
+      setHealthOK,
     }),
-    [persistence, loading, saveState, getFunctionValues, setFunctionValues, setHealthOK]
+    [persistence, loading, saveState, getFunctionValues, setFunctionValues, setHealthOK],
   );
 
-  return (
-    <PersistenceContext.Provider value={memo}>
-      {children}
-    </PersistenceContext.Provider>
-  );
-};
+  return <PersistenceContext.Provider value={memo}>{children}</PersistenceContext.Provider>;
+}
 
 export const usePersistenceContext = () => {
   const context = useContext(PersistenceContext);
   if (context === undefined) {
-    throw new Error(
-      "usePersistenceContext must be used within a PersistenceContextProvider"
-    );
+    throw new Error("usePersistenceContext must be used within a PersistenceContextProvider");
   }
   return context;
 };

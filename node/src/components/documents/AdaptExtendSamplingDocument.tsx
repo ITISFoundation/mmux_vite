@@ -4,36 +4,22 @@ import { getManualLink } from "../navigation/TutorialManualLinks";
 
 const AdaptExtedSamplingDocument = (
   <Card sx={{ padding: "8px", borderRadius: "16px", maxWidth: "800px" }}>
-    <CardContent
-      sx={{ display: "flex", flexDirection: "column", alignItems: "left" }}
-    >
-      <Header
-        headerType="subTitle"
-        tabTitle="Select Quantity of Interest"
-        infoText=""
-      />
-      <Typography variant="body1" fontFamily={"inherit"} flex={1} mb={1}>
-        Modify the function samples used to construct the surrogate model (SuMo)
-        and/or run additional sampling of the response surfaces to improve the
-        SuMo quality.
+    <CardContent sx={{ display: "flex", flexDirection: "column", alignItems: "left" }}>
+      <Header headerType="subTitle" tabTitle="Select Quantity of Interest" infoText="" />
+      <Typography variant="body1" fontFamily="inherit" flex={1} mb={1}>
+        Modify the function samples used to construct the surrogate model (SuMo) and/or run additional sampling of the response
+        surfaces to improve the SuMo quality.
       </Typography>
-      <Typography variant="body1" fontFamily={"inherit"} flex={1} mb={1}>
-        Adding more sample points in under-sampled regions or adjusting the
-        sampling strategy helps the surrogate model better capture the true
-        response surface behavior.
+      <Typography variant="body1" fontFamily="inherit" flex={1} mb={1}>
+        Adding more sample points in under-sampled regions or adjusting the sampling strategy helps the surrogate model better
+        capture the true response surface behavior.
       </Typography>
-      <Typography variant="body1" fontFamily={"inherit"} flex={1} mb={1}>
-        This reduces both the interpolation uncertainty of the Gaussian Process
-        and improves the overall reliability of the results.
-        Better sampling leads to more accurate predictions with tighter confidence bounds.
+      <Typography variant="body1" fontFamily="inherit" flex={1} mb={1}>
+        This reduces both the interpolation uncertainty of the Gaussian Process and improves the overall reliability of the
+        results. Better sampling leads to more accurate predictions with tighter confidence bounds.
       </Typography>
-      <Typography
-        variant="body1"
-        fontFamily={"inherit"}
-        sx={{ marginTop: "16px" }}
-      >
-        For additional information on how add variable distributions, please
-        refer to the {getManualLink()}.
+      <Typography variant="body1" fontFamily="inherit" sx={{ marginTop: "16px" }}>
+        For additional information on how add variable distributions, please refer to the {getManualLink()}.
       </Typography>
     </CardContent>
   </Card>

@@ -1,8 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { usePersistenceContext } from './PersistenceContext';
-import { PersistenceType } from './types';
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { usePersistenceContext } from "./PersistenceContext";
+import { PersistenceType } from "./types";
+
 interface NavigationContextType {
   currentView: number;
   setCurrentView: (view: number) => void;
@@ -20,7 +21,7 @@ const steps: Step[] = [
   { id: 1, label: "Results" },
 ];
 
-export const NavigationContextProvider = ({ children }: Props) => {
+export function NavigationContextProvider({ children }: Props) {
   const { persistence, saveState, loading } = usePersistenceContext();
   const [currentView, setCurrentView] = useState(0);
   const [localLoading, setLocalLoading] = useState(true);
@@ -44,27 +45,25 @@ export const NavigationContextProvider = ({ children }: Props) => {
       console.info("Loading navigation context from persistence...");
       setCurrentView(persistence.currentView);
       setLocalLoading(false);
-      return;
     }
   }, [loading]);
 
-  const memo = React.useMemo(() => ({
-    currentView,
-    setCurrentView,
-    steps,
-  }), [currentView, setCurrentView]);
-
-  return (
-    <NavigationContext.Provider value={memo}>
-      {children}
-    </NavigationContext.Provider>
+  const memo = React.useMemo(
+    () => ({
+      currentView,
+      setCurrentView,
+      steps,
+    }),
+    [currentView, setCurrentView],
   );
-};
+
+  return <NavigationContext.Provider value={memo}>{children}</NavigationContext.Provider>;
+}
 
 export const useNavigationContext = () => {
   const context = useContext(NavigationContext);
   if (context === undefined) {
-    throw new Error('useNavigationContext must be used within a NavigationContextProvider');
+    throw new Error("useNavigationContext must be used within a NavigationContextProvider");
   }
   return context;
-}
+};

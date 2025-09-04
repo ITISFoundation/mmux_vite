@@ -1,17 +1,17 @@
-import React from 'react';
-import { render, act, cleanup } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NavigationContextProvider, useNavigationContext } from './NavigationContext';
+import React from "react";
+import { render, act, cleanup } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NavigationContextProvider, useNavigationContext } from "./NavigationContext";
 
 // Mock usePersistenceContext
 const mockSaveState = vi.fn();
 const mockUsePersistenceContext = vi.fn();
 
-vi.mock('./PersistenceContext', () => ({
+vi.mock("./PersistenceContext", () => ({
   usePersistenceContext: () => mockUsePersistenceContext(),
 }));
 
-const TestComponent = () => {
+function TestComponent() {
   const { currentView, setCurrentView, steps } = useNavigationContext();
   return (
     <div>
@@ -20,16 +20,16 @@ const TestComponent = () => {
       <button onClick={() => setCurrentView(1)}>Set View 1</button>
     </div>
   );
-};
+}
 
-describe('NavigationContext', () => {
+describe("NavigationContext", () => {
   beforeEach(() => {
     mockSaveState.mockClear();
     mockUsePersistenceContext.mockReset();
     cleanup(); // 👈 removes rendered components from DOM
   });
 
-  it('provides default currentView and steps', () => {
+  it("provides default currentView and steps", () => {
     mockUsePersistenceContext.mockReturnValue({
       persistence: {},
       saveState: mockSaveState,
@@ -39,14 +39,14 @@ describe('NavigationContext', () => {
     const { getByTestId } = render(
       <NavigationContextProvider>
         <TestComponent />
-      </NavigationContextProvider>
+      </NavigationContextProvider>,
     );
 
-    expect(getByTestId('currentView').textContent).toBe('0');
-    expect(getByTestId('steps').textContent).toBe('2');
+    expect(getByTestId("currentView").textContent).toBe("0");
+    expect(getByTestId("steps").textContent).toBe("2");
   });
 
-  it('loads currentView from persistence', () => {
+  it("loads currentView from persistence", () => {
     mockUsePersistenceContext.mockReturnValue({
       persistence: { currentView: 1 },
       saveState: mockSaveState,
@@ -56,13 +56,13 @@ describe('NavigationContext', () => {
     const { getByTestId } = render(
       <NavigationContextProvider>
         <TestComponent />
-      </NavigationContextProvider>
+      </NavigationContextProvider>,
     );
 
-    expect(getByTestId('currentView').textContent).toBe('1');
+    expect(getByTestId("currentView").textContent).toBe("1");
   });
 
-  it('calls saveState when currentView changes', () => {
+  it("calls saveState when currentView changes", () => {
     mockUsePersistenceContext.mockReturnValue({
       persistence: { currentView: 0 },
       saveState: mockSaveState,
@@ -72,20 +72,20 @@ describe('NavigationContext', () => {
     const { getByText } = render(
       <NavigationContextProvider>
         <TestComponent />
-      </NavigationContextProvider>
+      </NavigationContextProvider>,
     );
 
     act(() => {
-      getByText('Set View 1').click();
+      getByText("Set View 1").click();
     });
 
     expect(mockSaveState).toHaveBeenCalled();
     expect(mockSaveState.mock.calls[0][0].currentView).toBe(1);
   });
 
-  it('throws error if useNavigationContext is used outside provider', () => {
+  it("throws error if useNavigationContext is used outside provider", () => {
     // Suppress error output
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(() => useNavigationContext()).toThrow();
     spy.mockRestore();
   });

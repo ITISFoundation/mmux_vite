@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 // import the functions to be tested
+import { title } from "process";
 import {
   createInputOutputSchema,
   createJobStudyCopy,
@@ -15,7 +16,6 @@ import {
   getFunctionJobsFromFunctionJobCollection,
 } from "./function_utils";
 import { FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
-import { title } from "process";
 
 const mockJobs: FunctionJob[] = [
   {
@@ -36,22 +36,20 @@ const mockJobs: FunctionJob[] = [
   },
 ];
 
-vi.mock("./fetch_retry.ts", () => {
-  return {
-    fetchWithRetry: (path: string) => {
-      let response: unknown;
-      if (path.includes("list_jobs")) {
-        response = mockJobs;
-      } else if (path.includes("get_function_job")) {
-        response = mockJobs[0];
-      }
+vi.mock("./fetch_retry.ts", () => ({
+  fetchWithRetry: (path: string) => {
+    let response: unknown;
+    if (path.includes("list_jobs")) {
+      response = mockJobs;
+    } else if (path.includes("get_function_job")) {
+      response = mockJobs[0];
+    }
 
-      return Promise.resolve({
-        json: () => Promise.resolve(response),
-      });
-    },
-  };
-});
+    return Promise.resolve({
+      json: () => Promise.resolve(response),
+    });
+  },
+}));
 
 describe("Function Utils", () => {
   it("should create an input-output schema", () => {
@@ -89,8 +87,8 @@ describe("Function Utils", () => {
       vi.fn(() =>
         Promise.resolve({
           json: () => Promise.resolve(response),
-        })
-      )
+        }),
+      ),
     );
     const copy = await createJobStudyCopy("testJob", job);
     expect(copy).toEqual("jobUID");
@@ -103,8 +101,8 @@ describe("Function Utils", () => {
       vi.fn(() =>
         Promise.resolve({
           status: mockResponse.status,
-        })
-      )
+        }),
+      ),
     );
 
     const status = await getHealth();
@@ -118,8 +116,8 @@ describe("Function Utils", () => {
       vi.fn(() =>
         Promise.resolve({
           json: () => Promise.resolve(mockResponse),
-        })
-      )
+        }),
+      ),
     );
 
     const permissions = await getPermissions();
@@ -133,8 +131,8 @@ describe("Function Utils", () => {
       vi.fn(() =>
         Promise.resolve({
           json: () => Promise.resolve(mockResponse),
-        })
-      )
+        }),
+      ),
     );
 
     const serviceMode = await getServiceMode();
@@ -148,8 +146,8 @@ describe("Function Utils", () => {
       vi.fn(() =>
         Promise.resolve({
           json: () => Promise.resolve(mockFunctions),
-        })
-      )
+        }),
+      ),
     );
 
     const functions = await listFunctions();
@@ -173,8 +171,8 @@ describe("Function Utils", () => {
       vi.fn(() =>
         Promise.resolve({
           json: () => Promise.resolve(mockJobs),
-        })
-      )
+        }),
+      ),
     );
 
     const jobs = await getFunctionJobsFromFunctionUid("func1");
@@ -188,8 +186,8 @@ describe("Function Utils", () => {
       vi.fn(() =>
         Promise.resolve({
           json: () => Promise.resolve(mockCollections),
-        })
-      )
+        }),
+      ),
     );
 
     const collections = await getFunctionJobCollections("func1");
@@ -203,8 +201,8 @@ describe("Function Utils", () => {
       vi.fn(() =>
         Promise.resolve({
           json: () => Promise.resolve(mockJobs),
-        })
-      )
+        }),
+      ),
     );
 
     const jobs = await getFunctionJobsFromFunctionJobCollection("collection1");

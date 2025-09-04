@@ -1,8 +1,8 @@
+import React, { useState, useRef, useEffect } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import SuMoPlotsSteps from "../components/plots/SuMoPlotsSteps";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { JobSampling } from "../components/sampling/JobSampling";
-import { useState, useRef, useEffect } from "react";
 import { JobsLoading } from "../components/data/JobsLoading";
 import { OutputSetup } from "./OutputSetup";
 import { useFunctionContext } from "../context/FunctionContext";
@@ -26,7 +26,7 @@ export default function SuMo() {
     <MetaModelingUX headerType="title" tabTitle={`Response Surface Modeling: ${selectedFunction?.title}`}>
       <OutputSetup loading={loading} mode="onlyQoI" />
       {loading ? (
-        <JobsLoading progress={progress} jobProgress={jobProgress} message={"Creating AI model..."} />
+        <JobsLoading progress={progress} jobProgress={jobProgress} message="Creating AI model..." />
       ) : (
         <SuMoPlotsSteps />
       )}

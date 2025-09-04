@@ -11,18 +11,10 @@ vi.mock("../utils/fetch_retry", () => ({
   fetchWithRetry: vi.fn(),
 }));
 
-
 const mockPersistence: PersistenceType = samplePersistence as unknown as PersistenceType;
 
 function TestComponent() {
-  const {
-    persistence,
-    saveState,
-    getFunctionValues,
-    setFunctionValues,
-    loading,
-    setHealthOK,
-  } = usePersistenceContext();
+  const { persistence, saveState, getFunctionValues, setFunctionValues, loading, setHealthOK } = usePersistenceContext();
 
   return (
     <div>
@@ -47,12 +39,8 @@ function TestComponent() {
         Save State
       </button>
       <div data-testid="loading">{loading ? "loading" : "loaded"}</div>
-      <div data-testid="persistence">
-        {persistence ? JSON.stringify(persistence) : "none"}
-      </div>
-      <div data-testid="functionValues">
-        {JSON.stringify(getFunctionValues())}
-      </div>
+      <div data-testid="persistence">{persistence ? JSON.stringify(persistence) : "none"}</div>
+      <div data-testid="functionValues">{JSON.stringify(getFunctionValues())}</div>
     </div>
   );
 }
@@ -65,7 +53,7 @@ describe("PersistenceContextProvider", () => {
     globalFetch = global.fetch;
     global.fetch = vi.fn();
   });
-  
+
   afterEach(() => {
     global.fetch = globalFetch;
     vi.clearAllMocks();
@@ -73,14 +61,12 @@ describe("PersistenceContextProvider", () => {
   });
 
   it("provides default persistence if file not found", async () => {
-    mockFetchWithRetry.mockResolvedValueOnce(
-      new Response(null, { status: 404, statusText: "Not Found" })
-    );
+    mockFetchWithRetry.mockResolvedValueOnce(new Response(null, { status: 404, statusText: "Not Found" }));
 
     const { getByText, getByTestId } = render(
       <PersistenceContextProvider>
         <TestComponent />
-      </PersistenceContextProvider>
+      </PersistenceContextProvider>,
     );
 
     act(() => {
@@ -103,14 +89,14 @@ describe("PersistenceContextProvider", () => {
           content: JSON.stringify(mockPersistence),
           filename: "persistence.json",
         }),
-        { status: 200, statusText: "OK", headers: { "Content-Type": "application/json" } }
-      )
+        { status: 200, statusText: "OK", headers: { "Content-Type": "application/json" } },
+      ),
     );
 
     const { getByText, getByTestId } = render(
       <PersistenceContextProvider>
         <TestComponent />
-      </PersistenceContextProvider>
+      </PersistenceContextProvider>,
     );
 
     act(() => {
@@ -133,14 +119,14 @@ describe("PersistenceContextProvider", () => {
           content: JSON.stringify({ invalid: true }),
           filename: "persistence.json",
         }),
-        { status: 200, statusText: "OK", headers: { "Content-Type": "application/json" } }
-      )
+        { status: 200, statusText: "OK", headers: { "Content-Type": "application/json" } },
+      ),
     );
 
     const { getByText, getByTestId } = render(
       <PersistenceContextProvider>
         <TestComponent />
-      </PersistenceContextProvider>
+      </PersistenceContextProvider>,
     );
 
     act(() => {
@@ -163,14 +149,14 @@ describe("PersistenceContextProvider", () => {
           content: JSON.stringify(mockPersistence),
           filename: "persistence.json",
         }),
-        { status: 200, statusText: "OK", headers: { "Content-Type": "application/json" } }
-      )
+        { status: 200, statusText: "OK", headers: { "Content-Type": "application/json" } },
+      ),
     );
 
     const { getByText, getByTestId } = render(
       <PersistenceContextProvider>
         <TestComponent />
-      </PersistenceContextProvider>
+      </PersistenceContextProvider>,
     );
 
     act(() => {
@@ -193,14 +179,12 @@ describe("PersistenceContextProvider", () => {
   });
 
   it("getFunctionValues and setFunctionValues work", async () => {
-    mockFetchWithRetry.mockResolvedValueOnce(
-      new Response(null, { status: 404, statusText: "Not Found" })
-    );
+    mockFetchWithRetry.mockResolvedValueOnce(new Response(null, { status: 404, statusText: "Not Found" }));
 
     const { getByText, getByTestId } = render(
       <PersistenceContextProvider>
         <TestComponent />
-      </PersistenceContextProvider>
+      </PersistenceContextProvider>,
     );
 
     act(() => {

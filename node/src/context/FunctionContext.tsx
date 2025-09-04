@@ -12,8 +12,8 @@ export interface FunctionContextType {
   setInputVars: (vars: string[]) => void;
   outputVars: string[];
   setOutputVars: (vars: string[]) => void;
-  distribution: { [key: string]: InputVarSelection },
-  setDistribution: (d: { [key: string]: InputVarSelection } ) => void;
+  distribution: { [key: string]: InputVarSelection };
+  setDistribution: (d: { [key: string]: InputVarSelection }) => void;
   outputDistribution: { [key: string]: OutputVarSelection };
   setOutputDistribution: (d: { [key: string]: OutputVarSelection }) => void;
 }
@@ -24,9 +24,8 @@ interface Props {
   children: React.ReactNode;
 }
 
-export const FunctionContextProvider = ({ children }: Props) => {
-  const { getFunctionValues, setFunctionValues, loading } =
-    usePersistenceContext();
+export function FunctionContextProvider({ children }: Props) {
+  const { getFunctionValues, setFunctionValues, loading } = usePersistenceContext();
   const functionValues = getFunctionValues() || {};
   const {
     selectedFunction: isf,
@@ -35,9 +34,7 @@ export const FunctionContextProvider = ({ children }: Props) => {
     distribution: id,
     outputDistribution: od,
   } = functionValues as Partial<PersistenceType>;
-  const [selectedFunction, setSelectedFunction] = useState<
-    Function | undefined
-  >(isf);
+  const [selectedFunction, setSelectedFunction] = useState<Function | undefined>(isf);
   const [distribution, setDistribution] = useState<{
     [key: string]: InputVarSelection;
   }>(id || {});
@@ -83,20 +80,16 @@ export const FunctionContextProvider = ({ children }: Props) => {
       setDistribution,
       outputDistribution,
       setOutputDistribution,
-    ]
+    ],
   );
 
-  return (
-    <FunctionContext.Provider value={memo}>{children}</FunctionContext.Provider>
-  );
-};
+  return <FunctionContext.Provider value={memo}>{children}</FunctionContext.Provider>;
+}
 
 export const useFunctionContext = () => {
   const context = useContext(FunctionContext);
   if (context === undefined) {
-    throw new Error(
-      "useFunctionContext must be used within a FunctionContextProvider"
-    );
+    throw new Error("useFunctionContext must be used within a FunctionContextProvider");
   }
   return context;
 };

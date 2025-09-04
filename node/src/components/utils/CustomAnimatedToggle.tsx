@@ -6,10 +6,9 @@ interface CustomAnimatedToggleProps {
   data: string[];
   value: number;
   onChange: (value: number) => void;
-  
 }
 
-export const CustomAnimatedToggle = (props: CustomAnimatedToggleProps) => {
+export function CustomAnimatedToggle(props: CustomAnimatedToggleProps) {
   const { disabled, data, onChange, value } = props;
   const theme = useTheme();
   const [selected, setSelected] = React.useState<number>(value);
@@ -48,30 +47,30 @@ export const CustomAnimatedToggle = (props: CustomAnimatedToggleProps) => {
           transform: `translateX(${100 * selected}%)`,
         }}
       />
-      {data.map((inputVar, index) => {
-        return (
-          <Button
-            key={index}
-            disabled={disabled}
-            disableRipple
-            sx={{
-              width: `${100 / data.length}%`,
-              fontSize: "0.8em",
-              fontWeight: "600",
-              textTransform: "uppercase",
-              color: theme.palette.text.primary,
+      {data.map((inputVar, index) => (
+        <Button
+          key={index}
+          disabled={disabled}
+          disableRipple
+          sx={{
+            width: `${100 / data.length}%`,
+            fontSize: "0.8em",
+            fontWeight: "600",
+            textTransform: "uppercase",
+            color: theme.palette.text.primary,
+            backgroundColor: "transparent",
+            padding: "4px",
+            minWidth: 0,
+            zIndex: 10,
+            "&:hover": {
               backgroundColor: "transparent",
-              padding: '4px',
-              minWidth: 0,
-              zIndex: 10,
-              '&:hover': {
-                backgroundColor: 'transparent',
-              }
-            }}
-            onClick={() => handleClick(index)}
-          >{inputVar}</Button>
-        );
-      })}
+            },
+          }}
+          onClick={() => handleClick(index)}
+        >
+          {inputVar}
+        </Button>
+      ))}
     </Box>
   );
-};
+}

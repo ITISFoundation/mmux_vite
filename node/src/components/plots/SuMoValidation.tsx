@@ -1,27 +1,24 @@
 import { useState, useEffect, useRef } from "react";
+import { Box, useTheme } from "@mui/material";
+import Plot from "react-plotly.js";
+import { Layout } from "plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Box, useTheme } from "@mui/material";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import Metric from "./Metric";
 import MetricRow from "./MetricRow";
 import { plotMargins } from "./PlotTools";
-import Plot from "react-plotly.js";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
-import { Layout } from "plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 
-const SuMoValidation = () => {
+function SuMoValidation() {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
-  const {
-    fetchedJobCollections,
-    filterSelectedJobList,
-  } = useJobContext();
-  const [cvMetrics, setCvMetrics] = useState<cvMetricsType>();
+  const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
+  const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
   const [propagating, setPropagating] = useState(false);
   const [width, setWidth] = useState(1080);
@@ -29,43 +26,23 @@ const SuMoValidation = () => {
 
   function computeStatisticsCv(y: number[], y_hat: number[]) {
     // compute statistics
-    const mae =
-      y.reduce(
-        (sum: number, value: number, index: number) =>
-          sum + Math.abs(value - y_hat[index]),
-        0
-      ) / y.length;
+    const mae = y.reduce((sum: number, value: number, index: number) => sum + Math.abs(value - y_hat[index]), 0) / y.length;
     const rmse = Math.sqrt(
-      y.reduce(
-        (sum: number, value: number, index: number) =>
-          sum + Math.pow(value - y_hat[index], 2),
-        0
-      ) / y.length
+      y.reduce((sum: number, value: number, index: number) => sum + (value - y_hat[index]) ** 2, 0) / y.length,
     );
     const mean_y = y.reduce((a: number, b: number) => a + b, 0) / y.length;
-    const std_y = Math.sqrt(
-      y.reduce(
-        (sum: number, value: number) => sum + Math.pow(value - mean_y, 2),
-        0
-      ) /
-      (y.length - 1)
-    );
-    const mean_y_hat =
-      y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
+    const std_y = Math.sqrt(y.reduce((sum: number, value: number) => sum + (value - mean_y) ** 2, 0) / (y.length - 1));
+    const mean_y_hat = y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
     const std_y_hat = Math.sqrt(
-      y_hat.reduce(
-        (sum: number, value: number) => sum + Math.pow(value - mean_y_hat, 2),
-        0
-      ) /
-      (y_hat.length - 1)
+      y_hat.reduce((sum: number, value: number) => sum + (value - mean_y_hat) ** 2, 0) / (y_hat.length - 1),
     );
     const cvMetricsData = {
-      mean_y: mean_y,
-      std_y: std_y,
-      mean_y_hat: mean_y_hat,
-      std_y_hat: std_y_hat,
-      mae: mae,
-      rmse: rmse,
+      mean_y,
+      std_y,
+      mean_y_hat,
+      std_y_hat,
+      mae,
+      rmse,
     };
     setCvMetrics(cvMetricsData);
   }
@@ -73,29 +50,23 @@ const SuMoValidation = () => {
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
     if (data && selectedQoI) {
       const y = data[selectedQoI];
-      const y_hat = data[selectedQoI + "_hat"];
+      const y_hat = data[`${selectedQoI}_hat`];
 
       // For violin plots, y should be the data and x should be the label
-      const createViolinPlot = (
-        data: number[],
-        name: string,
-        side: "positive" | "negative"
-      ): Partial<Plotly.ViolinData> => {
-        return {
-          x: data,
-          y: Array(data.length).fill(""), // Use same x value to overlay
-          orientation: "h",
-          type: "violin",
-          name: name,
-          pointpos: side === "positive" ? 1 : -1,
-          points: "all",
-          side: side,
-          box: {
-            visible: true,
-          },
-          spanmode: "soft", // TODO show Esra both variants
-        };
-      };
+      const createViolinPlot = (data: number[], name: string, side: "positive" | "negative"): Partial<Plotly.ViolinData> => ({
+        x: data,
+        y: Array(data.length).fill(""), // Use same x value to overlay
+        orientation: "h",
+        type: "violin",
+        name,
+        pointpos: side === "positive" ? 1 : -1,
+        points: "all",
+        side,
+        box: {
+          visible: true,
+        },
+        spanmode: "soft", // TODO show Esra both variants
+      });
       const newPlotData: Partial<Plotly.ViolinData>[] = [
         createViolinPlot(y, "Observations", "positive"),
         createViolinPlot(y_hat, "Predictions", "negative"),
@@ -116,19 +87,17 @@ const SuMoValidation = () => {
     setPlotData([]);
     setPropagating(true);
 
-    fetch(PYTHON_DAKOTA_BACKEND + "/flask/sumo_cross_validation", {
+    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_cross_validation`, {
       method: "POST",
       body: JSON.stringify({
-        inputVars: inputVars,
+        inputVars,
         output: selectedQoI,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false,
       }),
     })
-      .then(function (response) {
-        return response.json();
-      })
-      .then(function (response) {
+      .then(response => response.json())
+      .then(response => {
         if (!response || (response && response.error)) {
           console.warn("SuMo Validation error: ", response.error);
           throw new Error(`Error running SuMo Validation: ${response.error}`);
@@ -138,7 +107,7 @@ const SuMoValidation = () => {
           setPropagating(false);
         }
       })
-      .catch((error) => {
+      .catch(error => {
         console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
@@ -149,14 +118,14 @@ const SuMoValidation = () => {
   useEffect(() => {
     const run = async () => {
       const jobs = filterSelectedJobList();
-      return await RunSuMoValidation(jobs);
+      return RunSuMoValidation(jobs);
     };
     run();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedQoI, inputVars, selectedFunction, distribution, filterSelectedJobList]);
 
   useEffect(() => {
-    const resizeObserver = new ResizeObserver((event) => {
+    const resizeObserver = new ResizeObserver(event => {
       // Depending on the layout, you may need to swap inlineSize with blockSize
       // https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserverEntry/contentBoxSize
       setWidth(event[0].contentBoxSize[0].inlineSize);
@@ -172,12 +141,10 @@ const SuMoValidation = () => {
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
     title: {
-      text:
-        (selectedQoI ? selectedQoI : "Quantity of Interest") +
-        " Sample Distribution",
+      text: `${selectedQoI || "Quantity of Interest"} Sample Distribution`,
     },
     margin: plotMargins,
-    width: width,
+    width,
     barmode: "overlay",
     legend: {
       x: 1,
@@ -196,76 +163,38 @@ const SuMoValidation = () => {
   };
 
   return (
-    <>
-      <Box
-        display="flex"
-        flex={1}
-        flexDirection="column"
-        width={"100%"}
-        justifyContent={"center"}
-        ref={boxRef}
-      >
-        {propagating && (
-          <CalculatingWarning
-            height={plotStyle.height}
-            dontShowText={true}
-          />
-        )}
-        {!propagating && plotData.length === 0 && (
-          <InsufficientDataWarning
-            fetchedJobCollections={fetchedJobCollections}
-            filterSelectedJobList={filterSelectedJobList}
-            height={plotStyle.height}
-          />
-        )}
-        {!propagating && plotData.length !== 0 && (
-          <Plot data={plotData} layout={layout} style={plotStyle} />
-        )}
+    <Box display="flex" flex={1} flexDirection="column" width="100%" justifyContent="center" ref={boxRef}>
+      {propagating && <CalculatingWarning height={plotStyle.height} dontShowText />}
+      {!propagating && plotData.length === 0 && (
+        <InsufficientDataWarning
+          fetchedJobCollections={fetchedJobCollections}
+          filterSelectedJobList={filterSelectedJobList}
+          height={plotStyle.height}
+        />
+      )}
+      {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
 
-        {cvMetrics ? (
-          <Box
-            display="flex"
-            flexDirection="row"
-            flex={1}
-            justifyContent="space-around"
-            mt={4}
-          >
-            <MetricRow width={width}>
-              <Metric
-                metricName={"Mean"}
-                metricValue={cvMetrics.mean_y}
-                color={"rgb(41, 146, 221)"}
-              />
-              <Metric
-                metricName={"Std"}
-                metricValue={cvMetrics.std_y}
-                color={"rgb(41, 146, 221)"}
-              />
-              {/* rgb(31, 119, 180) is the original; changed it slightly to improve visibility */}
-            </MetricRow>
-            <MetricRow width={width}>
-              <Metric
-                metricName={"Mean"}
-                metricValue={cvMetrics.mean_y_hat}
-                color={"rgb(255, 127, 14)"}
-              />
-              <Metric
-                metricName={"Std"}
-                metricValue={cvMetrics.std_y_hat}
-                color={"rgb(255, 127, 14)"}
-              />
-            </MetricRow>
-            <MetricRow width={width}>
-              <Metric metricName={"MAE"} metricValue={cvMetrics.mae} />
-              <Metric metricName={"RMSE"} metricValue={cvMetrics.rmse} />
-            </MetricRow>
-          </Box>
-        ) : (
-          <div></div>
-        )}
-      </Box>
-    </>
+      {cvMetrics ? (
+        <Box display="flex" flexDirection="row" flex={1} justifyContent="space-around" mt={4}>
+          <MetricRow width={width}>
+            <Metric metricName="Mean" metricValue={cvMetrics.mean_y} color="rgb(41, 146, 221)" />
+            <Metric metricName="Std" metricValue={cvMetrics.std_y} color="rgb(41, 146, 221)" />
+            {/* rgb(31, 119, 180) is the original; changed it slightly to improve visibility */}
+          </MetricRow>
+          <MetricRow width={width}>
+            <Metric metricName="Mean" metricValue={cvMetrics.mean_y_hat} color="rgb(255, 127, 14)" />
+            <Metric metricName="Std" metricValue={cvMetrics.std_y_hat} color="rgb(255, 127, 14)" />
+          </MetricRow>
+          <MetricRow width={width}>
+            <Metric metricName="MAE" metricValue={cvMetrics.mae} />
+            <Metric metricName="RMSE" metricValue={cvMetrics.rmse} />
+          </MetricRow>
+        </Box>
+      ) : (
+        <div />
+      )}
+    </Box>
   );
-};
+}
 
 export default SuMoValidation;

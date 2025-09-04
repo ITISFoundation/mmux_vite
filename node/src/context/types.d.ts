@@ -1,7 +1,4 @@
-import {
-  Function,
-  RegisteredFunctionJobCollection,
-} from "../osparc-api-ts-client";
+import { Function, RegisteredFunctionJobCollection } from "../osparc-api-ts-client";
 
 interface PersistenceType {
   currentView: number;

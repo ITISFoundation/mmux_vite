@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { usePersistenceContext } from "./PersistenceContext";
-import { useFunctionContext } from "./FunctionContext"
+import { useFunctionContext } from "./FunctionContext";
 import { PersistenceType } from "./types";
 
 export interface SamplingContextType {
@@ -36,20 +36,15 @@ const defaultGRIDSamplingConfig: GRIDSamplingConfig = [];
 
 const defaultSingleJobConfig: SingleJobConfig[] = [];
 
-export const SamplingContextProvider = ({ children }: Props) => {
+export function SamplingContextProvider({ children }: Props) {
   const { persistence, saveState, loading } = usePersistenceContext();
   const { selectedFunction } = useFunctionContext();
-  const [ localLoading, setLocalLoading ] = useState(true);
+  const [localLoading, setLocalLoading] = useState(true);
   const [launchingSampling, setLaunchingSampling] = useState<boolean>(false);
   const [runningSampling, setRunningSampling] = useState<boolean>(false);
-  const [lhsSamplingConfig, setLhsSamplingConfig] = useState<LHSamplingConfig>(
-    defaultLHSamplingConfig
-  );
-  const [gridSamplingConfig, setGridSamplingConfig] =
-    useState<GRIDSamplingConfig>(defaultGRIDSamplingConfig);
-  const [singleJobConfig, setSingleJobConfig] = useState<SingleJobConfig[]>(
-    defaultSingleJobConfig
-  );
+  const [lhsSamplingConfig, setLhsSamplingConfig] = useState<LHSamplingConfig>(defaultLHSamplingConfig);
+  const [gridSamplingConfig, setGridSamplingConfig] = useState<GRIDSamplingConfig>(defaultGRIDSamplingConfig);
+  const [singleJobConfig, setSingleJobConfig] = useState<SingleJobConfig[]>(defaultSingleJobConfig);
 
   const clearSampling = useCallback(() => {
     setLaunchingSampling(false);
@@ -69,11 +64,7 @@ export const SamplingContextProvider = ({ children }: Props) => {
       singleJobConfig,
     };
     saveState(newPersistence);
-  }, [
-    lhsSamplingConfig,
-    gridSamplingConfig,
-    singleJobConfig,
-  ]);
+  }, [lhsSamplingConfig, gridSamplingConfig, singleJobConfig]);
 
   useEffect(() => {
     if (loading === false && persistence && persistence.currentView !== undefined) {
@@ -82,11 +73,10 @@ export const SamplingContextProvider = ({ children }: Props) => {
       setGridSamplingConfig(persistence.gridSamplingConfig);
       setSingleJobConfig(persistence.singleJobConfig);
       setLocalLoading(false);
-      return;
     }
   }, [loading]);
 
-    useEffect(() => {
+  useEffect(() => {
     console.info("Reloading job collections after functions run");
     if (selectedFunction !== undefined && launchingSampling === false && runningSampling === true) {
       (async () => {
@@ -121,20 +111,16 @@ export const SamplingContextProvider = ({ children }: Props) => {
       singleJobConfig,
       setSingleJobConfig,
       clearSampling,
-    ]
+    ],
   );
 
-  return (
-    <SamplingContext.Provider value={memo}>{children}</SamplingContext.Provider>
-  );
-};
+  return <SamplingContext.Provider value={memo}>{children}</SamplingContext.Provider>;
+}
 
 export const useSamplingContext = () => {
   const context = useContext(SamplingContext);
   if (context === undefined) {
-    throw new Error(
-      "useSamplingContext must be used within a SamplingContextProvider"
-    );
+    throw new Error("useSamplingContext must be used within a SamplingContextProvider");
   }
   return context;
 };

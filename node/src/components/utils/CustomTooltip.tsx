@@ -1,12 +1,4 @@
-import {
-  Modal,
-  styled,
-  Tooltip,
-  tooltipClasses,
-  TooltipProps,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { Modal, styled, Tooltip, tooltipClasses, TooltipProps, Typography, useTheme } from "@mui/material";
 import { ReactElement, useState } from "react";
 
 interface CustomTooltipProps extends TooltipProps {
@@ -22,32 +14,28 @@ const CustomTooltip = styled((props: CustomTooltipProps) => {
     <Typography variant="body2" fontFamily="inherit">
       {title}
       {ExtendedTootlip ? (
-      <a
-        href="#"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setOpen(true);
-        }}
-        style={{
-          marginLeft: "8px",
-          color: `${theme.palette.primary.main}`,
-          textDecoration: "underline",
-        }}
-      >
-        Read more...
-      </a>) : undefined}
+        <a
+          href="#"
+          onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen(true);
+          }}
+          style={{
+            marginLeft: "8px",
+            color: `${theme.palette.primary.main}`,
+            textDecoration: "underline",
+          }}
+        >
+          Read more...
+        </a>
+      ) : undefined}
     </Typography>
   );
 
   return (
     <>
-      <Tooltip
-        {...rest}
-        title={infotextWButton}
-        arrow
-        classes={{ popper: className }}
-      />
+      <Tooltip {...rest} title={infotextWButton} arrow classes={{ popper: className }} />
       {ExtendedTootlip && (
         <Modal
           open={open}

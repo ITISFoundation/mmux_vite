@@ -20,18 +20,9 @@ interface JobSamplingProps {
   selectedFunction: Function | undefined;
 }
 
-export const JobSampling = (props: JobSamplingProps) => {
-  const {
-    loading,
-    setLoading,
-    progress,
-    setProgress,
-    jobProgress,
-    setJobProgress,
-    colsFetched,
-    jobsFetched,
-    selectedFunction,
-  } = props;
+export function JobSampling(props: JobSamplingProps) {
+  const { loading, setLoading, progress, setProgress, jobProgress, setJobProgress, colsFetched, jobsFetched, selectedFunction } =
+    props;
   const [jobPanelOpen, setJobPanelOpen] = useState<boolean>(false);
 
   return (
@@ -41,7 +32,7 @@ export const JobSampling = (props: JobSamplingProps) => {
       variant="outlined"
       sx={{
         marginTop: "16px",
-        padding: '0px',
+        padding: "0px",
         border: "none",
         "&:before": { display: "none" },
       }}
@@ -60,9 +51,9 @@ export const JobSampling = (props: JobSamplingProps) => {
           arrow
         >
           <InfoOutline
-            sx={(theme) => ({
-              color: loading? theme.palette.grey[400] : theme.palette.primary.light,
-              backgroundColor: loading? theme.palette.grey[200] : theme.palette.background.default,
+            sx={theme => ({
+              color: loading ? theme.palette.grey[400] : theme.palette.primary.light,
+              backgroundColor: loading ? theme.palette.grey[200] : theme.palette.background.default,
               borderRadius: "50%",
               padding: "2px",
               marginLeft: "8px",
@@ -84,9 +75,7 @@ export const JobSampling = (props: JobSamplingProps) => {
         {selectedFunction !== undefined ? (
           <PlusButton
             onClickFun={() => null}
-            PlotFunComponent={() => {
-              return <Sampling />;
-            }}
+            PlotFunComponent={() => <Sampling />}
             text="Create new sampling campaign"
             enabled={selectedFunction !== undefined}
           />
@@ -94,4 +83,4 @@ export const JobSampling = (props: JobSamplingProps) => {
       </AccordionDetails>
     </Accordion>
   );
-};
+}

@@ -4,32 +4,28 @@ import { render, act, cleanup } from "@testing-library/react";
 import { SamplingContextProvider, useSamplingContext } from "./SamplingContext";
 
 // Mock usePersistenceContext
-vi.mock("./PersistenceContext", () => {
-  return {
-    usePersistenceContext: () => ({
-      persistence: {
-        lhsSamplingConfig: { inputs: [], points: 10, seed: 1 },
-        gridSamplingConfig: [],
-        singleJobConfig: [{ foo: "bar" }],
-        currentView: "main",
-      },
-      saveState: vi.fn(),
-      loading: false,
-    }),
-  };
-});
+vi.mock("./PersistenceContext", () => ({
+  usePersistenceContext: () => ({
+    persistence: {
+      lhsSamplingConfig: { inputs: [], points: 10, seed: 1 },
+      gridSamplingConfig: [],
+      singleJobConfig: [{ foo: "bar" }],
+      currentView: "main",
+    },
+    saveState: vi.fn(),
+    loading: false,
+  }),
+}));
 
 // Mock usePersistenceContext
-vi.mock("./FunctionContext", () => {
-  return {
-    useFunctionContext: () => ({
-      selectedFunction: { uid: "1", name: "Test Function" },
-      outputVars: ["output1", "output2"],
-    }),
-  };
-});
+vi.mock("./FunctionContext", () => ({
+  useFunctionContext: () => ({
+    selectedFunction: { uid: "1", name: "Test Function" },
+    outputVars: ["output1", "output2"],
+  }),
+}));
 
-const TestComponent = () => {
+function TestComponent() {
   const {
     launchingSampling,
     setLaunchingSampling,
@@ -53,21 +49,25 @@ const TestComponent = () => {
       <div data-testid="single">{JSON.stringify(singleJobConfig)}</div>
       <button onClick={() => setLaunchingSampling(true)}>Set Launching</button>
       <button onClick={() => setRunningSampling(true)}>Set Running</button>
-      <button
-        onClick={() =>
-          setLhsSamplingConfig({ inputs: [{ variable: "1", start: 0, end: 10 }], points: 99, seed: 2 })
-        }
-      >
+      <button onClick={() => setLhsSamplingConfig({ inputs: [{ variable: "1", start: 0, end: 10 }], points: 99, seed: 2 })}>
         Set LHS
       </button>
-      <button onClick={() => setGridSamplingConfig([{ variable: "1", start: 0, end: 10 }, { variable: "2", start: 0, end: 10 }, { variable: "3", start: 0, end: 10 }])}>Set Grid</button>
-      <button onClick={() => setSingleJobConfig([{ variable: "1", value: 5 }])}>
-        Set Single
+      <button
+        onClick={() =>
+          setGridSamplingConfig([
+            { variable: "1", start: 0, end: 10 },
+            { variable: "2", start: 0, end: 10 },
+            { variable: "3", start: 0, end: 10 },
+          ])
+        }
+      >
+        Set Grid
       </button>
+      <button onClick={() => setSingleJobConfig([{ variable: "1", value: 5 }])}>Set Single</button>
       <button onClick={clearSampling}>Clear</button>
     </div>
   );
-};
+}
 
 describe("SamplingContextProvider", async () => {
   beforeEach(() => {
@@ -81,7 +81,7 @@ describe("SamplingContextProvider", async () => {
       const utils = render(
         <SamplingContextProvider>
           <TestComponent />
-        </SamplingContextProvider>
+        </SamplingContextProvider>,
       );
       getByTestId = utils.getByTestId;
     });
@@ -94,12 +94,13 @@ describe("SamplingContextProvider", async () => {
 
   it("updates launchingSampling and runningSampling", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let getByTestId: any, getByText: any;
+    let getByTestId: any;
+    let getByText: any;
     await act(() => {
       const utils = render(
         <SamplingContextProvider>
           <TestComponent />
-        </SamplingContextProvider>
+        </SamplingContextProvider>,
       );
       getByTestId = utils.getByTestId;
       getByText = utils.getByText;
@@ -114,12 +115,13 @@ describe("SamplingContextProvider", async () => {
 
   it("updates lhsSamplingConfig", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let getByTestId: any, getByText: any;
+    let getByTestId: any;
+    let getByText: any;
     await act(() => {
       const utils = render(
         <SamplingContextProvider>
           <TestComponent />
-        </SamplingContextProvider>
+        </SamplingContextProvider>,
       );
       getByTestId = utils.getByTestId;
       getByText = utils.getByText;
@@ -132,12 +134,13 @@ describe("SamplingContextProvider", async () => {
 
   it("updates gridSamplingConfig", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let getByTestId: any, getByText: any;
+    let getByTestId: any;
+    let getByText: any;
     await act(() => {
       const utils = render(
         <SamplingContextProvider>
           <TestComponent />
-        </SamplingContextProvider>
+        </SamplingContextProvider>,
       );
       getByTestId = utils.getByTestId;
       getByText = utils.getByText;
@@ -145,17 +148,20 @@ describe("SamplingContextProvider", async () => {
     await act(() => {
       getByText("Set Grid").click();
     });
-    expect(getByTestId("grid").textContent).toBe(`[{"variable":"1","start":0,"end":10},{"variable":"2","start":0,"end":10},{"variable":"3","start":0,"end":10}]`);
+    expect(getByTestId("grid").textContent).toBe(
+      `[{"variable":"1","start":0,"end":10},{"variable":"2","start":0,"end":10},{"variable":"3","start":0,"end":10}]`,
+    );
   });
 
   it("updates singleJobConfig", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let getByTestId: any, getByText: any;
+    let getByTestId: any;
+    let getByText: any;
     await act(() => {
       const utils = render(
         <SamplingContextProvider>
           <TestComponent />
-        </SamplingContextProvider>
+        </SamplingContextProvider>,
       );
       getByTestId = utils.getByTestId;
       getByText = utils.getByText;
@@ -168,12 +174,13 @@ describe("SamplingContextProvider", async () => {
 
   it("clearSampling resets all values", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let getByTestId: any, getByText: any;
+    let getByTestId: any;
+    let getByText: any;
     await act(() => {
       const utils = render(
         <SamplingContextProvider>
           <TestComponent />
-        </SamplingContextProvider>
+        </SamplingContextProvider>,
       );
       getByTestId = utils.getByTestId;
       getByText = utils.getByText;
@@ -196,12 +203,10 @@ describe("SamplingContextProvider", async () => {
   });
 
   it("throws if useSamplingContext is used outside provider", () => {
-    const Broken = () => {
+    function Broken() {
       useSamplingContext();
       return null;
-    };
-    expect(() => render(<Broken />)).toThrow(
-      "useSamplingContext must be used within a SamplingContextProvider"
-    );
+    }
+    expect(() => render(<Broken />)).toThrow("useSamplingContext must be used within a SamplingContextProvider");
   });
 });

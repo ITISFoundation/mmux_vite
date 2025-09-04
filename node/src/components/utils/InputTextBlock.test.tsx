@@ -28,9 +28,7 @@ describe("InputTextBlock", () => {
   });
 
   it("renders with different props", () => {
-    render(
-      <InputTextBlock name="Another Label" value="42" onChange={vi.fn()} />
-    );
+    render(<InputTextBlock name="Another Label" value="42" onChange={vi.fn()} />);
     expect(screen.getByText(/Another Label:/)).toBeDefined();
     expect((screen.getByRole("spinbutton") as HTMLInputElement).value).toBe("42");
   });

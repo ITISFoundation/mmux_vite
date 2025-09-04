@@ -1,3 +1,4 @@
+import React from "react";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import SelectFunctionDocument from "../components/documents/SelectFunctionDocument";
 import { FunctionList } from "../components/setup/FunctionList";
@@ -9,6 +10,7 @@ interface SetupProps {
 }
 
 export default function Setup(props: SetupProps) {
+  const { serviceMode } = props;
   return (
     <MetaModelingUX
       tabTitle="Select Function"
@@ -18,7 +20,7 @@ export default function Setup(props: SetupProps) {
     >
       <FunctionList />
       <InputVariableDist />
-      {props.serviceMode === "MOGA" && <OutputVariableDist />}
+      {serviceMode === "MOGA" && <OutputVariableDist />}
     </MetaModelingUX>
   );
 }
