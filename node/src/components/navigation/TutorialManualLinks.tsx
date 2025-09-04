@@ -41,26 +41,23 @@ export function getManualLink(): React.ReactNode {
 
 type HelpType = "MMHeaderHelp" | "FunctionsHelp";
 
-export const HelpContents = ({ type }: { type: HelpType }) => {
-  const [hostType, setHostType] = useState<HostType|undefined>(undefined);
+export function HelpContents({ type }: { type: HelpType }) {
+  const [hostType, setHostType] = useState<HostType | undefined>(undefined);
   const dismiss = (id: Id) => toast.dismiss({ containerId: id });
 
   useEffect(() => {
     if (hostType === undefined) return;
     const isActive = toast.isActive("HostLinkWarning");
     if (hostType === "unknown" && isActive === false) {
-      toast(
-        "Host could not be detected - links to Tutorials & Manuals will not work",
-        {
-          autoClose: false,
-          closeOnClick: false,
-          pauseOnHover: false,
-          draggable: false,
-          closeButton: false,
-          type: "warning",
-          toastId: "HostLinkWarning"
-        }
-      );
+      toast("Host could not be detected - links to Tutorials & Manuals will not work", {
+        autoClose: false,
+        closeOnClick: false,
+        pauseOnHover: false,
+        draggable: false,
+        closeButton: false,
+        type: "warning",
+        toastId: "HostLinkWarning",
+      });
     }
     if (hostType !== "unknown" && isActive === true) {
       dismiss("HostLinkWarning");
@@ -88,4 +85,4 @@ export const HelpContents = ({ type }: { type: HelpType }) => {
     );
   }
   return null;
-};
+}

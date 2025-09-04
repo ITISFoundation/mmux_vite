@@ -1,7 +1,7 @@
 import { Box, Typography, Chip, useTheme } from "@mui/material";
 import { InputBlock } from "../utils/InputBlock";
 
-const VariableConfig = ({
+function VariableConfig({
   inputVar,
   index,
   handleInputChange,
@@ -9,12 +9,12 @@ const VariableConfig = ({
   inputVar: SingleJobConfig;
   index: number;
   handleInputChange: (index: number, field: string, value: string) => void;
-}) => {
+}) {
   const theme = useTheme();
 
   return (
     <Box
-      sx={(theme) => ({
+      sx={{
         display: "flex",
         flexDirection: "column",
         flex: 1,
@@ -26,7 +26,7 @@ const VariableConfig = ({
         border: `1px solid ${theme.palette.background.paper}`,
         gap: "16px",
         borderRadius: "8px",
-      })}
+      }}
     >
       <Typography variant="h6" sx={{ fontSize: "1.2em" }}>
         <Chip
@@ -45,10 +45,10 @@ const VariableConfig = ({
         name="Value"
         type="number"
         value={inputVar.value !== undefined ? inputVar.value : NaN}
-        onChange={(n) => handleInputChange(index, "value", n as string)}
+        onChange={n => handleInputChange(index, "value", n as string)}
       />
     </Box>
   );
-};
+}
 
 export default VariableConfig;

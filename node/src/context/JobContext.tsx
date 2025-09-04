@@ -1,25 +1,12 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-refresh/only-export-components */
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import {
-  FunctionJob,
-  RegisteredFunctionJobCollection,
-} from "../osparc-api-ts-client";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { FunctionJob, RegisteredFunctionJobCollection } from "../osparc-api-ts-client";
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
 
 export interface JobContextType {
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
-  setRunningJobCollection: (
-    jc: RegisteredFunctionJobCollection | undefined
-  ) => void;
+  setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void;
   fetchedJobCollections: SelectedJobCollection[];
   setFetchedJobCollections: (jc: SelectedJobCollection[]) => void;
   selectedJobUids: string[];
@@ -28,31 +15,22 @@ export interface JobContextType {
   filterSelectedJobList: () => FunctionJob[];
 }
 
-export const JobContext = createContext<JobContextType | undefined>(
-  undefined
-);
+export const JobContext = createContext<JobContextType | undefined>(undefined);
 
 type Props = {
   children: React.ReactNode;
 };
 
-export const JobContextProvider = ({ children }: Props) => {
+export function JobContextProvider({ children }: Props) {
   const { persistence, saveState, loading } = usePersistenceContext();
   const [localLoading, setLocalLoading] = useState(true);
   const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
-  const [fetchedJobCollections, setFetchedJobCollections] = useState<
-    SelectedJobCollection[]
-  >([]);
-  const [runningJobCollection, setRunningJobCollection] = useState<
-    RegisteredFunctionJobCollection | undefined
-  >(undefined);
+  const [fetchedJobCollections, setFetchedJobCollections] = useState<SelectedJobCollection[]>([]);
+  const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
 
   const filterSelectedJobList = useCallback(() => {
-    const response: FunctionJob[] = fetchedJobCollections.flatMap(
-      (jobCollection) =>
-        jobCollection.subJobs
-          .filter((subJob) => subJob.selected)
-          .map((subJob) => subJob.job)
+    const response: FunctionJob[] = fetchedJobCollections.flatMap(jobCollection =>
+      jobCollection.subJobs.filter(subJob => subJob.selected).map(subJob => subJob.job),
     );
 
     if (fetchedJobCollections.length !== 0 && response.length < 5) {
@@ -62,8 +40,8 @@ export const JobContextProvider = ({ children }: Props) => {
   }, [fetchedJobCollections]);
 
   const allJobsList = useCallback(() => {
-    const response: FunctionJob[] = fetchedJobCollections.flatMap(
-      (jobCollection) => jobCollection.subJobs.map((subJob) => subJob.job)
+    const response: FunctionJob[] = fetchedJobCollections.flatMap(jobCollection =>
+      jobCollection.subJobs.map(subJob => subJob.job),
     );
 
     if (fetchedJobCollections.length !== 0 && response.length <= 4) {
@@ -78,23 +56,15 @@ export const JobContextProvider = ({ children }: Props) => {
     console.info("Saving Job context state to persistence...");
     const newPersistence: PersistenceType = {
       ...(persistence as PersistenceType),
-      runningJobCollection: runningJobCollection,
-      fetchedJobCollections: fetchedJobCollections,
-      selectedJobUids: selectedJobUids,
+      runningJobCollection,
+      fetchedJobCollections,
+      selectedJobUids,
     };
     saveState(newPersistence);
-  }, [
-    selectedJobUids,
-    fetchedJobCollections,
-    runningJobCollection,
-  ]);
+  }, [selectedJobUids, fetchedJobCollections, runningJobCollection]);
 
   useEffect(() => {
-    if (
-      loading === false &&
-      persistence &&
-      persistence.currentView !== undefined
-    ) {
+    if (loading === false && persistence && persistence.currentView !== undefined) {
       console.info("Loading Job context from persistence...");
       setRunningJobCollection(persistence.runningJobCollection);
       setFetchedJobCollections(persistence.fetchedJobCollections);
@@ -103,31 +73,30 @@ export const JobContextProvider = ({ children }: Props) => {
     }
   }, [loading]);
 
-  const memoState = useMemo(() => {
-    return {
-      runningJobCollection: runningJobCollection,
-      setRunningJobCollection: setRunningJobCollection,
-      fetchedJobCollections: fetchedJobCollections,
-      setFetchedJobCollections: setFetchedJobCollections,
-      selectedJobUids: selectedJobUids,
-      setSelectedJobUids: setSelectedJobUids,
-      allJobsList: allJobsList,
-      filterSelectedJobList: filterSelectedJobList,
-    };
-  }, [
-    runningJobCollection,
-    fetchedJobCollections,
-    selectedJobUids,
-    setRunningJobCollection,
-    setFetchedJobCollections,
-    setSelectedJobUids,
-    allJobsList,
-    filterSelectedJobList,
-  ]);
-  return (
-    <JobContext.Provider value={memoState}>{children}</JobContext.Provider>
+  const memoState = useMemo(
+    () => ({
+      runningJobCollection,
+      setRunningJobCollection,
+      fetchedJobCollections,
+      setFetchedJobCollections,
+      selectedJobUids,
+      setSelectedJobUids,
+      allJobsList,
+      filterSelectedJobList,
+    }),
+    [
+      runningJobCollection,
+      fetchedJobCollections,
+      selectedJobUids,
+      setRunningJobCollection,
+      setFetchedJobCollections,
+      setSelectedJobUids,
+      allJobsList,
+      filterSelectedJobList,
+    ],
   );
-};
+  return <JobContext.Provider value={memoState}>{children}</JobContext.Provider>;
+}
 
 export const useJobContext = () => {
   const context = useContext(JobContext);

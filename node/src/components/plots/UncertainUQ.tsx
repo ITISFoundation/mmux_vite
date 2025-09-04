@@ -1,8 +1,6 @@
+import { useState, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
-import { useEffect, useState } from "react";
 import Plot from "react-plotly.js";
-import { useFunctionContext } from "../../context/FunctionContext";
-import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
@@ -16,15 +14,9 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
   const { loading, progress, jobProgress } = props;
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const {
-    numSamples,
-    selectedQoI,
-  } = useMMUXContext();
-  const {
-    fetchedJobCollections,
-    filterSelectedJobList,
-  } = useJobContext();
-  const [dataUQHistogram, setDataUQHistogram] = useState<dataUQHistogramType>();
+  const { numSamples, selectedQoI } = useMMUXContext();
+  const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
+  const [dataUQHistogram, setDataUQHistogram] = useState<DataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
 
@@ -32,11 +24,11 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
     const run = async () => {
       const jobs = filterSelectedJobList();
 
-      async function runUQ(jobs: FunctionJob[]) {
+      async function runUQ(localJobs: FunctionJob[]) {
         setDataUQHistogram(undefined);
         setPlotData([]);
         setPropagating(true);
-        if (jobs.length === 0) {
+        if (localJobs.length === 0) {
           console.warn("No jobs selected for UQ propagation.");
           setPropagating(false);
           return;
@@ -44,37 +36,28 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         try {
           console.info("Propagating UQ...");
           console.info("SelectedQoI: ", selectedQoI);
-          const response = await fetchWithRetry(
-            PYTHON_DAKOTA_BACKEND +
-            "/flask/manual_uq_propagation_with_uncertainty",
-            {
-              method: "POST",
-              body: JSON.stringify({
-                inputVars: inputVars,
-                output: selectedQoI,
-                distributions: distribution[selectedFunction?.uid || ""],
-                FunctionJobs: jobs,
-                numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
-                log: false,
-                nHistograms: 50,
-                seed: 0,
-              }),
-            }
-          );
+          const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/manual_uq_propagation_with_uncertainty`, {
+            method: "POST",
+            body: JSON.stringify({
+              inputVars,
+              output: selectedQoI,
+              distributions: distribution[selectedFunction?.uid || ""],
+              FunctionJobs: localJobs,
+              numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
+              log: false,
+              nHistograms: 50,
+              seed: 0,
+            }),
+          });
           if (!response.ok) {
-            throw new Error(
-              `Error in UQ response: ${response.status}, ${response.statusText}`
-            );
+            throw new Error(`Error in UQ response: ${response.status}, ${response.statusText}`);
           }
-          const data: dataUQHistogramType = await response.json();
+          const data: DataUQHistogramType = await response.json();
           const newPlotData: Plotly.Data[] = [
             {
               x: Array.from(
                 { length: data.bin_means.length },
-                (_, i) =>
-                  data.bins_start +
-                  ((data.bins_end - data.bins_start) / data.bin_means.length) *
-                  (i + 0.5)
+                (_, i) => data.bins_start + ((data.bins_end - data.bins_start) / data.bin_means.length) * (i + 0.5),
               ),
               y: data.bin_means,
               type: "bar",
@@ -96,19 +79,13 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           setDataUQHistogram(undefined);
         }
       }
-      return await runUQ(jobs);
+      return runUQ(jobs);
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [numSamples, inputVars, distribution, selectedQoI, selectedFunction?.uid]);
   if (loading) {
-    return (
-      <JobsLoading
-        progress={progress}
-        jobProgress={jobProgress}
-        message={"Creating AI model..."}
-      />
-    );
+    return <JobsLoading progress={progress} jobProgress={jobProgress} message="Creating AI model..." />;
   }
 
   const layout = {
@@ -127,13 +104,8 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
   };
 
   return (
-    <Box display={"flex"} flexDirection={"column"} gap={1} width={"100%"}>
-      {propagating && (
-        <CalculatingWarning
-          height={plotStyle.height}
-          dontShowText={plotData.length !== 0}
-        />
-      )}
+    <Box display="flex" flexDirection="column" gap={1} width="100%">
+      {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
       {!propagating && plotData.length === 0 && (
         <InsufficientDataWarning
           fetchedJobCollections={fetchedJobCollections}
@@ -141,9 +113,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
           height={plotStyle.height}
         />
       )}
-      {!propagating && plotData.length !== 0 && (
-        <Plot data={plotData} layout={layout} style={plotStyle} />
-      )}
+      {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
       {dataUQHistogram !== undefined && <HistogramStats {...dataUQHistogram} />}
     </Box>
   );

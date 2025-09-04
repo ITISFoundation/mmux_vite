@@ -22,11 +22,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "X",
-          "Y",
-          "Z"
-        ],
+        "required": ["X", "Y", "Z"],
         "type": "object"
       }
     },
@@ -44,11 +40,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "X+Y",
-          "X-Y",
-          "X*Z"
-        ],
+        "required": ["X+Y", "X-Y", "X*Z"],
         "type": "object"
       }
     },
@@ -56,16 +48,8 @@
     "title": "AddSubstractMultiply",
     "uid": "a2d8b204-fa1c-4259-b057-acb3b6f7fe8b"
   },
-  "inputVars": [
-    "X",
-    "Y",
-    "Z"
-  ],
-  "outputVars": [
-    "X*Z",
-    "X+Y",
-    "X-Y"
-  ],
+  "inputVars": ["X", "Y", "Z"],
+  "outputVars": ["X*Z", "X+Y", "X-Y"],
   "distribution": {
     "74e7f992-7711-48a8-be70-b2c654c0c9a8": {
       "Y": {
@@ -117,10 +101,7 @@
       "jobCollection": {
         "createdAt": "Thu, 12 Jun 2025 14:02:25 GMT",
         "description": "Function job collection of map of function a2d8b204-fa1c-4259-b057-acb3b6f7fe8b with 2 inputs",
-        "jobIds": [
-          "fdd1cb32-e061-4286-8947-e3bb542975a1",
-          "ae15397b-3231-46e7-8adc-61e425404b91"
-        ],
+        "jobIds": ["fdd1cb32-e061-4286-8947-e3bb542975a1", "ae15397b-3231-46e7-8adc-61e425404b91"],
         "title": "Function job collection of function map",
         "uid": "188d117e-ff2f-4557-940c-20b81246976e"
       },
@@ -1391,10 +1372,7 @@
       "jobCollection": {
         "createdAt": "Thu, 12 Jun 2025 14:53:18 GMT",
         "description": "Function job collection of map of function a2d8b204-fa1c-4259-b057-acb3b6f7fe8b with 2 inputs",
-        "jobIds": [
-          "fdd1cb32-e061-4286-8947-e3bb542975a1",
-          "ae15397b-3231-46e7-8adc-61e425404b91"
-        ],
+        "jobIds": ["fdd1cb32-e061-4286-8947-e3bb542975a1", "ae15397b-3231-46e7-8adc-61e425404b91"],
         "title": "Function job collection of function map",
         "uid": "bc2a3e0e-c807-4a34-8e86-ecbab97ab187"
       },

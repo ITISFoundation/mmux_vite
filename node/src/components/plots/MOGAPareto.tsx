@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, useTheme } from "@mui/material";
-import { JobsLoading } from "../data/JobsLoading";
 import Plot from "react-plotly.js";
+import { JobsLoading } from "../data/JobsLoading";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import CalculatingWarning from "./CalculatingWarning";
@@ -12,26 +12,73 @@ import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import { aggregateOutputValues } from "../../utils/function_utils";
 
-export const MOGAPareto = (props: MogaParetoPropsType) => {
-  const { loading, progress, jobProgress, colsFetched: _colsFetched, jobsFetched: _jobsFetched } = props;
+export function MOGAPareto(props: MogaParetoPropsType) {
+  const { loading, progress, jobProgress } = props;
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution, outputDistribution } = useFunctionContext();
   const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
-  const [outputVarSelection, setOutputVarSelection] = useState<OutputVarSelection>({})
-  const [optVars, setOptVars] = useState<Array<string>>([])
+  const [outputVarSelection, setOutputVarSelection] = useState<OutputVarSelection>({});
+  const [optVars, setOptVars] = useState<Array<string>>([]);
 
   useEffect(() => {
     if (!selectedFunction) {
-      console.warn("No function selected!!")
-    }
-    else {
-      setOutputVarSelection(outputDistribution[selectedFunction.uid])
-      setOptVars(Object.keys(outputDistribution[selectedFunction?.uid as string]))
-      console.debug("Information about optimization vars fetched")
+      console.warn("No function selected!!");
+    } else {
+      setOutputVarSelection(outputDistribution[selectedFunction.uid]);
+      setOptVars(Object.keys(outputDistribution[selectedFunction?.uid as string]));
+      console.debug("Information about optimization vars fetched");
     }
   }, [selectedFunction, outputDistribution]);
+
+  const runMOGA = async (jobs: FunctionJob[]) => {
+    console.info("Running MOGA...");
+    const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/perform_moga_optimization`, {
+      method: "POST",
+      body: JSON.stringify({
+        inputVars,
+        outputVarSelection,
+        distributions: distribution[selectedFunction?.uid || ""],
+        FunctionJobs: jobs,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Error in MOGA response: ${response.status}, ${response.statusText}`);
+    }
+
+    const results: { [key: string]: number[] } = await response.json();
+    const outputValues = aggregateOutputValues(jobs);
+
+    const newPlotData: Plotly.Data[] = [
+      {
+        name: "Original Samples",
+        x: outputValues[optVars[0]],
+        y: outputValues[optVars[1]], // TODO enable selection, when more than 2
+        mode: "markers",
+        type: "scatter",
+        marker: { color: "rgb(41, 146, 221)", size: 4, symbol: "x" },
+      },
+      {
+        name: "MOGA Samples",
+        x: results[optVars[0]],
+        y: results[optVars[1]],
+        mode: "markers",
+        type: "scatter",
+        marker: { color: "rgb(255, 127, 14)", size: 2 },
+      },
+      {
+        name: "Pareto Samples",
+        x: results.non_dominated_indices.map(i => results[optVars[0]][i]),
+        y: results.non_dominated_indices.map(i => results[optVars[1]][i]),
+        mode: "lines",
+        type: "scatter",
+        marker: { color: "lightblue", size: 10 },
+      },
+    ];
+    setPlotData(newPlotData);
+    setPropagating(false);
+  };
 
   useEffect(() => {
     const run = async () => {
@@ -54,60 +101,6 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outputVarSelection]);
 
-  const runMOGA = async (jobs: FunctionJob[]) => {
-    console.info("Running MOGA...");
-    const response = await fetchWithRetry(
-      PYTHON_DAKOTA_BACKEND +
-      "/flask/perform_moga_optimization",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          inputVars: inputVars,
-          outputVarSelection: outputVarSelection,
-          distributions: distribution[selectedFunction?.uid || ""],
-          FunctionJobs: jobs,
-        }),
-      }
-    );
-    if (!response.ok) {
-      throw new Error(
-        `Error in MOGA response: ${response.status}, ${response.statusText}`
-      );
-    }
-
-    const results: { [key: string]: number[] } = await response.json()
-    const outputValues = aggregateOutputValues(jobs)
-
-    const newPlotData: Plotly.Data[] = [
-      {
-        name: "Original Samples",
-        x: outputValues[optVars[0]],
-        y: outputValues[optVars[1]], // TODO enable selection, when more than 2
-        mode: "markers",
-        type: "scatter",
-        marker: { color: "rgb(41, 146, 221)", size: 4, symbol: "x" },
-      },
-      {
-        name: "MOGA Samples",
-        x: results[optVars[0]],
-        y: results[optVars[1]],
-        mode: "markers",
-        type: "scatter",
-        marker: { color: "rgb(255, 127, 14)", size: 2 },
-      },
-      {
-        name: "Pareto Samples",
-        x: results["non_dominated_indices"].map(i => results[optVars[0]][i]),
-        y: results["non_dominated_indices"].map(i => results[optVars[1]][i]),
-        mode: "lines",
-        type: "scatter",
-        marker: { color: "lightblue", size: 10 },
-      }
-    ];
-    setPlotData(newPlotData);
-    setPropagating(false);
-  };
-
   const layout = {
     title: { text: "Pareto Front Diagram" },
     xaxis: { title: { text: optVars[0] } },
@@ -125,23 +118,12 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
   };
 
   if (loading) {
-    return (
-      <JobsLoading
-        progress={progress}
-        jobProgress={jobProgress}
-        message={"Creating AI model..."}
-      />
-    );
+    return <JobsLoading progress={progress} jobProgress={jobProgress} message="Creating AI model..." />;
   }
 
   return (
-    <Box display={"flex"} flexDirection={"column"} gap={1} width={"100%"}>
-      {propagating && (
-        <CalculatingWarning
-          height={plotStyle.height}
-          dontShowText={plotData.length !== 0}
-        />
-      )}
+    <Box display="flex" flexDirection="column" gap={1} width="100%">
+      {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
       {!propagating && plotData.length === 0 && (
         <InsufficientDataWarning
           fetchedJobCollections={fetchedJobCollections}
@@ -158,4 +140,4 @@ export const MOGAPareto = (props: MogaParetoPropsType) => {
       )}
     </Box>
   );
-};
+}

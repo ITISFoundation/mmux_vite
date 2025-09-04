@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import StyledHyperLink from "./HyperLink";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { beforeEach, describe, expect, it } from "vitest";
+import StyledHyperLink from "./HyperLink";
 
 describe("StyledHyperLink", () => {
   beforeEach(() => {

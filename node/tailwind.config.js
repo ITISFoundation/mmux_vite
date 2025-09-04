@@ -5,7 +5,7 @@ export default {
   //   "./src/*.{js,ts,jsx,tsx,html}",
   //   "./src/**/*.{js,ts,jsx,tsx,html}",
   // ],
-  content: ['./src/**/*.{js,jsx,ts,tsx,html}'], // Include all relevant files
+  content: ["./src/**/*.{js,jsx,ts,tsx,html}"], // Include all relevant files
   theme: {
     extend: {
       // animation: {
@@ -14,4 +14,4 @@ export default {
     },
   },
   plugins: [],
-}
+};

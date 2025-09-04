@@ -6,28 +6,23 @@ interface JobsLoadingProps {
   message: string;
 }
 
-export const JobsLoading = (props: JobsLoadingProps) => {
-  const { jobProgress, message } = props;
+export function JobsLoading(props: JobsLoadingProps) {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const { jobProgress, message, progress: _progress } = props;
   const theme = useTheme();
 
   return (
     <Box
-      width={"100%"}
-      height={"400px"}
-      display={"flex"}
-      flexDirection={"column"}
-      alignItems={"center"}
-      justifyContent={"center"}
+      width="100%"
+      height="400px"
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
       bgcolor={theme.palette.background.default}
       borderRadius={theme.spacing(2)}
     >
-      <Typography
-        variant="body1"
-        fontFamily={"inherit"}
-        fontWeight={100}
-        textAlign={"center"}
-        mb={1}
-      >
+      <Typography variant="body1" fontFamily="inherit" fontWeight={100} textAlign="center" mb={1}>
         {message}
       </Typography>
       <Box
@@ -44,15 +39,9 @@ export const JobsLoading = (props: JobsLoadingProps) => {
           sx={{ height: "6px", width: "40%" }}
         />
       </Box>
-      <Typography
-        variant="body1"
-        fontFamily={"inherit"}
-        fontWeight={100}
-        textAlign={"center"}
-        mt={1}
-      >
+      <Typography variant="body1" fontFamily="inherit" fontWeight={100} textAlign="center" mt={1}>
         <span>{Math.round(jobProgress > 100 ? 100 : jobProgress)}%</span>
       </Typography>
     </Box>
   );
-};
+}

@@ -1,12 +1,4 @@
 {
   "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ],
-  "exclude": [
-    "ObjectParamAPI.ts",
-    "ObservableAPI.ts",
-    "PromiseAPI.ts"
-  ]
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
 }

@@ -3,7 +3,7 @@ import { Box, Typography, styled } from "@mui/material";
 import CustomTooltip from "../utils/CustomTooltip";
 
 const HeaderContainer = styled("div", {
-  shouldForwardProp: (props) => props !== "headerType",
+  shouldForwardProp: props => props !== "headerType",
 })<{ headerType: HeaderTypes }>(
   ({ headerType, theme }) => `
   display: flex;
@@ -14,11 +14,9 @@ const HeaderContainer = styled("div", {
   padding: ${theme.spacing(2)};
   padding-left: ${headerType === "subTitle" ? theme.spacing(1) : theme.spacing(3)};
   border-radius: ${theme.shape.borderRadius}px;
-  margin-bottom: ${headerType !== "bigTitle" && headerType !== "titleNoMargin" && headerType !== "subTitle" ? "16px" : "0px"
-    };
-  background-color: ${headerType === "subTitle" ? undefined : theme.palette.background.default
-    };
-`
+  margin-bottom: ${headerType !== "bigTitle" && headerType !== "titleNoMargin" && headerType !== "subTitle" ? "16px" : "0px"};
+  background-color: ${headerType === "subTitle" ? undefined : theme.palette.background.default};
+`,
 );
 
 type TypographyVariant =
@@ -45,28 +43,22 @@ const types: { [key in HeaderTypes]: TypographyVariant } = {
 };
 
 function Header(props: HeaderProps) {
-  const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents, fontWeight } =
-    props;
+  const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents, fontWeight } = props;
   return (
     <HeaderContainer headerType={headerType}>
       <Box flex={1} display="flex" alignItems="center">
         <Typography
           variant={types[headerType]}
           component="h1"
-          fontWeight={fontWeight ? fontWeight : headerType === "subTitle" ? 100 : 100}
-          fontFamily={"inherit"}
+          fontWeight={fontWeight || (headerType === "subTitle" ? 100 : 100)}
+          fontFamily="inherit"
         >
           {tabTitle}
         </Typography>
         {infoText && infoText.length > 0 && (
-          <CustomTooltip
-            title={infoText}
-            ExtendedTootlip={ExtendedInfoText}
-            placement="right"
-            arrow
-          >
+          <CustomTooltip title={infoText} ExtendedTootlip={ExtendedInfoText} placement="right" arrow>
             <InfoOutline
-              sx={(theme) => ({
+              sx={theme => ({
                 color: theme.palette.primary.light,
                 backgroundColor: theme.palette.background.default,
                 borderRadius: "50%",
@@ -82,7 +74,7 @@ function Header(props: HeaderProps) {
       {helpContents && (
         <CustomTooltip title={helpContents} placement="right" arrow>
           <HelpOutline
-            sx={(theme) => ({
+            sx={theme => ({
               color: theme.palette.primary.light,
               backgroundColor: theme.palette.background.default,
               borderRadius: "50%",
