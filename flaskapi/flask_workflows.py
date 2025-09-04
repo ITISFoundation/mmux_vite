@@ -269,8 +269,7 @@ def flask_list_function_jobs_for_jobcollectionid():
     try:
         jc_uid = request.args["JobCollectionUid"]
         _logger.debug(f"jc ID: {jc_uid}")
-        jc = job_collection_api_instance.get_function_job_collection(jc_uid)
-        jobs = [_get_function_job_from_uid(job_uid) for job_uid in jc.job_ids] # type: ignore
+        jobs = _get_all_items(job_api_instance.list_function_jobs,function_job_collection_id=jc_uid, include_status=True)
         _logger.debug(f"N Jobs for job collection {jc_uid}: {len(jobs)}")
         return jsonify(jobs)
     except Exception as e:
