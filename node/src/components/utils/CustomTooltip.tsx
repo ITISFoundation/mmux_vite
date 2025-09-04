@@ -14,10 +14,9 @@ const CustomTooltip = styled((props: CustomTooltipProps) => {
     <Typography variant="body2" fontFamily="inherit">
       {title}
       {ExtendedTootlip ? (
-        <a
-          href="#"
+        <button
+          type="button"
           onClick={e => {
-            e.preventDefault();
             e.stopPropagation();
             setOpen(true);
           }}
@@ -25,10 +24,15 @@ const CustomTooltip = styled((props: CustomTooltipProps) => {
             marginLeft: "8px",
             color: `${theme.palette.primary.main}`,
             textDecoration: "underline",
+            background: "none",
+            border: "none",
+            padding: 0,
+            font: "inherit",
+            cursor: "pointer",
           }}
         >
           Read more...
-        </a>
+        </button>
       ) : undefined}
     </Typography>
   );

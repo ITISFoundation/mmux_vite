@@ -16,7 +16,7 @@ function MessageComponent() {
 
 export function ReturnCurrentView(props: ReturnCurrentViewPropsType) {
   const { currentView } = props;
-  const { serviceMode } = useServiceContext();
+  const { ServiceMode: serviceMode } = useServiceContext();
   const validMode = ["UQ", "SUMO", "MOGA"].includes(serviceMode);
   console.info("service mode: ", serviceMode, ` which is a ${validMode ? "" : "not"}a valid mode`);
 

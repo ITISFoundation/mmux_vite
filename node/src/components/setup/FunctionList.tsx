@@ -4,14 +4,38 @@ import { toast } from "react-toastify";
 import { Refresh } from "@mui/icons-material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
-import type { Function } from "../../osparc-api-ts-client/models/Function";
-import { SolverFunction, ProjectFunction, PythonCodeFunction } from "../../osparc-api-ts-client/index.ts";
-import { listFunctions, getFunctionJobCollections } from "../../utils/function_utils.ts";
-import { JSONFunctionInputSchema, JSONFunctionOutputSchema } from "../../osparc-api-ts-client";
-import { HelpContents } from "../navigation/TutorialManualLinks.tsx";
-import { useFunctionContext } from "../../context/FunctionContext.tsx";
-import { useSamplingContext } from "../../context/SamplingContext.tsx";
-import { useJobContext } from "../../context/JobContext.tsx";
+import {
+  JSONFunctionInputSchema,
+  JSONFunctionOutputSchema,
+  Function as OsparcFunction,
+  SolverFunction,
+  ProjectFunction,
+  PythonCodeFunction,
+} from "../../osparc-api-ts-client";
+import { listFunctions, getFunctionJobCollections } from "../../utils/function_utils";
+import { HelpContents } from "../navigation/TutorialManualLinks";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { useSamplingContext } from "../../context/SamplingContext";
+import { useJobContext } from "../../context/JobContext";
+
+function NFunctionJobCollections(props: {
+  fun: OsparcFunction;
+  jobCollectionCount: { [key: string]: number };
+  jobCount: { [key: string]: number };
+}): React.ReactNode {
+  const { fun, jobCollectionCount, jobCount } = props;
+  return (
+    <Box>
+      {jobCollectionCount[fun.uid] === undefined || jobCount[fun.uid] === undefined
+        ? "Loading..."
+        : `Campaigns: ${jobCollectionCount[fun.uid]} (${jobCount[fun.uid]} total evaluations)`}
+    </Box>
+  );
+}
+
+function getRowId(row: OsparcFunction) {
+  return row.uid ? row.uid : `${row.title}${row.description}`;
+}
 
 export function FunctionList() {
   const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } = useFunctionContext();
@@ -19,27 +43,28 @@ export function FunctionList() {
   const { setSelectedJobUids, setFetchedJobCollections } = useJobContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
-  const [functions, setFunctions] = useState<Function[]>([]);
+  const [functions, setFunctions] = useState<OsparcFunction[]>([]);
   const [jobCollectionCount, setJobCollectionCount] = useState<{
     [key: string]: number;
   }>({});
   const [jobCount, setJobCount] = useState<{ [key: string]: number }>({});
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
-  const fetchJobJobCollectionCount = async (fun: Function) => {
+  const fetchJobJobCollectionCount = async (fun: OsparcFunction) => {
     try {
       const jcs = await getFunctionJobCollections(fun.uid);
-      const jc_length = jcs.length;
-      const j_length = jcs.map(jc => (jc.jobIds ? jc.jobIds.length : 0)).reduce((a, b) => a + b, 0);
+      const jobColCount = jcs.length;
+      const JobCount = jcs.map(jc => (jc.jobIds ? jc.jobIds.length : 0)).reduce((a, b) => a + b, 0);
       return {
         "Function Uid": fun.uid,
-        "Job Collection Count": jc_length,
-        "Job Count": j_length,
+        "Job Collection Count": jobColCount,
+        "Job Count": JobCount,
       };
     } catch (err) {
       console.warn("Error fetching job count for Function ", fun.uid);
       console.error(err);
     }
+    return undefined;
   };
 
   const fetchFunctions = async () => {
@@ -63,8 +88,8 @@ export function FunctionList() {
         setJobCount(jCount);
       }
       setError(false);
-    } catch (error) {
-      console.error("Error fetching functions:", error);
+    } catch (err) {
+      console.error("Error fetching functions:", err);
       setError(true);
       toast.error("Error fetching functions. Please try again later.");
     }
@@ -81,7 +106,7 @@ export function FunctionList() {
     return vars.join(", ");
   };
 
-  const getFunctionSolver = (fun: Function) => {
+  const getFunctionSolver = (fun: OsparcFunction) => {
     if ((fun as SolverFunction).solverKey) {
       return `${(fun as SolverFunction).solverKey.split("/").slice(-1)[0]}:${(fun as SolverFunction).solverVersion}`;
     }
@@ -121,22 +146,7 @@ export function FunctionList() {
     return "Unknown";
   };
 
-  function NFunctionJobCollections(props: { fun: Function }): React.ReactNode {
-    const { fun } = props;
-    return (
-      <Box>
-        {jobCollectionCount[fun.uid] === undefined || jobCount[fun.uid] === undefined
-          ? "Loading..."
-          : `Campaigns: ${jobCollectionCount[fun.uid]} (${jobCount[fun.uid]} total evaluations)`}
-      </Box>
-    );
-  }
-
-  function getRowId(row: Function) {
-    return row.uid ? row.uid : `${row.title}${row.description}`;
-  }
-
-  const handleSelectedFunction = (F: Function | undefined) => {
+  const handleSelectedFunction = (F: OsparcFunction | undefined) => {
     setSelectedFunction(F);
     setSelectedJobUids([]);
     setFetchedJobCollections([]);
@@ -151,7 +161,7 @@ export function FunctionList() {
     clearSampling();
   };
 
-  function setRowSelection(fun: Function) {
+  function setRowSelection(fun: OsparcFunction) {
     if (selectedFunction && selectedFunction.uid === fun.uid) {
       handleSelectedFunction(undefined);
       setInputVars([]);
@@ -258,7 +268,9 @@ export function FunctionList() {
           flex: 1,
           minWidth: 100,
           maxWidth: 250,
-          renderCell: params => <NFunctionJobCollections fun={params.row} />,
+          renderCell: params => (
+            <NFunctionJobCollections fun={params.row} jobCollectionCount={jobCollectionCount} jobCount={jobCount} />
+          ),
         },
         {
           field: "solverKey",

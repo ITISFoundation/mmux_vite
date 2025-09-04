@@ -1,6 +1,5 @@
-import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, act, cleanup } from "@testing-library/react";
+import { render, act, cleanup, Matcher, MatcherOptions } from "@testing-library/react";
 import { SamplingContextProvider, useSamplingContext } from "./SamplingContext";
 
 // Mock usePersistenceContext
@@ -47,12 +46,20 @@ function TestComponent() {
       <div data-testid="lhs">{lhsSamplingConfig.points}</div>
       <div data-testid="grid">{JSON.stringify(gridSamplingConfig)}</div>
       <div data-testid="single">{JSON.stringify(singleJobConfig)}</div>
-      <button onClick={() => setLaunchingSampling(true)}>Set Launching</button>
-      <button onClick={() => setRunningSampling(true)}>Set Running</button>
-      <button onClick={() => setLhsSamplingConfig({ inputs: [{ variable: "1", start: 0, end: 10 }], points: 99, seed: 2 })}>
+      <button type="button" onClick={() => setLaunchingSampling(true)}>
+        Set Launching
+      </button>
+      <button type="button" onClick={() => setRunningSampling(true)}>
+        Set Running
+      </button>
+      <button
+        type="button"
+        onClick={() => setLhsSamplingConfig({ inputs: [{ variable: "1", start: 0, end: 10 }], points: 99, seed: 2 })}
+      >
         Set LHS
       </button>
       <button
+        type="button"
         onClick={() =>
           setGridSamplingConfig([
             { variable: "1", start: 0, end: 10 },
@@ -63,8 +70,12 @@ function TestComponent() {
       >
         Set Grid
       </button>
-      <button onClick={() => setSingleJobConfig([{ variable: "1", value: 5 }])}>Set Single</button>
-      <button onClick={clearSampling}>Clear</button>
+      <button type="button" onClick={() => setSingleJobConfig([{ variable: "1", value: 5 }])}>
+        Set Single
+      </button>
+      <button type="button" onClick={clearSampling}>
+        Clear
+      </button>
     </div>
   );
 }
@@ -94,8 +105,8 @@ describe("SamplingContextProvider", async () => {
 
   it("updates launchingSampling and runningSampling", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let getByTestId: any;
-    let getByText: any;
+    let getByTestId: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
+    let getByText: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     await act(() => {
       const utils = render(
         <SamplingContextProvider>
@@ -108,15 +119,15 @@ describe("SamplingContextProvider", async () => {
     await act(() => {
       getByText("Set Launching").click();
       getByText("Set Running").click();
+      expect(getByTestId("launching").textContent).toBe("true");
+      expect(getByTestId("running").textContent).toBe("true");
     });
-    expect(getByTestId("launching").textContent).toBe("true");
-    expect(getByTestId("running").textContent).toBe("true");
   });
 
   it("updates lhsSamplingConfig", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let getByTestId: any;
-    let getByText: any;
+    let getByTestId: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
+    let getByText: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     await act(() => {
       const utils = render(
         <SamplingContextProvider>
@@ -128,14 +139,14 @@ describe("SamplingContextProvider", async () => {
     });
     await act(() => {
       getByText("Set LHS").click();
+      expect(Number(getByTestId("lhs").textContent)).toBe(99);
     });
-    expect(Number(getByTestId("lhs").textContent)).toBe(99);
   });
 
   it("updates gridSamplingConfig", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let getByTestId: any;
-    let getByText: any;
+    let getByTestId: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
+    let getByText: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     await act(() => {
       const utils = render(
         <SamplingContextProvider>
@@ -147,16 +158,16 @@ describe("SamplingContextProvider", async () => {
     });
     await act(() => {
       getByText("Set Grid").click();
+      expect(getByTestId("grid").textContent).toBe(
+        `[{"variable":"1","start":0,"end":10},{"variable":"2","start":0,"end":10},{"variable":"3","start":0,"end":10}]`,
+      );
     });
-    expect(getByTestId("grid").textContent).toBe(
-      `[{"variable":"1","start":0,"end":10},{"variable":"2","start":0,"end":10},{"variable":"3","start":0,"end":10}]`,
-    );
   });
 
   it("updates singleJobConfig", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let getByTestId: any;
-    let getByText: any;
+    let getByTestId: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
+    let getByText: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     await act(() => {
       const utils = render(
         <SamplingContextProvider>
@@ -168,14 +179,14 @@ describe("SamplingContextProvider", async () => {
     });
     await act(() => {
       getByText("Set Single").click();
+      expect(getByTestId("single").textContent).toContain(`[{"variable":"1","value":5}]`);
     });
-    expect(getByTestId("single").textContent).toContain(`[{"variable":"1","value":5}]`);
   });
 
   it("clearSampling resets all values", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let getByTestId: any;
-    let getByText: any;
+    let getByTestId: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
+    let getByText: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     await act(() => {
       const utils = render(
         <SamplingContextProvider>
@@ -194,12 +205,12 @@ describe("SamplingContextProvider", async () => {
     });
     await act(() => {
       getByText("Clear").click();
+      expect(getByTestId("launching").textContent).toBe("false");
+      expect(getByTestId("running").textContent).toBe("false");
+      expect(Number(getByTestId("lhs").textContent)).toBe(50); // default
+      expect(getByTestId("grid").textContent).toBe("[]");
+      expect(getByTestId("single").textContent).toBe("[]");
     });
-    expect(getByTestId("launching").textContent).toBe("false");
-    expect(getByTestId("running").textContent).toBe("false");
-    expect(Number(getByTestId("lhs").textContent)).toBe(50); // default
-    expect(getByTestId("grid").textContent).toBe("[]");
-    expect(getByTestId("single").textContent).toBe("[]");
   });
 
   it("throws if useSamplingContext is used outside provider", () => {

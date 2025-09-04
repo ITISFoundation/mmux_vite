@@ -17,7 +17,7 @@ export function Footer(props: FooterProps) {
   const { permissions } = useServiceContext();
   const functionContext = useFunctionContext();
   const jobContext = useJobContext();
-  const { serviceMode } = useServiceContext();
+  const { ServiceMode: serviceMode } = useServiceContext();
   const { currentView, setCurrentView } = useNavigationContext();
   const { runningSampling } = useSamplingContext();
   const [modal, setModal] = React.useState(false);

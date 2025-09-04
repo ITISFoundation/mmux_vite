@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { getPermissions, getServiceMode } from "../utils/function_utils";
 
@@ -7,7 +6,7 @@ type ServiceModeEnum = "UQ" | "SUMO" | "MOGA"; // this will need to be expanded 
 
 export interface ServiceContextType {
   permissions: PermissionsEnum;
-  serviceMode: ServiceModeEnum;
+  ServiceMode: ServiceModeEnum;
 }
 
 export const ServiceContext = createContext<ServiceContextType>(undefined!);

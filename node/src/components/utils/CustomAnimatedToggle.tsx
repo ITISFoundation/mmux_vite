@@ -49,7 +49,7 @@ export function CustomAnimatedToggle(props: CustomAnimatedToggleProps) {
       />
       {data.map((inputVar, index) => (
         <Button
-          key={index}
+          key={`input-var-${inputVar}`}
           disabled={disabled}
           disableRipple
           sx={{

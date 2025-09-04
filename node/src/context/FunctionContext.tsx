@@ -1,13 +1,12 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { usePersistenceContext } from "./PersistenceContext";
-import { Function } from "../osparc-api-ts-client";
+import { Function as OsparcFunction } from "../osparc-api-ts-client";
 import { PersistenceType } from "./types";
 
 export interface FunctionContextType {
-  selectedFunction: Function | undefined;
-  setSelectedFunction: (F: Function | undefined) => void;
+  selectedFunction: OsparcFunction | undefined;
+  setSelectedFunction: (F: OsparcFunction | undefined) => void;
   inputVars: string[];
   setInputVars: (vars: string[]) => void;
   outputVars: string[];
@@ -34,7 +33,7 @@ export function FunctionContextProvider({ children }: Props) {
     distribution: id,
     outputDistribution: od,
   } = functionValues as Partial<PersistenceType>;
-  const [selectedFunction, setSelectedFunction] = useState<Function | undefined>(isf);
+  const [selectedFunction, setSelectedFunction] = useState<OsparcFunction | undefined>(isf);
   const [distribution, setDistribution] = useState<{
     [key: string]: InputVarSelection;
   }>(id || {});

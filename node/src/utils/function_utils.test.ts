@@ -1,7 +1,4 @@
 import { describe, it, expect, vi } from "vitest";
-
-// import the functions to be tested
-import { title } from "process";
 import {
   createInputOutputSchema,
   createJobStudyCopy,
@@ -42,7 +39,7 @@ vi.mock("./fetch_retry.ts", () => ({
     if (path.includes("list_jobs")) {
       response = mockJobs;
     } else if (path.includes("get_function_job")) {
-      response = mockJobs[0];
+      [response] = mockJobs;
     }
 
     return Promise.resolve({
@@ -165,18 +162,18 @@ describe("Function Utils", () => {
   });
 
   it("should get function jobs from function UID", async () => {
-    const mockJobs = [{ uid: "job1" }, { uid: "job2" }];
+    const mockJobData = [{ uid: "job1" }, { uid: "job2" }];
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
         Promise.resolve({
-          json: () => Promise.resolve(mockJobs),
+          json: () => Promise.resolve(mockJobData),
         }),
       ),
     );
 
     const jobs = await getFunctionJobsFromFunctionUid("func1");
-    expect(jobs).toEqual(mockJobs);
+    expect(jobs).toEqual(mockJobData);
   });
 
   it("should get function job collections", async () => {
@@ -195,17 +192,17 @@ describe("Function Utils", () => {
   });
 
   it("should get function jobs from a job collection", async () => {
-    const mockJobs = [{ uid: "job1" }, { uid: "job2" }];
+    const sampleJobs = [{ uid: "job1" }, { uid: "job2" }];
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
         Promise.resolve({
-          json: () => Promise.resolve(mockJobs),
+          json: () => Promise.resolve(sampleJobs),
         }),
       ),
     );
 
     const jobs = await getFunctionJobsFromFunctionJobCollection("collection1");
-    expect(jobs).toEqual(mockJobs);
+    expect(jobs).toEqual(sampleJobs);
   });
 });

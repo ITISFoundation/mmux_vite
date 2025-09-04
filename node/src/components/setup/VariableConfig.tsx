@@ -13,7 +13,7 @@ function VariableConfig(props: VariableConfigProps) {
 
   return (
     <Box
-      sx={theme => ({
+      sx={{
         display: "flex",
         flexDirection: "column",
         flex: 1,
@@ -25,7 +25,7 @@ function VariableConfig(props: VariableConfigProps) {
         border: `1px solid ${theme.palette.background.paper}`,
         gap: "16px",
         borderRadius: "8px",
-      })}
+      }}
     >
       <Typography variant="h6" sx={{ fontSize: "1.2em" }}>
         <Chip

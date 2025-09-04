@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { usePersistenceContext } from "./PersistenceContext";
@@ -64,6 +62,7 @@ export function SamplingContextProvider({ children }: Props) {
       singleJobConfig,
     };
     saveState(newPersistence);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lhsSamplingConfig, gridSamplingConfig, singleJobConfig]);
 
   useEffect(() => {
@@ -74,6 +73,7 @@ export function SamplingContextProvider({ children }: Props) {
       setSingleJobConfig(persistence.singleJobConfig);
       setLocalLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
   useEffect(() => {

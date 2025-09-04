@@ -89,6 +89,9 @@ export default [
       "max-classes-per-file": ["warn", 2],
       "prefer-regex-literals": "off",
       "no-control-regex": "off",
+      "no-console": "off",
+      "no-await-in-loop": "off",
+      "react/jsx-props-no-spreading": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {

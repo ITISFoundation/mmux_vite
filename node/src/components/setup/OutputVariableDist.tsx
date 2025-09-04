@@ -1,7 +1,7 @@
 import { Box, Chip, IconButton, InputLabel, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import { Add, Delete } from "@mui/icons-material";
-import { useServiceContext } from "../../context/ServiceContext";
+// import { useServiceContext } from "../../context/ServiceContext";
 import Header from "../navigation/Header";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
@@ -9,7 +9,7 @@ import { AddOutputModal } from "./AddOutputModal";
 
 export function OutputVariableDist() {
   const { selectedFunction, outputVars, outputDistribution, setOutputDistribution } = useFunctionContext();
-  const { serviceMode: _serviceMode } = useServiceContext();
+  // const { ServiceMode } = useServiceContext();
   const [openModal, setOpenModal] = useState(false);
   const [configuredOutputs, setConfiguredOutputs] = useState(outputDistribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
@@ -52,10 +52,10 @@ export function OutputVariableDist() {
         infoText="Optimize the output variables by minimizing or maximizing their range"
       />
       <Box sx={{ display: "flex", overflowX: "auto" }}>
-        {Object.keys(configuredOutputs).map((outputVar, index) => (
+        {Object.keys(configuredOutputs).map(outputVar => (
           <Box
-            key={index}
-            sx={theme => ({
+            key={`output-var-${outputVar}`}
+            sx={{
               display: "flex",
               position: "relative",
               flexDirection: "column",
@@ -67,7 +67,7 @@ export function OutputVariableDist() {
               backgroundColor: theme.palette.background.default,
               gap: "16px",
               borderRadius: "8px",
-            })}
+            }}
           >
             <Typography
               variant="h6"
@@ -150,7 +150,7 @@ export function OutputVariableDist() {
         {Object.keys(configuredOutputs).length < outputVars.length && (
           <Box
             key="add-output"
-            sx={theme => ({
+            sx={{
               display: "block",
               maxWidth: "210px",
               minWidth: "210px",
@@ -160,7 +160,7 @@ export function OutputVariableDist() {
               gap: "16px",
               borderRadius: "8px",
               textAlign: "center",
-            })}
+            }}
           >
             <IconButton
               sx={{

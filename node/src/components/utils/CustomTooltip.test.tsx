@@ -10,7 +10,7 @@ describe("CustomTooltip", () => {
   it("renders tooltip with title", async () => {
     render(
       <CustomTooltip title="Tooltip text">
-        <button>Hover me</button>
+        <button type="button">Hover me</button>
       </CustomTooltip>,
     );
     // Tooltip is not visible initially
@@ -24,7 +24,7 @@ describe("CustomTooltip", () => {
   it("renders 'Read more...' link when ExtendedTootlip is provided", async () => {
     render(
       <CustomTooltip title="Tooltip text" ExtendedTootlip={<Typography>Extended content</Typography>}>
-        <button>Hover me</button>
+        <button type="button">Hover me</button>
       </CustomTooltip>,
     );
     fireEvent.mouseOver(screen.getByRole("button"));
@@ -37,7 +37,7 @@ describe("CustomTooltip", () => {
         title="Tooltip text"
         ExtendedTootlip={<Typography data-testid="extended-content">Extended content</Typography>}
       >
-        <button>Hover me</button>
+        <button type="button">Hover me</button>
       </CustomTooltip>,
     );
     fireEvent.mouseOver(screen.getByRole("button"));
@@ -52,7 +52,7 @@ describe("CustomTooltip", () => {
         title="Tooltip text"
         ExtendedTootlip={<Typography data-testid="extended-content">Extended content</Typography>}
       >
-        <button>Hover me</button>
+        <button type="button">Hover me</button>
       </CustomTooltip>,
     );
     fireEvent.mouseOver(screen.getByRole("button"));

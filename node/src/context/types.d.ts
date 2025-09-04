@@ -1,8 +1,8 @@
-import { Function, RegisteredFunctionJobCollection } from "../osparc-api-ts-client";
+import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "../osparc-api-ts-client";
 
 interface PersistenceType {
   currentView: number;
-  selectedFunction: Function | undefined;
+  selectedFunction: OsparcFunction | undefined;
   inputVars: string[];
   outputVars: string[];
   distribution: { [key: string]: InputVarSelection };

@@ -1,4 +1,4 @@
-import { delay } from "./function_utils";
+import { delay } from "./delay";
 
 export const fetchWithRetry = async (
   url: string,
@@ -10,7 +10,7 @@ export const fetchWithRetry = async (
   let response: Response | undefined;
   let ErrorToRetry: Error | undefined;
 
-  for (let attempt = 0; attempt < retries; attempt++) {
+  for (let attempt = 0; attempt < retries; attempt += 1) {
     response = undefined; // Reset response for each attempt
     try {
       response = await fetch(url, options);
@@ -30,5 +30,5 @@ export const fetchWithRetry = async (
   }
 
   // If we reach here, it means all retries failed
-  throw ErrorToRetry; // Re-throw the last error encountered
+  throw ErrorToRetry ?? new Error("fetchWithRetry: All retries failed and no error was captured."); // Re-throw the last error encountered
 };

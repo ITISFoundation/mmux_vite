@@ -1,11 +1,7 @@
 import { toast } from "react-toastify";
-import { Function, ProjectFunctionJob, FunctionJob, FunctionJobCollection } from "../osparc-api-ts-client";
+import { Function as OsparcFunction, ProjectFunctionJob, FunctionJob, FunctionJobCollection } from "../osparc-api-ts-client";
 import { PYTHON_DAKOTA_BACKEND } from "./api_objects";
 import { fetchWithRetry } from "./fetch_retry";
-
-export function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 export function createInputOutputSchema(vars: string[]) {
   return {
@@ -38,7 +34,7 @@ export async function getServiceMode(): Promise<string> {
   return serviceModeJson.service_mode;
 }
 
-export async function listFunctions(): Promise<Function[]> {
+export async function listFunctions(): Promise<OsparcFunction[]> {
   const result = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/list_functions`);
   return result.json();
 }
@@ -103,6 +99,7 @@ interface StudyType {
   description: string;
 }
 export const createJobStudyCopy = async (functionName: string, job: ProjectFunctionJob) => {
+  let error: Error = new Error();
   try {
     const { projectJobId } = job;
     const { inputs } = job;
@@ -119,10 +116,13 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
       return study.uid;
     }
     toast.error("Failed to open job copy: No UID returned");
-  } catch (error) {
-    console.error("Error creating Job Copy for inspection:", error);
+    error = new Error("Failed to open job copy: No UID returned");
+  } catch (err) {
+    console.error("Error creating Job Copy for inspection:", err);
     toast.error("Error creating Job Copy for inspection");
+    error = new Error("Error creating Job Copy for inspection", { cause: err as Error });
   }
+  return error;
 };
 
 export function aggregateInputValues(jobs: FunctionJob[]): Record<string, number[]> {

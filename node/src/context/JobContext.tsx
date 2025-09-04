@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { FunctionJob, RegisteredFunctionJobCollection } from "../osparc-api-ts-client";
 import { usePersistenceContext } from "./PersistenceContext";

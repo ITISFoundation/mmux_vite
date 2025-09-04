@@ -9,7 +9,7 @@ import { fetchWithRetry } from "./fetch_retry";
 import { getSamplingEndValue, getSamplingStartValue } from "./sampling";
 import { stepValidator } from "./stepValidator";
 import { RegisteredFunctionJobCollection, FunctionJob } from "../osparc-api-ts-client";
-import type { Function } from "../osparc-api-ts-client";
+import type { Function as OsparcFunction } from "../osparc-api-ts-client";
 
 // 1st test: get the file with a given path
 describe("CSV Functions", () => {
@@ -153,7 +153,7 @@ describe("stepValidator", () => {
         },
       },
       outputDistribution: {},
-      setSelectedFunction: (_F: Function | undefined): void => {
+      setSelectedFunction: (_F: OsparcFunction | undefined): void => {
         throw new Error("Function not implemented.");
       },
       inputVars: [],

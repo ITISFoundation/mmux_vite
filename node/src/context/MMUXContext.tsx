@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { GridSortModel } from "@mui/x-data-grid";
 import { usePersistenceContext } from "./PersistenceContext";

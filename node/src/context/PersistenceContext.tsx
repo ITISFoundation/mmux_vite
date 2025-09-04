@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { PersistenceType } from "./types";
@@ -135,6 +133,7 @@ export function PersistenceContextProvider({ children }: Props) {
     } catch (error) {
       console.error("Error saving state:", error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getFunctionValues = useCallback((): Partial<PersistenceType> | undefined => {
@@ -165,6 +164,7 @@ export function PersistenceContextProvider({ children }: Props) {
         saveState(newPersistence);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [persistence],
   );
 
@@ -200,6 +200,7 @@ export function PersistenceContextProvider({ children }: Props) {
     if (healthOK) {
       fetchFile();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [healthOK]);
 
   const memo = React.useMemo(

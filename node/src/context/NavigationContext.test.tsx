@@ -17,7 +17,9 @@ function TestComponent() {
     <div>
       <span data-testid="currentView">{currentView}</span>
       <span data-testid="steps">{steps.length}</span>
-      <button onClick={() => setCurrentView(1)}>Set View 1</button>
+      <button type="button" onClick={() => setCurrentView(1)}>
+        Set View 1
+      </button>
     </div>
   );
 }

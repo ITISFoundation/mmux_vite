@@ -4,7 +4,7 @@ import { getSimplifiedHost } from "../../utils/function_utils";
 
 function PreviewWarning() {
   const simplifiedHost = getSimplifiedHost();
-  const { serviceMode, permissions } = useServiceContext();
+  const { ServiceMode: serviceMode, permissions } = useServiceContext();
   return permissions === "READ-ONLY" ? (
     <Container>
       <Box paddingTop={2}>

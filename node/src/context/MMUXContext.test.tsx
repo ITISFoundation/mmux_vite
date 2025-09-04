@@ -29,11 +29,21 @@ function Consumer() {
       <span data-testid="isSuMoGenerated">{ctx.isSuMoGenerated ? "yes" : "no"}</span>
       <span data-testid="weights">{JSON.stringify(ctx.weights)}</span>
       <span data-testid="sortModel">{JSON.stringify(ctx.sortModel)}</span>
-      <button onClick={() => ctx.setNumSamples({ bar: 2 })}>setNumSamples</button>
-      <button onClick={() => ctx.setSelectedQoI("QoI2")}>setSelectedQoI</button>
-      <button onClick={() => ctx.setIsSuMoGenerated(false)}>setIsSuMoGenerated</button>
-      <button onClick={() => ctx.setWeights({ bar: 0.8 })}>setWeights</button>
-      <button onClick={() => ctx.setSortModel([{ field: "bar", sort: "desc" }])}>setSortModel</button>
+      <button type="button" onClick={() => ctx.setNumSamples({ bar: 2 })}>
+        setNumSamples
+      </button>
+      <button type="button" onClick={() => ctx.setSelectedQoI("QoI2")}>
+        setSelectedQoI
+      </button>
+      <button type="button" onClick={() => ctx.setIsSuMoGenerated(false)}>
+        setIsSuMoGenerated
+      </button>
+      <button type="button" onClick={() => ctx.setWeights({ bar: 0.8 })}>
+        setWeights
+      </button>
+      <button type="button" onClick={() => ctx.setSortModel([{ field: "bar", sort: "desc" }])}>
+        setSortModel
+      </button>
     </div>
   );
 }

@@ -33,6 +33,7 @@ function TestComponent() {
   return (
     <div>
       <button
+        type="button"
         onClick={() =>
           setFetchedJobCollections([
             {
@@ -50,10 +51,14 @@ function TestComponent() {
       >
         Set Fetched
       </button>
-      <button onClick={() => setSelectedJobUids(["1", "3"])} data-testid="set-selected">
+      <button type="button" onClick={() => setSelectedJobUids(["1", "3"])} data-testid="set-selected">
         Set Selected
       </button>
-      <button onClick={() => setRunningJobCollection({} as RegisteredFunctionJobCollection)} data-testid="set-running">
+      <button
+        type="button"
+        onClick={() => setRunningJobCollection({} as RegisteredFunctionJobCollection)}
+        data-testid="set-running"
+      >
         Set Running
       </button>
       <div data-testid="all-jobs">{JSON.stringify(allJobsList())}</div>

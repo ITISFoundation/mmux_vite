@@ -18,8 +18,11 @@ function TestComponent() {
 
   return (
     <div>
-      <button onClick={() => setHealthOK(true)}>Set Health OK</button>
+      <button type="button" onClick={() => setHealthOK(true)}>
+        Set Health OK
+      </button>
       <button
+        type="button"
         onClick={() =>
           setFunctionValues({
             selectedFunction: undefined,
@@ -32,6 +35,7 @@ function TestComponent() {
         Set Function Values
       </button>
       <button
+        type="button"
         onClick={async () => {
           await saveState(mockPersistence);
         }}

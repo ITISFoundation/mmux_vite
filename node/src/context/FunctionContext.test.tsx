@@ -54,7 +54,7 @@ describe("FunctionContextProvider", () => {
       const ctx = useFunctionContext();
       return (
         <div>
-          <button onClick={() => ctx.setInputVars(["a", "b"])} data-testid="setInputVars">
+          <button type="button" onClick={() => ctx.setInputVars(["a", "b"])} data-testid="setInputVars">
             Set Input Vars
           </button>
           <span data-testid="inputVars">{ctx.inputVars.join(",")}</span>

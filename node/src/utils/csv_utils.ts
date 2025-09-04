@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { delay } from "./delay";
 
 function cleanCsvRows(rows: string[][]): string[][] {
   rows.shift(); // Remove the first row (headers) from the rows list
@@ -44,7 +45,7 @@ export async function pickCsv(filePath?: string): Promise<File> {
 
   // Busy-wait until the file is selected
   while (selectedFile === null) {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await delay(100);
   }
 
   return selectedFile;

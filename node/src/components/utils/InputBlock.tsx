@@ -18,7 +18,7 @@ export function InputBlock(props: InputBlockProps) {
         size="small"
         sx={{ marginTop: "8px" }}
         data-testid="input-block"
-        value={isNaN(currentValue) ? "" : currentValue}
+        value={Number.isNaN(currentValue) ? "" : currentValue}
         onChange={e => setCurrentValue(parseFloat(e.target.value))}
         onBlur={e => handleChange(parseFloat(e.target.value))}
         aria-label={name}
