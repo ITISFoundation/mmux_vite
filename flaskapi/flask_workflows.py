@@ -23,7 +23,6 @@ from mmux_python.utils.funs_data_processing import (
 )
 from mmux_python.utils.funs_evaluate import create_run_dir
 from mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid, perform_moga_optimization
-from mmux_python.utils.funs_plotting import plot_objective_space
 
 ### Logger configuration ####################################
 _logger = logging.getLogger(__name__)
@@ -235,6 +234,7 @@ def flask_get_function_job_collections_for_functionid():
     _logger.debug("Starting flask function: flask_get_function_job_collections")
     _logger.debug("Cwd: " + str(Path.cwd()))
     try:
+        _logger.debug(f"Request args: {request.args}")
         function_uid = request.args["functionUid"]
         _logger.debug(f"Function ID: {function_uid}")
         # job_collections = get_all_items(job_collection_api_instance.list_function_job_collections, has_function_id=function_uid)
@@ -476,6 +476,7 @@ def flask_manual_uq_propagation_with_uncertainty():
     try:
         # Convert request data into a Python dictionary
         request_data: dict = json.loads(request.data.decode("utf-8"))
+        _logger.debug(f"Request data: {request_data}")
         output_response = request_data["output"]
         input_vars: List[str] = request_data["inputVars"]
         distributions = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
@@ -882,7 +883,8 @@ def save_file():
     Request body should be JSON with 'filename' and 'content' fields."""
     try:
         request_data = json.loads(request.data.decode("utf-8"))
-        
+        _logger.debug(f"Request data: {request_data}")
+
         if "filename" not in request_data or "content" not in request_data:
             return jsonify({"error": "Request must include both filename and content"}), 400
         
@@ -961,7 +963,7 @@ def flask_perform_moga_optimization():
             PROCESSED_TRAINING_FILE,
             input_vars_sanitized,
             input_distributions_sanitized,
-            output_var_selection_sanitized,
+            list(output_var_selection_sanitized.keys()),
             moga_kwargs={"max_function_evaluations": 1000},
         )
 
