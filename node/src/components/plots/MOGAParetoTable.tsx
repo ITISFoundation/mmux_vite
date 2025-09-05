@@ -30,6 +30,7 @@ function MogaParetoTable({ tableData }: MogaParetoTableProps) {
 
   const handleWeightsChange = (key: string, newValue: number) => {
     const newWeights = { ...localWeights, [key]: newValue };
+    console.log("setting weights!", newWeights);
     setWeights(newWeights);
     setLocalWeights(newWeights);
   };
@@ -74,7 +75,7 @@ function MogaParetoTable({ tableData }: MogaParetoTableProps) {
     ? data.inputs.map(key => ({
         ...columnProps,
         field: key,
-        maxWidth: 90,
+        maxWidth: 120,
         headerName: key.toUpperCase(),
         type: "number",
         renderCell: params => params.row[key],
@@ -179,8 +180,6 @@ function MogaParetoTable({ tableData }: MogaParetoTableProps) {
       ),
     },
   ]);
-
-  console.log("Table data:", tableData);
 
   return (
     <DataGrid
