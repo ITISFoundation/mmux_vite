@@ -17,7 +17,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
   const { loading, progress, jobProgress } = props;
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
-  const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
+  const { fetchedJobCollections, filterSelectedJobList, selectedJobUids } = useJobContext();
   const { weights } = useMMUXContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
@@ -142,7 +142,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       run();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFunction, outputTargets, weights]);
+  }, [selectedFunction, outputTargets, weights, selectedJobUids]);
 
   const layout = {
     title: { text: "Pareto Front Diagram" },
