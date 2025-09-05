@@ -106,7 +106,7 @@ export function InputVariableDist() {
     const newInputVars = { ...localDistribution };
     if (!newInputVars[inputVar]) {
       newInputVars[inputVar] = {
-        distribution: ["SUMO", "MOGA"].includes(ServiceMode) ? "normal" : "uniform",
+        distribution: ["SUMO", "MOGA"].includes(ServiceMode) ? "uniform" : "normal",
       };
     }
     newInputVars[inputVar][type as Variables] = value;
