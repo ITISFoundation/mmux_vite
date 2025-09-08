@@ -121,6 +121,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     if (fetchedJobCollections.length > 0 && !forceFetch) {
       console.info("Job collections already fetched, skipping fetch.");
       setJobCollections(fetchedJobCollections);
+      setLoading(false);
       return;
     }
 
@@ -135,6 +136,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     if (equalJC) {
       console.info("Job collections already fetched, skipping fetch.");
       setJobCollections(fetchedJobCollections);
+      setLoading(false);
       return;
     }
 
@@ -287,7 +289,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
   useEffect(() => {
     console.info("useEffect in JobsSelector triggered");
-    if (selectedFunction !== undefined && jobCollections.length > 0) {
+    if (selectedFunction === undefined || jobCollections.length > 0) {
+    } else {
       console.info("Function selected: ", selectedFunction.uid);
       (async () => {
         setJobCollections([]);
