@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
+import { useEffect, useState } from "react";
 import Plot from "react-plotly.js";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";

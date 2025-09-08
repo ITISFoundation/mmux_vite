@@ -1,10 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { KeyboardArrowUp, KeyboardArrowDown, InfoOutline, Refresh } from "@mui/icons-material";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
+import { InfoOutline, KeyboardArrowDown, KeyboardArrowUp, Refresh } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -17,17 +11,22 @@ import {
   TableContainer,
   TablePagination,
 } from "@mui/material";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
 import { DataGrid } from "@mui/x-data-grid";
-import { useMMUXContext } from "../../context/MMUXContext";
-import { FunctionJob } from "../../osparc-api-ts-client";
-import { getFunctionJobCollections, getFunctionJob } from "../../utils/function_utils";
-import JobRow from "./JobRow";
-import CustomTooltip from "../utils/CustomTooltip";
-import getMinMax from "../minmax";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { useSamplingContext } from "../../context/SamplingContext";
+import { FunctionJob } from "../../osparc-api-ts-client";
+import { getFunctionJobCollections, getFunctionJobsFromFunctionJobCollection } from "../../utils/function_utils";
+import getMinMax from "../minmax";
+import CustomTooltip from "../utils/CustomTooltip";
+import JobRow from "./JobRow";
 
 type JobSelectorPropsType = {
   loading: boolean;
