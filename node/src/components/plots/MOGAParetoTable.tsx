@@ -5,13 +5,16 @@ import { useMMUXContext } from "../../context/MMUXContext";
 
 interface MogaParetoTableProps {
   tableData: MogaDataType | undefined;
+  hovered: number | null;
+  setHovered: (x: number | null) => void;
 }
 
 function getRowId(value: MogaDataRowType) {
   return value.NDI;
 }
 
-function MogaParetoTable({ tableData }: MogaParetoTableProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProps) {
   const { weights, setWeights, sortModel, setSortModel } = useMMUXContext();
   const [data, setData] = useState<MogaDataType | undefined>(undefined);
   const [localWeights, setLocalWeights] = useState(weights || {});
@@ -223,6 +226,15 @@ function MogaParetoTable({ tableData }: MogaParetoTableProps) {
         loadingOverlay: {
           variant: "linear-progress",
           noRowsVariant: "linear-progress",
+        },
+        row: {
+          onMouseEnter: (event: React.MouseEvent<HTMLElement>) => {
+            const rowData = event.currentTarget!.dataset;
+            setHovered(Number(rowData.id));
+          },
+          onMouseLeave: () => {
+            setHovered(null);
+          },
         },
       }}
       sortModel={localSortModel}

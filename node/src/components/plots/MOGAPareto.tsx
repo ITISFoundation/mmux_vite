@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
 import { JobsLoading } from "../data/JobsLoading";
@@ -16,6 +16,7 @@ import { useMMUXContext } from "../../context/MMUXContext";
 export function MOGAPareto(props: MogaParetoPropsType) {
   const { loading, progress, jobProgress } = props;
   const theme = useTheme();
+  const ref = useRef<Plot>(null);
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
   const { fetchedJobCollections, filterSelectedJobList, selectedJobUids } = useJobContext();
   const { weights } = useMMUXContext();
@@ -25,6 +26,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
   const [outputVarSelection, setOutputVarSelection] = useState<OutputVarSelection>({});
   const [optVars, setOptVars] = useState<Array<string>>([]);
   const [tableData, setTableData] = useState<MogaDataType | undefined>(undefined);
+  const [hovered, setHovered] = useState<number | null>(null);
 
   const calculatePerformance = useCallback(
     (row: { [x: string]: number }) => {
@@ -144,6 +146,26 @@ export function MOGAPareto(props: MogaParetoPropsType) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFunction, outputTargets, weights, selectedJobUids]);
 
+  useEffect(() => {
+    if (hovered !== null && tableData) {
+      const hoveredRow = tableData.rows.find(r => r.NDI === hovered);
+      console.log("hovered row:", hoveredRow);
+      if (hoveredRow && optVars.length >= 2) {
+        const newPlotData = [...plotData];
+        newPlotData[3] = {
+          name: "Hovered Sample",
+          mode: "markers",
+          type: "scatter",
+          marker: { color: "red", size: 10, symbol: "circle" },
+          x: [hoveredRow[optVars[0]]],
+          y: [hoveredRow[optVars[1]]],
+        };
+        setPlotData(newPlotData);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hovered]);
+
   const layout = {
     title: { text: "Pareto Front Diagram" },
     xaxis: { title: { text: optVars[0] } },
@@ -176,8 +198,8 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       )}
       {!propagating && plotData.length !== 0 && (
         <>
-          <Plot data={plotData} layout={layout} style={plotStyle} />
-          <MogaParetoTable tableData={tableData} />
+          <Plot ref={ref} data={plotData} layout={layout} style={plotStyle} />
+          <MogaParetoTable tableData={tableData} hovered={hovered} setHovered={setHovered} />
         </>
       )}
     </Box>
