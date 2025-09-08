@@ -81,7 +81,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         maxWidth: 120,
         headerName: key.toUpperCase(),
         type: "number",
-        renderCell: params => params.row[key],
+        renderCell: params => params.row[key].toFixed(3),
         valueGetter: (_value, row) => row[key],
       }))
     : [];
@@ -151,7 +151,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
               </Popover>
             </Box>
           ),
-          renderCell: params => params.row[key],
+          renderCell: params => params.row[key].toFixed(3),
           valueGetter: (_value, row) => row[key],
         }))
       : [],
