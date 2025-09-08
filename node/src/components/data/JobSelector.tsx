@@ -166,7 +166,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
     for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx = +1) {
       const jc = jobsC[jcIdx];
-      let job: FunctionJob;
       const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
       const subJobs = [];
       for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx = +1) {
