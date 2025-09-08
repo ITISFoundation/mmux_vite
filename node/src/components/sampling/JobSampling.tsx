@@ -1,5 +1,5 @@
 import { InfoOutline } from "@mui/icons-material";
-import { Accordion, Button, AccordionDetails } from "@mui/material";
+import { Accordion, Button, AccordionDetails, useTheme } from "@mui/material";
 import React, { useState } from "react";
 import CustomTooltip from "../utils/CustomTooltip";
 import AdaptExtedSamplingDocument from "../documents/AdaptExtendSamplingDocument";
@@ -23,6 +23,7 @@ interface JobSamplingProps {
 export function JobSampling(props: JobSamplingProps) {
   const { loading, setLoading, progress, setProgress, jobProgress, setJobProgress, colsFetched, jobsFetched, selectedFunction } =
     props;
+  const theme = useTheme();
   const [jobPanelOpen, setJobPanelOpen] = useState<boolean>(false);
 
   return (
@@ -51,13 +52,13 @@ export function JobSampling(props: JobSamplingProps) {
           arrow
         >
           <InfoOutline
-            sx={theme => ({
+            sx={{
               color: loading ? theme.palette.grey[400] : theme.palette.primary.light,
               backgroundColor: loading ? theme.palette.grey[200] : theme.palette.background.default,
               borderRadius: "50%",
               padding: "2px",
               marginLeft: "8px",
-            })}
+            }}
           />
         </CustomTooltip>
       </Button>

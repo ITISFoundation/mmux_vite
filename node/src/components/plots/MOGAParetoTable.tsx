@@ -187,11 +187,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
 
   return (
     <>
-      <Header
-        tabTitle="Pareto-Optimal MOGA Samples"
-        headerType="subTitle"
-        ExtendedInfoText="Explore the pareto-optimal solutions."
-      />
+      <Header tabTitle="Pareto-Optimal MOGA Samples" headerType="subTitle" infoText="Explore the pareto-optimal solutions" />
       <DataGrid
         rows={data?.rows || []}
         columns={columns}
