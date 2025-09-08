@@ -99,6 +99,10 @@ configuration = OsparcConfiguration(
         username=os.environ["OSPARC_API_KEY"],
         password=os.environ["OSPARC_API_SECRET"],
 )
+assert configuration.host is not None
+assert configuration.username is not None
+assert configuration.password is not None
+
 def _anonymize(s: str, n: int=4, m: Optional[int]=None):
     if not s:
         return ""
@@ -113,19 +117,18 @@ _logger.info(
     _anonymize(configuration.password, 4, 6)
 )
 
+### API instances ############################################
 api_client = ApiClient(configuration)
 studies_api_instance = StudiesApi(api_client)
 functions_api_instance = FunctionsApi(api_client)
 job_api_instance = FunctionJobsApi(api_client)
 job_collection_api_instance = FunctionJobCollectionsApi(api_client)
 
-
 # check that API is responsive
 _logger.info("Checking if the API is responsive...")
 users_api = UsersApi(api_client)
 profile = users_api.get_my_profile()
 _logger.info("User profile info:\n%s", profile.model_dump_json(indent=2))
-
 #############################################################
 
 ### Flask app configuration #################################
