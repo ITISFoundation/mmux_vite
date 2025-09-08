@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Typography, Button, Box, Chip, Popover, Slider } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import { useMMUXContext } from "../../context/MMUXContext";
+import Header from "../navigation/Header";
 
 interface MogaParetoTableProps {
   tableData: MogaDataType | undefined;
@@ -185,64 +186,71 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
   ]);
 
   return (
-    <DataGrid
-      rows={data?.rows || []}
-      columns={columns}
-      sx={theme => ({
-        borderRadius: theme.spacing(2),
-        overflow: "hidden",
-        fontFamily: "inherit",
-        padding: "0px 8px",
-        "& .MuiDataGrid-cell": {
-          fontWeight: 400,
-        },
-        "& .MuiDataGrid-row:hover": {
-          backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
-        },
-        "& .MuiDataGrid-row.Mui-selected": {
-          backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
-        },
-        "& .MuiDataGrid-row.Mui-selected:hover": {
-          backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
-        },
-        "& .MuiDataGrid-sortButton": {
-          backgroundColor: theme.palette.background.paper,
-        },
-      })}
-      getRowId={getRowId}
-      initialState={{
-        pagination: {
-          paginationModel: { pageSize: 10 },
-        },
-        filter: {
-          filterModel: {
-            items: [],
+    <>
+      <Header
+        tabTitle="Pareto-Optimal MOGA Samples"
+        headerType="subTitle"
+        ExtendedInfoText="Explore the pareto-optimal solutions."
+      />
+      <DataGrid
+        rows={data?.rows || []}
+        columns={columns}
+        sx={theme => ({
+          borderRadius: theme.spacing(2),
+          overflow: "hidden",
+          fontFamily: "inherit",
+          padding: "0px 8px",
+          "& .MuiDataGrid-cell": {
+            fontWeight: 400,
           },
-        },
-      }}
-      pageSizeOptions={[5, 10, 20, 50]}
-      loading={loading}
-      slotProps={{
-        loadingOverlay: {
-          variant: "linear-progress",
-          noRowsVariant: "linear-progress",
-        },
-        row: {
-          onMouseEnter: (event: React.MouseEvent<HTMLElement>) => {
-            const rowData = event.currentTarget!.dataset;
-            setHovered(Number(rowData.id));
+          "& .MuiDataGrid-row:hover": {
+            backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
           },
-          onMouseLeave: () => {
-            setHovered(null);
+          "& .MuiDataGrid-row.Mui-selected": {
+            backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
           },
-        },
-      }}
-      sortModel={localSortModel}
-      onSortModelChange={handleSortModelChange}
-      disableColumnMenu
-      disableColumnSelector
-      disableRowSelectionOnClick
-    />
+          "& .MuiDataGrid-row.Mui-selected:hover": {
+            backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
+          },
+          "& .MuiDataGrid-sortButton": {
+            backgroundColor: theme.palette.background.paper,
+          },
+        })}
+        getRowId={getRowId}
+        initialState={{
+          pagination: {
+            paginationModel: { pageSize: 10 },
+          },
+          filter: {
+            filterModel: {
+              items: [],
+            },
+          },
+        }}
+        pageSizeOptions={[5, 10, 20, 50]}
+        loading={loading}
+        slotProps={{
+          loadingOverlay: {
+            variant: "linear-progress",
+            noRowsVariant: "linear-progress",
+          },
+          row: {
+            onMouseEnter: (event: React.MouseEvent<HTMLElement>) => {
+              const rowData = event.currentTarget!.dataset;
+              setHovered(Number(rowData.id));
+            },
+            onMouseLeave: () => {
+              setHovered(null);
+            },
+          },
+        }}
+        sortModel={localSortModel}
+        onSortModelChange={handleSortModelChange}
+        disableColumnMenu
+        disableColumnSelector
+        disableRowSelectionOnClick
+      />
+    </>
   );
 }
 
