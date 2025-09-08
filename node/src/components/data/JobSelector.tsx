@@ -279,6 +279,12 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     updateJobContext(newJobCollections);
   }, [jobCollections, updateJobContext]);
 
+  const handleJobsUpdate = useCallback(async () => {
+    setJobCollections([]);
+    await updateJobCollections(selectedFunction?.uid as string);
+    console.info("Updated JobCollections");
+  }, [selectedFunction, updateJobCollections]);
+
   useEffect(() => {
     if (jobCollections.length > 0 && loading === true) {
       onToggleAll(true);
@@ -288,23 +294,15 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   }, [jobCollections, loading, onToggleAll, setIsSuMoGenerated, setLoading, updateJobContext]);
 
   useEffect(() => {
-    console.info("useEffect in JobsSelector triggered");
-    if (selectedFunction === undefined || jobCollections.length === 0) {
+    console.info("useEffect in JobsSelector triggered", selectedFunction, jobCollections);
+    if (selectedFunction === undefined || jobCollections.length > 0) {
       return;
     }
     console.info("Function selected: ", selectedFunction.uid);
-    (async () => {
-      setJobCollections([]);
-      await updateJobCollections(selectedFunction?.uid as string);
-      console.info("Updated JobCollections");
-    })();
+    handleJobsUpdate();
 
     console.info("Function selected: ", selectedFunction.uid);
-    (async () => {
-      setJobCollections([]);
-      await updateJobCollections(selectedFunction?.uid as string);
-      console.info("Updated JobCollections");
-    })();
+    handleJobsUpdate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFunction]);
 
