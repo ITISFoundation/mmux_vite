@@ -39,7 +39,7 @@ const defaultPersistence: PersistenceType = {
   runningJobCollection: undefined,
   fetchedJobCollections: [],
   selectedJobUids: [],
-  outputDistribution: {},
+  outputTargets: {},
 };
 
 export function PersistenceContextProvider({ children }: Props) {
@@ -59,7 +59,7 @@ export function PersistenceContextProvider({ children }: Props) {
       "inputVars" in data &&
       "outputVars" in data &&
       "distribution" in data &&
-      "outputDistribution" in data &&
+      "outputTargets" in data &&
       "lhsSamplingConfig" in data &&
       "gridSamplingConfig" in data &&
       "singleJobConfig" in data &&
@@ -143,14 +143,14 @@ export function PersistenceContextProvider({ children }: Props) {
         inputVars: persistence.inputVars,
         outputVars: persistence.outputVars,
         distribution: persistence.distribution,
-        outputDistribution: persistence.outputDistribution,
+        outputTargets: persistence.outputTargets,
       };
     }
     return undefined;
   }, [persistence]);
 
   const setFunctionValues = useCallback(
-    ({ selectedFunction, inputVars, outputVars, distribution, outputDistribution }: Partial<PersistenceType>) => {
+    ({ selectedFunction, inputVars, outputVars, distribution, outputTargets }: Partial<PersistenceType>) => {
       if (persistence !== undefined) {
         console.info("Persisting Function context state...");
         const newPersistence: PersistenceType = {
@@ -159,7 +159,7 @@ export function PersistenceContextProvider({ children }: Props) {
           inputVars: inputVars || [],
           outputVars: outputVars || [],
           distribution: distribution || {},
-          outputDistribution: outputDistribution || {},
+          outputTargets: outputTargets || {},
         };
         saveState(newPersistence);
       }

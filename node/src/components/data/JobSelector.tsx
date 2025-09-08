@@ -164,10 +164,10 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
     const newJobCollections: SelectedJobCollection[] = [];
 
-    for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx = +1) {
+    for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx += 1) {
       const jc = jobsC[jcIdx];
       const subJobs = [];
-      for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx = +1) {
+      for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx += 1) {
         let job: FunctionJob;
         const id = jc.jobIds[subJobIdx];
         // check if job is already fetched in fetchedJobCollections
@@ -289,15 +289,22 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
   useEffect(() => {
     console.info("useEffect in JobsSelector triggered");
-    if (selectedFunction === undefined || jobCollections.length > 0) {
-    } else {
-      console.info("Function selected: ", selectedFunction.uid);
-      (async () => {
-        setJobCollections([]);
-        await updateJobCollections(selectedFunction?.uid as string);
-        console.info("Updated JobCollections");
-      })();
+    if (selectedFunction === undefined || jobCollections.length === 0) {
+      return;
     }
+    console.info("Function selected: ", selectedFunction.uid);
+    (async () => {
+      setJobCollections([]);
+      await updateJobCollections(selectedFunction?.uid as string);
+      console.info("Updated JobCollections");
+    })();
+
+    console.info("Function selected: ", selectedFunction.uid);
+    (async () => {
+      setJobCollections([]);
+      await updateJobCollections(selectedFunction?.uid as string);
+      console.info("Updated JobCollections");
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFunction]);
 

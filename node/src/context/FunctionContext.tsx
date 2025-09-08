@@ -13,8 +13,8 @@ export interface FunctionContextType {
   setOutputVars: (vars: string[]) => void;
   distribution: { [key: string]: InputVarSelection };
   setDistribution: (d: { [key: string]: InputVarSelection }) => void;
-  outputDistribution: { [key: string]: OutputVarSelection };
-  setOutputDistribution: (d: { [key: string]: OutputVarSelection }) => void;
+  outputTargets: { [key: string]: OutputVarSelection };
+  setOutputTargets: (d: { [key: string]: OutputVarSelection }) => void;
 }
 
 export const FunctionContext = createContext<FunctionContextType>(undefined!);
@@ -31,7 +31,7 @@ export function FunctionContextProvider({ children }: Props) {
     inputVars: iiv,
     outputVars: iov,
     distribution: id,
-    outputDistribution: od,
+    outputTargets: od,
   } = functionValues as Partial<PersistenceType>;
   const [selectedFunction, setSelectedFunction] = useState<OsparcFunction | undefined>(isf);
   const [distribution, setDistribution] = useState<{
@@ -39,7 +39,7 @@ export function FunctionContextProvider({ children }: Props) {
   }>(id || {});
   const [inputVars, setInputVars] = useState<string[]>(iiv || []);
   const [outputVars, setOutputVars] = useState<string[]>(iov || []);
-  const [outputDistribution, setOutputDistribution] = useState<{
+  const [outputTargets, setOutputTargets] = useState<{
     [key: string]: OutputVarSelection;
   }>(od || {});
 
@@ -50,10 +50,10 @@ export function FunctionContextProvider({ children }: Props) {
         inputVars,
         outputVars,
         distribution,
-        outputDistribution,
+        outputTargets,
       });
     }
-  }, [selectedFunction, inputVars, outputVars, distribution, outputDistribution]);
+  }, [selectedFunction, inputVars, outputVars, distribution, outputTargets]);
 
   const memo = React.useMemo(
     () => ({
@@ -65,8 +65,8 @@ export function FunctionContextProvider({ children }: Props) {
       setOutputVars,
       distribution,
       setDistribution,
-      outputDistribution,
-      setOutputDistribution,
+      outputTargets,
+      setOutputTargets,
     }),
     [
       selectedFunction,
@@ -77,8 +77,8 @@ export function FunctionContextProvider({ children }: Props) {
       setOutputVars,
       distribution,
       setDistribution,
-      outputDistribution,
-      setOutputDistribution,
+      outputTargets,
+      setOutputTargets,
     ],
   );
 
