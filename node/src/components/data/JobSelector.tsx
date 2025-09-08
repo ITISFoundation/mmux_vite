@@ -169,7 +169,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
       const subJobs = [];
       for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx = +1) {
-        let job: FunctionJob;
+        let job: FunctionJob | undefined;
         const id = jc.jobIds[subJobIdx];
         const existingJob = fetchedJobCollections.find(
           j =>
@@ -179,7 +179,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         if (existingJob) {
           job = existingJob.subJobs.find(j => j.job.uid === id)?.job;
         } else {
-          job = functionJobs[subJobIdx]
+          job = subJobIdx < functionJobs.length ? functionJobs[subJobIdx] : undefined;
         }
         jobsFetched.current += 1;
         const jobsProg = (jobsFetched.current / totalSubs) * 100;
