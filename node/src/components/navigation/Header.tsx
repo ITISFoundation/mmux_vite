@@ -1,5 +1,5 @@
 import { HelpOutline, InfoOutline } from "@mui/icons-material";
-import { Box, Typography, styled } from "@mui/material";
+import { Box, Typography, styled, useTheme } from "@mui/material";
 import CustomTooltip from "../utils/CustomTooltip";
 
 const HeaderContainer = styled("div", {
@@ -44,6 +44,7 @@ const types: { [key in HeaderTypes]: TypographyVariant } = {
 
 function Header(props: HeaderProps) {
   const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents, fontWeight } = props;
+  const theme = useTheme();
   return (
     <HeaderContainer headerType={headerType}>
       <Box flex={1} display="flex" alignItems="center">
@@ -58,7 +59,7 @@ function Header(props: HeaderProps) {
         {infoText && infoText.length > 0 && (
           <CustomTooltip title={infoText} ExtendedTootlip={ExtendedInfoText} placement="right" arrow>
             <InfoOutline
-              sx={theme => ({
+              sx={{
                 color: theme.palette.primary.light,
                 backgroundColor: theme.palette.background.default,
                 borderRadius: "50%",
@@ -66,7 +67,7 @@ function Header(props: HeaderProps) {
                 marginLeft: "8px",
                 marginBottom: "2px",
                 fontSize: "24px",
-              })}
+              }}
             />
           </CustomTooltip>
         )}
@@ -74,13 +75,13 @@ function Header(props: HeaderProps) {
       {helpContents && (
         <CustomTooltip title={helpContents} placement="right" arrow>
           <HelpOutline
-            sx={theme => ({
+            sx={{
               color: theme.palette.primary.light,
               backgroundColor: theme.palette.background.default,
               borderRadius: "50%",
               padding: "2px",
               fontSize: "32px",
-            })}
+            }}
           />
         </CustomTooltip>
       )}
