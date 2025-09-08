@@ -290,7 +290,13 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   useEffect(() => {
     console.info("useEffect in JobsSelector triggered");
     if (selectedFunction === undefined || jobCollections.length > 0) {
-      return;
+    } else {
+      console.info("Function selected: ", selectedFunction.uid);
+      (async () => {
+        setJobCollections([]);
+        await updateJobCollections(selectedFunction?.uid as string);
+        console.info("Updated JobCollections");
+      })();
     }
     console.info("Function selected: ", selectedFunction.uid);
     (async () => {
