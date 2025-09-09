@@ -16,7 +16,7 @@ function IsoSurface3DPlot() {
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const context = useJobContext();
-  const { filterSelectedJobList, fetchedJobCollections } = context;
+  const { filteredJobList, fetchedJobCollections } = context;
   const filteredInputVars = filterInputVars({
     ...context,
     selectedFunction,
@@ -183,12 +183,12 @@ function IsoSurface3DPlot() {
 
   useEffect(() => {
     const run = async () => {
-      const jobs = filterSelectedJobList();
+      const jobs = filteredJobList;
       return RunSuMo3DInterpolation(jobs, axis1, axis2);
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [axis1, axis2, axis3, inputVars, selectedQoI, selectedFunction, otherAxis, filterSelectedJobList]);
+  }, [axis1, axis2, axis3, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList]);
 
   const layout = {
     title: {
@@ -226,7 +226,7 @@ function IsoSurface3DPlot() {
       {!propagating && plotData.length === 0 && (
         <InsufficientDataWarning
           fetchedJobCollections={fetchedJobCollections}
-          filterSelectedJobList={filterSelectedJobList}
+          filteredJobList={filteredJobList}
           height={plotStyle.height}
         />
       )}

@@ -183,7 +183,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             job = existingJob.subJobs.find(j => j.job.uid === id)?.job;
           } else {
             job = functionJobs[subJobIdx];
-            job.status = job.status.status as string;
+            job.status = (job.status as unknown as { status: string }).status;
           }
           jobsFetched.current += 1;
           const jobsProg = (jobsFetched.current / totalSubs) * 100;

@@ -190,9 +190,7 @@ describe("stepValidator", () => {
       allJobsList: (): FunctionJob[] => {
         throw new Error("Function not implemented.");
       },
-      filterSelectedJobList: (): FunctionJob[] => {
-        throw new Error("Function not implemented.");
-      },
+      filteredJobList: [],
     };
 
     expect(stepValidator(functionContext, jobContext, "", 0)).toBe(true);

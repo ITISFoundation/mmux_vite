@@ -18,7 +18,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
   const theme = useTheme();
   const ref = useRef<Plot>(null);
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
-  const { fetchedJobCollections, filterSelectedJobList, selectedJobUids } = useJobContext();
+  const { fetchedJobCollections, filteredJobList, selectedJobUids } = useJobContext();
   const { weights } = useMMUXContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
@@ -127,7 +127,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       setOutputVarSelection(outputTargets[selectedFunction.uid]);
 
       const run = async () => {
-        const jobs = filterSelectedJobList();
+        const jobs = filteredJobList;
         if (jobs.length === 0) {
           console.warn("No jobs selected for MOGA Pareto plot.");
           return;
@@ -192,7 +192,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       {!propagating && plotData.length === 0 && (
         <InsufficientDataWarning
           fetchedJobCollections={fetchedJobCollections}
-          filterSelectedJobList={filterSelectedJobList}
+          filteredJobList={filteredJobList}
           height={plotStyle.height}
         />
       )}

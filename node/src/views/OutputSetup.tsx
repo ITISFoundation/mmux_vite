@@ -17,7 +17,7 @@ export function OutputSetup(props: UQSetupProps) {
   const { loading, mode, setSumoModal } = props;
   const theme = useTheme();
   const { selectedFunction, outputVars } = useFunctionContext();
-  const { filterSelectedJobList } = useJobContext();
+  const { filteredJobList } = useJobContext();
   const { selectedQoI, setSelectedQoI, numSamples, setNumSamples } = useMMUXContext();
   const [localQoI, setLocalQoI] = useState<string | undefined>(selectedQoI);
   const [localNumSamples, setLocalNumSamples] = useState(numSamples[selectedFunction?.uid || ""] || 10000);
@@ -55,7 +55,7 @@ export function OutputSetup(props: UQSetupProps) {
         <Button
           variant="contained"
           size="small"
-          disabled={loading || !selectedFunction || filterSelectedJobList().length === 0}
+          disabled={loading || !selectedFunction || filteredJobList.length === 0}
           onClick={() => setSumoModal(true)}
           sx={{ padding: "8px 16px" }}
         >
@@ -164,7 +164,7 @@ export function OutputSetup(props: UQSetupProps) {
           <Button
             variant="contained"
             size="small"
-            disabled={loading || !selectedFunction || filterSelectedJobList().length === 0}
+            disabled={loading || !selectedFunction || filteredJobList.length === 0}
             onClick={() => setSumoModal(true)}
             sx={{ padding: "8px 16px" }}
             data-testid="inspect-model-button"
