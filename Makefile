@@ -186,14 +186,14 @@ clean:
 	rm -rf flaskapi/.venv
 	rm -rf flaskapi/mmux_python
 
-.PHONY: node-test
-node-test: clean
+.PHONY: test-node
+test-node: clean
 	cd node && \
 		npm ci && \
 		npm test
 
-.PHONE: test
-test: node-test
+.PHONY: test
+test: test-node
 	
 .PHONY: help
 help: ## this colorful help
