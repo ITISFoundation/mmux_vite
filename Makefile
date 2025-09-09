@@ -180,6 +180,17 @@ publish-local: ## push to local throw away registry to test integration
 	@echo "WARNING #####  $< is newer than $@ ####"; diff -uN $@ $<; false;,\
 	@echo "WARNING ##### $@ does not exist, cloning $< as $@ ############"; cp $< $@)
 
+.PHONY: clean
+clean:
+	rm -rf node/node_modules
+	rm -rf flaskapi/.venv
+	rm -rf flaskapi/mmux_python
+
+.PHONY: test
+test: clean
+	cd node && \
+		npm ci && \
+		npm test
 
 .PHONY: help
 help: ## this colorful help
