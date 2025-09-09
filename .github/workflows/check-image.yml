@@ -16,31 +16,26 @@ on:
 jobs:
   node-tests:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: 'node' # Here the path to the folder where package-lock.json is located.
     strategy:
       matrix:
         node-version: [24.x] # Are you are missing this specification?
     steps:
     - name: Checkout repo content
-      uses: actions/checkout@v2
+      uses: actions/checkout@v5
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        cache-dependency-path: '**/package-lock.json'
-    - name: Install dependencies
-      run: npm ci
-    - name: Run tests
-      run: npm test
+        cache-dependency-path: 'node/package-lock.json'
+    - name: Run node tests
+      run: make node-test
   verify-image-build:
     needs: node-tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo content
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
       - name: ooil version
         uses: docker://itisfoundation/ci-service-integration-library:v2.1.23
         with:

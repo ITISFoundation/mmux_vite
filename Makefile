@@ -186,12 +186,15 @@ clean:
 	rm -rf flaskapi/.venv
 	rm -rf flaskapi/mmux_python
 
-.PHONY: test
-test: clean
+.PHONY: node-test
+node-test: clean
 	cd node && \
 		npm ci && \
 		npm test
 
+.PHONE: test
+test: node-test
+	
 .PHONY: help
 help: ## this colorful help
 	@echo "Recipes for '$(notdir $(CURDIR))':"
