@@ -1,16 +1,16 @@
-import { useState, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
+import { useEffect, useState } from "react";
 import Plot from "react-plotly.js";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
-import HistogramStats from "./HistogramStats";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
+import HistogramStats from "./HistogramStats";
 import InsufficientDataWarning from "./InsufficientDataWarning";
-import { useFunctionContext } from "../../context/FunctionContext";
-import { useJobContext } from "../../context/JobContext";
 
 export default function UncertainUQ(props: UncertainUQPropsType) {
   const { loading, progress, jobProgress } = props;

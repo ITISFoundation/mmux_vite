@@ -10,7 +10,6 @@
  * Do not edit the class manually.
  */
 
-import { HttpFile } from '../http/http';
 
 export class PythonCodeFunctionJob {
     'title'?: string;
@@ -20,7 +19,7 @@ export class PythonCodeFunctionJob {
     'outputs': any | null;
     'functionClass'?: PythonCodeFunctionJobFunctionClassEnum;
     'uid': string; // manually added
-    'status': string; // manually added
+    'status': any; // manually added
 
     static readonly discriminator: string | undefined = undefined;
 

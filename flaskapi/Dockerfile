@@ -24,9 +24,9 @@ https://github.com/ITISFoundation/mmux_python /mmux_python \
 
 # Install Python packages directly with system Python
 RUN uv pip install --system -r ./mmux_python/requirements.txt \
-  && uv pip install --system --prerelease=allow osparc==0.8.3.post0.dev30 \
+  && uv pip install --system --prerelease=allow osparc==0.8.3.post0.dev31 \
   && uv pip install --system \
-  # depnendcies usd by production wsgi server
+  # dependencies used by production wsgi server
   gunicorn==23.0.0 \
   gevent==25.5.1
 
