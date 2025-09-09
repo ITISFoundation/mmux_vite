@@ -15,8 +15,8 @@ export function stepValidator(
       return false; // No function or distribution selected
     }
     if (ServiceMode === "MOGA") {
-      // no outputDistribution generated for any function yet
-      if (Object.keys(functionContext?.outputDistribution).length === 0) return false;
+      // no outputTargets generated for any function yet
+      if (Object.keys(functionContext?.outputTargets).length === 0) return false;
 
       // selected function does not have enough outputs (at least 2 required)
       if (functionContext.outputVars.length < 2) {
@@ -28,8 +28,8 @@ export function stepValidator(
       }
 
       // not enough output variables selected yet
-      // console.debug("output Distribution: ",  functionContext.outputDistribution)
-      const outDist = functionContext.outputDistribution[functionContext.selectedFunction.uid];
+      // console.debug("output Distribution: ",  functionContext.outputTargets)
+      const outDist = functionContext.outputTargets[functionContext.selectedFunction.uid];
       // console.debug("output Distribution for this function: ", outDist)
       if (!outDist) {
         // console.debug("output Distribution not defined yet")

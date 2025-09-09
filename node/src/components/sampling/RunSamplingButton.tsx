@@ -1,4 +1,4 @@
-import { Button, CircularProgress } from "@mui/material";
+import { Button, CircularProgress, useTheme } from "@mui/material";
 import { toast } from "react-toastify";
 import { useServiceContext } from "../../context/ServiceContext";
 import CustomTooltip from "../utils/CustomTooltip";
@@ -18,8 +18,9 @@ const tooltipMessage = {
 };
 
 export function RunSamplingButton(props: RunSamplingButtonProps) {
-  const { permissions } = useServiceContext();
   const { handleRunSampling, disabled } = props;
+  const theme = useTheme();
+  const { permissions } = useServiceContext();
   const { launchingSampling, setLaunchingSampling, setRunningSampling } = useSamplingContext();
   const simplifiedHost = getSimplifiedHost();
 
@@ -52,12 +53,12 @@ export function RunSamplingButton(props: RunSamplingButtonProps) {
           variant="contained"
           onClick={handleRunSamplingWithErrorHandling}
           disabled={launchingSampling || disabled || permissions !== "WRITE"}
-          sx={theme => ({
+          sx={{
             "&:disabled": {
               backgroundColor: launchingSampling ? theme.palette.grey[100] : undefined,
               color: launchingSampling ? theme.palette.primary.contrastText : undefined,
             },
-          })}
+          }}
         >
           {launchingSampling ? (
             <>

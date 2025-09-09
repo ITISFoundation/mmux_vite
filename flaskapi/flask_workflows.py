@@ -99,6 +99,10 @@ configuration = OsparcConfiguration(
         username=os.environ["OSPARC_API_KEY"],
         password=os.environ["OSPARC_API_SECRET"],
 )
+assert configuration.host is not None
+assert configuration.username is not None
+assert configuration.password is not None
+
 def _anonymize(s: str, n: int=4, m: Optional[int]=None):
     if not s:
         return ""
@@ -113,19 +117,18 @@ _logger.info(
     _anonymize(configuration.password, 4, 6)
 )
 
+### API instances ############################################
 api_client = ApiClient(configuration)
 studies_api_instance = StudiesApi(api_client)
 functions_api_instance = FunctionsApi(api_client)
 job_api_instance = FunctionJobsApi(api_client)
 job_collection_api_instance = FunctionJobCollectionsApi(api_client)
 
-
 # check that API is responsive
 _logger.info("Checking if the API is responsive...")
 users_api = UsersApi(api_client)
 profile = users_api.get_my_profile()
 _logger.info("User profile info:\n%s", profile.model_dump_json(indent=2))
-
 #############################################################
 
 ### Flask app configuration #################################
@@ -998,6 +1001,9 @@ def flask_perform_moga_optimization():
         input_distributions: Dict[str, Dict[str, float]] = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
         output_var_selection: Dict[str, Literal["minimize", "maximize"]] = request_data["outputVarSelection"]
         output_responses = [k for k in output_var_selection.keys()]
+        _logger.debug(f"Output responses: {output_responses}")
+        _logger.debug(f"Output var selection: {output_var_selection}")
+        assert len(output_responses) >= 2, "At least two output responses must be selected for MOGA optimization."
         make_log = request_data.get("log", False)
         jobs = request_data["FunctionJobs"]
 
@@ -1005,6 +1011,10 @@ def flask_perform_moga_optimization():
         input_vars_sanitized = sanitize_varnames(input_vars)
         output_var_selection_sanitized = sanitize_varnames(output_var_selection)
         output_responses_sanitized = [k for k in output_var_selection_sanitized.keys()]
+        _logger.debug(f"Sanitized output responses: {output_responses_sanitized}")
+        _logger.debug(f"Sanitized output var selection: {output_var_selection_sanitized}")
+        sanitized_vars = input_vars_sanitized + output_responses_sanitized
+        original_vars = input_vars + output_responses
 
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses, folder_name="moga")
         run_dir = TRAINING_FILE.parent
@@ -1020,13 +1030,13 @@ def flask_perform_moga_optimization():
             PROCESSED_TRAINING_FILE,
             input_vars_sanitized,
             input_distributions_sanitized,
-            output_var_selection_sanitized,
+            list(output_var_selection_sanitized.keys()),
             moga_kwargs={"max_function_evaluations": 1000},
         )
 
         results = {
-            key.replace(output_response_sanitized, output_response): val for key, val in results_sanitized.items()
-            for output_response_sanitized, output_response in zip(output_responses_sanitized, output_responses)
+            key.replace(sanitized, original): val for key, val in results_sanitized.items()
+            for sanitized, original in zip(sanitized_vars, original_vars)
             }
 
         _logger.debug("Done!!")

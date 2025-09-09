@@ -6,7 +6,7 @@ interface PersistenceType {
   inputVars: string[];
   outputVars: string[];
   distribution: { [key: string]: InputVarSelection };
-  outputDistribution: { [key: string]: OutputVarSelection };
+  outputTargets: { [key: string]: OutputVarSelection };
   lhsSamplingConfig: LHSamplingConfig;
   gridSamplingConfig: GRIDSamplingConfig;
   singleJobConfig: SingleJobConfig[];

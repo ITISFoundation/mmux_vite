@@ -116,96 +116,100 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     setJobCollections(newJobCollections);
   };
 
-  async function updateJobCollections(functionUid: string, forceFetch = false) {
-    console.info("Fetching jobCollections for function: ", functionUid);
-    if (fetchedJobCollections.length > 0 && !forceFetch) {
-      console.info("Job collections already fetched, skipping fetch.");
-      setLoading(false);
-      setJobCollections(fetchedJobCollections);
-      setLoading(false);
-      return;
-    }
+  const updateJobCollections = useCallback(
+    async (functionUid: string, forceFetch = false) => {
+      console.info("Fetching jobCollections for function: ", functionUid);
+      if (fetchedJobCollections.length > 0 && !forceFetch) {
+        console.info("Job collections already fetched, skipping fetch.");
+        setJobCollections(fetchedJobCollections);
+        setLoading(false);
+        return;
+      }
 
-    const jobsC = (await getFunctionJobCollections(functionUid as string)) as FunctionJobCollection[];
+      const jobsC = (await getFunctionJobCollections(functionUid as string)) as FunctionJobCollection[];
 
-    const equalJC =
-      fetchedJobCollections.length === jobsC.length &&
-      fetchedJobCollections
-        .map((jc, idx) => jc.jobCollection.jobIds.join(",") === jobsC[idx].jobIds.join(","))
-        .every(v => v === true);
+      const equalJC =
+        fetchedJobCollections.length === jobsC.length &&
+        fetchedJobCollections
+          .map((jc, idx) => jc.jobCollection.jobIds.join(",") === jobsC[idx].jobIds.join(","))
+          .every(v => v === true);
 
-    if (equalJC) {
-      console.info("Job collections already fetched, skipping fetch.");
-      setLoading(false);
-      setJobCollections(fetchedJobCollections);
-      setLoading(false);
-      return;
-    }
+      if (equalJC) {
+        console.info("Job collections already fetched, skipping fetch.");
+        setJobCollections(fetchedJobCollections);
+        setLoading(false);
+        return;
+      }
 
-    if (forceFetch) {
-      setLoading(true);
-      setJobCollections([]);
-      setProgress(0);
-      setJobProgress(0);
-      jobsFetched.current = 0;
+      if (forceFetch) {
+        setLoading(true);
+        setJobCollections([]);
+        setProgress(0);
+        setJobProgress(0);
+        jobsFetched.current = 0;
+        colsFetched.current = 0;
+      }
+
+      const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
       colsFetched.current = 0;
-    }
+      jobsFetched.current = 0;
+      console.info("Fetched jobCollections: ", jobsC, totalSubs);
 
-    const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
-    colsFetched.current = 0;
-    jobsFetched.current = 0;
-    console.info("Fetched jobCollections: ", jobsC, totalSubs);
+      if (jobsC.length === 0) {
+        console.info("No job collections found for function: ", functionUid);
+        setJobCollections([]);
+        setFetchedJobCollections([]);
+        setLoading(false);
+        return;
+      }
 
-    if (jobsC.length === 0) {
-      console.info("No job collections found for function: ", functionUid);
-      setJobCollections([]);
-      setFetchedJobCollections([]);
-      setLoading(false);
-      return;
-    }
+      const newJobCollections: SelectedJobCollection[] = [];
 
-    const newJobCollections: SelectedJobCollection[] = [];
-
-    for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx = +1) {
-      const jc = jobsC[jcIdx];
-      const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
-      const subJobs = [];
-      for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx = +1) {
-        let job: FunctionJob | undefined;
-        const id = jc.jobIds[subJobIdx];
-        const existingJob = fetchedJobCollections.find(
-          j =>
-            j.jobCollection.jobIds.includes(id) &&
-            j.subJobs.some(sj => sj.job.uid === id && (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")),
-        );
-        if (existingJob) {
-          job = existingJob.subJobs.find(j => j.job.uid === id)?.job;
-        } else {
-          job = subJobIdx < functionJobs.length ? functionJobs[subJobIdx] : undefined;
+      for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx += 1) {
+        const jc = jobsC[jcIdx];
+        const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
+        const subJobs = [];
+        for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx += 1) {
+          let job: FunctionJob;
+          const id = jc.jobIds[subJobIdx];
+          // check if job is already fetched in fetchedJobCollections
+          const existingJob = fetchedJobCollections.find(
+            j =>
+              j.jobCollection.jobIds.includes(id) &&
+              j.subJobs.some(sj => sj.job.uid === id && (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")),
+          );
+          if (existingJob) {
+            // console.info("Job already fetched: ", id, existingJob.subJobs.find((j) => j.job.uid === id));
+            job = existingJob.subJobs.find(j => j.job.uid === id)?.job;
+          } else {
+            job = functionJobs[subJobIdx];
+          }
+          jobsFetched.current += 1;
+          const jobsProg = (jobsFetched.current / totalSubs) * 100;
+          setJobProgress(jobsProg);
+          subJobs.push({
+            selected: false,
+            job,
+          });
         }
-        jobsFetched.current += 1;
-        const jobsProg = (jobsFetched.current / totalSubs) * 100;
-        setJobProgress(jobsProg);
-        subJobs.push({
+        console.info("Fetched subJobs for jobCollection: ", progress, jobProgress, jobsFetched.current);
+        colsFetched.current += jc.jobIds.length;
+        setProgress((colsFetched.current / totalSubs) * 100);
+        newJobCollections.push({
+          jobCollection: jc,
           selected: false,
-          job,
+          subJobs,
         });
       }
-      console.info("Fetched subJobs for jobCollection: ", progress, jobProgress, jobsFetched.current);
-      colsFetched.current += jc.jobIds.length;
-      setProgress((colsFetched.current / totalSubs) * 100);
-      newJobCollections.push({
-        jobCollection: jc,
-        selected: false,
-        subJobs,
-      });
-    }
 
-    setJobCollections(newJobCollections);
-    setFetchedJobCollections(newJobCollections);
-    updateJobContext(newJobCollections);
-    setProgress(100);
-  }
+      setJobCollections(newJobCollections);
+      setFetchedJobCollections(newJobCollections);
+      updateJobContext(newJobCollections);
+      setProgress(100);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fetchedJobCollections],
+  );
 
   const openJobCollection = (uid: string) => {
     const idx = jobCollections.findIndex(jc => jc.jobCollection.uid === uid);
@@ -280,6 +284,12 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     updateJobContext(newJobCollections);
   }, [jobCollections, updateJobContext]);
 
+  const handleJobsUpdate = useCallback(async () => {
+    setJobCollections([]);
+    await updateJobCollections(selectedFunction?.uid as string);
+    console.info("Updated JobCollections");
+  }, [selectedFunction, updateJobCollections]);
+
   useEffect(() => {
     if (jobCollections.length > 0 && loading === true) {
       onToggleAll(true);
@@ -289,16 +299,12 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   }, [jobCollections, loading, onToggleAll, setIsSuMoGenerated, setLoading, updateJobContext]);
 
   useEffect(() => {
-    console.info("useEffect in JobsSelector triggered");
+    console.info("useEffect in JobsSelector triggered", selectedFunction, jobCollections);
     if (selectedFunction === undefined || jobCollections.length > 0) {
-    } else {
-      console.info("Function selected: ", selectedFunction.uid);
-      (async () => {
-        setJobCollections([]);
-        await updateJobCollections(selectedFunction?.uid as string);
-        console.info("Updated JobCollections");
-      })();
+      return;
     }
+    console.info("Function selected: ", selectedFunction.uid);
+    handleJobsUpdate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFunction]);
 

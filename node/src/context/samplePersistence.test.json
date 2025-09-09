@@ -84,7 +84,7 @@
       }
     }
   },
-  "outputDistribution": {
+  "outputTargets": {
     "a2d8b204-fa1c-4259-b057-acb3b6f7fe8b": {
       "X*Z": "minimize"
     }

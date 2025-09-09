@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
 import { JobsLoading } from "../data/JobsLoading";
@@ -11,95 +11,160 @@ import MogaParetoTable from "./MOGAParetoTable";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import { aggregateOutputValues } from "../../utils/function_utils";
+import { useMMUXContext } from "../../context/MMUXContext";
 
 export function MOGAPareto(props: MogaParetoPropsType) {
   const { loading, progress, jobProgress } = props;
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution, outputDistribution } = useFunctionContext();
-  const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
+  const ref = useRef<Plot>(null);
+  const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
+  const { fetchedJobCollections, filterSelectedJobList, selectedJobUids } = useJobContext();
+  const { weights } = useMMUXContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [outputVarSelection, setOutputVarSelection] = useState<OutputVarSelection>({});
   const [optVars, setOptVars] = useState<Array<string>>([]);
+  const [tableData, setTableData] = useState<MogaDataType | undefined>(undefined);
+  const [hovered, setHovered] = useState<number | null>(null);
+
+  const calculatePerformance = useCallback(
+    (row: { [x: string]: number }) => {
+      console.log("performance: ", optVars, weights ? weights[optVars[0]] : "", row[optVars[0]]);
+      if (optVars.length === 0 || !weights) return 0;
+      let performance = 0;
+      for (let i = 0; i < optVars.length; i += 1) {
+        const varName = optVars[i];
+        performance += weights[varName] * (row[varName] as number);
+      }
+      performance /= Object.values(weights).reduce((a, b) => a + b, 0);
+      return performance;
+    },
+    [optVars, weights],
+  );
+
+  const runMOGA = useCallback(
+    async (jobs: FunctionJob[], ovs: OutputVarSelection) => {
+      let localOptVars = optVars;
+      if (localOptVars.length === 0) {
+        console.warn("No optimization variables selected., using output var selection", ovs);
+        localOptVars = Object.keys(ovs);
+      }
+      const bodyData = JSON.stringify({
+        inputVars,
+        outputVarSelection: ovs,
+        distributions: distribution[selectedFunction?.uid || ""],
+        FunctionJobs: jobs,
+      });
+      console.info("Running MOGA...", bodyData);
+      const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/perform_moga_optimization`, {
+        method: "POST",
+        body: bodyData,
+      });
+      if (!response.ok) {
+        throw new Error(`Error in MOGA response: ${response.status}, ${response.statusText}`);
+      }
+
+      const results: { [key: string]: number[] } = await response.json();
+      console.log("MOGA results:", localOptVars);
+      console.log("MOGA results:", results);
+
+      // set table data
+      const newTableData: MogaDataType = {
+        inputs: inputVars,
+        outputs: localOptVars,
+        rows: results.non_dominated_indices.map((ndi: number) => ({
+          ...inputVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
+          ...localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
+          Performance: calculatePerformance(
+            localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
+          ),
+          NDI: ndi,
+        })),
+      };
+      setTableData(newTableData);
+
+      const outputValues = aggregateOutputValues(jobs);
+
+      const newPlotData: Plotly.Data[] = [
+        {
+          name: "Original Samples",
+          x: outputValues[localOptVars[0]],
+          y: outputValues[localOptVars[1]], // TODO enable selection, when more than 2
+          mode: "markers",
+          type: "scatter",
+          marker: { color: "rgb(41, 146, 221)", size: 4, symbol: "x" },
+        },
+        {
+          name: "MOGA Samples",
+          x: results[localOptVars[0]],
+          y: results[localOptVars[1]],
+          mode: "markers",
+          type: "scatter",
+          marker: { color: "rgb(255, 127, 14)", size: 2 },
+        },
+        {
+          name: "Pareto Samples",
+          x: results.non_dominated_indices.map(i => (results[localOptVars[0]] as Array<number>)[i]),
+          y: results.non_dominated_indices.map(i => (results[localOptVars[1]] as Array<number>)[i]),
+          mode: "lines",
+          type: "scatter",
+          marker: { color: "lightblue", size: 10 },
+        },
+      ];
+      setPlotData(newPlotData);
+      setPropagating(false);
+    },
+    [optVars, inputVars, distribution, selectedFunction, calculatePerformance],
+  );
 
   useEffect(() => {
     if (!selectedFunction) {
       console.warn("No function selected!!");
     } else {
-      setOutputVarSelection(outputDistribution[selectedFunction.uid]);
-      setOptVars(Object.keys(outputDistribution[selectedFunction?.uid as string]));
       console.debug("Information about optimization vars fetched");
+      setOptVars(Object.keys(outputTargets[selectedFunction?.uid as string]));
+      setOutputVarSelection(outputTargets[selectedFunction.uid]);
+
+      const run = async () => {
+        const jobs = filterSelectedJobList();
+        if (jobs.length === 0) {
+          console.warn("No jobs selected for MOGA Pareto plot.");
+          return;
+        }
+        try {
+          setPropagating(true);
+          console.info("Fetching MOGA Pareto data...");
+          await runMOGA(jobs, outputTargets[selectedFunction.uid]);
+        } catch (error) {
+          console.error("Error fetching MOGA Pareto data:", error);
+        }
+        setPropagating(false);
+      };
+      run();
     }
-  }, [selectedFunction, outputDistribution]);
-
-  const runMOGA = async (jobs: FunctionJob[]) => {
-    console.info("Running MOGA...");
-    const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/perform_moga_optimization`, {
-      method: "POST",
-      body: JSON.stringify({
-        inputVars,
-        outputVarSelection,
-        distributions: distribution[selectedFunction?.uid || ""],
-        FunctionJobs: jobs,
-      }),
-    });
-    if (!response.ok) {
-      throw new Error(`Error in MOGA response: ${response.status}, ${response.statusText}`);
-    }
-
-    const results: { [key: string]: number[] } = await response.json();
-    const outputValues = aggregateOutputValues(jobs);
-
-    const newPlotData: Plotly.Data[] = [
-      {
-        name: "Original Samples",
-        x: outputValues[optVars[0]],
-        y: outputValues[optVars[1]], // TODO enable selection, when more than 2
-        mode: "markers",
-        type: "scatter",
-        marker: { color: "rgb(41, 146, 221)", size: 4, symbol: "x" },
-      },
-      {
-        name: "MOGA Samples",
-        x: results[optVars[0]],
-        y: results[optVars[1]],
-        mode: "markers",
-        type: "scatter",
-        marker: { color: "rgb(255, 127, 14)", size: 2 },
-      },
-      {
-        name: "Pareto Samples",
-        x: results.non_dominated_indices.map(i => results[optVars[0]][i]),
-        y: results.non_dominated_indices.map(i => results[optVars[1]][i]),
-        mode: "lines",
-        type: "scatter",
-        marker: { color: "lightblue", size: 10 },
-      },
-    ];
-    setPlotData(newPlotData);
-    setPropagating(false);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFunction, outputTargets, weights, selectedJobUids]);
 
   useEffect(() => {
-    const run = async () => {
-      const jobs = filterSelectedJobList();
-      if (jobs.length === 0) {
-        console.warn("No jobs selected for MOGA Pareto plot.");
-        return;
+    if (hovered !== null && tableData) {
+      const hoveredRow = tableData.rows.find(r => r.NDI === hovered);
+      console.log("hovered row:", hoveredRow);
+      if (hoveredRow && optVars.length >= 2) {
+        const newPlotData = [...plotData];
+        newPlotData[3] = {
+          name: "Hovered Sample",
+          mode: "markers",
+          type: "scatter",
+          marker: { color: "red", size: 10, symbol: "circle" },
+          x: [hoveredRow[optVars[0]]],
+          y: [hoveredRow[optVars[1]]],
+        };
+        setPlotData(newPlotData);
       }
-      setPropagating(true);
-      try {
-        console.info("Fetching MOGA Pareto data...");
-        await runMOGA(jobs);
-      } catch (error) {
-        console.error("Error fetching MOGA Pareto data:", error);
-      } finally {
-        setPropagating(false);
-      }
-    };
-    run();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outputVarSelection]);
+  }, [hovered]);
 
   const layout = {
     title: { text: "Pareto Front Diagram" },
@@ -133,9 +198,8 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       )}
       {!propagating && plotData.length !== 0 && (
         <>
-          <Plot data={plotData} layout={layout} style={plotStyle} />
-          <MogaParetoTable />
-          {/* TODO still need to implement real data in there */}
+          <Plot ref={ref} data={plotData} layout={layout} style={plotStyle} />
+          <MogaParetoTable tableData={tableData} hovered={hovered} setHovered={setHovered} />
         </>
       )}
     </Box>
