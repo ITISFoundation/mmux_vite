@@ -29,7 +29,7 @@ jobs:
         cache: 'npm'
         cache-dependency-path: 'node/package-lock.json'
     - name: Run node tests
-      run: make node-test
+      run: make test-node
   verify-image-build:
     needs: node-tests
     runs-on: ubuntu-latest
