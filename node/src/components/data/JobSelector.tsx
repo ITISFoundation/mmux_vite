@@ -1,10 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { KeyboardArrowUp, KeyboardArrowDown, InfoOutline, Refresh } from "@mui/icons-material";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
+import { InfoOutline, KeyboardArrowDown, KeyboardArrowUp, Refresh } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -17,16 +11,22 @@ import {
   TableContainer,
   TablePagination,
 } from "@mui/material";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
 import { DataGrid } from "@mui/x-data-grid";
-import { useMMUXContext } from "../../context/MMUXContext";
-import { FunctionJob } from "../../osparc-api-ts-client";
-import { getFunctionJobCollections, getFunctionJob } from "../../utils/function_utils";
-import JobRow from "./JobRow";
-import CustomTooltip from "../utils/CustomTooltip";
-import getMinMax from "../minmax";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { useMMUXContext } from "../../context/MMUXContext";
 import { useSamplingContext } from "../../context/SamplingContext";
+import { FunctionJob } from "../../osparc-api-ts-client";
+import { getFunctionJobCollections, getFunctionJobsFromFunctionJobCollection } from "../../utils/function_utils";
+import getMinMax from "../minmax";
+import CustomTooltip from "../utils/CustomTooltip";
+import JobRow from "./JobRow";
 
 type JobSelectorPropsType = {
   loading: boolean;
@@ -167,6 +167,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
       for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx += 1) {
         const jc = jobsC[jcIdx];
+        const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
         const subJobs = [];
         for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx += 1) {
           let job: FunctionJob;
@@ -181,7 +182,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             // console.info("Job already fetched: ", id, existingJob.subJobs.find((j) => j.job.uid === id));
             job = existingJob.subJobs.find(j => j.job.uid === id)?.job;
           } else {
-            job = await getFunctionJob(id);
+            job = functionJobs[subJobIdx];
+            job.status = job.status.status as string;
           }
           jobsFetched.current += 1;
           const jobsProg = (jobsFetched.current / totalSubs) * 100;
