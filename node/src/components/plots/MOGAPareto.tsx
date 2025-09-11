@@ -123,7 +123,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       console.warn("No function selected!!");
     } else {
       console.debug("Information about optimization vars fetched");
-      setOptVars(Object.keys(outputTargets[selectedFunction?.uid as string]));
+      setOptVars(Object.keys(outputTargets[selectedFunction?.uid as string] || {}));
       setOutputVarSelection(outputTargets[selectedFunction.uid]);
 
       const run = async () => {
