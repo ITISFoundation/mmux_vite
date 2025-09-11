@@ -31,10 +31,13 @@ export const GetUniqueValues = (context: FullContext) => {
 };
 
 export const filterOutConstantDataVars = (context: FullContext) => {
+  const { distribution, selectedFunction } = context;
+  const selectedDist = distribution[selectedFunction?.uid || ""];
   // Filter out variables with only one unique value
   const uniqueValuesPerVar: { [varName: string]: Set<number> } = GetUniqueValues(context);
   const newFilteredInputVars = Object.entries(uniqueValuesPerVar)
     .filter(([_value, valueSet]) => valueSet.size > 1)
+    .filter(x => selectedDist[x[0]]?.distribution !== "constant")
     .map(([varName]) => varName);
   return newFilteredInputVars;
 };
@@ -60,6 +63,7 @@ export function CreateSelect({ axis, idx, setAxis }: CreateSelectProps) {
   const context = useJobContext();
   // NB: could have other filtering (based on distribution === "constant")
   const filteredInputVars = filterInputVars({ ...context, selectedFunction, inputVars, distribution });
+  console.log("filteredInputVars constant checks", filteredInputVars, inputVars, distribution[selectedFunction?.uid || ""]);
 
   return (
     <InputLabel sx={{ display: "flex", gap: 2, alignItems: "center" }}>
@@ -114,25 +118,25 @@ export function CreateSlider({ dist, input, otherAxis, setOtherAxis }: CreateSli
     max = dist.max;
     val = (dist.max + dist.min) / 2;
   } else {
-    console.warn("Could not define max & min for variable ", input);
-    min = 0;
-    max = 1;
-    val = 0.5;
+    console.warn("Could not define max & min for variable ", input, dist);
+    min = (dist.value || 0) - 1;
+    max = (dist.value || 0) + 1;
+    val = dist.value || 0;
   }
   const [value, setValue] = useState(val || 0);
 
   if (!filteredInputVars.includes(input)) {
-    // min = uniqueValuesPerVar[input].values().next().value * 0.99
-    // max = uniqueValuesPerVar[input].values().next().value * 1.01
-    const singleVal = uniqueValuesPerVar[input].values().next().value; // get the first value
+    if (dist.distribution !== "constant") {
+      const singleVal = uniqueValuesPerVar[input].values().next().value; // get the first value
 
-    if (singleVal !== undefined) {
-      min = singleVal * 0.99;
-      max = singleVal * 1.01;
-    } else {
-      console.warn("No values found for variable", input, "setting default min and max to 0 and 1");
-      min = 0;
-      max = 1;
+      if (singleVal !== undefined) {
+        min = singleVal * 0.9;
+        max = singleVal * 1.1;
+      } else {
+        console.warn("No values found for variable", input, "setting default min and max to 0 and 1");
+        min = 0;
+        max = 1;
+      }
     }
     // setValue(uniqueValuesPerVar[input])
   } // TODO add the other distributions
@@ -205,7 +209,7 @@ export function CreateSlider({ dist, input, otherAxis, setOtherAxis }: CreateSli
         variant="outlined"
         inputProps={{ step }}
         size="small"
-        sx={{ width: "120px", textAlign: "center" }}
+        sx={{ minWidth: "110px", maxWidth: "110px", textAlign: "center" }}
       />
     </InputLabel>
   );
