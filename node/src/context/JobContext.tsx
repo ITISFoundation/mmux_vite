@@ -30,17 +30,9 @@ export function JobContextProvider({ children }: Props) {
 
   const filteredJobList = useMemo(() => {
     const localff = [...fetchedJobCollections];
-    // const hh = localff.map(jobCollection => jobCollection.subJobs);
-    // console.log(
-    //   "RECALCULATED.",
-    //   localff,
-    //   hh,
-    //   hh.map(subJobs => subJobs.filter(subJob => subJob.selected === true).map(subJob => subJob.job)),
-    // );
     const response: FunctionJob[] = localff
       .map(jobCollection => jobCollection.subJobs.filter(subJob => subJob.selected === true).map(subJob => subJob.job))
       .flat();
-    console.log("Filtered job list: ", response);
     if (response.length < 5) {
       return []; // 5 samples are necessary to avoid Dakota crashing
     }

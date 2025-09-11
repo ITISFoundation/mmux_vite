@@ -189,7 +189,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           const jobsProg = (jobsFetched.current / totalSubs) * 100;
           setJobProgress(jobsProg);
           subJobs.push({
-            selected: false,
+            selected: job.status === "SUCCESS",
             job,
           });
         }
@@ -198,7 +198,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         setProgress((colsFetched.current / totalSubs) * 100);
         newJobCollections.push({
           jobCollection: jc,
-          selected: false,
+          selected: subJobs.some(j => j.selected === true),
           subJobs,
         });
       }
