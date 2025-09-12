@@ -16,7 +16,7 @@ function Surface2DPlot() {
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const context = useJobContext();
-  const { filterSelectedJobList, fetchedJobCollections } = context;
+  const { filteredJobList, fetchedJobCollections } = context;
   const filteredInputVars = filterInputVars({ ...context, selectedFunction, inputVars, distribution });
   const [axis1, setAxis1] = useState(filteredInputVars[0]);
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
@@ -116,11 +116,21 @@ function Surface2DPlot() {
 
   useEffect(() => {
     const run = async () => {
-      const jobs = filterSelectedJobList();
+      const jobs = filteredJobList;
       return RunSuMo2DInterpolation(jobs, axis1, axis2);
     };
     run();
-  }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis, filterSelectedJobList, RunSuMo2DInterpolation]);
+  }, [
+    axis1,
+    axis2,
+    inputVars,
+    selectedQoI,
+    selectedFunction,
+    otherAxis,
+    filteredJobList,
+    RunSuMo2DInterpolation,
+    fetchedJobCollections,
+  ]);
 
   const layout: Partial<Layout> = {
     title: {
@@ -158,7 +168,7 @@ function Surface2DPlot() {
         {!propagating && plotData.length === 0 && (
           <InsufficientDataWarning
             fetchedJobCollections={fetchedJobCollections}
-            filterSelectedJobList={filterSelectedJobList}
+            filteredJobList={filteredJobList}
             height={plotStyle.height}
           />
         )}

@@ -22,7 +22,7 @@ function Curves1DPlots() {
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const context = useJobContext();
-  const { filterSelectedJobList, fetchedJobCollections } = context;
+  const { filteredJobList, fetchedJobCollections } = context;
   const filteredInputVars = filterInputVars({
     ...context,
     selectedFunction,
@@ -124,7 +124,7 @@ function Curves1DPlots() {
 
   useEffect(() => {
     const run = async () => {
-      const jobs = filterSelectedJobList();
+      const jobs = filteredJobList;
       if (jobs.length !== 0) {
         return RunCentralSuMoInterpolations(jobs);
       }
@@ -134,7 +134,7 @@ function Curves1DPlots() {
     run();
     // console.debug("axis: ", axis);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filterSelectedJobList]);
+  }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filteredJobList]);
 
   const plotStyle = {
     height: 300,
@@ -169,7 +169,7 @@ function Curves1DPlots() {
         {!propagating && plotData.length === 0 && (
           <InsufficientDataWarning
             fetchedJobCollections={fetchedJobCollections}
-            filterSelectedJobList={filterSelectedJobList}
+            filteredJobList={filteredJobList}
             height={plotStyle.height}
           />
         )}

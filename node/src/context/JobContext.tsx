@@ -12,7 +12,7 @@ export interface JobContextType {
   selectedJobUids: string[];
   setSelectedJobUids: (selectedJobs: string[]) => void;
   allJobsList: () => FunctionJob[];
-  filterSelectedJobList: () => FunctionJob[];
+  filteredJobList: FunctionJob[];
 }
 
 export const JobContext = createContext<JobContextType | undefined>(undefined);
@@ -28,12 +28,12 @@ export function JobContextProvider({ children }: Props) {
   const [fetchedJobCollections, setFetchedJobCollections] = useState<SelectedJobCollection[]>([]);
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
 
-  const filterSelectedJobList = useCallback(() => {
-    const response: FunctionJob[] = fetchedJobCollections.flatMap(jobCollection =>
-      jobCollection.subJobs.filter(subJob => subJob.selected).map(subJob => subJob.job),
-    );
-
-    if (fetchedJobCollections.length !== 0 && response.length < 5) {
+  const filteredJobList = useMemo(() => {
+    const localff = [...fetchedJobCollections];
+    const response: FunctionJob[] = localff
+      .map(jobCollection => jobCollection.subJobs.filter(subJob => subJob.selected === true).map(subJob => subJob.job))
+      .flat();
+    if (response.length < 5) {
       return []; // 5 samples are necessary to avoid Dakota crashing
     }
     return response;
@@ -82,7 +82,7 @@ export function JobContextProvider({ children }: Props) {
       selectedJobUids,
       setSelectedJobUids,
       allJobsList,
-      filterSelectedJobList,
+      filteredJobList,
     }),
     [
       runningJobCollection,
@@ -92,7 +92,7 @@ export function JobContextProvider({ children }: Props) {
       setFetchedJobCollections,
       setSelectedJobUids,
       allJobsList,
-      filterSelectedJobList,
+      filteredJobList,
     ],
   );
   return <JobContext.Provider value={memoState}>{children}</JobContext.Provider>;
