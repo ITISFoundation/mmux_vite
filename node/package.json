@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "npx vitest",
     "test:browser": "vitest --config=vitest.browser.config.ts",
-    "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json}\""
+    "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json}\"",
+    "generate-osparc-cli": "openapi-generator-cli generate"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
+    "@openapitools/openapi-generator-cli": "^2.7.0",
     "@testing-library/jest-dom": "^6.6.4",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^22.14.1",

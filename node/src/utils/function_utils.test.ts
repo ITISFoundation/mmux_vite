@@ -12,7 +12,7 @@ import {
   getFunctionJobCollections,
   getFunctionJobsFromFunctionJobCollection,
 } from "./function_utils";
-import { FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
+import { FunctionJob, ProjectFunctionJob } from "osparc-api-ts-client";
 
 const mockJobs: FunctionJob[] = [
   {

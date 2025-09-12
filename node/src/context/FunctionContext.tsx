@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { usePersistenceContext } from "./PersistenceContext";
-import { Function as OsparcFunction } from "../osparc-api-ts-client";
+import { Function as OsparcFunction } from "osparc-api-ts-client";
 import { PersistenceType } from "./types";
 
 export interface FunctionContextType {

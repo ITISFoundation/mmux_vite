@@ -5,7 +5,7 @@ import { Box, Button, Checkbox, CircularProgress, Tooltip } from "@mui/material"
 import { toast } from "react-toastify";
 import { useState } from "react";
 import { openStudyUid, createJobStudyCopy } from "../../utils/function_utils";
-import { Function as OsparcFunction } from "../../osparc-api-ts-client";
+import { Function as OsparcFunction } from "osparc-api-ts-client";
 
 interface JobRowProps {
   jobUid: string;

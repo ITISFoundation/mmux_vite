@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useCallback } from "react";
-import type { FunctionJob } from "../osparc-api-ts-client";
+import type { FunctionJob } from "osparc-api-ts-client";
 import { getFunctionJobsFromFunctionJobCollection } from "../utils/function_utils";
 import { useSamplingContext } from "../context/SamplingContext";
 import { useJobContext } from "../context/JobContext";

@@ -6,7 +6,7 @@ import {
   Function as OsparcFunction,
   FunctionJob as OsparcFunctionJob,
   RegisteredFunctionJobCollection,
-} from "../../osparc-api-ts-client";
+} from "osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "../setup/VariableConfig";

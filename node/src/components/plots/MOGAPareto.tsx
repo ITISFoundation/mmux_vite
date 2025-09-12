@@ -6,7 +6,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
-import { FunctionJob } from "../../osparc-api-ts-client";
+import { FunctionJob } from "osparc-api-ts-client";
 import MogaParetoTable from "./MOGAParetoTable";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";

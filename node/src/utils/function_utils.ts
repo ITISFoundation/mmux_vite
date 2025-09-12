@@ -1,5 +1,5 @@
 import { toast } from "react-toastify";
-import { Function as OsparcFunction, ProjectFunctionJob, FunctionJob, FunctionJobCollection } from "../osparc-api-ts-client";
+import { Function as OsparcFunction, ProjectFunctionJob, FunctionJob, FunctionJobCollection } from "osparc-api-ts-client";
 import { PYTHON_DAKOTA_BACKEND } from "./api_objects";
 import { fetchWithRetry } from "./fetch_retry";
 

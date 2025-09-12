@@ -1,7 +1,7 @@
 import { InputLabel, Typography, Select, MenuItem, TextField, styled, Slider } from "@mui/material";
 import { useState } from "react";
 import { useFunctionContext } from "../../context/FunctionContext";
-import { Function as OsparcFunction, FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
+import { Function as OsparcFunction, FunctionJob as OsparcFunctionJob } from "osparc-api-ts-client";
 import { JobContextType, useJobContext } from "../../context/JobContext";
 
 interface FullContext extends JobContextType {

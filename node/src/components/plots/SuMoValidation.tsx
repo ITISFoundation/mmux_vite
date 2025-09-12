@@ -4,7 +4,7 @@ import Plot from "react-plotly.js";
 import { Layout } from "plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { FunctionJob } from "../../osparc-api-ts-client";
+import { FunctionJob } from "osparc-api-ts-client";
 import Metric from "./Metric";
 import MetricRow from "./MetricRow";
 import { plotMargins } from "./PlotTools";

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "../../osparc-api-ts-client";
+import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "../setup/VariableConfig";

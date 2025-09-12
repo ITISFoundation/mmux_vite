@@ -6,7 +6,7 @@ import AdaptExtedSamplingDocument from "../documents/AdaptExtendSamplingDocument
 import JobSelector from "../data/JobSelector";
 import PlusButton from "./PlusButton";
 import { Sampling } from "./Sampling";
-import { Function as OsparcFunction } from "../../osparc-api-ts-client";
+import { Function as OsparcFunction } from "osparc-api-ts-client";
 
 interface JobSamplingProps {
   loading: boolean;

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { toast } from "react-toastify";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Function as OsparcFunction, FunctionJob as OsparcFunctionJob, ProjectFunctionJob } from "../../osparc-api-ts-client";
+import { Function as OsparcFunction, FunctionJob as OsparcFunctionJob, ProjectFunctionJob } from "osparc-api-ts-client";
 import { RunSamplingButton } from "./RunSamplingButton";
 import ValueConfig from "../setup/ValueConfig";
 import { createJobStudyCopy, openStudyUid } from "../../utils/function_utils";

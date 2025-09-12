@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
-import { FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
+import { FunctionJob as OsparcFunctionJob } from "osparc-api-ts-client";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { useMMUXContext } from "../../context/MMUXContext";
 import Header from "../navigation/Header";

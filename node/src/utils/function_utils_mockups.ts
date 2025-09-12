@@ -6,7 +6,7 @@ import {
   JSONFunctionOutputSchema,
   SolverFunction,
   SolverFunctionJob,
-} from "../osparc-api-ts-client";
+} from "osparc-api-ts-client";
 
 const MOCKUP_FUNCTIONS: OsparcFunction[] = [new SolverFunction()];
 MOCKUP_FUNCTIONS[0].title = "Mockup Function";
