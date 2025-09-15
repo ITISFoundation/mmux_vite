@@ -1,18 +1,15 @@
 from flask import Flask
-from mmux_flaskapi.helpers import is_test_environment
 from mmux_flaskapi.blueprints.deployment import deployment_bp
+from mmux_flaskapi.blueprints.osparc import osparc_bp, osparc_api, OsparcApi
 
+class MMUXFlask(Flask):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.osparc_api: OsparcApi
 
-
-def create_flask_app() -> Flask:
-    app = Flask("MMUX Flask API")
+def create_flask_app() -> MMUXFlask:
+    app = MMUXFlask("MMUX Flask API")
     app.register_blueprint(deployment_bp)
-
-
-    if is_test_environment():
-        # _logger.info("Running in test environment")
-        # _logger.info("Flag status before: " + str(app.config["TESTING"]))
-        app.config["TESTING"] = True
-        # _logger.info("Flag status after: " + str(app.config["TESTING"]))
-
+    app.register_blueprint(osparc_bp)
+    app.osparc_api = osparc_api
     return app

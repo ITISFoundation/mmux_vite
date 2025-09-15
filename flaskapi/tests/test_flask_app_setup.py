@@ -1,7 +1,14 @@
 import os
 from flask import Flask
+from unittest.mock import patch, MagicMock
+#
+from osparc import Configuration as OsparcConfiguration
+from osparc import ApiClient
+#
 from mmux_flaskapi.helpers import is_test_environment
+from mmux_flaskapi.webserver_config import OsparcApi
 from conftest import assert_route_exists
+
 
 class TestFlaskAppSetup:
     """Test suite for the Flask app setup."""
@@ -22,14 +29,14 @@ class TestFlaskAppSetup:
         assert is_test_environment() is False
 
 class TestRouteExistence:
-    def test_deployment_routes(self, app):
+    def test_deployment_routes(self, app: Flask):
         """Test that the deployment-related routes exist in the Flask app."""
         assert_route_exists(app, "deployment", "health")
         assert_route_exists(app, "deployment", "service-mode")
         assert_route_exists(app, "deployment", "permissions")
         assert_route_exists(app, "deployment", "mode")
 
-    def test_osparc_routes(self, app):
+    def test_osparc_routes(self, app: Flask):
         """Test that the osparc-related routes exist in the Flask app."""
         assert_route_exists(app, "osparc", "list_functions")
         assert_route_exists(app, "osparc", "list_jobs")
@@ -40,3 +47,42 @@ class TestRouteExistence:
         assert_route_exists(app, "osparc", "get_function_job")
         assert_route_exists(app, "osparc", "get_function_job_status")
         assert_route_exists(app, "osparc", "get_function_job_outputs")
+
+
+class TestOsparcConfig:
+    """Test suite for the OsparcConfig class."""
+
+    def test_setup_configuration(self, mock_osparc_env_vars):
+        """Test that the configuration is set up correctly."""
+        osparc_config = OsparcApi()._configuration
+        assert isinstance(osparc_config, OsparcConfiguration)
+        assert osparc_config.host == "https://api.osparc.io"
+        assert osparc_config.username == "test_key"
+        assert osparc_config.password == "test_secret"
+
+    def test_anonymize(self):
+        """Test the anonymization of sensitive strings."""
+        config = OsparcApi()
+        anonymized = config._anonymize("sensitive_data", 4)
+        assert anonymized == "sens**********"
+
+    def test_get_api_client(self):
+        """Test that the API client is created correctly."""
+        config = OsparcApi()
+        api_client = config.get_api_client()
+        assert api_client is not None
+        assert isinstance(config._api_client, ApiClient)
+
+    @patch("mmux_flaskapi.webserver_config.UsersApi")
+    def test_test_connection_success(self, mock_users_api):
+        """Test a successful API connection."""
+        mock_users_api.return_value.get_my_profile.return_value = MagicMock()
+        config = OsparcApi()
+        assert config.is_connected() is True
+
+    @patch("mmux_flaskapi.webserver_config.UsersApi")
+    def test_test_connection_failure(self, mock_users_api):
+        """Test a failed API connection."""
+        mock_users_api.return_value.get_my_profile.side_effect = Exception("Connection failed")
+        config = OsparcApi()
+        assert config.is_connected() is False

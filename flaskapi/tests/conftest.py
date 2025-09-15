@@ -23,6 +23,13 @@ def app() -> Flask:
     app = create_flask_app()
     return app
 
+@pytest.fixture
+def mock_osparc_env_vars(monkeypatch):
+    """Fixture to mock OSPARC-related environment variables."""
+    monkeypatch.setenv("OSPARC_API_BASE_URL", "https://test.osparc.io")
+    monkeypatch.setenv("OSPARC_API_KEY", "test_key")
+    monkeypatch.setenv("OSPARC_API_SECRET", "test_secret")
+
 def assert_route_exists(app: Flask, prefix: str, route: str):
     """Helper function to assert that a specific route exists in the Flask app."""
     routes = [rule.rule for rule in app.url_map.iter_rules()]

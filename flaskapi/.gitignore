@@ -6,13 +6,13 @@ logs
 *.log
 
 # testing
-.coverage
-.pytest_cache
-htmlcov
-coverage.xml
+*/.coverage
+*/.pytest_cache
+*/htmlcov
+*/coverage.xml
 
 ## cache & dist
-__pycache__
+*/__pycache__
 *.egg-info
 
 # Dakota runs data values
