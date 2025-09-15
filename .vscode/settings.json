@@ -10,5 +10,6 @@
     { "directory": "./node", "changeProcessCWD": true }
   ],
   "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true
+  "python.testing.pytestEnabled": true,
+  "python.testing.cwd": "./flaskapi/tests"
 }
