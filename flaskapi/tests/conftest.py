@@ -22,3 +22,10 @@ def app() -> Flask:
     os.environ["OSPARC_API_BASE_URL"] = "https://test.example.com"
     app = create_flask_app()
     return app
+
+def assert_route_exists(app: Flask, prefix: str, route: str):
+    """Helper function to assert that a specific route exists in the Flask app."""
+    routes = [rule.rule for rule in app.url_map.iter_rules()]
+    prefix = f"/{prefix.strip('/')}"
+    full_route = f"{prefix}/{route}"
+    assert full_route in routes, f"The route '{full_route}' should be registered."
