@@ -17,7 +17,7 @@ function SuMoValidation() {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
-  const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
+  const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
   const [propagating, setPropagating] = useState(false);
@@ -121,12 +121,12 @@ function SuMoValidation() {
 
   useEffect(() => {
     const run = async () => {
-      const jobs = filterSelectedJobList();
+      const jobs = filteredJobList;
       return RunSuMoValidation(jobs);
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedQoI, inputVars, selectedFunction, distribution, filterSelectedJobList]);
+  }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver(event => {
@@ -172,7 +172,7 @@ function SuMoValidation() {
       {!propagating && plotData.length === 0 && (
         <InsufficientDataWarning
           fetchedJobCollections={fetchedJobCollections}
-          filterSelectedJobList={filterSelectedJobList}
+          filteredJobList={filteredJobList}
           height={plotStyle.height}
         />
       )}

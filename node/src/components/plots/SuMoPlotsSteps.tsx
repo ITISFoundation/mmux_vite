@@ -15,7 +15,7 @@ function SuMoPlotsSteps() {
   const theme = useTheme();
   const { inputVars, selectedFunction, distribution } = useFunctionContext();
   const context = useJobContext();
-  const { filterSelectedJobList, selectedJobUids } = context;
+  const { filteredJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);
   const [filteredInputVars, setFilteredInputVars] = React.useState(inputVars);
   const [maxSteps, setMaxSteps] = React.useState(0);
@@ -44,7 +44,7 @@ function SuMoPlotsSteps() {
   };
 
   React.useEffect(() => {
-    const jobs = filterSelectedJobList;
+    const jobs = filteredJobList;
     if (jobs.length === 0) {
       // avoid everything disappearing when there are not enough selected jobs
       setFilteredInputVars(inputVars);
@@ -53,7 +53,7 @@ function SuMoPlotsSteps() {
     }
     setMaxSteps(Math.min(filteredInputVars.length + 1, stepTitles.length));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedJobUids, filterSelectedJobList]);
+  }, [selectedJobUids, filteredJobList]);
 
   return (
     <Card

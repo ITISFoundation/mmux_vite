@@ -2,51 +2,22 @@ import { useEffect, useState } from "react";
 import { Typography, Button, Box, Chip, Popover, Slider } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import { useMMUXContext } from "../../context/MMUXContext";
+import Header from "../navigation/Header";
 
-interface MogaDataType {
-  id: number;
-  inputs: {
-    w: number;
-    x: number;
-    y: number;
-    z: number;
-  };
-  outputs: {
-    longVar1: number;
-    LongVar2: number;
-    LongVar3: number;
-  };
-  Performance: number;
+interface MogaParetoTableProps {
+  tableData: MogaDataType | undefined;
+  hovered: number | null;
+  setHovered: (x: number | null) => void;
 }
 
-const dummyData: MogaDataType[] = [
-  {
-    id: 1,
-    inputs: { w: 1, x: 2, y: 3, z: 4 },
-    outputs: { longVar1: 5, LongVar2: 6, LongVar3: 7 },
-    Performance: 0.7,
-  },
-  {
-    id: 2,
-    inputs: { w: 8, x: 9, y: 10, z: 11 },
-    outputs: { longVar1: 12, LongVar2: 13, LongVar3: 14 },
-    Performance: 0.8,
-  },
-  {
-    id: 3,
-    inputs: { w: 15, x: 16, y: 17, z: 18 },
-    outputs: { longVar1: 19, LongVar2: 20, LongVar3: 21 },
-    Performance: 0.9,
-  },
-];
-
-function getRowId(value: MogaDataType) {
-  return value.id;
+function getRowId(value: MogaDataRowType) {
+  return value.NDI;
 }
 
-function MogaParetoTable() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProps) {
   const { weights, setWeights, sortModel, setSortModel } = useMMUXContext();
-  const [data, setData] = useState<MogaDataType[]>();
+  const [data, setData] = useState<MogaDataType | undefined>(undefined);
   const [localWeights, setLocalWeights] = useState(weights || {});
   const [loading, setLoading] = useState(true);
   const [anchorElms, setAnchorElms] = useState<{
@@ -63,6 +34,7 @@ function MogaParetoTable() {
 
   const handleWeightsChange = (key: string, newValue: number) => {
     const newWeights = { ...localWeights, [key]: newValue };
+    console.log("setting weights!", newWeights);
     setWeights(newWeights);
     setLocalWeights(newWeights);
   };
@@ -82,21 +54,19 @@ function MogaParetoTable() {
 
   useEffect(() => {
     // Simulate loading data
-    setTimeout(() => {
-      setData(dummyData);
-      if (weights === undefined || Object.keys(weights).length === 0) {
-        const outputKeys: string[] = Object.keys(dummyData[0].outputs);
-        const generatedWeights: { [key: string]: number } = {};
-        for (let i = 0; i < outputKeys.length; i += 1) {
-          generatedWeights[outputKeys[i]] = 0.5; // Example weight, can be adjusted
-        }
-        setLocalWeights(generatedWeights);
-        setWeights(generatedWeights);
+    setData(tableData);
+    if (weights === undefined || Object.keys(weights).length === 0) {
+      const outputKeys: string[] = tableData?.outputs || [];
+      const generatedWeights: { [key: string]: number } = {};
+      for (let i = 0; i < outputKeys.length; i += 1) {
+        generatedWeights[outputKeys[i]] = 0.5; // Example weight, can be adjusted
       }
-      setLoading(false);
-    }, 2000);
+      setLocalWeights(generatedWeights);
+      setWeights(generatedWeights);
+    }
+    setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tableData]);
 
   const columnProps: Partial<GridColDef> = {
     headerAlign: "center",
@@ -105,83 +75,87 @@ function MogaParetoTable() {
     sortable: true,
   };
 
-  let columns: GridColDef[] = Object.keys(data ? data[0].inputs : {}).map(key => ({
-    ...columnProps,
-    field: key,
-    maxWidth: 90,
-    headerName: key.toUpperCase(),
-    type: "number",
-    renderCell: params => params.row.inputs[key],
-    valueGetter: (_value, row) => row.inputs[key],
-  }));
+  let columns: GridColDef[] = data
+    ? data.inputs.map(key => ({
+        ...columnProps,
+        field: key,
+        maxWidth: 120,
+        headerName: key.toUpperCase(),
+        type: "number",
+        renderCell: params => params.row[key].toFixed(3),
+        valueGetter: (_value, row) => row[key],
+      }))
+    : [];
 
   columns = columns.concat(
-    Object.keys(data ? data[0].outputs : {}).map(key => ({
-      ...columnProps,
-      field: key,
-      headerName: key.toUpperCase(),
-      type: "number",
-      renderHeader: () => (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography variant="subtitle2">{key.toUpperCase()}</Typography>
-          <Chip
-            label={(localWeights[key] ?? 0).toFixed(2)}
-            size="small"
-            color="primary"
-            onClick={e => handleClick(e as unknown as React.MouseEvent<HTMLButtonElement>, key)}
-          />
-          <Popover
-            id={`popover-${key}`}
-            sx={{
-              "& .MuiPaper-root": {
-                width: "280px",
-                padding: "8px 16px",
-                display: "flex",
-                boxShadow: "none",
-              },
-            }}
-            open={Boolean(anchorElms[key])}
-            anchorEl={anchorElms[key]}
-            onClose={() => handleClose(key)}
-            anchorOrigin={{
-              vertical: "top",
-              horizontal: "center",
-            }}
-            transformOrigin={{
-              vertical: "bottom",
-              horizontal: "center",
-            }}
-          >
-            <Box>
-              <Typography variant="body1" gutterBottom>
-                Adjust Weight for {key.toUpperCase()}
-              </Typography>
-              <Slider
-                value={localWeights[key]}
-                sx={{ width: 240 }}
-                min={0}
-                max={1}
-                step={0.01}
-                defaultValue={0.5}
-                onChange={(_event, newValue) => {
-                  setLocalWeights(prev => ({ ...prev, [key]: newValue }));
-                }}
-                onChangeCommitted={() => {
-                  handleWeightsChange(key, localWeights[key]);
-                }}
-                valueLabelDisplay="auto"
-                aria-labelledby={`slider-${key}`}
+    data
+      ? data.outputs.map(key => ({
+          ...columnProps,
+          field: key,
+          headerName: key.toUpperCase(),
+          type: "number",
+          renderHeader: () => (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="subtitle2">{key.toUpperCase()}</Typography>
+              <Chip
+                label={(localWeights[key] ?? 0).toFixed(2)}
+                size="small"
+                color="primary"
+                onClick={e => handleClick(e as unknown as React.MouseEvent<HTMLButtonElement>, key)}
               />
-              <Typography variant="caption" color="textSecondary">
-                Adjust the weight for {key.toUpperCase()} to influence the Pareto front.
-              </Typography>
+              <Popover
+                id={`popover-${key}`}
+                sx={{
+                  "& .MuiPaper-root": {
+                    width: "280px",
+                    padding: "8px 16px",
+                    display: "flex",
+                    boxShadow: "none",
+                  },
+                }}
+                open={Boolean(anchorElms[key])}
+                anchorEl={anchorElms[key]}
+                onClose={() => handleClose(key)}
+                anchorOrigin={{
+                  vertical: "top",
+                  horizontal: "center",
+                }}
+                transformOrigin={{
+                  vertical: "bottom",
+                  horizontal: "center",
+                }}
+              >
+                <Box>
+                  <Typography variant="body1" gutterBottom>
+                    Adjust Weight for {key.toUpperCase()}
+                  </Typography>
+                  <Slider
+                    value={localWeights[key]}
+                    sx={{ width: 240 }}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    defaultValue={0.5}
+                    onChange={(_event, newValue) => {
+                      setLocalWeights(prev => ({ ...prev, [key]: newValue }));
+                    }}
+                    onChangeCommitted={() => {
+                      handleWeightsChange(key, localWeights[key]);
+                    }}
+                    valueLabelDisplay="auto"
+                    aria-labelledby={`slider-${key}`}
+                  />
+                  <Typography variant="caption" color="textSecondary">
+                    Adjust the weight for {key.toUpperCase()} to influence the Pareto front.
+                  </Typography>
+                </Box>
+              </Popover>
             </Box>
-          </Popover>
-        </Box>
-      ),
-      renderCell: params => params.row.outputs[key],
-      valueGetter: (_value, row) => row.outputs[key],
-    })),
+          ),
+          renderCell: params => params.row[key].toFixed(3),
+          valueGetter: (_value, row) => row[key],
+        }))
+      : [],
   );
 
   columns = columns.concat([
@@ -212,55 +186,67 @@ function MogaParetoTable() {
   ]);
 
   return (
-    <DataGrid
-      rows={data}
-      columns={columns}
-      sx={theme => ({
-        borderRadius: theme.spacing(2),
-        overflow: "hidden",
-        fontFamily: "inherit",
-        padding: "0px 8px",
-        "& .MuiDataGrid-cell": {
-          fontWeight: 400,
-        },
-        "& .MuiDataGrid-row:hover": {
-          backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
-        },
-        "& .MuiDataGrid-row.Mui-selected": {
-          backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
-        },
-        "& .MuiDataGrid-row.Mui-selected:hover": {
-          backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
-        },
-        "& .MuiDataGrid-sortButton": {
-          backgroundColor: theme.palette.background.paper,
-        },
-      })}
-      getRowId={getRowId}
-      initialState={{
-        pagination: {
-          paginationModel: { pageSize: 10 },
-        },
-        filter: {
-          filterModel: {
-            items: [],
+    <>
+      <Header tabTitle="Pareto-Optimal MOGA Samples" headerType="subTitle" infoText="Explore the pareto-optimal solutions" />
+      <DataGrid
+        rows={data?.rows || []}
+        columns={columns}
+        sx={theme => ({
+          borderRadius: theme.spacing(2),
+          overflow: "hidden",
+          fontFamily: "inherit",
+          padding: "0px 8px",
+          "& .MuiDataGrid-cell": {
+            fontWeight: 400,
           },
-        },
-      }}
-      pageSizeOptions={[5, 10, 20, 50]}
-      loading={loading}
-      slotProps={{
-        loadingOverlay: {
-          variant: "linear-progress",
-          noRowsVariant: "linear-progress",
-        },
-      }}
-      sortModel={localSortModel}
-      onSortModelChange={handleSortModelChange}
-      disableColumnMenu
-      disableColumnSelector
-      disableRowSelectionOnClick
-    />
+          "& .MuiDataGrid-row:hover": {
+            backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
+          },
+          "& .MuiDataGrid-row.Mui-selected": {
+            backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
+          },
+          "& .MuiDataGrid-row.Mui-selected:hover": {
+            backgroundColor: `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"}`,
+          },
+          "& .MuiDataGrid-sortButton": {
+            backgroundColor: theme.palette.background.paper,
+          },
+        })}
+        getRowId={getRowId}
+        initialState={{
+          pagination: {
+            paginationModel: { pageSize: 10 },
+          },
+          filter: {
+            filterModel: {
+              items: [],
+            },
+          },
+        }}
+        pageSizeOptions={[5, 10, 20, 50]}
+        loading={loading}
+        slotProps={{
+          loadingOverlay: {
+            variant: "linear-progress",
+            noRowsVariant: "linear-progress",
+          },
+          row: {
+            onMouseEnter: (event: React.MouseEvent<HTMLElement>) => {
+              const rowData = event.currentTarget!.dataset;
+              setHovered(Number(rowData.id));
+            },
+            onMouseLeave: () => {
+              setHovered(null);
+            },
+          },
+        }}
+        sortModel={localSortModel}
+        onSortModelChange={handleSortModelChange}
+        disableColumnMenu
+        disableColumnSelector
+        disableRowSelectionOnClick
+      />
+    </>
   );
 }
 

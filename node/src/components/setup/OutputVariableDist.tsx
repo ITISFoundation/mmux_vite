@@ -1,6 +1,6 @@
-import { Box, Chip, IconButton, InputLabel, Typography, useTheme } from "@mui/material";
+import { Box, Chip, IconButton, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
-import { Add, Delete } from "@mui/icons-material";
+import { Add, Cancel } from "@mui/icons-material";
 // import { useServiceContext } from "../../context/ServiceContext";
 import Header from "../navigation/Header";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -8,10 +8,10 @@ import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import { AddOutputModal } from "./AddOutputModal";
 
 export function OutputVariableDist() {
-  const { selectedFunction, outputVars, outputDistribution, setOutputDistribution } = useFunctionContext();
+  const { selectedFunction, outputVars, outputTargets, setOutputTargets } = useFunctionContext();
   // const { ServiceMode } = useServiceContext();
   const [openModal, setOpenModal] = useState(false);
-  const [configuredOutputs, setConfiguredOutputs] = useState(outputDistribution[selectedFunction?.uid || ""] || {});
+  const [configuredOutputs, setConfiguredOutputs] = useState(outputTargets[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
 
   const handlesetConfiguredOutputs = useCallback(
@@ -19,25 +19,25 @@ export function OutputVariableDist() {
       setConfiguredOutputs(newOutputVars);
       if (selectedFunction) {
         const newDist = {
-          ...outputDistribution,
+          ...outputTargets,
           [selectedFunction.uid]: newOutputVars,
         };
-        setOutputDistribution(newDist);
+        setOutputTargets(newDist);
       }
     },
-    [outputDistribution, selectedFunction, setOutputDistribution],
+    [outputTargets, selectedFunction, setOutputTargets],
   );
 
   useEffect(() => {
-    if (outputDistribution && selectedFunction && outputDistribution[selectedFunction.uid]) {
-      setConfiguredOutputs(outputDistribution[selectedFunction.uid]);
+    if (outputTargets && selectedFunction && outputTargets[selectedFunction.uid]) {
+      setConfiguredOutputs(outputTargets[selectedFunction.uid]);
     } else if (outputVars && outputVars.length > 0) {
       handlesetConfiguredOutputs(Object.fromEntries(outputVars.map(v => [v, "minimize"])));
     } else {
       handlesetConfiguredOutputs({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outputDistribution, outputVars, selectedFunction]);
+  }, [outputTargets, outputVars, selectedFunction]);
 
   if (outputVars && outputVars.length === 0) {
     return <></>;
@@ -48,7 +48,7 @@ export function OutputVariableDist() {
       <Header
         fontWeight={300}
         headerType="subTitle"
-        tabTitle="Output Optimization"
+        tabTitle="Optimization Objectives"
         infoText="Optimize the output variables by minimizing or maximizing their range"
       />
       <Box sx={{ display: "flex", overflowX: "auto" }}>
@@ -105,34 +105,21 @@ export function OutputVariableDist() {
                   position: "absolute",
                   zIndex: 10,
                   right: "8px",
-                  display: "none",
-                  fontSize: "0.8em",
+                  display: "block",
+                  fontSize: "1em",
+                  lineHeight: "1.1em",
                   fontWeight: "100",
                   textTransform: "uppercase",
                   borderRadius: "8px",
                   padding: "4px",
                   backgroundColor: "transparent",
-                  "&:hover": {
-                    display: "block",
-                    backgroundColor: "transparent",
-                    color: theme.palette.text.primary,
-                  },
+                  color: theme.palette.text.primary,
                 }}
               >
-                <Delete />
+                <Cancel sx={{ fontSize: "1.1em", lineHeight: "1.1em" }} />
               </IconButton>
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <InputLabel
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px",
-                  alignItems: "start",
-                }}
-              >
-                Optimization Target:
-              </InputLabel>
               <CustomAnimatedToggle
                 data={["minimize", "maximize"]}
                 value={configuredOutputs[outputVar] === "minimize" ? 0 : 1}

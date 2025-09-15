@@ -16,15 +16,15 @@ HEALTHCHECK \
 WORKDIR /app
 
 # clone mmux_python
-ARG MMUX_PYTHON_BRANCH="main"
+ARG MMUX_PYTHON_TAG="v1.5.1"
 RUN git clone --single-branch \
-  --branch ${MMUX_PYTHON_BRANCH} \
-  https://github.com/ITISFoundation/mmux_python /mmux_python \
-  && cp -R /mmux_python /app/mmux_python
+--branch ${MMUX_PYTHON_TAG} \
+https://github.com/ITISFoundation/mmux_python /mmux_python \
+&& cp -R /mmux_python /app/mmux_python
 
 COPY . .
   
-# Install Python packages (for MMUX_Python and the Flask API)
+# Install Python packages (for MMUX_Python and the Flask API -- externalize so also available for testing environment)
 RUN ./install-deps.sh
   
 ENTRYPOINT ["./entrypoint.sh"]

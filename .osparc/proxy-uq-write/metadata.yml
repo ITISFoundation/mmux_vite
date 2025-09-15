@@ -1,8 +1,8 @@
 key: simcore/services/dynamic/mmux-vite-app-uq-write
 name: Uncertainty Quantification
 description: https://raw.githubusercontent.com/ZurichMedTech/s4l-assets/refs/heads/main/app/full/services/simcore_services_dynamic_mmux-vite-app-uq-write.md
-icon: https://raw.githubusercontent.com/ZurichMedTech/s4l-assets/main/app/icons/s4l/simcore_services_dynamic_model_intelligence_uncertainty_quantification.png
-thumbnail: https://raw.githubusercontent.com/ZurichMedTech/s4l-assets/main/app/thumbnails/s4l/simcore_services_dynamic_model_intelligence_uncertainty_quantification.png
+icon: https://raw.githubusercontent.com/ZurichMedTech/s4l-assets/main/app/icons/s4l/simcore_services_dynamic_mmux-vite-app-uq.png
+thumbnail: https://raw.githubusercontent.com/ZurichMedTech/s4l-assets/main/app/thumbnails/s4l/simcore_services_dynamic_mmux-vite-app-uq.png
 version: 1.5.1
 integration-version: 2.0.0
 type: dynamic

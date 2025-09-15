@@ -180,7 +180,11 @@ publish-local: ## push to local throw away registry to test integration
 	@echo "WARNING #####  $< is newer than $@ ####"; diff -uN $@ $<; false;,\
 	@echo "WARNING ##### $@ does not exist, cloning $< as $@ ############"; cp $< $@)
 
-
+clean:
+	rm -rf node/node_modules
+	rm -rf flaskapi/.venv
+	rm -rf flaskapi/mmux_python
+	
 # TESTING
 .PHONY: test-frontend
 test-frontend: ## run Node.js frontend tests

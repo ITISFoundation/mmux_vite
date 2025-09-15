@@ -154,7 +154,7 @@ describe("stepValidator", () => {
           y: { distribution: "normal", mean: 5, std: 2 },
         },
       },
-      outputDistribution: {},
+      outputTargets: {},
       setSelectedFunction: (_F: OsparcFunction | undefined): void => {
         throw new Error("Function not implemented.");
       },
@@ -169,7 +169,7 @@ describe("stepValidator", () => {
       setDistribution: (_d: { [key: string]: InputVarSelection }): void => {
         throw new Error("Function not implemented.");
       },
-      setOutputDistribution(_d: { [key: string]: OutputVarSelection }): void {
+      setOutputTargets(_d: { [key: string]: OutputVarSelection }): void {
         throw new Error("Function not implemented.");
       },
     };
@@ -190,9 +190,7 @@ describe("stepValidator", () => {
       allJobsList: (): FunctionJob[] => {
         throw new Error("Function not implemented.");
       },
-      filterSelectedJobList: (): FunctionJob[] => {
-        throw new Error("Function not implemented.");
-      },
+      filteredJobList: [],
     };
 
     expect(stepValidator(functionContext, jobContext, "", 0)).toBe(true);
