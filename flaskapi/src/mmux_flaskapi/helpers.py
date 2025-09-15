@@ -3,7 +3,7 @@ import re
 
 def is_test_environment() -> bool:
     """Check if we're running in a test environment."""
-    return os.environ.get("LOG_LEVEL") == "DEBUG" and "test" in os.environ.get("OSPARC_API_BASE_URL", "").lower()
+    return "test" in os.environ.get("OSPARC_API_BASE_URL", "").lower()
 
 
 ### TypeScript expects camelCase, but Python API is getting snake_case. 

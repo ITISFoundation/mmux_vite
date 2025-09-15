@@ -11,5 +11,5 @@
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-  "python.testing.cwd": "./flaskapi/tests"
+  "python.testing.cwd": "./flaskapi/tests/"
 }
