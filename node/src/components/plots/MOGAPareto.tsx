@@ -88,7 +88,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
 
       const newPlotData: Plotly.Data[] = [
         {
-          name: "Original Samples",
+          name: "Sample Points",
           x: outputValues[localOptVars[0]],
           y: outputValues[localOptVars[1]], // TODO enable selection, when more than 2
           mode: "markers",
@@ -104,7 +104,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
           marker: { color: "rgb(255, 127, 14)", size: 2 },
         },
         {
-          name: "Pareto Samples",
+          name: "Pareto Front",
           x: results.non_dominated_indices.map(i => (results[localOptVars[0]] as Array<number>)[i]),
           y: results.non_dominated_indices.map(i => (results[localOptVars[1]] as Array<number>)[i]),
           mode: "lines",
@@ -153,13 +153,19 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       if (hoveredRow && optVars.length >= 2) {
         const newPlotData = [...plotData];
         newPlotData[3] = {
-          name: "Hovered Sample",
+          name: "Current Selection",
           mode: "markers",
           type: "scatter",
           marker: { color: "red", size: 10, symbol: "circle" },
           x: [hoveredRow[optVars[0]]],
           y: [hoveredRow[optVars[1]]],
         };
+        setPlotData(newPlotData);
+      }
+    } else {
+      const newPlotData = [...plotData];
+      if (newPlotData.length > 3) {
+        newPlotData.pop();
         setPlotData(newPlotData);
       }
     }
