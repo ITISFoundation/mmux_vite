@@ -2,19 +2,18 @@ import os
 from pathlib import Path
 import json
 import logging
-from typing import List, Dict, Callable, NamedTuple, Final, Literal
+from typing import List, Dict, NamedTuple, Final, Literal
 #
 import numpy as np
 import pandas as pd
 from flask import request, abort, jsonify, make_response
 #
 from osparc_client.models.function_job import FunctionJob
-from osparc_client.models.function_job_status import FunctionJobStatus
 from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost
 #
 from mmux_flaskapi.app import create_flask_app
-from mmux_flaskapi.webserver_config import OsparcConfig
-from mmux_flaskapi.helpers import is_test_environment, recursive_dict_keys_camel_to_snake, dict_keys_camel_to_snake, dict_keys_snake_to_camel
+from mmux_flaskapi.helpers import dict_keys_snake_to_camel
+from mmux_flaskapi.blueprints.osparc import _get_function_job_from_uid
 #
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
@@ -28,274 +27,11 @@ base_dir = Path(__file__).parent.parent.parent # this is the flaskapi directory
 ### Logger configuration ####################################
 _logger = logging.getLogger(__name__)
 _logger.info("Logging started")
-
 app = create_flask_app()
-
-
-
-### osparc client configuration #############################    
-os.chdir(os.path.dirname(__file__))
-
-# Get the OSPARC configuration instance
-osparc_config = OsparcConfig()
-if not is_test_environment():
-    _logger.info("Testing API connection...")
-    osparc_config.test_connection()
-
 
 FILES_STORAGE_DIR: Final[Path] = Path("/text-files")
 #############################################################
 
-
-@app.route("/flask/health")
-def health_check():
-    """Used by docker to check the health of the Flask app."""
-    return jsonify({'status': 'healthy'}), 200
-
-@app.route("/flask/service-mode")
-def service_mode():
-    """Used to check the environment variable SERVICE_MODE."""
-    try:
-        service_mode = os.environ["SERVICE_MODE"]
-        _logger.info(f"Service mode: {service_mode}")
-        return jsonify({"service_mode": service_mode}), 200
-    except KeyError:
-        _logger.error("SERVICE_MODE environment variable is not set.")
-        return jsonify({"error": "SERVICE_MODE environment variable is not set."}), 500
-
-@app.route("/flask/permissions")
-def permissions():
-    """Used to check the environment variable PERMISSIONS."""
-    try:
-        permissions = os.environ["PERMISSIONS"]
-        _logger.info(f"permissions: {permissions}")
-        return jsonify({"permissions": permissions}), 200
-    except KeyError:
-        _logger.error("PERMISSIONS environment variable is not set.")
-        return jsonify({"error": "PERMISSIONS environment variable is not set."}), 500
-    
-def _deployment_mode() -> str:
-    """Used to check the environment variable DEPLOYMENT_MODE. 
-    Will only be used within the backend (in principle), so no need to expose an endpoint (for now)."""
-    try:
-        deployment_mode = os.environ["DEPLOYMENT_MODE"]
-        _logger.info(f"deployment mode: {deployment_mode}")
-        return deployment_mode
-    except KeyError:
-        _logger.error("DEPLOYMENT_MODE environment variable is not set.")
-        raise ValueError("DEPLOYMENT_MODE environment variable is not set.")
-
-def _get_all_items(api_call: Callable, *args, **kwargs):
-    """Helper function to get all items from a paginated API call."""
-    list_len = api_call(limit=1,*args, **kwargs).total
-    if "limit" not in kwargs:
-        kwargs["limit"] = int(np.min([50, list_len])) ## max allowed is 50
-        
-    retrieved = 0
-    items = []
-    page = 1
-    while retrieved < list_len:
-        _logger.debug(f"Retrieving page {page} of {api_call.__name__} (offset: {retrieved})")
-        response = api_call(offset = retrieved, *args, **kwargs)
-        retrieved += len(response.items)  # type: ignore
-        items += [recursive_dict_keys_camel_to_snake(i.to_dict(), max_depth=1) for i in response.items]
-    return items
-
-def _get_first_N_items(api_call: Callable, N: int, **kwargs):
-    """Helper function to get first N items from a paginated API call."""
-    list_len = api_call(limit=1, **kwargs).total
-    if list_len < N:
-        _logger.warning(f"Requested {N} items, but only {list_len} are available.")
-        N = list_len
-    response = api_call(limit=max(1, N), **kwargs)
-    items = [recursive_dict_keys_camel_to_snake(i.to_dict(), max_depth=1) for i in response.items]
-    assert len(items) == N, f"Expected {N} items, but got {len(items)}"
-    return items
-
-def _get_last_N_items(api_call: Callable, N: int, **kwargs):
-    """Helper function to get last N items from a paginated API call."""
-    list_len = api_call(limit=1, **kwargs).total
-    if list_len < N:
-        _logger.warning(f"Requested {N} items, but only {list_len} are available.")
-        N = list_len
-    response = api_call(offset=list_len - N, limit=max(1,N), **kwargs)
-    items = [recursive_dict_keys_camel_to_snake(i.to_dict(), max_depth=1) for i in response.items]
-    assert len(items) == N, f"Expected {N} items, but got {len(items)}"
-    return items
-
-@app.route("/flask/list_functions", methods=["GET"])
-def flask_list_functions():
-    _logger.debug("Starting flask function: flask_list_functions")
-    _logger.debug("Cwd: " + str(Path.cwd()))
-    try: 
-        functions = _get_all_items(osparc_config.get_functions_api().list_functions)
-        # functions = get_first_N_items(functions_api_instance.list_functions, N=5)
-        # functions = get_last_N_items(functions_api_instance.list_functions, N=50)
-        functions = functions[::-1] # put last-created first? FIXME still need to expose "created_at" in the response
-        _logger.debug(f"N Functions: {len(functions)}")
-
-        ## optional - filter out those without input & output schema
-        # functions = [f for f in functions if len(f["inputSchema"]["schemaContent"]) > 0 and len(f["outputSchema"]["schemaContent"]) > 0]
-        # _logger.debug(f"N Functions after filtering: {len(functions)}")
-
-        return jsonify(functions)
-    except Exception as e:
-        _logger.error(f"Error while listing functions: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
-
-@app.route("/flask/list_jobs", methods=["GET"])
-def flask_list_jobs():
-    _logger.debug("Starting flask function: flask_list_jobs")
-    _logger.debug("Cwd: " + str(Path.cwd()))
-    try:
-        jobs = _get_all_items(osparc_config.get_job_api().list_function_jobs)
-        _logger.debug(f"N Jobs: {len(jobs)}")
-        return jsonify(jobs)
-    except Exception as e:
-        _logger.error(f"Error while listing jobs: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
-
-@app.route("/flask/list_function_jobs_for_functionid", methods=["GET"])
-def flask_list_function_jobs_for_functionid():
-    _logger.debug("Starting flask function: flask_list_function_jobs_for_functionid")
-    _logger.debug("Cwd: " + str(Path.cwd()))
-    function_uid = None
-    try:
-        function_uid = request.args["functionUid"]
-        _logger.info(f"Function ID: {function_uid}")
-        jobs = _get_all_items(osparc_config.get_functions_api().list_function_jobs_for_functionid, function_uid)
-        _logger.debug(f"N Jobs for function {function_uid}: {len(jobs)}")
-        for j in jobs:
-            status : FunctionJobStatus = osparc_config.get_job_api().function_job_status(j["uid"]) 
-            j["status"] = status.status
-        return jsonify(jobs)
-    except Exception as e:
-        _logger.error(f"Error while listing jobs for function {function_uid}: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
-
-@app.route("/flask/list_function_jobs_for_jobcollectionid", methods=["GET"])
-def flask_list_function_jobs_for_jobcollectionid():
-    _logger.debug("Starting flask function: flask_list_function_jobs_for_jobcollectionid")
-    _logger.debug("Cwd: " + str(Path.cwd()))
-    try:
-        jc_uid = request.args["JobCollectionUid"]
-        _logger.debug(f"jc ID: {jc_uid}")
-        jc = osparc_config.get_job_collection_api().get_function_job_collection(jc_uid)
-        jobs = [_get_function_job_from_uid(job_uid) for job_uid in jc.job_ids] # type: ignore
-        _logger.debug(f"N Jobs for job collection {jc_uid}: {len(jobs)}")
-        return jsonify(jobs)
-    except Exception as e:
-        _logger.error(f"Error while listing jobs for job collection {jc_uid}: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
-
-@app.route("/flask/list_function_job_collections", methods=["GET"])
-def flask_get_function_job_collections():
-    _logger.debug("Starting flask function: flask_get_function_job_collections")
-    _logger.debug("Cwd: " + str(Path.cwd()))
-    try:
-        ## this is a list of items of Paginated object -- deserialize into a list of JobCollection objects
-        job_collections = _get_all_items(osparc_config.get_job_collection_api().list_function_job_collections)
-        _logger.debug(f"N Job collections: {len(job_collections)}")
-        return jsonify(job_collections)
-    except Exception as e:  
-        _logger.error(f"Error while listing job collections: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
-
-## TODO this does not work; FUnctionJobCOllection does not have functionUid property (??) (include it)
-@app.route("/flask/list_function_job_collections_for_functionid", methods=["GET"])
-def flask_get_function_job_collections_for_functionid():
-    _logger.debug("Starting flask function: flask_get_function_job_collections")
-    _logger.debug("Cwd: " + str(Path.cwd()))
-    try:
-        _logger.debug(f"Request args: {request.args}")
-        function_uid = request.args["functionUid"]
-        _logger.debug(f"Function ID: {function_uid}")
-        # job_collections = get_all_items(job_collection_api_instance.list_function_job_collections, has_function_id=function_uid)
-        response = osparc_config.get_job_collection_api().list_function_job_collections(has_function_id=function_uid)
-        job_collections = [dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
-        _logger.debug(f"N Job collections for function {function_uid}: {len(job_collections)}")
-        return jsonify(job_collections)
-    except Exception as e:
-        _logger.error(f"Error while listing job collections for function {function_uid}: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
-
-@app.route("/flask/get_function_job", methods=["GET"])
-def flask_get_function_job():
-    _logger.debug("Starting flask function: flask_get_function_job")
-    _logger.debug("Cwd: " + str(Path.cwd()))
-    try: 
-        return jsonify(_get_function_job_from_uid(request.args["jobUid"]))
-    except Exception as e:
-        _logger.error(f"Error while getting function job: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
-    
-def _get_function_job_from_uid(job_uid: str) -> Dict[str, str]:
-    """Helper function to get a Job information (including status) from its UID."""
-    _logger.debug(f"Job ID: {job_uid}")
-    job = osparc_config.get_job_api().get_function_job(job_uid)
-    job_dict = dict_keys_camel_to_snake(job.to_dict()) # type: ignore
-    _logger.debug(f"'Raw' Job: {job_dict}")
-    job_dict["status"] = osparc_config.get_job_api().function_job_status(job_uid).status
-    job_dict["outputs"] = osparc_config.get_job_api().function_job_outputs(job_uid)
-    _logger.debug(f"Job: {job_dict}")
-
-    return job_dict
-
-@app.route("/flask/get_function_job_status", methods=["GET"])
-def flask_get_function_job_status():
-    _logger.debug("Starting flask function: flask_get_function_job_status")
-    _logger.debug("Cwd: " + str(Path.cwd()))
-    try: 
-        job_uid = request.args["jobUid"]
-        job_status = osparc_config.get_job_api().function_job_status(job_uid).status
-        return jsonify(job_status)
-    except Exception as e:
-        _logger.error(f"Error while getting function job: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
-
-@app.route("/flask/get_function_job_outputs", methods=["GET"])
-def flask_get_function_job_outputs():
-    _logger.debug("Starting flask function: flask_get_function_job_outputs")
-    _logger.debug("Cwd: " + str(Path.cwd()))
-    try: 
-        job_uid = request.args["jobUid"]
-        job_outputs = osparc_config.get_job_api().function_job_outputs(job_uid)
-        return jsonify(job_outputs)
-    except Exception as e:
-        _logger.error(f"Error while getting function job: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
-
-def test_job_retrieval_endpoints_speed(job_uid: str, N: int = 1):
-    def _timeit(fun: Callable, N: int, *args, **kwargs):
-        """Helper function to time the execution of a function N times."""
-        import time
-        start_time = time.time()
-        for _ in range(N):
-            result = fun(*args, **kwargs)
-            _logger.info(f"Iteration {_+1}/{N}: {result}")   # Print the result of each iteration
-        end_time = time.time()
-        return (end_time - start_time) / N
-    time_job_full = _timeit(osparc_config.get_job_api().get_function_job, N, job_uid)
-    time_job_outputs = _timeit(osparc_config.get_job_api().function_job_outputs, N, job_uid)
-    time_job_status = _timeit(osparc_config.get_job_api().function_job_status, N, job_uid)
-
-    _logger.debug(f"Average time to retrieve full job: {time_job_full:.4f} seconds")
-    _logger.debug(f"Average time to retrieve job outputs: {time_job_outputs:.4f} seconds")
-    _logger.debug(f"Average time to retrieve job status: {time_job_status:.4f} seconds")
-# test_job_retrieval_endpoints_speed(job_uid="aa5453be-d9e5-4e8a-a7a5-29acd113f1d2", N=30)
-
-def test_job_retrieval_paginated(function_uid: str):
-    def _timeit(fun: Callable, *args, **kwargs):
-        import time
-        start_time = time.time()
-        result = fun(*args, **kwargs)
-        end_time = time.time()
-        _logger.info(f"Retrieved {len(result)} items in {end_time - start_time:.4f} seconds")
-        _logger.info(f"First item: {result[0] if result else 'No items retrieved'}")
-        _logger.info(f"Last item: {result[-1] if result else 'No items retrieved'}")
-        _logger.info(f"That is {(end_time - start_time)/len(result):.2f} seconds per item")
-    _timeit(_get_all_items, api_call=osparc_config.get_functions_api().list_function_jobs_for_functionid, function_id=function_uid)  # type: ignore
-# test_job_retrieval_paginated(function_uid="eea21c0d-6c2b-4cf4-91d1-116e6550cb22")
 
 def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str | List[str], folder_name: str = "evaluate") -> Path:
     output_response_sanitized = sanitize_varnames(output_response)
@@ -318,7 +54,7 @@ def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[st
     df_jobs = pd.DataFrame(
             [get_job_dict(job) for job in completed_jobs]
         )
-    run_dir = create_run_dir(Path("."), folder_name)
+    run_dir = create_run_dir(Path("."), folder_name)  ## TODO move create_run_dir invocation to the workflow function
     TRAINING_FILE = run_dir/  "df_jobs.csv"
     df_jobs.to_csv(TRAINING_FILE, index=False)
     return TRAINING_FILE
@@ -683,7 +419,8 @@ class ParentInfo(NamedTuple):
     parent_project_id: str
     
 def _get_parent_ids() -> ParentInfo:
-    deployment_mode = _deployment_mode()
+    from mmux_flaskapi.blueprints.deployment import deployment_mode
+    deployment_mode = deployment_mode()
     if deployment_mode == "LOCAL":
         parent_node_id = "null"
         parent_project_id = "null"
@@ -952,4 +689,4 @@ def flask_perform_moga_optimization():
     
     except Exception as e:
         _logger.error(f"Error while performing MOGA optimization: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500)) 
+        abort(make_response(jsonify({"error": str(e)}), 500))
