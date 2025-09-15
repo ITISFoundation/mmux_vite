@@ -222,7 +222,7 @@ wheels = [
 [[package]]
 name = "mmux-flaskapi"
 version = "1.5.1"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "gevent" },
     { name = "gunicorn" },

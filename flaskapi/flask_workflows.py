@@ -2,19 +2,19 @@ import os
 from pathlib import Path
 import json
 import logging
-from datetime import datetime
 from typing import List, Dict, Callable, NamedTuple, Final, Literal
 #
 import numpy as np
 import pandas as pd
-from flask import Flask, request, abort, jsonify, make_response
+from flask import request, abort, jsonify, make_response
 #
 from osparc_client.models.function_job import FunctionJob
 from osparc_client.models.function_job_status import FunctionJobStatus
 from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost
 #
-from webserver_config import OsparcConfig
-from helpers import is_test_environment, recursive_dict_keys_camel_to_snake, dict_keys_camel_to_snake, dict_keys_snake_to_camel
+from mmux_flaskapi.app import create_flask_app
+from mmux_flaskapi.webserver_config import OsparcConfig
+from mmux_flaskapi.helpers import is_test_environment, recursive_dict_keys_camel_to_snake, dict_keys_camel_to_snake, dict_keys_snake_to_camel
 #
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
@@ -23,33 +23,13 @@ from mmux_python.utils.funs_data_processing import (
 )
 from mmux_python.utils.funs_evaluate import create_run_dir, evaluate_sumo_along_axes, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid, perform_moga_optimization
 
+base_dir = Path(__file__).parent.parent.parent # this is the flaskapi directory
+
 ### Logger configuration ####################################
 _logger = logging.getLogger(__name__)
-
-# # Create logs directory - use environment variable or default to user's home
-# ### TODO put it back if flaskapi directory but w the right user permissions
-# log_path = os.environ.get("MMUX_LOG_PATH", str(Path.home() / "mmux_logs" / "flask_workflows.log"))
-# log_file = Path(log_path)
-# log_file.parent.mkdir(parents=True, exist_ok=True)
-log_file = Path(__file__).parent / f"flask_workflows_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-
-logging.basicConfig(
-    level=os.environ["LOG_LEVEL"],
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler(log_file),
-        logging.StreamHandler()
-    ]
-)
-# Make Flask propagate its logs to the root logger
-flask_logger = logging.getLogger("flask")
-flask_logger.propagate = True
-
-# Same for Werkzeug (Flask's underlying WSGI library)
-werkzeug_logger = logging.getLogger("werkzeug")
-werkzeug_logger.propagate = True
 _logger.info("Logging started")
-#############################################################
+
+app = create_flask_app()
 
 
 
@@ -62,11 +42,6 @@ if not is_test_environment():
     _logger.info("Testing API connection...")
     osparc_config.test_connection()
 
-#############################################################
-
-### Flask app configuration #################################
-app = Flask(__name__)
-base_dir = Path(__file__).parent # this is the flaskapi directory
 
 FILES_STORAGE_DIR: Final[Path] = Path("/text-files")
 #############################################################
@@ -946,6 +921,8 @@ def flask_perform_moga_optimization():
         input_vars_sanitized = sanitize_varnames(input_vars)
         output_var_selection_sanitized = sanitize_varnames(output_var_selection)
         output_responses_sanitized = [k for k in output_var_selection_sanitized.keys()]
+        sanitized_vars = input_vars_sanitized + output_responses_sanitized
+        original_vars = input_vars + output_responses
 
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses, folder_name="moga")
         run_dir = TRAINING_FILE.parent
@@ -966,8 +943,8 @@ def flask_perform_moga_optimization():
         )
 
         results = {
-            key.replace(output_response_sanitized, output_response): val for key, val in results_sanitized.items()
-            for output_response_sanitized, output_response in zip(output_responses_sanitized, output_responses)
+            key.replace(sanitized, original): val for key, val in results_sanitized.items()
+            for sanitized, original in zip(sanitized_vars, original_vars)
             }
 
         _logger.debug("Done!!")
