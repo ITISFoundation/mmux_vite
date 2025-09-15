@@ -27,15 +27,8 @@ def flask_list_functions():
     _logger.debug("Cwd: " + str(Path.cwd()))
     try: 
         functions = _get_all_items(osparc_api.get_functions_api().list_functions)
-        # functions = get_first_N_items(functions_api_instance.list_functions, N=5)
-        # functions = get_last_N_items(functions_api_instance.list_functions, N=50)
         functions = functions[::-1] # put last-created first? FIXME still need to expose "created_at" in the response
         _logger.debug(f"N Functions: {len(functions)}")
-
-        ## optional - filter out those without input & output schema
-        # functions = [f for f in functions if len(f["inputSchema"]["schemaContent"]) > 0 and len(f["outputSchema"]["schemaContent"]) > 0]
-        # _logger.debug(f"N Functions after filtering: {len(functions)}")
-
         return jsonify(functions)
     except Exception as e:
         _logger.error(f"Error while listing functions: {e}")
