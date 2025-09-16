@@ -3,7 +3,8 @@ Pytest fixtures and mocks for osparc_client.api.functions_api.FunctionsApi.list_
 Covers: success, empty, and error (422) cases for /osparc/list_functions endpoint.
 """
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+from unittest.mock import MagicMock
 
 # --- Mock FunctionsApi.list_functions() ---
 
@@ -20,9 +21,14 @@ def mock_list_functions_success():
                 "uid": "func-2",
                 "name": "Function Two",
                 "description": "Second test function"
+            }), 
+            MagicMock(to_dict=lambda: {
+                "uid": "func-3",
+                "name": "Function Three",
+                "description": "Third test function"
             })
         ],
-        total=2
+        total=3
     )
 
 def mock_list_functions_empty():
@@ -39,15 +45,20 @@ def mock_list_functions_422():
 
 @pytest.fixture
 def patch_list_functions_success():
-    with patch("osparc_client.api.functions_api.FunctionsApi.list_functions", return_value=mock_list_functions_success()):
+    with patch("osparc_client.api.functions_api.FunctionsApi.list_functions", 
+               return_value=mock_list_functions_success()):
         yield
 
 @pytest.fixture
 def patch_list_functions_empty():
-    with patch("osparc_client.api.functions_api.FunctionsApi.list_functions", return_value=mock_list_functions_empty()):
+    with patch("osparc_client.api.functions_api.FunctionsApi.list_functions", 
+               return_value=mock_list_functions_empty()):
         yield
 
 @pytest.fixture
 def patch_list_functions_422():
     with patch("osparc_client.api.functions_api.FunctionsApi.list_functions", side_effect=mock_list_functions_422):
         yield
+
+# ---------------------------------------------------------------
+

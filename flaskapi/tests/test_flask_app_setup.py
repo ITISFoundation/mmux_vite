@@ -53,7 +53,7 @@ class TestRouteExistence:
 class TestOsparcConfig:
     """Test suite for the OsparcConfig class."""
 
-    def test_setup_configuration(self, mock_osparc_env_vars):
+    def test_setup_configuration(self):
         """Test that the configuration is set up correctly."""
         osparc_config = OsparcApi()._configuration
         assert isinstance(osparc_config, OsparcConfiguration)
