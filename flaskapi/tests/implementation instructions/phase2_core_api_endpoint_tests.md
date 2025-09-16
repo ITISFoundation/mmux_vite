@@ -2,11 +2,7 @@
 
 ## Context
 
-The MMUX Flask API contains various endpoints defined in `flask_workflows.py`. This phase focuses on testing these endpoints for correct functionality, response formats, and status codes. All endpoints are now part of the `osparc` blueprint.
-
-## Test File Path
-
-`tests/test_flask_workflows_endpoints.py`
+The MMUX Flask API is structured with a main entrypoint file `main.py`, a package `mmux_flaskapi` with various utility modules as well as blueprints for the different sub-parts of the application.
 
 ## Blueprint Context
 

@@ -195,7 +195,7 @@ test-frontend: ## run Node.js frontend tests
 test-backend: ## run Flask backend tests
 	cd ${FLASKAPI_DIR} && \
 	bash install-deps.sh && \ 
-	python -m pytest tests/ -v --cov=flask_workflows --cov-report=html --cov-report=term-missing
+	python -m pytest tests/ -v --cov-report=html --cov-report=term-missing
 
 .PHONY: ci
 ci: build-no-cache test-backend test-frontend ## run all tests

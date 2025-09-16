@@ -2,7 +2,7 @@
 
 ## Context
 
-The MMUX Flask API is structured with a main application file `flask_workflows.py` and configuration files. This phase focuses on verifying the Flask application initializes correctly and loads configuration properly.
+The MMUX Flask API is structured with a main entrypoint file `main.py`, a package `mmux_flaskapi` with various utility modules as well as blueprints for the different sub-parts of the application.
 
 ## Test File Path
 
