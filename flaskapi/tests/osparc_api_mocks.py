@@ -169,3 +169,70 @@ def patch_list_function_job_collections_empty():
 def patch_list_function_job_collections_422():
     with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.list_function_job_collections", side_effect=mock_list_function_job_collections_422):
         yield
+
+
+
+# --- Mock FunctionsApi.list_function_jobs_for_functionid() and FunctionJobApi.function_job_status() ---
+def mock_list_function_jobs_for_functionid_success(function_uid: str, **kwargs):
+    """Standard successful response for jobs for a function UID."""
+    # Return jobs only for the given function_uid
+    jobs = [
+        MagicMock(to_dict=lambda: {
+            "uid": "job1",
+            "function_uid": function_uid,
+            "status": "SUCCESS",
+            "created_at": "2025-09-01T12:00:00Z",
+            "inputs": {"x": 1, "y": 2},
+            "outputs": {"result": 3},
+            "user_id": "user1"
+        }),
+        MagicMock(to_dict=lambda: {
+            "uid": "job2",
+            "function_uid": function_uid,
+            "status": "PENDING",
+            "created_at": "2025-09-02T13:00:00Z",
+            "inputs": {"x": 10, "y": 20},
+            "outputs": None,
+            "user_id": "user2"
+        })
+    ]
+    return MagicMock(items=jobs, total=len(jobs))
+
+def mock_list_function_jobs_for_functionid_empty(function_uid: str, **kwargs):
+    """Empty result set for jobs for a function UID."""
+    return MagicMock(items=[], total=0)
+
+def mock_list_function_jobs_for_functionid_422(function_uid: str, **kwargs):
+    class ValidationError(Exception):
+        pass
+    raise ValidationError("422 Unprocessable Entity: Validation Error")
+
+def mock_list_function_jobs_for_functionid_404(function_uid: str, **kwargs):
+    class NotFoundError(Exception):
+        pass
+    raise NotFoundError(f"404 Not Found: Function UID {function_uid} does not exist")
+
+
+# --- Fixtures for patching FunctionsApi.list_function_jobs_for_functionid ---
+
+@pytest.fixture
+def patch_list_function_jobs_for_functionid_success():
+    with patch("osparc_client.api.functions_api.FunctionsApi.list_function_jobs_for_functionid", side_effect=mock_list_function_jobs_for_functionid_success), \
+         patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_status", side_effect=mock_function_job_status_success):
+         ## NB list_function_jobs_for_functionid also calls function_job_status for each job
+        yield
+
+@pytest.fixture
+def patch_list_function_jobs_for_functionid_empty():
+    with patch("osparc_client.api.functions_api.FunctionsApi.list_function_jobs_for_functionid", side_effect=mock_list_function_jobs_for_functionid_empty):
+        yield
+
+@pytest.fixture
+def patch_list_function_jobs_for_functionid_422():
+    with patch("osparc_client.api.functions_api.FunctionsApi.list_function_jobs_for_functionid", side_effect=mock_list_function_jobs_for_functionid_422):
+        yield
+
+@pytest.fixture
+def patch_list_function_jobs_for_functionid_404():
+    with patch("osparc_client.api.functions_api.FunctionsApi.list_function_jobs_for_functionid", side_effect=mock_list_function_jobs_for_functionid_404):
+        yield

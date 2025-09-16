@@ -47,14 +47,15 @@ def configure_test_logging():
     yield
 
 
+# @pytest.fixture(autouse=True, scope="session")
 @pytest.fixture
 def mock_test_env_vars():
     """Fixture to set environment variables for testing."""
-    with patch.dict('os.environ', {
-        "OSPARC_API_BASE_URL": "https://test.example.io",
-        "OSPARC_API_KEY": "test_key",
-        "OSPARC_API_SECRET": "test_secret",
-        "LOG_LEVEL": "DEBUG"
+    with patch.dict(
+        'os.environ', {
+            "OSPARC_API_BASE_URL": "https://test.example.io",
+            "OSPARC_API_KEY": "test_key",
+            "OSPARC_API_SECRET": "test_secret",
     }):
         yield
 
