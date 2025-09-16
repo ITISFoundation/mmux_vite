@@ -46,6 +46,7 @@ export function PersistenceContextProvider({ children }: Props) {
   const [loading, setLoading] = useState(true);
   const [healthOK, setHealthOK] = useState<boolean>(false);
   const [persistence, setPersistence] = useState<PersistenceType | undefined>(undefined);
+  const [avoidPersisting, setAvoidPersisting] = useState<boolean>(false);
 
   // Validate persistence structure
   const isValidPersistenceFile = (value: unknown): value is PersistenceType => {
@@ -80,6 +81,13 @@ export function PersistenceContextProvider({ children }: Props) {
     });
 
     if (!response.ok) {
+      if (response.status === 500) {
+        console.warn(
+          `⚠️ Server error when setting file due to trying to save the file from a different IP ADDRESS (${response.status}): ${response.statusText}`,
+        );
+        setAvoidPersisting(true);
+        return;
+      }
       throw new Error(`Failed to set file: ${response.status} ${response.statusText}`);
     }
 
@@ -127,6 +135,10 @@ export function PersistenceContextProvider({ children }: Props) {
   const saveState = useCallback(async (state: PersistenceType) => {
     const content = JSON.stringify(state, null, 2);
     // console.debug("Saving state to persistence file:", state);
+    if (avoidPersisting) {
+      console.warn("⚠️ Skipping persistence due to avoidPersisting flag.");
+      return;
+    }
     try {
       await setFile("persistence.json", content);
       setPersistence(state);
