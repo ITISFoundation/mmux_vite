@@ -20,6 +20,9 @@ if not is_test_environment():
     _logger.info("Testing API connection...")
     osparc_api._test_connection()
 
+#####################################################################################
+## Listing endpoints for Functions, Jobs, Job Collections
+#####################################################################################
 
 @osparc_bp.route("/list_functions", methods=["GET"])
 def flask_list_functions():
@@ -45,6 +48,25 @@ def flask_list_jobs():
     except Exception as e:
         _logger.error(f"Error while listing jobs: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
+
+
+@osparc_bp.route("/list_function_job_collections", methods=["GET"])
+def flask_get_function_job_collections():
+    _logger.debug("Starting flask function: flask_get_function_job_collections")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+    try:
+        ## this is a list of items of Paginated object -- deserialize into a list of JobCollection objects
+        job_collections = _get_all_items(osparc_api.get_job_collection_api().list_function_job_collections)
+        _logger.debug(f"N Job collections: {len(job_collections)}")
+        return jsonify(job_collections)
+    except Exception as e:  
+        _logger.error(f"Error while listing job collections: {e}")
+        abort(make_response(jsonify({"error": str(e)}), 500))
+
+
+#################################################################################
+## Listing endpoints based on ID (function or job collection)
+#################################################################################
 
 @osparc_bp.route("/list_function_jobs_for_functionid", methods=["GET"])
 def flask_list_function_jobs_for_functionid():
@@ -79,20 +101,7 @@ def flask_list_function_jobs_for_jobcollectionid():
         _logger.error(f"Error while listing jobs for job collection {jc_uid}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
 
-@osparc_bp.route("/list_function_job_collections", methods=["GET"])
-def flask_get_function_job_collections():
-    _logger.debug("Starting flask function: flask_get_function_job_collections")
-    _logger.debug("Cwd: " + str(Path.cwd()))
-    try:
-        ## this is a list of items of Paginated object -- deserialize into a list of JobCollection objects
-        job_collections = _get_all_items(osparc_api.get_job_collection_api().list_function_job_collections)
-        _logger.debug(f"N Job collections: {len(job_collections)}")
-        return jsonify(job_collections)
-    except Exception as e:  
-        _logger.error(f"Error while listing job collections: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
-
-## TODO this does not work; FUnctionJobCOllection does not have functionUid property (??) (include it)
+## TODO this does not work; FunctionJobCollection does not have functionUid property (??) (include it)
 @osparc_bp.route("/list_function_job_collections_for_functionid", methods=["GET"])
 def flask_get_function_job_collections_for_functionid():
     _logger.debug("Starting flask function: flask_get_function_job_collections")
@@ -109,6 +118,10 @@ def flask_get_function_job_collections_for_functionid():
     except Exception as e:
         _logger.error(f"Error while listing job collections for function {function_uid}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
+
+###########################################################################################
+## Endpoints to get a single Job information (general info, status, outputs) from its UID
+###########################################################################################
 
 @osparc_bp.route("/get_function_job", methods=["GET"])
 def flask_get_function_job():

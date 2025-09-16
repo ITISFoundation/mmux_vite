@@ -2,22 +2,8 @@ import pytest
 from flask import Flask
 from unittest.mock import patch
 import logging
-from osparc_api_mocks import (
-    # osparc/list_functions
-    patch_list_functions_success,
-    patch_list_functions_empty,
-    patch_list_functions_422,
-    # osparc/list_jobs
-    patch_list_function_jobs_success,
-    patch_list_function_jobs_empty,
-    patch_list_function_jobs_422,
-    # osparc/list_function_jobs_for_functionid
-    patch_list_function_jobs_for_functionid_success,
-    patch_list_function_jobs_for_functionid_empty,
-    patch_list_function_jobs_for_functionid_422,
-    patch_list_function_jobs_for_functionid_404,
-    
-)
+#
+from osparc_api_mocks import *
 from mmux_flaskapi.app import create_flask_app
 
 

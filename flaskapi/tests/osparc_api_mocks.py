@@ -6,6 +6,11 @@ import pytest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 
+
+#####################################################################################
+## Listing endpoints for Functions, Jobs, Job Collections
+#####################################################################################
+
 # --- Mock FunctionsApi.list_functions() ---
 
 def mock_list_functions_success():
@@ -13,12 +18,12 @@ def mock_list_functions_success():
     return MagicMock(
         items=[
             MagicMock(to_dict=lambda: {
-                "uid": "func-1",
+                "uid": "func1",
                 "name": "Function One",
                 "description": "First test function"
             }),
             MagicMock(to_dict=lambda: {
-                "uid": "func-2",
+                "uid": "func2",
                 "name": "Function Two",
                 "description": "Second test function"
             }), 
@@ -72,7 +77,7 @@ def mock_list_function_jobs_success():
         items=[
             MagicMock(to_dict=lambda: {
                 "uid": "job-1",
-                "function_uid": "func-1",
+                "function_uid": "func1",
                 "status": "SUCCESS",
                 "created_at": "2025-09-01T12:00:00Z",
                 "inputs": {"x": 1, "y": 2},
@@ -81,7 +86,7 @@ def mock_list_function_jobs_success():
             }),
             MagicMock(to_dict=lambda: {
                 "uid": "job-2",
-                "function_uid": "func-2",
+                "function_uid": "func2",
                 "status": "PENDING",
                 "created_at": "2025-09-02T13:00:00Z",
                 "inputs": {"x": 10, "y": 20},
@@ -122,4 +127,45 @@ def patch_list_function_jobs_empty():
 def patch_list_function_jobs_422():
     """Patch FunctionJobsApi.list_function_jobs to raise a 422 error."""
     with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.list_function_jobs", side_effect=mock_list_function_jobs_422):
+        yield
+
+# --- Mock FunctionJobCollectionsApi.list_function_job_collections() ---
+def mock_list_function_job_collections_success(*args, **kwargs):
+    """Return a paginated object with two job collections."""
+    collections = [
+        MagicMock(to_dict=lambda: {
+            "uid": "jc-1",
+            "job_ids": ["job-1", "job-2"],
+            "name": "Collection One"
+        }),
+        MagicMock(to_dict=lambda: {
+            "uid": "jc-2",
+            "job_ids": ["job-3"],
+            "name": "Collection Two"
+        })
+    ]
+    return MagicMock(items=collections, total=len(collections))
+
+def mock_list_function_job_collections_empty(*args, **kwargs):
+    return MagicMock(items=[], total=0)
+
+def mock_list_function_job_collections_422(*args, **kwargs):
+    class ValidationError(Exception):
+        pass
+    raise ValidationError("422 Unprocessable Entity: Validation Error")
+
+# --- Fixtures for patching FunctionJobCollectionsApi.list_function_job_collections ---
+@pytest.fixture
+def patch_list_function_job_collections_success():
+    with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.list_function_job_collections", side_effect=mock_list_function_job_collections_success):
+        yield
+
+@pytest.fixture
+def patch_list_function_job_collections_empty():
+    with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.list_function_job_collections", side_effect=mock_list_function_job_collections_empty):
+        yield
+
+@pytest.fixture
+def patch_list_function_job_collections_422():
+    with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.list_function_job_collections", side_effect=mock_list_function_job_collections_422):
         yield
