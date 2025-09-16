@@ -23,6 +23,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
   const { fetchedJobCollections, filteredJobList, selectedJobUids } = useJobContext();
   const { weights } = useMMUXContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
+  const [layout, setLayout] = useState<Partial<Plotly.Layout>>({});
   const [plotType, setPlotType] = useState<"1D" | "2D" | "3D">("2D");
   const [propagating, setPropagating] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -45,6 +46,14 @@ export function MOGAPareto(props: MogaParetoPropsType) {
     },
     [optVars, weights],
   );
+
+  const groupArrayElements = <T,>(arr: Array<T>, groupSize: number) => {
+    const groupedArr: Array<Array<T>> = [];
+    for (let i = 0; i < arr.length; i += groupSize) {
+      groupedArr.push(arr.slice(i, i + groupSize));
+    }
+    return groupedArr;
+  };
 
   const runMOGA = useCallback(
     async (jobs: FunctionJob[], ovs: OutputVarSelection, extPlotType?: "1D" | "2D" | "3D") => {
@@ -92,23 +101,23 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       localPlotType = localOptVars.length > 2 ? "3D" : localPlotType;
       if (extPlotType) localPlotType = extPlotType;
 
-      const newPlotData: Plotly.Data[] = [
+      const newPlotData: Partial<Plotly.ScatterData>[] = [
         {
           name: "Sample Points",
-          x: outputValues[localOptVars[0]],
-          y: localPlotType === "2D" || localPlotType === "3D" ? outputValues[localOptVars[1]] : undefined,
+          y: outputValues[localOptVars[0]],
+          x: localPlotType === "2D" || localPlotType === "3D" ? outputValues[localOptVars[1]] : outputValues[localOptVars[0]],
           z: localPlotType === "3D" ? outputValues[localOptVars[2]] : undefined,
           mode: "markers",
-          type: localPlotType === "3D" ? "scatter3d" : "scatter",
+          type: localPlotType === "3D" ? "scatter3d" : "box",
           marker: { color: "rgb(41, 146, 221)", size: 4, symbol: "x" },
         },
         {
           name: "MOGA Samples",
-          x: results[localOptVars[0]],
-          y: localPlotType === "2D" || localPlotType === "3D" ? results[localOptVars[1]] : undefined,
+          y: results[localOptVars[0]],
+          x: localPlotType === "2D" || localPlotType === "3D" ? results[localOptVars[1]] : results[localOptVars[0]],
           z: localPlotType === "3D" ? results[localOptVars[2]] : undefined,
           mode: "markers",
-          type: localPlotType === "3D" ? "scatter3d" : "scatter",
+          type: localPlotType === "3D" ? "scatter3d" : "box",
           marker: { color: "rgb(255, 127, 14)", size: 2 },
         },
         {
@@ -127,11 +136,89 @@ export function MOGAPareto(props: MogaParetoPropsType) {
           marker: { color: "lightblue", size: 10 },
         },
       ];
+
+      const newLayout: Partial<Plotly.Layout> = {
+        title: { text: "Pareto Front Diagram" },
+        plot_bgcolor: `${theme.palette.background.default}`,
+        paper_bgcolor: `${theme.palette.background.default}`,
+        font: { color: `${theme.palette.text.primary}` },
+      };
+
+      switch (localPlotType) {
+        case "1D": {
+          const groupedY = groupArrayElements(outputValues[localOptVars[0]], 20);
+          const groupedYR = groupArrayElements(results[localOptVars[0]], 20);
+          newPlotData[0].x = groupedY.map((_, index) => index);
+          newPlotData[0].y = groupedY;
+          newPlotData[0].z = undefined;
+          newPlotData[1].x = groupedYR.map((_, index) => index);
+          newPlotData[1].y = groupedYR;
+          newPlotData[1].z = undefined;
+          newPlotData[0].type = "box";
+          newPlotData[1].type = "box";
+          newPlotData.pop();
+          groupedY.map(y =>
+            newPlotData.push({
+              ...newPlotData[0],
+              boxpoints: "all",
+              y,
+            }),
+          );
+          groupedYR.map(y =>
+            newPlotData.push({
+              ...newPlotData[1],
+              y,
+              boxpoints: "all",
+            }),
+          );
+          newPlotData.shift();
+          newPlotData.shift();
+          newLayout.yaxis = { title: { text: optVars[0] } };
+          break;
+        }
+        case "2D": {
+          newPlotData[0].x = outputValues[localOptVars[0]];
+          newPlotData[0].y = outputValues[localOptVars[1]];
+          newPlotData[0].z = undefined;
+          newPlotData[1].x = results[localOptVars[0]];
+          newPlotData[1].y = results[localOptVars[1]];
+          newPlotData[1].z = undefined;
+          newPlotData[0].type = "scatter";
+          newPlotData[1].type = "scatter";
+          newPlotData[2].type = "scatter";
+          newLayout.xaxis = { title: { text: optVars[0] } };
+          newLayout.yaxis = { title: { text: optVars[1] } };
+          break;
+        }
+        case "3D": {
+          newPlotData[0].x = outputValues[localOptVars[0]];
+          newPlotData[0].y = outputValues[localOptVars[1]];
+          newPlotData[0].z = outputValues[localOptVars[2]];
+          newPlotData[1].x = results[localOptVars[0]];
+          newPlotData[1].y = results[localOptVars[1]];
+          newPlotData[1].z = results[localOptVars[2]];
+          newPlotData[0].type = "scatter3d";
+          newPlotData[1].type = "scatter3d";
+          newPlotData[2].type = "scatter3d";
+          newLayout.scene = {
+            xaxis: { title: { text: optVars[0] } },
+            yaxis: { title: { text: optVars[1] } },
+            zaxis: { title: { text: optVars[2] } },
+          };
+          break;
+        }
+        default: {
+          break;
+        }
+      }
+      console.log("MOGA plot data:", newPlotData);
+
       setPlotData(newPlotData);
+      setLayout(newLayout);
       setPlotType(localPlotType);
       setPropagating(false);
     },
-    [optVars, inputVars, distribution, selectedFunction, calculatePerformance],
+    [optVars, inputVars, distribution, selectedFunction, theme, calculatePerformance],
   );
 
   useEffect(() => {
@@ -188,16 +275,6 @@ export function MOGAPareto(props: MogaParetoPropsType) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hovered, plotType, tableData]);
-
-  const layout = {
-    title: { text: "Pareto Front Diagram" },
-    xaxis: { title: { text: optVars[0] } },
-    yaxis: { title: { text: optVars[1] } },
-    zaxis: { title: { text: optVars[2] } },
-    plot_bgcolor: `${theme.palette.background.default}`,
-    paper_bgcolor: `${theme.palette.background.default}`,
-    font: { color: `${theme.palette.text.primary}` },
-  };
 
   const plotStyle = {
     width: "100%",
