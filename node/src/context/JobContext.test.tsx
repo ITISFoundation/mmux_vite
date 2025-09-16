@@ -27,7 +27,7 @@ function TestComponent() {
     selectedJobUids,
     setSelectedJobUids,
     allJobsList,
-    filterSelectedJobList,
+    filteredJobList,
   } = useJobContext();
 
   return (
@@ -62,7 +62,7 @@ function TestComponent() {
         Set Running
       </button>
       <div data-testid="all-jobs">{JSON.stringify(allJobsList())}</div>
-      <div data-testid="filtered-jobs">{JSON.stringify(filterSelectedJobList())}</div>
+      <div data-testid="filtered-jobs">{JSON.stringify(filteredJobList)}</div>
       <div data-testid="selected-uids">{JSON.stringify(selectedJobUids)}</div>
       <div data-testid="running-job">{JSON.stringify(runningJobCollection)}</div>
       <div data-testid="fetched-jobs">{JSON.stringify(fetchedJobCollections)}</div>
@@ -134,7 +134,7 @@ describe("JobContextProvider", () => {
     expect(getByTestId("all-jobs").textContent).toBe(`[{"id":"1"},{"id":"2"},{"id":"3"},{"id":"4"},{"id":"5"}]`);
   });
 
-  it("filterSelectedJobList returns only selected jobs if >=5", () => {
+  it("filteredJobList returns only selected jobs if >=5", () => {
     const { getByTestId } = render(
       <JobContextProvider>
         <TestComponent />

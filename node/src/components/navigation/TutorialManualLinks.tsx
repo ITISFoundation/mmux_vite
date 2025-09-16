@@ -54,7 +54,7 @@ export function HelpContents({ type }: { type: HelpType }) {
         closeOnClick: false,
         pauseOnHover: false,
         draggable: false,
-        closeButton: false,
+        closeButton: true,
         type: "warning",
         toastId: "HostLinkWarning",
       });

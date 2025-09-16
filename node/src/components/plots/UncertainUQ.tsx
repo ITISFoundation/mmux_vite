@@ -4,7 +4,6 @@ import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import { JobsLoading } from "../data/JobsLoading";
@@ -17,75 +16,70 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { numSamples, selectedQoI } = useMMUXContext();
-  const { fetchedJobCollections, filterSelectedJobList } = useJobContext();
+  const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [dataUQHistogram, setDataUQHistogram] = useState<DataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
 
   useEffect(() => {
-    const run = async () => {
-      const jobs = filterSelectedJobList();
-
-      async function runUQ(localJobs: FunctionJob[]) {
-        setDataUQHistogram(undefined);
-        setPlotData([]);
-        setPropagating(true);
-        if (localJobs.length === 0) {
-          console.warn("No jobs selected for UQ propagation.");
-          setPropagating(false);
-          return;
-        }
-        try {
-          console.info("Propagating UQ...");
-          console.info("SelectedQoI: ", selectedQoI);
-          const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/manual_uq_propagation_with_uncertainty`, {
-            method: "POST",
-            body: JSON.stringify({
-              inputVars,
-              output: selectedQoI,
-              distributions: distribution[selectedFunction?.uid || ""],
-              FunctionJobs: localJobs,
-              numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
-              log: false,
-              nHistograms: 50,
-              seed: 0,
-            }),
-          });
-          if (!response.ok) {
-            throw new Error(`Error in UQ response: ${response.status}, ${response.statusText}`);
-          }
-          const data: DataUQHistogramType = await response.json();
-          const newPlotData: Plotly.Data[] = [
-            {
-              x: Array.from(
-                { length: data.bin_means.length },
-                (_, i) => data.bins_start + ((data.bins_end - data.bins_start) / data.bin_means.length) * (i + 0.5),
-              ),
-              y: data.bin_means,
-              type: "bar",
-              marker: { color: `${theme.palette.primary.main}` },
-              name: "UQ Histogram",
-              error_y: {
-                type: "data",
-                array: data.bin_stds,
-                visible: true,
-              },
-            },
-          ];
-          setPlotData(newPlotData);
-          setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
-          setPropagating(false);
-        } catch (error) {
-          console.warn("Error:", error);
-          setPropagating(false);
-          setDataUQHistogram(undefined);
-        }
+    (async () => {
+      console.log("running job collections: ", fetchedJobCollections, filteredJobList);
+      setDataUQHistogram(undefined);
+      setPlotData([]);
+      setPropagating(true);
+      if (filteredJobList.length === 0) {
+        console.warn("No jobs selected for UQ propagation.");
+        setPropagating(false);
+        return;
       }
-      return runUQ(jobs);
-    };
-    run();
+      try {
+        console.info("Propagating UQ...");
+        console.info("SelectedQoI: ", selectedQoI);
+        const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/manual_uq_propagation_with_uncertainty`, {
+          method: "POST",
+          body: JSON.stringify({
+            inputVars,
+            output: selectedQoI,
+            distributions: distribution[selectedFunction?.uid || ""],
+            FunctionJobs: filteredJobList,
+            numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
+            log: false,
+            nHistograms: 50,
+            seed: 0,
+          }),
+        });
+        if (!response.ok) {
+          throw new Error(`Error in UQ response: ${response.status}, ${response.statusText}`);
+        }
+        const data: DataUQHistogramType = await response.json();
+        const newPlotData: Plotly.Data[] = [
+          {
+            x: Array.from(
+              { length: data.bin_means.length },
+              (_, i) => data.bins_start + ((data.bins_end - data.bins_start) / data.bin_means.length) * (i + 0.5),
+            ),
+            y: data.bin_means,
+            type: "bar",
+            marker: { color: `${theme.palette.primary.main}` },
+            name: "UQ Histogram",
+            error_y: {
+              type: "data",
+              array: data.bin_stds,
+              visible: true,
+            },
+          },
+        ];
+        setPlotData(newPlotData);
+        setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
+        setPropagating(false);
+      } catch (error) {
+        console.warn("Error:", error);
+        setPropagating(false);
+        setDataUQHistogram(undefined);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [numSamples, inputVars, distribution, selectedQoI, selectedFunction?.uid]);
+  }, [filteredJobList]);
   if (loading) {
     return <JobsLoading progress={progress} jobProgress={jobProgress} message="Creating AI model..." />;
   }
@@ -111,7 +105,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
       {!propagating && plotData.length === 0 && (
         <InsufficientDataWarning
           fetchedJobCollections={fetchedJobCollections}
-          filterSelectedJobList={filterSelectedJobList}
+          filteredJobList={filteredJobList}
           height={plotStyle.height}
         />
       )}
