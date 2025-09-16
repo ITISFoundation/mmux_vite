@@ -1,7 +1,7 @@
 import pytest
 from flask import Flask
 from unittest.mock import patch
-from osparc_api_mocks import patch_list_functions_success, patch_list_functions_empty, patch_list_functions_422
+from osparc_api_mocks import patch_list_functions_success, patch_list_functions_empty, patch_list_functions_422, patch_list_function_jobs_success, patch_list_function_jobs_empty, patch_list_function_jobs_422
 from mmux_flaskapi.app import create_flask_app
 
 
