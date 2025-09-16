@@ -145,6 +145,35 @@ export function setupTheme(mode: "light" | "dark") {
           },
         },
       },
+      MuiDataGrid: {
+        styleOverrides: {
+          root: {
+            "& .MuiDataGrid-row": {
+              // color: '#232D3F'
+            },
+            "& .MuiDataGrid-columnHeaderTitle": {
+              fontSize: "15px",
+            },
+            "& .MuiDataGrid-selectedRowCount": {
+              color: theme.palette.text.primary,
+            },
+            "& .MuiCheckbox-root": {
+              color: theme.palette.text.primary,
+            },
+          },
+          columnHeader: {
+            "& .MuiSvgIcon-root": {
+              color: theme.palette.common.white,
+            },
+          },
+          columnHeaderTitle: {
+            color: theme.palette.common.white,
+          },
+          columnHeaderSortIcon: {
+            color: theme.palette.common.white,
+          },
+        },
+      },
     },
   });
 }
