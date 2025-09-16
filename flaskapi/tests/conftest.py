@@ -1,18 +1,14 @@
-import pytest
-from flask import Flask
-from unittest.mock import patch
+import os
+from datetime import datetime
 import logging
 #
-from osparc_api_mocks import *
+import pytest
+from unittest.mock import patch
+from flask import Flask
 from mmux_flaskapi.app import create_flask_app
 
 
-
-# Enable logging during testing to a file in tests/logs/ with a timestamped filename
-import os
-from datetime import datetime
-
-@pytest.fixture(autouse=True, scope="session")
+@pytest.fixture(autouse=True)
 def configure_test_logging():
     """Configure logging to write to a file in tests/logs/ with a unique timestamped filename."""
     logs_dir = os.path.join(os.path.dirname(__file__), "logs")
@@ -47,7 +43,6 @@ def configure_test_logging():
     yield
 
 
-# @pytest.fixture(autouse=True, scope="session")
 @pytest.fixture
 def mock_test_env_vars():
     """Fixture to set environment variables for testing."""
@@ -67,7 +62,6 @@ def test_app(mock_test_env_vars) -> Flask:
     app = create_flask_app()
     return app
 
-# @pytest.fixture(scope='module')
 @pytest.fixture
 def test_client(test_app):
     """Fixture to provide a test client for the Flask app."""
@@ -85,56 +79,4 @@ def assert_route_exists(app: Flask, prefix: str, route: str):
     full_route = f"{prefix}/{route}"
     assert full_route in routes, f"The route '{full_route}' should be registered."
 
-@pytest.fixture
-def mock_list_functions():
-    """Fixture to mock osparc.functions_api.list_functions."""
-    mock_functions = [
-        {
-        "uid": "test-function-uid-456",
-        "name": "Test Function",
-        "description": "A test function for unit testing",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "param1": {"type": "number"},
-                "param2": {"type": "number"}
-            },
-            "required": ["param1", "param2"]
-        },
-        "outputSchema": {
-            "type": "object",
-            "properties": {
-                "result": {"type": "number"}
-            }
-        }
-    }
-    ] * 3  # Return a list with 3 identical functions for testing
-
-    with patch('osparc_client.api.functions_api.FunctionsApi.list_functions') as mock_get_functions_api:
-        response = ... # TODO check api_call(offset = retrieved, *args, **kwargs) response -- prob inc error code, etc
-        mock_get_functions_api.return_value = mock_functions
-        yield mock_get_functions_api
-        ### TODO can I ask the IA to study the osparc-client pkg & properly mock the relevant functions??
-
-def sample_job():
-    """Sample job data for testing."""
-    return {
-        "uid": "test-job-uid-123",
-        "functionUid": "test-function-uid-456",
-        "inputs": {"param1": 1.0, "param2": 2.0},
-        "outputs": {"result": 3.0},
-        "createdAt": "2025-09-03T12:00:00Z",
-        "status": "COMPLETED"
-    }
-
-
-def sample_job_collection():
-    """Sample job collection data for testing."""
-    return {
-        "uid": "test-job-collection-uid-789",
-        "functionUid": "test-function-uid-456",
-        "jobIds": ["job-uid-1", "job-uid-2", "job-uid-3"],
-        "createdAt": "2025-09-03T12:00:00Z",
-        "title": "Test Job Collection",
-        "description": "A collection of test jobs"
-    }
+from osparc_api_mocks import *
