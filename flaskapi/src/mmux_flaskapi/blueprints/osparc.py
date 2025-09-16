@@ -6,16 +6,8 @@ from typing import Callable, Dict, Any
 from functools import wraps
 from flask import Blueprint, jsonify, request, make_response
 from osparc_client.models.function_job_status import FunctionJobStatus
-from mmux_flaskapi.utils.helpers import dict_keys_camel_to_snake, _get_all_items, is_test_environment
-from mmux_flaskapi.utils.webserver_config import OsparcApi
-
-# Import the base API exception from the osparc_client (adjust if needed)
-try:
-    from osparc_client.exceptions import ApiException as OsparcApiException
-except ImportError:
-    # Fallback if the exception is in a different location
-    OsparcApiException = Exception
-
+from mmux_flaskapi.utils.helpers import dict_keys_camel_to_snake, _get_all_items
+from mmux_flaskapi.utils.webserver_config import get_osparc_api, OsparcApiException
 
 #####################################################################################
 # Initialize logger and OsparcApi
@@ -23,11 +15,6 @@ except ImportError:
 _logger = logging.getLogger(__name__)
 osparc_bp = Blueprint('osparc', __name__, url_prefix='/osparc')
 
-# Initialize osparc_api
-osparc_api = OsparcApi()
-if not is_test_environment():
-    _logger.info("Testing API connection...")
-    osparc_api._test_connection()
 
 #####################################################################################
 # Decorators for error handling and logging
@@ -73,6 +60,7 @@ def api_endpoint(func: Callable) -> Callable:
 @osparc_bp.route("/list_functions", methods=["GET"])
 @api_endpoint
 def flask_list_functions():
+    osparc_api = get_osparc_api()
     functions = _get_all_items(osparc_api.get_functions_api().list_functions)
     functions = functions[::-1]  # put last-created first? FIXME still need to expose "created_at" in the response
     _logger.debug(f"N Functions: {len(functions)}")
@@ -81,6 +69,7 @@ def flask_list_functions():
 @osparc_bp.route("/list_jobs", methods=["GET"])
 @api_endpoint
 def flask_list_jobs():
+    osparc_api = get_osparc_api()
     jobs = _get_all_items(osparc_api.get_job_api().list_function_jobs)
     _logger.debug(f"N Jobs: {len(jobs)}")
     return jobs, 200
@@ -89,6 +78,7 @@ def flask_list_jobs():
 @osparc_bp.route("/list_function_job_collections", methods=["GET"])
 @api_endpoint
 def flask_get_function_job_collections():
+    osparc_api = get_osparc_api()
     # this is a list of items of Paginated object -- deserialize into a list of JobCollection objects
     job_collections = _get_all_items(osparc_api.get_job_collection_api().list_function_job_collections)
     _logger.debug(f"N Job collections: {len(job_collections)}")
@@ -102,6 +92,7 @@ def flask_get_function_job_collections():
 @osparc_bp.route("/list_function_jobs_for_functionid", methods=["GET"])
 @api_endpoint
 def flask_list_function_jobs_for_functionid():
+    osparc_api = get_osparc_api()
     function_uid = request.args["functionUid"]
     _logger.info(f"Function ID: {function_uid}")
     jobs = _get_all_items(osparc_api.get_functions_api().list_function_jobs_for_functionid, function_uid)
@@ -114,6 +105,7 @@ def flask_list_function_jobs_for_functionid():
 @osparc_bp.route("/list_function_jobs_for_jobcollectionid", methods=["GET"])
 @api_endpoint
 def flask_list_function_jobs_for_jobcollectionid():
+    osparc_api = get_osparc_api()
     jc_uid = request.args["JobCollectionUid"]
     _logger.debug(f"jc ID: {jc_uid}")
     jc = osparc_api.get_job_collection_api().get_function_job_collection(jc_uid)
@@ -124,6 +116,7 @@ def flask_list_function_jobs_for_jobcollectionid():
 @osparc_bp.route("/list_function_job_collections_for_functionid", methods=["GET"])
 @api_endpoint
 def flask_get_function_job_collections_for_functionid():
+    osparc_api = get_osparc_api()
     _logger.debug(f"Request args: {request.args}")
     function_uid = request.args["functionUid"]
     _logger.debug(f"Function ID: {function_uid}")
@@ -151,6 +144,7 @@ def _get_function_job_from_uid(job_uid: str) -> Dict[str, Any]:
         _logger.error("Job UID is required.")
         raise ValueError("Job UID is required.")
     _logger.debug(f"Job ID: {job_uid}")
+    osparc_api = get_osparc_api()
     job = osparc_api.get_job_api().get_function_job(job_uid)
     job_dict = dict_keys_camel_to_snake(job.to_dict())  # type: ignore
     _logger.debug(f"'Raw' Job: {job_dict}")
@@ -162,6 +156,7 @@ def _get_function_job_from_uid(job_uid: str) -> Dict[str, Any]:
 @osparc_bp.route("/get_function_job_status", methods=["GET"])
 @api_endpoint
 def flask_get_function_job_status():
+    osparc_api = get_osparc_api()
     job_uid = request.args["jobUid"]
     job_status = osparc_api.get_job_api().function_job_status(job_uid).status
     return {"status": job_status}, 200
@@ -169,6 +164,7 @@ def flask_get_function_job_status():
 @osparc_bp.route("/get_function_job_outputs", methods=["GET"])
 @api_endpoint
 def flask_get_function_job_outputs():
+    osparc_api = get_osparc_api()
     job_uid = request.args["jobUid"]
     job_outputs = osparc_api.get_job_api().function_job_outputs(job_uid)
     return job_outputs, 200
@@ -183,6 +179,7 @@ def test_job_retrieval_endpoints_speed(job_uid: str, N: int = 1):
             _logger.info(f"Iteration {i+1}/{N}: {result}")   # Print the result of each iteration
         end_time = time.time()
         return (end_time - start_time) / N
+    osparc_api = get_osparc_api()
     time_job_full = _timeit(osparc_api.get_job_api().get_function_job, N, job_uid)
     time_job_outputs = _timeit(osparc_api.get_job_api().function_job_outputs, N, job_uid)
     time_job_status = _timeit(osparc_api.get_job_api().function_job_status, N, job_uid)
@@ -202,4 +199,5 @@ def test_job_retrieval_paginated(function_uid: str):
         _logger.info(f"Last item: {result[-1] if result else 'No items retrieved'}")
         if result:
             _logger.info(f"That is {(end_time - start_time)/len(result):.2f} seconds per item")
+    osparc_api = get_osparc_api()
     _timeit(_get_all_items, api_call=osparc_api.get_functions_api().list_function_jobs_for_functionid, function_id=function_uid)  # type: ignore

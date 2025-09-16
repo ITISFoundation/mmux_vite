@@ -5,7 +5,7 @@ Covers: success, empty, and error (422) cases for /osparc/list_functions endpoin
 import pytest
 from unittest.mock import patch
 from unittest.mock import MagicMock
-from mmux_flaskapi.blueprints.osparc import OsparcApiException
+from osparc_client.exceptions import ApiException as OsparcApiException
 
 
 #####################################################################################

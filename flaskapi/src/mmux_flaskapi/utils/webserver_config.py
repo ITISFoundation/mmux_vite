@@ -5,11 +5,13 @@ Handles different environments and API connection setup.
 import os
 import logging
 from typing import Optional
+from flask import current_app
 from osparc import Configuration as OsparcConfiguration
 from osparc import ApiClient, UsersApi, StudiesApi
 from osparc_client.api.functions_api import FunctionsApi
 from osparc_client.api.function_jobs_api import FunctionJobsApi
 from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi
+from osparc_client.exceptions import ApiException as OsparcApiException  # to be exposed downstream
 
 _logger = logging.getLogger(__name__)
 
@@ -111,3 +113,22 @@ class OsparcApi:
             self._test_connection()
         
         return self._is_connected
+
+
+def get_osparc_api() -> OsparcApi:
+    """Helper to get the OsparcApi instance from the current Flask app context."""
+    from mmux_flaskapi.app import MMUXFlask
+    assert isinstance(current_app, MMUXFlask), "current_app is not an instance of MMUXFlask"
+    osparc_api = current_app.osparc_api
+    if osparc_api is None:
+        raise ValueError("OsparcApi instance is not initialized in the Flask app")
+    if not osparc_api.is_connected:
+        raise ValueError("OsparcApi instance is not connected to the osparc backend")
+
+    return osparc_api
+
+__all__ = [
+    "OsparcApi", 
+    "get_osparc_api", 
+    "OsparcApiException"
+    ]

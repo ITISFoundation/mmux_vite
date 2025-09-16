@@ -10,7 +10,8 @@ from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import
 #
 from mmux_flaskapi.blueprints.osparc import _get_function_job_from_uid
 from mmux_flaskapi.utils.helpers import dict_keys_snake_to_camel, create_run_dir
-
+from mmux_flaskapi.utils.webserver_config import get_osparc_api
+#
 
 _logger = logging.getLogger(__name__)
 sampling_bp = Blueprint('sampling', __name__, url_prefix='/sampling')
@@ -37,18 +38,12 @@ def _get_parent_ids() -> ParentInfo:
     return ParentInfo(parent_node_id=parent_node_id, parent_project_id=parent_project_id)
 
 def _get_functions_api():
-    from mmux_flaskapi.app import MMUXFlask
-    assert current_app is not None, "Flask current_app is None"
-    assert isinstance(current_app, MMUXFlask), f"current_app is not of type MMUXFlask but {type(current_app)}"
-    functions_api = current_app.osparc_api.get_functions_api()
+    functions_api = get_osparc_api().get_functions_api()
     assert functions_api is not None, "functions_api is None"
     return functions_api
 
 def _get_studies_api():
-    from mmux_flaskapi.app import MMUXFlask
-    assert current_app is not None, "Flask current_app is None"
-    assert isinstance(current_app, MMUXFlask), f"current_app is not of type MMUXFlask but {type(current_app)}"
-    studies_api = current_app.osparc_api.get_studies_api()
+    studies_api = get_osparc_api().get_studies_api()
     assert studies_api is not None, "studies_api is None"
     return studies_api
 
