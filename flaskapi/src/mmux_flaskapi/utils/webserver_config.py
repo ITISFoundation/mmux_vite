@@ -21,7 +21,6 @@ class OsparcApi:
     
     def __init__(self):
         self._setup_configuration()
-        self._test_connection()
         
     def _setup_configuration(self):
         """Set up OSPARC configuration from environment variables."""
