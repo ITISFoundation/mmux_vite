@@ -14,8 +14,8 @@ const getMinMax = (subJobs: SubJob[]) => {
     inputs: {},
     outputs: {},
   };
-  const inputKeys = Object.keys(inputs && Array.isArray(inputs) ? inputs[0] : {});
-  const outputKeys = Object.keys(outputs && Array.isArray(outputs) ? outputs[0] : {});
+  const inputKeys = Object.keys(inputs && Array.isArray(inputs) && inputs.length > 0 ? inputs[0] : {});
+  const outputKeys = Object.keys(outputs && Array.isArray(outputs) && outputs.length > 0 ? outputs[0] : {});
   inputKeys.forEach(key => {
     const values = inputs.map(input => input[key]);
     minMax.inputs[key] = {
