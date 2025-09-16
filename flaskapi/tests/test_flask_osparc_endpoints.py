@@ -169,3 +169,31 @@ class TestOsparcListFunctionJobsForJobCollectionId:
         data = response.get_json()
         assert "error" in data
         assert "404" in data["error"]
+
+
+# --- Tests for /osparc/list_function_job_collections_for_functionid ---
+### NB using same fixtures as list_function_job_collections (without passing function_id param) ---
+### because it uses the same osparc_client endpoint
+class TestOsparcListFunctionJobCollectionsForFunctionId:
+    def test_list_function_job_collections_for_functionid_success(self, test_client, patch_list_function_job_collections_success):
+        response = test_client.get("/osparc/list_function_job_collections_for_functionid?functionUid=func1")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, list)
+        assert len(data) == 2
+        assert data[0]["uid"] == "jc-1"
+        assert data[1]["uid"] == "jc-2"
+
+    def test_list_function_job_collections_for_functionid_empty(self, test_client, patch_list_function_job_collections_empty):
+        response = test_client.get("/osparc/list_function_job_collections_for_functionid?functionUid=func1")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, list)
+        assert len(data) == 0
+
+    def test_list_function_job_collections_for_functionid_422(self, test_client, patch_list_function_job_collections_422):
+        response = test_client.get("/osparc/list_function_job_collections_for_functionid?functionUid=func1")
+        assert response.status_code == 500
+        data = response.get_json()
+        assert "error" in data
+        assert "422" in data["error"]

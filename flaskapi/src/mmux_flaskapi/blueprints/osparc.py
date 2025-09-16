@@ -101,7 +101,6 @@ def flask_list_function_jobs_for_jobcollectionid():
         _logger.error(f"Error while listing jobs for job collection {jc_uid}: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
 
-## TODO this does not work; FunctionJobCollection does not have functionUid property (??) (include it)
 @osparc_bp.route("/list_function_job_collections_for_functionid", methods=["GET"])
 def flask_get_function_job_collections_for_functionid():
     _logger.debug("Starting flask function: flask_get_function_job_collections")
