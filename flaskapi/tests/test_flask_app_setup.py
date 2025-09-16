@@ -22,8 +22,9 @@ class TestFlaskAppSetup:
         assert isinstance(test_app, Flask)
         assert test_app.name == "MMUX Flask API"
 
-    def test_is_test_environment(self):
+    def test_is_test_environment(self, test_app: Flask):
         """Test the is_test_environment function."""
+        assert test_app is not None
         assert is_test_environment() is True
         os.environ["OSPARC_API_BASE_URL"] = "https://production.example.com"
         assert is_test_environment() is False
@@ -56,7 +57,7 @@ class TestOsparcConfig:
         """Test that the configuration is set up correctly."""
         osparc_config = OsparcApi()._configuration
         assert isinstance(osparc_config, OsparcConfiguration)
-        assert osparc_config.host == "https://api.osparc.io"
+        assert osparc_config.host == "https://test.example.io"
         assert osparc_config.username == "test_key"
         assert osparc_config.password == "test_secret"
 

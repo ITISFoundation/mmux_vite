@@ -1,6 +1,6 @@
 import os
 import pytest
-from unnittest.mock import patch
+from unittest.mock import patch
 from flask import Flask
 from mmux_flaskapi.app import create_flask_app
 
@@ -13,7 +13,7 @@ def mock_osparc_env_vars(monkeypatch):
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
 
 @pytest.fixture
-def test_app() -> Flask:
+def test_app(mock_osparc_env_vars) -> Flask:
     """Fixture to initialize the Flask app in test mode."""
     app = create_flask_app()
     return app
