@@ -7,9 +7,8 @@ from flask import request, abort, make_response
 from osparc_client.models.function_job import FunctionJob
 from osparc_client.models.function_job_status import FunctionJobStatus
 #
-from mmux_flaskapi.helpers import dict_keys_camel_to_snake, _get_all_items
-from mmux_flaskapi.webserver_config import OsparcApi
-from mmux_flaskapi.helpers import is_test_environment
+from mmux_flaskapi.utils.helpers import dict_keys_camel_to_snake, _get_all_items, is_test_environment
+from mmux_flaskapi.utils.webserver_config import OsparcApi
 
 _logger = logging.getLogger(__name__)
 osparc_bp = Blueprint('osparc', __name__, url_prefix='/osparc')
