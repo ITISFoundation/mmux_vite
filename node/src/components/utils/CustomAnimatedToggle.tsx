@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { Box, Button, useTheme } from "@mui/material";
 
 interface CustomAnimatedToggleProps {
-  disabled: boolean;
+  disabled: boolean | Array<boolean>;
   data: string[];
   value: number;
   onChange: (value: number) => void;
@@ -12,6 +12,8 @@ export function CustomAnimatedToggle(props: CustomAnimatedToggleProps) {
   const { disabled, data, onChange, value } = props;
   const theme = useTheme();
   const [selected, setSelected] = React.useState<number>(value);
+
+  const globDisabled = Array.isArray(disabled) ? disabled.every(d => d === true) : disabled;
 
   const handleClick = (index: number) => {
     setSelected(index);
@@ -50,7 +52,7 @@ export function CustomAnimatedToggle(props: CustomAnimatedToggleProps) {
       {data.map((inputVar, index) => (
         <Button
           key={`input-var-${inputVar}`}
-          disabled={disabled}
+          disabled={globDisabled === true || (Array.isArray(disabled) ? disabled[index] : false)}
           disableRipple
           sx={{
             width: `${100 / data.length}%`,

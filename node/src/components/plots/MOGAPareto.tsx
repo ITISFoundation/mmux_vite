@@ -240,7 +240,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
                 const calculatePT = i === 0 ? "1D" : i === 1 ? "2D" : "3D";
                 runMOGA(filteredJobList, outputTargets[selectedFunction?.uid as string], calculatePT);
               }}
-              disabled={false}
+              disabled={[!(optVars.length >= 1), !(optVars.length >= 2), !(optVars.length >= 3)]}
             />
           </Box>
           <MogaParetoTable tableData={tableData} hovered={hovered} setHovered={setHovered} />
