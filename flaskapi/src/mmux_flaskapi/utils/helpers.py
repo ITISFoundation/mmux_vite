@@ -86,6 +86,7 @@ def _get_all_items(api_call: Callable, *args, **kwargs):
         response = api_call(offset = retrieved, *args, **kwargs)
         retrieved += len(response.items)  # type: ignore
         items += [recursive_dict_keys_camel_to_snake(i.to_dict(), max_depth=1) for i in response.items]
+    
     return items
 
 def _get_first_N_items(api_call: Callable, N: int, **kwargs):
