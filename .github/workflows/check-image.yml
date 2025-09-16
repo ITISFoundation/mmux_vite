@@ -20,20 +20,24 @@ jobs:
       matrix:
         node-version: [24.x] # Are you are missing this specification?
     steps:
-    - name: Checkout repo content
-      uses: actions/checkout@v5
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: 'node/package-lock.json'
-    - name: Run node tests
-      run: make test-node
+      - name: Checkout repo content
+        uses: actions/checkout@v5
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+          cache-dependency-path: "node/package-lock.json"
+      - name: Run node tests
+        run: make test-node
   verify-image-build:
     needs: node-tests
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-java@v5
+        with:
+          distribution: "zulu"
+          java-version: "21"
       - name: Checkout repo content
         uses: actions/checkout@v5
       - name: ooil version
