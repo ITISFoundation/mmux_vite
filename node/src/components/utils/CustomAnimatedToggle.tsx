@@ -67,6 +67,9 @@ export function CustomAnimatedToggle(props: CustomAnimatedToggleProps) {
             "&:hover": {
               backgroundColor: "transparent",
             },
+            "&:disabled": {
+              backgroundColor: "transparent",
+            },
           }}
           onClick={() => handleClick(index)}
         >
