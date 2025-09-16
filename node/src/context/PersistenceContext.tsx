@@ -81,14 +81,9 @@ export function PersistenceContextProvider({ children }: Props) {
     });
 
     if (!response.ok) {
-      if (response.status === 500) {
-        console.warn(
-          `⚠️ Server error when setting file due to trying to save the file from a different IP ADDRESS (${response.status}): ${response.statusText}`,
-        );
-        setAvoidPersisting(true);
-        return;
-      }
-      throw new Error(`Failed to set file: ${response.status} ${response.statusText}`);
+      console.warn(`⚠️ Server error when setting the persistency file, with status (${response.status}): ${response.statusText}`);
+      setAvoidPersisting(true);
+      return;
     }
 
     const data = (await response.json()) as {
