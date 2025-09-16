@@ -236,3 +236,52 @@ def patch_list_function_jobs_for_functionid_422():
 def patch_list_function_jobs_for_functionid_404():
     with patch("osparc_client.api.functions_api.FunctionsApi.list_function_jobs_for_functionid", side_effect=mock_list_function_jobs_for_functionid_404):
         yield
+
+
+# --- Mock FunctionJobCollectionsApi.get_function_job_collection and FunctionJobsApi.get_function_job ---
+def mock_get_function_job_collection_success(jc_uid):
+    """Return a job collection with two job IDs."""
+    return MagicMock(job_ids=["job-1", "job-2"])
+
+def mock_get_function_job_collection_empty(jc_uid):
+    """Return a job collection with no job IDs."""
+    return MagicMock(job_ids=[])
+
+def mock_get_function_job_collection_422(jc_uid):
+    class ValidationError(Exception):
+        pass
+    raise ValidationError("422 Unprocessable Entity: Validation Error")
+
+def mock_get_function_job_collection_404(jc_uid):
+    class NotFoundError(Exception):
+        pass
+    raise NotFoundError(f"404 Not Found: Job Collection UID {jc_uid} does not exist")
+
+
+# --- Fixtures for patching /osparc/list_function_jobs_for_jobcollectionid ---
+@pytest.fixture
+def patch_list_function_jobs_for_jobcollectionid_success():
+    with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.get_function_job_collection", side_effect=mock_get_function_job_collection_success), \
+         patch("osparc_client.api.function_jobs_api.FunctionJobsApi.get_function_job", side_effect=mock_get_function_job_success):
+        yield
+
+@pytest.fixture
+def patch_list_function_jobs_for_jobcollectionid_empty():
+    with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.get_function_job_collection", side_effect=mock_get_function_job_collection_empty):
+        yield
+
+@pytest.fixture
+def patch_list_function_jobs_for_jobcollectionid_422():
+    with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.get_function_job_collection", side_effect=mock_get_function_job_collection_422):
+        yield
+
+@pytest.fixture
+def patch_list_function_jobs_for_jobcollectionid_404():
+    with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.get_function_job_collection", side_effect=mock_get_function_job_collection_404):
+        yield
+
+@pytest.fixture
+def patch_list_function_jobs_for_jobcollectionid_job_404():
+    with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.get_function_job_collection", side_effect=mock_get_function_job_collection_success), \
+         patch("osparc_client.api.function_jobs_api.FunctionJobsApi.get_function_job", side_effect=mock_get_function_job_404):
+        yield

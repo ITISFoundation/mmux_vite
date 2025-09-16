@@ -126,3 +126,46 @@ class TestOsparcListFunctionJobsForFunctionId:
         data = response.get_json()
         assert "error" in data
         assert "404" in data["error"]
+
+class TestOsparcListFunctionJobsForJobCollectionId:
+    def test_list_function_jobs_for_jobcollectionid_success(self, test_client, patch_list_function_jobs_for_jobcollectionid_success):
+        """Test /osparc/list_function_jobs_for_jobcollectionid with a successful response."""
+        response = test_client.get("/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, list)
+        assert len(data) == 2
+        assert data[0]["uid"] == "job-1"
+        assert data[1]["uid"] == "job-2"
+
+    def test_list_function_jobs_for_jobcollectionid_empty(self, test_client, patch_list_function_jobs_for_jobcollectionid_empty):
+        """Test /osparc/list_function_jobs_for_jobcollectionid with an empty job collection."""
+        response = test_client.get("/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, list)
+        assert len(data) == 0
+
+    def test_list_function_jobs_for_jobcollectionid_422(self, test_client, patch_list_function_jobs_for_jobcollectionid_422):
+        """Test /osparc/list_function_jobs_for_jobcollectionid with a 422 Validation Error."""
+        response = test_client.get("/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
+        assert response.status_code == 500
+        data = response.get_json()
+        assert "error" in data
+        assert "422" in data["error"]
+
+    def test_list_function_jobs_for_jobcollectionid_404(self, test_client, patch_list_function_jobs_for_jobcollectionid_404):
+        """Test /osparc/list_function_jobs_for_jobcollectionid with a 404 Not Found error (collection)."""
+        response = test_client.get("/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=notfound")
+        assert response.status_code == 500
+        data = response.get_json()
+        assert "error" in data
+        assert "404" in data["error"]
+
+    def test_list_function_jobs_for_jobcollectionid_job_404(self, test_client, patch_list_function_jobs_for_jobcollectionid_job_404):
+        """Test /osparc/list_function_jobs_for_jobcollectionid with a 404 Not Found error (job)."""
+        response = test_client.get("/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
+        assert response.status_code == 500
+        data = response.get_json()
+        assert "error" in data
+        assert "404" in data["error"]
