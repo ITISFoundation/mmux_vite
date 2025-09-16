@@ -373,4 +373,57 @@ def patch_get_function_job_outputs_404():
     with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_outputs", side_effect=mock_function_job_outputs_404):
         yield
 
+#################################################################################
+### check that any other error message & code simply gets propagated as is
+#################################################################################
+def mock_random_error(*args, **kwargs):
+    from osparc_client.exceptions import ApiException
+    import random
+    code = random.choice([418, 429, 431, 499])
+    msg = f"Random error {code}: This is a random error message."
+    raise ApiException(status=code, body=msg)
 
+@pytest.fixture
+def patch_list_functions_random_error():
+    with patch("osparc_client.api.functions_api.FunctionsApi.list_functions", side_effect=mock_random_error):
+        yield
+
+@pytest.fixture
+def patch_list_function_jobs_random_error():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.list_function_jobs", side_effect=mock_random_error):
+        yield
+
+@pytest.fixture
+def patch_list_function_job_collections_random_error():
+    with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.list_function_job_collections", side_effect=mock_random_error):
+        yield
+
+@pytest.fixture
+def patch_list_function_jobs_for_functionid_random_error():
+    with patch("osparc_client.api.functions_api.FunctionsApi.list_function_jobs_for_functionid", side_effect=mock_random_error):
+        yield
+
+@pytest.fixture
+def patch_list_function_jobs_for_jobcollectionid_random_error():
+    with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.get_function_job_collection", side_effect=mock_random_error):
+        yield
+
+@pytest.fixture
+def patch_list_function_job_collections_for_functionid_random_error():
+    with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.list_function_job_collections", side_effect=mock_random_error):
+        yield
+
+@pytest.fixture
+def patch_get_function_job_random_error():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.get_function_job", side_effect=mock_random_error):
+        yield
+
+@pytest.fixture
+def patch_get_function_job_status_random_error():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_status", side_effect=mock_random_error):
+        yield
+
+@pytest.fixture
+def patch_get_function_job_outputs_random_error():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_outputs", side_effect=mock_random_error):
+        yield
