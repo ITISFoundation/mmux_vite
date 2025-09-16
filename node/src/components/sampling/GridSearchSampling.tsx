@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Skeleton, Typography } from "@mui/material";
+import { OsparcFunction, OsparcRegFunctionJobCollection } from "src/context/types";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "../setup/VariableConfig";
@@ -13,7 +13,7 @@ import { useJobContext } from "../../context/JobContext";
 async function runGridSampling(
   selectedFunction: OsparcFunction | undefined,
   context: SamplingContextType,
-  setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void,
+  setRunningJobCollection: (jc: OsparcRegFunctionJobCollection | undefined) => void,
   config: GRIDSamplingConfig,
 ) {
   const fun = selectedFunction as OsparcFunction;
@@ -33,7 +33,7 @@ async function runGridSampling(
       }
       return response.json();
     })
-    .then((localJC: RegisteredFunctionJobCollection) => {
+    .then((localJC: OsparcRegFunctionJobCollection) => {
       context.setLaunchingSampling(false);
       context.setRunningSampling(true);
       setRunningJobCollection(localJC || undefined);

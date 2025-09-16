@@ -1,18 +1,17 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { FunctionJob, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { usePersistenceContext } from "./PersistenceContext";
-import { PersistenceType } from "./types";
+import { OsparcFunctionJob, OsparcRegFunctionJobCollection, PersistenceType } from "./types";
 
 export interface JobContextType {
-  runningJobCollection: RegisteredFunctionJobCollection | undefined;
-  setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void;
+  runningJobCollection: OsparcRegFunctionJobCollection | undefined;
+  setRunningJobCollection: (jc: OsparcRegFunctionJobCollection | undefined) => void;
   fetchedJobCollections: SelectedJobCollection[];
   setFetchedJobCollections: (jc: SelectedJobCollection[]) => void;
   selectedJobUids: string[];
   setSelectedJobUids: (selectedJobs: string[]) => void;
-  allJobsList: () => FunctionJob[];
-  filteredJobList: FunctionJob[];
+  allJobsList: () => OsparcFunctionJob[];
+  filteredJobList: OsparcFunctionJob[];
 }
 
 export const JobContext = createContext<JobContextType | undefined>(undefined);
@@ -26,11 +25,11 @@ export function JobContextProvider({ children }: Props) {
   const [localLoading, setLocalLoading] = useState(true);
   const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
   const [fetchedJobCollections, setFetchedJobCollections] = useState<SelectedJobCollection[]>([]);
-  const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
+  const [runningJobCollection, setRunningJobCollection] = useState<OsparcRegFunctionJobCollection | undefined>(undefined);
 
   const filteredJobList = useMemo(() => {
     const localff = [...fetchedJobCollections];
-    const response: FunctionJob[] = localff
+    const response: OsparcFunctionJob[] = localff
       .map(jobCollection => jobCollection.subJobs.filter(subJob => subJob.selected === true).map(subJob => subJob.job))
       .flat();
     if (response.length < 5) {
@@ -40,7 +39,7 @@ export function JobContextProvider({ children }: Props) {
   }, [fetchedJobCollections]);
 
   const allJobsList = useCallback(() => {
-    const response: FunctionJob[] = fetchedJobCollections.flatMap(jobCollection =>
+    const response: OsparcFunctionJob[] = fetchedJobCollections.flatMap(jobCollection =>
       jobCollection.subJobs.map(subJob => subJob.job),
     );
 

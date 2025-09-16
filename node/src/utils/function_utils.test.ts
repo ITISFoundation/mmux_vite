@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
+import { ProjectFunctionJob } from "osparc-api-ts-client";
+import { OsparcFunctionJob } from "src/context/types";
 import {
   createInputOutputSchema,
   createJobStudyCopy,
@@ -12,9 +14,8 @@ import {
   getFunctionJobCollections,
   getFunctionJobsFromFunctionJobCollection,
 } from "./function_utils";
-import { FunctionJob, ProjectFunctionJob } from "osparc-api-ts-client";
 
-const mockJobs: FunctionJob[] = [
+const mockJobs: OsparcFunctionJob[] = [
   {
     uid: "job1",
     functionUid: "func1",
@@ -32,6 +33,11 @@ const mockJobs: FunctionJob[] = [
     status: "PENDING",
   },
 ];
+
+type ExtendedProjectFunctionJob = ProjectFunctionJob & {
+  uid: string;
+  status: string;
+};
 
 vi.mock("./fetch_retry.ts", () => ({
   fetchWithRetry: (path: string) => {
@@ -63,7 +69,7 @@ describe("Function Utils", () => {
   });
 
   it("should create a job study copy", async () => {
-    const job: ProjectFunctionJob = {
+    const job: ExtendedProjectFunctionJob = {
       uid: "job1",
       functionUid: "func1",
       inputs: { x: 1, y: 2 },
@@ -72,6 +78,7 @@ describe("Function Utils", () => {
       description: "This is a test job",
       functionClass: undefined,
       projectJobId: "proj1",
+      jobCreationTaskId: "task1",
       status: "COMPLETED",
     };
     const response = {

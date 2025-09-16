@@ -1,8 +1,8 @@
 import { Box, useTheme } from "@mui/material";
 import { useState, useEffect } from "react";
 import Plot from "react-plotly.js";
-import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob as OsparcFunctionJob } from "osparc-api-ts-client";
+import { useMMUXContext } from "../../context/MMUXContext";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { CreateSelect, CreateSlider, filterInputVars, plotMargins } from "./PlotTools";
 import Header from "../navigation/Header";

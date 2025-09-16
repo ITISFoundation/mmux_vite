@@ -1,4 +1,21 @@
-import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
+import { Function as OsparcFunct, FunctionJob, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
+
+export type OsparcFunction = OsparcFunct & {
+  inputs: string[];
+  outputs: string[];
+  uid: string;
+};
+
+export type OsparcFunctionJob = FunctionJob & {
+  uid: string;
+  status: string;
+  inputs: { [key: string]: unknown };
+  outputs: { [key: string]: unknown };
+};
+
+export type OsparcRegFunctionJobCollection = RegisteredFunctionJobCollection & {
+  jobIds: string[];
+};
 
 interface PersistenceType {
   currentView: number;
@@ -11,7 +28,7 @@ interface PersistenceType {
   gridSamplingConfig: GRIDSamplingConfig;
   singleJobConfig: SingleJobConfig[];
   numSamples: { [key: string]: number };
-  runningJobCollection: RegisteredFunctionJobCollection | undefined;
+  runningJobCollection: OsparcRegFunctionJobCollection | undefined;
   fetchedJobCollections: SelectedJobCollection[];
   selectedJobUids: string[];
   selectedQoI: string | undefined;

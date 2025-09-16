@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import fs from "fs";
+import { OsparcFunction, OsparcFunctionJob, OsparcRegFunctionJobCollection } from "src/context/types";
 import { FunctionContextType } from "../context/FunctionContext";
 import { JobContextType } from "../context/JobContext";
 
@@ -8,8 +9,6 @@ import { pickCsv, readCsvData } from "./csv_utils";
 import { fetchWithRetry } from "./fetch_retry";
 import { getSamplingEndValue, getSamplingStartValue } from "./sampling";
 import { stepValidator } from "./stepValidator";
-import { RegisteredFunctionJobCollection, FunctionJob } from "osparc-api-ts-client";
-import type { Function as OsparcFunction } from "osparc-api-ts-client";
 
 // 1st test: get the file with a given path
 describe("CSV Functions", () => {
@@ -147,6 +146,8 @@ describe("stepValidator", () => {
         defaultInputs: {},
         solverKey: "mockSolverKey",
         solverVersion: "1.0.0",
+        inputs: [],
+        outputs: [],
       },
       distribution: {
         func1: {
@@ -177,7 +178,7 @@ describe("stepValidator", () => {
     const jobContext: JobContextType = {
       selectedJobUids: ["job1", "job2"],
       runningJobCollection: undefined,
-      setRunningJobCollection: (_jc: RegisteredFunctionJobCollection | undefined): void => {
+      setRunningJobCollection: (_jc: OsparcRegFunctionJobCollection | undefined): void => {
         throw new Error("Function not implemented.");
       },
       fetchedJobCollections: [],
@@ -187,7 +188,7 @@ describe("stepValidator", () => {
       setSelectedJobUids: (_selectedJobs: string[]): void => {
         throw new Error("Function not implemented.");
       },
-      allJobsList: (): FunctionJob[] => {
+      allJobsList: (): OsparcFunctionJob[] => {
         throw new Error("Function not implemented.");
       },
       filteredJobList: [],

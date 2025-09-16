@@ -2,12 +2,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
+import { OsparcFunctionJob } from "src/context/types";
 import { JobsLoading } from "../data/JobsLoading";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
-import { FunctionJob } from "osparc-api-ts-client";
 import MogaParetoTable from "./MOGAParetoTable";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
@@ -56,7 +56,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
   };
 
   const runMOGA = useCallback(
-    async (jobs: FunctionJob[], ovs: OutputVarSelection, extPlotType?: "1D" | "2D" | "3D") => {
+    async (jobs: OsparcFunctionJob[], ovs: OutputVarSelection, extPlotType?: "1D" | "2D" | "3D") => {
       let localOptVars = optVars;
       if (localOptVars.length === 0) {
         console.warn("No optimization variables selected., using output var selection", ovs);

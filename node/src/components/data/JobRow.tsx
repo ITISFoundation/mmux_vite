@@ -1,11 +1,11 @@
+import { useState } from "react";
+import { toast } from "react-toastify";
+import { Box, Button, Checkbox, CircularProgress, Tooltip } from "@mui/material";
 import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
-import { Box, Button, Checkbox, CircularProgress, Tooltip } from "@mui/material";
-import { toast } from "react-toastify";
-import { useState } from "react";
-import { openStudyUid, createJobStudyCopy } from "../../utils/function_utils";
 import { Function as OsparcFunction } from "osparc-api-ts-client";
+import { openStudyUid, createJobStudyCopy } from "../../utils/function_utils";
 
 interface JobRowProps {
   jobUid: string;

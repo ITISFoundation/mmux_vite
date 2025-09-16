@@ -1,3 +1,4 @@
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { InfoOutline, KeyboardArrowDown, KeyboardArrowUp, Refresh } from "@mui/icons-material";
 import {
   Box,
@@ -17,8 +18,7 @@ import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import { DataGrid } from "@mui/x-data-grid";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { FunctionJob } from "osparc-api-ts-client";
+import { OsparcFunctionJob } from "src/context/types";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
@@ -170,7 +170,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
         const subJobs = [];
         for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx += 1) {
-          let job: FunctionJob;
+          let job: OsparcFunctionJob;
           const id = jc.jobIds[subJobIdx];
           // check if job is already fetched in fetchedJobCollections
           const existingJob = fetchedJobCollections.find(

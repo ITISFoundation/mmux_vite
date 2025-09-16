@@ -1,14 +1,13 @@
 import {
-  Function as OsparcFunction,
-  FunctionJob,
   FunctionJobCollection,
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,
   SolverFunction,
   SolverFunctionJob,
 } from "osparc-api-ts-client";
+import { OsparcFunction, OsparcFunctionJob } from "src/context/types";
 
-const MOCKUP_FUNCTIONS: OsparcFunction[] = [new SolverFunction()];
+const MOCKUP_FUNCTIONS: OsparcFunction[] = [new SolverFunction() as Partial<OsparcFunction> as OsparcFunction];
 MOCKUP_FUNCTIONS[0].title = "Mockup Function";
 MOCKUP_FUNCTIONS[0].description = "A simple mockup Function for FrontEnd development & testing";
 MOCKUP_FUNCTIONS[0].uid = "asdfasdfasdf";
@@ -28,19 +27,18 @@ MOCKUP_FUNCTIONS[0].outputSchema.schemaContent = {
   required: ["result"],
 };
 
-/// //////////////////////////////
-
-function jobGenerator(fun: OsparcFunction, uuid: string): FunctionJob {
-  const j = new SolverFunctionJob();
+function jobGenerator(fun: OsparcFunction, uuid: string): OsparcFunctionJob {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const j: any = new SolverFunctionJob();
   j.functionUid = fun.uid;
   j.inputs = { x: 0.0, y: 0.0 };
   j.outputs = { result: 0.0 };
   j.solverJobId = uuid;
   j.uid = uuid; // TODO diff types of jobs have different UID fields?? problematic
   j.status = "COMPLETED";
-  return j;
+  return j as OsparcFunctionJob;
 }
-const MOCKUP_JOBS: FunctionJob[] = [
+const MOCKUP_JOBS: OsparcFunctionJob[] = [
   jobGenerator(MOCKUP_FUNCTIONS[0], "aaa"),
   jobGenerator(MOCKUP_FUNCTIONS[0], "bbb"),
   jobGenerator(MOCKUP_FUNCTIONS[0], "ccc"),
@@ -72,11 +70,11 @@ export async function listFunctions(): Promise<OsparcFunction[]> {
   return MOCKUP_FUNCTIONS;
 }
 
-export async function listJobs(): Promise<FunctionJob[]> {
+export async function listJobs(): Promise<OsparcFunctionJob[]> {
   return MOCKUP_JOBS;
 }
 
-export async function getFunctionJob(jobUid: string): Promise<FunctionJob> {
+export async function getFunctionJob(jobUid: string): Promise<OsparcFunctionJob> {
   // get the MOCKUP_JOB with the right UID
   const j = MOCKUP_JOBS.find(k => k.uid === jobUid);
   if (!j) {
@@ -86,7 +84,7 @@ export async function getFunctionJob(jobUid: string): Promise<FunctionJob> {
   return j;
 }
 
-export async function getFunctionJobsFromFunctionUid(_functionUid: string): Promise<FunctionJob[]> {
+export async function getFunctionJobsFromFunctionUid(_functionUid: string): Promise<OsparcFunctionJob[]> {
   return MOCKUP_JOBS;
 }
 

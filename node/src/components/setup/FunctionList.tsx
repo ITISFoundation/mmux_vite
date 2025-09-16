@@ -7,11 +7,11 @@ import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
 import {
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,
-  Function as OsparcFunction,
   SolverFunction,
   ProjectFunction,
   PythonCodeFunction,
 } from "osparc-api-ts-client";
+import { OsparcFunction } from "src/context/types";
 import { listFunctions, getFunctionJobCollections } from "../../utils/function_utils";
 import { HelpContents } from "../navigation/TutorialManualLinks";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -120,7 +120,7 @@ export function FunctionList() {
             type: "openFunction",
             message: {
               functionId: (fun as ProjectFunction).projectId,
-              uuid: (fun as ProjectFunction).uid,
+              uuid: fun.uid,
             },
           },
           "*",
@@ -170,9 +170,9 @@ export function FunctionList() {
     }
     handleSelectedFunction(fun);
     setInputVars(fun.inputSchema?.schemaContent?.properties ? Object.keys(fun.inputSchema.schemaContent.properties) : []);
-    console.log("inputVars registered:", Object.keys(fun.inputSchema.schemaContent.properties));
+    console.log("inputVars registered:", Object.keys(fun.inputSchema?.schemaContent?.properties ?? {}));
     setOutputVars(fun.outputSchema?.schemaContent?.properties ? Object.keys(fun.outputSchema.schemaContent.properties) : []);
-    console.log("outputVars registered:", Object.keys(fun.outputSchema.schemaContent.properties));
+    console.log("outputVars registered:", Object.keys(fun.outputSchema?.schemaContent?.properties ?? {}));
   }
 
   const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {

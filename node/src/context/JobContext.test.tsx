@@ -1,9 +1,8 @@
 import React from "react";
 import { render, act, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { OsparcRegFunctionJobCollection } from "src/context/types";
 import { JobContextProvider, useJobContext } from "./JobContext";
-import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
-
 // Mock dependencies
 vi.mock("./PersistenceContext", () => ({
   usePersistenceContext: () => ({
@@ -56,7 +55,7 @@ function TestComponent() {
       </button>
       <button
         type="button"
-        onClick={() => setRunningJobCollection({} as RegisteredFunctionJobCollection)}
+        onClick={() => setRunningJobCollection({} as OsparcRegFunctionJobCollection)}
         data-testid="set-running"
       >
         Set Running

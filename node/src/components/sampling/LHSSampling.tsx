@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Box, Input, Skeleton, Typography } from "@mui/material";
 import { toast } from "react-toastify";
+import { OsparcFunction, OsparcFunctionJob, OsparcRegFunctionJobCollection } from "src/context/types";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import {
-  Function as OsparcFunction,
-  FunctionJob as OsparcFunctionJob,
-  RegisteredFunctionJobCollection,
-} from "osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "../setup/VariableConfig";
@@ -20,7 +16,7 @@ import { useJobContext } from "../../context/JobContext";
 async function runLhsSampling(
   selectedFunction: OsparcFunction | undefined,
   context: SamplingContextType,
-  setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void,
+  setRunningJobCollection: (jc: OsparcRegFunctionJobCollection | undefined) => void,
   config: LHSamplingConfig,
 ) {
   const fun = selectedFunction as OsparcFunction;
@@ -42,7 +38,7 @@ async function runLhsSampling(
       }
       return response.json();
     })
-    .then((localJC: RegisteredFunctionJobCollection) => {
+    .then((localJC: OsparcRegFunctionJobCollection) => {
       context.setLaunchingSampling(false);
       context.setRunningSampling(true);
       setRunningJobCollection(localJC || undefined);
@@ -85,7 +81,7 @@ function LHSSampling() {
       console.error("Job collection is undefined. Cannot add to fetchedJobCollections.");
       return;
     }
-    const newJobs: SelectedJobCollection[] = await Promise.all(
+    const newJobs: unknown[] = await Promise.all(
       [jc].map(async localJC => {
         const subJobs = await Promise.all(
           localJC.jobIds.map(async id => {
@@ -103,7 +99,7 @@ function LHSSampling() {
         };
       }),
     );
-    setFetchedJobCollections([...fetchedJobCollections, ...newJobs]);
+    setFetchedJobCollections([...fetchedJobCollections, ...(newJobs as SelectedJobCollection[])]);
     // TODO Alex: how do I update the table without need to reload everything else?
   };
 

@@ -1,5 +1,6 @@
 import { toast } from "react-toastify";
-import { Function as OsparcFunction, ProjectFunctionJob, FunctionJob, FunctionJobCollection } from "osparc-api-ts-client";
+import { OsparcFunction, OsparcFunctionJob } from "src/context/types";
+import { ProjectFunctionJob, FunctionJobCollection } from "osparc-api-ts-client";
 import { PYTHON_DAKOTA_BACKEND } from "./api_objects";
 import { fetchWithRetry } from "./fetch_retry";
 
@@ -39,15 +40,15 @@ export async function listFunctions(): Promise<OsparcFunction[]> {
   return result.json();
 }
 
-export async function listJobs(): Promise<FunctionJob[]> {
+export async function listJobs(): Promise<OsparcFunctionJob[]> {
   return fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/list_jobs`).then(response => response.json());
 }
 
-export async function getFunctionJob(jobUid: string): Promise<FunctionJob> {
+export async function getFunctionJob(jobUid: string): Promise<OsparcFunctionJob> {
   return fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/get_function_job?jobUid=${jobUid}`).then(response => response.json());
 }
 
-export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<FunctionJob[]> {
+export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<OsparcFunctionJob[]> {
   return fetch(`${PYTHON_DAKOTA_BACKEND}/flask/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(response =>
     response.json(),
   );
@@ -61,7 +62,7 @@ export async function getFunctionJobCollections(functionUid: string): Promise<Fu
   ).then(response => response.json());
 }
 
-export async function getFunctionJobsFromFunctionJobCollection(JobCollectionUid: string): Promise<FunctionJob[]> {
+export async function getFunctionJobsFromFunctionJobCollection(JobCollectionUid: string): Promise<OsparcFunctionJob[]> {
   return fetch(`${PYTHON_DAKOTA_BACKEND}/flask/list_function_jobs_for_jobcollectionid?JobCollectionUid=${JobCollectionUid}`).then(
     response => response.json(),
   );
@@ -125,7 +126,7 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
   return error;
 };
 
-export function aggregateInputValues(jobs: FunctionJob[]): Record<string, number[]> {
+export function aggregateInputValues(jobs: OsparcFunctionJob[]): Record<string, number[]> {
   const inputValues: Record<string, number[]> = {};
 
   jobs.forEach(job => {
@@ -142,7 +143,7 @@ export function aggregateInputValues(jobs: FunctionJob[]): Record<string, number
   return inputValues;
 }
 
-export function aggregateOutputValues(jobs: FunctionJob[]): Record<string, number[]> {
+export function aggregateOutputValues(jobs: OsparcFunctionJob[]): Record<string, number[]> {
   const outputValues: Record<string, number[]> = {};
 
   jobs.forEach(job => {
