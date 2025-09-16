@@ -7,15 +7,27 @@ type MinMaxType = {
 };
 
 const getMinMax = (subJobs: SubJob[]) => {
-  const inputs = Object.entries(subJobs).map(([_key, value], _idx) => value.job.inputs as { [key: string]: number });
-  const outputs = Object.entries(subJobs).map(([_key, value], _idx) => value.job.outputs as { [key: string]: number });
+  const inputs = Object.entries(subJobs)
+    .map(([_key, value], _idx) =>
+      value.job.inputs !== null && typeof value.job.inputs === "object"
+        ? (value.job.inputs as { [key: string]: number })
+        : undefined,
+    )
+    .filter(v => v !== undefined);
+  const outputs = Object.entries(subJobs)
+    .map(([_key, value], _idx) =>
+      value.job.outputs !== null && typeof value.job.outputs === "object"
+        ? (value.job.outputs as { [key: string]: number })
+        : undefined,
+    )
+    .filter(v => v !== undefined);
 
   const minMax: MinMaxType = {
     inputs: {},
     outputs: {},
   };
-  const inputKeys = Object.keys(inputs && Array.isArray(inputs) && inputs.length > 0 ? inputs[0] : {});
-  const outputKeys = Object.keys(outputs && Array.isArray(outputs) && outputs.length > 0 ? outputs[0] : {});
+  const inputKeys = Object.keys(inputs?.length > 0 && inputs[0]) || [];
+  const outputKeys = Object.keys(outputs?.length > 0 && outputs[0]) || [];
   inputKeys.forEach(key => {
     const values = inputs.map(input => input[key]);
     minMax.inputs[key] = {
