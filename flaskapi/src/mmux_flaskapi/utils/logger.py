@@ -6,9 +6,7 @@ import os
 
 # # Create logs directory - use environment variable or default to user's home
 # ### TODO put it back if flaskapi directory but w the right user permissions
-# log_path = os.environ.get("MMUX_LOG_PATH", str(Path.home() / "mmux_logs" / "flask_workflows.log"))
-# log_file = Path(log_path)
-log_file = Path(__file__).parent / "logs" / f"flask_workflows_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+log_file = Path(__file__).parent / "logs" / f"flask_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 log_file.parent.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(

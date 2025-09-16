@@ -1,6 +1,7 @@
 import os
 import re
-from typing import Callable
+from typing import Callable, overload, TypeVar, List, Dict
+import pandas as pd
 import numpy as np
 
 def is_test_environment() -> bool:
@@ -91,3 +92,65 @@ def _get_last_N_items(api_call: Callable, N: int, **kwargs):
     items = [recursive_dict_keys_camel_to_snake(i.to_dict(), max_depth=1) for i in response.items]
     assert len(items) == N, f"Expected {N} items, but got {len(items)}"
     return items
+
+
+T = TypeVar('T')
+
+@overload
+def sanitize_varnames(input_data: str) -> str: ...
+
+@overload
+def sanitize_varnames(input_data: List[str]) -> List[str]: ...
+
+@overload
+def sanitize_varnames(input_data: Dict[str, T]) -> Dict[str, T]: ...
+
+@overload
+def sanitize_varnames(input_data: pd.DataFrame) -> pd.DataFrame: ...
+
+def sanitize_varnames(input_data):
+    """
+    Sanitize variable names by replacing spaces and non-alphanumeric characters with underscores.
+    This function handles different input types:
+    - str: sanitizes a single variable name
+    - list/iterable: sanitizes each item in the list
+    - dict: sanitizes the keys of the dictionary
+    - pd.DataFrame: sanitizes the column names
+    
+    Args:
+        input_data: The data to sanitize (string, list, dict, or DataFrame)
+        
+    Returns:
+        Sanitized version of the input data (same type as input)
+    """
+    # Helper function for sanitizing a single string
+    def _sanitize_single(varname: str) -> str:
+        # Replace spaces with underscores and then replace any remaining non-alphanumeric chars (except _*-+/)
+        return re.sub(r'[^0-9a-zA-Z_*-+/]', '_', varname.replace(' ', '_'))
+    
+    # Handle different input types
+    if isinstance(input_data, str):
+        return _sanitize_single(input_data)
+    elif isinstance(input_data, pd.DataFrame):
+        df = input_data.copy()  # Create a copy to avoid modifying the original DataFrame
+        df.columns = [_sanitize_single(col) for col in df.columns]
+        return df
+    elif isinstance(input_data, dict):
+        # Recursively handle dictionaries
+        result = {}
+        for k, v in input_data.items():
+            sanitized_key = _sanitize_single(k)
+            if isinstance(v, dict):
+                result[sanitized_key] = sanitize_varnames(v)
+            else:
+                result[sanitized_key] = v
+        return result
+    elif hasattr(input_data, '__iter__') and not isinstance(input_data, (str, bytes)):
+        return [_sanitize_single(v) for v in input_data]
+    else:
+        raise TypeError(f"Unsupported input type: {type(input_data)}")
+
+# Aliases for backward compatibility
+sanitize_varname = sanitize_varnames  # For single string input
+sanitize_varnames_dict = sanitize_varnames  # For dictionary input
+sanitize_varnames_df = sanitize_varnames  # For DataFrame input
