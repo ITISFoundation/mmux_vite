@@ -5,8 +5,9 @@ from unittest.mock import patch, MagicMock
 from osparc import Configuration as OsparcConfiguration
 from osparc import ApiClient
 #
-from mmux_flaskapi.helpers import is_test_environment
-from mmux_flaskapi.webserver_config import OsparcApi
+from mmux_flaskapi.app import MMUXFlask
+from mmux_flaskapi.utils.helpers import is_test_environment
+from mmux_flaskapi.utils.webserver_config import OsparcApi
 from conftest import assert_route_exists
 
 
@@ -53,9 +54,9 @@ class TestRouteExistence:
 class TestOsparcConfig:
     """Test suite for the OsparcConfig class."""
 
-    def test_setup_configuration(self):
+    def test_setup_configuration(self, test_app: MMUXFlask):
         """Test that the configuration is set up correctly."""
-        osparc_config = OsparcApi()._configuration
+        osparc_config = test_app.osparc_api._configuration
         assert isinstance(osparc_config, OsparcConfiguration)
         assert osparc_config.host == "https://test.example.io"
         assert osparc_config.username == "test_key"
@@ -74,14 +75,14 @@ class TestOsparcConfig:
         assert api_client is not None
         assert isinstance(config._api_client, ApiClient)
 
-    @patch("mmux_flaskapi.webserver_config.UsersApi")
+    @patch("mmux_flaskapi.utils.webserver_config.UsersApi")
     def test_test_connection_success(self, mock_users_api):
         """Test a successful API connection."""
         mock_users_api.return_value.get_my_profile.return_value = MagicMock()
         config = OsparcApi()
         assert config.is_connected() is True
 
-    @patch("mmux_flaskapi.webserver_config.UsersApi")
+    @patch("mmux_flaskapi.utils.webserver_config.UsersApi")
     def test_test_connection_failure(self, mock_users_api):
         """Test a failed API connection."""
         mock_users_api.return_value.get_my_profile.side_effect = Exception("Connection failed")

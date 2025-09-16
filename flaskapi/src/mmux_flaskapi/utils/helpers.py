@@ -1,12 +1,29 @@
+from pathlib import Path
+import datetime
+import uuid
 import os
 import re
 from typing import Callable, overload, TypeVar, List, Dict
 import pandas as pd
 import numpy as np
 
+
 def is_test_environment() -> bool:
     """Check if we're running in a test environment."""
     return "test" in os.environ.get("OSPARC_API_BASE_URL", "").lower()
+
+
+def create_run_dir(script_dir: Path, dir_name: str = "sampling"):
+    ## part 1 - setup
+    main_runs_dir = script_dir / "runs"
+    current_time = datetime.datetime.now().strftime("%Y%m%d.%H%M%S%d")
+    uid = uuid.uuid4().hex
+    temp_dir = main_runs_dir / "_".join(["dakota", current_time, uid, dir_name])
+    print(str(temp_dir))
+    os.makedirs(temp_dir, exist_ok=True)
+    print("temp_dir: ", temp_dir)
+    return temp_dir
+
 
 
 ### TypeScript expects camelCase, but Python API is getting snake_case. 

@@ -1,5 +1,5 @@
 import logging
-from mmux_flaskapi.utils.app import create_flask_app
+from mmux_flaskapi.app import create_flask_app
 
 # Configure logging for the module
 logging.basicConfig(level=logging.INFO)

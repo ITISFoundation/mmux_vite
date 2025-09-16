@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import sys
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -11,10 +12,12 @@ from flask import request, abort, make_response
 #
 from osparc_client.models.function_job import FunctionJob
 # 
-from mmux_flaskapi.utils.helpers import sanitize_varnames
+from mmux_flaskapi.utils.helpers import sanitize_varnames, create_run_dir ## taken over from mmux_python
 
-## TODO eventually have it installed -- absolute paths are risky...
-from flaskapi.mmux_python.utils.funs_evaluate import create_run_dir, evaluate_sumo_along_axes, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid, perform_moga_optimization
+## TODO eventually have it installed as a package -- absolute paths are risky...
+print("Adding to sys.path: ", str(Path(__file__).parent.parent.parent.parent.parent))
+sys.path.append(str(Path(__file__).parent.parent.parent.parent.parent))
+from flaskapi.mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid, perform_moga_optimization
 from flaskapi.mmux_python.utils.funs_data_processing import (
     process_input_file,
     create_manual_uq_samples,
