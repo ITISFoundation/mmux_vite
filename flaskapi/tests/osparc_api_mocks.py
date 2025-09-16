@@ -218,7 +218,7 @@ def mock_list_function_jobs_for_functionid_404(function_uid: str, **kwargs):
 @pytest.fixture
 def patch_list_function_jobs_for_functionid_success():
     with patch("osparc_client.api.functions_api.FunctionsApi.list_function_jobs_for_functionid", side_effect=mock_list_function_jobs_for_functionid_success), \
-         patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_status", side_effect=mock_function_job_status_success):
+         patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_status", side_effect=mock_get_function_job_status_success):
          ## NB list_function_jobs_for_functionid also calls function_job_status for each job
         yield
 
@@ -262,7 +262,10 @@ def mock_get_function_job_collection_404(jc_uid):
 @pytest.fixture
 def patch_list_function_jobs_for_jobcollectionid_success():
     with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.get_function_job_collection", side_effect=mock_get_function_job_collection_success), \
-         patch("osparc_client.api.function_jobs_api.FunctionJobsApi.get_function_job", side_effect=mock_get_function_job_success):
+         patch("osparc_client.api.function_jobs_api.FunctionJobsApi.get_function_job", side_effect=mock_get_function_job_success), \
+         patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_status", side_effect=mock_get_function_job_status_success), \
+         patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_outputs", side_effect=mock_function_job_outputs_success):
+        
         yield
 
 @pytest.fixture
@@ -285,3 +288,113 @@ def patch_list_function_jobs_for_jobcollectionid_job_404():
     with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.get_function_job_collection", side_effect=mock_get_function_job_collection_success), \
          patch("osparc_client.api.function_jobs_api.FunctionJobsApi.get_function_job", side_effect=mock_get_function_job_404):
         yield
+
+
+###########################################################################################
+## Endpoints to get a single Job information (general info, status, outputs) from its UID
+###########################################################################################
+
+## --- Mocks for FunctionJobApi.function_job() ---
+
+def mock_get_function_job_success(job_uid):
+    return MagicMock(to_dict=lambda: {
+        "uid": job_uid,
+        "function_uid": "func1",
+        "status": "SUCCESS" if job_uid == "job-1" else "PENDING",
+        "created_at": "2025-09-01T12:00:00Z",
+        "inputs": {"x": 1, "y": 2},
+        "outputs": {"result": 3},
+        "user_id": "user-1"
+    })
+
+def mock_get_function_job_404(job_uid):
+    class NotFoundError(Exception):
+        pass
+    raise NotFoundError(f"404 Not Found: Job UID {job_uid} does not exist")
+
+def mock_get_function_job_422(job_uid):
+    class ValidationError(Exception):
+        pass
+    raise ValidationError("422 Unprocessable Entity: Validation Error")
+## --- Fixtures for patching FunctionJobApi.function_job() ---
+
+@pytest.fixture
+def patch_get_function_job_success():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.get_function_job", side_effect=mock_get_function_job_success), \
+         patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_status", side_effect=mock_get_function_job_status_success), \
+         patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_outputs", side_effect=mock_function_job_outputs_success):
+        yield
+
+@pytest.fixture
+def patch_get_function_job_404():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.get_function_job", side_effect=mock_get_function_job_404):
+        yield
+
+@pytest.fixture
+def patch_get_function_job_422():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.get_function_job", side_effect=mock_get_function_job_422):
+        yield
+        
+## --- Mocks for FunctionJobApi.function_job_status() ---
+def mock_get_function_job_status_success(job_uid):
+    return MagicMock(status="SUCCESS")
+
+def mock_get_function_job_status_422(job_uid):
+    class ValidationError(Exception):
+        pass
+    raise ValidationError("422 Unprocessable Entity: Validation Error")
+
+def mock_get_function_job_status_404(job_uid):
+    class NotFoundError(Exception):
+        pass
+    raise NotFoundError(f"404 Not Found: Job UID {job_uid} does not exist")
+
+## --- Fixtures for patching FunctionJobApi.function_job_status() ---
+@pytest.fixture
+def patch_get_function_job_status_success():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_status", side_effect=mock_get_function_job_status_success):
+        yield
+
+@pytest.fixture
+def patch_get_function_job_status_422():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_status", side_effect=mock_get_function_job_status_422):
+        yield
+
+@pytest.fixture
+def patch_get_function_job_status_404():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_status", side_effect=mock_get_function_job_status_404):
+        yield
+
+## --- Mocks for FunctionJobApi.function_job_outputs() ---
+
+def mock_function_job_outputs_success(job_uid):
+    return {"result": 3}
+
+def mock_function_job_outputs_422(job_uid):
+    class ValidationError(Exception):
+        pass
+    raise ValidationError("422 Unprocessable Entity: Validation Error")
+
+def mock_function_job_outputs_404(job_uid):
+    class NotFoundError(Exception):
+        pass
+    raise NotFoundError(f"404 Not Found: Job UID {job_uid} does not exist")
+
+# --- Fixtures for patching FunctionJobApi.function_job_outputs() ---
+
+@pytest.fixture
+def patch_get_function_job_outputs_success():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_outputs", side_effect=mock_function_job_outputs_success):
+        yield
+
+@pytest.fixture
+def patch_get_function_job_outputs_422():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_outputs", side_effect=mock_function_job_outputs_422):
+        yield
+
+@pytest.fixture
+def patch_get_function_job_outputs_404():
+    with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_outputs", side_effect=mock_function_job_outputs_404):
+        yield
+
+
