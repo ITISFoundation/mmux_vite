@@ -45,12 +45,12 @@ def mock_list_functions_success():
     return {
         "items": [
             {
-                "uid": "func-1",
+                "uid": "func1",
                 "name": "Function One",
                 "description": "First test function"
             },
             {
-                "uid": "func-2",
+                "uid": "func2",
                 "name": "Function Two",
                 "description": "Second test function"
             }

@@ -1,8 +1,64 @@
 import pytest
 from flask import Flask
 from unittest.mock import patch
-from osparc_api_mocks import patch_list_functions_success, patch_list_functions_empty, patch_list_functions_422, patch_list_function_jobs_success, patch_list_function_jobs_empty, patch_list_function_jobs_422
+import logging
+from osparc_api_mocks import (
+    # osparc/list_functions
+    patch_list_functions_success,
+    patch_list_functions_empty,
+    patch_list_functions_422,
+    # osparc/list_jobs
+    patch_list_function_jobs_success,
+    patch_list_function_jobs_empty,
+    patch_list_function_jobs_422,
+    # osparc/list_function_jobs_for_functionid
+    patch_list_function_jobs_for_functionid_success,
+    patch_list_function_jobs_for_functionid_empty,
+    patch_list_function_jobs_for_functionid_422,
+    patch_list_function_jobs_for_functionid_404,
+    
+)
 from mmux_flaskapi.app import create_flask_app
+
+
+
+# Enable logging during testing to a file in tests/logs/ with a timestamped filename
+import os
+from datetime import datetime
+
+@pytest.fixture(autouse=True, scope="session")
+def configure_test_logging():
+    """Configure logging to write to a file in tests/logs/ with a unique timestamped filename."""
+    logs_dir = os.path.join(os.path.dirname(__file__), "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = os.path.join(logs_dir, f"pytest_{timestamp}.log")
+
+    # Remove all handlers associated with the root logger object (if any)
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+
+    log_format = "%(asctime)s %(levelname)s %(name)s %(message)s"
+    log_level = logging.DEBUG
+
+    file_handler = logging.FileHandler(log_file, mode="w")
+    file_handler.setLevel(log_level)
+    file_handler.setFormatter(logging.Formatter(log_format))
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(log_level)
+    stream_handler.setFormatter(logging.Formatter(log_format))
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(stream_handler)
+
+    # Optionally, reduce verbosity of noisy libraries
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("werkzeug").setLevel(logging.INFO)
+    logging.info(f"Test logging initialized. Log file: {log_file}")
+    yield
 
 
 @pytest.fixture
