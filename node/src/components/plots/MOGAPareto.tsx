@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
@@ -12,6 +13,7 @@ import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import { aggregateOutputValues } from "../../utils/function_utils";
 import { useMMUXContext } from "../../context/MMUXContext";
+import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 
 export function MOGAPareto(props: MogaParetoPropsType) {
   const { loading, progress, jobProgress } = props;
@@ -21,6 +23,8 @@ export function MOGAPareto(props: MogaParetoPropsType) {
   const { fetchedJobCollections, filteredJobList, selectedJobUids } = useJobContext();
   const { weights } = useMMUXContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
+  const [layout, setLayout] = useState<Partial<Plotly.Layout>>({});
+  const [plotType, setPlotType] = useState<"1D" | "2D" | "3D">("2D");
   const [propagating, setPropagating] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [outputVarSelection, setOutputVarSelection] = useState<OutputVarSelection>({});
@@ -43,8 +47,16 @@ export function MOGAPareto(props: MogaParetoPropsType) {
     [optVars, weights],
   );
 
+  const groupArrayElements = <T,>(arr: Array<T>, groupSize: number) => {
+    const groupedArr: Array<Array<T>> = [];
+    for (let i = 0; i < arr.length; i += groupSize) {
+      groupedArr.push(arr.slice(i, i + groupSize));
+    }
+    return groupedArr;
+  };
+
   const runMOGA = useCallback(
-    async (jobs: FunctionJob[], ovs: OutputVarSelection) => {
+    async (jobs: FunctionJob[], ovs: OutputVarSelection, extPlotType?: "1D" | "2D" | "3D") => {
       let localOptVars = optVars;
       if (localOptVars.length === 0) {
         console.warn("No optimization variables selected., using output var selection", ovs);
@@ -85,37 +97,128 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       setTableData(newTableData);
 
       const outputValues = aggregateOutputValues(jobs);
+      let localPlotType: "1D" | "2D" | "3D" = localOptVars.length < 2 ? "1D" : "2D";
+      localPlotType = localOptVars.length > 2 ? "3D" : localPlotType;
+      if (extPlotType) localPlotType = extPlotType;
 
-      const newPlotData: Plotly.Data[] = [
+      const newPlotData: Partial<Plotly.ScatterData>[] = [
         {
-          name: "Original Samples",
-          x: outputValues[localOptVars[0]],
-          y: outputValues[localOptVars[1]], // TODO enable selection, when more than 2
+          name: "Sample Points",
+          y: outputValues[localOptVars[0]],
+          x: localPlotType === "2D" || localPlotType === "3D" ? outputValues[localOptVars[1]] : outputValues[localOptVars[0]],
+          z: localPlotType === "3D" ? outputValues[localOptVars[2]] : undefined,
           mode: "markers",
-          type: "scatter",
+          type: localPlotType === "3D" ? "scatter3d" : "box",
           marker: { color: "rgb(41, 146, 221)", size: 4, symbol: "x" },
         },
         {
           name: "MOGA Samples",
-          x: results[localOptVars[0]],
-          y: results[localOptVars[1]],
+          y: results[localOptVars[0]],
+          x: localPlotType === "2D" || localPlotType === "3D" ? results[localOptVars[1]] : results[localOptVars[0]],
+          z: localPlotType === "3D" ? results[localOptVars[2]] : undefined,
           mode: "markers",
-          type: "scatter",
+          type: localPlotType === "3D" ? "scatter3d" : "box",
           marker: { color: "rgb(255, 127, 14)", size: 2 },
         },
         {
-          name: "Pareto Samples",
+          name: "Pareto Front",
           x: results.non_dominated_indices.map(i => (results[localOptVars[0]] as Array<number>)[i]),
-          y: results.non_dominated_indices.map(i => (results[localOptVars[1]] as Array<number>)[i]),
+          y:
+            localPlotType === "2D" || localPlotType === "3D"
+              ? results.non_dominated_indices.map(i => (results[localOptVars[1]] as Array<number>)[i])
+              : undefined,
+          z:
+            localPlotType === "3D"
+              ? results.non_dominated_indices.map(i => (results[localOptVars[2]] as Array<number>)[i])
+              : undefined,
           mode: "lines",
-          type: "scatter",
+          type: localPlotType === "3D" ? "scatter3d" : "scatter",
           marker: { color: "lightblue", size: 10 },
         },
       ];
+
+      const newLayout: Partial<Plotly.Layout> = {
+        title: { text: "Pareto Front Diagram" },
+        plot_bgcolor: `${theme.palette.background.default}`,
+        paper_bgcolor: `${theme.palette.background.default}`,
+        font: { color: `${theme.palette.text.primary}` },
+      };
+
+      switch (localPlotType) {
+        case "1D": {
+          const groupedY = groupArrayElements(outputValues[localOptVars[0]], 20);
+          const groupedYR = groupArrayElements(results[localOptVars[0]], 20);
+          newPlotData[0].x = groupedY.map((_, index) => index);
+          newPlotData[0].y = groupedY;
+          newPlotData[0].z = undefined;
+          newPlotData[1].x = groupedYR.map((_, index) => index);
+          newPlotData[1].y = groupedYR;
+          newPlotData[1].z = undefined;
+          newPlotData[0].type = "box";
+          newPlotData[1].type = "box";
+          newPlotData.pop();
+          groupedY.map(y =>
+            newPlotData.push({
+              ...newPlotData[0],
+              boxpoints: "all",
+              y,
+            }),
+          );
+          groupedYR.map(y =>
+            newPlotData.push({
+              ...newPlotData[1],
+              y,
+              boxpoints: "all",
+            }),
+          );
+          newPlotData.shift();
+          newPlotData.shift();
+          newLayout.yaxis = { title: { text: optVars[0] } };
+          break;
+        }
+        case "2D": {
+          newPlotData[0].x = outputValues[localOptVars[0]];
+          newPlotData[0].y = outputValues[localOptVars[1]];
+          newPlotData[0].z = undefined;
+          newPlotData[1].x = results[localOptVars[0]];
+          newPlotData[1].y = results[localOptVars[1]];
+          newPlotData[1].z = undefined;
+          newPlotData[0].type = "scatter";
+          newPlotData[1].type = "scatter";
+          newPlotData[2].type = "scatter";
+          newLayout.xaxis = { title: { text: optVars[0] } };
+          newLayout.yaxis = { title: { text: optVars[1] } };
+          break;
+        }
+        case "3D": {
+          newPlotData[0].x = outputValues[localOptVars[0]];
+          newPlotData[0].y = outputValues[localOptVars[1]];
+          newPlotData[0].z = outputValues[localOptVars[2]];
+          newPlotData[1].x = results[localOptVars[0]];
+          newPlotData[1].y = results[localOptVars[1]];
+          newPlotData[1].z = results[localOptVars[2]];
+          newPlotData[0].type = "scatter3d";
+          newPlotData[1].type = "scatter3d";
+          newPlotData[2].type = "scatter3d";
+          newLayout.scene = {
+            xaxis: { title: { text: optVars[0] } },
+            yaxis: { title: { text: optVars[1] } },
+            zaxis: { title: { text: optVars[2] } },
+          };
+          break;
+        }
+        default: {
+          break;
+        }
+      }
+      console.log("MOGA plot data:", newPlotData);
+
       setPlotData(newPlotData);
+      setLayout(newLayout);
+      setPlotType(localPlotType);
       setPropagating(false);
     },
-    [optVars, inputVars, distribution, selectedFunction, calculatePerformance],
+    [optVars, inputVars, distribution, selectedFunction, theme, calculatePerformance],
   );
 
   useEffect(() => {
@@ -153,31 +256,29 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       if (hoveredRow && optVars.length >= 2) {
         const newPlotData = [...plotData];
         newPlotData[3] = {
-          name: "Hovered Sample",
+          name: "Current Selection",
           mode: "markers",
-          type: "scatter",
+          type: plotType === "3D" ? "scatter3d" : "scatter",
           marker: { color: "red", size: 10, symbol: "circle" },
           x: [hoveredRow[optVars[0]]],
           y: [hoveredRow[optVars[1]]],
+          z: optVars.length > 2 ? [hoveredRow[optVars[2]]] : undefined,
         };
+        setPlotData(newPlotData);
+      }
+    } else {
+      const newPlotData = [...plotData];
+      if (newPlotData.length > 3) {
+        newPlotData.pop();
         setPlotData(newPlotData);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hovered]);
-
-  const layout = {
-    title: { text: "Pareto Front Diagram" },
-    xaxis: { title: { text: optVars[0] } },
-    yaxis: { title: { text: optVars[1] } },
-    plot_bgcolor: `${theme.palette.background.default}`,
-    paper_bgcolor: `${theme.palette.background.default}`,
-    font: { color: `${theme.palette.text.primary}` },
-  };
+  }, [hovered, plotType, tableData]);
 
   const plotStyle = {
     width: "100%",
-    height: 400,
+    height: optVars.length > 2 ? 600 : 400,
     borderRadius: "8px",
     overflow: "hidden",
   };
@@ -199,6 +300,26 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       {!propagating && plotData.length !== 0 && (
         <>
           <Plot ref={ref} data={plotData} layout={layout} style={plotStyle} />
+          <Box
+            sx={{
+              width: "150px",
+              alignSelf: "flex-end",
+              mb: 1,
+              backgroundColor: theme.palette.background.default,
+              padding: "4px",
+              borderRadius: "32px",
+            }}
+          >
+            <CustomAnimatedToggle
+              data={["1D", "2D", "3D"]}
+              value={plotType === "1D" ? 0 : plotType === "2D" ? 1 : 2}
+              onChange={i => {
+                const calculatePT = i === 0 ? "1D" : i === 1 ? "2D" : "3D";
+                runMOGA(filteredJobList, outputTargets[selectedFunction?.uid as string], calculatePT);
+              }}
+              disabled={[!(optVars.length >= 1), !(optVars.length >= 2), !(optVars.length >= 3)]}
+            />
+          </Box>
           <MogaParetoTable tableData={tableData} hovered={hovered} setHovered={setHovered} />
         </>
       )}
