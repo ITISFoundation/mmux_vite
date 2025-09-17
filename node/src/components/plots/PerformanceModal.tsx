@@ -85,7 +85,7 @@ const PerformanceModal = ({
                     valueLabelDisplay="auto"
                     aria-labelledby={`slider-${key}`}
                   />
-                  <span>{localWeights[key].toFixed(2)}</span>
+                  <span>{(localWeights[key] || 0).toFixed(2)}</span>
                 </Box>
               </Box>
             ))}
