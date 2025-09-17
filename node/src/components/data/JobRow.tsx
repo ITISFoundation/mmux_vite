@@ -1,11 +1,11 @@
+import { Box, Button, Checkbox, CircularProgress, Tooltip } from "@mui/material";
 import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
-import { Box, Button, Checkbox, CircularProgress, Tooltip } from "@mui/material";
-import { toast } from "react-toastify";
 import { useState } from "react";
-import { openStudyUid, createJobStudyCopy } from "../../utils/function_utils";
+import { toast } from "react-toastify";
 import { Function as OsparcFunction } from "../../osparc-api-ts-client";
+import { createJobStudyCopy, openStudyUid } from "../../utils/function_utils";
 
 interface JobRowProps {
   jobUid: string;
@@ -49,14 +49,18 @@ function JobRow(props: JobRowProps) {
         Running...
       </Box>,
     ];
-  } else if (jobStatus === "FAILED" || jobStatus === "ABORTED") {
+  } else if (
+    jobStatus === "FAILED" || 
+    jobStatus === "ABORTED" ||  
+    (jobStatus.startsWith("JOB_") && jobStatus.endsWith("_FAILED"))) {
     outputs = "Failed - no outputs";
   } else if (
     jobStatus === "PENDING" ||
     jobStatus === "WAITING_FOR_CLUSTER" ||
     jobStatus === "PUBLISHED" ||
     jobStatus === "NOT_STARTED" ||
-    jobStatus === "WAITING_FOR_RESOURCES" // all are valid options
+    jobStatus === "WAITING_FOR_RESOURCES" ||
+    (jobStatus.startsWith("JOB_") && !jobStatus.endsWith("_FAILED"))
   ) {
     outputs = "Pending to run";
   } else if (jobStatus === "UNKNOWN") {
