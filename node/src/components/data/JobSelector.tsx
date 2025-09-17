@@ -128,13 +128,12 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
       const jobsC = (await getFunctionJobCollections(functionUid as string)) as FunctionJobCollection[];
 
-      const equalJC =
-        fetchedJobCollections.length === jobsC.length &&
+      const equalJC: boolean[] =
+        fetchedJobCollections.length === jobsC.length ?
         fetchedJobCollections
-          .map((jc, idx) => jc.jobCollection.jobIds.join(",") === jobsC[idx].jobIds.join(","))
-          .every(v => v === true);
+          .map((jc, idx) => jc.jobCollection.jobIds.join(",") === jobsC[idx].jobIds.join(",") && jc.subJobs.every(j => j.job.status === "SUCCESS" || j.job.status === "FAILED")) : [false];
 
-      if (equalJC) {
+      if (equalJC.every(v => v === true)) {
         console.info("Job collections already fetched, skipping fetch.");
         setJobCollections(fetchedJobCollections);
         setLoading(false);
@@ -167,40 +166,44 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
       for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx += 1) {
         const jc = jobsC[jcIdx];
-        const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
-        const subJobs = [];
-        for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx += 1) {
-          let job: FunctionJob;
-          const id = jc.jobIds[subJobIdx];
-          // check if job is already fetched in fetchedJobCollections
-          const existingJob = fetchedJobCollections.find(
-            j =>
-              j.jobCollection.jobIds.includes(id) &&
-              j.subJobs.some(sj => sj.job.uid === id && (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")),
-          );
-          if (existingJob) {
-            // console.info("Job already fetched: ", id, existingJob.subJobs.find((j) => j.job.uid === id));
-            job = existingJob.subJobs.find(j => j.job.uid === id)?.job;
-          } else {
-            job = functionJobs[subJobIdx];
-            job.status = (job.status as unknown as { status: string }).status;
+        if (jcIdx >= equalJC.length || (jcIdx < equalJC.length && equalJC[jcIdx] === false)) {
+          const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
+          const subJobs = [];
+          for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx += 1) {
+            let job: FunctionJob;
+            const id = jc.jobIds[subJobIdx];
+            // check if job is already fetched in fetchedJobCollections
+            const existingJob = fetchedJobCollections.find(
+              j =>
+                j.jobCollection.jobIds.includes(id) &&
+                j.subJobs.some(sj => sj.job.uid === id && (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")),
+            );
+            if (existingJob) {
+              job = existingJob.subJobs.find(j => j.job.uid === id)?.job;
+            } else {
+              job = functionJobs[subJobIdx];
+              job.status = (job.status as unknown as { status: string }).status;
+            }
+            jobsFetched.current += 1;
+            const jobsProg = (jobsFetched.current / totalSubs) * 100;
+            setJobProgress(jobsProg);
+            subJobs.push({
+              selected: job.status === "SUCCESS",
+              job,
+            });
           }
-          jobsFetched.current += 1;
-          const jobsProg = (jobsFetched.current / totalSubs) * 100;
-          setJobProgress(jobsProg);
-          subJobs.push({
-            selected: job.status === "SUCCESS",
-            job,
+          console.info("Fetched subJobs for jobCollection: ", progress, jobProgress, jobsFetched.current);
+          newJobCollections.push({
+            jobCollection: jc,
+            selected: subJobs.some(j => j.selected === true),
+            subJobs,
           });
+        } else {
+          newJobCollections.push(fetchedJobCollections[jcIdx]);
         }
-        console.info("Fetched subJobs for jobCollection: ", progress, jobProgress, jobsFetched.current);
         colsFetched.current += jc.jobIds.length;
         setProgress((colsFetched.current / totalSubs) * 100);
-        newJobCollections.push({
-          jobCollection: jc,
-          selected: subJobs.some(j => j.selected === true),
-          subJobs,
-        });
+        
       }
 
       setJobCollections(newJobCollections);
