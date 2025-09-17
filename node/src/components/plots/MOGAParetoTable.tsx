@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { Typography, Button, Box, Chip, Popover, Slider } from "@mui/material";
+import { EditAttributes } from "@mui/icons-material";
+import { Typography, Button, Box, IconButton } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import { useMMUXContext } from "../../context/MMUXContext";
+import PerformanceModal from "./PerformanceModal";
 import Header from "../navigation/Header";
 
 interface MogaParetoTableProps {
@@ -20,9 +22,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
   const [data, setData] = useState<MogaDataType | undefined>(undefined);
   const [localWeights, setLocalWeights] = useState(weights || {});
   const [loading, setLoading] = useState(true);
-  const [anchorElms, setAnchorElms] = useState<{
-    [key: string]: HTMLButtonElement | null;
-  }>({});
+  const [openPerformanceModal, setOpenPerformanceModal] = useState(false);
   const [localSortModel, setLocalSortModel] = useState<GridSortModel>(
     sortModel || [
       {
@@ -32,24 +32,15 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
     ],
   );
 
-  const handleWeightsChange = (key: string, newValue: number) => {
-    const newWeights = { ...localWeights, [key]: newValue };
-    console.log("setting weights!", newWeights);
-    setWeights(newWeights);
-    setLocalWeights(newWeights);
+  const handleWeightsChange = (updatedWeights: typeof localWeights) => {
+    console.log("setting weights!", updatedWeights);
+    setWeights(updatedWeights);
+    setLocalWeights(updatedWeights);
   };
 
   const handleSortModelChange = (model: GridSortModel) => {
     setSortModel(model);
     setLocalSortModel(model);
-  };
-
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>, key: string) => {
-    setAnchorElms(prev => ({ ...prev, [key]: event.currentTarget }));
-  };
-
-  const handleClose = (key: string) => {
-    setAnchorElms(prev => ({ ...prev, [key]: null }));
   };
 
   useEffect(() => {
@@ -94,64 +85,6 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
           field: key,
           headerName: key.toUpperCase(),
           type: "number",
-          renderHeader: () => (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="subtitle2">{key.toUpperCase()}</Typography>
-              <Chip
-                label={(localWeights[key] ?? 0).toFixed(2)}
-                size="small"
-                color="primary"
-                onClick={e => handleClick(e as unknown as React.MouseEvent<HTMLButtonElement>, key)}
-              />
-              <Popover
-                id={`popover-${key}`}
-                sx={{
-                  "& .MuiPaper-root": {
-                    width: "280px",
-                    padding: "8px 16px",
-                    display: "flex",
-                    boxShadow: "none",
-                  },
-                }}
-                open={Boolean(anchorElms[key])}
-                anchorEl={anchorElms[key]}
-                onClose={() => handleClose(key)}
-                anchorOrigin={{
-                  vertical: "top",
-                  horizontal: "center",
-                }}
-                transformOrigin={{
-                  vertical: "bottom",
-                  horizontal: "center",
-                }}
-              >
-                <Box>
-                  <Typography variant="body1" gutterBottom>
-                    Adjust Weight for {key.toUpperCase()}
-                  </Typography>
-                  <Slider
-                    value={localWeights[key]}
-                    sx={{ width: 240 }}
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    defaultValue={0.5}
-                    onChange={(_event, newValue) => {
-                      setLocalWeights(prev => ({ ...prev, [key]: newValue }));
-                    }}
-                    onChangeCommitted={() => {
-                      handleWeightsChange(key, localWeights[key]);
-                    }}
-                    valueLabelDisplay="auto"
-                    aria-labelledby={`slider-${key}`}
-                  />
-                  <Typography variant="caption" color="textSecondary">
-                    Adjust the weight for {key.toUpperCase()} to influence the Pareto front.
-                  </Typography>
-                </Box>
-              </Popover>
-            </Box>
-          ),
           renderCell: params => params.row[key].toFixed(3),
           valueGetter: (_value, row) => row[key],
         }))
@@ -166,6 +99,14 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       minWidth: 105,
       maxWidth: 105,
       type: "number",
+      renderHeader: () => (
+        <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 0.5 }}>
+          <IconButton onClick={() => setOpenPerformanceModal(true)} size="small">
+            <EditAttributes />
+          </IconButton>
+          <Typography variant="body2">Performance</Typography>
+        </Box>
+      ),
       renderCell: params => params.row.Performance.toFixed(2),
       valueGetter: (_value, row) => row.Performance,
     },
@@ -245,6 +186,12 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         disableColumnMenu
         disableColumnSelector
         disableRowSelectionOnClick
+      />
+      <PerformanceModal
+        open={openPerformanceModal}
+        setOpen={setOpenPerformanceModal}
+        weights={localWeights}
+        onChange={handleWeightsChange}
       />
     </>
   );
