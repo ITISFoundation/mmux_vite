@@ -1,7 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React from "react";
-import { Modal, useTheme, Card, Box, CardContent, Button, CardActions, InputLabel, TextField } from "@mui/material";
+import { Modal, useTheme, Card, Box, CardContent, Button, Select, CardActions, InputLabel, TextField } from "@mui/material";
 import Header from "../components/navigation/Header";
+import OptionSelect from "../components/utils/OptionSelect";
 import { useMOGASettingsContext, defaultMogaSettings, MOGASettings, FitnessType, ReplacementType } from "../context/MOGASettingsContext";
 import { useFunctionContext } from "../context/FunctionContext";
 
@@ -106,40 +107,33 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
             </InputLabel>
             <InputLabel size="small" sx={{ flex: "1", display: "flex", flexDirection: "column", transform: "none" }}>
               <span style={{ marginLeft: "4px" }}>Fitness Type:</span>
-              <TextField
-                type="select"
-                variant="outlined"
-                size="small"
-                sx={{ marginTop: "8px" }}
-                data-testid="input-block"
-                value={fitnessType}
-                onChange={e => setFitnessType(e.target.value as FitnessType)}
-                onBlur={e => setFitnessType(e.target.value as FitnessType)}
-                aria-label="Fitness Type"
-                error={false}
-              />
-              <option value="layer_rank">Layer Rank</option>
-              <option value="domination_count">Domination Count</option>
+              <OptionSelect
+                property={"Fitness Type"}
+                currentValue={fitnessType}
+                setCurrentValue={setFitnessType}
+                possibleValues={
+                  {
+                    "layer_rank": "Layer Rank",
+                    "domination_count": "Domination Count"
+                  }
+                }
+              >
+              </OptionSelect>
             </InputLabel>
 
             <InputLabel size="small" sx={{ flex: "1", display: "flex", flexDirection: "column", transform: "none" }}>
               <span style={{ marginLeft: "4px" }}>Replacement Type:</span>
-              <TextField
-                type="select"
-                variant="outlined"
-                size="small"
-                sx={{ marginTop: "8px" }}
-                data-testid="input-block"
-                value={replacementType}
-                onChange={e => setReplacementType(e.target.value as ReplacementType)}
-                onBlur={e => setReplacementType(e.target.value as ReplacementType)}
-                aria-label="Replacement Type"
-                error={false}
+              <OptionSelect
+                property={"Replacement Type"}
+                currentValue={replacementType}
+                setCurrentValue={setReplacementType}
+                possibleValues={{
+                  "elitist": "Elitist",
+                  "roulette_wheel": "Roulette Wheel",
+                  "unique_roulette_wheel": "Unique Roulette Wheel",
+                  "below_limit": "Below Limit"
+                }}
               />
-              <option value="elitist">Elitist</option>
-              <option value="roulette_wheel">Roulette Wheel</option>
-              <option value="unique_roulette_wheel">Unique Roulette Wheel</option>
-              <option value="below_limit">Below Limit</option>
             </InputLabel>
           </Box>
         </CardContent>
