@@ -3,12 +3,21 @@ name: Multi Objective Genetic Algorithm
 description: https://raw.githubusercontent.com/ZurichMedTech/s4l-assets/refs/heads/main/app/full/services/simcore_services_dynamic_mmux-vite-app-moga-write.md
 icon: https://raw.githubusercontent.com/ZurichMedTech/s4l-assets/main/app/icons/s4l/simcore_services_dynamic_mmux-vite-app-moga.png
 thumbnail: https://raw.githubusercontent.com/ZurichMedTech/s4l-assets/main/app/thumbnails/s4l/simcore_services_dynamic_mmux-vite-app-moga.png
-version: 1.5.2
+version: 1.5.3
 integration-version: 2.0.0
 type: dynamic
 authors:
   - name: "Javier Garcia Ordonez"
     email: "ordonez@itis.swiss"
+    affiliation: "IT'IS Foundation"
+  - name: "Alejandro Parcet"
+    email: "parcet@speag.com"
+    affiliation: "IT'IS Foundation"
+  - name: "Werner Van Geit"
+    email: "vangeit@itis.swiss"
+    affiliation: "IT'IS Foundation"
+  - name: "Esra Neufeld"
+    email: "neufeld@itis.swiss"
     affiliation: "IT'IS Foundation"
 contact: "ordonez@itis.swiss"
 inputs: {}
