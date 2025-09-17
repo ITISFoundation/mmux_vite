@@ -1,24 +1,15 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { GridSortModel } from "@mui/x-data-grid";
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
 
 export interface MMUXContextType {
   numSamples: { [key: string]: number };
   setNumSamples: (ns: { [key: string]: number }) => void;
-  numIterations: { [key: string]: number };
-  setNumIterations: (ni: { [key: string]: number }) => void;
-  crossover: { [key: string]: number };
-  setCrossover: (c: { [key: string]: number }) => void;
   selectedQoI: string | undefined;
   setSelectedQoI: (response: string | undefined) => void;
   isSuMoGenerated: boolean;
   setIsSuMoGenerated: (is: boolean) => void;
-  weights: { [key: string]: number } | undefined;
-  setWeights: (weights: { [key: string]: number } | undefined) => void;
-  sortModel: GridSortModel | undefined;
-  setSortModel: (sortModel: GridSortModel | undefined) => void;
 }
 
 export const MMUXContext = createContext<MMUXContextType | undefined>(undefined);
@@ -31,12 +22,8 @@ export function MMUXContextProvider({ children }: Props) {
   const { persistence, saveState, loading } = usePersistenceContext();
   const [localLoading, setLocalLoading] = useState(true);
   const [numSamples, setNumSamples] = useState<{ [key: string]: number }>({});
-  const [numIterations, setNumIterations] = useState<{ [key: string]: number }>({});
-  const [crossover, setCrossover] = useState<{ [key: string]: number }>({});
   const [selectedQoI, setSelectedQoI] = useState<string | undefined>(undefined);
   const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
-  const [weights, setWeights] = useState<{ [key: string]: number }>();
-  const [sortModel, setSortModel] = useState<GridSortModel>();
 
   // persist the state of the MMUX context using the persistenceContext provider every time any of the state variables change
   useEffect(() => {
@@ -45,26 +32,18 @@ export function MMUXContextProvider({ children }: Props) {
     const newPersistence: PersistenceType = {
       ...(persistence as PersistenceType),
       numSamples,
-      numIterations,
-      crossover,
       selectedQoI,
       isSuMoGenerated,
-      weights,
-      sortModel,
     };
     saveState(newPersistence);
-  }, [numSamples, selectedQoI, isSuMoGenerated, weights, sortModel]);
+  }, [numSamples, selectedQoI, isSuMoGenerated]);
 
   useEffect(() => {
     if (loading === false && persistence && persistence.currentView !== undefined) {
       console.info("Loading MMUX context from persistence...");
       setNumSamples(persistence.numSamples);
-      setNumIterations(persistence.numIterations);
-      setCrossover(persistence.crossover);
       setSelectedQoI(persistence.selectedQoI);
       setIsSuMoGenerated(persistence.isSuMoGenerated);
-      setWeights(persistence.weights);
-      setSortModel(persistence.sortModel);
       setLocalLoading(false);
     }
   }, [loading]);
@@ -73,20 +52,12 @@ export function MMUXContextProvider({ children }: Props) {
     () => ({
       numSamples,
       setNumSamples,
-      numIterations,
-      setNumIterations,
-      crossover,
-      setCrossover,
       selectedQoI,
       setSelectedQoI,
       isSuMoGenerated,
       setIsSuMoGenerated,
-      weights,
-      setWeights,
-      sortModel,
-      setSortModel,
     }),
-    [numSamples, numIterations, crossover, selectedQoI, isSuMoGenerated, weights, sortModel],
+    [numSamples, selectedQoI, isSuMoGenerated],
   );
   return <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>;
 }

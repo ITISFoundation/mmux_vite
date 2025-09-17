@@ -12,16 +12,16 @@ import MogaParetoTable from "./MOGAParetoTable";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import { aggregateOutputValues } from "../../utils/function_utils";
-import { useMMUXContext } from "../../context/MMUXContext";
+import { useMOGATableContext } from "../../context/MOGATableContext";
 import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 
-export function MOGAPareto(props: MogaParetoPropsType) {
+export function MOGAPareto(props: LoadingPropsType) {
   const { loading, progress, jobProgress } = props;
   const theme = useTheme();
   const ref = useRef<Plot>(null);
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
   const { fetchedJobCollections, filteredJobList, selectedJobUids } = useJobContext();
-  const { weights } = useMMUXContext();
+  const { weights } = useMOGATableContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [layout, setLayout] = useState<Partial<Plotly.Layout>>({});
   const [plotType, setPlotType] = useState<"1D" | "2D" | "3D">("2D");

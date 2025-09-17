@@ -16,6 +16,8 @@ import { FunctionContextProvider } from "./context/FunctionContext";
 import { SamplingContextProvider } from "./context/SamplingContext";
 import { JobContextProvider } from "./context/JobContext";
 import { usePersistenceContext } from "./context/PersistenceContext";
+import { MOGASettingsContextProvider } from "./context/MOGASettingsContext";
+import { MOGATableContextProvider } from "./context/MOGATableContext";
 
 const AppRoot = styled("div")(
   ({ theme }) => `
@@ -117,16 +119,20 @@ function App() {
           <ServiceContextProvider>
             <FunctionContextProvider>
               <SamplingContextProvider>
-                <JobContextProvider>
-                  <MMUXContextProvider>
-                    <PreviewWarning />
-                    <Container sx={{ paddingBottom: 4 }}>
-                      <Navigation steps={steps} activeStep={currentView} />
-                      <ReturnCurrentView currentView={currentView} />
-                      <Footer steps={steps} />
-                    </Container>
-                  </MMUXContextProvider>
-                </JobContextProvider>
+                <MOGASettingsContextProvider>
+                  <MOGATableContextProvider>
+                    <JobContextProvider>
+                      <MMUXContextProvider>
+                        <PreviewWarning />
+                        <Container sx={{ paddingBottom: 4 }}>
+                          <Navigation steps={steps} activeStep={currentView} />
+                          <ReturnCurrentView currentView={currentView} />
+                          <Footer steps={steps} />
+                        </Container>
+                      </MMUXContextProvider>
+                    </JobContextProvider>
+                  </MOGATableContextProvider>
+                </MOGASettingsContextProvider>
               </SamplingContextProvider>
             </FunctionContextProvider>
           </ServiceContextProvider>
