@@ -14,7 +14,7 @@ async function runGridSampling(
   selectedFunction: OsparcFunction | undefined,
   context: SamplingContextType,
   setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void,
-  config: GRIDSamplingConfig,
+  config: GridSamplingConfig,
 ) {
   const fun = selectedFunction as OsparcFunction;
   // send config to Python backend to create LHS
@@ -48,7 +48,7 @@ function GridSearchSampling() {
   const { setRunningJobCollection } = useJobContext();
   const { gridSamplingConfig, setGridSamplingConfig } = context;
 
-  const [gridSamplingInputs, setGridSamplingInputs] = useState<GRIDSamplingConfig>(gridSamplingConfig);
+  const [gridSamplingInputs, setGridSamplingInputs] = useState<GridSamplingConfig>(gridSamplingConfig);
   const [loading, setLoading] = useState<boolean>(true);
 
   const handleRunSampling = async () => {
@@ -57,7 +57,7 @@ function GridSearchSampling() {
   };
 
   const handleInputChange = (index: number, field: string, value: string) => {
-    setGridSamplingInputs((prevInputs: GRIDSamplingConfig) => {
+    setGridSamplingInputs((prevInputs: GridSamplingConfig) => {
       const newInputs = [...prevInputs];
       newInputs[index] = {
         ...newInputs[index],
@@ -68,7 +68,7 @@ function GridSearchSampling() {
   };
 
   useEffect(() => {
-    let currentSampling: GRIDSamplingConfig = gridSamplingConfig;
+    let currentSampling: GridSamplingConfig = gridSamplingConfig;
     if (gridSamplingConfig.length === 0) {
       currentSampling = inputVars.map(inputVar => ({
         variable: inputVar,

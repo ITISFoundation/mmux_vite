@@ -11,7 +11,7 @@ import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
-export default function UncertainUQ(props: UncertainUQPropsType) {
+export default function UncertainUQ(props: LoadingPropsType) {
   const { loading, progress, jobProgress } = props;
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
