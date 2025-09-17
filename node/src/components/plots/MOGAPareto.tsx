@@ -14,6 +14,7 @@ import { fetchWithRetry } from "../../utils/fetch_retry";
 import { aggregateOutputValues } from "../../utils/function_utils";
 import { useMOGATableContext } from "../../context/MOGATableContext";
 import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
+import { MOGASettings, MOGASettingsSelection, useMOGASettingsContext } from "../../context/MOGASettingsContext";
 
 export function MOGAPareto(props: LoadingPropsType) {
   const { loading, progress, jobProgress } = props;
@@ -21,6 +22,7 @@ export function MOGAPareto(props: LoadingPropsType) {
   const ref = useRef<Plot>(null);
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
   const { fetchedJobCollections, filteredJobList, selectedJobUids } = useJobContext();
+  const { mogaSettings } = useMOGASettingsContext();
   const { weights } = useMOGATableContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [layout, setLayout] = useState<Partial<Plotly.Layout>>({});
@@ -56,19 +58,20 @@ export function MOGAPareto(props: LoadingPropsType) {
   };
 
   const runMOGA = useCallback(
-    async (jobs: FunctionJob[], ovs: OutputVarSelection, extPlotType?: "1D" | "2D" | "3D") => {
+    async (jobs: FunctionJob[], ovs: OutputVarSelection, mogaSettings: MOGASettingsSelection, extPlotType?: "1D" | "2D" | "3D") => {
       let localOptVars = optVars;
       if (localOptVars.length === 0) {
         console.warn("No optimization variables selected., using output var selection", ovs);
         localOptVars = Object.keys(ovs);
       }
       const bodyData = JSON.stringify({
-        inputVars,
+        inputDistributions: distribution,
         outputVarSelection: ovs,
-        distributions: distribution[selectedFunction?.uid || ""],
         FunctionJobs: jobs,
+        mogaSettings: mogaSettings,
       });
       console.info("Running MOGA...", bodyData);
+      console.info("MOGA Settings: ", mogaSettings); // FIXME this is not arriving correctly to the Python backend
       const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/perform_moga_optimization`, {
         method: "POST",
         body: bodyData,
@@ -238,7 +241,11 @@ export function MOGAPareto(props: LoadingPropsType) {
         try {
           setPropagating(true);
           console.info("Fetching MOGA Pareto data...");
-          await runMOGA(jobs, outputTargets[selectedFunction.uid]);
+          await runMOGA(
+            jobs,
+            outputTargets[selectedFunction.uid],
+            mogaSettings[selectedFunction.uid] || mogaSettings[""] // NB why not applying / updating?? giving defaults for now
+          );
         } catch (error) {
           console.error("Error fetching MOGA Pareto data:", error);
         }
@@ -315,7 +322,11 @@ export function MOGAPareto(props: LoadingPropsType) {
               value={plotType === "1D" ? 0 : plotType === "2D" ? 1 : 2}
               onChange={i => {
                 const calculatePT = i === 0 ? "1D" : i === 1 ? "2D" : "3D";
-                runMOGA(filteredJobList, outputTargets[selectedFunction?.uid as string], calculatePT);
+                runMOGA(
+                  filteredJobList,
+                  outputTargets[selectedFunction?.uid as string],
+                  mogaSettings[selectedFunction?.uid as string] || mogaSettings[""], // FIXME why do I need to pass defaults?
+                  calculatePT);
               }}
               disabled={[!(optVars.length >= 1), !(optVars.length >= 2), !(optVars.length >= 3)]}
             />

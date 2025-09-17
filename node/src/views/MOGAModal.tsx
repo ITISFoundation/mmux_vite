@@ -11,13 +11,13 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
   const { selectedFunction } = useFunctionContext();
   const { mogaSettings, setMOGASettings } = useMOGASettingsContext();
   const [populationSize, setPopulationSize] = React.useState<number>(mogaSettings[selectedFunction?.uid || ""]?.populationSize || defaultMogaSettings[""].populationSize);
-  const [iterations, setIterations] = React.useState<number>(mogaSettings[selectedFunction?.uid || ""]?.iterations || defaultMogaSettings[""].iterations);
+  const [maxIterations, setMaxIterations] = React.useState<number>(mogaSettings[selectedFunction?.uid || ""]?.maxIterations || defaultMogaSettings[""].maxIterations);
   const [fitnessType, setFitnessType] = React.useState<FitnessType>(mogaSettings[selectedFunction?.uid || ""]?.fitnessType || defaultMogaSettings[""].fitnessType);
   const [replacementType, setReplacementType] = React.useState<ReplacementType>(mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaSettings[""].replacementType);
 
   const resetFields = () => {
     setPopulationSize(mogaSettings[selectedFunction?.uid || ""]?.populationSize || defaultMogaSettings[""].populationSize);
-    setIterations(mogaSettings[selectedFunction?.uid || ""]?.iterations || defaultMogaSettings[""].iterations);
+    setMaxIterations(mogaSettings[selectedFunction?.uid || ""]?.maxIterations || defaultMogaSettings[""].maxIterations);
     setFitnessType(mogaSettings[selectedFunction?.uid || ""]?.fitnessType || defaultMogaSettings[""].fitnessType);
     setReplacementType(mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaSettings[""].replacementType);
   };
@@ -27,9 +27,10 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
       ...mogaSettings,
       [selectedFunction?.uid || ""]: {
         populationSize: populationSize,
-        iterations: iterations,
+        maxIterations: maxIterations,
         fitnessType: fitnessType,
         replacementType: replacementType,
+        seed: 42,
       },
     };
     setMOGASettings(newMogaSettings);
@@ -98,15 +99,17 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 size="small"
                 sx={{ marginTop: "8px" }}
                 data-testid="input-block"
-                value={Number.isNaN(iterations) ? "" : iterations}
-                onChange={e => setIterations(parseInt(e.target.value, 10))}
-                onBlur={e => setIterations(parseInt(e.target.value, 10))}
+                value={Number.isNaN(maxIterations) ? "" : maxIterations}
+                onChange={e => setMaxIterations(parseInt(e.target.value, 10))}
+                onBlur={e => setMaxIterations(parseInt(e.target.value, 10))}
                 aria-label="Iterations"
                 error={false}
               />
             </InputLabel>
             <InputLabel size="small" sx={{ flex: "1", display: "flex", flexDirection: "column", transform: "none" }}>
               <span style={{ marginLeft: "4px" }}>Fitness Type:</span>
+
+              {/* FIXME please @alexpargon fix the looks & behaviour of these Select elements */}
               <OptionSelect
                 property={"Fitness Type"}
                 currentValue={fitnessType}
@@ -123,6 +126,8 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
 
             <InputLabel size="small" sx={{ flex: "1", display: "flex", flexDirection: "column", transform: "none" }}>
               <span style={{ marginLeft: "4px" }}>Replacement Type:</span>
+
+              {/* FIXME please @alexpargon fix the looks & behaviour of these Select elements */}
               <OptionSelect
                 property={"Replacement Type"}
                 currentValue={replacementType}

@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import { useMMUXContext } from "../context/MMUXContext";
+import { useRef, useState } from "react";
 import SuMoModal from "./SuMoModal";
 import MOGAModal from "./MOGAModal";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
@@ -9,8 +8,7 @@ import { useFunctionContext } from "../context/FunctionContext";
 import { MOGAPareto } from "../components/plots/MOGAPareto";
 
 export default function MOGA() {
-  const { selectedFunction, outputVars } = useFunctionContext();
-  const { setSelectedQoI } = useMMUXContext();
+  const { selectedFunction } = useFunctionContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [sumoModal, setSumoModal] = useState<boolean>(false);
   const [mogaModal, setMogaModal] = useState<boolean>(false);
@@ -18,12 +16,6 @@ export default function MOGA() {
   const [jobProgress, setJobProgress] = useState<number>(0);
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
-
-  useEffect(() => {
-    if (outputVars && outputVars.length > 0) {
-      setSelectedQoI(outputVars[0]);
-    }
-  }, [outputVars, selectedFunction, setSelectedQoI]);
 
   return (
     <MetaModelingUX headerType="title" tabTitle={`Multi Objective Genetic Algorithm: ${selectedFunction?.title}`}>

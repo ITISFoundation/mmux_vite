@@ -8,13 +8,16 @@ import { PersistenceType } from "./types";
 export type FitnessType = "layer_rank" | "domination_count";
 export type ReplacementType = "elitist" | "roulette_wheel" | "unique_roulette_wheel" | "below_limit";
 
+export interface MOGASettingsSelection {
+    populationSize: number;
+    maxIterations: number;
+    fitnessType: FitnessType;
+    replacementType: ReplacementType;
+    seed: number;
+}
+
 export interface MOGASettings {
-    [key: string]: {
-        populationSize: number;
-        iterations: number;
-        fitnessType: FitnessType;
-        replacementType: ReplacementType;
-    }
+    [key: string]: MOGASettingsSelection
 }
 
 export interface MOGASettingsContextType {
@@ -25,9 +28,10 @@ export interface MOGASettingsContextType {
 export const defaultMogaSettings: MOGASettings = {
     "": {
         populationSize: 50,
-        iterations: 100,
+        maxIterations: 100,
         fitnessType: "layer_rank",
         replacementType: "elitist",
+        seed: 42,
     }
 }
 
