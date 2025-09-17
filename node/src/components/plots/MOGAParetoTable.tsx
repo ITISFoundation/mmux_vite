@@ -5,6 +5,7 @@ import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import { useMMUXContext } from "../../context/MMUXContext";
 import PerformanceModal from "./PerformanceModal";
 import Header from "../navigation/Header";
+import { RunSamplingButton } from "../sampling/RunSamplingButton";
 
 interface MogaParetoTableProps {
   tableData: MogaDataType | undefined;
@@ -68,43 +69,51 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
 
   let columns: GridColDef[] = data
     ? data.inputs.map(key => ({
-        ...columnProps,
-        field: key,
-        maxWidth: 120,
-        headerName: key.toUpperCase(),
-        type: "number",
-        renderCell: params => params.row[key].toFixed(3),
-        valueGetter: (_value, row) => row[key],
-      }))
+      ...columnProps,
+      field: key,
+      minWidth: 120,
+      maxWidth: 200,
+      headerName: key.toUpperCase(),
+      type: "number",
+      renderCell: params => params.row[key].toFixed(3),
+      valueGetter: (_value, row) => row[key],
+    }))
     : [];
 
   columns = columns.concat(
     data
       ? data.outputs.map(key => ({
-          ...columnProps,
-          field: key,
-          headerName: key.toUpperCase(),
-          type: "number",
-          renderCell: params => params.row[key].toFixed(3),
-          valueGetter: (_value, row) => row[key],
-        }))
+        ...columnProps,
+        field: key,
+        minWidth: 120,
+        maxWidth: 200,
+        headerName: key.toUpperCase(),
+        type: "number",
+        renderCell: params => params.row[key].toFixed(3),
+        valueGetter: (_value, row) => row[key],
+      }))
       : [],
   );
+
+  const handleRunSampling = async () => {
+    // TODO get the config of that row bfr launching
+    // implement "handleRunSampling" based on https://vscode.dev/github/ITISFoundation/mmux_vite/blob/258-switch-performance-weights-pop-ups/node/src/components/sampling/RunSingleJob.tsx#L49
+  }
 
   columns = columns.concat([
     {
       ...columnProps,
       field: "performance",
       headerName: "Performance",
-      minWidth: 105,
-      maxWidth: 105,
+      minWidth: 160,
+      maxWidth: 160,
       type: "number",
       renderHeader: () => (
         <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 0.5 }}>
+          <Typography variant="body2" sx={{ padding: "8px" }}>Performance</Typography>
           <IconButton onClick={() => setOpenPerformanceModal(true)} size="small">
             <EditAttributes />
           </IconButton>
-          <Typography variant="body2">Performance</Typography>
         </Box>
       ),
       renderCell: params => params.row.Performance.toFixed(2),
@@ -114,14 +123,14 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       ...columnProps,
       field: "action",
       headerName: "",
-      minWidth: 95,
-      maxWidth: 95,
+      minWidth: 140,
+      maxWidth: 140,
       type: "actions",
       sortable: false,
       renderCell: () => (
-        <Button variant="contained" color="primary">
-          Show
-        </Button>
+        <Box display="flex" flexDirection="row" justifyContent="space-between" marginTop={2}>
+          <RunSamplingButton disabled={loading} handleRunSampling={handleRunSampling} />
+        </Box>
       ),
     },
   ]);
