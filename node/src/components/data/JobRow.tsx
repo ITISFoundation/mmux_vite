@@ -50,9 +50,10 @@ function JobRow(props: JobRowProps) {
       </Box>,
     ];
   } else if (
-    jobStatus === "FAILED" || 
-    jobStatus === "ABORTED" ||  
-    (jobStatus.startsWith("JOB_") && jobStatus.endsWith("_FAILED"))) {
+    jobStatus === "FAILED" ||
+    jobStatus === "ABORTED" ||
+    (jobStatus.startsWith("JOB_") && jobStatus.endsWith("_FAILED"))
+  ) {
     outputs = "Failed - no outputs";
   } else if (
     jobStatus === "PENDING" ||
