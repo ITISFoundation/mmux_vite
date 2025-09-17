@@ -7,6 +7,10 @@ import { PersistenceType } from "./types";
 export interface MMUXContextType {
   numSamples: { [key: string]: number };
   setNumSamples: (ns: { [key: string]: number }) => void;
+  numIterations: { [key: string]: number };
+  setNumIterations: (ni: { [key: string]: number }) => void;
+  crossover: { [key: string]: number };
+  setCrossover: (c: { [key: string]: number }) => void;
   selectedQoI: string | undefined;
   setSelectedQoI: (response: string | undefined) => void;
   isSuMoGenerated: boolean;
@@ -27,6 +31,8 @@ export function MMUXContextProvider({ children }: Props) {
   const { persistence, saveState, loading } = usePersistenceContext();
   const [localLoading, setLocalLoading] = useState(true);
   const [numSamples, setNumSamples] = useState<{ [key: string]: number }>({});
+  const [numIterations, setNumIterations] = useState<{ [key: string]: number }>({});
+  const [crossover, setCrossover] = useState<{ [key: string]: number }>({});
   const [selectedQoI, setSelectedQoI] = useState<string | undefined>(undefined);
   const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
   const [weights, setWeights] = useState<{ [key: string]: number }>();
@@ -39,6 +45,8 @@ export function MMUXContextProvider({ children }: Props) {
     const newPersistence: PersistenceType = {
       ...(persistence as PersistenceType),
       numSamples,
+      numIterations,
+      crossover,
       selectedQoI,
       isSuMoGenerated,
       weights,
@@ -51,6 +59,8 @@ export function MMUXContextProvider({ children }: Props) {
     if (loading === false && persistence && persistence.currentView !== undefined) {
       console.info("Loading MMUX context from persistence...");
       setNumSamples(persistence.numSamples);
+      setNumIterations(persistence.numIterations);
+      setCrossover(persistence.crossover);
       setSelectedQoI(persistence.selectedQoI);
       setIsSuMoGenerated(persistence.isSuMoGenerated);
       setWeights(persistence.weights);
@@ -63,6 +73,10 @@ export function MMUXContextProvider({ children }: Props) {
     () => ({
       numSamples,
       setNumSamples,
+      numIterations,
+      setNumIterations,
+      crossover,
+      setCrossover,
       selectedQoI,
       setSelectedQoI,
       isSuMoGenerated,
@@ -72,7 +86,7 @@ export function MMUXContextProvider({ children }: Props) {
       sortModel,
       setSortModel,
     }),
-    [numSamples, selectedQoI, isSuMoGenerated, weights, sortModel],
+    [numSamples, numIterations, crossover, selectedQoI, isSuMoGenerated, weights, sortModel],
   );
   return <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>;
 }

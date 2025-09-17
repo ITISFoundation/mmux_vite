@@ -11,6 +11,8 @@ interface PersistenceType {
   gridSamplingConfig: GRIDSamplingConfig;
   singleJobConfig: SingleJobConfig[];
   numSamples: { [key: string]: number };
+  numIterations: { [key: string]: number };
+  crossover: { [key: string]: number };
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
   fetchedJobCollections: SelectedJobCollection[];
   selectedJobUids: string[];

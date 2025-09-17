@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import SuMoModal from "./SuMoModal";
+import MOGAModal from "./MOGAModal";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { OutputSetup } from "./OutputSetup";
 import { JobSampling } from "../components/sampling/JobSampling";
@@ -12,6 +13,7 @@ export default function MOGA() {
   const { setSelectedQoI } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [sumoModal, setSumoModal] = useState<boolean>(false);
+  const [mogaModal, setMogaModal] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [jobProgress, setJobProgress] = useState<number>(0);
   const jobsFetched = useRef(0);
@@ -25,7 +27,7 @@ export default function MOGA() {
 
   return (
     <MetaModelingUX headerType="title" tabTitle={`Multi Objective Genetic Algorithm: ${selectedFunction?.title}`}>
-      <OutputSetup loading={loading} setSumoModal={setSumoModal} mode="moga" />
+      <OutputSetup loading={loading} setSumoModal={setSumoModal} setMogaModal={setMogaModal} mode="moga" />
       <MOGAPareto
         colsFetched={colsFetched}
         jobProgress={jobProgress}
@@ -34,6 +36,7 @@ export default function MOGA() {
         progress={progress}
       />
       <SuMoModal open={sumoModal} setOpen={setSumoModal} />
+      <MOGAModal open={mogaModal} setOpen={setMogaModal} />
       <JobSampling
         loading={loading}
         setLoading={setLoading}

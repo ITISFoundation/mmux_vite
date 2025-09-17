@@ -11,10 +11,11 @@ interface UQSetupProps {
   loading: boolean;
   mode?: "onlyQoI" | "full" | "moga";
   setSumoModal?: (value: boolean) => void;
+  setMogaModal?: (value: boolean) => void;
 }
 
 export function OutputSetup(props: UQSetupProps) {
-  const { loading, mode, setSumoModal } = props;
+  const { loading, mode, setSumoModal, setMogaModal } = props;
   const theme = useTheme();
   const { selectedFunction, outputVars } = useFunctionContext();
   const { filteredJobList } = useJobContext();
@@ -39,11 +40,11 @@ export function OutputSetup(props: UQSetupProps) {
     setLocalQoI(outputVars[0] || "");
   }, [outputVars]); // Update localQoI when selectedQoI changes due to selectedFunction change
 
-  if (mode === "moga" && setSumoModal) {
+  if (mode === "moga" && setSumoModal && setMogaModal) {
     return (
       <Box
         sx={{
-          justifyContent: "right",
+          justifyContent: "space-between",
           flex: 1,
           display: "flex",
           gap: "16px",
@@ -52,6 +53,15 @@ export function OutputSetup(props: UQSetupProps) {
           width: "100%",
         }}
       >
+        <Button
+          variant="contained"
+          size="small"
+          disabled={loading || !selectedFunction || filteredJobList.length === 0}
+          onClick={() => setMogaModal(true)}
+          sx={{ padding: "8px 16px" }}
+        >
+          Optimization Settings
+        </Button>
         <Button
           variant="contained"
           size="small"

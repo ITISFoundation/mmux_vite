@@ -21,6 +21,8 @@ type Props = {
 const defaultPersistence: PersistenceType = {
   currentView: 0,
   numSamples: {},
+  numIterations: {},
+  crossover: {},
   selectedQoI: undefined,
   isSuMoGenerated: false,
   weights: undefined,
@@ -56,6 +58,8 @@ export function PersistenceContextProvider({ children }: Props) {
       typeof data === "object" &&
       "currentView" in data &&
       "numSamples" in data &&
+      "numIterations" in data &&
+      "crossover" in data &&
       "isSuMoGenerated" in data &&
       "inputVars" in data &&
       "outputVars" in data &&
