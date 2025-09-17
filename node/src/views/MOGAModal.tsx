@@ -14,20 +14,20 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
   const [iterations, setIterations] = React.useState<number>(numIterations[selectedFunction?.uid || ""] || 100);
   const [crossoverRate, setCrossoverRate] = React.useState<number>(crossover[selectedFunction?.uid || ""] || 0.8);
 
-  React.useEffect(() => {
+  const resetFields = () => {
+    setSamples(numSamples[selectedFunction?.uid || ""] || 10000);
+    setIterations(numIterations[selectedFunction?.uid || ""] || 100);
+    setCrossoverRate(crossover[selectedFunction?.uid || ""] || 0.8);
+  };
+
+  const handleSetData = () => {
     const newNumSamples = { ...numSamples, [selectedFunction?.uid || ""]: samples };
     setNumSamples(newNumSamples);
-  }, [samples]);
-
-  React.useEffect(() => {
     const newNumIterations = { ...numIterations, [selectedFunction?.uid || ""]: iterations };
     setNumIterations(newNumIterations);
-  }, [iterations]);
-
-  React.useEffect(() => {
     const newCrossover = { ...crossover, [selectedFunction?.uid || ""]: crossoverRate };
     setCrossover(newCrossover);
-  }, [crossoverRate]);
+  };
 
   return (
     <Modal
@@ -117,10 +117,26 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
           </Box>
         </CardContent>
         <CardActions sx={{ padding: 0, display: "flex", justifyContent: "space-between" }}>
-          <Button size="small" variant="contained" onClick={() => setOpen(false)} sx={{ alignItems: "start" }}>
+          <Button
+            size="small"
+            variant="contained"
+            onClick={() => {
+              resetFields();
+              setOpen(false);
+            }}
+            sx={{ alignItems: "start" }}
+          >
             Close
           </Button>
-          <Button size="small" variant="contained" onClick={() => setOpen(false)} sx={{ alignItems: "end" }}>
+          <Button
+            size="small"
+            variant="contained"
+            onClick={() => {
+              handleSetData();
+              setOpen(false);
+            }}
+            sx={{ alignItems: "end" }}
+          >
             Apply
           </Button>
         </CardActions>
