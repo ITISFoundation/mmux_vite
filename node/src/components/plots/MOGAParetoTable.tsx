@@ -17,6 +17,11 @@ function getRowId(value: MogaDataRowType) {
   return value.NDI;
 }
 
+const defaultSortModel: GridSortModel = [{
+  field: "performance",
+  sort: "desc",
+}]
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProps) {
   const { weights, setWeights, sortModel, setSortModel } = useMMUXContext();
@@ -24,19 +29,13 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
   const [localWeights, setLocalWeights] = useState(weights || {});
   const [loading, setLoading] = useState(true);
   const [openPerformanceModal, setOpenPerformanceModal] = useState(false);
-  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(
-    sortModel || [
-      {
-        field: "Performance",
-        sort: "desc",
-      },
-    ],
-  );
+  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel || defaultSortModel);
 
   const handleWeightsChange = (updatedWeights: typeof localWeights) => {
     console.log("setting weights!", updatedWeights);
     setWeights(updatedWeights);
     setLocalWeights(updatedWeights);
+    handleSortModelChange(defaultSortModel); // Reset sorting to default when weights change
   };
 
   const handleSortModelChange = (model: GridSortModel) => {
@@ -105,15 +104,15 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       ...columnProps,
       field: "performance",
       headerName: "Performance",
-      minWidth: 160,
-      maxWidth: 160,
+      minWidth: 200,
+      maxWidth: 200,
       type: "number",
       renderHeader: () => (
         <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 0.5 }}>
-          <Typography variant="body2" sx={{ padding: "8px" }}>Performance</Typography>
           <IconButton onClick={() => setOpenPerformanceModal(true)} size="small">
             <EditAttributes />
           </IconButton>
+          <Typography variant="body2" sx={{ padding: "8px" }}>Performance</Typography>
         </Box>
       ),
       renderCell: params => params.row.Performance.toFixed(2),
@@ -165,7 +164,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         getRowId={getRowId}
         initialState={{
           pagination: {
-            paginationModel: { pageSize: 10 },
+            paginationModel: { pageSize: 5 },
           },
           filter: {
             filterModel: {
