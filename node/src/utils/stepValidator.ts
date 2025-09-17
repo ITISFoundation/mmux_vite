@@ -35,8 +35,7 @@ export function stepValidator(
         // console.debug("output Distribution not defined yet")
         return false;
       }
-      if (Object.keys(outDist).length < 2) {
-        // console.debug("MOGA needs at least two output target variables")
+      if (Object.keys(outDist).length < 1) {
         return false;
       }
     }
