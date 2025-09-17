@@ -49,6 +49,28 @@ class TestRouteExistence:
         assert_route_exists(test_app, "osparc", "get_function_job")
         assert_route_exists(test_app, "osparc", "get_function_job_status")
         assert_route_exists(test_app, "osparc", "get_function_job_outputs")
+    
+    def test_textfile_routes(self, test_app: Flask):
+        """Test that the textfile-related routes exist in the Flask app."""
+        assert_route_exists(test_app, "text-file", "")
+        assert_route_exists(test_app, "text-file", "<filename>")
+
+    def test_sampling_routes(self, test_app: Flask):
+        """Test that the sampling-related routes exist in the Flask app."""
+        assert_route_exists(test_app, "sampling", "lhs")
+        assert_route_exists(test_app, "sampling", "grid")
+        assert_route_exists(test_app, "sampling", "test_job")
+        assert_route_exists(test_app, "sampling", "clone_job")
+
+    def test_dakota_routes(self, test_app: Flask):
+        """Test that the dakota-related routes exist in the Flask app."""
+        assert_route_exists(test_app, "dakota", "sumo_cross_validation")
+        assert_route_exists(test_app, "dakota", "manual_uq_propagation")
+        assert_route_exists(test_app, "dakota", "manual_uq_propagation_with_uncertainty")
+        assert_route_exists(test_app, "dakota", "sumo_along_axes")
+        assert_route_exists(test_app, "dakota", "sumo_grid_evaluation")
+        assert_route_exists(test_app, "dakota", "get_sumo_cv_accuracy_metrics")
+        assert_route_exists(test_app, "dakota", "perform_moga_optimization")
 
 
 class TestOsparcConfig:
