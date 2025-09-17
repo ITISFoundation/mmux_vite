@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React from "react";
 import { Modal, useTheme, Card, Box, CardContent, Button, CardActions, Typography, Slider } from "@mui/material";
 import Header from "../navigation/Header";
