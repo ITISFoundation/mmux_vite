@@ -9,10 +9,12 @@ export type FitnessType = "layer_rank" | "domination_count";
 export type ReplacementType = "elitist" | "roulette_wheel" | "unique_roulette_wheel" | "below_limit";
 
 export interface MOGASettings {
-    populationSize: number;
-    iterations: number;
-    fitnessType: FitnessType;
-    replacementType: ReplacementType;
+    [key: string]: {
+        populationSize: number;
+        iterations: number;
+        fitnessType: FitnessType;
+        replacementType: ReplacementType;
+    }
 }
 
 export interface MOGASettingsContextType {
@@ -20,6 +22,14 @@ export interface MOGASettingsContextType {
     setMOGASettings: (settings: MOGASettings) => void;
 }
 
+export const defaultMogaSettings: MOGASettings = {
+    "": {
+        populationSize: 50,
+        iterations: 100,
+        fitnessType: "layer_rank",
+        replacementType: "elitist",
+    }
+}
 
 export const MOGASettingsContext = createContext<MOGASettingsContextType | undefined>(undefined);
 
@@ -31,12 +41,7 @@ type Props = {
 export function MOGASettingsContextProvider({ children }: Props) {
     const { persistence, saveState, loading } = usePersistenceContext();
     const [localLoading, setLocalLoading] = useState(true);
-    const [mogaSettings, setMOGASettings] = useState<MOGASettings>({
-        populationSize: 50,
-        iterations: 100,
-        fitnessType: "layer_rank",
-        replacementType: "elitist",
-    });
+    const [mogaSettings, setMOGASettings] = useState<MOGASettings>(defaultMogaSettings);
 
     // Persist mogaSettings inside PersistenceType
     useEffect(() => {
