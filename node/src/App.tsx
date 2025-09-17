@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { styled, ThemeProvider } from "@mui/material/styles";
-import { Container, useColorScheme } from "@mui/material";
+import { Container, useColorScheme, CssBaseline } from "@mui/material";
 import { toast, ToastContainer } from "react-toastify";
 import { setupTheme } from "./theme";
 import Navigation from "./components/navigation/Navigation";
@@ -109,6 +109,7 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
+      <CssBaseline />
       <AppRoot>
         {!healthStatus || loading ? (
           <SplashScreen />

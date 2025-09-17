@@ -14,8 +14,8 @@ settings:
 paths-mapping:
   inputs_path: /tmp/inputs
   outputs_path: /tmp/outputs
-  state_paths: []
-
+  state_paths:
+    - /text-files
 compose-spec:
   version: "3.8"
   services:
