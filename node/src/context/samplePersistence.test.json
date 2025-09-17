@@ -1,6 +1,8 @@
 {
   "currentView": 1,
   "numSamples": {},
+  "numIterations": {},
+  "crossover": {},
   "selectedQoI": "X*Z",
   "isSuMoGenerated": false,
   "selectedFunction": {

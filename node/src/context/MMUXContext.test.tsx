@@ -9,6 +9,8 @@ vi.mock("./PersistenceContext", () => ({
     persistence: {
       currentView: "testView",
       numSamples: { foo: 1 },
+      numIterations: { foo: 100 },
+      crossover: { foo: 3 },
       selectedQoI: "QoI1",
       isSuMoGenerated: true,
       weights: { foo: 0.5 },
@@ -25,12 +27,20 @@ function Consumer() {
   return (
     <div>
       <span data-testid="numSamples">{JSON.stringify(ctx.numSamples)}</span>
+      <span data-testid="numIterations">{JSON.stringify(ctx.numIterations)}</span>
+      <span data-testid="crossover">{JSON.stringify(ctx.crossover)}</span>
       <span data-testid="selectedQoI">{ctx.selectedQoI}</span>
       <span data-testid="isSuMoGenerated">{ctx.isSuMoGenerated ? "yes" : "no"}</span>
       <span data-testid="weights">{JSON.stringify(ctx.weights)}</span>
       <span data-testid="sortModel">{JSON.stringify(ctx.sortModel)}</span>
       <button type="button" onClick={() => ctx.setNumSamples({ bar: 2 })}>
         setNumSamples
+      </button>
+      <button type="button" onClick={() => ctx.setNumIterations({ bar: 20 })}>
+        setNumIterations
+      </button>
+      <button type="button" onClick={() => ctx.setCrossover({ bar: 200 })}>
+        setCrossover
       </button>
       <button type="button" onClick={() => ctx.setSelectedQoI("QoI2")}>
         setSelectedQoI
@@ -61,6 +71,8 @@ describe("MMUXContextProvider", () => {
       </MMUXContextProvider>,
     );
     expect(screen.getByTestId("numSamples").textContent).toBe(JSON.stringify({ foo: 1 }));
+    expect(screen.getByTestId("numIterations").textContent).toBe(JSON.stringify({ foo: 100 }));
+    expect(screen.getByTestId("crossover").textContent).toBe(JSON.stringify({ foo: 3 }));
     expect(screen.getByTestId("selectedQoI").textContent).toBe("QoI1");
     expect(screen.getByTestId("isSuMoGenerated").textContent).toBe("yes");
     expect(screen.getByTestId("weights").textContent).toBe(JSON.stringify({ foo: 0.5 }));
@@ -76,6 +88,8 @@ describe("MMUXContextProvider", () => {
 
     act(() => {
       screen.getByText("setNumSamples").click();
+      screen.getByText("setNumIterations").click();
+      screen.getByText("setCrossover").click();
       screen.getByText("setSelectedQoI").click();
       screen.getByText("setIsSuMoGenerated").click();
       screen.getByText("setWeights").click();
@@ -83,6 +97,8 @@ describe("MMUXContextProvider", () => {
     });
 
     expect(screen.getByTestId("numSamples").textContent).toBe(JSON.stringify({ bar: 2 }));
+    expect(screen.getByTestId("numIterations").textContent).toBe(JSON.stringify({ bar: 20 }));
+    expect(screen.getByTestId("crossover").textContent).toBe(JSON.stringify({ bar: 200 }));
     expect(screen.getByTestId("selectedQoI").textContent).toBe("QoI2");
     expect(screen.getByTestId("isSuMoGenerated").textContent).toBe("no");
     expect(screen.getByTestId("weights").textContent).toBe(JSON.stringify({ bar: 0.8 }));
