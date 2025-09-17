@@ -21,12 +21,8 @@ type Props = {
 const defaultPersistence: PersistenceType = {
   currentView: 0,
   numSamples: {},
-  numIterations: {},
-  crossover: {},
   selectedQoI: undefined,
   isSuMoGenerated: false,
-  weights: undefined,
-  sortModel: undefined,
   selectedFunction: undefined,
   inputVars: [],
   outputVars: [],
@@ -42,6 +38,9 @@ const defaultPersistence: PersistenceType = {
   fetchedJobCollections: [],
   selectedJobUids: [],
   outputTargets: {},
+  mogaSettings: {},
+  weights: undefined,
+  sortModel: undefined
 };
 
 export function PersistenceContextProvider({ children }: Props) {
