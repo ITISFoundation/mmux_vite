@@ -22,7 +22,7 @@ type LHSamplingConfig = {
   seed: number;
 };
 
-type GRIDSamplingConfig = SamplingInputsState[];
+type GridSamplingConfig = SamplingInputsState[];
 
 type DataUQHistogramType = {
   bins_start: number;
@@ -41,16 +41,10 @@ type DataUQHistogramType = {
   min: number;
   max: number;
 };
-type UncertainUQPropsType = {
-  loading: boolean;
-  progress: number;
-  jobProgress: number;
-  colsFetched: React.MutableRefObject<number>;
-  jobsFetched: React.MutableRefObject<number>;
-};
 
-type MogaParetoPropsType = {
+type LoadingPropsType = {
   loading: boolean;
+  setLoading?: (loading: boolean) => void;
   progress: number;
   jobProgress: number;
   colsFetched: React.MutableRefObject<number>;

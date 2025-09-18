@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { EditAttributes } from "@mui/icons-material";
-import { Typography, Button, Box, IconButton } from "@mui/material";
+import { Typography, Box, IconButton } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
-import { useMMUXContext } from "../../context/MMUXContext";
+import { useMOGATableContext } from "../../context/MOGATableContext";
 import PerformanceModal from "./PerformanceModal";
 import Header from "../navigation/Header";
 import { RunSamplingButton } from "../sampling/RunSamplingButton";
@@ -17,30 +17,32 @@ function getRowId(value: MogaDataRowType) {
   return value.NDI;
 }
 
-const defaultSortModel: GridSortModel = [{
-  field: "performance",
-  sort: "desc",
-}]
+const defaultSortModel: GridSortModel = [
+  {
+    field: "performance",
+    sort: "desc",
+  },
+];
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProps) {
-  const { weights, setWeights, sortModel, setSortModel } = useMMUXContext();
+  const { weights, setWeights, sortModel, setSortModel } = useMOGATableContext();
   const [data, setData] = useState<MogaDataType | undefined>(undefined);
   const [localWeights, setLocalWeights] = useState(weights || {});
   const [loading, setLoading] = useState(true);
   const [openPerformanceModal, setOpenPerformanceModal] = useState(false);
-  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel || defaultSortModel);
+  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel);
+
+  const handleSortModelChange = (model: GridSortModel) => {
+    setSortModel(model);
+    setLocalSortModel(model);
+  };
 
   const handleWeightsChange = (updatedWeights: typeof localWeights) => {
     console.log("setting weights!", updatedWeights);
     setWeights(updatedWeights);
     setLocalWeights(updatedWeights);
     handleSortModelChange(defaultSortModel); // Reset sorting to default when weights change
-  };
-
-  const handleSortModelChange = (model: GridSortModel) => {
-    setSortModel(model);
-    setLocalSortModel(model);
   };
 
   useEffect(() => {
@@ -68,20 +70,6 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
 
   let columns: GridColDef[] = data
     ? data.inputs.map(key => ({
-      ...columnProps,
-      field: key,
-      minWidth: 120,
-      maxWidth: 200,
-      headerName: key.toUpperCase(),
-      type: "number",
-      renderCell: params => params.row[key].toFixed(3),
-      valueGetter: (_value, row) => row[key],
-    }))
-    : [];
-
-  columns = columns.concat(
-    data
-      ? data.outputs.map(key => ({
         ...columnProps,
         field: key,
         minWidth: 120,
@@ -91,13 +79,27 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         renderCell: params => params.row[key].toFixed(3),
         valueGetter: (_value, row) => row[key],
       }))
+    : [];
+
+  columns = columns.concat(
+    data
+      ? data.outputs.map(key => ({
+          ...columnProps,
+          field: key,
+          minWidth: 120,
+          maxWidth: 200,
+          headerName: key.toUpperCase(),
+          type: "number",
+          renderCell: params => params.row[key].toFixed(3),
+          valueGetter: (_value, row) => row[key],
+        }))
       : [],
   );
 
   const handleRunSampling = async () => {
     // TODO get the config of that row bfr launching
     // implement "handleRunSampling" based on https://vscode.dev/github/ITISFoundation/mmux_vite/blob/258-switch-performance-weights-pop-ups/node/src/components/sampling/RunSingleJob.tsx#L49
-  }
+  };
 
   columns = columns.concat([
     {
@@ -112,7 +114,9 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
           <IconButton onClick={() => setOpenPerformanceModal(true)} size="small">
             <EditAttributes />
           </IconButton>
-          <Typography variant="body2" sx={{ padding: "8px" }}>Performance</Typography>
+          <Typography variant="body2" sx={{ padding: "8px" }}>
+            Performance
+          </Typography>
         </Box>
       ),
       renderCell: params => params.row.Performance.toFixed(2),

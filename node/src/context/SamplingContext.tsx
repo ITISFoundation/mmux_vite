@@ -11,8 +11,8 @@ export interface SamplingContextType {
   setRunningSampling: (b: boolean) => void;
   lhsSamplingConfig: LHSamplingConfig;
   setLhsSamplingConfig: (config: LHSamplingConfig) => void;
-  gridSamplingConfig: GRIDSamplingConfig;
-  setGridSamplingConfig: (config: GRIDSamplingConfig) => void;
+  gridSamplingConfig: GridSamplingConfig;
+  setGridSamplingConfig: (config: GridSamplingConfig) => void;
   singleJobConfig: SingleJobConfig[];
   setSingleJobConfig: (config: SingleJobConfig[]) => void;
   clearSampling: () => void;
@@ -30,7 +30,7 @@ const defaultLHSamplingConfig: LHSamplingConfig = {
   seed: 0,
 };
 
-const defaultGRIDSamplingConfig: GRIDSamplingConfig = [];
+const defaultGRIDSamplingConfig: GridSamplingConfig = [];
 
 const defaultSingleJobConfig: SingleJobConfig[] = [];
 
@@ -41,7 +41,7 @@ export function SamplingContextProvider({ children }: Props) {
   const [launchingSampling, setLaunchingSampling] = useState<boolean>(false);
   const [runningSampling, setRunningSampling] = useState<boolean>(false);
   const [lhsSamplingConfig, setLhsSamplingConfig] = useState<LHSamplingConfig>(defaultLHSamplingConfig);
-  const [gridSamplingConfig, setGridSamplingConfig] = useState<GRIDSamplingConfig>(defaultGRIDSamplingConfig);
+  const [gridSamplingConfig, setGridSamplingConfig] = useState<GridSamplingConfig>(defaultGRIDSamplingConfig);
   const [singleJobConfig, setSingleJobConfig] = useState<SingleJobConfig[]>(defaultSingleJobConfig);
 
   const clearSampling = useCallback(() => {

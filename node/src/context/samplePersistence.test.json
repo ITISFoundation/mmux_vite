@@ -1,6 +1,15 @@
 {
   "currentView": 1,
   "numSamples": {},
+  "mogaSettings": {
+    "a2d8b204-fa1c-4259-b057-acb3b6f7fe8b": {
+      "populationSize": 50,
+      "maxIterations": 100,
+      "fitnessType": "layer_rank",
+      "replacementType": "elitist",
+      "seed": 42
+    }
+  },
   "selectedQoI": "X*Z",
   "isSuMoGenerated": false,
   "selectedFunction": {

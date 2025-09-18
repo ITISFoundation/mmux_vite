@@ -129,9 +129,13 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       const jobsC = (await getFunctionJobCollections(functionUid as string)) as FunctionJobCollection[];
 
       const equalJC: boolean[] =
-        fetchedJobCollections.length === jobsC.length ?
-        fetchedJobCollections
-          .map((jc, idx) => jc.jobCollection.jobIds.join(",") === jobsC[idx].jobIds.join(",") && jc.subJobs.every(j => j.job.status === "SUCCESS" || j.job.status === "FAILED")) : [false];
+        fetchedJobCollections.length === jobsC.length
+          ? fetchedJobCollections.map(
+              (jc, idx) =>
+                jc.jobCollection.jobIds.join(",") === jobsC[idx].jobIds.join(",") &&
+                jc.subJobs.every(j => j.job.status === "SUCCESS" || j.job.status === "FAILED"),
+            )
+          : [false];
 
       if (equalJC.every(v => v === true)) {
         console.info("Job collections already fetched, skipping fetch.");
@@ -203,7 +207,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         }
         colsFetched.current += jc.jobIds.length;
         setProgress((colsFetched.current / totalSubs) * 100);
-        
       }
 
       setJobCollections(newJobCollections);

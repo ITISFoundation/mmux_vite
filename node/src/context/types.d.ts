@@ -8,7 +8,7 @@ interface PersistenceType {
   distribution: { [key: string]: InputVarSelection };
   outputTargets: { [key: string]: OutputVarSelection };
   lhsSamplingConfig: LHSamplingConfig;
-  gridSamplingConfig: GRIDSamplingConfig;
+  gridSamplingConfig: GridSamplingConfig;
   singleJobConfig: SingleJobConfig[];
   numSamples: { [key: string]: number };
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
@@ -16,6 +16,7 @@ interface PersistenceType {
   selectedJobUids: string[];
   selectedQoI: string | undefined;
   isSuMoGenerated: boolean;
-  weights: { [key: string]: number } | undefined;
-  sortModel: GridSortModel | undefined;
+  mogaSettings: MOGASettings;
+  weights: { [key: string]: number };
+  sortModel: GridSortModel;
 }

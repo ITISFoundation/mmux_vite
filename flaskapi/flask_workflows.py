@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import json
 import logging
-from typing import List, Dict, Callable, NamedTuple, Final, Optional, Literal
+from typing import List, Dict, Callable, NamedTuple, Final, Optional, Literal, Any
 import numpy as np # type: ignore
 import pandas as pd # type: ignore
 from flask import Flask, request, abort, jsonify, make_response # type: ignore
@@ -997,16 +997,17 @@ def flask_perform_moga_optimization():
     try:
         # Convert request data into a Python dictionary
         request_data: dict = json.loads(request.data.decode("utf-8"))
-        input_vars: List[str] = request_data["inputVars"]
-        input_distributions: Dict[str, Dict[str, float]] = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
+        input_distributions: Dict[str, Dict[str, float]] = request_data["inputDistributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
+        input_vars: List[str] = [k for k in input_distributions.keys()]
         output_var_selection: Dict[str, Literal["minimize", "maximize"]] = request_data["outputVarSelection"]
         output_responses = [k for k in output_var_selection.keys()]
+        jobs = request_data["FunctionJobs"]
+        _logger.debug("jobs: ", jobs)
+        moga_kwargs: Dict[str, Any] = request_data["mogaSettings"]
+        _logger.debug("moga settings: ", moga_kwargs)
+
         _logger.debug(f"Output responses: {output_responses}")
         _logger.debug(f"Output var selection: {output_var_selection}")
-        assert len(output_responses) >= 2, "At least two output responses must be selected for MOGA optimization."
-        make_log = request_data.get("log", False)
-        jobs = request_data["FunctionJobs"]
-
         input_distributions_sanitized = sanitize_varnames(input_distributions)
         input_vars_sanitized = sanitize_varnames(input_vars)
         output_var_selection_sanitized = sanitize_varnames(output_var_selection)
@@ -1018,6 +1019,7 @@ def flask_perform_moga_optimization():
 
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses, folder_name="moga")
         run_dir = TRAINING_FILE.parent
+        make_log = request_data.get("log", False)
 
         PROCESSED_TRAINING_FILE = process_input_file(
             TRAINING_FILE,
@@ -1031,7 +1033,7 @@ def flask_perform_moga_optimization():
             input_vars_sanitized,
             input_distributions_sanitized,
             list(output_var_selection_sanitized.keys()),
-            moga_kwargs={"max_function_evaluations": 1000},
+            moga_kwargs=moga_kwargs,
         )
 
         results = {
