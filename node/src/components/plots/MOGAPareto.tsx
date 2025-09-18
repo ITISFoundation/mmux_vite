@@ -214,6 +214,9 @@ export function MOGAPareto(props: LoadingPropsType) {
           newPlotData[1].x = results[localOptVars[0]];
           newPlotData[1].y = results[localOptVars[1]];
           newPlotData[1].z = undefined;
+          newPlotData[2].x = results.non_dominated_indices.map(i => (results[localOptVars[0]] as Array<number>)[i]);
+          newPlotData[2].y = results.non_dominated_indices.map(i => (results[localOptVars[1]] as Array<number>)[i]);
+          newPlotData[2].z = undefined;
           newPlotData[0].type = "scatter";
           newPlotData[1].type = "scatter";
           newPlotData[2].type = "scatter";
