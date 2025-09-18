@@ -3,81 +3,76 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
 
-
-
 export type FitnessType = "layer_rank" | "domination_count";
 export type ReplacementType = "elitist" | "roulette_wheel" | "unique_roulette_wheel" | "below_limit";
 
 export interface MOGASettingsSelection {
-    populationSize: number;
-    maxIterations: number;
-    fitnessType: FitnessType;
-    replacementType: ReplacementType;
-    seed: number;
+  populationSize: number;
+  maxIterations: number;
+  fitnessType: FitnessType;
+  replacementType: ReplacementType;
+  seed: number;
 }
 
 export interface MOGASettings {
-    [key: string]: MOGASettingsSelection
+  [key: string]: MOGASettingsSelection;
 }
 
 export interface MOGASettingsContextType {
-    mogaSettings: MOGASettings;
-    setMOGASettings: (settings: MOGASettings) => void;
+  mogaSettings: MOGASettings;
+  setMOGASettings: (settings: MOGASettings) => void;
 }
 
-export const defaultMogaSettings: MOGASettings = {
-    "": {
-        populationSize: 50,
-        maxIterations: 100,
-        fitnessType: "layer_rank",
-        replacementType: "elitist",
-        seed: 42,
-    }
-}
+export const defaultMogaValues: MOGASettingsSelection = {
+  populationSize: 50,
+  maxIterations: 100,
+  fitnessType: "layer_rank",
+  replacementType: "elitist",
+  seed: 42,
+};
 
 export const MOGASettingsContext = createContext<MOGASettingsContextType | undefined>(undefined);
 
 type Props = {
-    children: React.ReactNode;
+  children: React.ReactNode;
 };
 
-
 export function MOGASettingsContextProvider({ children }: Props) {
-    const { persistence, saveState, loading } = usePersistenceContext();
-    const [localLoading, setLocalLoading] = useState(true);
-    const [mogaSettings, setMOGASettings] = useState<MOGASettings>(defaultMogaSettings);
+  const { persistence, saveState, loading } = usePersistenceContext();
+  const [localLoading, setLocalLoading] = useState(true);
+  const [mogaSettings, setMOGASettings] = useState<MOGASettings>({});
 
-    // Persist mogaSettings inside PersistenceType
-    useEffect(() => {
-        if (localLoading) return;
-        const newPersistence: PersistenceType = {
-            ...(persistence as PersistenceType),
-            mogaSettings,
-        };
-        saveState(newPersistence);
-    }, [mogaSettings]);
+  // Persist mogaSettings inside PersistenceType
+  useEffect(() => {
+    if (localLoading) return;
+    const newPersistence: PersistenceType = {
+      ...(persistence as PersistenceType),
+      mogaSettings,
+    };
+    saveState(newPersistence);
+  }, [mogaSettings]);
 
-    useEffect(() => {
-        if (!loading && persistence && persistence.currentView !== undefined && persistence.mogaSettings) {
-            setMOGASettings(persistence.mogaSettings);
-            setLocalLoading(false);
-        }
-    }, [loading]);
+  useEffect(() => {
+    if (!loading && persistence && persistence.currentView !== undefined && persistence.mogaSettings) {
+      setMOGASettings(persistence.mogaSettings);
+      setLocalLoading(false);
+    }
+  }, [loading]);
 
-    const memoState = useMemo<MOGASettingsContextType>(
-        () => ({
-            mogaSettings,
-            setMOGASettings,
-        }),
-        [mogaSettings],
-    );
-    return <MOGASettingsContext.Provider value={memoState}>{children}</MOGASettingsContext.Provider>;
+  const memoState = useMemo<MOGASettingsContextType>(
+    () => ({
+      mogaSettings,
+      setMOGASettings,
+    }),
+    [mogaSettings],
+  );
+  return <MOGASettingsContext.Provider value={memoState}>{children}</MOGASettingsContext.Provider>;
 }
 
 export const useMOGASettingsContext = () => {
-    const context = useContext(MOGASettingsContext);
-    if (context === undefined) {
-        throw new Error("useMOGASettingsContext must be used within a MOGASettingsContextProvider");
-    }
-    return context;
+  const context = useContext(MOGASettingsContext);
+  if (context === undefined) {
+    throw new Error("useMOGASettingsContext must be used within a MOGASettingsContextProvider");
+  }
+  return context;
 };

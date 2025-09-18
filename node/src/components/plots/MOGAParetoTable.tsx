@@ -31,7 +31,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
   const [localWeights, setLocalWeights] = useState(weights || {});
   const [loading, setLoading] = useState(true);
   const [openPerformanceModal, setOpenPerformanceModal] = useState(false);
-  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel || defaultSortModel);
+  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel);
 
   const handleSortModelChange = (model: GridSortModel) => {
     setSortModel(model);

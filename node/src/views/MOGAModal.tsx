@@ -1,35 +1,49 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React from "react";
-import { Modal, useTheme, Card, Box, CardContent, Button, Select, CardActions, InputLabel, TextField } from "@mui/material";
+import React, { useState } from "react";
+import { Modal, useTheme, Card, Box, CardContent, Button, CardActions, InputLabel, Typography, TextField } from "@mui/material";
 import Header from "../components/navigation/Header";
 import OptionSelect from "../components/utils/OptionSelect";
-import { useMOGASettingsContext, defaultMogaSettings, MOGASettings, FitnessType, ReplacementType } from "../context/MOGASettingsContext";
+import {
+  useMOGASettingsContext,
+  defaultMogaValues,
+  MOGASettings,
+  FitnessType,
+  ReplacementType,
+} from "../context/MOGASettingsContext";
 import { useFunctionContext } from "../context/FunctionContext";
 
 const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean) => void }) => {
   const theme = useTheme();
   const { selectedFunction } = useFunctionContext();
   const { mogaSettings, setMOGASettings } = useMOGASettingsContext();
-  const [populationSize, setPopulationSize] = React.useState<number>(mogaSettings[selectedFunction?.uid || ""]?.populationSize || defaultMogaSettings[""].populationSize);
-  const [maxIterations, setMaxIterations] = React.useState<number>(mogaSettings[selectedFunction?.uid || ""]?.maxIterations || defaultMogaSettings[""].maxIterations);
-  const [fitnessType, setFitnessType] = React.useState<FitnessType>(mogaSettings[selectedFunction?.uid || ""]?.fitnessType || defaultMogaSettings[""].fitnessType);
-  const [replacementType, setReplacementType] = React.useState<ReplacementType>(mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaSettings[""].replacementType);
+  const [populationSize, setPopulationSize] = useState<number>(
+    mogaSettings[selectedFunction?.uid || ""]?.populationSize || defaultMogaValues.populationSize,
+  );
+  const [maxIterations, setMaxIterations] = useState<number>(
+    mogaSettings[selectedFunction?.uid || ""]?.maxIterations || defaultMogaValues.maxIterations,
+  );
+  const [fitnessType, setFitnessType] = useState<FitnessType>(
+    mogaSettings[selectedFunction?.uid || ""]?.fitnessType || defaultMogaValues.fitnessType,
+  );
+  const [replacementType, setReplacementType] = useState<ReplacementType>(
+    mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaValues.replacementType,
+  );
 
   const resetFields = () => {
-    setPopulationSize(mogaSettings[selectedFunction?.uid || ""]?.populationSize || defaultMogaSettings[""].populationSize);
-    setMaxIterations(mogaSettings[selectedFunction?.uid || ""]?.maxIterations || defaultMogaSettings[""].maxIterations);
-    setFitnessType(mogaSettings[selectedFunction?.uid || ""]?.fitnessType || defaultMogaSettings[""].fitnessType);
-    setReplacementType(mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaSettings[""].replacementType);
+    setPopulationSize(mogaSettings[selectedFunction?.uid || ""]?.populationSize || defaultMogaValues.populationSize);
+    setMaxIterations(mogaSettings[selectedFunction?.uid || ""]?.maxIterations || defaultMogaValues.maxIterations);
+    setFitnessType(mogaSettings[selectedFunction?.uid || ""]?.fitnessType || defaultMogaValues.fitnessType);
+    setReplacementType(mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaValues.replacementType);
   };
 
   const handleSetData = () => {
     const newMogaSettings: MOGASettings = {
       ...mogaSettings,
       [selectedFunction?.uid || ""]: {
-        populationSize: populationSize,
-        maxIterations: maxIterations,
-        fitnessType: fitnessType,
-        replacementType: replacementType,
+        populationSize,
+        maxIterations,
+        fitnessType,
+        replacementType,
         seed: 42,
       },
     };
@@ -76,13 +90,18 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
           }}
         >
           <Box sx={{ display: "flex", flexDirection: "column", gap: "16px", padding: "0px 8px" }}>
-            <InputLabel size="small" sx={{ flex: "1", display: "flex", flexDirection: "column", transform: "none" }}>
-              <span style={{ marginLeft: "4px" }}>Population Size:</span>
+            <InputLabel
+              size="small"
+              sx={{ flex: "1", display: "flex", flexDirection: "row", alignItems: "center", transform: "none" }}
+            >
+              <Typography variant="body1" component="p" fontWeight={400} sx={{ flex: 1 }}>
+                Population Size:
+              </Typography>
               <TextField
                 type="number"
                 variant="outlined"
                 size="small"
-                sx={{ marginTop: "8px" }}
+                sx={{ flex: 1 }}
                 data-testid="input-block"
                 value={Number.isNaN(populationSize) ? "" : populationSize}
                 onChange={e => setPopulationSize(parseInt(e.target.value, 10))}
@@ -91,13 +110,18 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 error={false}
               />
             </InputLabel>
-            <InputLabel size="small" sx={{ flex: "1", display: "flex", flexDirection: "column", transform: "none" }}>
-              <span style={{ marginLeft: "4px" }}>Iterations:</span>
+            <InputLabel
+              size="small"
+              sx={{ flex: "1", display: "flex", flexDirection: "row", alignItems: "center", transform: "none" }}
+            >
+              <Typography variant="body1" component="p" fontWeight={400} sx={{ flex: 1 }}>
+                Iterations:
+              </Typography>
               <TextField
                 type="number"
                 variant="outlined"
                 size="small"
-                sx={{ marginTop: "8px" }}
+                sx={{ flex: 1 }}
                 data-testid="input-block"
                 value={Number.isNaN(maxIterations) ? "" : maxIterations}
                 onChange={e => setMaxIterations(parseInt(e.target.value, 10))}
@@ -106,40 +130,26 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 error={false}
               />
             </InputLabel>
-            <InputLabel size="small" sx={{ flex: "1", display: "flex", flexDirection: "column", transform: "none" }}>
-              <span style={{ marginLeft: "4px" }}>Fitness Type:</span>
-
-              {/* FIXME please @alexpargon fix the looks & behaviour of these Select elements */}
-              <OptionSelect
-                property={"Fitness Type"}
-                currentValue={fitnessType}
-                setCurrentValue={setFitnessType}
-                possibleValues={
-                  {
-                    "layer_rank": "Layer Rank",
-                    "domination_count": "Domination Count"
-                  }
-                }
-              >
-              </OptionSelect>
-            </InputLabel>
-
-            <InputLabel size="small" sx={{ flex: "1", display: "flex", flexDirection: "column", transform: "none" }}>
-              <span style={{ marginLeft: "4px" }}>Replacement Type:</span>
-
-              {/* FIXME please @alexpargon fix the looks & behaviour of these Select elements */}
-              <OptionSelect
-                property={"Replacement Type"}
-                currentValue={replacementType}
-                setCurrentValue={setReplacementType}
-                possibleValues={{
-                  "elitist": "Elitist",
-                  "roulette_wheel": "Roulette Wheel",
-                  "unique_roulette_wheel": "Unique Roulette Wheel",
-                  "below_limit": "Below Limit"
-                }}
-              />
-            </InputLabel>
+            <OptionSelect
+              property="Fitness Type"
+              currentValue={fitnessType}
+              setCurrentValue={setFitnessType}
+              possibleValues={[
+                { key: "layer_rank", label: "Layer Rank" },
+                { key: "domination_count", label: "Domination Count" },
+              ]}
+            />
+            <OptionSelect
+              property="Replacement Type"
+              currentValue={replacementType}
+              setCurrentValue={setReplacementType}
+              possibleValues={[
+                { key: "elitist", label: "Elitist" },
+                { key: "roulette_wheel", label: "Roulette Wheel" },
+                { key: "unique_roulette_wheel", label: "Unique Roulette Wheel" },
+                { key: "below_limit", label: "Below Limit" },
+              ]}
+            />
           </Box>
         </CardContent>
         <CardActions sx={{ padding: 0, display: "flex", justifyContent: "space-between" }}>

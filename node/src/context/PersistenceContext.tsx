@@ -39,8 +39,8 @@ const defaultPersistence: PersistenceType = {
   selectedJobUids: [],
   outputTargets: {},
   mogaSettings: {},
-  weights: undefined,
-  sortModel: undefined
+  weights: {},
+  sortModel: [],
 };
 
 export function PersistenceContextProvider({ children }: Props) {
@@ -57,8 +57,6 @@ export function PersistenceContextProvider({ children }: Props) {
       typeof data === "object" &&
       "currentView" in data &&
       "numSamples" in data &&
-      "numIterations" in data &&
-      "crossover" in data &&
       "isSuMoGenerated" in data &&
       "inputVars" in data &&
       "outputVars" in data &&
@@ -69,6 +67,7 @@ export function PersistenceContextProvider({ children }: Props) {
       "singleJobConfig" in data &&
       "fetchedJobCollections" in data &&
       "selectedJobUids" in data &&
+      "mogaSettings" in data &&
       Object.keys(data).length <= Object.keys(defaultPersistence).length
     );
   };

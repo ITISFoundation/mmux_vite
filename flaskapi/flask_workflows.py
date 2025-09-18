@@ -1020,6 +1020,7 @@ def flask_perform_moga_optimization():
 
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses, folder_name="moga")
         run_dir = TRAINING_FILE.parent
+        make_log = request_data.get("log", False)
 
         PROCESSED_TRAINING_FILE = process_input_file(
             TRAINING_FILE,

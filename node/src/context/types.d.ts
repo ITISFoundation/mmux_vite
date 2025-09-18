@@ -17,6 +17,6 @@ interface PersistenceType {
   selectedQoI: string | undefined;
   isSuMoGenerated: boolean;
   mogaSettings: MOGASettings;
-  weights: { [key: string]: number } | undefined;
-  sortModel: GridSortModel | undefined;
+  weights: { [key: string]: number };
+  sortModel: GridSortModel;
 }

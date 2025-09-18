@@ -44,6 +44,7 @@ type DataUQHistogramType = {
 
 type LoadingPropsType = {
   loading: boolean;
+  setLoading?: (loading: boolean) => void;
   progress: number;
   jobProgress: number;
   colsFetched: React.MutableRefObject<number>;
