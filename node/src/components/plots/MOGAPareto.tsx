@@ -269,7 +269,8 @@ export function MOGAPareto(props: LoadingPropsType) {
       console.warn("No function selected!!");
     } else {
       console.debug("Information about optimization vars fetched");
-      setOptVars(Object.keys(outputTargets[selectedFunction?.uid as string] || {}));
+      const newOptVars = Object.keys(outputTargets[selectedFunction?.uid as string] || {});
+      setOptVars(newOptVars);
       setOutputVarSelection(outputTargets[selectedFunction.uid]);
 
       const run = async () => {
@@ -280,8 +281,11 @@ export function MOGAPareto(props: LoadingPropsType) {
         }
         try {
           setPropagating(true);
+          let newPlotType: "1D" | "2D" | "3D" = newOptVars.length < 2 ? "1D" : "2D";
+          newPlotType = newOptVars.length > 2 ? "3D" : newPlotType;
+          setPlotType(newPlotType);
           console.info("Fetching MOGA Pareto data...");
-          await runMOGA(jobs, outputTargets[selectedFunction.uid], plotType);
+          await runMOGA(jobs, outputTargets[selectedFunction.uid], newPlotType);
         } catch (error) {
           console.error("Error fetching MOGA Pareto data:", error);
         }
