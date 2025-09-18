@@ -16,7 +16,7 @@ HEALTHCHECK \
 WORKDIR /app
 
 # clone mmux_python
-ARG MMUX_PYTHON_TAG="v1.5.4"
+ARG MMUX_PYTHON_TAG="v1.5.4-hotfix2"
 RUN git clone --single-branch \
 --branch ${MMUX_PYTHON_TAG} \
 https://github.com/ITISFoundation/mmux_python /mmux_python \
