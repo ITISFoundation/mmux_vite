@@ -15,28 +15,16 @@ export function stepValidator(
       return false; // No function or distribution selected
     }
     if (ServiceMode === "MOGA") {
-      // no outputTargets generated for any function yet
+
+      // no outputTargets generated for ANY function yet
       if (Object.keys(functionContext?.outputTargets).length === 0) return false;
 
-      // selected function does not have enough outputs (at least 2 required)
-      if (functionContext.outputVars.length < 2) {
-        // MOGA needs at least two output target variables
-        toast.warn(
-          "At least two output variables are needed for Multi-Objective Optimization. Please choose a different function.",
-        );
-        return false;
-      }
+      // not enough output targets selected yet
+      const outputTargets = functionContext.outputTargets[functionContext.selectedFunction.uid];
+      if (!outputTargets) return false;
 
-      // not enough output variables selected yet
-      // console.debug("output Distribution: ",  functionContext.outputTargets)
-      const outDist = functionContext.outputTargets[functionContext.selectedFunction.uid];
-      // console.debug("output Distribution for this function: ", outDist)
-      if (!outDist) {
-        // console.debug("output Distribution not defined yet")
-        return false;
-      }
-      if (Object.keys(outDist).length < 2) {
-        // console.debug("MOGA needs at least two output target variables")
+      // at least one output target is necessary for optimization 
+      if (Object.keys(outputTargets).length < 1) {
         return false;
       }
     }
