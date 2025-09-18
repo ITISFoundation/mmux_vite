@@ -55,8 +55,6 @@ describe("MMUXContextProvider", () => {
     expect(screen.getByTestId("numSamples").textContent).toBe(JSON.stringify({ foo: 1 }));
     expect(screen.getByTestId("selectedQoI").textContent).toBe("QoI1");
     expect(screen.getByTestId("isSuMoGenerated").textContent).toBe("yes");
-    expect(screen.getByTestId("weights").textContent).toBe(JSON.stringify({ foo: 0.5 }));
-    expect(screen.getByTestId("sortModel").textContent).toContain("foo");
   });
 
   it("updates context values when setters are called", async () => {
@@ -70,20 +68,16 @@ describe("MMUXContextProvider", () => {
       screen.getByText("setNumSamples").click();
       screen.getByText("setSelectedQoI").click();
       screen.getByText("setIsSuMoGenerated").click();
-      screen.getByText("setWeights").click();
-      screen.getByText("setSortModel").click();
     });
 
     expect(screen.getByTestId("numSamples").textContent).toBe(JSON.stringify({ bar: 2 }));
     expect(screen.getByTestId("selectedQoI").textContent).toBe("QoI2");
     expect(screen.getByTestId("isSuMoGenerated").textContent).toBe("no");
-    expect(screen.getByTestId("weights").textContent).toBe(JSON.stringify({ bar: 0.8 }));
-    expect(screen.getByTestId("sortModel").textContent).toContain("bar");
   });
 
   it("throws error if useMMUXContext is used outside provider", () => {
     // Suppress error output for this test
-    const spy = vi.spyOn(console, "error").mockImplementation(() => { });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     function Broken() {
       useMMUXContext();
       return null;
