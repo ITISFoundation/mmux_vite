@@ -999,7 +999,6 @@ def flask_perform_moga_optimization():
         request_data: dict = json.loads(request.data.decode("utf-8"))
         input_distributions: Dict[str, Dict[str, float]] = request_data["inputDistributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
         input_vars: List[str] = [k for k in input_distributions.keys()]
-        _logger.debug("Hello World")
         output_var_selection: Dict[str, Literal["minimize", "maximize"]] = request_data["outputVarSelection"]
         output_responses = [k for k in output_var_selection.keys()]
         jobs = request_data["FunctionJobs"]
