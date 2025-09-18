@@ -12,7 +12,7 @@ from osparc import ApiClient, UsersApi, StudiesApi # type: ignore
 from osparc_client.api.functions_api import FunctionsApi # type: ignore
 from osparc_client.api.function_jobs_api import FunctionJobsApi # type: ignore
 from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi # type: ignore
-from osparc_client.models.function_job import FunctionJob # type: ignore
+from osparc_client.models.function_job import FunctionJob, ProjectFunctionJob # type: ignore
 from osparc_client.models.function_job_status import FunctionJobStatus # type: ignore
 from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost # type: ignore
 
@@ -387,27 +387,60 @@ def test_job_retrieval_paginated(function_uid: str):
     _timeit(_get_all_items, api_call=functions_api_instance.list_function_jobs_for_functionid, function_id=function_uid)  # type: ignore
 # test_job_retrieval_paginated(function_uid="eea21c0d-6c2b-4cf4-91d1-116e6550cb22")
 
-def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str | List[str], folder_name: str = "evaluate") -> Path:
-    output_response_sanitized = sanitize_varnames(output_response)
-    completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
+def _check_jobs(jobs: List[ProjectFunctionJob]) -> List[ProjectFunctionJob]:
+    completed_jobs = [job for job in jobs if job.status.lower() == "completed" or job.status.lower() == "success"]  # type: ignore
+    
+    for job in completed_jobs:
+        assert hasattr(job, "outputs"), f"No outputs found for completed job: {job} with status: {job.status}" # type: ignore
+    
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
 
     if len(completed_jobs) == 0:
         raise ValueError("No completed jobs found. Cannot create training file.")
     elif len(completed_jobs)<5:
         raise ValueError("At least 5 samples are necessary to build a surrogate model in Dakota - a crash would occur otherwise.")
+    
+    return completed_jobs
 
-    def get_job_dict(job):
-        d = {sanitize_varnames(key): job["inputs"][key] for key in input_vars}
-        assert "outputs" in job.keys(), f"Outputs not in job: {job}"
+def _jobs_to_df(jobs: List[ProjectFunctionJob]) -> pd.DataFrame:
+    assert jobs[0].inputs is not None, f"No inputs found for job: {jobs[0]}"
+    assert jobs[0].outputs is not None, f"No outputs found for job: {jobs[0]}"
+    input_vars = list(jobs[0].inputs.keys())
+    output_vars = list(jobs[0].outputs.keys())
+    
+    list_of_dicts = []
+    for job in jobs:     
+        d = {}
+        for key in input_vars:
+            assert job.inputs is not None, f"No inputs found for job: {job}"
+            assert key in job.inputs.keys(), f"Input {key} not in job: {job}"
+            d[key] = job.inputs[key]
+        for res in output_vars:
+            assert job.outputs is not None, f"No outputs found for job: {job}"
+            assert res in job.outputs.keys(), f"Output {res} not in job: {job}"
+            d[res] = job.outputs[res]
+        list_of_dicts.append(d)
+    return pd.DataFrame(list_of_dicts)
+    
+### DEPRECATED
+def _create_training_file_from_jobs(jobs: List[ProjectFunctionJob], input_vars: List[str], output_response: str | List[str], folder_name: str = "evaluate") -> Path:
+    print("_create_training_file_from_jobs is deprecated. Use create_training_file_from_preprocessed_jobs instead.")
+    completed_jobs = _check_jobs(jobs)
+    output_response_sanitized = sanitize_varnames(output_response)
+    def _get_job_dict(job: ProjectFunctionJob) -> Dict[str, Any]:
+        assert job.inputs is not None, f"No inputs found for job: {job}"
+        assert job.outputs is not None, f"No outputs found for job: {job}"
+        d = {key: job.inputs[key] for key in job.inputs.keys()}
         output_response_sanitized_list = [output_response_sanitized] if isinstance(output_response_sanitized, str) else output_response_sanitized
         for res in output_response_sanitized_list:
-            assert res in job["outputs"].keys(), f"Output {res} not in job: {job}"
-            d[res] = job["outputs"][res] # type: ignore
+            assert res in job.outputs.keys(), f"Output {res} not in job: {job}"
+            d[res] = job.outputs[res] # type: ignore
         return d
+
     df_jobs = pd.DataFrame(
-            [get_job_dict(job) for job in completed_jobs]
+            [_get_job_dict(job) for job in completed_jobs]
         )
+
     run_dir = create_run_dir(Path("."), folder_name)
     TRAINING_FILE = run_dir/  "df_jobs.csv"
     df_jobs.to_csv(TRAINING_FILE, index=False)
@@ -995,54 +1028,59 @@ def flask_perform_moga_optimization():
     _logger.debug("Cwd: " + str(Path.cwd()))
 
     try:
+        run_dir = create_run_dir(Path("."), "moga")
+
         # Convert request data into a Python dictionary
         request_data: dict = json.loads(request.data.decode("utf-8"))
         input_distributions: Dict[str, Dict[str, float]] = request_data["inputDistributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
         input_vars: List[str] = [k for k in input_distributions.keys()]
         output_var_selection: Dict[str, Literal["minimize", "maximize"]] = request_data["outputVarSelection"]
         output_responses = [k for k in output_var_selection.keys()]
-        jobs = request_data["FunctionJobs"]
+        jobs: List[ProjectFunctionJob] = request_data["FunctionJobs"]
         _logger.debug("jobs: ", jobs)
         moga_kwargs: Dict[str, Any] = request_data["mogaSettings"]
         _logger.debug("moga settings: ", moga_kwargs)
-
-        _logger.debug(f"Output responses: {output_responses}")
-        _logger.debug(f"Output var selection: {output_var_selection}")
-        input_distributions_sanitized = sanitize_varnames(input_distributions)
-        input_vars_sanitized = sanitize_varnames(input_vars)
-        output_var_selection_sanitized = sanitize_varnames(output_var_selection)
-        output_responses_sanitized = [k for k in output_var_selection_sanitized.keys()]
-        _logger.debug(f"Sanitized output responses: {output_responses_sanitized}")
-        _logger.debug(f"Sanitized output var selection: {output_var_selection_sanitized}")
-        sanitized_vars = input_vars_sanitized + output_responses_sanitized
-        original_vars = input_vars + output_responses
-
-        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses, folder_name="moga")
-        run_dir = TRAINING_FILE.parent
         make_log = request_data.get("log", False)
 
-        PROCESSED_TRAINING_FILE = process_input_file(
-            TRAINING_FILE,
-            make_log=make_log,
-            columns_to_keep=input_vars_sanitized + output_responses_sanitized, # type: ignore
-        )
+        ## before the function
+        _logger.debug("Jobs: ", jobs)
+        completed_jobs = _check_jobs(jobs)
+        df_completed_jobs = _jobs_to_df(completed_jobs)
+        TRAINING_FILE = run_dir / "df_jobs.csv"
+        df_completed_jobs.to_csv(TRAINING_FILE, index=False)
+        _logger.debug("df_jobs: ", df_completed_jobs)
 
-        results_sanitized = perform_moga_optimization(
+        from data_preprocessor.data_preprocessor import DataPreprocessor
+        preprocessor = DataPreprocessor()
+        preprocessor.setup_variables(input_vars=list(jobs[0].inputs.keys()), output_vars=list(jobs[0].outputs.keys())) # type: ignore
+        preprocessor.setup_sign_switching(output_sign_switches=[k for k,v in output_var_selection.items() if v == "maximize"])
+        df_preprocessed_jobs = preprocessor.fit_transform(df_completed_jobs)
+        preprocessor.save_config(run_dir / "preprocessor_config.json")
+        _logger.debug("Processed jobs: ", df_preprocessed_jobs)
+        PROCESSED_TRAINING_FILE = run_dir / "df_processed_jobs.csv"
+        df_preprocessed_jobs.to_csv(PROCESSED_TRAINING_FILE, sep=" ", index=False)  # Dakota expects a space-separated file
+
+        results = perform_moga_optimization(
             run_dir,
             PROCESSED_TRAINING_FILE,
-            input_vars_sanitized,
-            input_distributions_sanitized,
-            list(output_var_selection_sanitized.keys()),
+            [preprocessor.get_variable_mapping()[k] for k in input_vars],
+            {preprocessor.get_variable_mapping()[k]: v for k, v in input_distributions.items()},
+            [preprocessor.get_variable_mapping()[k] for k in output_responses],
             moga_kwargs=moga_kwargs,
         )
+        results_df = pd.DataFrame(results)
+        _logger.debug("Results DF: ", results_df)
 
-        results = {
-            key.replace(sanitized, original): val for key, val in results_sanitized.items()
-            for sanitized, original in zip(sanitized_vars, original_vars)
-            }
+        postprocessed_results = preprocessor.inverse_transform(results_df)
+        _logger.debug("Postprocessed results: ", postprocessed_results)
 
         _logger.debug("Done!!")
-        return jsonify(results)
+        return jsonify(postprocessed_results)
+    
+    ### NB this pre-processing && post-processing is to be tested bfr release
+    ## Then, it is to be integrated in the new package and all operations should be done there
+    ## e.g. we pass input_vars, output_vars, etc and evth gets done internally
+    ## Do not put effort into modifying previous workflows -- they will be fully reworked
     
     except Exception as e:
         _logger.error(f"Error while performing MOGA optimization: {e}")
