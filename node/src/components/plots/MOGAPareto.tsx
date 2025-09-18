@@ -34,17 +34,59 @@ export function MOGAPareto(props: MogaParetoPropsType) {
 
   const calculatePerformance = useCallback(
     (row: { [x: string]: number }) => {
-      console.log("performance: ", optVars, weights ? weights[optVars[0]] : "", row[optVars[0]]);
+      // Performance: P_i = w_i / sum_j(w_j) * sum_j( (x_ij - min(x_j)) / (max(x_j) - min(x_j)) )
+      // If minimizing, denominator is (max(x_j) - x_ij)
       if (optVars.length === 0 || !weights) return 0;
-      let performance = 0;
+      let normSum = 0;
+      let weightSum = 0;
+
+      // Find min/max for each optVar from tableData if available
+      let minMax: { [k: string]: { min: number; max: number } } = {};
+      if (tableData && tableData.rows && tableData.rows.length > 0) {
+        optVars.forEach(varName => {
+          const values = tableData.rows.map(r => r[varName]).filter(v => typeof v === 'number') as number[];
+          minMax[varName] = {
+            min: Math.min(...values),
+            max: Math.max(...values),
+          };
+        });
+      } else {
+        // Fallback: use only current row if tableData is not available
+        optVars.forEach(varName => {
+          minMax[varName] = { min: row[varName], max: row[varName] };
+        });
+      }
       for (let i = 0; i < optVars.length; i += 1) {
         const varName = optVars[i];
-        performance += weights[varName] * (row[varName] as number);
+        const w = weights[varName] || 0;
+        weightSum += w;
+        const x_ij = row[varName] as number;
+        const min_j = minMax[varName].min;
+        const max_j = minMax[varName].max;
+        let norm = 0;
+        let diff = 0;
+
+        if (max_j !== min_j) {
+          if (outputVarSelection[varName] === "minimize") {
+            diff = max_j - x_ij;
+          } else if (outputVarSelection[varName] === "maximize") {
+            diff = x_ij - min_j;
+          }
+          norm = diff / (max_j - min_j)
+        } else {
+          norm = 0; // Avoid division by zero
+        }
+
+        normSum += w * norm;
       }
-      performance /= Object.values(weights).reduce((a, b) => a + b, 0);
+      let performance = weightSum > 0 ? normSum / weightSum : 0;
+      if (performance < 0 || performance > 1 || isNaN(performance)) {
+        // eslint-disable-next-line no-console
+        console.warn('Performance calculation out of bounds:', performance, { row, optVars, weights, minMax });
+      }
       return performance;
     },
-    [optVars, weights],
+    [optVars, weights, tableData],
   );
 
   const groupArrayElements = <T,>(arr: Array<T>, groupSize: number) => {
@@ -218,7 +260,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       setPlotType(localPlotType);
       setPropagating(false);
     },
-    [optVars, inputVars, distribution, selectedFunction, theme, calculatePerformance],
+    [selectedFunction, inputVars, distribution, optVars],
   );
 
   useEffect(() => {
@@ -247,7 +289,19 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       run();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFunction, outputTargets, weights, selectedJobUids]);
+  }, [selectedFunction, outputTargets, selectedJobUids]);
+
+  // When weights change, recalculate tableData (refresh table) but do NOT rerun runMOGA
+  useEffect(() => {
+    if (!tableData || !tableData.rows) return;
+    // Recalculate performance for each row
+    const newRows = tableData.rows.map(row => ({
+      ...row,
+      Performance: calculatePerformance(row),
+    }));
+    setTableData({ ...tableData, rows: newRows });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weights]);
 
   useEffect(() => {
     if (hovered !== null && tableData) {
@@ -256,10 +310,10 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       if (hoveredRow && optVars.length >= 2) {
         const newPlotData = [...plotData];
         newPlotData[3] = {
-          name: "Current Selection",
+          name: "Selected",
           mode: "markers",
           type: plotType === "3D" ? "scatter3d" : "scatter",
-          marker: { color: "red", size: 10, symbol: "circle" },
+          marker: { color: "red", size: 8, symbol: "circle" },
           x: [hoveredRow[optVars[0]]],
           y: [hoveredRow[optVars[1]]],
           z: optVars.length > 2 ? [hoveredRow[optVars[2]]] : undefined,
