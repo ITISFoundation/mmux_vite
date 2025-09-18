@@ -9,8 +9,6 @@ vi.mock("./PersistenceContext", () => ({
     persistence: {
       currentView: "testView",
       numSamples: { foo: 1 },
-      numIterations: { foo: 100 },
-      crossover: { foo: 3 },
       selectedQoI: "QoI1",
       isSuMoGenerated: true,
       weights: { foo: 0.5 },
@@ -55,8 +53,6 @@ describe("MMUXContextProvider", () => {
       </MMUXContextProvider>,
     );
     expect(screen.getByTestId("numSamples").textContent).toBe(JSON.stringify({ foo: 1 }));
-    expect(screen.getByTestId("numIterations").textContent).toBe(JSON.stringify({ foo: 100 }));
-    expect(screen.getByTestId("crossover").textContent).toBe(JSON.stringify({ foo: 3 }));
     expect(screen.getByTestId("selectedQoI").textContent).toBe("QoI1");
     expect(screen.getByTestId("isSuMoGenerated").textContent).toBe("yes");
     expect(screen.getByTestId("weights").textContent).toBe(JSON.stringify({ foo: 0.5 }));
@@ -72,8 +68,6 @@ describe("MMUXContextProvider", () => {
 
     act(() => {
       screen.getByText("setNumSamples").click();
-      screen.getByText("setNumIterations").click();
-      screen.getByText("setCrossover").click();
       screen.getByText("setSelectedQoI").click();
       screen.getByText("setIsSuMoGenerated").click();
       screen.getByText("setWeights").click();
@@ -81,8 +75,6 @@ describe("MMUXContextProvider", () => {
     });
 
     expect(screen.getByTestId("numSamples").textContent).toBe(JSON.stringify({ bar: 2 }));
-    expect(screen.getByTestId("numIterations").textContent).toBe(JSON.stringify({ bar: 20 }));
-    expect(screen.getByTestId("crossover").textContent).toBe(JSON.stringify({ bar: 200 }));
     expect(screen.getByTestId("selectedQoI").textContent).toBe("QoI2");
     expect(screen.getByTestId("isSuMoGenerated").textContent).toBe("no");
     expect(screen.getByTestId("weights").textContent).toBe(JSON.stringify({ bar: 0.8 }));
@@ -91,7 +83,7 @@ describe("MMUXContextProvider", () => {
 
   it("throws error if useMMUXContext is used outside provider", () => {
     // Suppress error output for this test
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const spy = vi.spyOn(console, "error").mockImplementation(() => { });
     function Broken() {
       useMMUXContext();
       return null;
