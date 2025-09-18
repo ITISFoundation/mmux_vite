@@ -114,7 +114,6 @@ export function MOGAPareto(props: LoadingPropsType) {
         FunctionJobs: jobs,
       });
       console.info("Running MOGA...", bodyData);
-      console.info("MOGA Settings: ", localsettings); // FIXME this is not arriving correctly to the Python backend
       const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/perform_moga_optimization`, {
         method: "POST",
         body: bodyData,
@@ -124,8 +123,7 @@ export function MOGAPareto(props: LoadingPropsType) {
       }
 
       const results: { [key: string]: number[] } = await response.json();
-      console.log("MOGA results:", localOptVars);
-      console.log("MOGA results:", results);
+      console.info("MOGA results:", localOptVars, results);
 
       // set table data
       const newTableData: MogaDataType = {
