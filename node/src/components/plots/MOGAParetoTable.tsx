@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
-import { Typography, Button, Box, Chip, Popover, Slider } from "@mui/material";
+import { EditAttributes } from "@mui/icons-material";
+import { Typography, Button, Box, IconButton } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import { useMMUXContext } from "../../context/MMUXContext";
+import PerformanceModal from "./PerformanceModal";
 import Header from "../navigation/Header";
+import { RunSamplingButton } from "../sampling/RunSamplingButton";
 
 interface MogaParetoTableProps {
   tableData: MogaDataType | undefined;
@@ -14,42 +17,30 @@ function getRowId(value: MogaDataRowType) {
   return value.NDI;
 }
 
+const defaultSortModel: GridSortModel = [{
+  field: "performance",
+  sort: "desc",
+}]
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProps) {
   const { weights, setWeights, sortModel, setSortModel } = useMMUXContext();
   const [data, setData] = useState<MogaDataType | undefined>(undefined);
   const [localWeights, setLocalWeights] = useState(weights || {});
   const [loading, setLoading] = useState(true);
-  const [anchorElms, setAnchorElms] = useState<{
-    [key: string]: HTMLButtonElement | null;
-  }>({});
-  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(
-    sortModel || [
-      {
-        field: "Performance",
-        sort: "desc",
-      },
-    ],
-  );
+  const [openPerformanceModal, setOpenPerformanceModal] = useState(false);
+  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel || defaultSortModel);
 
-  const handleWeightsChange = (key: string, newValue: number) => {
-    const newWeights = { ...localWeights, [key]: newValue };
-    console.log("setting weights!", newWeights);
-    setWeights(newWeights);
-    setLocalWeights(newWeights);
+  const handleWeightsChange = (updatedWeights: typeof localWeights) => {
+    console.log("setting weights!", updatedWeights);
+    setWeights(updatedWeights);
+    setLocalWeights(updatedWeights);
+    handleSortModelChange(defaultSortModel); // Reset sorting to default when weights change
   };
 
   const handleSortModelChange = (model: GridSortModel) => {
     setSortModel(model);
     setLocalSortModel(model);
-  };
-
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>, key: string) => {
-    setAnchorElms(prev => ({ ...prev, [key]: event.currentTarget }));
-  };
-
-  const handleClose = (key: string) => {
-    setAnchorElms(prev => ({ ...prev, [key]: null }));
   };
 
   useEffect(() => {
@@ -77,95 +68,53 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
 
   let columns: GridColDef[] = data
     ? data.inputs.map(key => ({
-        ...columnProps,
-        field: key,
-        maxWidth: 120,
-        headerName: key.toUpperCase(),
-        type: "number",
-        renderCell: params => params.row[key].toFixed(3),
-        valueGetter: (_value, row) => row[key],
-      }))
+      ...columnProps,
+      field: key,
+      minWidth: 120,
+      maxWidth: 200,
+      headerName: key.toUpperCase(),
+      type: "number",
+      renderCell: params => params.row[key].toFixed(3),
+      valueGetter: (_value, row) => row[key],
+    }))
     : [];
 
   columns = columns.concat(
     data
       ? data.outputs.map(key => ({
-          ...columnProps,
-          field: key,
-          headerName: key.toUpperCase(),
-          type: "number",
-          renderHeader: () => (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="subtitle2">{key.toUpperCase()}</Typography>
-              <Chip
-                label={(localWeights[key] ?? 0).toFixed(2)}
-                size="small"
-                color="primary"
-                onClick={e => handleClick(e as unknown as React.MouseEvent<HTMLButtonElement>, key)}
-              />
-              <Popover
-                id={`popover-${key}`}
-                sx={{
-                  "& .MuiPaper-root": {
-                    width: "280px",
-                    padding: "8px 16px",
-                    display: "flex",
-                    boxShadow: "none",
-                  },
-                }}
-                open={Boolean(anchorElms[key])}
-                anchorEl={anchorElms[key]}
-                onClose={() => handleClose(key)}
-                anchorOrigin={{
-                  vertical: "top",
-                  horizontal: "center",
-                }}
-                transformOrigin={{
-                  vertical: "bottom",
-                  horizontal: "center",
-                }}
-              >
-                <Box>
-                  <Typography variant="body1" gutterBottom>
-                    Adjust Weight for {key.toUpperCase()}
-                  </Typography>
-                  <Slider
-                    value={localWeights[key]}
-                    sx={{ width: 240 }}
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    defaultValue={0.5}
-                    onChange={(_event, newValue) => {
-                      setLocalWeights(prev => ({ ...prev, [key]: newValue }));
-                    }}
-                    onChangeCommitted={() => {
-                      handleWeightsChange(key, localWeights[key]);
-                    }}
-                    valueLabelDisplay="auto"
-                    aria-labelledby={`slider-${key}`}
-                  />
-                  <Typography variant="caption" color="textSecondary">
-                    Adjust the weight for {key.toUpperCase()} to influence the Pareto front.
-                  </Typography>
-                </Box>
-              </Popover>
-            </Box>
-          ),
-          renderCell: params => params.row[key].toFixed(3),
-          valueGetter: (_value, row) => row[key],
-        }))
+        ...columnProps,
+        field: key,
+        minWidth: 120,
+        maxWidth: 200,
+        headerName: key.toUpperCase(),
+        type: "number",
+        renderCell: params => params.row[key].toFixed(3),
+        valueGetter: (_value, row) => row[key],
+      }))
       : [],
   );
+
+  const handleRunSampling = async () => {
+    // TODO get the config of that row bfr launching
+    // implement "handleRunSampling" based on https://vscode.dev/github/ITISFoundation/mmux_vite/blob/258-switch-performance-weights-pop-ups/node/src/components/sampling/RunSingleJob.tsx#L49
+  }
 
   columns = columns.concat([
     {
       ...columnProps,
       field: "performance",
       headerName: "Performance",
-      minWidth: 105,
-      maxWidth: 105,
+      minWidth: 200,
+      maxWidth: 200,
       type: "number",
+      renderHeader: () => (
+        <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 0.5 }}>
+          <IconButton onClick={() => setOpenPerformanceModal(true)} size="small">
+            <EditAttributes />
+          </IconButton>
+          <Typography variant="body2" sx={{ padding: "8px" }}>Performance</Typography>
+        </Box>
+      ),
       renderCell: params => params.row.Performance.toFixed(2),
       valueGetter: (_value, row) => row.Performance,
     },
@@ -173,14 +122,14 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       ...columnProps,
       field: "action",
       headerName: "",
-      minWidth: 95,
-      maxWidth: 95,
+      minWidth: 140,
+      maxWidth: 140,
       type: "actions",
       sortable: false,
       renderCell: () => (
-        <Button variant="contained" color="primary">
-          Show
-        </Button>
+        <Box display="flex" flexDirection="row" justifyContent="space-between" marginTop={2}>
+          <RunSamplingButton disabled={loading} handleRunSampling={handleRunSampling} />
+        </Box>
       ),
     },
   ]);
@@ -215,7 +164,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         getRowId={getRowId}
         initialState={{
           pagination: {
-            paginationModel: { pageSize: 10 },
+            paginationModel: { pageSize: 5 },
           },
           filter: {
             filterModel: {
@@ -245,6 +194,12 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         disableColumnMenu
         disableColumnSelector
         disableRowSelectionOnClick
+      />
+      <PerformanceModal
+        open={openPerformanceModal}
+        setOpen={setOpenPerformanceModal}
+        weights={localWeights}
+        onChange={handleWeightsChange}
       />
     </>
   );

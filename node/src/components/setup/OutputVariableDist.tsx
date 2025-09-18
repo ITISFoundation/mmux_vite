@@ -32,7 +32,8 @@ export function OutputVariableDist() {
     if (outputTargets && selectedFunction && outputTargets[selectedFunction.uid]) {
       setConfiguredOutputs(outputTargets[selectedFunction.uid]);
     } else if (outputVars && outputVars.length > 0) {
-      handlesetConfiguredOutputs(Object.fromEntries(outputVars.map(v => [v, "minimize"])));
+      // handlesetConfiguredOutputs(Object.fromEntries(outputVars.map(v => [v, "minimize"])));
+      handlesetConfiguredOutputs({});
     } else {
       handlesetConfiguredOutputs({});
     }
