@@ -12,7 +12,7 @@ from osparc import ApiClient, UsersApi, StudiesApi # type: ignore
 from osparc_client.api.functions_api import FunctionsApi # type: ignore
 from osparc_client.api.function_jobs_api import FunctionJobsApi # type: ignore
 from osparc_client.api.function_job_collections_api import FunctionJobCollectionsApi # type: ignore
-from osparc_client.models.function_job import FunctionJob, ProjectFunctionJob # type: ignore
+from osparc_client.models.function_job import FunctionJob # type: ignore
 from osparc_client.models.function_job_status import FunctionJobStatus # type: ignore
 from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost # type: ignore
 
@@ -387,12 +387,12 @@ def test_job_retrieval_paginated(function_uid: str):
     _timeit(_get_all_items, api_call=functions_api_instance.list_function_jobs_for_functionid, function_id=function_uid)  # type: ignore
 # test_job_retrieval_paginated(function_uid="eea21c0d-6c2b-4cf4-91d1-116e6550cb22")
 
-def _check_jobs(jobs: List[ProjectFunctionJob]) -> List[ProjectFunctionJob]:
-    completed_jobs = [job for job in jobs if job.status.lower() == "completed" or job.status.lower() == "success"]  # type: ignore
+def _check_jobs(jobs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
     
     for job in completed_jobs:
-        assert hasattr(job, "outputs"), f"No outputs found for completed job: {job} with status: {job.status}" # type: ignore
-    
+        assert "outputs" in job, f"No outputs key found for completed job: {job} with status: {job['status']}" # type: ignore
+
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
 
     if len(completed_jobs) == 0:
@@ -402,39 +402,39 @@ def _check_jobs(jobs: List[ProjectFunctionJob]) -> List[ProjectFunctionJob]:
     
     return completed_jobs
 
-def _jobs_to_df(jobs: List[ProjectFunctionJob]) -> pd.DataFrame:
-    assert jobs[0].inputs is not None, f"No inputs found for job: {jobs[0]}"
-    assert jobs[0].outputs is not None, f"No outputs found for job: {jobs[0]}"
-    input_vars = list(jobs[0].inputs.keys())
-    output_vars = list(jobs[0].outputs.keys())
+def _jobs_to_df(jobs: List[Dict[str, Any]]) -> pd.DataFrame:
+    assert jobs[0]["inputs"] is not None, f"No inputs found for job: {jobs[0]}"
+    assert jobs[0]["outputs"] is not None, f"No outputs found for job: {jobs[0]}"
+    input_vars = list(jobs[0]["inputs"].keys())
+    output_vars = list(jobs[0]["outputs"].keys())
     
     list_of_dicts = []
     for job in jobs:     
         d = {}
         for key in input_vars:
-            assert job.inputs is not None, f"No inputs found for job: {job}"
-            assert key in job.inputs.keys(), f"Input {key} not in job: {job}"
-            d[key] = job.inputs[key]
+            assert job["inputs"] is not None, f"No inputs found for job: {job}"
+            assert key in job["inputs"].keys(), f"Input {key} not in job: {job}"
+            d[key] = job["inputs"][key]
         for res in output_vars:
-            assert job.outputs is not None, f"No outputs found for job: {job}"
-            assert res in job.outputs.keys(), f"Output {res} not in job: {job}"
-            d[res] = job.outputs[res]
+            assert job["outputs"] is not None, f"No outputs found for job: {job}"
+            assert res in job["outputs"].keys(), f"Output {res} not in job: {job}"
+            d[res] = job["outputs"][res]
         list_of_dicts.append(d)
     return pd.DataFrame(list_of_dicts)
     
 ### DEPRECATED
-def _create_training_file_from_jobs(jobs: List[ProjectFunctionJob], input_vars: List[str], output_response: str | List[str], folder_name: str = "evaluate") -> Path:
+def _create_training_file_from_jobs(jobs: List[Dict[str, Any]], input_vars: List[str], output_response: str | List[str], folder_name: str = "evaluate") -> Path:
     print("_create_training_file_from_jobs is deprecated. Use create_training_file_from_preprocessed_jobs instead.")
     completed_jobs = _check_jobs(jobs)
     output_response_sanitized = sanitize_varnames(output_response)
-    def _get_job_dict(job: ProjectFunctionJob) -> Dict[str, Any]:
-        assert job.inputs is not None, f"No inputs found for job: {job}"
-        assert job.outputs is not None, f"No outputs found for job: {job}"
-        d = {key: job.inputs[key] for key in job.inputs.keys()}
+    def _get_job_dict(job: Dict[str, Any]) -> Dict[str, Any]:
+        assert job["inputs"] is not None, f"No inputs found for job: {job}"
+        assert job["outputs"] is not None, f"No outputs found for job: {job}"
+        d = {key: job["inputs"][key] for key in job["inputs"].keys()}
         output_response_sanitized_list = [output_response_sanitized] if isinstance(output_response_sanitized, str) else output_response_sanitized
         for res in output_response_sanitized_list:
-            assert res in job.outputs.keys(), f"Output {res} not in job: {job}"
-            d[res] = job.outputs[res] # type: ignore
+            assert res in job["outputs"].keys(), f"Output {res} not in job: {job}"
+            d[res] = job["outputs"][res] # type: ignore
         return d
 
     df_jobs = pd.DataFrame(
@@ -459,7 +459,7 @@ def flask_sumo_cross_validation():
         output_response = request_data["output"]
         input_vars: List[str] = request_data["inputVars"]
         
-        jobs: List[FunctionJob] = request_data["FunctionJobs"]
+        jobs: List[Dict[str, Any]] = request_data["FunctionJobs"]
         make_log: bool = request_data.get("log", False)
 
         # Sanitize variable names
@@ -509,7 +509,7 @@ def flask_manual_uq_propagation():
         input_vars: List[str] = request_data["inputVars"]
         distributions: Dict[str, Dict[str, float]] = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
         num_samples: int = request_data["numSamples"]
-        jobs: List[FunctionJob] = request_data["FunctionJobs"]
+        jobs: List[Dict[str, Any]] = request_data["FunctionJobs"]
         make_log: bool = request_data.get("log", False)
     
         input_vars_sanitized = sanitize_varnames(input_vars)
@@ -576,7 +576,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         input_vars: List[str] = request_data["inputVars"]
         distributions = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
         num_samples: int = request_data["numSamples"]
-        jobs: List[FunctionJob] = request_data["FunctionJobs"]
+        jobs: List[Dict[str, Any]] = request_data["FunctionJobs"]
         make_log: bool = request_data.get("log", False)
         n_histograms: int = request_data["nHistograms"] # number of histograms - to give uncertainty over it
         seed: int = request_data["seed"] 
@@ -694,7 +694,7 @@ def flask_evaluate_sumo_along_axes():
         output_response = request_data["output"]
         input_vars: List[str] = request_data["inputs"]
         make_log: bool = request_data.get("log", False)
-        jobs: List[FunctionJob] = request_data["FunctionJobs"]
+        jobs: List[Dict[str, Any]] = request_data["FunctionJobs"]
         slider_values = request_data.get("sliderValues", None)  # this is a dict of input_vars to cut values, e.g. {"input1": 0.5, "input2": 1.0}
         _logger.debug(f"Slider values: {slider_values}")
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
@@ -737,7 +737,7 @@ def flask_sumo_grid_evaluation():
         grid_vars: List[str] = request_data["gridVars"]
         input_vars: List[str] = request_data["inputVars"]
         make_log: bool = request_data.get("log", False)
-        jobs: List[FunctionJob] = request_data["FunctionJobs"]
+        jobs: List[Dict[str, Any]] = request_data["FunctionJobs"]
         slider_values = request_data.get("sliderValues", None)  # this is a dict of input_vars to cut values, e.g. {"input1": 0.5, "input2": 1.0}
         _logger.debug(f"Slider values: {slider_values}")
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
@@ -1036,8 +1036,7 @@ def flask_perform_moga_optimization():
         input_vars: List[str] = [k for k in input_distributions.keys()]
         output_var_selection: Dict[str, Literal["minimize", "maximize"]] = request_data["outputVarSelection"]
         output_responses = [k for k in output_var_selection.keys()]
-        jobs: List[ProjectFunctionJob] = request_data["FunctionJobs"]
-        _logger.debug("jobs: ", jobs)
+        jobs: List[Dict[str, Any]] = request_data["FunctionJobs"]
         moga_kwargs: Dict[str, Any] = request_data["mogaSettings"]
         _logger.debug("moga settings: ", moga_kwargs)
         make_log = request_data.get("log", False)
