@@ -1043,20 +1043,18 @@ def flask_perform_moga_optimization():
         make_log = request_data.get("log", False)
 
         ## before the function
-        _logger.debug("Jobs: ", jobs)
         completed_jobs = _check_jobs(jobs)
         df_completed_jobs = _jobs_to_df(completed_jobs)
         TRAINING_FILE = run_dir / "df_jobs.csv"
         df_completed_jobs.to_csv(TRAINING_FILE, index=False)
-        _logger.debug("df_jobs: ", df_completed_jobs)
 
         from data_preprocessor.data_preprocessor import DataPreprocessor
         preprocessor = DataPreprocessor()
-        preprocessor.setup_variables(input_vars=list(jobs[0].inputs.keys()), output_vars=list(jobs[0].outputs.keys())) # type: ignore
+        preprocessor.setup_variables(input_vars=list(jobs[0]["inputs"].keys()), output_vars=list(jobs[0]["outputs"].keys())) # type: ignore
         preprocessor.setup_sign_switching(output_sign_switches=[k for k,v in output_var_selection.items() if v == "maximize"])
+        preprocessor.filter_variables(include_inputs=input_vars, include_outputs=output_responses)
         df_preprocessed_jobs = preprocessor.fit_transform(df_completed_jobs)
         preprocessor.save_config(run_dir / "preprocessor_config.json")
-        _logger.debug("Processed jobs: ", df_preprocessed_jobs)
         PROCESSED_TRAINING_FILE = run_dir / "df_processed_jobs.csv"
         df_preprocessed_jobs.to_csv(PROCESSED_TRAINING_FILE, sep=" ", index=False)  # Dakota expects a space-separated file
 
@@ -1068,11 +1066,9 @@ def flask_perform_moga_optimization():
             [preprocessor.get_variable_mapping()[k] for k in output_responses],
             moga_kwargs=moga_kwargs,
         )
-        results_df = pd.DataFrame(results)
-        _logger.debug("Results DF: ", results_df)
-
-        postprocessed_results = preprocessor.inverse_transform(results_df)
-        _logger.debug("Postprocessed results: ", postprocessed_results)
+        postprocessed_results = preprocessor.inverse_transform(results)
+        postprocessed_results["non_dominated_indices"] = results["non_dominated_indices"]
+        _logger.debug(postprocessed_results)
 
         _logger.debug("Done!!")
         return jsonify(postprocessed_results)
