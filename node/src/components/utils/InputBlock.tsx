@@ -18,6 +18,8 @@ export function InputBlock(props: InputBlockProps) {
         size="small"
         sx={{ marginTop: "8px" }}
         data-testid="input-block"
+        InputProps={{ inputProps: { min: 0, max: 1000000 } }}
+        color={currentValue < 0 || currentValue > 1000000 ? "warning" : "primary"}
         value={Number.isNaN(currentValue) ? "" : currentValue}
         onChange={e => setCurrentValue(parseFloat(e.target.value))}
         onBlur={e => handleChange(parseFloat(e.target.value))}

@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState } from "react";
+import { useState } from "react";
 import { Modal, useTheme, Card, Box, CardContent, Button, CardActions, InputLabel, Typography, TextField } from "@mui/material";
 import Header from "../components/navigation/Header";
 import OptionSelect from "../components/utils/OptionSelect";
@@ -103,9 +103,10 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 size="small"
                 sx={{ flex: 1 }}
                 data-testid="input-block"
+                InputProps={{ inputProps: { min: 1, max: 1000000 } }}
+                color={populationSize < 1 || populationSize > 1000000 ? "warning" : "primary"}
                 value={Number.isNaN(populationSize) ? "" : populationSize}
                 onChange={e => setPopulationSize(parseInt(e.target.value, 10))}
-                onBlur={e => setPopulationSize(parseInt(e.target.value, 10))}
                 aria-label="Population Size"
                 error={false}
               />
@@ -123,9 +124,10 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 size="small"
                 sx={{ flex: 1 }}
                 data-testid="input-block"
+                InputProps={{ inputProps: { min: 1, max: 1000000 } }}
+                color={maxIterations < 1 || maxIterations > 1000000 ? "warning" : "primary"}
                 value={Number.isNaN(maxIterations) ? "" : maxIterations}
                 onChange={e => setMaxIterations(parseInt(e.target.value, 10))}
-                onBlur={e => setMaxIterations(parseInt(e.target.value, 10))}
                 aria-label="Iterations"
                 error={false}
               />
