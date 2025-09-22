@@ -125,7 +125,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         (acc, status) => {
           if (status === "SUCCESS") acc.success += 1;
           else if (status === "STARTED") acc.running += 1;
-          else if (status === "FAILED") acc.failed += 1;
+          else if (status.includes("FAILED") || status.includes("FAILURE")) acc.failed += 1;
           // else if (status === "PENDING") acc.pending += 1;
           else acc.incomplete += 1;
           return acc;
