@@ -387,7 +387,7 @@ export function MOGAPareto(props: LoadingPropsType) {
                     }
                   }
                 }}
-                disabled={[!(optVars.length >= 1), !(optVars.length >= 2), !(optVars.length >= 3)]}
+                disabled={[optVars.length === 0, optVars.length === 0]}
               />
             </Box>
             <Box
