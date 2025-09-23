@@ -56,10 +56,12 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       }
       setLocalWeights(generatedWeights);
       setWeights(generatedWeights);
+    } else {
+      setLocalWeights(weights);
     }
     setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableData]);
+  }, [tableData, weights]);
 
   const columnProps: Partial<GridColDef> = {
     headerAlign: "center",
