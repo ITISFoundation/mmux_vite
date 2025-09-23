@@ -83,7 +83,14 @@ function LHSSampling() {
       console.error("Job collection is undefined. Cannot add to fetchedJobCollections.");
       return;
     }
-    const jobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
+    let jobs;
+    try {
+      jobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
+    } catch (error) {
+      console.error("Failed to fetch jobs from job collection:", error);
+      toast.error("Failed to fetch jobs for the new sampling run. Please try again.");
+      return;
+    }
     const newJobs: SelectedJobCollection[] = [
       {
       jobCollection: jc,
