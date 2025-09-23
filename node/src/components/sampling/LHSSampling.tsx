@@ -1,21 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
 import { Box, Input, Skeleton, Typography } from "@mui/material";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
+import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
+import { useServiceContext } from "../../context/ServiceContext";
 import {
   Function as OsparcFunction,
-  FunctionJob as OsparcFunctionJob,
-  RegisteredFunctionJobCollection,
+  RegisteredFunctionJobCollection
 } from "../../osparc-api-ts-client";
-import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
-import { RunSamplingButton } from "./RunSamplingButton";
-import VariableConfig from "../setup/VariableConfig";
-import { getFunctionJob } from "../../utils/function_utils";
-import { useFunctionContext } from "../../context/FunctionContext";
-import { useServiceContext } from "../../context/ServiceContext";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
+import { getFunctionJobsFromFunctionJobCollection } from "../../utils/function_utils";
+import { getSamplingEndValue, getSamplingStartValue } from "../../utils/sampling";
 import { filterInputVars } from "../plots/PlotTools";
-import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
-import { useJobContext } from "../../context/JobContext";
+import VariableConfig from "../setup/VariableConfig";
+import { RunSamplingButton } from "./RunSamplingButton";
 
 async function runLhsSampling(
   selectedFunction: OsparcFunction | undefined,
@@ -80,29 +79,21 @@ function LHSSampling() {
       );
     }
     const jc = await runLhsSampling(selectedFunction, SamplingContext, setRunningJobCollection, lhsInputs);
-    // New - include this job collection in the fetchedJobCollections
     if (!jc) {
       console.error("Job collection is undefined. Cannot add to fetchedJobCollections.");
       return;
     }
-    const newJobs: SelectedJobCollection[] = await Promise.all(
-      [jc].map(async localJC => {
-        const subJobs = await Promise.all(
-          localJC.jobIds.map(async id => {
-            const job = (await getFunctionJob(id)) as OsparcFunctionJob;
-            return {
-              selected: false,
-              job,
-            };
-          }),
-        );
-        return {
-          jobCollection: localJC,
-          selected: true,
-          subJobs,
-        };
-      }),
-    );
+    const jobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
+    const newJobs: SelectedJobCollection[] = [
+      {
+      jobCollection: jc,
+      selected: true,
+      subJobs: jobs.map(job => ({
+        selected: false,
+        job,
+      })),
+      },
+    ];
     setFetchedJobCollections([...fetchedJobCollections, ...newJobs]);
     // TODO Alex: how do I update the table without need to reload everything else?
   };
