@@ -42,6 +42,11 @@ type DataUQHistogramType = {
   max: number;
 };
 
+type PlotConfig = {
+  dimensionType: "1D" | "2D" | "3D";
+  scaleType: "linear" | "log";
+};
+
 type LoadingPropsType = {
   loading: boolean;
   setLoading?: (loading: boolean) => void;
@@ -161,5 +166,6 @@ type MogaDataRowType = { [key: string]: number; Performance: number; NDI: number
 interface MogaDataType {
   inputs: string[];
   outputs: string[];
+  raw: { [key: string]: number[] };
   rows: Array<MogaDataRowType>;
 }
