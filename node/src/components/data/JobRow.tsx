@@ -173,6 +173,7 @@ function JobRow(props: JobRowProps) {
           <Button
             variant="outlined"
             size="small"
+            disabled={creatingJobCopy || (!jobStatus.includes("SUCCESS") && !jobStatus.includes("FAILED"))}
             onClick={async () => {
               setCreatingJobCopy(true);
               const copyUID = (await createJobStudyCopy(selectedFunction?.title as string, job.job)) as string;
