@@ -57,7 +57,7 @@ function Header(props: HeaderProps) {
           {tabTitle}
         </Typography>
         {infoText && infoText.length > 0 && (
-          <CustomTooltip title={infoText} ExtendedTootlip={ExtendedInfoText} placement="right" arrow>
+          <CustomTooltip title={infoText} ExtendedTooltip={ExtendedInfoText} placement="right" arrow>
             <InfoOutline
               sx={{
                 color: theme.palette.primary.light,
