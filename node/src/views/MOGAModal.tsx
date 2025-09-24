@@ -104,11 +104,10 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 sx={{ flex: 1 }}
                 data-testid="input-block"
                 InputProps={{ inputProps: { min: 1, max: 1000000 } }}
-                color={populationSize < 1 || populationSize > 1000000 ? "warning" : "primary"}
+                error={populationSize < 1 || populationSize > 1000000}
                 value={Number.isNaN(populationSize) ? "" : populationSize}
                 onChange={e => setPopulationSize(parseInt(e.target.value, 10))}
                 aria-label="Population Size"
-                error={false}
               />
             </InputLabel>
             <InputLabel
@@ -125,11 +124,10 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 sx={{ flex: 1 }}
                 data-testid="input-block"
                 InputProps={{ inputProps: { min: 1, max: 1000000 } }}
-                color={maxIterations < 1 || maxIterations > 1000000 ? "warning" : "primary"}
+                error={maxIterations < 1 || maxIterations > 1000000}
                 value={Number.isNaN(maxIterations) ? "" : maxIterations}
                 onChange={e => setMaxIterations(parseInt(e.target.value, 10))}
                 aria-label="Iterations"
-                error={false}
               />
             </InputLabel>
             <OptionSelect
@@ -174,6 +172,9 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
               setOpen(false);
             }}
             sx={{ alignItems: "end" }}
+            disabled={
+              populationSize < 1 || populationSize > 1000000 || maxIterations < 1 || maxIterations > 1000000 || !selectedFunction
+            }
           >
             Apply
           </Button>
