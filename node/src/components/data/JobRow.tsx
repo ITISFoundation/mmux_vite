@@ -25,11 +25,55 @@ function JobRow(props: JobRowProps) {
 
   if (job === undefined) {
     return (
-      <TableRow>
-        <TableCell colSpan={6}>
-          <Typography variant="body1" gutterBottom component="div">
-            Loading job {jobUid}...
-          </Typography>
+      <TableRow
+        key={jobUid}
+        sx={theme => ({
+          backgroundColor: theme.palette.grey[200],
+          "& .MuiTableCell-root": {
+            color: theme.palette.grey[500],
+          },
+        })}
+      >
+        <TableCell padding="checkbox">
+          <Checkbox color="primary" checked={false} disabled />
+        </TableCell>
+        <TableCell
+          component="th"
+          scope="row"
+          sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        >
+          <Tooltip title={jobUid} placement="bottom-start">
+            <span>{jobUid ? `${jobUid.slice(0, 5)}...` : ""}</span>
+          </Tooltip>
+        </TableCell>
+        <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <Tooltip title="" placement="bottom-start">
+            <span />
+          </Tooltip>
+        </TableCell>
+        <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "auto" }}>
+          <Tooltip title="" placement="bottom-start">
+            <span />
+          </Tooltip>
+        </TableCell>
+        <TableCell align="right" sx={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <Tooltip title="CREATING" placement="bottom-start">
+            <span>CREATING</span>
+          </Tooltip>
+        </TableCell>
+
+        <TableCell align="right" sx={{ gap: "8px" }}>
+          <>
+            <Button variant="outlined" size="small" disabled>
+              {creatingJobCopy ? (
+                <Box sx={{ display: "flex" }}>
+                  <CircularProgress size={21} />
+                </Box>
+              ) : (
+                <Typography variant="body2">View</Typography>
+              )}
+            </Button>
+          </>
         </TableCell>
       </TableRow>
     );
