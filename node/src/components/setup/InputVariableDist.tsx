@@ -12,75 +12,163 @@ interface InputDistProps {
   handleSetValue: (inputVar: string, type: string, value: number) => void;
 }
 
-const ConstantInputDistribution = ({ inputVar, distribution, handleSetValue }: InputDistProps) => (
-  <InputBlock
-    name="Value"
-    value={distribution[inputVar].value !== undefined ? distribution[inputVar].value : NaN}
-    onChange={value => handleSetValue(inputVar, "value", value as number)}
-  />
-);
+const ConstantInputDistribution = ({ inputVar, distribution, handleSetValue }: InputDistProps) => {
+  const errorNaNValue = !(distribution[inputVar].value !== undefined && !Number.isNaN(distribution[inputVar].value));
+  const errorBeyondRange =
+    distribution[inputVar] &&
+    ((typeof distribution[inputVar].value === "number" && distribution[inputVar].value < -1e9) ||
+      (typeof distribution[inputVar].value === "number" && distribution[inputVar].value > 1e9));
 
-const NormalInputDistribution = ({ inputVar, distribution, handleSetValue }: InputDistProps) => (
-  <>
-    <InputBlock
-      name="Mean"
-      // TODO remove default values; just for development speed
-      value={distribution[inputVar].mean !== undefined ? distribution[inputVar].mean : 0.0}
-      onChange={value => handleSetValue(inputVar, "mean", value as number)}
-    />
-    <InputBlock
-      name="Standard Deviation"
-      // TODO remove default values; just for development speed
-      value={distribution[inputVar].std !== undefined ? distribution[inputVar].std : 1.0}
-      onChange={value => handleSetValue(inputVar, "std", value as number)}
-    />
-  </>
-);
+  let errorText = "";
+  if (errorNaNValue) {
+    errorText = "Empty value";
+  } else if (errorBeyondRange) {
+    errorText = "Out of range (-1e9, 1e9)";
+  }
 
-const UniformInputDistribution = ({ inputVar, distribution, handleSetValue }: InputDistProps) => (
-  <>
-    <InputBlock
-      name="Min"
-      value={distribution[inputVar].min !== undefined ? distribution[inputVar].min : NaN}
-      onChange={value => handleSetValue(inputVar, "min", value as number)}
-      error={
-        !!(
-          distribution[inputVar].min !== undefined &&
-          distribution[inputVar].max !== undefined &&
-          distribution[inputVar].min > distribution[inputVar].max
-        )
-      }
-    />
-    <InputBlock
-      name="Max"
-      value={distribution[inputVar].max !== undefined ? distribution[inputVar].max : NaN}
-      onChange={value => handleSetValue(inputVar, "max", value as number)}
-      error={
-        !!(
-          distribution[inputVar].min !== undefined &&
-          distribution[inputVar].max !== undefined &&
-          distribution[inputVar].min > distribution[inputVar].max
-        )
-      }
-    />
-  </>
-);
+  const error = errorNaNValue || errorBeyondRange;
+
+  return (
+    <>
+      <InputBlock
+        name="Value"
+        value={distribution[inputVar].value !== undefined ? distribution[inputVar].value : NaN}
+        minmax={{ min: -1e9, max: 1e9 }}
+        error={errorNaNValue || errorBeyondRange}
+        onChange={value => handleSetValue(inputVar, "value", value as number)}
+      />
+      {error && <Typography color="error">{errorText}</Typography>}
+    </>
+  );
+};
+
+const NormalInputDistribution = ({ inputVar, distribution, handleSetValue }: InputDistProps) => {
+  const errorNaNMean = !(distribution[inputVar].mean !== undefined && !Number.isNaN(distribution[inputVar].mean));
+  const errorNaNStd = !(distribution[inputVar].std !== undefined && !Number.isNaN(distribution[inputVar].std));
+  const errorBeyondRange =
+    distribution[inputVar] &&
+    ((typeof distribution[inputVar].mean === "number" && distribution[inputVar].mean < -1e9) ||
+      (typeof distribution[inputVar].mean === "number" && distribution[inputVar].mean > 1e9) ||
+      (typeof distribution[inputVar].std === "number" && distribution[inputVar].std < 0) ||
+      (typeof distribution[inputVar].std === "number" && distribution[inputVar].std > 1e9));
+
+  let errorText = "";
+  if (errorNaNMean || errorNaNStd) {
+    errorText = "Empty value";
+  } else if (errorBeyondRange) {
+    errorText = "Out of range (-1e9, 1e9)";
+  }
+
+  const error = errorNaNMean || errorNaNStd || errorBeyondRange;
+
+  return (
+    <>
+      <InputBlock
+        name="Mean"
+        // TODO remove default values; just for development speed
+        value={distribution[inputVar].mean !== undefined ? distribution[inputVar].mean : 0.0}
+        minmax={{ min: -1e9, max: 1e9 }}
+        error={errorNaNMean || errorBeyondRange}
+        onChange={value => handleSetValue(inputVar, "mean", value as number)}
+      />
+      <InputBlock
+        name="Standard Deviation"
+        // TODO remove default values; just for development speed
+        value={distribution[inputVar].std !== undefined ? distribution[inputVar].std : 1.0}
+        minmax={{ min: 0, max: 1e9 }}
+        error={errorNaNStd || errorBeyondRange}
+        onChange={value => handleSetValue(inputVar, "std", value as number)}
+      />
+      {error && <Typography color="error">{errorText}</Typography>}
+    </>
+  );
+};
+
+const UniformInputDistribution = ({ inputVar, distribution, handleSetValue }: InputDistProps) => {
+  const errorNaNMin = !(distribution[inputVar].min !== undefined && !Number.isNaN(distribution[inputVar].min));
+  const errorNaNMax = !(distribution[inputVar].max !== undefined && !Number.isNaN(distribution[inputVar].max));
+  const errorMinMax = !(
+    distribution[inputVar] &&
+    typeof distribution[inputVar].min === "number" &&
+    typeof distribution[inputVar].max === "number" &&
+    distribution[inputVar].min < distribution[inputVar].max
+  );
+  const errorBeyondRange =
+    distribution[inputVar] &&
+    ((typeof distribution[inputVar].min === "number" && distribution[inputVar].min < -1e9) ||
+      (typeof distribution[inputVar].max === "number" && distribution[inputVar].max > 1e9));
+  let errorText = "";
+  if (errorNaNMin || errorNaNMax) {
+    errorText = "Empty value";
+  } else if (errorMinMax) {
+    errorText = "Min >= Max";
+  } else if (errorBeyondRange) {
+    errorText = "Out of range (-1e9, 1e9)";
+  }
+
+  const error = errorNaNMin || errorNaNMax || errorMinMax || errorBeyondRange;
+
+  return (
+    <>
+      <InputBlock
+        name="Min"
+        value={distribution[inputVar].min !== undefined ? distribution[inputVar].min : NaN}
+        onChange={value => handleSetValue(inputVar, "min", value as number)}
+        minmax={{ min: -1e9, max: 1e9 }}
+        error={errorNaNMin || errorMinMax}
+      />
+      <InputBlock
+        name="Max"
+        value={distribution[inputVar].max !== undefined ? distribution[inputVar].max : NaN}
+        onChange={value => handleSetValue(inputVar, "max", value as number)}
+        minmax={{ min: -1e9, max: 1e9 }}
+        error={errorNaNMax || errorMinMax}
+      />
+      {error && <Typography color="error">{errorText}</Typography>}
+    </>
+  );
+};
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const LogNormalInputDistribution = ({ inputVar, distribution, handleSetValue }: InputDistProps) => (
-  <>
-    <InputBlock
-      name="Log Location"
-      value={distribution[inputVar].location !== undefined ? distribution[inputVar].location : NaN}
-      onChange={value => handleSetValue(inputVar, "location", value as number)}
-    />
-    <InputBlock
-      name="Log Scale"
-      value={distribution[inputVar].scale !== undefined ? distribution[inputVar].scale : NaN}
-      onChange={value => handleSetValue(inputVar, "scale", value as number)}
-    />
-  </>
-);
+const LogNormalInputDistribution = ({ inputVar, distribution, handleSetValue }: InputDistProps) => {
+  const errorNaNLocation = !(distribution[inputVar].location !== undefined && !Number.isNaN(distribution[inputVar].location));
+  const errorNaNScale = !(distribution[inputVar].scale !== undefined && !Number.isNaN(distribution[inputVar].scale));
+  const errorBeyondRange =
+    distribution[inputVar] &&
+    ((typeof distribution[inputVar].location === "number" && distribution[inputVar].location < -1e9) ||
+      (typeof distribution[inputVar].location === "number" && distribution[inputVar].location > 1e9) ||
+      (typeof distribution[inputVar].scale === "number" && distribution[inputVar].scale < -1e9) ||
+      (typeof distribution[inputVar].scale === "number" && distribution[inputVar].scale > 1e9));
+
+  let errorText = "";
+  if (errorNaNLocation || errorNaNScale) {
+    errorText = "Empty value";
+  } else if (errorBeyondRange) {
+    errorText = "Out of range (-1e9, 1e9)";
+  }
+
+  const error = errorNaNLocation || errorNaNScale || errorBeyondRange;
+
+  return (
+    <>
+      <InputBlock
+        name="Log Location"
+        value={distribution[inputVar].location !== undefined ? distribution[inputVar].location : NaN}
+        minmax={{ min: -1e9, max: 1e9 }}
+        error={errorNaNLocation || errorBeyondRange}
+        onChange={value => handleSetValue(inputVar, "location", value as number)}
+      />
+      <InputBlock
+        name="Log Scale"
+        value={distribution[inputVar].scale !== undefined ? distribution[inputVar].scale : NaN}
+        minmax={{ min: -1e9, max: 1e9 }}
+        error={errorNaNScale || errorBeyondRange}
+        onChange={value => handleSetValue(inputVar, "scale", value as number)}
+      />
+      {error && <Typography color="error">{errorText}</Typography>}
+    </>
+  );
+};
 
 export function InputVariableDist() {
   const { selectedFunction, inputVars, distribution, setDistribution } = useFunctionContext();
