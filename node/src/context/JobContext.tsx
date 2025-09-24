@@ -31,13 +31,15 @@ export function JobContextProvider({ children }: Props) {
   const filteredJobList = useMemo(() => {
     const localff = [...fetchedJobCollections];
     const response: FunctionJob[] = localff
-      .map(jobCollection => jobCollection.subJobs.filter(subJob => subJob.selected === true).map(subJob => subJob.job))
+      .map(jobCollection =>
+        jobCollection.subJobs.filter(subJob => selectedJobUids.includes(subJob.job.uid)).map(subJob => subJob.job),
+      )
       .flat();
     if (response.length < 5) {
       return []; // 5 samples are necessary to avoid Dakota crashing
     }
     return response;
-  }, [fetchedJobCollections]);
+  }, [fetchedJobCollections, selectedJobUids]);
 
   const allJobsList = useCallback(() => {
     const response: FunctionJob[] = fetchedJobCollections.flatMap(jobCollection =>
