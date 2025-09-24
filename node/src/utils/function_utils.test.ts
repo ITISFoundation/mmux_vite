@@ -148,15 +148,6 @@ describe("Function Utils", () => {
   });
 
   it("should list functions", async () => {
-    vi.stubGlobal(
-      "fetchWithRetry",
-      vi.fn(() =>
-        Promise.resolve({
-          json: () => Promise.resolve(mockFunctions),
-        }),
-      ),
-    );
-
     const functions = await listFunctions();
     expect(functions).toEqual(mockFunctions);
   });
@@ -183,29 +174,11 @@ describe("Function Utils", () => {
   });
 
   it("should get function job collections", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() =>
-        Promise.resolve({
-          json: () => Promise.resolve(mockCollections),
-        }),
-      ),
-    );
-
     const collections = await getFunctionJobCollections("func1");
     expect(collections).toEqual(mockCollections);
   });
 
   it("should get function jobs from a job collection", async () => {
-    vi.stubGlobal(
-      "fetchWithRetry",
-      vi.fn(() =>
-        Promise.resolve({
-          json: () => Promise.resolve(sampleJobs),
-        }),
-      ),
-    );
-
     const jobs = await getFunctionJobsFromFunctionJobCollection("collection1");
     expect(jobs).toEqual(sampleJobs);
   });
