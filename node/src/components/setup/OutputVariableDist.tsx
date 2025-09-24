@@ -51,6 +51,9 @@ export function OutputVariableDist() {
         headerType="subTitle"
         tabTitle="Optimization Objectives"
         infoText="Optimize the output variables by minimizing or maximizing their range"
+        errorMessage={
+          Object.keys(configuredOutputs).length === 0 ? "Please select at least one output variable to optimize." : undefined
+        }
       />
       <Box sx={{ display: "flex", overflowX: "auto" }}>
         {Object.keys(configuredOutputs).map(outputVar => (

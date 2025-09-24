@@ -77,6 +77,7 @@ interface HeaderProps {
   ExtendedInfoText?: ReactElement;
   helpContents?: ReactElement;
   fontWeight?: React.CSSProperties["fontWeight"];
+  errorMessage?: string;
 }
 
 interface SubJob {
@@ -122,6 +123,7 @@ interface InputBlockProps {
   type?: "number" | "text";
   onChange: (value: unknown) => void;
   error?: boolean;
+  minmax?: { min: number; max: number };
 }
 
 interface InputTextBlockProps {

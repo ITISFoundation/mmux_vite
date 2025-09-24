@@ -40,8 +40,20 @@ function VariableConfig(props: VariableConfigProps) {
           }}
         />
       </Typography>
-      <InputBlock name="Start" value={inputVar.start} onChange={n => handleInputChange(index, "start", n as string)} />
-      <InputBlock name="End" value={inputVar.end} onChange={n => handleInputChange(index, "end", n as string)} />
+      <InputBlock
+        name="Start"
+        value={inputVar.start}
+        minmax={{ min: -1e9, max: 1e9 }}
+        error={!!(inputVar.start !== undefined && inputVar.start < 0)}
+        onChange={n => handleInputChange(index, "start", n as string)}
+      />
+      <InputBlock
+        name="End"
+        value={inputVar.end}
+        minmax={{ min: -1e9, max: 1e9 }}
+        error={!!(inputVar.end !== undefined && inputVar.end < 0)}
+        onChange={n => handleInputChange(index, "end", n as string)}
+      />
     </Box>
   );
 }
