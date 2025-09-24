@@ -28,40 +28,59 @@ const defaultSortModel: GridSortModel = [
 function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProps) {
   const { weights, setWeights, sortModel, setSortModel } = useMOGATableContext();
   const [data, setData] = useState<MogaDataType | undefined>(undefined);
-  const [localWeights, setLocalWeights] = useState(weights || {});
   const [loading, setLoading] = useState(true);
   const [openPerformanceModal, setOpenPerformanceModal] = useState(false);
-  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel);
+  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel || defaultSortModel);
 
   const handleSortModelChange = (model: GridSortModel) => {
     setSortModel(model);
     setLocalSortModel(model);
   };
 
-  const handleWeightsChange = (updatedWeights: typeof localWeights) => {
-    console.log("setting weights!", updatedWeights);
-    setWeights(updatedWeights);
-    setLocalWeights(updatedWeights);
-    handleSortModelChange(defaultSortModel); // Reset sorting to default when weights change
-  };
+  useEffect(() => {
+    if (
+      data &&
+      data.outputs.length > 0 &&
+      (Object.keys(weights).length !== data.outputs.length || Object.keys(weights).some(k => !data.outputs.includes(k)))
+    ) {
+      console.log("Output vars changed:", data.outputs, weights);
+      const generatedWeights: { [key: string]: number } = {};
+      for (let i = 0; i < data.outputs.length; i += 1) {
+        generatedWeights[data.outputs[i]] = 0.5; // Example weight, can be adjusted
+      }
+      Object.keys(generatedWeights).map(x => {
+        if (Object.keys(weights).includes(x)) generatedWeights[x] = weights[x];
+        return x;
+      });
+      setWeights(generatedWeights);
+    }
+    console.log("Weights after output vars change:", weights);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  useEffect(() => {
+    if (data !== undefined && data.rows && weights !== undefined) {
+      console.log("Updating performance column with weights:", weights);
+      const updatedRows = data.rows.map(row => {
+        let performance = 0;
+        Object.keys(weights).forEach(key => {
+          if (row[key] !== undefined) {
+            performance += weights[key] * row[key];
+          }
+        });
+        return { ...row, Performance: performance };
+      });
+      setData({ ...data, rows: updatedRows });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weights]);
 
   useEffect(() => {
     // Simulate loading data
     setData(tableData);
-    if (weights === undefined || Object.keys(weights).length === 0) {
-      const outputKeys: string[] = tableData?.outputs || [];
-      const generatedWeights: { [key: string]: number } = {};
-      for (let i = 0; i < outputKeys.length; i += 1) {
-        generatedWeights[outputKeys[i]] = 0.5; // Example weight, can be adjusted
-      }
-      setLocalWeights(generatedWeights);
-      setWeights(generatedWeights);
-    } else {
-      setLocalWeights(weights);
-    }
     setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableData, weights]);
+  }, [tableData]);
 
   const columnProps: Partial<GridColDef> = {
     headerAlign: "center",
@@ -201,12 +220,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         disableColumnSelector
         disableRowSelectionOnClick
       />
-      <PerformanceModal
-        open={openPerformanceModal}
-        setOpen={setOpenPerformanceModal}
-        weights={localWeights}
-        onChange={handleWeightsChange}
-      />
+      <PerformanceModal open={openPerformanceModal} setOpen={setOpenPerformanceModal} />
     </>
   );
 }

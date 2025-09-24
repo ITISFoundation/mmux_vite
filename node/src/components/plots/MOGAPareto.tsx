@@ -113,7 +113,6 @@ export function MOGAPareto(props: LoadingPropsType) {
         outputVarSelection: ovs,
         FunctionJobs: jobs,
       });
-      console.info("Running MOGA...", bodyData);
       const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/perform_moga_optimization`, {
         method: "POST",
         body: bodyData,
@@ -316,7 +315,7 @@ export function MOGAPareto(props: LoadingPropsType) {
   useEffect(() => {
     if (hovered !== null && tableData) {
       const hoveredRow = tableData.rows.find(r => r.NDI === hovered);
-      console.log("hovered row:", hoveredRow);
+      // console.log("hovered row:", hoveredRow);
       if (hoveredRow && optVars.length >= 2) {
         const newPlotData = [...plotData];
         newPlotData[3] = {
