@@ -32,8 +32,11 @@ async function runLhsSampling(
     }),
   })
     .then(async response => {
-      if (!response.ok) {
+      if (!response.ok || response.status !== 200) {
         const errorText = await response.text();
+        toast.error(`Error running LHS sampling: ${response.status}: ${errorText}`);
+        context.setLaunchingSampling(false);
+        context.setRunningSampling(false);
         throw new Error(`Error running LHS sampling: ${response.status}: ${errorText}`);
       }
       return response.json();
@@ -213,6 +216,7 @@ function LHSSampling() {
             type="number"
             placeholder="seed"
             value={lhsInputs.seed.toString()}
+            inputProps={{ min: 0 }}
             sx={theme => ({
               width: 100,
               borderBottom: `1px solid ${theme.palette.background.paper}`,

@@ -21,7 +21,7 @@ export function MOGAPareto(props: LoadingPropsType) {
   const theme = useTheme();
   const ref = useRef<Plot>(null);
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
-  const { fetchedJobCollections, filteredJobList, selectedJobUids } = useJobContext();
+  const { fetchedJobCollections, filteredJobList } = useJobContext();
   const { mogaSettings } = useMOGASettingsContext();
   const { weights } = useMOGATableContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
@@ -117,6 +117,8 @@ export function MOGAPareto(props: LoadingPropsType) {
         method: "POST",
         body: bodyData,
       });
+
+      
       if (!response.ok) {
         throw new Error(`Error in MOGA response: ${response.status}, ${response.statusText}`);
       }
@@ -259,7 +261,6 @@ export function MOGAPareto(props: LoadingPropsType) {
       setPlotData(newPlotData);
       setLayout(newLayout);
       setPlotType({ dimensionType: localPlotType, scaleType });
-      setPropagating(false);
     },
     [mogaSettings, selectedFunction?.uid, theme.palette.background.default, theme.palette.text.primary, optVars],
   );
@@ -272,6 +273,7 @@ export function MOGAPareto(props: LoadingPropsType) {
       const newOptVars = Object.keys(outputTargets[selectedFunction?.uid as string] || {});
       setOptVars(newOptVars);
       setOutputVarSelection(outputTargets[selectedFunction.uid]);
+      setPlotData([]);
 
       const run = async () => {
         const jobs = filteredJobList;
@@ -284,15 +286,16 @@ export function MOGAPareto(props: LoadingPropsType) {
           console.info("Fetching MOGA Pareto data...");
           const newTableData = await runMOGA(jobs, outputTargets[selectedFunction.uid]);
           await updatePlot(jobs, newTableData, plotType);
+          setPropagating(false);
         } catch (error) {
+          setPropagating(false);
           console.error("Error fetching MOGA Pareto data:", error);
         }
-        setPropagating(false);
       };
       run();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFunction, outputTargets, selectedJobUids, mogaSettings]);
+  }, [selectedFunction, outputTargets, filteredJobList, mogaSettings]);
 
   // When weights change, recalculate tableData (refresh table) but do NOT rerun runMOGA
   useEffect(() => {
@@ -338,7 +341,7 @@ export function MOGAPareto(props: LoadingPropsType) {
 
   const plotStyle = {
     width: "100%",
-    height: optVars.length > 2 ? 600 : 400,
+    height: 500,
     borderRadius: "8px",
     overflow: "hidden",
   };
@@ -347,15 +350,12 @@ export function MOGAPareto(props: LoadingPropsType) {
     return <JobsLoading progress={progress} jobProgress={jobProgress} message="Creating AI model..." />;
   }
 
+
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%">
       {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
       {!propagating && plotData.length === 0 && (
-        <InsufficientDataWarning
-          fetchedJobCollections={fetchedJobCollections}
-          filteredJobList={filteredJobList}
-          height={plotStyle.height}
-        />
+        <InsufficientDataWarning fetchedJobCollections={fetchedJobCollections} filteredJobList={filteredJobList} height={plotStyle.height} />
       )}
       {!propagating && plotData.length !== 0 && (
         <>
