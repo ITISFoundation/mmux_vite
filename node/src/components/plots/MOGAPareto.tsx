@@ -191,34 +191,28 @@ export function MOGAPareto(props: LoadingPropsType) {
 
       switch (localPlotType) {
         case "1D": {
-          const groupedY = groupArrayElements(outputValues[localOptVars[0]], 20);
-          const groupedYR = groupArrayElements(results[localOptVars[0]], 20);
-          newPlotData[0].x = groupedY.map((_, index) => index);
-          newPlotData[0].y = groupedY;
-          newPlotData[0].z = undefined;
-          newPlotData[1].x = groupedYR.map((_, index) => index);
-          newPlotData[1].y = groupedYR;
-          newPlotData[1].z = undefined;
-          newPlotData[0].type = "box";
-          newPlotData[1].type = "box";
-          newPlotData.pop();
-          groupedY.map(y =>
+          const groupedY = groupArrayElements(outputValues[localOptVars[0]], Math.floor(outputValues[localOptVars[0]].length / 20));
+          const groupedYR = groupArrayElements(results[localOptVars[0]], Math.floor(results[localOptVars[0]].length / 20));
+          groupedY.map((y, idx) =>
             newPlotData.push({
               ...newPlotData[0],
               boxpoints: "all",
               y,
+              name: `${idx}`,
             }),
           );
-          groupedYR.map(y =>
+          groupedYR.map((y, idx) =>
             newPlotData.push({
               ...newPlotData[1],
+              boxpoints: "outliers",
               y,
-              boxpoints: "all",
+              name: `${idx}`,
             }),
           );
           newPlotData.shift();
           newPlotData.shift();
           newLayout.yaxis = { title: { text: optVars[0] } };
+          newLayout.showlegend = false;
           break;
         }
         case "2D": {
@@ -316,27 +310,30 @@ export function MOGAPareto(props: LoadingPropsType) {
   }, [weights]);
 
   useEffect(() => {
-    if (hovered !== null && tableData) {
-      const hoveredRow = tableData.rows.find(r => r.NDI === hovered);
-      // console.log("hovered row:", hoveredRow);
-      if (hoveredRow && optVars.length >= 2) {
+    if (tableData) {
+      if (hovered !== null) {
+        const hoveredRow = tableData.rows.find(r => r.NDI === hovered);
+        console.log("hovered row:", hoveredRow, plotType);
+        if (hoveredRow && plotType && (plotType.dimensionType === "2D" || plotType.dimensionType === "3D")) {
+          const newPlotData = [...plotData];
+          const noSelected = newPlotData.filter(d => d.name !== "Selected");
+          noSelected.push({
+            name: "Selected",
+            mode: "markers",
+            type: plotType.dimensionType === "3D" ? "scatter3d" : "scatter",
+            marker: { color: "red", size: 8, symbol: "circle" },
+            x: [hoveredRow[optVars[0]]],
+            y: [hoveredRow[optVars[1]]],
+            z: plotType?.dimensionType === "3D" ? [hoveredRow[optVars[2]]] : undefined,
+          });
+          setPlotData(noSelected);
+        }
+      } else {
         const newPlotData = [...plotData];
-        newPlotData[3] = {
-          name: "Selected",
-          mode: "markers",
-          type: plotType?.dimensionType === "3D" ? "scatter3d" : "scatter",
-          marker: { color: "red", size: 8, symbol: "circle" },
-          x: [hoveredRow[optVars[0]]],
-          y: [hoveredRow[optVars[1]]],
-          z: optVars.length > 2 ? [hoveredRow[optVars[2]]] : undefined,
-        };
-        setPlotData(newPlotData);
-      }
-    } else {
-      const newPlotData = [...plotData];
-      if (newPlotData.length > 3) {
-        newPlotData.pop();
-        setPlotData(newPlotData);
+        const noSelected = newPlotData.filter(d => d.name === "Selected");
+        if (noSelected.length > 0) {
+          setPlotData(newPlotData.filter(d => d.name !== "Selected"));
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
