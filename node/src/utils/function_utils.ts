@@ -50,7 +50,7 @@ export async function getFunctionJobsFromFunctionUid(functionUid: string): Promi
 }
 
 export async function getFunctionJobCollections(functionUid: string): Promise<FunctionJobCollection[]> {
-  return fetch(
+  return fetchWithRetry(
     `${PYTHON_DAKOTA_BACKEND}/flask/list_function_job_collections_for_functionid?functionUid=${functionUid}`,
   ).then(response => response.json());
 }
