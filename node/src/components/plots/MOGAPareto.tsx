@@ -189,8 +189,8 @@ export function MOGAPareto(props: LoadingPropsType) {
 
       switch (localPlotType) {
         case "1D": {
-          const groupedY = groupArrayElements(outputValues[localOptVars[0]], outputValues[localOptVars[0]].length / 20);
-          const groupedYR = groupArrayElements(results[localOptVars[0]], results[localOptVars[0]].length / 20);
+          const groupedY = groupArrayElements(outputValues[localOptVars[0]], Math.floor(outputValues[localOptVars[0]].length / 20));
+          const groupedYR = groupArrayElements(results[localOptVars[0]], Math.floor(results[localOptVars[0]].length / 20));
           groupedY.map((y, idx) =>
             newPlotData.push({
               ...newPlotData[0],
