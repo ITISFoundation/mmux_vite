@@ -117,7 +117,11 @@ function JobRow(props: JobRowProps) {
           <span>{outputs}</span>
         </Tooltip>
       </TableCell>
-      <TableCell align="right">{jobStatus}</TableCell>
+      <TableCell align="right" sx={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <Tooltip title={jobStatus} placement="bottom-start">
+          <span>{jobStatus}</span>
+        </Tooltip>
+      </TableCell>
 
       <TableCell align="right" sx={{ gap: "8px" }}>
         <>
