@@ -207,7 +207,12 @@ function LHSSampling() {
               width: 100,
               borderBottom: `1px solid ${theme.palette.background.paper}`,
             })}
-            onChange={e => setLocalSamplingPoints(parseInt(e.target.value, 10))}
+            onChange={e => {
+              const value = e.target.value;
+              // Only set if value is a valid integer string, else fallback to 0
+              const parsed = value === "" ? 0 : parseInt(value, 10);
+              setLocalSamplingPoints(Number.isNaN(parsed) ? 0 : parsed);
+            }}
             onBlur={e => handleInputChange(0, "points", e.target.value)}
           />
           <Typography variant="body1">Seed: </Typography>
