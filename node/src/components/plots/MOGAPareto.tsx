@@ -353,7 +353,6 @@ export function MOGAPareto(props: LoadingPropsType) {
     return <JobsLoading progress={progress} jobProgress={jobProgress} message="Creating AI model..." />;
   }
 
-  console.log("MOGA Pareto plot render:", { plotDataLength: plotData.length, propagating });
 
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%">
