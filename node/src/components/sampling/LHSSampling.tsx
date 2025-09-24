@@ -141,13 +141,7 @@ function LHSSampling() {
     if (lhsInputs.points >= 5 && lhsInputs.points <= 50) return;
     setLhsInputs(prevInputs => {
       const nPoints = recommendedLHSSamples();
-      console.log(
-        "Updating LHS points based on recommended samples and local input",
-        nPoints < localSamplingPoints,
-        localSamplingPoints,
-        nPoints,
-      );
-      const lhsPoints = Math.min(Math.max(nPoints > localSamplingPoints ? localSamplingPoints : nPoints, 5), 50); // hardcoded max points limit in backend
+      const lhsPoints = Math.min(Math.max(Math.min(localSamplingPoints, nPoints), 5), 50); // hardcoded max points limit in backend
       setLocalSamplingPoints(lhsPoints);
       const newInputs = { ...prevInputs, inputs: inputVars.map(generateInputsList), points: lhsPoints };
       return newInputs;
