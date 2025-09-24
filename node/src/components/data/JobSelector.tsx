@@ -418,7 +418,14 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             minWidth: 200,
             align: "left",
             headerAlign: "left",
-            renderCell: params => <span>{params.row.jobCollection.title}</span>,
+            renderCell: params => (
+              <Box alignItems="center" justifyContent="left" display="flex" gap={1}>
+                <CustomTooltip title={params.row.jobCollection.uid} placement="bottom-start">
+                  <InfoOutline color="primary" />
+                </CustomTooltip>
+                <span>{params.row.jobCollection.title}</span>
+              </Box>
+            ),
           },
           {
             field: "Min-Max",

@@ -1,4 +1,4 @@
-import { Box, Button, Checkbox, CircularProgress, Tooltip } from "@mui/material";
+import { Box, Button, Checkbox, CircularProgress } from "@mui/material";
 import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import { Function as OsparcFunction } from "../../osparc-api-ts-client";
 import { createJobStudyCopy, openStudyUid } from "../../utils/function_utils";
+import CustomTooltip from "../utils/CustomTooltip";
 
 interface JobRowProps {
   jobUid: string;
@@ -25,11 +26,55 @@ function JobRow(props: JobRowProps) {
 
   if (job === undefined) {
     return (
-      <TableRow>
-        <TableCell colSpan={6}>
-          <Typography variant="body1" gutterBottom component="div">
-            Loading job {jobUid}...
-          </Typography>
+      <TableRow
+        key={jobUid}
+        sx={theme => ({
+          backgroundColor: theme.palette.grey[200],
+          "& .MuiTableCell-root": {
+            color: theme.palette.grey[500],
+          },
+        })}
+      >
+        <TableCell padding="checkbox">
+          <Checkbox color="primary" checked={false} disabled />
+        </TableCell>
+        <TableCell
+          component="th"
+          scope="row"
+          sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        >
+          <Tooltip title={jobUid} placement="bottom-start">
+            <span>{jobUid ? `${jobUid.slice(0, 5)}...` : ""}</span>
+          </Tooltip>
+        </TableCell>
+        <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <Tooltip title="" placement="bottom-start">
+            <span />
+          </Tooltip>
+        </TableCell>
+        <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "auto" }}>
+          <Tooltip title="" placement="bottom-start">
+            <span />
+          </Tooltip>
+        </TableCell>
+        <TableCell align="right" sx={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <Tooltip title="CREATING" placement="bottom-start">
+            <span>CREATING</span>
+          </Tooltip>
+        </TableCell>
+
+        <TableCell align="right" sx={{ gap: "8px" }}>
+          <>
+            <Button variant="outlined" size="small" disabled>
+              {creatingJobCopy ? (
+                <Box sx={{ display: "flex" }}>
+                  <CircularProgress size={21} />
+                </Box>
+              ) : (
+                <Typography variant="body2">View</Typography>
+              )}
+            </Button>
+          </>
         </TableCell>
       </TableRow>
     );
@@ -103,24 +148,24 @@ function JobRow(props: JobRowProps) {
         scope="row"
         sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
       >
-        <Tooltip title={job.job.uid} placement="bottom-start">
+        <CustomTooltip title={job.job.uid} placement="bottom-start">
           <span>{job.job.uid ? `${job.job.uid.slice(0, 5)}...` : ""}</span>
-        </Tooltip>
+        </CustomTooltip>
       </TableCell>
       <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        <Tooltip title={inputs} placement="bottom-start">
+        <CustomTooltip title={inputs} placement="bottom-start">
           <span>{inputs}</span>
-        </Tooltip>
+        </CustomTooltip>
       </TableCell>
       <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "auto" }}>
-        <Tooltip title={outputs} placement="bottom-start">
+        <CustomTooltip title={outputs} placement="bottom-start">
           <span>{outputs}</span>
-        </Tooltip>
+        </CustomTooltip>
       </TableCell>
       <TableCell align="right" sx={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        <Tooltip title={jobStatus} placement="bottom-start">
+        <CustomTooltip title={jobStatus} placement="bottom-start">
           <span>{jobStatus}</span>
-        </Tooltip>
+        </CustomTooltip>
       </TableCell>
 
       <TableCell align="right" sx={{ gap: "8px" }}>
