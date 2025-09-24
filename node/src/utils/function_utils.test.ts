@@ -34,6 +34,7 @@ const mockJobs: FunctionJob[] = [
 
 const mockFunctions  = [{ uid: "func1" }, { uid: "func2" }];
 const sampleJobs = [{ uid: "job1" }, { uid: "job2" }];
+const mockCollections = [{ uid: "collection1" }, { uid: "collection2" }];
 
 vi.mock("./fetch_retry.ts", () => ({
   fetchWithRetry: (path: string) => {
@@ -46,6 +47,8 @@ vi.mock("./fetch_retry.ts", () => ({
       response = [{ uid: "func1" }, { uid: "func2" }];
     } else if (path.includes("list_function_jobs_for_jobcollectionid")) {
       response = sampleJobs;
+    } else if (path.includes("list_function_job_collections")) {
+      response = mockCollections;
     } else {
       response = "not mocked";
     }
@@ -180,7 +183,6 @@ describe("Function Utils", () => {
   });
 
   it("should get function job collections", async () => {
-    const mockCollections = [{ uid: "collection1" }, { uid: "collection2" }];
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
