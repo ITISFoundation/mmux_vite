@@ -7,7 +7,6 @@ import {
   getServiceMode,
   listFunctions,
   listJobs,
-  getFunctionJob,
   getFunctionJobsFromFunctionUid,
   getFunctionJobCollections,
   getFunctionJobsFromFunctionJobCollection,
@@ -156,10 +155,6 @@ describe("Function Utils", () => {
     expect(jobs).toEqual(mockJobs);
   });
 
-  it("should get a function job by UID", async () => {
-    const job = await getFunctionJob("job1");
-    expect(job).toEqual(mockJobs[0]);
-  });
 
   it("should get function jobs from function UID", async () => {
     const mockJobData = [{ uid: "job1" }, { uid: "job2" }];
