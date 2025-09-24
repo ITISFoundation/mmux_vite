@@ -358,7 +358,7 @@ export function MOGAPareto(props: LoadingPropsType) {
     <Box display="flex" flexDirection="column" gap={1} width="100%">
       {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
       {!propagating && plotData.length === 0 && (
-        <InsufficientDataWarning fetchedJobCollections={fetchedJobCollections} filteredJobList={filteredJobList} height={500} />
+        <InsufficientDataWarning fetchedJobCollections={fetchedJobCollections} filteredJobList={filteredJobList} height={plotStyle.height} />
       )}
       {!propagating && plotData.length !== 0 && (
         <>
