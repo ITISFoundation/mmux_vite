@@ -326,7 +326,6 @@ export function MOGAPareto(props: LoadingPropsType) {
           setPlotData(noSelected);
         }
       } else {
-        console.log("no row hovered", hovered, plotData);
         const newPlotData = [...plotData];
         const noSelected = newPlotData.filter(d => d.name === "Selected");
         if (noSelected.length > 0) {
