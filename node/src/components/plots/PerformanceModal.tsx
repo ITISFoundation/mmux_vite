@@ -1,27 +1,24 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Modal, useTheme, Card, Box, CardContent, Button, CardActions, Typography, Slider } from "@mui/material";
 import Header from "../navigation/Header";
+import { useMOGATableContext } from "../../context/MOGATableContext";
 
-const PerformanceModal = ({
-  weights,
-  open,
-  setOpen,
-  onChange,
-}: {
-  weights: { [key: string]: number };
-  open: boolean;
-  setOpen: (value: boolean) => void;
-  onChange: (newWeights: { [key: string]: number }) => void;
-}) => {
+const PerformanceModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean) => void }) => {
   const theme = useTheme();
-  const [localWeights, setLocalWeights] = React.useState(weights || {});
+  const { weights, setWeights } = useMOGATableContext();
+  const [localWeights, setLocalWeights] = React.useState(weights);
 
   const resetFields = () => {
     setLocalWeights(weights);
   };
   const handleSetData = () => {
-    onChange(localWeights);
+    if (localWeights) setWeights(localWeights);
   };
+
+  useEffect(() => {
+    console.log("Weights updated in modal:", weights);
+    setLocalWeights(weights);
+  }, [weights]);
 
   return (
     <Modal
