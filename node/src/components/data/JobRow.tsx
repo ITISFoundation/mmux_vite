@@ -43,24 +43,24 @@ function JobRow(props: JobRowProps) {
           scope="row"
           sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
         >
-          <Tooltip title={jobUid} placement="bottom-start">
+          <CustomTooltip title={jobUid} placement="bottom-start">
             <span>{jobUid ? `${jobUid.slice(0, 5)}...` : ""}</span>
-          </Tooltip>
+          </CustomTooltip>
         </TableCell>
         <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          <Tooltip title="" placement="bottom-start">
+          <CustomTooltip title="" placement="bottom-start">
             <span />
-          </Tooltip>
+          </CustomTooltip>
         </TableCell>
         <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "auto" }}>
-          <Tooltip title="" placement="bottom-start">
+          <CustomTooltip title="" placement="bottom-start">
             <span />
-          </Tooltip>
+          </CustomTooltip>
         </TableCell>
         <TableCell align="right" sx={{ maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          <Tooltip title="CREATING" placement="bottom-start">
+          <CustomTooltip title="CREATING" placement="bottom-start">
             <span>CREATING</span>
-          </Tooltip>
+          </CustomTooltip>
         </TableCell>
 
         <TableCell align="right" sx={{ gap: "8px" }}>
