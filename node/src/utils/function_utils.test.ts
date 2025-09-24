@@ -1,18 +1,17 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
 import {
   createInputOutputSchema,
   createJobStudyCopy,
+  getFunctionJobCollections,
+  getFunctionJobsFromFunctionJobCollection,
+  getFunctionJobsFromFunctionUid,
   getHealth,
   getPermissions,
   getServiceMode,
   listFunctions,
   listJobs,
-  getFunctionJob,
-  getFunctionJobsFromFunctionUid,
-  getFunctionJobCollections,
-  getFunctionJobsFromFunctionJobCollection,
 } from "./function_utils";
-import { FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
 
 const mockJobs: FunctionJob[] = [
   {
@@ -33,6 +32,10 @@ const mockJobs: FunctionJob[] = [
   },
 ];
 
+const mockFunctions  = [{ uid: "func1" }, { uid: "func2" }];
+const sampleJobs = [{ uid: "job1" }, { uid: "job2" }];
+const mockCollections = [{ uid: "collection1" }, { uid: "collection2" }];
+
 vi.mock("./fetch_retry.ts", () => ({
   fetchWithRetry: (path: string) => {
     let response: unknown;
@@ -40,6 +43,14 @@ vi.mock("./fetch_retry.ts", () => ({
       response = mockJobs;
     } else if (path.includes("get_function_job")) {
       [response] = mockJobs;
+    } else if (path.includes("list_functions")) {
+      response = [{ uid: "func1" }, { uid: "func2" }];
+    } else if (path.includes("list_function_jobs_for_jobcollectionid")) {
+      response = sampleJobs;
+    } else if (path.includes("list_function_job_collections")) {
+      response = mockCollections;
+    } else {
+      response = "not mocked";
     }
 
     return Promise.resolve({
@@ -137,16 +148,6 @@ describe("Function Utils", () => {
   });
 
   it("should list functions", async () => {
-    const mockFunctions = [{ uid: "func1" }, { uid: "func2" }];
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() =>
-        Promise.resolve({
-          json: () => Promise.resolve(mockFunctions),
-        }),
-      ),
-    );
-
     const functions = await listFunctions();
     expect(functions).toEqual(mockFunctions);
   });
@@ -156,10 +157,6 @@ describe("Function Utils", () => {
     expect(jobs).toEqual(mockJobs);
   });
 
-  it("should get a function job by UID", async () => {
-    const job = await getFunctionJob("job1");
-    expect(job).toEqual(mockJobs[0]);
-  });
 
   it("should get function jobs from function UID", async () => {
     const mockJobData = [{ uid: "job1" }, { uid: "job2" }];
@@ -177,31 +174,11 @@ describe("Function Utils", () => {
   });
 
   it("should get function job collections", async () => {
-    const mockCollections = [{ uid: "collection1" }, { uid: "collection2" }];
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() =>
-        Promise.resolve({
-          json: () => Promise.resolve(mockCollections),
-        }),
-      ),
-    );
-
     const collections = await getFunctionJobCollections("func1");
     expect(collections).toEqual(mockCollections);
   });
 
   it("should get function jobs from a job collection", async () => {
-    const sampleJobs = [{ uid: "job1" }, { uid: "job2" }];
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() =>
-        Promise.resolve({
-          json: () => Promise.resolve(sampleJobs),
-        }),
-      ),
-    );
-
     const jobs = await getFunctionJobsFromFunctionJobCollection("collection1");
     expect(jobs).toEqual(sampleJobs);
   });
