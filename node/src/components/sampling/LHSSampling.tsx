@@ -5,10 +5,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
 import { useServiceContext } from "../../context/ServiceContext";
-import {
-  Function as OsparcFunction,
-  RegisteredFunctionJobCollection
-} from "../../osparc-api-ts-client";
+import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "../../osparc-api-ts-client";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { getFunctionJobsFromFunctionJobCollection } from "../../utils/function_utils";
 import { getSamplingEndValue, getSamplingStartValue } from "../../utils/sampling";
@@ -93,12 +90,12 @@ function LHSSampling() {
     }
     const newJobs: SelectedJobCollection[] = [
       {
-      jobCollection: jc,
-      selected: true,
-      subJobs: jobs.map(job => ({
-        selected: false,
-        job,
-      })),
+        jobCollection: jc,
+        selected: true,
+        subJobs: jobs.map(job => ({
+          selected: false,
+          job,
+        })),
       },
     ];
     setFetchedJobCollections([...fetchedJobCollections, ...newJobs]);
