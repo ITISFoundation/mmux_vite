@@ -49,7 +49,7 @@ const NormalInputDistribution = ({ inputVar, distribution, handleSetValue }: Inp
     distribution[inputVar] &&
     ((typeof distribution[inputVar].mean === "number" && distribution[inputVar].mean < -1e9) ||
       (typeof distribution[inputVar].mean === "number" && distribution[inputVar].mean > 1e9) ||
-      (typeof distribution[inputVar].std === "number" && distribution[inputVar].std < 0) ||
+      (typeof distribution[inputVar].std === "number" && distribution[inputVar].std <= 0) ||
       (typeof distribution[inputVar].std === "number" && distribution[inputVar].std > 1e9));
 
   let errorText = "";
