@@ -1,17 +1,17 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
 import {
   createInputOutputSchema,
   createJobStudyCopy,
+  getFunctionJobCollections,
+  getFunctionJobsFromFunctionJobCollection,
+  getFunctionJobsFromFunctionUid,
   getHealth,
   getPermissions,
   getServiceMode,
   listFunctions,
   listJobs,
-  getFunctionJobsFromFunctionUid,
-  getFunctionJobCollections,
-  getFunctionJobsFromFunctionJobCollection,
 } from "./function_utils";
-import { FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
 
 const mockJobs: FunctionJob[] = [
   {
@@ -32,6 +32,9 @@ const mockJobs: FunctionJob[] = [
   },
 ];
 
+const mockFunctions  = [{ uid: "func1" }, { uid: "func2" }];
+const sampleJobs = [{ uid: "job1" }, { uid: "job2" }];
+
 vi.mock("./fetch_retry.ts", () => ({
   fetchWithRetry: (path: string) => {
     let response: unknown;
@@ -39,6 +42,12 @@ vi.mock("./fetch_retry.ts", () => ({
       response = mockJobs;
     } else if (path.includes("get_function_job")) {
       [response] = mockJobs;
+    } else if (path.includes("list_functions")) {
+      response = [{ uid: "func1" }, { uid: "func2" }];
+    } else if (path.includes("list_function_jobs_for_jobcollectionid")) {
+      response = sampleJobs;
+    } else {
+      response = "not mocked";
     }
 
     return Promise.resolve({
@@ -136,9 +145,8 @@ describe("Function Utils", () => {
   });
 
   it("should list functions", async () => {
-    const mockFunctions = [{ uid: "func1" }, { uid: "func2" }];
     vi.stubGlobal(
-      "fetch",
+      "fetchWithRetry",
       vi.fn(() =>
         Promise.resolve({
           json: () => Promise.resolve(mockFunctions),
@@ -187,9 +195,8 @@ describe("Function Utils", () => {
   });
 
   it("should get function jobs from a job collection", async () => {
-    const sampleJobs = [{ uid: "job1" }, { uid: "job2" }];
     vi.stubGlobal(
-      "fetch",
+      "fetchWithRetry",
       vi.fn(() =>
         Promise.resolve({
           json: () => Promise.resolve(sampleJobs),
