@@ -97,7 +97,7 @@ function JobRow(props: JobRowProps) {
   } else if (
     jobStatus === "FAILED" ||
     jobStatus === "ABORTED" ||
-    (jobStatus.startsWith("JOB_") && jobStatus.endsWith("_FAILED"))
+    (jobStatus.startsWith("JOB_") && jobStatus.endsWith("_FAILURE"))
   ) {
     outputs = "Failed - no outputs";
   } else if (
@@ -106,7 +106,7 @@ function JobRow(props: JobRowProps) {
     jobStatus === "PUBLISHED" ||
     jobStatus === "NOT_STARTED" ||
     jobStatus === "WAITING_FOR_RESOURCES" ||
-    (jobStatus.startsWith("JOB_") && !jobStatus.endsWith("_FAILED"))
+    (jobStatus.startsWith("JOB_") && !jobStatus.endsWith("_FAILURE"))
   ) {
     outputs = "Pending to run";
   } else if (jobStatus === "UNKNOWN") {
