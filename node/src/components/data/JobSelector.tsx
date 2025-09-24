@@ -562,7 +562,10 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                   rowsPerPage={rowsPerPage}
                   page={page}
                   onPageChange={(_e, newPage) => setPage(newPage)}
-                  onRowsPerPageChange={e => setRowsPerPage(parseInt(e.target.value, 10))}
+                  onRowsPerPageChange={e => {
+                    setRowsPerPage(parseInt(e.target.value, 10));
+                    setPage(0);
+                  }}
                 />
               </Box>
             </Card>
