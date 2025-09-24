@@ -54,7 +54,6 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       });
       setWeights(generatedWeights);
     }
-    console.log("Weights after output vars change:", weights);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
