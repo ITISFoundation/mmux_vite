@@ -57,6 +57,7 @@ function LHSSampling() {
   const { permissions } = useServiceContext();
 
   const [lhsInputs, setLhsInputs] = useState<LHSamplingConfig>(lhsSamplingConfig);
+  const [localSamplingPoints, setLocalSamplingPoints] = useState<number>(lhsInputs.points);
   const [loading, setLoading] = useState<boolean>(true);
 
   const recommendedLHSSamples = useCallback(() => {
@@ -140,11 +141,18 @@ function LHSSampling() {
     if (lhsInputs.points >= 5 && lhsInputs.points <= 50) return;
     setLhsInputs(prevInputs => {
       const nPoints = recommendedLHSSamples();
-      const lhsPoints = Math.min(Math.max(nPoints, 5), 50); // hardcoded max points limit in backedn
+      console.log(
+        "Updating LHS points based on recommended samples and local input",
+        nPoints < localSamplingPoints,
+        localSamplingPoints,
+        nPoints,
+      );
+      const lhsPoints = Math.min(Math.max(nPoints > localSamplingPoints ? localSamplingPoints : nPoints, 5), 50); // hardcoded max points limit in backend
+      setLocalSamplingPoints(lhsPoints);
       const newInputs = { ...prevInputs, inputs: inputVars.map(generateInputsList), points: lhsPoints };
       return newInputs;
     });
-  }, [generateInputsList, inputVars, lhsInputs.points, recommendedLHSSamples, selectedFunction]);
+  }, [generateInputsList, inputVars, lhsInputs.points, localSamplingPoints, recommendedLHSSamples, selectedFunction]);
 
   return (
     <>
@@ -194,12 +202,13 @@ function LHSSampling() {
           <Input
             type="number"
             placeholder="Number of sampling points"
-            value={lhsInputs.points.toString()}
+            value={localSamplingPoints.toString()}
             sx={theme => ({
               width: 100,
               borderBottom: `1px solid ${theme.palette.background.paper}`,
             })}
-            onChange={e => handleInputChange(0, "points", e.target.value)}
+            onChange={e => setLocalSamplingPoints(parseInt(e.target.value, 10))}
+            onBlur={e => handleInputChange(0, "points", e.target.value)}
           />
           <Typography variant="body1">Seed: </Typography>
           <Input
