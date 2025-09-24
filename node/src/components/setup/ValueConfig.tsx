@@ -44,6 +44,8 @@ function VariableConfig({
       <InputBlock
         name="Value"
         type="number"
+        minmax={{ min: -1e9, max: 1e9 }}
+        error={!!(inputVar.value !== undefined && inputVar.value < 0)}
         value={inputVar.value !== undefined ? inputVar.value : NaN}
         onChange={n => handleInputChange(index, "value", n as string)}
       />
