@@ -118,7 +118,7 @@ export function MOGAPareto(props: LoadingPropsType) {
         body: bodyData,
       });
 
-      console.log("MOGA response:", response);
+      
       if (!response.ok) {
         throw new Error(`Error in MOGA response: ${response.status}, ${response.statusText}`);
       }
