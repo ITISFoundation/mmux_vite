@@ -180,7 +180,7 @@ export function MOGAPareto(props: LoadingPropsType) {
           name: "Pareto Front",
           mode: "lines+markers",
           type: localPlotType === "3D" ? "scatter3d" : "scatter",
-          marker: { color: "lightblue", size: 6 },
+          marker: { color: "white", size: 6 },
         },
       ];
 

@@ -208,7 +208,7 @@ export const MOGAPlotModal = (props: MOGAPlotModalProps) => {
           startIcon={<ShowChart />}
           onClick={() => setOpen(true)}
           disabled={optVars.length === 0}
-          sx={{ textTransform: "none", width: "180px" }}
+          sx={{ textTransform: "none", width: "180px", textWrapMode: "nowrap", overflow: "hidden" }}
         >
           PLOT SETTINGS
         </Button>
