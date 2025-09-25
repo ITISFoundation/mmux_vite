@@ -29,6 +29,9 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
     mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaValues.replacementType,
   );
 
+  const popSizeError = populationSize < 1 || populationSize > 1000000;
+  const iterError = maxIterations < 1 || maxIterations > 1000000;
+
   const resetFields = () => {
     setPopulationSize(mogaSettings[selectedFunction?.uid || ""]?.populationSize || defaultMogaValues.populationSize);
     setMaxIterations(mogaSettings[selectedFunction?.uid || ""]?.maxIterations || defaultMogaValues.maxIterations);
@@ -104,7 +107,7 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 sx={{ flex: 1 }}
                 data-testid="input-block"
                 InputProps={{ inputProps: { min: 1, max: 1000000 } }}
-                error={populationSize < 1 || populationSize > 1000000}
+                error={popSizeError}
                 value={Number.isNaN(populationSize) ? "" : populationSize}
                 onChange={e => setPopulationSize(parseInt(e.target.value, 10))}
                 aria-label="Population Size"
@@ -124,7 +127,7 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 sx={{ flex: 1 }}
                 data-testid="input-block"
                 InputProps={{ inputProps: { min: 1, max: 1000000 } }}
-                error={maxIterations < 1 || maxIterations > 1000000}
+                error={iterError}
                 value={Number.isNaN(maxIterations) ? "" : maxIterations}
                 onChange={e => setMaxIterations(parseInt(e.target.value, 10))}
                 aria-label="Iterations"
@@ -172,9 +175,7 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
               setOpen(false);
             }}
             sx={{ alignItems: "end" }}
-            disabled={
-              populationSize < 1 || populationSize > 1000000 || maxIterations < 1 || maxIterations > 1000000 || !selectedFunction
-            }
+            disabled={popSizeError || iterError || !selectedFunction}
           >
             Apply
           </Button>
