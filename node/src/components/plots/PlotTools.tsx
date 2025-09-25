@@ -94,7 +94,7 @@ interface OutputSelectProps {
   setSelected: (value: string) => void;
 }
 export function OutputSelect({ values, selected, setSelected }: OutputSelectProps) {
-  console.log("OutputSelect render", { values, selected });
+  // Removed debug console.log statement
   return (
     <Select
       labelId={`select-output-${selected}`}
