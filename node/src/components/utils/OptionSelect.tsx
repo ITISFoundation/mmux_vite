@@ -1,17 +1,43 @@
-import { InputLabel, Typography, Select, MenuItem } from "@mui/material";
+import { InfoOutline } from "@mui/icons-material";
+import { InputLabel, Typography, Select, MenuItem, useTheme } from "@mui/material";
+import CustomTooltip from "./CustomTooltip";
 
 interface OptionSelectorProps<T> {
   property: string;
   possibleValues: Array<{ key: T; label: string }>;
   currentValue: T | undefined;
   setCurrentValue: (value: T) => void;
+  title?: React.ReactNode;
+  extendedTooltip?: React.ReactElement;
 }
 
-export default function OptionSelector<T>({ property, possibleValues, currentValue, setCurrentValue }: OptionSelectorProps<T>) {
+export default function OptionSelector<T>({
+  property,
+  possibleValues,
+  currentValue,
+  setCurrentValue,
+  title,
+  extendedTooltip,
+}: OptionSelectorProps<T>) {
+  const theme = useTheme();
   return (
     <InputLabel sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
       <Typography variant="body1" component="p" fontWeight={400} sx={{ flex: 1 }}>
-        {property || ""}:
+        {property || ""}
+        <CustomTooltip title={title} ExtendedTooltip={extendedTooltip} placement="right" arrow>
+          <InfoOutline
+            sx={{
+              color: theme.palette.primary.light,
+              backgroundColor: theme.palette.background.default,
+              borderRadius: "50%",
+              padding: "2px",
+              marginLeft: "2px",
+              marginRight: "2px",
+              marginBottom: "2px",
+              fontSize: "20px",
+            }}
+          />
+        </CustomTooltip>
       </Typography>
       <Select
         labelId="select-key1"
