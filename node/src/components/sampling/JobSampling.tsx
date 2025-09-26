@@ -42,6 +42,7 @@ export function JobSampling(props: JobSamplingProps) {
         variant="contained"
         color="primary"
         disabled={loading}
+        mmux-testid="extend-sampling-btn"
         onClick={() => setJobPanelOpen(loading ? false : !jobPanelOpen)}
       >
         Adapt / Extend Sampling

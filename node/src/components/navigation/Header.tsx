@@ -53,6 +53,7 @@ function Header(props: HeaderProps) {
           component="h1"
           fontWeight={fontWeight || (headerType === "subTitle" ? 100 : 100)}
           fontFamily="inherit"
+          mmux-testid="header-title"
         >
           {tabTitle}
         </Typography>

@@ -25,10 +25,10 @@ function Consumer() {
   const ctx = useFunctionContext();
   return (
     <div>
-      <span data-testid="selectedFunction">{ctx.selectedFunction?.title}</span>
-      <span data-testid="inputVars">{ctx.inputVars.join(",")}</span>
-      <span data-testid="outputVars">{ctx.outputVars.join(",")}</span>
-      <span data-testid="distribution">{Object.keys(ctx.distribution).join(",")}</span>
+      <span mmux-testid="selectedFunction">{ctx.selectedFunction?.title}</span>
+      <span mmux-testid="inputVars">{ctx.inputVars.join(",")}</span>
+      <span mmux-testid="outputVars">{ctx.outputVars.join(",")}</span>
+      <span mmux-testid="distribution">{Object.keys(ctx.distribution).join(",")}</span>
     </div>
   );
 }
@@ -54,10 +54,10 @@ describe("FunctionContextProvider", () => {
       const ctx = useFunctionContext();
       return (
         <div>
-          <button type="button" onClick={() => ctx.setInputVars(["a", "b"])} data-testid="setInputVars">
+          <button type="button" onClick={() => ctx.setInputVars(["a", "b"])} mmux-testid="setInputVars">
             Set Input Vars
           </button>
-          <span data-testid="inputVars">{ctx.inputVars.join(",")}</span>
+          <span mmux-testid="inputVars">{ctx.inputVars.join(",")}</span>
         </div>
       );
     }

@@ -15,8 +15,8 @@ function TestComponent() {
   const { currentView, setCurrentView, steps } = useNavigationContext();
   return (
     <div>
-      <span data-testid="currentView">{currentView}</span>
-      <span data-testid="steps">{steps.length}</span>
+      <span mmux-testid="currentView">{currentView}</span>
+      <span mmux-testid="steps">{steps.length}</span>
       <button type="button" onClick={() => setCurrentView(1)}>
         Set View 1
       </button>

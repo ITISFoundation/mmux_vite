@@ -17,7 +17,7 @@ export function InputBlock(props: InputBlockProps) {
         variant="outlined"
         size="small"
         sx={{ marginTop: "8px" }}
-        data-testid="input-block"
+        mmux-testid={`input-block-${name}`}
         InputProps={{ inputProps: { min: 0, max: 1000000 } }}
         color={currentValue < 0 || currentValue > 1000000 ? "warning" : "primary"}
         value={Number.isNaN(currentValue) ? "" : currentValue}

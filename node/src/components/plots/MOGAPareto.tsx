@@ -356,7 +356,7 @@ export function MOGAPareto(props: LoadingPropsType) {
       )}
       {!propagating && plotData.length !== 0 && (
         <>
-          <Plot ref={ref} data={plotData} layout={layout} style={plotStyle} />
+          <Plot ref={ref} data={plotData} layout={layout} style={plotStyle} mmux-testid="moga-plot" />
           <Box
             sx={{
               width: "150px",

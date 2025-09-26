@@ -47,25 +47,25 @@ function TestComponent() {
             },
           ] as SelectedJobCollection[])
         }
-        data-testid="set-fetched"
+        mmux-testid="set-fetched"
       >
         Set Fetched
       </button>
-      <button type="button" onClick={() => setSelectedJobUids(["1", "3"])} data-testid="set-selected">
+      <button type="button" onClick={() => setSelectedJobUids(["1", "3"])} mmux-testid="set-selected">
         Set Selected
       </button>
       <button
         type="button"
         onClick={() => setRunningJobCollection({} as RegisteredFunctionJobCollection)}
-        data-testid="set-running"
+        mmux-testid="set-running"
       >
         Set Running
       </button>
-      <div data-testid="all-jobs">{JSON.stringify(allJobsList())}</div>
-      <div data-testid="filtered-jobs">{JSON.stringify(filteredJobList)}</div>
-      <div data-testid="selected-uids">{JSON.stringify(selectedJobUids)}</div>
-      <div data-testid="running-job">{JSON.stringify(runningJobCollection)}</div>
-      <div data-testid="fetched-jobs">{JSON.stringify(fetchedJobCollections)}</div>
+      <div mmux-testid="all-jobs">{JSON.stringify(allJobsList())}</div>
+      <div mmux-testid="filtered-jobs">{JSON.stringify(filteredJobList)}</div>
+      <div mmux-testid="selected-uids">{JSON.stringify(selectedJobUids)}</div>
+      <div mmux-testid="running-job">{JSON.stringify(runningJobCollection)}</div>
+      <div mmux-testid="fetched-jobs">{JSON.stringify(fetchedJobCollections)}</div>
     </div>
   );
 }
