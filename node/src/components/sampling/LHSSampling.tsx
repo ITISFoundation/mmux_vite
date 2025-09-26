@@ -1,21 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
 import { Box, Input, Skeleton, Typography } from "@mui/material";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import {
-  Function as OsparcFunction,
-  FunctionJob as OsparcFunctionJob,
-  RegisteredFunctionJobCollection,
-} from "../../osparc-api-ts-client";
-import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
-import { RunSamplingButton } from "./RunSamplingButton";
-import VariableConfig from "../setup/VariableConfig";
-import { getFunctionJob } from "../../utils/function_utils";
 import { useFunctionContext } from "../../context/FunctionContext";
-import { useServiceContext } from "../../context/ServiceContext";
-import { filterInputVars } from "../plots/PlotTools";
-import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
 import { useJobContext } from "../../context/JobContext";
+import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
+import { useServiceContext } from "../../context/ServiceContext";
+import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "../../osparc-api-ts-client";
+import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
+import { getFunctionJobsFromFunctionJobCollection } from "../../utils/function_utils";
+import { getSamplingEndValue, getSamplingStartValue } from "../../utils/sampling";
+import { filterInputVars } from "../plots/PlotTools";
+import VariableConfig from "../setup/VariableConfig";
+import { RunSamplingButton } from "./RunSamplingButton";
 
 async function runLhsSampling(
   selectedFunction: OsparcFunction | undefined,
@@ -36,8 +32,11 @@ async function runLhsSampling(
     }),
   })
     .then(async response => {
-      if (!response.ok) {
+      if (!response.ok || response.status !== 200) {
         const errorText = await response.text();
+        toast.error(`Error running LHS sampling: ${response.status}: ${errorText}`);
+        context.setLaunchingSampling(false);
+        context.setRunningSampling(false);
         throw new Error(`Error running LHS sampling: ${response.status}: ${errorText}`);
       }
       return response.json();
@@ -61,6 +60,7 @@ function LHSSampling() {
   const { permissions } = useServiceContext();
 
   const [lhsInputs, setLhsInputs] = useState<LHSamplingConfig>(lhsSamplingConfig);
+  const [localSamplingPoints, setLocalSamplingPoints] = useState<number>(lhsInputs.points);
   const [loading, setLoading] = useState<boolean>(true);
 
   const recommendedLHSSamples = useCallback(() => {
@@ -80,29 +80,28 @@ function LHSSampling() {
       );
     }
     const jc = await runLhsSampling(selectedFunction, SamplingContext, setRunningJobCollection, lhsInputs);
-    // New - include this job collection in the fetchedJobCollections
     if (!jc) {
       console.error("Job collection is undefined. Cannot add to fetchedJobCollections.");
       return;
     }
-    const newJobs: SelectedJobCollection[] = await Promise.all(
-      [jc].map(async localJC => {
-        const subJobs = await Promise.all(
-          localJC.jobIds.map(async id => {
-            const job = (await getFunctionJob(id)) as OsparcFunctionJob;
-            return {
-              selected: false,
-              job,
-            };
-          }),
-        );
-        return {
-          jobCollection: localJC,
-          selected: true,
-          subJobs,
-        };
-      }),
-    );
+    let jobs;
+    try {
+      jobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
+    } catch (error) {
+      console.error("Failed to fetch jobs from job collection:", error);
+      toast.error("Failed to fetch jobs for the new sampling run. Please try again.");
+      return;
+    }
+    const newJobs: SelectedJobCollection[] = [
+      {
+        jobCollection: jc,
+        selected: true,
+        subJobs: jobs.map(job => ({
+          selected: false,
+          job,
+        })),
+      },
+    ];
     setFetchedJobCollections([...fetchedJobCollections, ...newJobs]);
     // TODO Alex: how do I update the table without need to reload everything else?
   };
@@ -145,11 +144,12 @@ function LHSSampling() {
     if (lhsInputs.points >= 5 && lhsInputs.points <= 50) return;
     setLhsInputs(prevInputs => {
       const nPoints = recommendedLHSSamples();
-      const lhsPoints = Math.min(Math.max(nPoints, 5), 50); // hardcoded max points limit in backedn
+      const lhsPoints = Math.min(Math.max(Math.min(localSamplingPoints, nPoints), 5), 50); // hardcoded max points limit in backend
+      setLocalSamplingPoints(lhsPoints);
       const newInputs = { ...prevInputs, inputs: inputVars.map(generateInputsList), points: lhsPoints };
       return newInputs;
     });
-  }, [generateInputsList, inputVars, lhsInputs.points, recommendedLHSSamples, selectedFunction]);
+  }, [generateInputsList, inputVars, lhsInputs.points, localSamplingPoints, recommendedLHSSamples, selectedFunction]);
 
   return (
     <>
@@ -199,18 +199,24 @@ function LHSSampling() {
           <Input
             type="number"
             placeholder="Number of sampling points"
-            value={lhsInputs.points.toString()}
+            value={localSamplingPoints.toString()}
             sx={theme => ({
               width: 100,
               borderBottom: `1px solid ${theme.palette.background.paper}`,
             })}
-            onChange={e => handleInputChange(0, "points", e.target.value)}
+            onChange={e => {
+              const { value } = e.target;
+              const parsed = value === "" ? 0 : parseInt(value, 10);
+              setLocalSamplingPoints(Number.isNaN(parsed) ? 0 : parsed);
+            }}
+            onBlur={e => handleInputChange(0, "points", e.target.value)}
           />
           <Typography variant="body1">Seed: </Typography>
           <Input
             type="number"
             placeholder="seed"
             value={lhsInputs.seed.toString()}
+            inputProps={{ min: 0 }}
             sx={theme => ({
               width: 100,
               borderBottom: `1px solid ${theme.palette.background.paper}`,

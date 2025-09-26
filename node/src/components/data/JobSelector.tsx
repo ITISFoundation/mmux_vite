@@ -116,6 +116,38 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     setJobCollections(newJobCollections);
   };
 
+  const getJobCollectionStatus = (subJobs: SubJob[]) => {
+    if (!subJobs || subJobs.length === 0) return "EMPTY";
+    const result = subJobs
+      .filter(j => j.job)
+      .map(j => j.job.status)
+      .reduce(
+        (acc, status) => {
+          if (status === "SUCCESS") acc.success += 1;
+          else if (status === "STARTED") acc.running += 1;
+          else if (status.includes("FAILED") || status.includes("FAILURE")) acc.failed += 1;
+          // else if (status === "PENDING") acc.pending += 1;
+          else acc.incomplete += 1;
+          return acc;
+        },
+        { success: 0, running: 0, failed: 0, incomplete: 0 },
+      );
+
+    const allComplete = result.success === subJobs.length;
+    const anyComplete = result.success > 0;
+    const anyRunning = result.running > 0;
+    const anyFailed = result.failed > 0;
+    const allFailed = result.failed === subJobs.length;
+    const allPending = result.incomplete === subJobs.length;
+    if (allComplete) return "COMPLETE";
+    if (anyRunning) return "RUNNING";
+    if (allFailed) return "FAILED";
+    if (anyFailed && anyComplete) return "FAILED (PARTIALLY)";
+    if (allPending) return "PENDING";
+    // Default fallback
+    return "UNKNOWN";
+  };
+
   const updateJobCollections = useCallback(
     async (functionUid: string, forceFetch = false) => {
       console.info("Fetching jobCollections for function: ", functionUid);
@@ -127,6 +159,14 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       }
 
       const jobsC = (await getFunctionJobCollections(functionUid as string)) as FunctionJobCollection[];
+
+      if (jobsC.length === 0) {
+        console.info("No job collections found for function: ", functionUid);
+        setJobCollections([]);
+        setFetchedJobCollections([]);
+        setLoading(false);
+        return;
+      }
 
       const equalJC: boolean[] =
         fetchedJobCollections.length === jobsC.length
@@ -149,22 +189,12 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         setJobCollections([]);
         setProgress(0);
         setJobProgress(0);
-        jobsFetched.current = 0;
-        colsFetched.current = 0;
       }
 
       const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
       colsFetched.current = 0;
       jobsFetched.current = 0;
       console.info("Fetched jobCollections: ", jobsC, totalSubs);
-
-      if (jobsC.length === 0) {
-        console.info("No job collections found for function: ", functionUid);
-        setJobCollections([]);
-        setFetchedJobCollections([]);
-        setLoading(false);
-        return;
-      }
 
       const newJobCollections: SelectedJobCollection[] = [];
 
@@ -325,38 +355,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFunction, launchingSampling, runningSampling]);
 
-  const getJobCollectionStatus = (subJobs: SubJob[]) => {
-    if (!subJobs || subJobs.length === 0) return "EMPTY";
-    const result = subJobs
-      .filter(j => j.job)
-      .map(j => j.job.status)
-      .reduce(
-        (acc, status) => {
-          if (status === "SUCCESS") acc.success += 1;
-          else if (status === "STARTED") acc.running += 1;
-          else if (status === "FAILED") acc.failed += 1;
-          // else if (status === "PENDING") acc.pending += 1;
-          else acc.incomplete += 1;
-          return acc;
-        },
-        { success: 0, running: 0, failed: 0, incomplete: 0 },
-      );
-
-    const allComplete = result.success === subJobs.length;
-    const anyComplete = result.success > 0;
-    const anyRunning = result.running > 0;
-    const anyFailed = result.failed > 0;
-    const allFailed = result.failed === subJobs.length;
-    const allPending = result.incomplete === subJobs.length;
-    if (allComplete) return "COMPLETE";
-    if (anyRunning) return "RUNNING";
-    if (allFailed) return "FAILED";
-    if (anyFailed && anyComplete) return "FAILED (PARTIALLY)";
-    if (allPending) return "PENDING";
-    // Default fallback
-    return "UNKNOWN";
-  };
-
   return (
     <>
       <DataGrid
@@ -420,7 +418,14 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             minWidth: 200,
             align: "left",
             headerAlign: "left",
-            renderCell: params => <span>{params.row.jobCollection.title}</span>,
+            renderCell: params => (
+              <Box alignItems="center" justifyContent="left" display="flex" gap={1}>
+                <CustomTooltip title={params.row.jobCollection.uid} placement="bottom-start">
+                  <InfoOutline color="primary" />
+                </CustomTooltip>
+                <span>{params.row.jobCollection.title}</span>
+              </Box>
+            ),
           },
           {
             field: "Min-Max",
@@ -537,7 +542,9 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                         <TableCell>Job ID</TableCell>
                         <TableCell>Inputs</TableCell>
                         <TableCell>Outputs</TableCell>
-                        <TableCell align="right">Status</TableCell>
+                        <TableCell align="right" width={100}>
+                          Status
+                        </TableCell>
                         <TableCell align="right" />
                       </TableRow>
                     </TableHead>
@@ -562,7 +569,10 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                   rowsPerPage={rowsPerPage}
                   page={page}
                   onPageChange={(_e, newPage) => setPage(newPage)}
-                  onRowsPerPageChange={e => setRowsPerPage(parseInt(e.target.value, 10))}
+                  onRowsPerPageChange={e => {
+                    setRowsPerPage(parseInt(e.target.value, 10));
+                    setPage(0);
+                  }}
                 />
               </Box>
             </Card>

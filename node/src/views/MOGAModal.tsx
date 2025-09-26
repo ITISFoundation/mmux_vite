@@ -29,6 +29,9 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
     mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaValues.replacementType,
   );
 
+  const popSizeError = populationSize < 1 || populationSize > 1000000;
+  const iterError = maxIterations < 1 || maxIterations > 1000000;
+
   const resetFields = () => {
     setPopulationSize(mogaSettings[selectedFunction?.uid || ""]?.populationSize || defaultMogaValues.populationSize);
     setMaxIterations(mogaSettings[selectedFunction?.uid || ""]?.maxIterations || defaultMogaValues.maxIterations);
@@ -104,11 +107,10 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 sx={{ flex: 1 }}
                 mmux-testid="input-block"
                 InputProps={{ inputProps: { min: 1, max: 1000000 } }}
-                color={populationSize < 1 || populationSize > 1000000 ? "warning" : "primary"}
+                error={popSizeError}
                 value={Number.isNaN(populationSize) ? "" : populationSize}
                 onChange={e => setPopulationSize(parseInt(e.target.value, 10))}
                 aria-label="Population Size"
-                error={false}
               />
             </InputLabel>
             <InputLabel
@@ -125,11 +127,10 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 sx={{ flex: 1 }}
                 mmux-testid="input-block"
                 InputProps={{ inputProps: { min: 1, max: 1000000 } }}
-                color={maxIterations < 1 || maxIterations > 1000000 ? "warning" : "primary"}
+                error={iterError}
                 value={Number.isNaN(maxIterations) ? "" : maxIterations}
                 onChange={e => setMaxIterations(parseInt(e.target.value, 10))}
                 aria-label="Iterations"
-                error={false}
               />
             </InputLabel>
             <OptionSelect
@@ -174,6 +175,7 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
               setOpen(false);
             }}
             sx={{ alignItems: "end" }}
+            disabled={popSizeError || iterError || !selectedFunction}
           >
             Apply
           </Button>

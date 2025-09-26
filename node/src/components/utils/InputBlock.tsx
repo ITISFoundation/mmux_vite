@@ -2,7 +2,7 @@ import { InputLabel, TextField } from "@mui/material";
 import { useState } from "react";
 
 export function InputBlock(props: InputBlockProps) {
-  const { name, value, type, error, onChange } = props;
+  const { name, value, type, error, minmax, onChange } = props;
   const [currentValue, setCurrentValue] = useState<number>(value);
 
   const handleChange = (newValue: number) => {
@@ -18,13 +18,13 @@ export function InputBlock(props: InputBlockProps) {
         size="small"
         sx={{ marginTop: "8px" }}
         mmux-testid={`input-block-${name}`}
-        InputProps={{ inputProps: { min: 0, max: 1000000 } }}
-        color={currentValue < 0 || currentValue > 1000000 ? "warning" : "primary"}
+        InputProps={{ inputProps: { min: minmax?.min || -1e9, max: minmax?.max || 1e9 } }}
+        color="primary"
         value={Number.isNaN(currentValue) ? "" : currentValue}
         onChange={e => setCurrentValue(parseFloat(e.target.value))}
         onBlur={e => handleChange(parseFloat(e.target.value))}
         aria-label={name}
-        error={error}
+        error={error || currentValue > (minmax?.max || 1e9) || currentValue < (minmax?.min || -1e9)}
       />
     </InputLabel>
   );

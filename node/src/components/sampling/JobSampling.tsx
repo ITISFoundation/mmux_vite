@@ -48,7 +48,7 @@ export function JobSampling(props: JobSamplingProps) {
         Adapt / Extend Sampling
         <CustomTooltip
           title="Improve surrogate model accuracy by modifying or adding sample points"
-          ExtendedTootlip={AdaptExtedSamplingDocument}
+          ExtendedTooltip={AdaptExtedSamplingDocument}
           placement="right"
           arrow
         >

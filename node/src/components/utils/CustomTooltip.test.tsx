@@ -21,9 +21,9 @@ describe("CustomTooltip", () => {
     expect(await screen.findByText("Tooltip text")).toBeDefined();
   });
 
-  it("renders 'Read more...' link when ExtendedTootlip is provided", async () => {
+  it("renders 'Read more...' link when ExtendedTooltip is provided", async () => {
     render(
-      <CustomTooltip title="Tooltip text" ExtendedTootlip={<Typography>Extended content</Typography>}>
+      <CustomTooltip title="Tooltip text" ExtendedTooltip={<Typography>Extended content</Typography>}>
         <button type="button">Hover me</button>
       </CustomTooltip>,
     );
@@ -31,11 +31,11 @@ describe("CustomTooltip", () => {
     expect(await screen.findByText("Read more...")).toBeDefined();
   });
 
-  it("opens modal with ExtendedTootlip when 'Read more...' is clicked", async () => {
+  it("opens modal with ExtendedTooltip when 'Read more...' is clicked", async () => {
     render(
       <CustomTooltip
         title="Tooltip text"
-        ExtendedTootlip={<Typography mmux-testid="extended-content">Extended content</Typography>}
+        ExtendedTooltip={<Typography mmux-testid="extended-content">Extended content</Typography>}
       >
         <button type="button">Hover me</button>
       </CustomTooltip>,
@@ -50,7 +50,7 @@ describe("CustomTooltip", () => {
     const { queryByTestId } = render(
       <CustomTooltip
         title="Tooltip text"
-        ExtendedTootlip={<Typography mmux-testid="extended-content">Extended content</Typography>}
+        ExtendedTooltip={<Typography mmux-testid="extended-content">Extended content</Typography>}
       >
         <button type="button">Hover me</button>
       </CustomTooltip>,

@@ -23,7 +23,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
 
   useEffect(() => {
     (async () => {
-      console.log("running job collections: ", fetchedJobCollections, filteredJobList);
+      console.log("running job collections: ", filteredJobList);
       setDataUQHistogram(undefined);
       setPlotData([]);
       setPropagating(true);

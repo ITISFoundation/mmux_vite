@@ -1,4 +1,3 @@
-import { toast } from "react-toastify";
 import { FunctionContextType } from "../context/FunctionContext";
 import { JobContextType } from "../context/JobContext";
 
@@ -15,7 +14,6 @@ export function stepValidator(
       return false; // No function or distribution selected
     }
     if (ServiceMode === "MOGA") {
-
       // no outputTargets generated for ANY function yet
       if (Object.keys(functionContext?.outputTargets).length === 0) return false;
 
@@ -23,7 +21,7 @@ export function stepValidator(
       const outputTargets = functionContext.outputTargets[functionContext.selectedFunction.uid];
       if (!outputTargets) return false;
 
-      // at least one output target is necessary for optimization 
+      // at least one output target is necessary for optimization
       if (Object.keys(outputTargets).length < 1) {
         return false;
       }

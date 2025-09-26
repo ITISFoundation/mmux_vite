@@ -43,7 +43,7 @@ const types: { [key in HeaderTypes]: TypographyVariant } = {
 };
 
 function Header(props: HeaderProps) {
-  const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents, fontWeight } = props;
+  const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents, fontWeight, errorMessage } = props;
   const theme = useTheme();
   return (
     <HeaderContainer headerType={headerType}>
@@ -58,7 +58,7 @@ function Header(props: HeaderProps) {
           {tabTitle}
         </Typography>
         {infoText && infoText.length > 0 && (
-          <CustomTooltip title={infoText} ExtendedTootlip={ExtendedInfoText} placement="right" arrow>
+          <CustomTooltip title={infoText} ExtendedTooltip={ExtendedInfoText} placement="right" arrow>
             <InfoOutline
               sx={{
                 color: theme.palette.primary.light,
@@ -71,6 +71,11 @@ function Header(props: HeaderProps) {
               }}
             />
           </CustomTooltip>
+        )}
+        {errorMessage && (
+          <Typography color="error" sx={{ marginLeft: "16px", fontSize: "0.9em", fontWeight: 400 }}>
+            {errorMessage}
+          </Typography>
         )}
       </Box>
       {helpContents && (

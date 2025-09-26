@@ -42,6 +42,11 @@ type DataUQHistogramType = {
   max: number;
 };
 
+type PlotConfig = {
+  dimensionType: "1D" | "2D" | "3D";
+  scaleType: "linear" | "log";
+};
+
 type LoadingPropsType = {
   loading: boolean;
   setLoading?: (loading: boolean) => void;
@@ -72,6 +77,7 @@ interface HeaderProps {
   ExtendedInfoText?: ReactElement;
   helpContents?: ReactElement;
   fontWeight?: React.CSSProperties["fontWeight"];
+  errorMessage?: string;
 }
 
 interface SubJob {
@@ -117,6 +123,7 @@ interface InputBlockProps {
   type?: "number" | "text";
   onChange: (value: unknown) => void;
   error?: boolean;
+  minmax?: { min: number; max: number };
 }
 
 interface InputTextBlockProps {
@@ -161,5 +168,6 @@ type MogaDataRowType = { [key: string]: number; Performance: number; NDI: number
 interface MogaDataType {
   inputs: string[];
   outputs: string[];
+  raw: { [key: string]: number[] };
   rows: Array<MogaDataRowType>;
 }

@@ -13,24 +13,26 @@ import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import { aggregateOutputValues } from "../../utils/function_utils";
 import { useMOGATableContext } from "../../context/MOGATableContext";
-import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
+import { MOGAPlotModal } from "./MOGAPlotModal";
+import { plotMargins, plotMargins2D } from "./PlotTools";
 
 export function MOGAPareto(props: LoadingPropsType) {
   const { loading, progress, jobProgress } = props;
   const theme = useTheme();
   const ref = useRef<Plot>(null);
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
-  const { fetchedJobCollections, filteredJobList, selectedJobUids } = useJobContext();
+  const { fetchedJobCollections, filteredJobList } = useJobContext();
   const { mogaSettings } = useMOGASettingsContext();
   const { weights } = useMOGATableContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [layout, setLayout] = useState<Partial<Plotly.Layout>>({});
-  const [plotType, setPlotType] = useState<"1D" | "2D" | "3D">("2D");
+  const [plotType, setPlotType] = useState<PlotConfig>();
   const [propagating, setPropagating] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [outputVarSelection, setOutputVarSelection] = useState<OutputVarSelection>({});
   const [optVars, setOptVars] = useState<Array<string>>([]);
+  const [selectedOptVars, setSelectedOptVars] = useState<Array<string>>([]);
   const [tableData, setTableData] = useState<MogaDataType | undefined>(undefined);
   const [hovered, setHovered] = useState<number | null>(null);
 
@@ -100,7 +102,7 @@ export function MOGAPareto(props: LoadingPropsType) {
   };
 
   const runMOGA = useCallback(
-    async (jobs: FunctionJob[], ovs: OutputVarSelection, extPlotType?: "1D" | "2D" | "3D") => {
+    async (jobs: FunctionJob[], ovs: OutputVarSelection) => {
       const localsettings = mogaSettings[selectedFunction?.uid as string] || defaultMogaValues;
       let localOptVars = optVars;
       if (localOptVars.length === 0) {
@@ -113,11 +115,11 @@ export function MOGAPareto(props: LoadingPropsType) {
         outputVarSelection: ovs,
         FunctionJobs: jobs,
       });
-      console.info("Running MOGA...", bodyData);
       const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/perform_moga_optimization`, {
         method: "POST",
         body: bodyData,
       });
+
       if (!response.ok) {
         throw new Error(`Error in MOGA response: ${response.status}, ${response.statusText}`);
       }
@@ -129,6 +131,7 @@ export function MOGAPareto(props: LoadingPropsType) {
       const newTableData: MogaDataType = {
         inputs: inputVars,
         outputs: localOptVars,
+        raw: results,
         rows: results.non_dominated_indices.map((ndi: number) => ({
           ...inputVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
           ...localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
@@ -138,19 +141,34 @@ export function MOGAPareto(props: LoadingPropsType) {
           NDI: ndi,
         })),
       };
+      setSelectedOptVars(localOptVars);
       setTableData(newTableData);
+      return { newTableData, localOptVars };
+    },
+    [mogaSettings, selectedFunction?.uid, optVars, distribution, inputVars, calculatePerformance],
+  );
 
+  const updatePlot = useCallback(
+    (jobs: FunctionJob[], localTableData: MogaDataType, extPlotType?: PlotConfig, extSelectedOptVars?: string[]) => {
+      const localsettings = mogaSettings[selectedFunction?.uid as string] || defaultMogaValues;
+      const localOptVars = extSelectedOptVars || selectedOptVars;
+      const results = localTableData?.raw ? localTableData.raw : {};
       const outputValues = aggregateOutputValues(jobs);
+      console.log("Updating MOGA Pareto plot...", jobs, localOptVars, results, outputValues);
+      let scaleType: "linear" | "log" = "linear";
       let localPlotType: "1D" | "2D" | "3D" = localOptVars.length < 2 ? "1D" : "2D";
       localPlotType = localOptVars.length > 2 ? "3D" : localPlotType;
-      if (extPlotType) localPlotType = extPlotType;
+      if (extPlotType) {
+        localPlotType = extPlotType.dimensionType;
+        scaleType = extPlotType.scaleType;
+      }
 
       const newPlotData: Partial<Plotly.ScatterData>[] = [
         {
           name: "Sample Points",
           mode: "markers",
           type: localPlotType === "3D" ? "scatter3d" : "box",
-          marker: { color: "rgb(41, 146, 221)", size: 4, symbol: "x" },
+          marker: { color: "rgb(41, 146, 221)", size: 3, symbol: "·" },
         },
         {
           name: "MOGA Samples",
@@ -160,9 +178,9 @@ export function MOGAPareto(props: LoadingPropsType) {
         },
         {
           name: "Pareto Front",
-          mode: "lines",
+          mode: "lines+markers",
           type: localPlotType === "3D" ? "scatter3d" : "scatter",
-          marker: { color: "lightblue", size: 10 },
+          marker: { color: "white", size: 6 },
         },
       ];
 
@@ -171,46 +189,48 @@ export function MOGAPareto(props: LoadingPropsType) {
         plot_bgcolor: `${theme.palette.background.default}`,
         paper_bgcolor: `${theme.palette.background.default}`,
         font: { color: `${theme.palette.text.primary}` },
+        autosize: true,
+        margin: localPlotType === "2D" ? plotMargins2D : plotMargins,
       };
 
       switch (localPlotType) {
         case "1D": {
-          const groupedY = groupArrayElements(outputValues[localOptVars[0]], 20);
-          const groupedYR = groupArrayElements(results[localOptVars[0]], 20);
-          newPlotData[0].x = groupedY.map((_, index) => index);
-          newPlotData[0].y = groupedY;
-          newPlotData[0].z = undefined;
-          newPlotData[1].x = groupedYR.map((_, index) => index);
-          newPlotData[1].y = groupedYR;
-          newPlotData[1].z = undefined;
-          newPlotData[0].type = "box";
-          newPlotData[1].type = "box";
-          newPlotData.pop();
-          groupedY.map(y =>
+          const groupedY = groupArrayElements(
+            outputValues[localOptVars[0]],
+            Math.floor(outputValues[localOptVars[0]].length / 20),
+          );
+          const groupedYR = groupArrayElements(results[localOptVars[0]], Math.floor(results[localOptVars[0]].length / 20));
+          // Map over the grouped Y values to create multiple box plots
+          groupedY.map((y, idx) =>
             newPlotData.push({
               ...newPlotData[0],
               boxpoints: "all",
               y,
+              name: `${idx}`,
             }),
           );
-          groupedYR.map(y =>
+          // Map over the calculated pareto Y values to create multiple box plots
+          groupedYR.map((y, idx) =>
             newPlotData.push({
               ...newPlotData[1],
+              boxpoints: "outliers",
               y,
-              boxpoints: "all",
+              name: `${idx}`,
             }),
           );
-          newPlotData.shift();
+          newPlotData.shift(); // these two shifts are here to remove the initial empty plots definitions
           newPlotData.shift();
           newLayout.yaxis = { title: { text: optVars[0] } };
+          // hide the legend if only one dimension is used
+          newLayout.showlegend = false;
           break;
         }
         case "2D": {
           newPlotData[0].x = outputValues[localOptVars[0]];
           newPlotData[0].y = outputValues[localOptVars[1]];
           newPlotData[0].z = undefined;
-          newPlotData[1].x = results[localOptVars[0]];
-          newPlotData[1].y = results[localOptVars[1]];
+          newPlotData[1].x = results[localOptVars[0]].slice(localsettings.populationSize * 3, results[localOptVars[0]].length);
+          newPlotData[1].y = results[localOptVars[1]].slice(localsettings.populationSize * 3, results[localOptVars[1]].length);
           newPlotData[1].z = undefined;
           newPlotData[2].x = results.non_dominated_indices.map(i => (results[localOptVars[0]] as Array<number>)[i]);
           newPlotData[2].y = results.non_dominated_indices.map(i => (results[localOptVars[1]] as Array<number>)[i]);
@@ -218,24 +238,27 @@ export function MOGAPareto(props: LoadingPropsType) {
           newPlotData[0].type = "scatter";
           newPlotData[1].type = "scatter";
           newPlotData[2].type = "scatter";
-          newLayout.xaxis = { title: { text: optVars[0] } };
-          newLayout.yaxis = { title: { text: optVars[1] } };
+          newLayout.xaxis = { title: { text: optVars[0] }, type: scaleType };
+          newLayout.yaxis = { title: { text: optVars[1] }, type: scaleType };
           break;
         }
         case "3D": {
           newPlotData[0].x = outputValues[localOptVars[0]];
           newPlotData[0].y = outputValues[localOptVars[1]];
           newPlotData[0].z = outputValues[localOptVars[2]];
-          newPlotData[1].x = results[localOptVars[0]];
-          newPlotData[1].y = results[localOptVars[1]];
-          newPlotData[1].z = results[localOptVars[2]];
+          newPlotData[1].x = results[localOptVars[0]].slice(localsettings.populationSize * 3, results[localOptVars[0]].length);
+          newPlotData[1].y = results[localOptVars[1]].slice(localsettings.populationSize * 3, results[localOptVars[1]].length);
+          newPlotData[1].z = results[localOptVars[2]].slice(localsettings.populationSize * 3, results[localOptVars[2]].length);
+          newPlotData[2].x = results.non_dominated_indices.map(i => (results[localOptVars[0]] as Array<number>)[i]);
+          newPlotData[2].y = results.non_dominated_indices.map(i => (results[localOptVars[1]] as Array<number>)[i]);
+          newPlotData[2].z = results.non_dominated_indices.map(i => (results[localOptVars[2]] as Array<number>)[i]);
           newPlotData[0].type = "scatter3d";
           newPlotData[1].type = "scatter3d";
           newPlotData[2].type = "scatter3d";
           newLayout.scene = {
-            xaxis: { title: { text: optVars[0] } },
-            yaxis: { title: { text: optVars[1] } },
-            zaxis: { title: { text: optVars[2] } },
+            xaxis: { title: { text: optVars[0] }, type: scaleType },
+            yaxis: { title: { text: optVars[1] }, type: scaleType },
+            zaxis: { title: { text: optVars[2] }, type: scaleType },
           };
           break;
         }
@@ -247,19 +270,9 @@ export function MOGAPareto(props: LoadingPropsType) {
 
       setPlotData(newPlotData);
       setLayout(newLayout);
-      setPlotType(localPlotType);
-      setPropagating(false);
+      setPlotType({ dimensionType: localPlotType, scaleType });
     },
-    [
-      mogaSettings,
-      selectedFunction?.uid,
-      optVars,
-      distribution,
-      inputVars,
-      theme.palette.background.default,
-      theme.palette.text.primary,
-      calculatePerformance,
-    ],
+    [mogaSettings, selectedFunction, selectedOptVars, theme, optVars],
   );
 
   useEffect(() => {
@@ -270,6 +283,9 @@ export function MOGAPareto(props: LoadingPropsType) {
       const newOptVars = Object.keys(outputTargets[selectedFunction?.uid as string] || {});
       setOptVars(newOptVars);
       setOutputVarSelection(outputTargets[selectedFunction.uid]);
+      setPlotData([]);
+      setSelectedOptVars([]);
+      setTableData(undefined);
 
       const run = async () => {
         const jobs = filteredJobList;
@@ -279,20 +295,19 @@ export function MOGAPareto(props: LoadingPropsType) {
         }
         try {
           setPropagating(true);
-          let newPlotType: "1D" | "2D" | "3D" = newOptVars.length < 2 ? "1D" : "2D";
-          newPlotType = newOptVars.length > 2 ? "3D" : newPlotType;
-          setPlotType(newPlotType);
           console.info("Fetching MOGA Pareto data...");
-          await runMOGA(jobs, outputTargets[selectedFunction.uid], newPlotType);
+          const { newTableData, localOptVars } = await runMOGA(jobs, outputTargets[selectedFunction.uid]);
+          await updatePlot(jobs, newTableData, plotType, localOptVars);
+          setPropagating(false);
         } catch (error) {
+          setPropagating(false);
           console.error("Error fetching MOGA Pareto data:", error);
         }
-        setPropagating(false);
       };
       run();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFunction, outputTargets, selectedJobUids, mogaSettings]);
+  }, [selectedFunction, outputTargets, filteredJobList, mogaSettings]);
 
   // When weights change, recalculate tableData (refresh table) but do NOT rerun runMOGA
   useEffect(() => {
@@ -307,27 +322,30 @@ export function MOGAPareto(props: LoadingPropsType) {
   }, [weights]);
 
   useEffect(() => {
-    if (hovered !== null && tableData) {
-      const hoveredRow = tableData.rows.find(r => r.NDI === hovered);
-      console.log("hovered row:", hoveredRow);
-      if (hoveredRow && optVars.length >= 2) {
+    if (tableData) {
+      if (hovered !== null) {
+        const hoveredRow = tableData.rows.find(r => r.NDI === hovered);
+        console.log("hovered row:", hoveredRow, plotType);
+        if (hoveredRow && plotType && (plotType.dimensionType === "2D" || plotType.dimensionType === "3D")) {
+          const newPlotData = [...plotData];
+          const noSelected = newPlotData.filter(d => d.name !== "Selected");
+          noSelected.push({
+            name: "Selected",
+            mode: "markers",
+            type: plotType.dimensionType === "3D" ? "scatter3d" : "scatter",
+            marker: { color: "red", size: 8, symbol: "circle" },
+            x: [hoveredRow[selectedOptVars[0]]],
+            y: [hoveredRow[selectedOptVars[1]]],
+            z: plotType?.dimensionType === "3D" ? [hoveredRow[selectedOptVars[2]]] : undefined,
+          });
+          setPlotData(noSelected);
+        }
+      } else {
         const newPlotData = [...plotData];
-        newPlotData[3] = {
-          name: "Selected",
-          mode: "markers",
-          type: plotType === "3D" ? "scatter3d" : "scatter",
-          marker: { color: "red", size: 8, symbol: "circle" },
-          x: [hoveredRow[optVars[0]]],
-          y: [hoveredRow[optVars[1]]],
-          z: optVars.length > 2 ? [hoveredRow[optVars[2]]] : undefined,
-        };
-        setPlotData(newPlotData);
-      }
-    } else {
-      const newPlotData = [...plotData];
-      if (newPlotData.length > 3) {
-        newPlotData.pop();
-        setPlotData(newPlotData);
+        const noSelected = newPlotData.filter(d => d.name === "Selected");
+        if (noSelected.length > 0) {
+          setPlotData(newPlotData.filter(d => d.name !== "Selected"));
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -335,7 +353,7 @@ export function MOGAPareto(props: LoadingPropsType) {
 
   const plotStyle = {
     width: "100%",
-    height: optVars.length > 2 ? 600 : 400,
+    height: 500,
     borderRadius: "8px",
     overflow: "hidden",
   };
@@ -356,27 +374,16 @@ export function MOGAPareto(props: LoadingPropsType) {
       )}
       {!propagating && plotData.length !== 0 && (
         <>
-          <Plot ref={ref} data={plotData} layout={layout} style={plotStyle} mmux-testid="moga-plot" />
-          <Box
-            sx={{
-              width: "150px",
-              alignSelf: "flex-end",
-              mb: 1,
-              backgroundColor: theme.palette.background.default,
-              padding: "4px",
-              borderRadius: "32px",
-            }}
-          >
-            <CustomAnimatedToggle
-              data={["1D", "2D", "3D"]}
-              value={plotType === "1D" ? 0 : plotType === "2D" ? 1 : 2}
-              onChange={i => {
-                const calculatePT = i === 0 ? "1D" : i === 1 ? "2D" : "3D";
-                runMOGA(filteredJobList, outputTargets[selectedFunction?.uid as string], calculatePT);
-              }}
-              disabled={[!(optVars.length >= 1), !(optVars.length >= 2), !(optVars.length >= 3)]}
-            />
-          </Box>
+          <Plot ref={ref} data={plotData} layout={layout} style={plotStyle} />
+          <MOGAPlotModal
+            plotType={plotType}
+            tableData={tableData}
+            updatePlot={updatePlot}
+            filteredJobList={filteredJobList}
+            optVars={optVars}
+            selectedOptVars={selectedOptVars}
+            setSelectedOptVars={setSelectedOptVars}
+          />
           <MogaParetoTable tableData={tableData} hovered={hovered} setHovered={setHovered} />
         </>
       )}

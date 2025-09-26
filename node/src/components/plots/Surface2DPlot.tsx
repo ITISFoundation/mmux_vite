@@ -120,17 +120,7 @@ function Surface2DPlot() {
       return RunSuMo2DInterpolation(jobs, axis1, axis2);
     };
     run();
-  }, [
-    axis1,
-    axis2,
-    inputVars,
-    selectedQoI,
-    selectedFunction,
-    otherAxis,
-    filteredJobList,
-    RunSuMo2DInterpolation,
-    fetchedJobCollections,
-  ]);
+  }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList, RunSuMo2DInterpolation]);
 
   const layout: Partial<Layout> = {
     title: {

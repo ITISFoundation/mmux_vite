@@ -1,7 +1,7 @@
 SHELL 				 			:= /bin/sh
 .DEFAULT_GOAL 		 			:= help
 
-DOCKER_IMAGE_TAG := 1.5.4
+DOCKER_IMAGE_TAG := 1.5.5
 
 
 FLASKAPI_DIR := ./flaskapi
@@ -174,6 +174,8 @@ publish-local: ## push to local throw away registry to test integration
 	docker push registry:5000/simcore/services/dynamic/mmux-vite-app-moga-write:$(DOCKER_IMAGE_TAG)
 	@curl registry:5000/v2/_catalog | jq
 
+.PHONY: build-publish-local
+build-publish-local: build-no-cache publish-local
 
 .env: .env-devel ## creates .env file from defaults in .env-devel
 	$(if $(wildcard $@), \
