@@ -118,20 +118,20 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
   const [replacementType, setReplacementType] = useState<ReplacementType>(
     mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaValues.replacementType,
   );
-  const [seed, setSeed] = useState<number>(mogaSettings[selectedFunction?.uid || ""]?.seed[0] || defaultMogaValues.seed[0]);
+  const [seed, setSeed] = useState<number>(mogaSettings[selectedFunction?.uid || ""]?.seed || defaultMogaValues.seed);
   const [seedNumber, setSeedNumber] = useState<number>(1);
 
-  const popSizeError = populationSize < 1 || populationSize > 1000000;
-  const iterError = maxIterations < 1 || maxIterations > 1000000;
-  const seedError = seed < 1 || seed > 1000000;
-  const seedNumberError = seedNumber < 1 || seedNumber > 1000000;
+  const popSizeError = Number.isNaN(populationSize) || populationSize < 1 || populationSize > 1000000;
+  const iterError = Number.isNaN(maxIterations) || maxIterations < 1 || maxIterations > 1000000;
+  const seedError = Number.isNaN(seed) || seed < 1 || seed > 1000000;
+  const seedNumberError = Number.isNaN(seedNumber) || seedNumber < 1 || seedNumber > 1000000;
 
   const resetFields = () => {
     setPopulationSize(mogaSettings[selectedFunction?.uid || ""]?.populationSize || defaultMogaValues.populationSize);
     setMaxIterations(mogaSettings[selectedFunction?.uid || ""]?.maxIterations || defaultMogaValues.maxIterations);
     setFitnessType(mogaSettings[selectedFunction?.uid || ""]?.fitnessType || defaultMogaValues.fitnessType);
     setReplacementType(mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaValues.replacementType);
-    setSeed(mogaSettings[selectedFunction?.uid || ""]?.seed[0] || defaultMogaValues.seed[0]);
+    setSeed(mogaSettings[selectedFunction?.uid || ""]?.seed || defaultMogaValues.seed);
     setSeedNumber(1);
   };
 
@@ -143,7 +143,7 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
         maxIterations,
         fitnessType,
         replacementType,
-        seed: Array.from({ length: seedNumber }, (_, i) => seed + i),
+        seed,
       },
     };
     setMOGASettings(newMogaSettings);
@@ -309,7 +309,10 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 InputProps={{ inputProps: { min: 1, max: 1000000 } }}
                 error={seedError}
                 value={Number.isNaN(seed) ? "" : seed}
-                onChange={e => setSeed(parseInt(e.target.value, 10))}
+                onChange={e => {
+                  const value = parseInt(e.target.value, 10);
+                  setSeed(Number.isNaN(value) ? 0 : value);
+                }}
                 aria-label="Seed"
               />
             </InputLabel>

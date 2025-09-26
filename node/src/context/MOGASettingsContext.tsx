@@ -11,7 +11,7 @@ export interface MOGASettingsSelection {
   maxIterations: number;
   fitnessType: FitnessType;
   replacementType: ReplacementType;
-  seed: number[];
+  seed: number; // Changed from number to number[] when flask api is updated
 }
 
 export interface MOGASettings {
@@ -28,7 +28,7 @@ export const defaultMogaValues: MOGASettingsSelection = {
   maxIterations: 100,
   fitnessType: "layer_rank",
   replacementType: "elitist",
-  seed: [42],
+  seed: 42,
 };
 
 export const MOGASettingsContext = createContext<MOGASettingsContextType | undefined>(undefined);
