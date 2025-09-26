@@ -165,13 +165,13 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
     <Box
       sx={{
         "& .input-cols": {
-          backgroundColor: "rgba(255, 177, 75, 0.05)",
+          backgroundColor: orangeWithOpacity(0.05),
         },
         "& .output-cols": {
-          backgroundColor: "rgba(255, 177, 75, 0.1)",
+          backgroundColor: orangeWithOpacity(0.1),
         },
         "& .performance-cols": {
-          backgroundColor: "rgba(255, 177, 75, 0.15)",
+          backgroundColor: orangeWithOpacity(0.15),
         },
       }}
     >
