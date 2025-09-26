@@ -161,6 +161,8 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
     },
   ]);
 
+  const orangeWithOpacity = (opacity: number) => `rgba(255, 177, 75, ${opacity})`;
+
   return (
     <Box
       sx={{
