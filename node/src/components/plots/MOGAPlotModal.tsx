@@ -178,18 +178,21 @@ export const MOGAPlotModal = (props: MOGAPlotModalProps) => {
           </CardContent>
           <CardActions sx={{ padding: 0, display: "flex", justifyContent: "space-between" }}>
             <Button
-              size="small"
-              variant="contained"
+              variant="outlined"
               onClick={() => {
                 resetFields();
                 setOpen(false);
               }}
-              sx={{ alignItems: "start" }}
+              sx={{
+                alignItems: "start",
+                color: theme.palette.grey[700],
+                borderColor: theme.palette.grey[700],
+                backgroundColor: "transparent",
+              }}
             >
-              Close
+              Discard
             </Button>
             <Button
-              size="small"
               variant="contained"
               onClick={() => {
                 handleSetData();
