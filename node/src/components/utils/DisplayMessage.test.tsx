@@ -21,7 +21,7 @@ describe("DisplayMessage", () => {
   it("renders children", () => {
     renderWithTheme(
       <DisplayMessage mssg="Parent">
-        <div mmux-testid="child">Child</div>
+        <div data-testid="child">Child</div>
       </DisplayMessage>,
     );
     expect(screen.getByTestId("child")).toBeDefined();

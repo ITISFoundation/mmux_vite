@@ -24,9 +24,9 @@ function Consumer() {
   const ctx = useMMUXContext();
   return (
     <div>
-      <span mmux-testid="numSamples">{JSON.stringify(ctx.numSamples)}</span>
-      <span mmux-testid="selectedQoI">{ctx.selectedQoI}</span>
-      <span mmux-testid="isSuMoGenerated">{ctx.isSuMoGenerated ? "yes" : "no"}</span>
+      <span data-testid="numSamples">{JSON.stringify(ctx.numSamples)}</span>
+      <span data-testid="selectedQoI">{ctx.selectedQoI}</span>
+      <span data-testid="isSuMoGenerated">{ctx.isSuMoGenerated ? "yes" : "no"}</span>
       <button type="button" onClick={() => ctx.setNumSamples({ bar: 2 })}>
         setNumSamples
       </button>

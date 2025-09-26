@@ -35,7 +35,7 @@ describe("CustomTooltip", () => {
     render(
       <CustomTooltip
         title="Tooltip text"
-        ExtendedTooltip={<Typography mmux-testid="extended-content">Extended content</Typography>}
+        ExtendedTooltip={<Typography data-testid="extended-content">Extended content</Typography>}
       >
         <button type="button">Hover me</button>
       </CustomTooltip>,
@@ -50,7 +50,7 @@ describe("CustomTooltip", () => {
     const { queryByTestId } = render(
       <CustomTooltip
         title="Tooltip text"
-        ExtendedTooltip={<Typography mmux-testid="extended-content">Extended content</Typography>}
+        ExtendedTooltip={<Typography data-testid="extended-content">Extended content</Typography>}
       >
         <button type="button">Hover me</button>
       </CustomTooltip>,

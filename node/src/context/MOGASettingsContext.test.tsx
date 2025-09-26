@@ -22,10 +22,10 @@ function TestComponent() {
   const { mogaSettings, setMOGASettings } = useMOGASettingsContext();
   return (
     <div>
-      <span mmux-testid="maxIterations">{mogaSettings.test?.maxIterations ?? "no-settings"}</span>
+      <span data-testid="maxIterations">{mogaSettings.test?.maxIterations ?? "no-settings"}</span>
       <button
         type="button"
-        mmux-testid="setMogaSettings"
+        data-testid="setMogaSettings"
         onClick={() =>
           setMOGASettings({
             test: {

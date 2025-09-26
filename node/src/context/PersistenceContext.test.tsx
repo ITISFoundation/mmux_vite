@@ -42,9 +42,9 @@ function TestComponent() {
       >
         Save State
       </button>
-      <div mmux-testid="loading">{loading ? "loading" : "loaded"}</div>
-      <div mmux-testid="persistence">{persistence ? JSON.stringify(persistence) : "none"}</div>
-      <div mmux-testid="functionValues">{JSON.stringify(getFunctionValues())}</div>
+      <div data-testid="loading">{loading ? "loading" : "loaded"}</div>
+      <div data-testid="persistence">{persistence ? JSON.stringify(persistence) : "none"}</div>
+      <div data-testid="functionValues">{JSON.stringify(getFunctionValues())}</div>
     </div>
   );
 }

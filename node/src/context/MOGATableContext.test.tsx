@@ -24,12 +24,12 @@ function TestConsumer() {
   const { weights, setWeights, sortModel, setSortModel } = useMOGATableContext();
   return (
     <div>
-      <span mmux-testid="weights">{JSON.stringify(weights)}</span>
-      <span mmux-testid="sortModel">{JSON.stringify(sortModel)}</span>
-      <button type="button" mmux-testid="setWeights" onClick={() => setWeights({ b: 2 })}>
+      <span data-testid="weights">{JSON.stringify(weights)}</span>
+      <span data-testid="sortModel">{JSON.stringify(sortModel)}</span>
+      <button type="button" data-testid="setWeights" onClick={() => setWeights({ b: 2 })}>
         Set Weights
       </button>
-      <button type="button" mmux-testid="setSortModel" onClick={() => setSortModel([{ field: "b", sort: "desc" }])}>
+      <button type="button" data-testid="setSortModel" onClick={() => setSortModel([{ field: "b", sort: "desc" }])}>
         Set Sort Model
       </button>
     </div>

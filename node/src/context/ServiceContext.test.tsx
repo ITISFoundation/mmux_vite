@@ -17,8 +17,8 @@ function TestComponent() {
   const { permissions, ServiceMode } = useServiceContext();
   return (
     <div>
-      <span mmux-testid="permissions">{permissions}</span>
-      <span mmux-testid="serviceMode">{ServiceMode}</span>
+      <span data-testid="permissions">{permissions}</span>
+      <span data-testid="serviceMode">{ServiceMode}</span>
     </div>
   );
 }

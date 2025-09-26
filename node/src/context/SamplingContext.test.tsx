@@ -41,11 +41,11 @@ function TestComponent() {
 
   return (
     <div>
-      <div mmux-testid="launching">{String(launchingSampling)}</div>
-      <div mmux-testid="running">{String(runningSampling)}</div>
-      <div mmux-testid="lhs">{lhsSamplingConfig.points}</div>
-      <div mmux-testid="grid">{JSON.stringify(gridSamplingConfig)}</div>
-      <div mmux-testid="single">{JSON.stringify(singleJobConfig)}</div>
+      <div data-testid="launching">{String(launchingSampling)}</div>
+      <div data-testid="running">{String(runningSampling)}</div>
+      <div data-testid="lhs">{lhsSamplingConfig.points}</div>
+      <div data-testid="grid">{JSON.stringify(gridSamplingConfig)}</div>
+      <div data-testid="single">{JSON.stringify(singleJobConfig)}</div>
       <button type="button" onClick={() => setLaunchingSampling(true)}>
         Set Launching
       </button>
