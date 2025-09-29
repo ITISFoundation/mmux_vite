@@ -1038,7 +1038,8 @@ def flask_perform_moga_optimization():
         output_responses = [k for k in output_var_selection.keys()]
         jobs: List[Dict[str, Any]] = request_data["FunctionJobs"]
         moga_kwargs: Dict[str, Any] = request_data["mogaSettings"]
-        _logger.debug("moga settings: ", moga_kwargs)
+        _logger.debug("moga settings: ")
+        _logger.debug(moga_kwargs)
         make_log = request_data.get("log", False)
 
         ## before the function
@@ -1057,16 +1058,51 @@ def flask_perform_moga_optimization():
         PROCESSED_TRAINING_FILE = run_dir / "df_processed_jobs.csv"
         df_preprocessed_jobs.to_csv(PROCESSED_TRAINING_FILE, sep=" ", index=False)  # Dakota expects a space-separated file
 
-        results = perform_moga_optimization(
-            run_dir,
-            PROCESSED_TRAINING_FILE,
-            [preprocessor.get_variable_mapping()[k] for k in input_vars],
-            {preprocessor.get_variable_mapping()[k]: v for k, v in input_distributions.items()},
-            [preprocessor.get_variable_mapping()[k] for k in output_responses],
-            moga_kwargs=moga_kwargs,
+        ##### TODO abstract this as a function
+        seed = moga_kwargs.get("seed", None)
+        assert seed is not None, "MOGA settings must include a seed for the random number generator"
+        numberSeeds = moga_kwargs.get("numberSeeds", None)
+        _logger.debug(f"MOGA seed: {seed}, numberSeeds: {numberSeeds}")
+        if numberSeeds is not None:
+            assert isinstance(numberSeeds, int), "MOGA settings must include an integer numberSeeds"
+            seeds = [seed + i for i in range(numberSeeds)]
+            moga_kwargs.pop("numberSeeds") # remove it from the kwargs to avoid issues
+        else:
+            seeds = [seed]
+        _logger.debug(f"MOGA seeds: {seeds}")
+
+        all_results = []
+        for seed in seeds:
+            assert isinstance(seed, int), "MOGA settings must include a list of integer seeds"
+            moga_kwargs["seed"] = seed
+            _logger.debug(f"Running MOGA optimization with seed {seed} and settings: {moga_kwargs}")
+            results: Dict[str, List[float | int]] = perform_moga_optimization(
+                run_dir,
+                PROCESSED_TRAINING_FILE,
+                [preprocessor.get_variable_mapping()[k] for k in input_vars],
+                {preprocessor.get_variable_mapping()[k]: v for k, v in input_distributions.items()},
+                [preprocessor.get_variable_mapping()[k] for k in output_responses],
+                moga_kwargs=moga_kwargs,
+            )
+            all_results.append(results)
+            _logger.debug(f"Results for seed {seed}: {results}")
+        assert len(all_results) == len(seeds), "MOGA settings must include a result for each seed"
+        results = {k: [item for resdict in all_results for item in resdict[k]] for k in all_results[0].keys()}
+        _logger.debug(f"All results: {results}")
+        ###################################################
+
+        from mmux_python.utils.funs_data_processing import get_non_dominated_indices
+        results_df = pd.DataFrame(results)
+        _logger.debug("Results df: ")
+        _logger.debug(results_df)
+        _logger.debug("\n\nLen of results df: ", len(results_df))
+        non_dominated_indices = get_non_dominated_indices(
+            results_df,
+            optimized_vars=[preprocessor.get_variable_mapping()[k] for k in output_responses],
+            sort_by_column=preprocessor.get_variable_mapping()[output_responses[0]],
         )
         postprocessed_results = preprocessor.inverse_transform(results)
-        postprocessed_results["non_dominated_indices"] = results["non_dominated_indices"]
+        postprocessed_results["non_dominated_indices"] = np.array(non_dominated_indices).astype(float).tolist() ## int64 is not JSON serializable
         _logger.debug(postprocessed_results)
 
         _logger.debug("Done!!")
