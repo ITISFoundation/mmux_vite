@@ -1087,6 +1087,9 @@ def flask_perform_moga_optimization():
             all_results.append(results)
             _logger.debug(f"Results for seed {seed}: {results}")
         assert len(all_results) == len(seeds), "MOGA settings must include a result for each seed"
+        if not all_results:
+            _logger.error("No results were produced by MOGA optimization (all_results is empty).")
+            abort(make_response(jsonify({"error": "No results were produced by MOGA optimization."}), 500))
         results = {k: [item for resdict in all_results for item in resdict[k]] for k in all_results[0].keys()}
         _logger.debug(f"All results: {results}")
         ###################################################
