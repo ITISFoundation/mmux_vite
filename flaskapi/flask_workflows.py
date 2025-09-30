@@ -785,7 +785,7 @@ def flask_test_job():
         val = functions_api_instance.validate_function_inputs(function_uid, sample)  # this is working - changing the name of the variable does return a validation error
         _logger.debug(f"Validated function inputs for function {function_uid} with sample {sample}: {val}")
         parent_info = _get_parent_ids()
-        response = functions_api_instance.run_function(function_uid, body=sample,
+        response = functions_api_instance.run_function(function_uid, request_body=sample,
                                                        x_simcore_parent_node_id=parent_info.parent_node_id,
                                                        x_simcore_parent_project_uuid=parent_info.parent_project_id)
         _logger.debug(f"Response from run_function with sample {sample}: {response}")
