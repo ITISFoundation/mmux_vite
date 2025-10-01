@@ -96,6 +96,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         maxWidth: 200,
         headerName: key.toUpperCase(),
         type: "number",
+        cellClassName: "input-cols",
         renderCell: params => params.row[key].toFixed(3),
         valueGetter: (_value, row) => row[key],
       }))
@@ -110,6 +111,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
           maxWidth: 200,
           headerName: key.toUpperCase(),
           type: "number",
+          cellClassName: "output-cols",
           renderCell: params => params.row[key].toFixed(3),
           valueGetter: (_value, row) => row[key],
         }))
@@ -129,6 +131,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       minWidth: 200,
       maxWidth: 200,
       type: "number",
+      cellClassName: "performance-cols",
       renderHeader: () => (
         <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 0.5 }}>
           <IconButton onClick={() => setOpenPerformanceModal(true)} size="small">
@@ -158,8 +161,22 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
     },
   ]);
 
+  const orangeWithOpacity = (opacity: number) => `rgba(255, 177, 75, ${opacity})`;
+
   return (
-    <>
+    <Box
+      sx={{
+        "& .input-cols": {
+          backgroundColor: orangeWithOpacity(0.05),
+        },
+        "& .output-cols": {
+          backgroundColor: orangeWithOpacity(0.1),
+        },
+        "& .performance-cols": {
+          backgroundColor: orangeWithOpacity(0.15),
+        },
+      }}
+    >
       <Header tabTitle="Pareto-Optimal MOGA Samples" headerType="subTitle" infoText="Explore the pareto-optimal solutions" />
       <DataGrid
         rows={data?.rows || []}
@@ -168,7 +185,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
           borderRadius: theme.spacing(2),
           overflow: "hidden",
           fontFamily: "inherit",
-          padding: "0px 8px",
+          padding: "0px",
           "& .MuiDataGrid-cell": {
             fontWeight: 400,
           },
@@ -220,7 +237,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         disableRowSelectionOnClick
       />
       <PerformanceModal open={openPerformanceModal} setOpen={setOpenPerformanceModal} />
-    </>
+    </Box>
   );
 }
 

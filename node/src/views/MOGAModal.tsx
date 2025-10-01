@@ -1,6 +1,19 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState } from "react";
-import { Modal, useTheme, Card, Box, CardContent, Button, CardActions, InputLabel, Typography, TextField } from "@mui/material";
+import {
+  Modal,
+  useTheme,
+  Card,
+  Box,
+  CardContent,
+  Button,
+  CardActions,
+  InputLabel,
+  Typography,
+  TextField,
+  Link,
+} from "@mui/material";
+import { InfoOutline } from "@mui/icons-material";
 import Header from "../components/navigation/Header";
 import OptionSelect from "../components/utils/OptionSelect";
 import {
@@ -11,6 +24,83 @@ import {
   ReplacementType,
 } from "../context/MOGASettingsContext";
 import { useFunctionContext } from "../context/FunctionContext";
+import CustomTooltip from "../components/utils/CustomTooltip";
+
+const populationSizeInfo = (
+  <span>
+    The number of individuals in each generation. A larger population size increases genetic diversity but also increases
+    computational cost.{" "}
+    <Link
+      target="_blank"
+      href="https://snl-dakota.github.io/docs/6.19.0/users/usingdakota/reference/method-moga.html?highlight=moga"
+    >
+      More info...
+    </Link>
+  </span>
+);
+
+const iterationsInfo = (
+  <span>
+    The number of generations the algorithm will run. More iterations allow for better convergence but take more time.{" "}
+    <Link
+      target="_blank"
+      href="https://snl-dakota.github.io/docs/6.19.0/users/usingdakota/reference/method-moga.html?highlight=moga"
+    >
+      More info...
+    </Link>
+  </span>
+);
+
+const fitnessTypeInfo = (
+  <span>
+    The method used to evaluate the quality of solutions. &quot;Layer Rank&quot; ranks solutions based on their dominance layers,
+    while &quot;Domination Count&quot; counts how many solutions a particular solution dominates.{" "}
+    <Link
+      target="_blank"
+      href="https://snl-dakota.github.io/docs/6.19.0/users/usingdakota/reference/method-moga.html?highlight=moga"
+    >
+      More info...
+    </Link>
+  </span>
+);
+
+const replacementTypeInfo = (
+  <span>
+    The strategy for selecting individuals for the next generation. &quot;Elitist&quot; retains the best individuals,
+    &quot;Roulette Wheel&quot; selects individuals based on fitness proportion, &quot;Unique Roulette Wheel&quot; ensures unique
+    selections, and &quot;Below Limit&quot; selects individuals below a certain fitness threshold.{" "}
+    <Link
+      target="_blank"
+      href="https://snl-dakota.github.io/docs/6.19.0/users/usingdakota/reference/method-moga.html?highlight=moga"
+    >
+      More info...
+    </Link>
+  </span>
+);
+
+const seedInfo = (
+  <span>
+    The initial seed for the random number generator, affecting the reproducibility of results.{" "}
+    <Link
+      target="_blank"
+      href="https://snl-dakota.github.io/docs/6.19.0/users/usingdakota/reference/method-moga.html?highlight=moga"
+    >
+      More info...
+    </Link>
+  </span>
+);
+
+const seedNumberInfo = (
+  <span>
+    The number of different seeds to generate for the optimization runs.{" "}
+    <Link
+      target="_blank"
+      href="https://snl-dakota.github.io/docs/6.19.0/users/usingdakota/reference/method-moga.html?highlight=moga"
+    >
+      More info...
+    </Link>
+  </span>
+);
 
 const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean) => void }) => {
   const theme = useTheme();
@@ -28,15 +118,21 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
   const [replacementType, setReplacementType] = useState<ReplacementType>(
     mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaValues.replacementType,
   );
+  const [seed, setSeed] = useState<number>(mogaSettings[selectedFunction?.uid || ""]?.seed || defaultMogaValues.seed);
+  const [numberSeeds, setNumberSeeds] = useState<number>(1);
 
-  const popSizeError = populationSize < 1 || populationSize > 1000000;
-  const iterError = maxIterations < 1 || maxIterations > 1000000;
+  const popSizeError = Number.isNaN(populationSize) || populationSize < 1 || populationSize > 1000000;
+  const iterError = Number.isNaN(maxIterations) || maxIterations < 1 || maxIterations > 1000000;
+  const seedError = Number.isNaN(seed) || seed < 1 || seed > 1000000;
+  const numberSeedsError = Number.isNaN(numberSeeds) || numberSeeds < 1 || numberSeeds > 1000000;
 
   const resetFields = () => {
     setPopulationSize(mogaSettings[selectedFunction?.uid || ""]?.populationSize || defaultMogaValues.populationSize);
     setMaxIterations(mogaSettings[selectedFunction?.uid || ""]?.maxIterations || defaultMogaValues.maxIterations);
     setFitnessType(mogaSettings[selectedFunction?.uid || ""]?.fitnessType || defaultMogaValues.fitnessType);
     setReplacementType(mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaValues.replacementType);
+    setSeed(mogaSettings[selectedFunction?.uid || ""]?.seed || defaultMogaValues.seed);
+    setNumberSeeds(1);
   };
 
   const handleSetData = () => {
@@ -47,7 +143,8 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
         maxIterations,
         fitnessType,
         replacementType,
-        seed: 42,
+        seed,
+        numberSeeds,
       },
     };
     setMOGASettings(newMogaSettings);
@@ -98,7 +195,21 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
               sx={{ flex: "1", display: "flex", flexDirection: "row", alignItems: "center", transform: "none" }}
             >
               <Typography variant="body1" component="p" fontWeight={400} sx={{ flex: 1 }}>
-                Population Size:
+                Population Size
+                <CustomTooltip title={populationSizeInfo} placement="right" arrow>
+                  <InfoOutline
+                    sx={{
+                      color: theme.palette.primary.light,
+                      backgroundColor: theme.palette.background.default,
+                      borderRadius: "50%",
+                      padding: "2px",
+                      marginLeft: "2px",
+                      marginRight: "2px",
+                      marginBottom: "2px",
+                      fontSize: "20px",
+                    }}
+                  />
+                </CustomTooltip>
               </Typography>
               <TextField
                 type="number"
@@ -118,7 +229,21 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
               sx={{ flex: "1", display: "flex", flexDirection: "row", alignItems: "center", transform: "none" }}
             >
               <Typography variant="body1" component="p" fontWeight={400} sx={{ flex: 1 }}>
-                Iterations:
+                Iterations
+                <CustomTooltip title={iterationsInfo} placement="right" arrow>
+                  <InfoOutline
+                    sx={{
+                      color: theme.palette.primary.light,
+                      backgroundColor: theme.palette.background.default,
+                      borderRadius: "50%",
+                      padding: "2px",
+                      marginLeft: "2px",
+                      marginRight: "2px",
+                      marginBottom: "2px",
+                      fontSize: "20px",
+                    }}
+                  />
+                </CustomTooltip>
               </Typography>
               <TextField
                 type="number"
@@ -141,6 +266,7 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 { key: "layer_rank", label: "Layer Rank" },
                 { key: "domination_count", label: "Domination Count" },
               ]}
+              title={fitnessTypeInfo}
             />
             <OptionSelect
               property="Replacement Type"
@@ -152,23 +278,98 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 { key: "unique_roulette_wheel", label: "Unique Roulette Wheel" },
                 { key: "below_limit", label: "Below Limit" },
               ]}
+              title={replacementTypeInfo}
             />
+            <InputLabel
+              size="small"
+              sx={{ flex: "1", display: "flex", flexDirection: "row", alignItems: "center", transform: "none" }}
+            >
+              <Typography variant="body1" component="p" fontWeight={400} sx={{ flex: 1 }}>
+                Initial Seed
+                <CustomTooltip title={seedInfo} placement="right" arrow>
+                  <InfoOutline
+                    sx={{
+                      color: theme.palette.primary.light,
+                      backgroundColor: theme.palette.background.default,
+                      borderRadius: "50%",
+                      padding: "2px",
+                      marginLeft: "2px",
+                      marginRight: "2px",
+                      marginBottom: "2px",
+                      fontSize: "20px",
+                    }}
+                  />
+                </CustomTooltip>
+              </Typography>
+              <TextField
+                type="number"
+                variant="outlined"
+                size="small"
+                sx={{ flex: 1 }}
+                data-testid="input-block"
+                InputProps={{ inputProps: { min: 1, max: 1000000 } }}
+                error={seedError}
+                value={Number.isNaN(seed) ? "" : seed}
+                onChange={e => {
+                  const value = parseInt(e.target.value, 10);
+                  setSeed(Number.isNaN(value) ? 0 : value);
+                }}
+                aria-label="Seed"
+              />
+            </InputLabel>
+            <InputLabel
+              size="small"
+              sx={{ flex: "1", display: "flex", flexDirection: "row", alignItems: "center", transform: "none" }}
+            >
+              <Typography variant="body1" component="p" fontWeight={400} sx={{ flex: 1 }}>
+                Number of Seeds
+                <CustomTooltip title={seedNumberInfo} placement="right" arrow>
+                  <InfoOutline
+                    sx={{
+                      color: theme.palette.primary.light,
+                      backgroundColor: theme.palette.background.default,
+                      borderRadius: "50%",
+                      padding: "2px",
+                      marginLeft: "2px",
+                      marginRight: "2px",
+                      marginBottom: "2px",
+                      fontSize: "20px",
+                    }}
+                  />
+                </CustomTooltip>
+              </Typography>
+              <TextField
+                type="number"
+                variant="outlined"
+                size="small"
+                sx={{ flex: 1 }}
+                data-testid="input-block"
+                InputProps={{ inputProps: { min: 1, max: 1000000 } }}
+                error={numberSeedsError}
+                value={Number.isNaN(numberSeeds) ? "" : numberSeeds}
+                onChange={e => setNumberSeeds(parseInt(e.target.value, 10))}
+                aria-label="Seed"
+              />
+            </InputLabel>
           </Box>
         </CardContent>
         <CardActions sx={{ padding: 0, display: "flex", justifyContent: "space-between" }}>
           <Button
-            size="small"
-            variant="contained"
+            variant="outlined"
             onClick={() => {
               resetFields();
               setOpen(false);
             }}
-            sx={{ alignItems: "start" }}
+            sx={{
+              alignItems: "start",
+              color: theme.palette.grey[700],
+              borderColor: theme.palette.grey[700],
+              backgroundColor: "transparent",
+            }}
           >
-            Close
+            Discard
           </Button>
           <Button
-            size="small"
             variant="contained"
             onClick={() => {
               handleSetData();
