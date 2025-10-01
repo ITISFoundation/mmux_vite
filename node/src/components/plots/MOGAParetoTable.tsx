@@ -6,6 +6,9 @@ import { useMOGATableContext } from "../../context/MOGATableContext";
 import PerformanceModal from "./PerformanceModal";
 import Header from "../navigation/Header";
 import { RunSamplingButton } from "../sampling/RunSamplingButton";
+import { runSingleJob } from "../../utils/sampling_utils";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { useSamplingContext } from "../../context/SamplingContext";
 
 interface MogaParetoTableProps {
   tableData: MogaDataType | undefined;
@@ -27,6 +30,8 @@ const defaultSortModel: GridSortModel = [
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProps) {
   const { weights, setWeights, sortModel, setSortModel } = useMOGATableContext();
+  const { selectedFunction } = useFunctionContext();
+  const { setLaunchingSampling } = useSamplingContext();
   const [data, setData] = useState<MogaDataType | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [openPerformanceModal, setOpenPerformanceModal] = useState(false);
@@ -90,37 +95,44 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
 
   let columns: GridColDef[] = data
     ? data.inputs.map(key => ({
+      ...columnProps,
+      field: key,
+      minWidth: 120,
+      maxWidth: 200,
+      headerName: key.toUpperCase(),
+      type: "number",
+      cellClassName: "input-cols",
+      renderCell: params => params.row[key].toFixed(3),
+      valueGetter: (_value, row) => row[key],
+    }))
+    : [];
+
+  columns = columns.concat(
+    data
+      ? data.outputs.map(key => ({
         ...columnProps,
         field: key,
         minWidth: 120,
         maxWidth: 200,
         headerName: key.toUpperCase(),
         type: "number",
-        cellClassName: "input-cols",
+        cellClassName: "output-cols",
         renderCell: params => params.row[key].toFixed(3),
         valueGetter: (_value, row) => row[key],
       }))
-    : [];
-
-  columns = columns.concat(
-    data
-      ? data.outputs.map(key => ({
-          ...columnProps,
-          field: key,
-          minWidth: 120,
-          maxWidth: 200,
-          headerName: key.toUpperCase(),
-          type: "number",
-          cellClassName: "output-cols",
-          renderCell: params => params.row[key].toFixed(3),
-          valueGetter: (_value, row) => row[key],
-        }))
       : [],
   );
 
-  const handleRunSampling = async () => {
-    // TODO get the config of that row bfr launching
-    // implement "handleRunSampling" based on https://vscode.dev/github/ITISFoundation/mmux_vite/blob/258-switch-performance-weights-pop-ups/node/src/components/sampling/RunSingleJob.tsx#L49
+  // Launches a single job using the selected row's input parameters
+  const handleRunSampling = async (row?: MogaDataRowType) => {
+    if (!row || !data) return;
+    // Build config from data.inputs and row
+    const jobInputs = data.inputs.map(variable => ({
+      variable,
+      value: row[variable],
+    }));
+
+    await runSingleJob(selectedFunction, jobInputs, setLaunchingSampling);
   };
 
   columns = columns.concat([
@@ -153,9 +165,9 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       maxWidth: 140,
       type: "actions",
       sortable: false,
-      renderCell: () => (
+      renderCell: params => (
         <Box display="flex" flexDirection="row" justifyContent="space-between" marginTop={2}>
-          <RunSamplingButton disabled={loading} handleRunSampling={handleRunSampling} />
+          <RunSamplingButton disabled={loading} handleRunSampling={() => handleRunSampling(params.row)} />
         </Box>
       ),
     },
