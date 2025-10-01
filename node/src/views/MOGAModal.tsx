@@ -119,12 +119,12 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
     mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaValues.replacementType,
   );
   const [seed, setSeed] = useState<number>(mogaSettings[selectedFunction?.uid || ""]?.seed || defaultMogaValues.seed);
-  const [seedNumber, setSeedNumber] = useState<number>(1);
+  const [numberSeeds, setNumberSeeds] = useState<number>(1);
 
   const popSizeError = Number.isNaN(populationSize) || populationSize < 1 || populationSize > 1000000;
   const iterError = Number.isNaN(maxIterations) || maxIterations < 1 || maxIterations > 1000000;
   const seedError = Number.isNaN(seed) || seed < 1 || seed > 1000000;
-  const seedNumberError = Number.isNaN(seedNumber) || seedNumber < 1 || seedNumber > 1000000;
+  const numberSeedsError = Number.isNaN(numberSeeds) || numberSeeds < 1 || numberSeeds > 1000000;
 
   const resetFields = () => {
     setPopulationSize(mogaSettings[selectedFunction?.uid || ""]?.populationSize || defaultMogaValues.populationSize);
@@ -132,7 +132,7 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
     setFitnessType(mogaSettings[selectedFunction?.uid || ""]?.fitnessType || defaultMogaValues.fitnessType);
     setReplacementType(mogaSettings[selectedFunction?.uid || ""]?.replacementType || defaultMogaValues.replacementType);
     setSeed(mogaSettings[selectedFunction?.uid || ""]?.seed || defaultMogaValues.seed);
-    setSeedNumber(1);
+    setNumberSeeds(1);
   };
 
   const handleSetData = () => {
@@ -144,6 +144,7 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
         fitnessType,
         replacementType,
         seed,
+        numberSeeds,
       },
     };
     setMOGASettings(newMogaSettings);
@@ -344,9 +345,9 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 sx={{ flex: 1 }}
                 mmux-testid="input-block"
                 InputProps={{ inputProps: { min: 1, max: 1000000 } }}
-                error={seedNumberError}
-                value={Number.isNaN(seedNumber) ? "" : seedNumber}
-                onChange={e => setSeedNumber(parseInt(e.target.value, 10))}
+                error={numberSeedsError}
+                value={Number.isNaN(numberSeeds) ? "" : numberSeeds}
+                onChange={e => setNumberSeeds(parseInt(e.target.value, 10))}
                 aria-label="Seed"
               />
             </InputLabel>

@@ -41,7 +41,7 @@ export function Footer(props: FooterProps) {
         >
           Previous
         </Button>
-        {permissions === "WRITE" && (
+        {permissions === "WRITE" && false && (
           <Button className="footerBtn" variant="contained" onClick={() => setModal(!modal)} disabled={!runningSampling}>
             TASK MANAGER
           </Button>
