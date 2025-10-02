@@ -17,6 +17,7 @@ export default function SplashScreen() {
       <Card
         className="spinner"
         variant="outlined"
+        mmux-testid="splash-screen"
         style={{
           justifyContent: "center",
           alignItems: "center",

@@ -306,7 +306,7 @@ export function FunctionList() {
             </IconButton>
           ),
           renderCell: params => (
-            <Button variant="contained" fullWidth onClick={() => setRowSelection(params.row)}>
+            <Button variant="contained" fullWidth onClick={() => setRowSelection(params.row)} mmux-testid="select-function-btn">
               {selectedFunction?.uid === params.row.uid ? "Unselect" : "Select"}
             </Button>
           ),

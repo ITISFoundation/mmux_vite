@@ -35,6 +35,7 @@ export function Footer(props: FooterProps) {
         <Button
           className="footerBtn footerBtnFirst"
           variant="contained"
+          mmux-testid="previous-button"
           onClick={() => setCurrentView(currentView <= 0 ? 0 : currentView - 1)}
           disabled={currentView <= 0}
         >
@@ -48,6 +49,7 @@ export function Footer(props: FooterProps) {
         <Button
           className="footerBtn footerBtnLast"
           variant="contained"
+          mmux-testid="next-button"
           onClick={() => setCurrentView(currentView >= steps.length - 1 ? steps.length - 1 : currentView + 1)}
           disabled={currentView >= steps.length - 1 || !stepValidator(functionContext, jobContext, ServiceMode, currentView)}
         >
