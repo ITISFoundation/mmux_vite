@@ -97,7 +97,7 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
   try {
     const { projectJobId } = job;
     const { inputs } = job;
-    const study: StudyType = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/clone_job`, {
+    const response = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/clone_job`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -105,7 +105,11 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
         projectJobId,
         projectInputs: inputs,
       }),
-    }).then(response => response.json());
+    });
+
+    if (!response.ok) throw new Error(`Failed to open job copy: ${response.statusText}`);
+
+    const study: StudyType = await response.json();
 
     if (study && study.uid) {
       return study.uid;

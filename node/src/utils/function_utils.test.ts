@@ -94,12 +94,28 @@ describe("Function Utils", () => {
       "fetch",
       vi.fn(() =>
         Promise.resolve({
+          status: 200,
           json: () => Promise.resolve(response),
         }),
       ),
     );
     const copy = await createJobStudyCopy("testJob", job);
-    expect(copy).toEqual("jobUID");
+    expect(copy).toBe("jobUID");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          status: 400,
+          json: () => Promise.resolve({}),
+        }),
+      ),
+    );
+    const copy2 = await createJobStudyCopy("testJob", {} as ProjectFunctionJob);
+    expect(copy2).toEqual(
+      new Error("Error creating Job Copy for inspection", {
+        cause: new Error("Failed to open job copy: undefined"),
+      }),
+    );
   });
 
   it("should get health status", async () => {
