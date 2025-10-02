@@ -22,6 +22,7 @@ export function MOGAPareto(props: LoadingPropsType) {
   const { loading, progress, jobProgress } = props;
   const theme = useTheme();
   const ref = useRef<Plot>(null);
+  const zeroWeightsToastShown = useRef<boolean>(false);
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const { mogaSettings } = useMOGASettingsContext();
@@ -46,7 +47,10 @@ export function MOGAPareto(props: LoadingPropsType) {
         return NaN;
       } else if (Object.values(weights).every(w => w === 0)) {
         console.warn("All weights are zero! Setting performance to NaN");
-        toast.warning("Not possible to calculate performance - all weights set to zero")
+        if (!zeroWeightsToastShown.current) {
+          toast.warning("Not possible to calculate performance - all weights set to zero");
+          zeroWeightsToastShown.current = true;
+        }
         return NaN;
       }
 
@@ -360,6 +364,12 @@ export function MOGAPareto(props: LoadingPropsType) {
   useEffect(() => {
     if (!tableData || !tableData.rows) return;
     if (!selectedFunction) return;
+
+    // Reset toast flag if weights are no longer all zero
+    if (weights && !Object.values(weights).every(w => w === 0)) {
+      zeroWeightsToastShown.current = false;
+    }
+
     const localOptVars = Object.keys(outputTargets[selectedFunction.uid])
     const minMax = getMinMax(localOptVars, {}, tableData)
     // Recalculate performance for each row
