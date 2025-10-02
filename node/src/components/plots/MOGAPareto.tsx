@@ -224,7 +224,7 @@ export function MOGAPareto(props: LoadingPropsType) {
         paper_bgcolor: `${theme.palette.background.default}`,
         font: { color: `${theme.palette.text.primary}` },
         autosize: true,
-        margin: localPlotType === "2D" ? plotMargins2D : plotMargins,
+        margin: localPlotType === "3D" ? plotMargins : plotMargins2D,
       };
 
       switch (localPlotType) {
@@ -236,7 +236,7 @@ export function MOGAPareto(props: LoadingPropsType) {
             boxpoints: "all",
             y: outputValues[localOptVars[0]],
             x: Array(outputValues[localOptVars[0]].length).fill(0),
-            name: "Initial Samples",
+            name: "Sample Points",
           });
 
           // Group MOGA samples by iteration using populationSize
@@ -261,7 +261,7 @@ export function MOGAPareto(props: LoadingPropsType) {
                 boxpoints: "outliers",
                 y: iterationData,
                 x: Array(iterationData.length).fill(iteration),
-                name: `MOGA Iterations`,
+                name: `MOGA Evaluations`,
                 showlegend: iteration === 1, // Only show legend for the first boxplot
               });
             }
@@ -269,8 +269,14 @@ export function MOGAPareto(props: LoadingPropsType) {
 
           Object.assign(newLayout, {
             xaxis: { title: { text: "Iteration" } },
-            yaxis: { title: { text: localOptVars[0] } },
+            yaxis: { title: { text: localOptVars[0] }, type: scaleType },
             showlegend: true, // Show legend to distinguish between initial and MOGA samples
+            legend: {
+              x: 0.92, // Position legend inside plot area (right side)
+              y: 0.98, // Position at top
+              xanchor: 'left',
+              yanchor: 'top',
+            },
           });
           break;
         }
