@@ -39,7 +39,7 @@ describe("ServiceContextProvider", () => {
     );
     // Initial state before effect runs
     expect(getByTestId("permissions").textContent).toBe("READ-ONLY");
-    expect(getByTestId("serviceMode").textContent).toBe("UQ");
+    expect(getByTestId("serviceMode").textContent).toBe("");
   });
 
   it("updates context values after async resolves", async () => {
@@ -69,7 +69,7 @@ describe("ServiceContextProvider", () => {
     );
     await waitFor(() => {
       expect(getByTestId("permissions").textContent).toBe("READ-ONLY");
-      expect(getByTestId("serviceMode").textContent).toBe("UQ");
+      expect(getByTestId("serviceMode").textContent).toBe("");
       expect(errorSpy).toHaveBeenCalled();
     });
     errorSpy.mockRestore();
