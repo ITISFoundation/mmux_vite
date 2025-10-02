@@ -200,7 +200,7 @@ export function MOGAPareto(props: LoadingPropsType) {
       // console.log("Updating MOGA Pareto plot...", jobs, localOptVars, results, outputValues);
       let scaleType: "linear" | "log" = "linear";
       let localPlotType: "1D" | "2D" | "3D" = localOptVars.length < 2 ? "1D" : "2D";
-      localPlotType = localOptVars.length > 2 ? "3D" : localPlotType;
+      // localPlotType = localOptVars.length > 2 ? "3D" : localPlotType;
       if (extPlotType) {
         localPlotType = extPlotType.dimensionType;
         scaleType = extPlotType.scaleType;
