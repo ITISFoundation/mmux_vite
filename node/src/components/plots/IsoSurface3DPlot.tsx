@@ -154,6 +154,7 @@ function IsoSurface3DPlot() {
     setPropagating(true);
     fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_grid_evaluation`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         gridVars: [localAxis1, localAxis2, axis3],
         inputVars,
