@@ -106,7 +106,7 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
       }),
     });
 
-    if (response.status !== 200) throw new Error(`Failed to open job copy: ${response.statusText}`);
+    if (!response.ok) throw new Error(`Failed to open job copy: ${response.statusText}`);
 
     const study: StudyType = await response.json();
 
