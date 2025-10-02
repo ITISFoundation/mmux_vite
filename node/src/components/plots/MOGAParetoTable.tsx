@@ -102,7 +102,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       headerName: key.toUpperCase(),
       type: "number",
       cellClassName: "input-cols",
-      renderCell: params => params.row[key].toFixed(3),
+      renderCell: params => params.row[key].toPrecision(3),
       valueGetter: (_value, row) => row[key],
     }))
     : [];
@@ -117,7 +117,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         headerName: key.toUpperCase(),
         type: "number",
         cellClassName: "output-cols",
-        renderCell: params => params.row[key].toFixed(3),
+        renderCell: params => params.row[key].toPrecision(3),
         valueGetter: (_value, row) => row[key],
       }))
       : [],
@@ -157,7 +157,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       renderCell: params =>
         isNaN(params.row.Performance)
           ? ""
-          : params.row.Performance.toFixed(2),
+          : params.row.Performance.toPrecision(2),
       valueGetter: (_value, row) => row.Performance,
     },
     {
