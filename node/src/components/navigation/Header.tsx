@@ -43,7 +43,7 @@ const types: { [key in HeaderTypes]: TypographyVariant } = {
 };
 
 function Header(props: HeaderProps) {
-  const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents, fontWeight, errorMessage } = props;
+  const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents, fontWeight, errorMessage, QOISelector } = props;
   const theme = useTheme();
   return (
     <HeaderContainer headerType={headerType}>
@@ -78,6 +78,7 @@ function Header(props: HeaderProps) {
           </Typography>
         )}
       </Box>
+      {QOISelector ?? undefined}
       {helpContents && (
         <CustomTooltip title={helpContents} placement="right" arrow>
           <HelpOutline
