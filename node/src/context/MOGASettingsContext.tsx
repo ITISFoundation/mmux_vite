@@ -4,7 +4,7 @@ import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
 
 export type FitnessType = "layer_rank" | "domination_count";
-export type ReplacementType = "elitist" | "roulette_wheel" | "unique_roulette_wheel" | "below_limit";
+export type ReplacementType = "elitist" | "unique_roulette_wheel" | "below_limit";
 
 export interface MOGASettingsSelection {
   populationSize: number;
@@ -28,7 +28,7 @@ export const defaultMogaValues: MOGASettingsSelection = {
   populationSize: 50,
   maxIterations: 100,
   fitnessType: "layer_rank",
-  replacementType: "elitist",
+  replacementType: "below_limit",
   seed: 42,
   numberSeeds: 1,
 };
