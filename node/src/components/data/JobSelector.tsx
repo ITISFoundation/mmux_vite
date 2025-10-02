@@ -168,9 +168,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       }
 
       // Build a Map for fast lookup of fetchedJobCollections by uid
-      const fetchedJCMap = new Map(
-        fetchedJobCollections.map(fjc => [fjc.jobCollection.uid, fjc])
-      );
+      const fetchedJCMap = new Map(fetchedJobCollections.map(fjc => [fjc.jobCollection.uid, fjc]));
       const equalJC: boolean[] = jobsC.map(jc => {
         const fetchedJC = fetchedJCMap.get(jc.uid);
         return (
