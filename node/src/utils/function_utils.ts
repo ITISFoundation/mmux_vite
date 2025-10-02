@@ -99,6 +99,7 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
     const { inputs } = job;
     const study: StudyType = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/clone_job`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         functionName, //
         projectJobId,
