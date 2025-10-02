@@ -15,7 +15,7 @@ import { aggregateOutputValues } from "../../utils/function_utils";
 import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
 import { MOGAPlotModal } from "./MOGAPlotModal";
-import { plotMargins, plotMargins2D } from "./PlotTools";
+import { plotMarginsNarrow, plotMarginsMedium } from "./PlotTools";
 
 export function MOGAPareto(props: LoadingPropsType) {
   const { loading, progress, jobProgress } = props;
@@ -224,7 +224,7 @@ export function MOGAPareto(props: LoadingPropsType) {
         paper_bgcolor: `${theme.palette.background.default}`,
         font: { color: `${theme.palette.text.primary}` },
         autosize: true,
-        margin: localPlotType === "3D" ? plotMargins : plotMargins2D,
+        margin: localPlotType === "3D" ? plotMarginsNarrow : plotMarginsMedium,
       };
 
       switch (localPlotType) {
