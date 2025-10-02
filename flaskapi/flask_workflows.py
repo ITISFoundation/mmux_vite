@@ -1373,7 +1373,7 @@ def flask_perform_moga_optimization():
             k: [item for resdict in all_results for item in resdict[k]]
             for k in all_results[0].keys()
         }
-        _logger.info(f"All results: {results}")
+        _logger.debug(f"All results: {results}")
         ###################################################
 
         results_df = pd.DataFrame(results)
