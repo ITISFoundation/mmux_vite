@@ -16,6 +16,7 @@ import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
 import { MOGAPlotModal } from "./MOGAPlotModal";
 import { plotMargins, plotMargins2D } from "./PlotTools";
+import { toast } from "react-toastify";
 
 export function MOGAPareto(props: LoadingPropsType) {
   const { loading, progress, jobProgress } = props;
@@ -35,18 +36,24 @@ export function MOGAPareto(props: LoadingPropsType) {
 
   const calculatePerformance = useCallback(
     (row: { [x: string]: number }, OVS: OutputVarSelection, minMax: { [k: string]: { min: number; max: number } }) => {
+
+      const optVars = Object.keys(OVS)
+      if (optVars.length === 0) {
+        console.warn("OutputVarSelection passed to performance calculation is empty!")
+        return NaN;
+      } else if (!weights) {
+        console.warn("Weights passed to calculate performance are empty! ", weights)
+        return NaN;
+      } else if (Object.values(weights).every(w => w === 0)) {
+        console.warn("All weights are zero! Setting performance to NaN");
+        toast.warning("Not possible to calculate performance - all weights set to zero")
+        return NaN;
+      }
+
       // Performance: P_i = w_i / sum_j(w_j) * sum_j( (x_ij - min(x_j)) / (max(x_j) - min(x_j)) )
       // If minimizing, denominator is (max(x_j) - x_ij)
-      const optVars = Object.keys(OVS)
-      if (optVars.length === 0 || !weights) {
-        // console.log("returning 0 instantly due to missing vars")
-        // console.log("OVS: ", OVS)
-        // console.log("weights: ", weights)
-        return 0;
-      }
       let normSum = 0;
       let weightSum = 0;
-
       for (let i = 0; i < optVars.length; i += 1) {
         const varName = optVars[i];
         const w = weights[varName] || 0;
