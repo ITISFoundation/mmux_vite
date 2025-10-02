@@ -154,7 +154,10 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
           </Typography>
         </Box>
       ),
-      renderCell: params => params.row.Performance.toFixed(2),
+      renderCell: params =>
+        isNaN(params.row.Performance)
+          ? ""
+          : params.row.Performance.toFixed(2),
       valueGetter: (_value, row) => row.Performance,
     },
     {
