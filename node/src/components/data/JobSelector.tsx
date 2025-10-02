@@ -117,34 +117,33 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   };
 
   const getJobCollectionStatus = (subJobs: SubJob[]) => {
-    if (!subJobs || subJobs.length === 0) return "EMPTY";
+    if (!subJobs || subJobs.length === 0) return "NO JOBS";
     const result = subJobs
       .filter(j => j.job)
       .map(j => j.job.status)
       .reduce(
-        (acc, status) => {
+        (acc, status: string) => {
           if (status === "SUCCESS") acc.success += 1;
-          else if (status === "STARTED") acc.running += 1;
-          else if (status.includes("FAILED") || status.includes("FAILURE")) acc.failed += 1;
-          // else if (status === "PENDING") acc.pending += 1;
+          else if (status.endsWith("FAILED") || status.endsWith("FAILURE")) acc.failed += 1;
+          else if (status === "STARTED" || status === "RUNNING") acc.running += 1;
+          else if (status === "PENDING" || status.startsWith("JOB_") || status === "WAITING_") acc.pending += 1;
           else acc.incomplete += 1;
           return acc;
         },
         { success: 0, running: 0, failed: 0, incomplete: 0 },
       );
 
-    const allComplete = result.success === subJobs.length;
-    const anyComplete = result.success > 0;
+    const allSuccess = result.success === subJobs.length;
+    const anySuccess = result.success > 0;
     const anyRunning = result.running > 0;
     const anyFailed = result.failed > 0;
     const allFailed = result.failed === subJobs.length;
-    const allPending = result.incomplete === subJobs.length;
-    if (allComplete) return "COMPLETE";
-    if (anyRunning) return "RUNNING";
+    const anyPending = result.incomplete > 0;
+    if (allSuccess) return "COMPLETE";
     if (allFailed) return "FAILED";
-    if (anyFailed && anyComplete) return "FAILED (PARTIALLY)";
-    if (allPending) return "PENDING";
-    // Default fallback
+    if (anyRunning) return "RUNNING";
+    if (anyPending) return "PENDING";
+    if (anyFailed && anySuccess) return "FAILED PARTIALLY";
     return "UNKNOWN";
   };
 
