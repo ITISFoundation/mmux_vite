@@ -76,6 +76,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       });
       setData({ ...data, rows: updatedRows });
     }
+    handleSortModelChange(defaultSortModel); // reset sorting when changing weights
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weights]);
 
