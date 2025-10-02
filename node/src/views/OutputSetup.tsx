@@ -128,7 +128,7 @@ export function OutputSetup(props: UQSetupProps) {
           onChange={e => {
             handlesetLocalQoI(e.target.value);
           }}
-          data-testid="qoi-select"
+          mmux-testid="qoi-select"
         >
           {outputVars.map(qoi => (
             <MenuItem key={`qoi-${qoi}`} value={qoi}>
@@ -177,7 +177,7 @@ export function OutputSetup(props: UQSetupProps) {
             disabled={loading || !selectedFunction || filteredJobList.length === 0}
             onClick={() => setSumoModal(true)}
             sx={{ padding: "8px 16px" }}
-            data-testid="inspect-model-button"
+            mmux-testid="inspect-model-button"
           >
             Inspect Model
           </Button>

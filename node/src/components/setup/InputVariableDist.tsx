@@ -338,6 +338,7 @@ export function InputVariableDist() {
         {Object.keys(localDistribution).map((inputVar, index) => (
           <Box
             key={`inputVarBox-${inputVar}`}
+            mmux-testid={`input-var-box-${index}`}
             sx={{
               display: "flex",
               flexDirection: "column",
@@ -382,6 +383,7 @@ export function InputVariableDist() {
                     value={localDistribution[inputVar]?.distribution || ""}
                     sx={{ minWidth: 132, width: "100%" }}
                     onChange={e => handleDistributionChange(inputVar, e.target.value as Distribution)}
+                    mmux-testid={`input-var-${inputVar}-distribution-selector`}
                   >
                     {/* TODO include info buttons about each distribution & their parameters */}
                     <MenuItem value="constant">Constant</MenuItem>
