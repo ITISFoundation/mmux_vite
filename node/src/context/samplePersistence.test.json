@@ -6,7 +6,7 @@
       "populationSize": 50,
       "maxIterations": 100,
       "fitnessType": "layer_rank",
-      "replacementType": "elitist",
+      "replacementType": "below_limit",
       "seed": 42
     }
   },
