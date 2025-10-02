@@ -27,7 +27,6 @@ export function RunSamplingButton(props: RunSamplingButtonProps) {
   const handleRunSamplingWithErrorHandling = async () => {
     try {
       await handleRunSampling();
-      setLaunchingSampling(false);
       setRunningSampling(true);
     } catch (error) {
       console.error(error);

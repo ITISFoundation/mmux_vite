@@ -93,6 +93,7 @@ function SuMoValidation() {
 
     fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_cross_validation`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         inputVars,
         output: selectedQoI,

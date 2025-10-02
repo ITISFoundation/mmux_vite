@@ -102,6 +102,7 @@ function Curves1DPlots() {
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
     fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_along_axes`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         inputs: inputVars,
         distribution,

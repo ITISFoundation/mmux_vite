@@ -56,9 +56,9 @@ export async function getFunctionJobCollections(functionUid: string): Promise<Fu
 }
 
 export async function getFunctionJobsFromFunctionJobCollection(JobCollectionUid: string): Promise<FunctionJob[]> {
-  return fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/list_function_jobs_for_jobcollectionid?JobCollectionUid=${JobCollectionUid}`).then(
-    response => response.json(),
-  );
+  return fetchWithRetry(
+    `${PYTHON_DAKOTA_BACKEND}/flask/list_function_jobs_for_jobcollectionid?JobCollectionUid=${JobCollectionUid}`,
+  ).then(response => response.json());
 }
 
 export function getSimplifiedHost(): string {
@@ -99,6 +99,7 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
     const { inputs } = job;
     const response = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/clone_job`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         functionName, //
         projectJobId,

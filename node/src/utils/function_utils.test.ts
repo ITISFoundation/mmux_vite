@@ -32,7 +32,7 @@ const mockJobs: FunctionJob[] = [
   },
 ];
 
-const mockFunctions  = [{ uid: "func1" }, { uid: "func2" }];
+const mockFunctions = [{ uid: "func1" }, { uid: "func2" }];
 const sampleJobs = [{ uid: "job1" }, { uid: "job2" }];
 const mockCollections = [{ uid: "collection1" }, { uid: "collection2" }];
 
@@ -85,19 +85,21 @@ describe("Function Utils", () => {
       projectJobId: "proj1",
       status: "COMPLETED",
     };
-    const response = {
-      uid: "jobUID",
-      title: "Test Job",
-      description: "This is a test job",
+    const response: Partial<Response> = {
+      status: 200,
+      ok: true,
+      headers: new Headers(),
+      redirected: false,
+      json: () =>
+        Promise.resolve({
+          uid: "jobUID",
+          title: "Test Job",
+          description: "This is a test job",
+        }),
     };
     vi.stubGlobal(
       "fetch",
-      vi.fn(() =>
-        Promise.resolve({
-          status: 200,
-          json: () => Promise.resolve(response),
-        }),
-      ),
+      vi.fn(() => Promise.resolve(response)),
     );
     const copy = await createJobStudyCopy("testJob", job);
     expect(copy).toBe("jobUID");
@@ -172,7 +174,6 @@ describe("Function Utils", () => {
     const jobs = await listJobs();
     expect(jobs).toEqual(mockJobs);
   });
-
 
   it("should get function jobs from function UID", async () => {
     const mockJobData = [{ uid: "job1" }, { uid: "job2" }];
