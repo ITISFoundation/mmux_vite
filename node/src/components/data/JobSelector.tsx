@@ -167,12 +167,16 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         return;
       }
 
+      // Build a Map for fast lookup of fetchedJobCollections by uid
+      const fetchedJCMap = new Map(
+        fetchedJobCollections.map(fjc => [fjc.jobCollection.uid, fjc])
+      );
       const equalJC: boolean[] = jobsC.map(jc => {
-        const fIndex = fetchedJobCollections.findIndex(fjc => fjc.jobCollection.uid === jc.uid);
+        const fetchedJC = fetchedJCMap.get(jc.uid);
         return (
-          fIndex > -1 &&
-          jc.jobIds.join(",") === fetchedJobCollections[fIndex].jobCollection.jobIds.join(",") &&
-          fetchedJobCollections[fIndex].subJobs.every(j => j.job.status === "SUCCESS" || j.job.status === "FAILED")
+          fetchedJC !== undefined &&
+          jc.jobIds.join(",") === fetchedJC.jobCollection.jobIds.join(",") &&
+          fetchedJC.subJobs.every(j => j.job.status === "SUCCESS" || j.job.status === "FAILED")
         );
       });
 
