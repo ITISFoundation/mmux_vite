@@ -6,6 +6,8 @@ import logging
 from typing import List, Dict, Callable, NamedTuple, Final, Optional, Literal, Any
 import numpy as np  # type: ignore
 import pandas as pd  # type: ignore
+from mmux_python.utils.funs_data_processing import get_non_dominated_indices
+
 from flask import Flask, request, abort, jsonify, make_response  # type: ignore
 from osparc import Configuration as OsparcConfiguration  # type: ignore
 from osparc import ApiClient, UsersApi, StudiesApi  # type: ignore
@@ -15,7 +17,7 @@ from osparc_client.api.function_job_collections_api import FunctionJobCollection
 from osparc_client.models.function_job import FunctionJob  # type: ignore
 from osparc_client.models.function_job_status import FunctionJobStatus  # type: ignore
 from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost  # type: ignore
-
+import traceback
 from mmux_python.utils.funs_data_processing import (
     process_input_file,
     create_manual_uq_samples,
@@ -1371,10 +1373,8 @@ def flask_perform_moga_optimization():
             k: [item for resdict in all_results for item in resdict[k]]
             for k in all_results[0].keys()
         }
-        _logger.debug(f"All results: {results}")
+        _logger.info(f"All results: {results}")
         ###################################################
-
-        from mmux_python.utils.funs_data_processing import get_non_dominated_indices
 
         results_df = pd.DataFrame(results)
         _logger.debug("Results df: ")
@@ -1402,5 +1402,9 @@ def flask_perform_moga_optimization():
     ## Do not put effort into modifying previous workflows -- they will be fully reworked
 
     except Exception as e:
+        traceback_str = traceback.format_exc()
+
         _logger.error(f"Error while performing MOGA optimization: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
+        abort(
+            make_response(jsonify({"error": str(e), "traceback": traceback_str}), 500)
+        )
