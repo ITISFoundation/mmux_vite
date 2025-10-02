@@ -167,14 +167,16 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         return;
       }
 
-      const equalJC: boolean[] =
-        fetchedJobCollections.length === jobsC.length
-          ? fetchedJobCollections.map(
-              (jc, idx) =>
-                jc.jobCollection.jobIds.join(",") === jobsC[idx].jobIds.join(",") &&
-                jc.subJobs.every(j => j.job.status === "SUCCESS" || j.job.status === "FAILED"),
-            )
-          : [false];
+      // Build a Map for fast lookup of fetchedJobCollections by uid
+      const fetchedJCMap = new Map(fetchedJobCollections.map(fjc => [fjc.jobCollection.uid, fjc]));
+      const equalJC: boolean[] = jobsC.map(jc => {
+        const fetchedJC = fetchedJCMap.get(jc.uid);
+        return (
+          fetchedJC !== undefined &&
+          jc.jobIds.join(",") === fetchedJC.jobCollection.jobIds.join(",") &&
+          fetchedJC.subJobs.every(j => j.job.status === "SUCCESS" || j.job.status === "FAILED")
+        );
+      });
 
       if (equalJC.every(v => v === true)) {
         console.info("Job collections already fetched, skipping fetch.");
