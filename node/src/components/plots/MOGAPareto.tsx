@@ -99,15 +99,6 @@ export function MOGAPareto(props: LoadingPropsType) {
     [weights, tableData],
   );
 
-  const groupArrayElements = <T,>(arr: Array<T>, groupSize: number) => {
-    const groupedArr: Array<Array<T>> = [];
-    for (let i = 0; i < arr.length; i += groupSize) {
-      groupedArr.push(arr.slice(i, i + groupSize));
-    }
-    return groupedArr;
-  };
-
-
   // Utility to get min/max for each optVar from results or tableData
   function getMinMax(optVars: string[], results: { [key: string]: number[] }, tableData?: MogaDataType) {
     const minMax: { [k: string]: { min: number; max: number } } = {};
@@ -238,34 +229,49 @@ export function MOGAPareto(props: LoadingPropsType) {
 
       switch (localPlotType) {
         case "1D": {
-          const groupedY = groupArrayElements(
-            outputValues[localOptVars[0]],
-            Math.floor(outputValues[localOptVars[0]].length / 20),
-          );
-          const groupedYR = groupArrayElements(results[localOptVars[0]], Math.floor(results[localOptVars[0]].length / 20));
-          // Map over the grouped Y values to create multiple box plots
-          groupedY.map((y, idx) =>
-            newPlotData.push({
-              ...newPlotData[0],
-              boxpoints: "all",
-              y,
-              name: `${idx}`,
-            }),
-          );
-          // Map over the calculated pareto Y values to create multiple box plots
-          groupedYR.map((y, idx) =>
-            newPlotData.push({
-              ...newPlotData[1],
-              boxpoints: "outliers",
-              y,
-              name: `${idx}`,
-            }),
-          );
-          newPlotData.shift(); // these two shifts are here to remove the initial empty plots definitions
-          newPlotData.shift();
-          newLayout.yaxis = { title: { text: localOptVars[0] } };
-          // hide the legend if only one dimension is used
-          newLayout.showlegend = false;
+          // Group initial (real) samples in a single bin at x = 0
+          newPlotData.push({
+            ...newPlotData[0],
+            type: "box",
+            boxpoints: "all",
+            y: outputValues[localOptVars[0]],
+            x: Array(outputValues[localOptVars[0]].length).fill(0),
+            name: "Initial Samples",
+          });
+
+          // Group MOGA samples by iteration using populationSize
+          const mogaResults = results[localOptVars[0]] || [];
+          // const samplesPerIteration = localsettings.populationSize;
+          // const numIterations = Math.ceil(mogaResults.length / samplesPerIteration);
+          const numIterations = localsettings.maxIterations;
+          const samplesPerIteration = Math.ceil(mogaResults.length / numIterations);
+
+          for (let iteration = 1; iteration <= numIterations; iteration++) {
+            const startIdx = (iteration - 1) * samplesPerIteration;
+            const endIdx = Math.min(iteration * samplesPerIteration, mogaResults.length);
+            const iterationData = mogaResults.slice(startIdx, endIdx);
+            // console.log("Iteration: ", iteration)
+            // console.log(startIdx, endIdx)
+            // console.log(iterationData)
+
+            if (iterationData.length > 0) {
+              newPlotData.push({
+                ...newPlotData[1],
+                type: "box",
+                boxpoints: "outliers",
+                y: iterationData,
+                x: Array(iterationData.length).fill(iteration),
+                name: `MOGA Iterations`,
+                showlegend: iteration === 1, // Only show legend for the first boxplot
+              });
+            }
+          }
+
+          Object.assign(newLayout, {
+            xaxis: { title: { text: "Iteration" } },
+            yaxis: { title: { text: localOptVars[0] } },
+            showlegend: true, // Show legend to distinguish between initial and MOGA samples
+          });
           break;
         }
         case "2D": {
