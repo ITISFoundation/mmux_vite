@@ -306,21 +306,21 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     [jobCollections, updateJobContext],
   );
 
-  const autoSelectJobs = useCallback(() => {
-    const newJobCollections: SelectedJobCollection[] = jobCollections.map(jc => {
-      const auxJob = jc;
-      auxJob.subJobs = jc.subJobs.map(subJob => ({
-        selected: subJob.job.status === "SUCCESS",
-        job: subJob.job,
-      }));
-      const auxJobState = auxJob.subJobs.map(j => j.selected);
-      auxJob.selected = !auxJobState.every(j => j === false);
-      return auxJob;
-    });
+  // const autoSelectJobs = useCallback(() => {
+  //   const newJobCollections: SelectedJobCollection[] = jobCollections.map(jc => {
+  //     const auxJob = jc;
+  //     auxJob.subJobs = jc.subJobs.map(subJob => ({
+  //       selected: subJob.job.status === "SUCCESS",
+  //       job: subJob.job,
+  //     }));
+  //     const auxJobState = auxJob.subJobs.map(j => j.selected);
+  //     auxJob.selected = !auxJobState.every(j => j === false);
+  //     return auxJob;
+  //   });
 
-    setJobCollections(newJobCollections);
-    updateJobContext(newJobCollections);
-  }, [jobCollections, updateJobContext]);
+  //   setJobCollections(newJobCollections);
+  //   updateJobContext(newJobCollections);
+  // }, [jobCollections, updateJobContext]);
 
   const handleJobsUpdate = useCallback(async () => {
     setJobCollections([]);
@@ -596,9 +596,9 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             onToggleAll(true);
           }}
         >
-          Select all Jobs
+          Select all successful Jobs
         </Button>
-        <Button
+        {/* <Button
           variant="contained"
           size="medium"
           sx={{ marginTop: "8px", marginBottom: "8px" }}
@@ -607,7 +607,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           }}
         >
           Auto select Jobs
-        </Button>
+        </Button> */}
         <Button
           variant="contained"
           size="medium"
