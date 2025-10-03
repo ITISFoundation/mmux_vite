@@ -38,6 +38,10 @@ export function OutputSetup(props: UQSetupProps) {
 
   useEffect(() => {
     setLocalQoI(outputVars[0] || "");
+    if (mode === "moga") {
+      setSelectedQoI(outputVars[0] || "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outputVars]); // Update localQoI when selectedQoI changes due to selectedFunction change
 
   if (mode === "moga" && setSumoModal && setMogaModal) {

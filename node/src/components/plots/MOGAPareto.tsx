@@ -15,12 +15,14 @@ import { aggregateOutputValues } from "../../utils/function_utils";
 import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
 import { MOGAPlotModal } from "./MOGAPlotModal";
-import { plotMargins, plotMargins2D } from "./PlotTools";
+import { plotMarginsNarrow, plotMarginsMedium } from "./PlotTools";
+import { toast } from "react-toastify";
 
 export function MOGAPareto(props: LoadingPropsType) {
   const { loading, progress, jobProgress } = props;
   const theme = useTheme();
   const ref = useRef<Plot>(null);
+  const zeroWeightsToastShown = useRef<boolean>(false);
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const { mogaSettings } = useMOGASettingsContext();
@@ -35,18 +37,27 @@ export function MOGAPareto(props: LoadingPropsType) {
 
   const calculatePerformance = useCallback(
     (row: { [x: string]: number }, OVS: OutputVarSelection, minMax: { [k: string]: { min: number; max: number } }) => {
+
+      const optVars = Object.keys(OVS)
+      if (optVars.length === 0) {
+        console.warn("OutputVarSelection passed to performance calculation is empty!")
+        return NaN;
+      } else if (!weights) {
+        console.warn("Weights passed to calculate performance are empty! ", weights)
+        return NaN;
+      } else if (Object.values(weights).every(w => w === 0)) {
+        console.warn("All weights are zero! Setting performance to NaN");
+        if (!zeroWeightsToastShown.current) {
+          toast.warning("Not possible to calculate performance - all weights set to zero");
+          zeroWeightsToastShown.current = true;
+        }
+        return NaN;
+      }
+
       // Performance: P_i = w_i / sum_j(w_j) * sum_j( (x_ij - min(x_j)) / (max(x_j) - min(x_j)) )
       // If minimizing, denominator is (max(x_j) - x_ij)
-      const optVars = Object.keys(OVS)
-      if (optVars.length === 0 || !weights) {
-        // console.log("returning 0 instantly due to missing vars")
-        // console.log("OVS: ", OVS)
-        // console.log("weights: ", weights)
-        return 0;
-      }
       let normSum = 0;
       let weightSum = 0;
-
       for (let i = 0; i < optVars.length; i += 1) {
         const varName = optVars[i];
         const w = weights[varName] || 0;
@@ -98,15 +109,6 @@ export function MOGAPareto(props: LoadingPropsType) {
     },
     [weights, tableData],
   );
-
-  const groupArrayElements = <T,>(arr: Array<T>, groupSize: number) => {
-    const groupedArr: Array<Array<T>> = [];
-    for (let i = 0; i < arr.length; i += groupSize) {
-      groupedArr.push(arr.slice(i, i + groupSize));
-    }
-    return groupedArr;
-  };
-
 
   // Utility to get min/max for each optVar from results or tableData
   function getMinMax(optVars: string[], results: { [key: string]: number[] }, tableData?: MogaDataType) {
@@ -200,7 +202,7 @@ export function MOGAPareto(props: LoadingPropsType) {
       // console.log("Updating MOGA Pareto plot...", jobs, localOptVars, results, outputValues);
       let scaleType: "linear" | "log" = "linear";
       let localPlotType: "1D" | "2D" | "3D" = localOptVars.length < 2 ? "1D" : "2D";
-      localPlotType = localOptVars.length > 2 ? "3D" : localPlotType;
+      // localPlotType = localOptVars.length > 2 ? "3D" : localPlotType;
       if (extPlotType) {
         localPlotType = extPlotType.dimensionType;
         scaleType = extPlotType.scaleType;
@@ -233,39 +235,60 @@ export function MOGAPareto(props: LoadingPropsType) {
         paper_bgcolor: `${theme.palette.background.default}`,
         font: { color: `${theme.palette.text.primary}` },
         autosize: true,
-        margin: localPlotType === "2D" ? plotMargins2D : plotMargins,
+        margin: localPlotType === "3D" ? plotMarginsNarrow : plotMarginsMedium,
       };
 
       switch (localPlotType) {
         case "1D": {
-          const groupedY = groupArrayElements(
-            outputValues[localOptVars[0]],
-            Math.floor(outputValues[localOptVars[0]].length / 20),
-          );
-          const groupedYR = groupArrayElements(results[localOptVars[0]], Math.floor(results[localOptVars[0]].length / 20));
-          // Map over the grouped Y values to create multiple box plots
-          groupedY.map((y, idx) =>
-            newPlotData.push({
-              ...newPlotData[0],
-              boxpoints: "all",
-              y,
-              name: `${idx}`,
-            }),
-          );
-          // Map over the calculated pareto Y values to create multiple box plots
-          groupedYR.map((y, idx) =>
-            newPlotData.push({
-              ...newPlotData[1],
-              boxpoints: "outliers",
-              y,
-              name: `${idx}`,
-            }),
-          );
-          newPlotData.shift(); // these two shifts are here to remove the initial empty plots definitions
-          newPlotData.shift();
-          newLayout.yaxis = { title: { text: localOptVars[0] } };
-          // hide the legend if only one dimension is used
-          newLayout.showlegend = false;
+          // Group initial (real) samples in a single bin at x = 0
+          newPlotData.push({
+            ...newPlotData[0],
+            type: "box",
+            boxpoints: "all",
+            y: outputValues[localOptVars[0]],
+            x: Array(outputValues[localOptVars[0]].length).fill(0),
+            name: "Sample Points",
+          });
+
+          // Group MOGA samples by iteration using populationSize
+          const mogaResults = results[localOptVars[0]] || [];
+          // const samplesPerIteration = localsettings.populationSize;
+          // const numIterations = Math.ceil(mogaResults.length / samplesPerIteration);
+          const numIterations = localsettings.maxIterations;
+          const samplesPerIteration = Math.ceil(mogaResults.length / numIterations);
+
+          for (let iteration = 1; iteration <= numIterations; iteration++) {
+            const startIdx = (iteration - 1) * samplesPerIteration;
+            const endIdx = Math.min(iteration * samplesPerIteration, mogaResults.length);
+            const iterationData = mogaResults.slice(startIdx, endIdx);
+            // console.log("Iteration: ", iteration)
+            // console.log(startIdx, endIdx)
+            // console.log(iterationData)
+
+            if (iterationData.length > 0) {
+              newPlotData.push({
+                ...newPlotData[1],
+                type: "box",
+                boxpoints: "outliers",
+                y: iterationData,
+                x: Array(iterationData.length).fill(iteration),
+                name: `MOGA Evaluations`,
+                showlegend: iteration === 1, // Only show legend for the first boxplot
+              });
+            }
+          }
+
+          Object.assign(newLayout, {
+            xaxis: { title: { text: "Iteration" } },
+            yaxis: { title: { text: localOptVars[0] }, type: scaleType },
+            showlegend: true, // Show legend to distinguish between initial and MOGA samples
+            legend: {
+              x: 0.92, // Position legend inside plot area (right side)
+              y: 0.98, // Position at top
+              xanchor: 'left',
+              yanchor: 'top',
+            },
+          });
           break;
         }
         case "2D": {
@@ -353,6 +376,12 @@ export function MOGAPareto(props: LoadingPropsType) {
   useEffect(() => {
     if (!tableData || !tableData.rows) return;
     if (!selectedFunction) return;
+
+    // Reset toast flag if weights are no longer all zero
+    if (weights && !Object.values(weights).every(w => w === 0)) {
+      zeroWeightsToastShown.current = false;
+    }
+
     const localOptVars = Object.keys(outputTargets[selectedFunction.uid])
     const minMax = getMinMax(localOptVars, {}, tableData)
     // Recalculate performance for each row
