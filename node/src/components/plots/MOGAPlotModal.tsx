@@ -169,6 +169,7 @@ export const MOGAPlotModal = (props: MOGAPlotModalProps) => {
                     <OutputSelect
                       values={optVars}
                       selected={optVars.findIndex(v => v === localSelectedOptVars[idx])}
+                      allSelected={localSelectedOptVars}
                       setSelected={v => handleSetSelectedOptVars(idx, v)}
                     />
                   </InputLabel>
