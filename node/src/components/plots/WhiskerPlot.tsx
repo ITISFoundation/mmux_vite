@@ -2,7 +2,7 @@ import React from "react";
 import Plot from "react-plotly.js";
 import { Data } from "plotly.js";
 import { useTheme } from "@mui/material";
-import { plotMargins } from "./PlotTools";
+import { plotMarginsNarrow } from "./PlotTools";
 
 const WhiskerPlot: React.FC<DataUQHistogramType> = (props: DataUQHistogramType) => {
   const { q1, median, q3, whisker_min: whiskerMin, whisker_max: whiskerMax } = props;
@@ -97,7 +97,7 @@ const WhiskerPlot: React.FC<DataUQHistogramType> = (props: DataUQHistogramType) 
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
-    margin: plotMargins,
+    margin: plotMarginsNarrow,
     xaxis: {
       showticklabels: false,
       showgrid: false,
