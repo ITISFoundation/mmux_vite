@@ -241,5 +241,5 @@ export function CreateSlider({ dist, input, otherAxis, setOtherAxis }: CreateSli
 }
 
 // plot margings to be applied to all plots
-export const plotMargins = { l: 20, r: 40, b: 30, t: 55 };
-export const plotMargins2D = { l: 60, r: 40, b: 60, t: 40 };
+export const plotMarginsNarrow = { l: 20, r: 40, b: 30, t: 55 };
+export const plotMarginsMedium = { l: 60, r: 40, b: 60, t: 40 };

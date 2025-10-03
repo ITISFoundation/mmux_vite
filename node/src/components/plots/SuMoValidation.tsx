@@ -7,7 +7,7 @@ import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import Metric from "./Metric";
 import MetricRow from "./MetricRow";
-import { plotMargins } from "./PlotTools";
+import { plotMarginsNarrow } from "./PlotTools";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -148,7 +148,7 @@ function SuMoValidation() {
     title: {
       text: `${selectedQoI || "Quantity of Interest"} Sample Distribution`,
     },
-    margin: plotMargins,
+    margin: plotMarginsNarrow,
     width,
     barmode: "overlay",
     legend: {
