@@ -78,6 +78,7 @@ interface HeaderProps {
   helpContents?: ReactElement;
   fontWeight?: React.CSSProperties["fontWeight"];
   errorMessage?: string;
+  QOISelector?: React.ReactNode;
 }
 
 interface SubJob {
