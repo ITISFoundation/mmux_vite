@@ -173,7 +173,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         const fetchedJC = fetchedJCMap.get(jc.uid);
         return (
           fetchedJC !== undefined &&
-          jc.jobIds.join(",") === fetchedJC.jobCollection.jobIds.join(",") &&
+          jc.jobIds.join(",") === fetchedJC.subJobs.map(j => j.job.uid).join(",") &&
           fetchedJC.subJobs.every(j => j.job.status === "SUCCESS" || j.job.status === "FAILED")
         );
       });
@@ -404,6 +404,20 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             headerName: "Selected",
             maxWidth: 80,
             type: "boolean",
+            sortable: false,
+            headerClassName: "checkbox-header",
+            renderHeader: () => (
+              <Box>
+                <Checkbox
+                  checked={jobCollections.length > 0 && jobCollections.every(jc => jc.selected === true)}
+                  indeterminate={
+                    jobCollections.some(jc => jc.selected === true) && !jobCollections.every(jc => jc.selected === true)
+                  }
+                  onChange={event => onToggleAll(event.target.checked)}
+                  inputProps={{ "aria-label": "Select all jobs" }}
+                />
+              </Box>
+            ),
             renderCell: params => (
               <Checkbox
                 checked={params.row.selected}
@@ -496,6 +510,9 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           },
           "& .MuiDataGrid-sortButton": {
             backgroundColor: theme.palette.background.paper,
+          },
+          svg: {
+            color: theme.palette.primary.main,
           },
         })}
         getRowId={getRowId}
