@@ -68,11 +68,11 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(jc => {
       const auxJob = jc;
       if (jc.jobCollection.uid === uid) {
-        auxJob.selected = selected;
         auxJob.subJobs = auxJob.subJobs.map(j => ({
-          selected,
+          selected: selected === true ? j.job.status === "SUCCESS" : false,
           job: j.job,
         }));
+        auxJob.selected = selected === true ? auxJob.subJobs.some(j => j.selected === true) : false;
       }
       return auxJob;
     });
