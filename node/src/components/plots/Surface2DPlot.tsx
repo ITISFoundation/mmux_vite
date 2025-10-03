@@ -5,7 +5,7 @@ import { Data, Layout } from "plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { CreateSelect, CreateSlider, filterInputVars, plotMargins } from "./PlotTools";
+import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow } from "./PlotTools";
 import Header from "../navigation/Header";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -135,7 +135,7 @@ function Surface2DPlot() {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
-    margin: plotMargins,
+    margin: plotMarginsNarrow,
   };
 
   const plotStyle = {
