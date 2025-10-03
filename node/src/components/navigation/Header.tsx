@@ -78,7 +78,7 @@ function Header(props: HeaderProps) {
           </Typography>
         )}
       </Box>
-      {QOISelector ?? undefined}
+      {QOISelector}
       {helpContents && (
         <CustomTooltip title={helpContents} placement="right" arrow>
           <HelpOutline
