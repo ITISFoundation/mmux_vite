@@ -102,7 +102,7 @@ function LHSSampling() {
         })),
       },
     ];
-    setFetchedJobCollections([...fetchedJobCollections, ...newJobs]);
+    setFetchedJobCollections([...(fetchedJobCollections ?? []), ...newJobs]);
     // TODO Alex: how do I update the table without need to reload everything else?
   };
 
