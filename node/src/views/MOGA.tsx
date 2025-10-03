@@ -14,6 +14,7 @@ export default function MOGA() {
   const [mogaModal, setMogaModal] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [jobProgress, setJobProgress] = useState<number>(0);
+  const [calculating, setCalculating] = useState(false);
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
 
@@ -26,12 +27,14 @@ export default function MOGA() {
         jobsFetched={jobsFetched}
         loading={loading}
         progress={progress}
+        setCalculating={setCalculating}
       />
       <SuMoModal open={sumoModal} setOpen={setSumoModal} />
       <MOGAModal open={mogaModal} setOpen={setMogaModal} />
       <JobSampling
         loading={loading}
         setLoading={setLoading}
+        disabled={calculating}
         progress={progress}
         setProgress={setProgress}
         jobProgress={jobProgress}

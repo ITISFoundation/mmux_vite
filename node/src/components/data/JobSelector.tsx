@@ -147,9 +147,11 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     return "UNKNOWN";
   };
 
+  const filterForFinalStatus = (status: string) => status === "FAILED" || status === "SUCCESS" || status.includes("FAILURE");
+
   const updateJobCollections = useCallback(
     async (functionUid: string, forceFetch = false) => {
-      console.info("Fetching jobCollections for function: ", functionUid);
+      console.info("Fetching jobCollections for function: ", functionUid, fetchedJobCollections, forceFetch);
       if (fetchedJobCollections && !forceFetch) {
         console.info("Job collections already fetched, skipping fetch.");
         setJobCollections(fetchedJobCollections);
@@ -174,8 +176,10 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         return (
           fetchedJC !== undefined &&
           jc.jobIds.join(",") === fetchedJC.subJobs.map(j => j.job.uid).join(",") &&
-          fetchedJC.subJobs.every(
-            j => typeof j.job.status === "string" && (j.job.status === "SUCCESS" || j.job.status === "FAILED"),
+          fetchedJC.subJobs.every(j =>
+            typeof j.job.status === "string"
+              ? filterForFinalStatus(j.job.status)
+              : filterForFinalStatus((j.job.status as unknown as { status: string }).status),
           )
         );
       });
@@ -219,7 +223,15 @@ export default function JobsSelector(props: JobSelectorPropsType) {
               fetchedJobCollections.find(
                 j =>
                   j.jobCollection.jobIds.includes(id) &&
-                  j.subJobs.some(sj => sj.job.uid === id && (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")),
+                  j.subJobs.some(
+                    sj =>
+                      sj.job.uid === id &&
+                      filterForFinalStatus(
+                        typeof sj.job.status === "string"
+                          ? sj.job.status
+                          : (sj.job.status as unknown as { status: string }).status,
+                      ),
+                  ),
               );
             if (existingJob) {
               job = existingJob.subJobs.find(j => j.job.uid === id)?.job;
@@ -249,6 +261,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         setProgress((colsFetched.current / totalSubs) * 100);
       }
 
+      console.log("new jobCollections: ", newJobCollections);
       setJobCollections(newJobCollections);
       setFetchedJobCollections(newJobCollections);
       updateJobContext(newJobCollections);

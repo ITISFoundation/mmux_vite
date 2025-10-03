@@ -8,7 +8,7 @@ export interface JobContextType {
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
   setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void;
   fetchedJobCollections: SelectedJobCollection[] | undefined;
-  setFetchedJobCollections: (jc: SelectedJobCollection[]) => void;
+  setFetchedJobCollections: (jc: SelectedJobCollection[] | undefined) => void;
   selectedJobUids: string[];
   setSelectedJobUids: (selectedJobs: string[]) => void;
   allJobsList: () => FunctionJob[];

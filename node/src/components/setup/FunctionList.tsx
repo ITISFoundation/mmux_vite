@@ -149,7 +149,7 @@ export function FunctionList() {
   const handleSelectedFunction = (F: OsparcFunction | undefined) => {
     setSelectedFunction(F);
     setSelectedJobUids([]);
-    setFetchedJobCollections([]);
+    setFetchedJobCollections(undefined);
     setInputVars([]);
     setLhsSamplingConfig({
       inputs: [],
