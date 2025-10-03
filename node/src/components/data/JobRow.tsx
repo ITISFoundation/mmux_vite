@@ -96,7 +96,7 @@ function JobRow(props: JobRowProps) {
   if (jobStatus === "SUCCESS") {
     outputs = Object.entries(job.job.outputs).map(([key, value]) => (
       <Box key={`job-row-output-${key}`} display="inline">
-        {key} : {(value as number).toExponential(3)}
+        {key} : {(value as number).toPrecision(3)}
         {", "}
       </Box>
     ));
@@ -129,7 +129,7 @@ function JobRow(props: JobRowProps) {
 
   const inputs = Object.entries(job.job.inputs).map(([key, value]) => (
     <Box key={`job-row-input-${key}`} display="inline">
-      {key} : {(value as number).toExponential(3)}
+      {key} : {(value as number).toPrecision(3)}
       {", "}
     </Box>
   ));

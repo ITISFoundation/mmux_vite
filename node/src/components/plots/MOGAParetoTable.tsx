@@ -76,6 +76,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       });
       setData({ ...data, rows: updatedRows });
     }
+    handleSortModelChange(defaultSortModel); // reset sorting when changing weights
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weights]);
 
@@ -102,7 +103,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       headerName: key.toUpperCase(),
       type: "number",
       cellClassName: "input-cols",
-      renderCell: params => params.row[key].toFixed(3),
+      renderCell: params => params.row[key].toPrecision(3),
       valueGetter: (_value, row) => row[key],
     }))
     : [];
@@ -117,7 +118,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         headerName: key.toUpperCase(),
         type: "number",
         cellClassName: "output-cols",
-        renderCell: params => params.row[key].toFixed(3),
+        renderCell: params => params.row[key].toPrecision(3),
         valueGetter: (_value, row) => row[key],
       }))
       : [],
@@ -154,7 +155,10 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
           </Typography>
         </Box>
       ),
-      renderCell: params => params.row.Performance.toFixed(2),
+      renderCell: params =>
+        isNaN(params.row.Performance)
+          ? "-"
+          : params.row.Performance.toPrecision(2),
       valueGetter: (_value, row) => row.Performance,
     },
     {

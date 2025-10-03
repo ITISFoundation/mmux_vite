@@ -82,7 +82,7 @@ const PerformanceModal = ({ open, setOpen }: { open: boolean; setOpen: (value: b
                     valueLabelDisplay="off"
                     aria-labelledby={`slider-${key}`}
                   />
-                  {/* <span>{(localWeights[key] || 0).toFixed(2)}</span> */}
+                  {/* <span>{(localWeights[key] || 0).toPrecision(2)}</span> */}
                   {/* weights are relative (value does not matter) */}
                 </Box>
               </Box>
