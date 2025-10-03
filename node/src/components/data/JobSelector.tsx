@@ -407,22 +407,22 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             sortable: false,
             headerClassName: "checkbox-header",
             renderHeader: () => (
-              <Box>
-                <Checkbox
-                  checked={jobCollections.length > 0 && jobCollections.every(jc => jc.selected === true)}
-                  indeterminate={
-                    jobCollections.some(jc => jc.selected === true) && !jobCollections.every(jc => jc.selected === true)
-                  }
-                  onChange={event => onToggleAll(event.target.checked)}
-                  inputProps={{ "aria-label": "Select all jobs" }}
-                />
-              </Box>
+              <Checkbox
+                checked={jobCollections.length > 0 && jobCollections.every(jc => jc.selected === true)}
+                indeterminate={
+                  jobCollections.some(jc => jc.selected === true) && !jobCollections.every(jc => jc.selected === true)
+                }
+                onChange={event => onToggleAll(event.target.checked)}
+                inputProps={{ "aria-label": "Select all jobs" }}
+                sx={theme => ({ "& .MuiSvgIcon-root": { color: `${theme.palette.primary.main} !important` } })}
+              />
             ),
             renderCell: params => (
               <Checkbox
                 checked={params.row.selected}
                 indeterminate={params.row.subJobs.some(j => j.selected) && !params.row.subJobs.every(j => j.selected)}
                 onChange={event => selectMainJob(params.row.jobCollection.uid, event.target.checked)}
+                sx={theme => ({ "& .MuiSvgIcon-root": { color: `${theme.palette.primary.main} !important` } })}
               />
             ),
           },
@@ -445,8 +445,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           {
             field: "Min-Max",
             headerName: "Min-Max",
-            align: "right",
-            headerAlign: "right",
+            align: "left",
+            headerAlign: "left",
             minWidth: 115,
             maxWidth: 115,
             renderCell: params => (
@@ -467,8 +467,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           {
             field: "status",
             headerName: "Status",
-            align: "right",
-            headerAlign: "right",
+            align: "left",
+            headerAlign: "left",
             maxWidth: 220,
             renderCell: params => <span>{getJobCollectionStatus(params.row.subJobs)}</span>,
           },
@@ -510,9 +510,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           },
           "& .MuiDataGrid-sortButton": {
             backgroundColor: theme.palette.background.paper,
-          },
-          svg: {
-            color: theme.palette.primary.main,
           },
         })}
         getRowId={getRowId}
