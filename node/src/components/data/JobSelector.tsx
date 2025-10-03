@@ -152,6 +152,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   const updateJobCollections = useCallback(
     async (functionUid: string, forceFetch = false) => {
       console.info("Fetching jobCollections for function: ", functionUid, fetchedJobCollections, forceFetch);
+
       if (fetchedJobCollections && !forceFetch) {
         console.info("Job collections already fetched, skipping fetch.");
         setJobCollections(fetchedJobCollections);
@@ -186,14 +187,13 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
       if (equalJC.every(v => v === true)) {
         console.info("Job collections already fetched, skipping fetch.");
-        setJobCollections(fetchedJobCollections || []);
+        setFetchedJobCollections(fetchedJobCollections || []);
         setLoading(false);
         return;
       }
 
       if (forceFetch) {
         setLoading(true);
-        setJobCollections([]);
         setProgress(0);
         setJobProgress(0);
       }
@@ -262,9 +262,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       }
 
       console.log("new jobCollections: ", newJobCollections);
-      setJobCollections(newJobCollections);
       setFetchedJobCollections(newJobCollections);
-      updateJobContext(newJobCollections);
       setProgress(100);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -357,6 +355,14 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       setIsSuMoGenerated(true);
     }
   }, [jobCollections, loading, onToggleAll, setIsSuMoGenerated, setLoading, updateJobContext]);
+
+  useEffect(() => {
+    if (fetchedJobCollections) {
+      setJobCollections(fetchedJobCollections);
+      updateJobContext(fetchedJobCollections);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchedJobCollections]);
 
   useEffect(() => {
     console.info("useEffect in JobsSelector triggered", selectedFunction, jobCollections);
