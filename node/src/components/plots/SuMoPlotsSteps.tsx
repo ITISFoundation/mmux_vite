@@ -129,7 +129,6 @@ function SuMoPlotsSteps() {
                   variant="outlined"
                   sx={{ flex: 1 }}
                   value={selectedQoI}
-                  defaultValue={outputVars[0] || ""}
                   onChange={e => {
                     setSelectedQoI(e.target.value);
                   }}
