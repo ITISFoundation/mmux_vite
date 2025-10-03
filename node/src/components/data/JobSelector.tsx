@@ -410,7 +410,10 @@ export default function JobsSelector(props: JobSelectorPropsType) {
               <Checkbox
                 checked={jobCollections.length > 0 && jobCollections.every(jc => jc.selected === true)}
                 indeterminate={
-                  jobCollections.some(jc => jc.selected === true) && !jobCollections.every(jc => jc.selected === true)
+                  jobCollections.some(jc => jc.selected === true) &&
+                  !jobCollections.every(
+                    jc => jc.subJobs.map(j => j.job).filter(j => j.status === "SUCCESS" && j.selected === true).length > 0,
+                  )
                 }
                 onChange={event => onToggleAll(event.target.checked)}
                 inputProps={{ "aria-label": "Select all jobs" }}
