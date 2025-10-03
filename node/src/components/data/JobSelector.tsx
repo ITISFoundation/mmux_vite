@@ -422,6 +422,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                 checked={params.row.selected}
                 indeterminate={params.row.subJobs.some(j => j.selected) && !params.row.subJobs.every(j => j.selected)}
                 onChange={event => selectMainJob(params.row.jobCollection.uid, event.target.checked)}
+                disabled={params.row.subJobs.every((j: SubJob) => j.job.status !== "SUCCESS")}
+                inputProps={{ "aria-label": "Select job collection" }}
                 sx={theme => ({ "& .MuiSvgIcon-root": { color: `${theme.palette.primary.main} !important` } })}
               />
             ),
