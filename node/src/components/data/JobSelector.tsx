@@ -150,7 +150,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   const updateJobCollections = useCallback(
     async (functionUid: string, forceFetch = false) => {
       console.info("Fetching jobCollections for function: ", functionUid);
-      if (fetchedJobCollections.length > 0 && !forceFetch) {
+      if (fetchedJobCollections && !forceFetch) {
         console.info("Job collections already fetched, skipping fetch.");
         setJobCollections(fetchedJobCollections);
         setLoading(false);
@@ -168,19 +168,21 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       }
 
       // Build a Map for fast lookup of fetchedJobCollections by uid
-      const fetchedJCMap = new Map(fetchedJobCollections.map(fjc => [fjc.jobCollection.uid, fjc]));
+      const fetchedJCMap = new Map(fetchedJobCollections && fetchedJobCollections.map(fjc => [fjc.jobCollection.uid, fjc]));
       const equalJC: boolean[] = jobsC.map(jc => {
         const fetchedJC = fetchedJCMap.get(jc.uid);
         return (
           fetchedJC !== undefined &&
           jc.jobIds.join(",") === fetchedJC.subJobs.map(j => j.job.uid).join(",") &&
-          fetchedJC.subJobs.every(j => j.job.status === "SUCCESS" || j.job.status === "FAILED")
+          fetchedJC.subJobs.every(
+            j => typeof j.job.status === "string" && (j.job.status === "SUCCESS" || j.job.status === "FAILED"),
+          )
         );
       });
 
       if (equalJC.every(v => v === true)) {
         console.info("Job collections already fetched, skipping fetch.");
-        setJobCollections(fetchedJobCollections);
+        setJobCollections(fetchedJobCollections || []);
         setLoading(false);
         return;
       }
@@ -201,23 +203,30 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
       for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx += 1) {
         const jc = jobsC[jcIdx];
-        if (jcIdx >= equalJC.length || (jcIdx < equalJC.length && equalJC[jcIdx] === false)) {
+        if (
+          fetchedJobCollections === undefined ||
+          jcIdx >= equalJC.length ||
+          (jcIdx < equalJC.length && equalJC[jcIdx] === false)
+        ) {
           const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
           const subJobs = [];
           for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx += 1) {
             let job: FunctionJob;
             const id = jc.jobIds[subJobIdx];
             // check if job is already fetched in fetchedJobCollections
-            const existingJob = fetchedJobCollections.find(
-              j =>
-                j.jobCollection.jobIds.includes(id) &&
-                j.subJobs.some(sj => sj.job.uid === id && (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")),
-            );
+            const existingJob =
+              fetchedJobCollections &&
+              fetchedJobCollections.find(
+                j =>
+                  j.jobCollection.jobIds.includes(id) &&
+                  j.subJobs.some(sj => sj.job.uid === id && (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")),
+              );
             if (existingJob) {
               job = existingJob.subJobs.find(j => j.job.uid === id)?.job;
+              job.status = typeof job.status === "string" ? job.status : (job.status as unknown as { status: string }).status;
             } else {
               job = functionJobs[subJobIdx];
-              job.status = (job.status as unknown as { status: string }).status;
+              job.status = typeof job.status === "string" ? job.status : (job.status as unknown as { status: string }).status;
             }
             jobsFetched.current += 1;
             const jobsProg = (jobsFetched.current / totalSubs) * 100;

@@ -7,7 +7,7 @@ import { PersistenceType } from "./types";
 export interface JobContextType {
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
   setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void;
-  fetchedJobCollections: SelectedJobCollection[];
+  fetchedJobCollections: SelectedJobCollection[] | undefined;
   setFetchedJobCollections: (jc: SelectedJobCollection[]) => void;
   selectedJobUids: string[];
   setSelectedJobUids: (selectedJobs: string[]) => void;
@@ -25,11 +25,11 @@ export function JobContextProvider({ children }: Props) {
   const { persistence, saveState, loading } = usePersistenceContext();
   const [localLoading, setLocalLoading] = useState(true);
   const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
-  const [fetchedJobCollections, setFetchedJobCollections] = useState<SelectedJobCollection[]>([]);
+  const [fetchedJobCollections, setFetchedJobCollections] = useState<SelectedJobCollection[] | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
 
   const filteredJobList = useMemo(() => {
-    const localff = [...fetchedJobCollections];
+    const localff = [...(fetchedJobCollections || [])];
     const response: FunctionJob[] = localff
       .map(jobCollection =>
         jobCollection.subJobs.filter(subJob => selectedJobUids.includes(subJob.job.uid)).map(subJob => subJob.job),
@@ -42,11 +42,11 @@ export function JobContextProvider({ children }: Props) {
   }, [fetchedJobCollections, selectedJobUids]);
 
   const allJobsList = useCallback(() => {
-    const response: FunctionJob[] = fetchedJobCollections.flatMap(jobCollection =>
+    const response: FunctionJob[] = (fetchedJobCollections || []).flatMap(jobCollection =>
       jobCollection.subJobs.map(subJob => subJob.job),
     );
 
-    if (fetchedJobCollections.length !== 0 && response.length <= 4) {
+    if (fetchedJobCollections && fetchedJobCollections.length !== 0 && response.length <= 4) {
       return []; // 5 samples are necessary to avoid Dakota crashing
     }
     return response;

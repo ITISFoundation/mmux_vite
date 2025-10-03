@@ -12,7 +12,7 @@ interface PersistenceType {
   singleJobConfig: SingleJobConfig[];
   numSamples: { [key: string]: number };
   runningJobCollection: RegisteredFunctionJobCollection | undefined;
-  fetchedJobCollections: SelectedJobCollection[];
+  fetchedJobCollections: SelectedJobCollection[] | undefined;
   selectedJobUids: string[];
   selectedQoI: string | undefined;
   isSuMoGenerated: boolean;
