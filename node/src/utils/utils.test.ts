@@ -181,7 +181,7 @@ describe("stepValidator", () => {
         throw new Error("Function not implemented.");
       },
       fetchedJobCollections: [],
-      setFetchedJobCollections: (_jc: SelectedJobCollection[]): void => {
+      setFetchedJobCollections: (_jc: SelectedJobCollection[] | undefined): void => {
         throw new Error("Function not implemented.");
       },
       setSelectedJobUids: (_selectedJobs: string[]): void => {

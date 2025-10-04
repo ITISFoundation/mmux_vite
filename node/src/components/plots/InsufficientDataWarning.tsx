@@ -2,7 +2,7 @@ import { FunctionJob } from "../../osparc-api-ts-client";
 import { DisplayMessage } from "../utils/DisplayMessage";
 
 type InsufficientDataWarningPropsType = {
-  fetchedJobCollections: SelectedJobCollection[];
+  fetchedJobCollections: SelectedJobCollection[] | undefined;
   filteredJobList: FunctionJob[];
   height?: number;
 };
@@ -16,7 +16,11 @@ function InsufficientDataWarning(props: InsufficientDataWarningPropsType) {
       : "Error during calculation, please contact support.";
   return (
     <DisplayMessage
-      mssg={fetchedJobCollections.length === 0 ? "No data available. Please create more Samples." : hasEnoughSamples}
+      mssg={
+        !fetchedJobCollections || fetchedJobCollections.length === 0
+          ? "No data available. Please create more Samples."
+          : hasEnoughSamples
+      }
       height={height}
     />
   );

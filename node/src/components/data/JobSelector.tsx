@@ -68,11 +68,11 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     const newJobCollections: SelectedJobCollection[] = jobCollections.map(jc => {
       const auxJob = jc;
       if (jc.jobCollection.uid === uid) {
-        auxJob.selected = selected;
         auxJob.subJobs = auxJob.subJobs.map(j => ({
-          selected,
+          selected: selected === true ? j.job.status === "SUCCESS" : false,
           job: j.job,
         }));
+        auxJob.selected = selected === true ? auxJob.subJobs.some(j => j.selected === true) : false;
       }
       return auxJob;
     });
@@ -147,10 +147,13 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     return "UNKNOWN";
   };
 
+  const filterForFinalStatus = (status: string) => status === "FAILED" || status === "SUCCESS" || status.includes("FAILURE");
+
   const updateJobCollections = useCallback(
     async (functionUid: string, forceFetch = false) => {
-      console.info("Fetching jobCollections for function: ", functionUid);
-      if (fetchedJobCollections.length > 0 && !forceFetch) {
+      console.info("Fetching jobCollections for function: ", functionUid, fetchedJobCollections, forceFetch);
+
+      if (fetchedJobCollections && !forceFetch) {
         console.info("Job collections already fetched, skipping fetch.");
         setJobCollections(fetchedJobCollections);
         setLoading(false);
@@ -168,26 +171,29 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       }
 
       // Build a Map for fast lookup of fetchedJobCollections by uid
-      const fetchedJCMap = new Map(fetchedJobCollections.map(fjc => [fjc.jobCollection.uid, fjc]));
+      const fetchedJCMap = new Map(fetchedJobCollections && fetchedJobCollections.map(fjc => [fjc.jobCollection.uid, fjc]));
       const equalJC: boolean[] = jobsC.map(jc => {
         const fetchedJC = fetchedJCMap.get(jc.uid);
         return (
           fetchedJC !== undefined &&
-          jc.jobIds.join(",") === fetchedJC.jobCollection.jobIds.join(",") &&
-          fetchedJC.subJobs.every(j => j.job.status === "SUCCESS" || j.job.status === "FAILED")
+          jc.jobIds.join(",") === fetchedJC.subJobs.map(j => j.job.uid).join(",") &&
+          fetchedJC.subJobs.every(j =>
+            typeof j.job.status === "string"
+              ? filterForFinalStatus(j.job.status)
+              : filterForFinalStatus((j.job.status as unknown as { status: string }).status),
+          )
         );
       });
 
       if (equalJC.every(v => v === true)) {
         console.info("Job collections already fetched, skipping fetch.");
-        setJobCollections(fetchedJobCollections);
+        setFetchedJobCollections(fetchedJobCollections || []);
         setLoading(false);
         return;
       }
 
       if (forceFetch) {
         setLoading(true);
-        setJobCollections([]);
         setProgress(0);
         setJobProgress(0);
       }
@@ -201,23 +207,38 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
       for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx += 1) {
         const jc = jobsC[jcIdx];
-        if (jcIdx >= equalJC.length || (jcIdx < equalJC.length && equalJC[jcIdx] === false)) {
+        if (
+          fetchedJobCollections === undefined ||
+          jcIdx >= equalJC.length ||
+          (jcIdx < equalJC.length && equalJC[jcIdx] === false)
+        ) {
           const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
           const subJobs = [];
           for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx += 1) {
             let job: FunctionJob;
             const id = jc.jobIds[subJobIdx];
             // check if job is already fetched in fetchedJobCollections
-            const existingJob = fetchedJobCollections.find(
-              j =>
-                j.jobCollection.jobIds.includes(id) &&
-                j.subJobs.some(sj => sj.job.uid === id && (sj.job.status === "FAILED" || sj.job.status === "SUCCESS")),
-            );
+            const existingJob =
+              fetchedJobCollections &&
+              fetchedJobCollections.find(
+                j =>
+                  j.jobCollection.jobIds.includes(id) &&
+                  j.subJobs.some(
+                    sj =>
+                      sj.job.uid === id &&
+                      filterForFinalStatus(
+                        typeof sj.job.status === "string"
+                          ? sj.job.status
+                          : (sj.job.status as unknown as { status: string }).status,
+                      ),
+                  ),
+              );
             if (existingJob) {
               job = existingJob.subJobs.find(j => j.job.uid === id)?.job;
+              job.status = typeof job.status === "string" ? job.status : (job.status as unknown as { status: string }).status;
             } else {
               job = functionJobs[subJobIdx];
-              job.status = (job.status as unknown as { status: string }).status;
+              job.status = typeof job.status === "string" ? job.status : (job.status as unknown as { status: string }).status;
             }
             jobsFetched.current += 1;
             const jobsProg = (jobsFetched.current / totalSubs) * 100;
@@ -240,9 +261,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         setProgress((colsFetched.current / totalSubs) * 100);
       }
 
-      setJobCollections(newJobCollections);
+      console.log("new jobCollections: ", newJobCollections);
       setFetchedJobCollections(newJobCollections);
-      updateJobContext(newJobCollections);
       setProgress(100);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -306,21 +326,21 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     [jobCollections, updateJobContext],
   );
 
-  const autoSelectJobs = useCallback(() => {
-    const newJobCollections: SelectedJobCollection[] = jobCollections.map(jc => {
-      const auxJob = jc;
-      auxJob.subJobs = jc.subJobs.map(subJob => ({
-        selected: subJob.job.status === "SUCCESS",
-        job: subJob.job,
-      }));
-      const auxJobState = auxJob.subJobs.map(j => j.selected);
-      auxJob.selected = !auxJobState.every(j => j === false);
-      return auxJob;
-    });
+  // const autoSelectJobs = useCallback(() => {
+  //   const newJobCollections: SelectedJobCollection[] = jobCollections.map(jc => {
+  //     const auxJob = jc;
+  //     auxJob.subJobs = jc.subJobs.map(subJob => ({
+  //       selected: subJob.job.status === "SUCCESS",
+  //       job: subJob.job,
+  //     }));
+  //     const auxJobState = auxJob.subJobs.map(j => j.selected);
+  //     auxJob.selected = !auxJobState.every(j => j === false);
+  //     return auxJob;
+  //   });
 
-    setJobCollections(newJobCollections);
-    updateJobContext(newJobCollections);
-  }, [jobCollections, updateJobContext]);
+  //   setJobCollections(newJobCollections);
+  //   updateJobContext(newJobCollections);
+  // }, [jobCollections, updateJobContext]);
 
   const handleJobsUpdate = useCallback(async () => {
     setJobCollections([]);
@@ -335,6 +355,14 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       setIsSuMoGenerated(true);
     }
   }, [jobCollections, loading, onToggleAll, setIsSuMoGenerated, setLoading, updateJobContext]);
+
+  useEffect(() => {
+    if (fetchedJobCollections) {
+      setJobCollections(fetchedJobCollections);
+      updateJobContext(fetchedJobCollections);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchedJobCollections]);
 
   useEffect(() => {
     console.info("useEffect in JobsSelector triggered", selectedFunction, jobCollections);
@@ -404,11 +432,30 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             headerName: "Selected",
             maxWidth: 80,
             type: "boolean",
+            sortable: false,
+            headerClassName: "checkbox-header",
+            renderHeader: () => (
+              <Checkbox
+                checked={jobCollections.length > 0 && jobCollections.every(jc => jc.selected === true)}
+                indeterminate={
+                  jobCollections.some(jc => jc.selected === true) &&
+                  !jobCollections.every(
+                    jc => jc.subJobs.map(j => j.job).filter(j => j.status === "SUCCESS" && j.selected === true).length > 0,
+                  )
+                }
+                onChange={event => onToggleAll(event.target.checked)}
+                inputProps={{ "aria-label": "Select all jobs" }}
+                sx={theme => ({ "& .MuiSvgIcon-root": { color: `${theme.palette.primary.main} !important` } })}
+              />
+            ),
             renderCell: params => (
               <Checkbox
                 checked={params.row.selected}
                 indeterminate={params.row.subJobs.some(j => j.selected) && !params.row.subJobs.every(j => j.selected)}
                 onChange={event => selectMainJob(params.row.jobCollection.uid, event.target.checked)}
+                disabled={params.row.subJobs.every((j: SubJob) => j.job.status !== "SUCCESS")}
+                inputProps={{ "aria-label": "Select job collection" }}
+                sx={theme => ({ "& .MuiSvgIcon-root": { color: `${theme.palette.primary.main} !important` } })}
               />
             ),
           },
@@ -431,8 +478,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           {
             field: "Min-Max",
             headerName: "Min-Max",
-            align: "right",
-            headerAlign: "right",
+            align: "left",
+            headerAlign: "left",
             minWidth: 115,
             maxWidth: 115,
             renderCell: params => (
@@ -453,8 +500,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           {
             field: "status",
             headerName: "Status",
-            align: "right",
-            headerAlign: "right",
+            align: "left",
+            headerAlign: "left",
             maxWidth: 220,
             renderCell: params => <span>{getJobCollectionStatus(params.row.subJobs)}</span>,
           },
@@ -596,9 +643,9 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             onToggleAll(true);
           }}
         >
-          Select all Jobs
+          Select all successful Jobs
         </Button>
-        <Button
+        {/* <Button
           variant="contained"
           size="medium"
           sx={{ marginTop: "8px", marginBottom: "8px" }}
@@ -607,7 +654,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           }}
         >
           Auto select Jobs
-        </Button>
+        </Button> */}
         <Button
           variant="contained"
           size="medium"

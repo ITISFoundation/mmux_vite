@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
+import { toast } from "react-toastify";
 import { JobsLoading } from "../data/JobsLoading";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
@@ -16,10 +17,13 @@ import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
 import { MOGAPlotModal } from "./MOGAPlotModal";
 import { plotMarginsNarrow, plotMarginsMedium } from "./PlotTools";
-import { toast } from "react-toastify";
 
-export function MOGAPareto(props: LoadingPropsType) {
-  const { loading, progress, jobProgress } = props;
+interface MOGAParetoProps extends LoadingPropsType {
+  setCalculating?: (value: boolean) => void;
+}
+
+export function MOGAPareto(props: MOGAParetoProps) {
+  const { loading, progress, jobProgress, setCalculating } = props;
   const theme = useTheme();
   const ref = useRef<Plot>(null);
   const zeroWeightsToastShown = useRef<boolean>(false);
@@ -30,22 +34,23 @@ export function MOGAPareto(props: LoadingPropsType) {
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [layout, setLayout] = useState<Partial<Plotly.Layout>>({});
   const [plotType, setPlotType] = useState<PlotConfig>();
-  const [propagating, setPropagating] = useState(false);
   const [selectedOptVars, setSelectedOptVars] = useState<Array<string>>([]);
   const [tableData, setTableData] = useState<MogaDataType | undefined>(undefined);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [propagating, setPropagating] = useState(false);
 
   const calculatePerformance = useCallback(
     (row: { [x: string]: number }, OVS: OutputVarSelection, minMax: { [k: string]: { min: number; max: number } }) => {
-
-      const optVars = Object.keys(OVS)
+      const optVars = Object.keys(OVS);
       if (optVars.length === 0) {
-        console.warn("OutputVarSelection passed to performance calculation is empty!")
+        console.warn("OutputVarSelection passed to performance calculation is empty!");
         return NaN;
-      } else if (!weights) {
-        console.warn("Weights passed to calculate performance are empty! ", weights)
+      }
+      if (!weights) {
+        console.warn("Weights passed to calculate performance are empty! ", weights);
         return NaN;
-      } else if (Object.values(weights).every(w => w === 0)) {
+      }
+      if (Object.values(weights).every(w => w === 0)) {
         console.warn("All weights are zero! Setting performance to NaN");
         if (!zeroWeightsToastShown.current) {
           toast.warning("Not possible to calculate performance - all weights set to zero");
@@ -76,7 +81,7 @@ export function MOGAPareto(props: LoadingPropsType) {
           }
           norm = diff / (MaxJVal - MinJVal);
         } else {
-          console.warn("Normalized difference setting to zero bcs MinMax is identical")
+          console.warn("Normalized difference setting to zero bcs MinMax is identical");
           norm = 0; // Avoid division by zero
         }
         normSum += w * norm;
@@ -94,10 +99,10 @@ export function MOGAPareto(props: LoadingPropsType) {
       if (weightSum > 0) {
         performance = normSum / weightSum;
       } else if (weightSum === 0) {
-        console.warn("weightSum is equal to zero! Setting performance to NaN ")
+        console.warn("weightSum is equal to zero! Setting performance to NaN ");
         performance = NaN;
       } else {
-        console.warn("weightedSum is smaller than zero! Setting performance to NaN")
+        console.warn("weightedSum is smaller than zero! Setting performance to NaN");
         performance = NaN;
       }
       if (performance < 0 || performance > 1 || Number.isNaN(performance)) {
@@ -107,16 +112,17 @@ export function MOGAPareto(props: LoadingPropsType) {
       // console.log("Performance: ", performance)
       return performance;
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [weights, tableData],
   );
 
   // Utility to get min/max for each optVar from results or tableData
-  function getMinMax(optVars: string[], results: { [key: string]: number[] }, tableData?: MogaDataType) {
+  function getMinMax(optVars: string[], results: { [key: string]: number[] }, localTableData?: MogaDataType) {
     const minMax: { [k: string]: { min: number; max: number } } = {};
-    if (tableData && tableData.rows && tableData.rows.length > 0) {
+    if (localTableData && localTableData.rows && localTableData.rows.length > 0) {
       // console.log("Extracting min-max from Table data")
       optVars.forEach((varName: string) => {
-        const values = tableData.rows.map(r => r[varName]).filter(v => typeof v === "number") as number[];
+        const values = localTableData.rows.map(r => r[varName]).filter(v => typeof v === "number") as number[];
         minMax[varName] = {
           min: Math.min(...values),
           max: Math.max(...values),
@@ -133,7 +139,7 @@ export function MOGAPareto(props: LoadingPropsType) {
       });
     } else {
       // Fallback: set min/max to NaN if no data
-      console.warn("Neither MOGA Table nor MOGA results are available to calculate min-max")
+      console.warn("Neither MOGA Table nor MOGA results are available to calculate min-max");
       optVars.forEach((varName: string) => {
         minMax[varName] = { min: NaN, max: NaN };
       });
@@ -164,7 +170,7 @@ export function MOGAPareto(props: LoadingPropsType) {
       }
 
       const results: { [key: string]: number[] } = await response.json();
-      const minMax = getMinMax(localOptVars, results)
+      const minMax = getMinMax(localOptVars, results);
       // console.info("MOGA results:", results);
       // console.log("localOptVars: ", localOptVars)
       // console.log("weights: ", weights)
@@ -181,7 +187,8 @@ export function MOGAPareto(props: LoadingPropsType) {
           ...localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
           Performance: calculatePerformance(
             localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
-            OVS, minMax,
+            OVS,
+            minMax,
           ),
           NDI: ndi,
         })),
@@ -257,7 +264,7 @@ export function MOGAPareto(props: LoadingPropsType) {
           const numIterations = localsettings.maxIterations;
           const samplesPerIteration = Math.ceil(mogaResults.length / numIterations);
 
-          for (let iteration = 1; iteration <= numIterations; iteration++) {
+          for (let iteration = 1; iteration <= numIterations; iteration += 1) {
             const startIdx = (iteration - 1) * samplesPerIteration;
             const endIdx = Math.min(iteration * samplesPerIteration, mogaResults.length);
             const iterationData = mogaResults.slice(startIdx, endIdx);
@@ -285,8 +292,8 @@ export function MOGAPareto(props: LoadingPropsType) {
             legend: {
               x: 0.92, // Position legend inside plot area (right side)
               y: 0.98, // Position at top
-              xanchor: 'left',
-              yanchor: 'top',
+              xanchor: "left",
+              yanchor: "top",
             },
           });
           break;
@@ -347,8 +354,6 @@ export function MOGAPareto(props: LoadingPropsType) {
     } else {
       console.debug("Information about optimization vars fetched");
       setPlotData([]);
-      setSelectedOptVars([]);
-      setTableData(undefined);
 
       const run = async () => {
         const jobs = filteredJobList;
@@ -358,12 +363,15 @@ export function MOGAPareto(props: LoadingPropsType) {
         }
         try {
           setPropagating(true);
+          if (setCalculating) setCalculating(true);
           console.info("Fetching MOGA Pareto data...");
           const { newTableData, localOptVars } = await runMOGA(jobs, outputTargets[selectedFunction.uid]);
           await updatePlot(jobs, newTableData, plotType, localOptVars);
           setPropagating(false);
+          if (setCalculating) setCalculating(false);
         } catch (error) {
           setPropagating(false);
+          if (setCalculating) setCalculating(false);
           console.error("Error fetching MOGA Pareto data:", error);
         }
       };
@@ -382,8 +390,8 @@ export function MOGAPareto(props: LoadingPropsType) {
       zeroWeightsToastShown.current = false;
     }
 
-    const localOptVars = Object.keys(outputTargets[selectedFunction.uid])
-    const minMax = getMinMax(localOptVars, {}, tableData)
+    const localOptVars = Object.keys(outputTargets[selectedFunction.uid]);
+    const minMax = getMinMax(localOptVars, {}, tableData);
     // Recalculate performance for each row
     const newRows = tableData.rows.map(row => ({
       ...row,
