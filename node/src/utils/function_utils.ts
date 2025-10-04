@@ -157,3 +157,56 @@ export function aggregateOutputValues(jobs: FunctionJob[]): Record<string, numbe
 
   return outputValues;
 }
+
+  // Helper function to count job statuses
+export type JobStatusCounts = {
+  success: number;
+  running: number;
+  failed: number;
+  pending: number;
+  unknown: number;
+};
+
+export function getJobStatusCounts(subJobs: SubJob[]): JobStatusCounts {
+    return subJobs
+      .filter(j => j.job)
+      .map(j => j.job.status)
+      .reduce(
+        (acc, status: string) => {
+          if (status === "SUCCESS") acc.success += 1;
+          else if (status.endsWith("FAILED") || status.endsWith("FAILURE")) acc.failed += 1;
+          else if (status === "STARTED" || status === "RUNNING") acc.running += 1;
+          else if (status === "PENDING" || status.startsWith("JOB_") || status === "WAITING_") acc.pending += 1;
+          else acc.unknown += 1;
+          return acc;
+        },
+        { success: 0, failed: 0, running: 0, pending: 0, unknown: 0 },
+      );
+  }
+
+export function getJobCollectionStatus(subJobs: SubJob[]) {
+  if (!subJobs || subJobs.length === 0) return "NO JOBS";
+  const jobStatusCounts = getJobStatusCounts(subJobs);
+  if (jobStatusCounts.unknown > 0) {
+    // toast.warn("Could not classify some job statuses - please revise console logs")
+    console.warn("SubJobs that gave UNKNOWN status: ", subJobs)
+  }
+  const allSuccess = jobStatusCounts.success === subJobs.length;
+  const anySuccess = jobStatusCounts.success > 0;
+  const anyRunning = jobStatusCounts.running > 0;
+  const anyFailed = jobStatusCounts.failed > 0;
+  const allFailed = jobStatusCounts.failed === subJobs.length;
+  const anyPending = jobStatusCounts.pending > 0;
+  if (allSuccess) return "COMPLETE";
+  else if (allFailed) return "FAILED";
+  else if (anyRunning) return "RUNNING";
+  else if (anyPending) return "PENDING";
+  else if (anyFailed && anySuccess) return "FAILED PARTIALLY";
+  else return "UNKNOWN";
+};
+
+export function filterForFinalStatus(status: string) {
+  return  status === "FAILED" || 
+          status === "SUCCESS" || 
+          status.includes("FAILURE");
+}

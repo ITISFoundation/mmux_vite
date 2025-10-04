@@ -7,7 +7,7 @@ import { SamplingContextType, useSamplingContext } from "../../context/SamplingC
 import { useServiceContext } from "../../context/ServiceContext";
 import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "../../osparc-api-ts-client";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { getFunctionJobsFromFunctionJobCollection } from "../../utils/function_utils";
+import { getFunctionJobsFromFunctionJobCollection, getJobStatusCounts } from "../../utils/function_utils";
 import { getSamplingEndValue, getSamplingStartValue } from "../../utils/sampling";
 import { filterInputVars } from "../plots/PlotTools";
 import VariableConfig from "../setup/VariableConfig";
@@ -69,15 +69,55 @@ function LHSSampling() {
     return nPoints;
   }, [functionContext, jobContext, SamplingContext]);
 
+
+  // Count existing usable samples using getJobStatusCounts
+  const countUsableSamples = useCallback(() => {
+    if (!fetchedJobCollections) return 0;
+
+    let totalUsableSamples = 0;
+
+    fetchedJobCollections.forEach(jobCollection => {
+      const subJobs = jobCollection.subJobs;
+      if (subJobs && subJobs.length > 0) {
+        const statusCounts = getJobStatusCounts(subJobs);
+        // Count all non-failed samples as usable
+        totalUsableSamples += statusCounts.success + statusCounts.running + statusCounts.pending;
+      }
+    });
+
+    return totalUsableSamples;
+  }, [fetchedJobCollections]);
+
   const handleRunSampling = async () => {
     setLhsSamplingConfig(lhsInputs);
-    const nPoints = recommendedLHSSamples();
-    // TODO should check how many jobs already have; and current launched number
-    if (nPoints > 50 && permissions === "WRITE") {
-      toast.warning(
-        `For your number of non-constant input variables, we would recommend a total of ${nPoints} LHS samples. \n\n ` +
-          "However, currently the maximum supported number of samples per run is 50. Therefore, we encourage you to run additional campaigns with different seeds.",
-      );
+    const recommendedSamples = recommendedLHSSamples();
+    const existingUsableSamples = countUsableSamples();
+    const userDesiredSamples = lhsInputs.points;
+    const totalSamplesAfterRun = existingUsableSamples + userDesiredSamples;
+    console.log("Recommended LHS samples:", recommendedSamples);
+    console.log("Existing usable samples:", existingUsableSamples);
+    console.log("User desired samples:", userDesiredSamples);
+    console.log("Total samples after run:", totalSamplesAfterRun);
+
+    // Only show warning if there are not enough total samples after this run
+    if (totalSamplesAfterRun < recommendedSamples && permissions === "WRITE") {
+      const stillNeeded = recommendedSamples - totalSamplesAfterRun;
+      let warningMessage = `For your number of non-constant input variables, we recommend a total of ${recommendedSamples} LHS samples.`;
+
+      if (existingUsableSamples > 0) {
+        warningMessage += ` You currently have ${existingUsableSamples} potentially usable samples (SUCCESS/RUNNING/PENDING).`;
+      }
+
+      warningMessage += ` You are about to submit ${userDesiredSamples} new samples.`;
+      warningMessage += ` After this run, you will have ${totalSamplesAfterRun} total samples, but you may want to consider running ${stillNeeded} additional samples to reach the recommended amount.`;
+
+      if (userDesiredSamples > 50) {
+        warningMessage += "\n\nNote: Currently the maximum supported number of samples per run is 50. Please adjust your sample count.";
+      } else {
+        warningMessage += "\n\nYou can run additional campaigns with different seeds to reach the recommended sample count.";
+      }
+
+      toast.warning(warningMessage);
     }
     const jc = await runLhsSampling(selectedFunction, SamplingContext, setRunningJobCollection, lhsInputs);
     if (!jc) {
