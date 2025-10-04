@@ -81,7 +81,7 @@ function LHSSampling() {
       if (subJobs && subJobs.length > 0) {
         const statusCounts = getJobStatusCounts(subJobs);
         // Count all non-failed samples as usable
-        totalUsableSamples += statusCounts.success + statusCounts.running + statusCounts.pending + statusCounts.incomplete;
+        totalUsableSamples += statusCounts.success + statusCounts.running + statusCounts.pending;
       }
     });
 
@@ -94,6 +94,10 @@ function LHSSampling() {
     const existingUsableSamples = countUsableSamples();
     const userDesiredSamples = lhsInputs.points;
     const totalSamplesAfterRun = existingUsableSamples + userDesiredSamples;
+    console.log("Recommended LHS samples:", recommendedSamples);
+    console.log("Existing usable samples:", existingUsableSamples);
+    console.log("User desired samples:", userDesiredSamples);
+    console.log("Total samples after run:", totalSamplesAfterRun);
 
     // Only show warning if there are not enough total samples after this run
     if (totalSamplesAfterRun < recommendedSamples && permissions === "WRITE") {
