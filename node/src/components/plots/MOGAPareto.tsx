@@ -443,7 +443,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
   }
 
   return (
-    <Box display="flex" flexDirection="column" gap={1} width="100%">
+    <Box display="flex" flexDirection="column" gap={1} width="100%" mmux-testid="moga-pareto-plot">
       {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
       {/* Similar to the "Calculating..." warning, help me introduce a warning for "Generating Visualization..." for when data has already come back from the backend but the UI is working on generating the plot */}
       {!propagating && plotData.length === 0 && (
