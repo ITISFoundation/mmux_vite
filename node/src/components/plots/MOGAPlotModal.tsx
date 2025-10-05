@@ -34,9 +34,7 @@ export const MOGAPlotModal = (props: MOGAPlotModalProps) => {
       const newSelected = [...localSelectedOptVars];
       if (newSelected.includes(value)) {
         const index = newSelected.indexOf(value);
-        if (index > -1) {
-          newSelected[index] = newSelected[idx];
-        }
+        newSelected[index] = newSelected[idx];
       }
       newSelected[idx] = value;
       setLocalSelectedOptVars(newSelected);
