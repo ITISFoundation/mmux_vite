@@ -18,13 +18,13 @@ export function InputBlock(props: InputBlockProps) {
         size="small"
         sx={{ marginTop: "8px" }}
         mmux-testid={`input-block-${name}`}
-        InputProps={{ inputProps: { min: minmax?.min || -1e9, max: minmax?.max || 1e9 } }}
+        InputProps={{ inputProps: { min: minmax.min, max: minmax.max } }}
         color="primary"
         value={Number.isNaN(currentValue) ? "" : currentValue}
         onChange={e => setCurrentValue(parseFloat(e.target.value))}
         onBlur={e => handleChange(parseFloat(e.target.value))}
         aria-label={name}
-        error={error || currentValue > (minmax?.max || 1e9) || currentValue < (minmax?.min || -1e9)}
+        error={error || currentValue > minmax.max || currentValue < minmax.min}
       />
     </InputLabel>
   );
