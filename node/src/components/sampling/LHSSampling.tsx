@@ -69,7 +69,6 @@ function LHSSampling() {
     return nPoints;
   }, [functionContext, jobContext, SamplingContext]);
 
-
   // Count existing usable samples using getJobStatusCounts
   const countUsableSamples = useCallback(() => {
     if (!fetchedJobCollections) return 0;
@@ -77,7 +76,7 @@ function LHSSampling() {
     let totalUsableSamples = 0;
 
     fetchedJobCollections.forEach(jobCollection => {
-      const subJobs = jobCollection.subJobs;
+      const { subJobs } = jobCollection;
       if (subJobs && subJobs.length > 0) {
         const statusCounts = getJobStatusCounts(subJobs);
         // Count all non-failed samples as usable
@@ -112,7 +111,8 @@ function LHSSampling() {
       warningMessage += ` After this run, you will have ${totalSamplesAfterRun} total samples, but you may want to consider running ${stillNeeded} additional samples to reach the recommended amount.`;
 
       if (userDesiredSamples > 50) {
-        warningMessage += "\n\nNote: Currently the maximum supported number of samples per run is 50. Please adjust your sample count.";
+        warningMessage +=
+          "\n\nNote: Currently the maximum supported number of samples per run is 50. Please adjust your sample count.";
       } else {
         warningMessage += "\n\nYou can run additional campaigns with different seeds to reach the recommended sample count.";
       }
