@@ -124,7 +124,7 @@ interface InputBlockProps {
   type?: "number" | "text";
   onChange: (value: unknown) => void;
   error?: boolean;
-  minmax?: { min: number; max: number };
+  minmax: { min: number; max: number };
 }
 
 interface InputTextBlockProps {

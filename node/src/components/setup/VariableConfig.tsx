@@ -44,14 +44,14 @@ function VariableConfig(props: VariableConfigProps) {
         name="Start"
         value={inputVar.start}
         minmax={{ min: -1e9, max: 1e9 }}
-        error={!!(inputVar.start !== undefined && inputVar.start < 0)}
+        error={!!(inputVar.start !== undefined && inputVar.start < -1e9)}
         onChange={n => handleInputChange(index, "start", n as string)}
       />
       <InputBlock
         name="End"
         value={inputVar.end}
         minmax={{ min: -1e9, max: 1e9 }}
-        error={!!(inputVar.end !== undefined && inputVar.end < 0)}
+        error={!!(inputVar.end !== undefined && inputVar.end < -1e9)}
         onChange={n => handleInputChange(index, "end", n as string)}
       />
     </Box>
