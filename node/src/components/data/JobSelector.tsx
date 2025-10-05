@@ -23,7 +23,12 @@ import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { useSamplingContext } from "../../context/SamplingContext";
 import { FunctionJob } from "../../osparc-api-ts-client";
-import { getFunctionJobCollections, getFunctionJobsFromFunctionJobCollection, getJobCollectionStatus, filterForFinalStatus } from "../../utils/function_utils";
+import {
+  getFunctionJobCollections,
+  getFunctionJobsFromFunctionJobCollection,
+  getJobCollectionStatus,
+  filterForFinalStatus,
+} from "../../utils/function_utils";
 import getMinMax from "../minmax";
 import CustomTooltip from "../utils/CustomTooltip";
 import JobRow from "./JobRow";
