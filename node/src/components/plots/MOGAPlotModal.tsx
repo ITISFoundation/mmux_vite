@@ -32,6 +32,12 @@ export const MOGAPlotModal = (props: MOGAPlotModalProps) => {
   const handleSetSelectedOptVars = (idx: number, value: string) => {
     if (localSelectedOptVars) {
       const newSelected = [...localSelectedOptVars];
+      if (newSelected.includes(value)) {
+        const index = newSelected.indexOf(value);
+        if (index > -1) {
+          newSelected[index] = newSelected[idx];
+        }
+      }
       newSelected[idx] = value;
       setLocalSelectedOptVars(newSelected);
     }
@@ -169,7 +175,7 @@ export const MOGAPlotModal = (props: MOGAPlotModalProps) => {
                     <OutputSelect
                       values={optVars}
                       selected={optVars.findIndex(v => v === localSelectedOptVars[idx])}
-                      allSelected={localSelectedOptVars}
+                      allSelected={localPlotType.dimensionType === "1D" ? [] : localSelectedOptVars}
                       setSelected={v => handleSetSelectedOptVars(idx, v)}
                     />
                   </InputLabel>
