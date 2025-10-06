@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Modal, useTheme, Card, Box, CardContent, Button, CardActions, Typography, Slider } from "@mui/material";
 import Header from "../navigation/Header";
 import { useMOGATableContext } from "../../context/MOGATableContext";
@@ -6,7 +6,7 @@ import { useMOGATableContext } from "../../context/MOGATableContext";
 const PerformanceModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean) => void }) => {
   const theme = useTheme();
   const { weights, setWeights } = useMOGATableContext();
-  const [localWeights, setLocalWeights] = React.useState(weights);
+  const [localWeights, setLocalWeights] = useState(weights);
 
   const resetFields = () => {
     setLocalWeights(weights);
