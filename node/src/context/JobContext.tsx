@@ -46,7 +46,7 @@ export function JobContextProvider({ children }: Props) {
       return;
     }
     setFilteredJobList(response);
-  }, [selectedJobUids]);
+  }, [selectedJobUids, fetchedJobCollections]);
 
   const allJobsList = useCallback(() => {
     const response: FunctionJob[] = (fetchedJobCollections || []).flatMap(jobCollection =>
