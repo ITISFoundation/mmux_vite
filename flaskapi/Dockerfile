@@ -8,8 +8,8 @@ EXPOSE 5000
 
 HEALTHCHECK \
   --interval=60s \
-  --timeout=10s \
-  --start-period=60s \
+  --timeout=60s \
+  --start-period=360s \
   --retries=10 \
   CMD curl -f http://localhost:5000/flask/health || exit 1
 
