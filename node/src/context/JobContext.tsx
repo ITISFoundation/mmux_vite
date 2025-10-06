@@ -25,21 +25,28 @@ export function JobContextProvider({ children }: Props) {
   const { persistence, saveState, loading } = usePersistenceContext();
   const [localLoading, setLocalLoading] = useState(true);
   const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
+  const [filteredJobList, setFilteredJobList] = useState<Array<FunctionJob>>([]);
   const [fetchedJobCollections, setFetchedJobCollections] = useState<SelectedJobCollection[] | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
 
-  const filteredJobList = useMemo(() => {
-    const localff = [...(fetchedJobCollections || [])];
-    const response: FunctionJob[] = localff
+  useEffect(() => {
+    if (fetchedJobCollections === undefined) return;
+    const response: FunctionJob[] = (fetchedJobCollections || [])
       .map(jobCollection =>
         jobCollection.subJobs.filter(subJob => selectedJobUids.includes(subJob.job.uid)).map(subJob => subJob.job),
       )
       .flat();
-    if (response.length < 5) {
-      return []; // 5 samples are necessary to avoid Dakota crashing
+    const nochange =
+      filteredJobList.length === response.length && filteredJobList.every((value, index) => value === response[index]);
+    if (nochange) {
+      return;
     }
-    return response;
-  }, [fetchedJobCollections, selectedJobUids]);
+    if (response.length <= 4) {
+      setFilteredJobList([]); // 5 samples are necessary to avoid Dakota crashing
+      return;
+    }
+    setFilteredJobList(response);
+  }, [selectedJobUids]);
 
   const allJobsList = useCallback(() => {
     const response: FunctionJob[] = (fetchedJobCollections || []).flatMap(jobCollection =>
@@ -56,6 +63,7 @@ export function JobContextProvider({ children }: Props) {
   useEffect(() => {
     if (localLoading === true) return; // Avoid saving state while loading
     console.info("Saving Job context state to persistence...");
+    if (!persistence) return;
     const newPersistence: PersistenceType = {
       ...(persistence as PersistenceType),
       runningJobCollection,

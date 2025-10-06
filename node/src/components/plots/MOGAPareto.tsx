@@ -378,7 +378,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
       run();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFunction, outputTargets, filteredJobList, mogaSettings]);
+  }, [filteredJobList, mogaSettings]);
 
   // When weights change, recalculate tableData (refresh table) but do NOT rerun runMOGA
   useEffect(() => {

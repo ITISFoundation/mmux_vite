@@ -159,7 +159,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
       if (equalJC.every(v => v === true)) {
         console.info("Job collections already fetched, skipping fetch.");
-        setFetchedJobCollections(fetchedJobCollections || []);
+        setJobCollections(fetchedJobCollections || []);
         setLoading(false);
         return;
       }
@@ -235,6 +235,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
       console.log("new jobCollections: ", newJobCollections);
       setFetchedJobCollections(newJobCollections);
+      updateJobContext(newJobCollections);
       setProgress(100);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -315,7 +316,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   // }, [jobCollections, updateJobContext]);
 
   const handleJobsUpdate = useCallback(async () => {
-    setJobCollections([]);
     await updateJobCollections(selectedFunction?.uid as string);
     console.info("Updated JobCollections");
   }, [selectedFunction, updateJobCollections]);
@@ -331,7 +331,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   useEffect(() => {
     if (fetchedJobCollections) {
       setJobCollections(fetchedJobCollections);
-      updateJobContext(fetchedJobCollections);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchedJobCollections]);
@@ -571,7 +570,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                     <TableBody>
                       {visibleSubJobs?.map((jobUid: string) => (
                         <JobRow
-                          key={jobUid}
                           jobUid={jobUid}
                           jobList={jobCollections[poperID].subJobs}
                           selectedFunction={selectedFunction}
