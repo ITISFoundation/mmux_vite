@@ -96,31 +96,31 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
 
   let columns: GridColDef[] = data
     ? data.inputs.map(key => ({
-      ...columnProps,
-      field: key,
-      minWidth: 120,
-      maxWidth: 200,
-      headerName: key.toUpperCase(),
-      type: "number",
-      cellClassName: "input-cols",
-      renderCell: params => params.row[key].toPrecision(3),
-      valueGetter: (_value, row) => row[key],
-    }))
-    : [];
-
-  columns = columns.concat(
-    data
-      ? data.outputs.map(key => ({
         ...columnProps,
         field: key,
         minWidth: 120,
         maxWidth: 200,
         headerName: key.toUpperCase(),
         type: "number",
-        cellClassName: "output-cols",
+        cellClassName: "input-cols",
         renderCell: params => params.row[key].toPrecision(3),
         valueGetter: (_value, row) => row[key],
       }))
+    : [];
+
+  columns = columns.concat(
+    data
+      ? data.outputs.map(key => ({
+          ...columnProps,
+          field: key,
+          minWidth: 120,
+          maxWidth: 200,
+          headerName: key.toUpperCase(),
+          type: "number",
+          cellClassName: "output-cols",
+          renderCell: params => params.row[key].toPrecision(3),
+          valueGetter: (_value, row) => row[key],
+        }))
       : [],
   );
 
@@ -155,10 +155,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
           </Typography>
         </Box>
       ),
-      renderCell: params =>
-        isNaN(params.row.Performance)
-          ? "-"
-          : params.row.Performance.toPrecision(2),
+      renderCell: params => (Number.isNaN(params.row.Performance) ? "-" : params.row.Performance.toPrecision(2)),
       valueGetter: (_value, row) => row.Performance,
     },
     {

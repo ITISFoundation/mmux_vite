@@ -37,7 +37,7 @@ else
     exec gunicorn --bind "$HOST:$PORT" \
         --workers=4 \
         --worker-class=gevent \
-        --timeout=120 \
+        --timeout=1200 \
         --access-logfile=- \
         --error-logfile=- \
         --log-level=INFO \
