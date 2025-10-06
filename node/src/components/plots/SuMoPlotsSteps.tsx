@@ -91,7 +91,7 @@ function SuMoPlotsSteps() {
           infoText={stepInfoTexts[stepTitles[activeStep]]}
           ExtendedInfoText={stepExtendedInfoTexts[stepTitles[activeStep]]}
           QOISelector={
-            ServiceMode === "MOGA" && (
+            (ServiceMode === "MOGA" || ServiceMode === "UQ") && (
               <InputLabel
                 size="small"
                 sx={{
