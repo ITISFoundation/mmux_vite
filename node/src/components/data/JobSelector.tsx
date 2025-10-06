@@ -570,6 +570,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                     <TableBody>
                       {visibleSubJobs?.map((jobUid: string) => (
                         <JobRow
+                          key={jobUid}
                           jobUid={jobUid}
                           jobList={jobCollections[poperID].subJobs}
                           selectedFunction={selectedFunction}
