@@ -91,6 +91,7 @@ export function JobSampling(props: JobSamplingProps) {
             PlotFunComponent={Sampling}
             text="Create new sampling campaign"
             enabled={selectedFunction !== undefined}
+            mmmuxTestid="new-sampling-campaign-btn"
           />
         ) : undefined}
       </AccordionDetails>

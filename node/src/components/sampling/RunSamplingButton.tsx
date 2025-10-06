@@ -52,6 +52,7 @@ export function RunSamplingButton(props: RunSamplingButtonProps) {
           variant="contained"
           onClick={handleRunSamplingWithErrorHandling}
           disabled={launchingSampling || disabled || permissions !== "WRITE"}
+          mmux-testid="run-sampling-btn"
           sx={{
             "&:disabled": {
               backgroundColor: launchingSampling ? theme.palette.grey[100] : undefined,
