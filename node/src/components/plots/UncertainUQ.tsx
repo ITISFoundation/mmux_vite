@@ -79,7 +79,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredJobList]);
+  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction]);
   if (loading) {
     return <JobsLoading progress={progress} jobProgress={jobProgress} message="Creating AI model..." />;
   }
