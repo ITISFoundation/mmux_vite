@@ -54,7 +54,11 @@ export function AddOutputModal(props: AddOutputModalProps) {
             </MenuItem>
           ))}
         </Select>
-        <Button onClick={() => onChange(selected)} sx={{ backgroundColor: theme.palette.primary.main, marginTop: "16px" }}>
+        <Button
+          onClick={() => onChange(selected)}
+          sx={{ backgroundColor: theme.palette.primary.main, marginTop: "16px" }}
+          mmux-testid="confirm-add-output-btn"
+        >
           <Typography variant="body1" color={theme.palette.text.primary}>
             Add
           </Typography>
