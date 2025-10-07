@@ -12,7 +12,7 @@ import HistogramStats from "./HistogramStats";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
 export default function UncertainUQ(props: LoadingPropsType) {
-  const { loading, progress, jobProgress } = props;
+  const { loading, jobProgress } = props;
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { numSamples, selectedQoI } = useMMUXContext();
@@ -78,9 +78,9 @@ export default function UncertainUQ(props: LoadingPropsType) {
         setDataUQHistogram(undefined);
       }
     })();
-  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction]);
+  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction, theme.palette.primary.main]);
   if (loading) {
-    return <JobsLoading progress={progress} jobProgress={jobProgress} message="Creating AI model..." />;
+    return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;
   }
 
   const layout = {

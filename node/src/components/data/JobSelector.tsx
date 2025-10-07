@@ -22,13 +22,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { useSamplingContext } from "../../context/SamplingContext";
-import { FunctionJob } from "../../osparc-api-ts-client";
-import {
-  getFunctionJobCollections,
-  getFunctionJobsFromFunctionJobCollection,
-  getJobCollectionStatus,
-  filterForFinalStatus,
-} from "../../utils/function_utils";
+import { getJobCollectionStatus } from "../../utils/function_utils";
 import getMinMax from "../minmax";
 import CustomTooltip from "../utils/CustomTooltip";
 import JobRow from "./JobRow";
@@ -36,12 +30,7 @@ import JobRow from "./JobRow";
 type JobSelectorPropsType = {
   loading: boolean;
   setLoading: (loading: boolean) => void;
-  progress: number;
-  setProgress: (progress: number) => void;
-  jobProgress: number;
   setJobProgress: (progress: number) => void;
-  jobsFetched: React.MutableRefObject<number>;
-  colsFetched: React.MutableRefObject<number>;
 };
 
 function getRowId(value: SelectedJobCollection) {
@@ -51,9 +40,9 @@ function getRowId(value: SelectedJobCollection) {
 export default function JobsSelector(props: JobSelectorPropsType) {
   const { selectedFunction } = useFunctionContext();
   const { launchingSampling, runningSampling } = useSamplingContext();
-  const { setSelectedJobUids, fetchedJobCollections, setFetchedJobCollections } = useJobContext();
+  const { setSelectedJobUids, fetchedJobCollections, requestForceFetch } = useJobContext();
   const { setIsSuMoGenerated } = useMMUXContext();
-  const { colsFetched, jobProgress, jobsFetched, loading, progress, setJobProgress, setLoading, setProgress } = props;
+  const { loading, setLoading, setJobProgress } = props;
   const [jobCollections, setJobCollections] = useState<SelectedJobCollection[]>([]);
   const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
   const [poperID, setPopperID] = useState<number>(-1);
@@ -120,104 +109,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     updateJobContext(newJobCollections);
     setJobCollections(newJobCollections);
   };
-
-  const updateJobCollections = useCallback(
-    async (functionUid: string, forceFetch = false) => {
-      console.info("Fetching jobCollections for function: ", functionUid, fetchedJobCollections, forceFetch);
-
-      if (fetchedJobCollections && !forceFetch) {
-        console.info("Job collections already fetched, skipping fetch.");
-        setJobCollections(fetchedJobCollections);
-        setLoading(false);
-        return;
-      }
-
-      const jobsC = (await getFunctionJobCollections(functionUid as string)) as FunctionJobCollection[];
-
-      if (jobsC.length === 0) {
-        console.info("No job collections found for function: ", functionUid);
-        setJobCollections([]);
-        setFetchedJobCollections([]);
-        setLoading(false);
-        return;
-      }
-
-      // Build a Map for fast lookup of fetchedJobCollections by uid
-      const fetchedJCMap = new Map(fetchedJobCollections && fetchedJobCollections.map(fjc => [fjc.jobCollection.uid, fjc]));
-      const equalJC: boolean[] = jobsC.map(jc => {
-        const fetchedJC = fetchedJCMap.get(jc.uid);
-        return (
-          fetchedJC !== undefined &&
-          jc.jobIds.join(",") === fetchedJC.subJobs.map(j => j.job.uid).join(",") &&
-          fetchedJC.subJobs.every(j =>
-            typeof j.job.status === "string"
-              ? filterForFinalStatus(j.job.status)
-              : filterForFinalStatus((j.job.status as unknown as { status: string }).status),
-          )
-        );
-      });
-
-      if (equalJC.every(v => v === true)) {
-        console.info("Job collections already fetched, skipping fetch.");
-        setJobCollections(fetchedJobCollections || []);
-        setLoading(false);
-        return;
-      }
-
-      if (forceFetch) {
-        setLoading(true);
-        setProgress(0);
-        setJobProgress(0);
-      }
-
-      const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
-      colsFetched.current = 0;
-      jobsFetched.current = 0;
-      console.info("Fetched jobCollections: ", jobsC, totalSubs);
-
-      const newJobCollections: SelectedJobCollection[] = [];
-
-      for (let jcIdx = 0; jcIdx < jobsC.length; jcIdx += 1) {
-        const jc = jobsC[jcIdx];
-        if (
-          fetchedJobCollections === undefined ||
-          jcIdx >= equalJC.length ||
-          (jcIdx < equalJC.length && equalJC[jcIdx] === false)
-        ) {
-          const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
-          const subJobs = [];
-          for (let subJobIdx = 0; subJobIdx < functionJobs.length; subJobIdx += 1) {
-            const job: FunctionJob = functionJobs[subJobIdx];
-            job.status = typeof job.status === "string" ? job.status : (job.status as unknown as { status: string }).status;
-            jobsFetched.current += 1;
-            const jobsProg = (jobsFetched.current / functionJobs.length) * 100;
-            setJobProgress(jobsProg);
-            subJobs.push({
-              selected: job.status === "SUCCESS",
-              job,
-            });
-          }
-          console.info("Fetched subJobs for jobCollection: ", progress, jobProgress, jobsFetched.current);
-          newJobCollections.push({
-            jobCollection: jc,
-            selected: subJobs.some(j => j.selected === true),
-            subJobs,
-          });
-        } else {
-          newJobCollections.push(fetchedJobCollections[jcIdx]);
-        }
-        colsFetched.current += jc.jobIds.length;
-        setProgress((colsFetched.current / totalSubs) * 100);
-      }
-
-      console.log("new jobCollections: ", newJobCollections);
-      setFetchedJobCollections(newJobCollections);
-      updateJobContext(newJobCollections);
-      setProgress(100);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fetchedJobCollections],
-  );
 
   const openJobCollection = (uid: string) => {
     const idx = jobCollections.findIndex(jc => jc.jobCollection.uid === uid);
@@ -294,9 +185,9 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   // }, [jobCollections, updateJobContext]);
 
   const handleJobsUpdate = useCallback(async () => {
-    await updateJobCollections(selectedFunction?.uid as string);
+    await requestForceFetch(selectedFunction?.uid as string, setJobProgress);
     console.info("Updated JobCollections");
-  }, [selectedFunction, updateJobCollections]);
+  }, [requestForceFetch, selectedFunction, setJobProgress]);
 
   useEffect(() => {
     if (jobCollections.length > 0 && loading === true) {
@@ -326,7 +217,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   useEffect(() => {
     if (selectedFunction !== undefined && launchingSampling === false && runningSampling === true) {
       (async () => {
-        await updateJobCollections(selectedFunction?.uid ? selectedFunction.uid : "", true);
+        await requestForceFetch(selectedFunction?.uid ? selectedFunction.uid : "", setJobProgress);
         console.info("Updated JobCollections");
       })();
     }
@@ -352,7 +243,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                   color: theme.palette.primary.contrastText,
                 })}
                 onClick={async () => {
-                  await updateJobCollections(selectedFunction?.uid ? selectedFunction.uid : "", true);
+                  await requestForceFetch(selectedFunction?.uid ? selectedFunction.uid : "", setJobProgress);
                 }}
               >
                 <Refresh />

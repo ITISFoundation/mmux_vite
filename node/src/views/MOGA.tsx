@@ -12,7 +12,6 @@ export default function MOGA() {
   const [loading, setLoading] = useState<boolean>(true);
   const [sumoModal, setSumoModal] = useState<boolean>(false);
   const [mogaModal, setMogaModal] = useState<boolean>(false);
-  const [progress, setProgress] = useState<number>(0);
   const [jobProgress, setJobProgress] = useState<number>(0);
   const [calculating, setCalculating] = useState(false);
   const jobsFetched = useRef(0);
@@ -26,7 +25,6 @@ export default function MOGA() {
         jobProgress={jobProgress}
         jobsFetched={jobsFetched}
         loading={loading}
-        progress={progress}
         setCalculating={setCalculating}
       />
       <SuMoModal open={sumoModal} setOpen={setSumoModal} />
@@ -35,12 +33,7 @@ export default function MOGA() {
         loading={loading}
         setLoading={setLoading}
         disabled={calculating}
-        progress={progress}
-        setProgress={setProgress}
-        jobProgress={jobProgress}
         setJobProgress={setJobProgress}
-        jobsFetched={jobsFetched}
-        colsFetched={colsFetched}
         selectedFunction={selectedFunction}
       />
     </MetaModelingUX>

@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { Function as OsparcFunction } from "../../osparc-api-ts-client";
 import { createJobStudyCopy, openStudyUid } from "../../utils/function_utils";
 import CustomTooltip from "../utils/CustomTooltip";
+import { useJobContext } from "../../context/JobContext";
 
 interface JobRowProps {
   jobUid: string;
@@ -17,8 +18,9 @@ interface JobRowProps {
 
 function JobRow(props: JobRowProps) {
   const { jobUid, jobList, setSelected, selectedFunction } = props;
-  const job = jobList.find(j => j.job.uid === jobUid);
   const [creatingJobCopy, setCreatingJobCopy] = useState(false);
+  const { parseStatus } = useJobContext();
+  const job = jobList.find(j => j.job.uid === jobUid);
 
   const handleSetJob = (selected: boolean) => {
     setSelected(selected, jobUid);
@@ -91,41 +93,9 @@ function JobRow(props: JobRowProps) {
       </TableRow>
     );
   }
+
   const jobStatus = job.job.status;
-  let outputs;
-  if (jobStatus === "SUCCESS") {
-    outputs = Object.entries(job.job.outputs).map(([key, value]) => (
-      <Box key={`job-row-output-${key}`} display="inline">
-        {key} : {(value as number).toPrecision(3)}
-        {", "}
-      </Box>
-    ));
-  } else if (jobStatus === "STARTED") {
-    outputs = [
-      <Box key={0} display="inline">
-        Running...
-      </Box>,
-    ];
-  } else if (
-    jobStatus === "FAILED" ||
-    jobStatus === "ABORTED" ||
-    (jobStatus.startsWith("JOB_") && jobStatus.endsWith("_FAILURE"))
-  ) {
-    outputs = "Failed - no outputs";
-  } else if (
-    jobStatus === "PENDING" ||
-    jobStatus === "WAITING_FOR_CLUSTER" ||
-    jobStatus === "PUBLISHED" ||
-    jobStatus === "NOT_STARTED" ||
-    jobStatus === "WAITING_FOR_RESOURCES" ||
-    (jobStatus.startsWith("JOB_") && !jobStatus.endsWith("_FAILURE"))
-  ) {
-    outputs = "Pending to run";
-  } else if (jobStatus === "UNKNOWN") {
-    outputs = "Please try again later";
-  } else {
-    outputs = "Unknown status, please contact support";
-  }
+  const outputs = parseStatus(jobStatus, job.job.outputs);
 
   const inputs = Object.entries(job.job.inputs).map(([key, value]) => (
     <Box key={`job-row-input-${key}`} display="inline">
