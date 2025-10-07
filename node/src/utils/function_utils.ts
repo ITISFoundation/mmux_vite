@@ -173,28 +173,26 @@ export type AllowedJobStatus = "SUCCESS" | "FAILED" | "RUNNING" | "PENDING" | "U
 export function extractJobStatus(job: FunctionJob | SubJob): AllowedJobStatus {
     function classifyJobStatus(jobStatus: string): AllowedJobStatus {
       // This function helps homogenize job status, centralizing all corresponding logic
-      const status = jobStatus
-      if (!jobStatus) {
-        throw new Error("JobStatus is undefined!")
-      }
-    
-      if (jobStatus === "SUCCESS") {
-        return "SUCCESS";
-      }
-      else if (status.endsWith("FAILED") || status.endsWith("FAILURE")) {
-        return "FAILED"
-      }
-      else if (status === "STARTED" || status === "RUNNING") {
-        return "RUNNING"
-      }
-      else if (status === "PENDING" || status.startsWith("JOB_") || status === "WAITING_") {
-        return "PENDING"
-      }
-      else {
-        console.warn("Could not classify JobStatus", jobStatus)
-        return "UNKNOWN"
-      }
-    
+        if (!jobStatus) {
+          throw new Error("JobStatus is undefined!")
+        }
+      
+        if (jobStatus === "SUCCESS") {
+          return "SUCCESS";
+        }
+        else if (jobStatus.endsWith("FAILED") || jobStatus.endsWith("FAILURE")) {
+          return "FAILED"
+        }
+        else if (jobStatus === "STARTED" || jobStatus === "RUNNING") {
+          return "RUNNING"
+        }
+        else if (jobStatus === "PENDING" || jobStatus.startsWith("JOB_") || jobStatus === "WAITING_") {
+          return "PENDING"
+        }
+        else {
+          console.warn("Could not classify JobStatus", jobStatus)
+          return "UNKNOWN"
+        }
     }
 
     if (!job) {

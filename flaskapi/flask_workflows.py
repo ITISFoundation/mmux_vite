@@ -480,9 +480,17 @@ def test_job_retrieval_paginated(function_uid: str):
 
 # test_job_retrieval_paginated(function_uid="eea21c0d-6c2b-4cf4-91d1-116e6550cb22")
 
+def _get_job_status(job: Dict[str, Any]) -> str:
+    status = job["status"]
+    if isinstance(status, dict) and "status" in status:
+        return status["status"]
+    elif isinstance(status, str):
+        return status
+    else:
+        raise ValueError(f"Unknown status format: {status}")
 
 def _check_jobs(jobs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
+    completed_jobs = [job for job in jobs if _get_job_status(job).lower() == "completed" or _get_job_status(job).lower() == "success"]  # type: ignore
 
     for job in completed_jobs:
         assert "outputs" in job, f"No outputs key found for completed job: {job} with status: {job['status']}"  # type: ignore
@@ -965,11 +973,16 @@ def flask_test_job():
         ), f"Job is None for function {function_uid} with sample {sample}. Response: {response}"
         uid = response.actual_instance.uid
         _logger.debug(f"Job UID: {uid}")
-        while (
-            "JOB_TASK_" in (job := _get_function_job_from_uid(uid))["status"]
-            and not "FAILURE" in job
-        ):
-            time.sleep(1)
+        while True:
+            job = _get_function_job_from_uid(uid)
+            job_status = _get_job_status(job)
+            _logger.debug(f"Job status: {job_status}")
+            if "FAILURE" in job_status:
+                raise RuntimeError(f"Job {uid} failed with status: {job_status}")
+            elif not "JOB_TASK_" in job_status:
+                break ## exit the loop if the job has been initialized
+            else:
+                time.sleep(1)
         _logger.debug(f"Created job: {job}")
         return jsonify(job)  # return the job details as a dictionary
     except Exception as e:
