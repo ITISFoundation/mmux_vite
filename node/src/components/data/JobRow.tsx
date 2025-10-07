@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import { Function as OsparcFunction } from "../../osparc-api-ts-client";
-import { createJobStudyCopy, openStudyUid } from "../../utils/function_utils";
+import { createJobStudyCopy, extractJobStatus, openStudyUid } from "../../utils/function_utils";
 import CustomTooltip from "../utils/CustomTooltip";
 
 interface JobRowProps {
@@ -91,7 +91,7 @@ function JobRow(props: JobRowProps) {
       </TableRow>
     );
   }
-  const jobStatus = job.job.status;
+  const jobStatus = extractJobStatus(job);
   let outputs;
   if (jobStatus === "SUCCESS") {
     outputs = Object.entries(job.job.outputs).map(([key, value]) => (
@@ -100,32 +100,16 @@ function JobRow(props: JobRowProps) {
         {", "}
       </Box>
     ));
-  } else if (jobStatus === "STARTED") {
+  } else if (jobStatus === "RUNNING") {
     outputs = [
       <Box key={0} display="inline">
         Running...
       </Box>,
     ];
-  } else if (
-    jobStatus === "FAILED" ||
-    jobStatus === "ABORTED" ||
-    (jobStatus.startsWith("JOB_") && jobStatus.endsWith("_FAILURE"))
-  ) {
-    outputs = "Failed - no outputs";
-  } else if (
-    jobStatus === "PENDING" ||
-    jobStatus === "WAITING_FOR_CLUSTER" ||
-    jobStatus === "PUBLISHED" ||
-    jobStatus === "NOT_STARTED" ||
-    jobStatus === "WAITING_FOR_RESOURCES" ||
-    (jobStatus.startsWith("JOB_") && !jobStatus.endsWith("_FAILURE"))
-  ) {
-    outputs = "Pending to run";
-  } else if (jobStatus === "UNKNOWN") {
-    outputs = "Please try again later";
-  } else {
-    outputs = "Unknown status, please contact support";
-  }
+  } else if (jobStatus === "FAILED") outputs = "Failed - no outputs";
+  else if (jobStatus === "PENDING") outputs = "Pending to run";
+  else if (jobStatus === "UNKNOWN") outputs = "Unknown status, please try again later";
+  else outputs = "Unknown status, please contact support";
 
   const inputs = Object.entries(job.job.inputs).map(([key, value]) => (
     <Box key={`job-row-input-${key}`} display="inline">
@@ -192,7 +176,7 @@ function JobRow(props: JobRowProps) {
             size="small"
             disabled={
               creatingJobCopy ||
-              (!jobStatus.includes("SUCCESS") && !(jobStatus.includes("FAILED") || jobStatus.includes("FAILURE")))
+              (!jobStatus.includes("SUCCESS") && !(jobStatus.includes("FAILED")))
             }
             onClick={async () => {
               setCreatingJobCopy(true);

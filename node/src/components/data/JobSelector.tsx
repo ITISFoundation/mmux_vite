@@ -28,6 +28,7 @@ import {
   getFunctionJobsFromFunctionJobCollection,
   getJobCollectionStatus,
   filterForFinalStatus,
+  extractJobStatus,
 } from "../../utils/function_utils";
 import getMinMax from "../minmax";
 import CustomTooltip from "../utils/CustomTooltip";
@@ -74,7 +75,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       const auxJob = jc;
       if (jc.jobCollection.uid === uid) {
         auxJob.subJobs = auxJob.subJobs.map(j => ({
-          selected: selected === true ? j.job.status === "SUCCESS" : false,
+          selected: selected === true ? extractJobStatus(j) === "SUCCESS" : false,
           job: j.job,
         }));
         auxJob.selected = selected === true ? auxJob.subJobs.some(j => j.selected === true) : false;
@@ -149,11 +150,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         return (
           fetchedJC !== undefined &&
           jc.jobIds.join(",") === fetchedJC.subJobs.map(j => j.job.uid).join(",") &&
-          fetchedJC.subJobs.every(j =>
-            typeof j.job.status === "string"
-              ? filterForFinalStatus(j.job.status)
-              : filterForFinalStatus((j.job.status as unknown as { status: string }).status),
-          )
+          fetchedJC.subJobs.every(j => extractJobStatus(j))
         );
       });
 
@@ -198,25 +195,20 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                   j.subJobs.some(
                     sj =>
                       sj.job.uid === id &&
-                      filterForFinalStatus(
-                        typeof sj.job.status === "string"
-                          ? sj.job.status
-                          : (sj.job.status as unknown as { status: string }).status,
+                      filterForFinalStatus(extractJobStatus(sj)
                       ),
                   ),
               );
             if (existingJob) {
               job = existingJob.subJobs.find(j => j.job.uid === id)?.job;
-              job.status = typeof job.status === "string" ? job.status : (job.status as unknown as { status: string }).status;
             } else {
               job = functionJobs[subJobIdx];
-              job.status = typeof job.status === "string" ? job.status : (job.status as unknown as { status: string }).status;
             }
             jobsFetched.current += 1;
             const jobsProg = (jobsFetched.current / totalSubs) * 100;
             setJobProgress(jobsProg);
             subJobs.push({
-              selected: job.status === "SUCCESS",
+              selected: extractJobStatus(job) === "SUCCESS",
               job,
             });
           }
@@ -286,7 +278,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       const newJobCollections: SelectedJobCollection[] = jobCollections.map(jc => {
         const auxJob = jc;
         auxJob.subJobs = jc.subJobs.map(subJob => ({
-          selected: checked === true ? subJob.job.status === "SUCCESS" : false,
+          selected: checked === true ? extractJobStatus(subJob) === "SUCCESS" : false,
           job: subJob.job,
         }));
         const auxJobState = auxJob.subJobs.map(j => j.selected);
@@ -299,22 +291,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     },
     [jobCollections, updateJobContext],
   );
-
-  // const autoSelectJobs = useCallback(() => {
-  //   const newJobCollections: SelectedJobCollection[] = jobCollections.map(jc => {
-  //     const auxJob = jc;
-  //     auxJob.subJobs = jc.subJobs.map(subJob => ({
-  //       selected: subJob.job.status === "SUCCESS",
-  //       job: subJob.job,
-  //     }));
-  //     const auxJobState = auxJob.subJobs.map(j => j.selected);
-  //     auxJob.selected = !auxJobState.every(j => j === false);
-  //     return auxJob;
-  //   });
-
-  //   setJobCollections(newJobCollections);
-  //   updateJobContext(newJobCollections);
-  // }, [jobCollections, updateJobContext]);
 
   const handleJobsUpdate = useCallback(async () => {
     await updateJobCollections(selectedFunction?.uid as string);
@@ -412,7 +388,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                 indeterminate={
                   jobCollections.some(jc => jc.selected === true) &&
                   !jobCollections.every(
-                    jc => jc.subJobs.map(j => j.job).filter(j => j.status === "SUCCESS" && j.selected === true).length > 0,
+                    jc => jc.subJobs.map(j => j.job).filter(j => extractJobStatus(j) === "SUCCESS" && j.selected === true).length > 0,
                   )
                 }
                 onChange={event => onToggleAll(event.target.checked)}
@@ -425,7 +401,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                 checked={params.row.selected}
                 indeterminate={params.row.subJobs.some(j => j.selected) && !params.row.subJobs.every(j => j.selected)}
                 onChange={event => selectMainJob(params.row.jobCollection.uid, event.target.checked)}
-                disabled={params.row.subJobs.every((j: SubJob) => j.job.status !== "SUCCESS")}
+                disabled={params.row.subJobs.every((j: SubJob) => extractJobStatus(j) !== "SUCCESS")}
                 inputProps={{ "aria-label": "Select job collection" }}
                 sx={theme => ({ "& .MuiSvgIcon-root": { color: `${theme.palette.primary.main} !important` } })}
               />

@@ -167,17 +167,77 @@ export type JobStatusCounts = {
   unknown: number;
 };
 
+export type AllowedJobStatus = "SUCCESS" | "FAILED" | "RUNNING" | "PENDING" | "UNKNOWN";
+
+
+export function extractJobStatus(job: FunctionJob | SubJob): AllowedJobStatus {
+    function classifyJobStatus(jobStatus: string): AllowedJobStatus {
+      // This function helps homogenize job status, centralizing all corresponding logic
+      const status = jobStatus
+      if (!jobStatus) {
+        throw new Error("JobStatus is undefined!")
+      }
+    
+      if (jobStatus === "SUCCESS") {
+        return "SUCCESS";
+      }
+      else if (status.endsWith("FAILED") || status.endsWith("FAILURE")) {
+        return "FAILED"
+      }
+      else if (status === "STARTED" || status === "RUNNING") {
+        return "RUNNING"
+      }
+      else if (status === "PENDING" || status.startsWith("JOB_") || status === "WAITING_") {
+        return "PENDING"
+      }
+      else {
+        console.warn("Could not classify JobStatus", jobStatus)
+        return "UNKNOWN"
+      }
+    
+    }
+
+    if (!job) {
+      throw new Error("Job is undefined");
+    }
+
+    // Check if job is of type SubJob (has 'selected' and 'job' properties)
+    if (typeof job === "object" && "selected" in job && "job" in job) {
+      // job is a SubJob, so use recursivity to extract status from its 'job' property
+      return extractJobStatus(job.job);
+      // previous way:  
+      // typeof sj.job.status === "string"
+      // ? sj.job.status
+      // : (sj.job.status as unknown as { status: string }).status,
+    }
+
+    if (typeof job.status === "string") {
+      return classifyJobStatus(job.status);
+    }
+    else if (job.status && typeof job.status === "object" && "status" in job.status) {
+      return classifyJobStatus((job.status as { status: string }).status);
+    }
+    else {
+      console.log("Could not extract status of job ", job)
+      return "UNKNOWN";
+    }
+  }
+
 export function getJobStatusCounts(subJobs: SubJob[]): JobStatusCounts {
   return subJobs
     .filter(j => j.job)
-    .map(j => (typeof j.job.status === "string" ? j.job.status : (j.job.status as unknown as { status: string }).status))
+    .map(j => extractJobStatus(j.job))
     .reduce(
-      (acc, status: string) => {
+      (acc, status: AllowedJobStatus) => {
         if (status === "SUCCESS") acc.success += 1;
-        else if (status.endsWith("FAILED") || status.endsWith("FAILURE")) acc.failed += 1;
-        else if (status === "STARTED" || status === "RUNNING") acc.running += 1;
-        else if (status === "PENDING" || status.startsWith("JOB_") || status === "WAITING_") acc.pending += 1;
-        else acc.unknown += 1;
+        else if (status === "FAILED") acc.failed += 1;
+        else if (status === "RUNNING") acc.running += 1;
+        else if (status === "PENDING") acc.pending += 1;
+        else if (status === "UNKNOWN") acc.unknown += 1;
+        else {
+          console.warn("status should have been classified into one of the AllowedJobStatus!")
+          console.warn("status: ", status)
+        };
         return acc;
       },
       { success: 0, failed: 0, running: 0, pending: 0, unknown: 0 },
@@ -187,10 +247,6 @@ export function getJobStatusCounts(subJobs: SubJob[]): JobStatusCounts {
 export function getJobCollectionStatus(subJobs: SubJob[]) {
   if (!subJobs || subJobs.length === 0) return "NO JOBS";
   const jobStatusCounts = getJobStatusCounts(subJobs);
-  if (jobStatusCounts.unknown > 0) {
-    // toast.warn("Could not classify some job statuses - please revise console logs")
-    console.warn("SubJobs that gave UNKNOWN status: ", subJobs);
-  }
   const allSuccess = jobStatusCounts.success === subJobs.length;
   const anySuccess = jobStatusCounts.success > 0;
   const anyRunning = jobStatusCounts.running > 0;
@@ -202,9 +258,9 @@ export function getJobCollectionStatus(subJobs: SubJob[]) {
   if (anyRunning) return "RUNNING";
   if (anyPending) return "PENDING";
   if (anyFailed && anySuccess) return "FAILED PARTIALLY";
-  return "UNKNOWN";
+  else return "UNKNOWN";
 }
 
 export function filterForFinalStatus(status: string) {
-  return status === "FAILED" || status === "SUCCESS" || status.includes("FAILURE");
+  return status === "FAILED" || status === "SUCCESS";
 }
