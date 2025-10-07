@@ -2,7 +2,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
-import { toast } from "react-toastify";
 import { JobsLoading } from "../data/JobsLoading";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
@@ -26,7 +25,6 @@ export function MOGAPareto(props: MOGAParetoProps) {
   const { loading, progress, jobProgress, setCalculating } = props;
   const theme = useTheme();
   const ref = useRef<Plot>(null);
-  const zeroWeightsToastShown = useRef<boolean>(false);
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const { mogaSettings } = useMOGASettingsContext();
@@ -51,11 +49,6 @@ export function MOGAPareto(props: MOGAParetoProps) {
         return NaN;
       }
       if (Object.values(weights).every(w => w === 0)) {
-        console.warn("All weights are zero! Setting performance to NaN");
-        if (!zeroWeightsToastShown.current) {
-          toast.warning("Not possible to calculate performance - all weights set to zero");
-          zeroWeightsToastShown.current = true;
-        }
         return NaN;
       }
 
@@ -378,17 +371,12 @@ export function MOGAPareto(props: MOGAParetoProps) {
       run();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFunction, outputTargets, filteredJobList, mogaSettings]);
+  }, [filteredJobList, mogaSettings]);
 
   // When weights change, recalculate tableData (refresh table) but do NOT rerun runMOGA
   useEffect(() => {
     if (!tableData || !tableData.rows) return;
     if (!selectedFunction) return;
-
-    // Reset toast flag if weights are no longer all zero
-    if (weights && !Object.values(weights).every(w => w === 0)) {
-      zeroWeightsToastShown.current = false;
-    }
 
     const localOptVars = Object.keys(outputTargets[selectedFunction.uid]);
     const minMax = getMinMax(localOptVars, {}, tableData);

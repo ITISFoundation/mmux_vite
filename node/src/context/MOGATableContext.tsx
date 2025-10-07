@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { GridSortModel } from "@mui/x-data-grid";
+import { toast } from "react-toastify";
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
 
@@ -22,7 +23,9 @@ export function MOGATableContextProvider({ children }: Props) {
   const [localLoading, setLocalLoading] = useState(true);
   const [weights, setWeights] = useState<{ [key: string]: number }>({});
   const [sortModel, setSortModel] = useState<GridSortModel>([]);
+  const weightsToastId = useRef<string | number>("");
 
+  const checkAllWeightsZero = (w: { [key: string]: number }) => Object.values(w).every(v => v === 0);
   // Persist only weights and sortModel
   useEffect(() => {
     if (localLoading === true) return; // Avoid saving state while loading
@@ -37,11 +40,29 @@ export function MOGATableContextProvider({ children }: Props) {
 
   useEffect(() => {
     if (!loading && persistence && persistence.currentView !== undefined) {
-      setWeights(persistence.weights);
+      if (checkAllWeightsZero(persistence.weights)) {
+        console.warn("All weights are zero! Resetting to empty object");
+        setWeights({});
+      } else {
+        setWeights(persistence.weights);
+      }
       setSortModel(Array.isArray(persistence.sortModel) ? persistence.sortModel : []);
       setLocalLoading(false);
     }
   }, [loading]);
+
+  useEffect(() => {
+    if (!loading) {
+      if (checkAllWeightsZero(weights) && weightsToastId.current === "") {
+        console.warn("All weights are zero! Setting performance to NaN");
+        weightsToastId.current = toast.warning("Not possible to calculate performance - all weights set to zero");
+      }
+      if (!checkAllWeightsZero(weights) && weightsToastId.current !== "") {
+        toast.dismiss(weightsToastId.current);
+        weightsToastId.current = "";
+      }
+    }
+  }, [loading, weights]);
 
   const memoState = useMemo<MOGATableContextType>(
     () => ({
