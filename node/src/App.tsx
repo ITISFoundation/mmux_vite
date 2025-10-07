@@ -76,7 +76,7 @@ function App() {
         timeoutId = setTimeout(pollHealthStatus, 1000, retries - 1);
       }
     };
-    pollHealthStatus(30);
+    pollHealthStatus(300);
     return () => {
       clearTimeout(timeoutId);
     };
