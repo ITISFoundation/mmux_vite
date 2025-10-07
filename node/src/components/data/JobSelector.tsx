@@ -190,7 +190,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             const job: FunctionJob = functionJobs[subJobIdx];
             job.status = typeof job.status === "string" ? job.status : (job.status as unknown as { status: string }).status;
             jobsFetched.current += 1;
-            const jobsProg = (jobsFetched.current / totalSubs) * 100;
+            const jobsProg = (jobsFetched.current / functionJobs.length) * 100;
             setJobProgress(jobsProg);
             subJobs.push({
               selected: job.status === "SUCCESS",
