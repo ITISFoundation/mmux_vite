@@ -186,34 +186,11 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         ) {
           const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
           const subJobs = [];
-          for (let subJobIdx = 0; subJobIdx < jc.jobIds.length; subJobIdx += 1) {
-            let job: FunctionJob;
-            const id = jc.jobIds[subJobIdx];
-            // check if job is already fetched in fetchedJobCollections
-            const existingJob =
-              fetchedJobCollections &&
-              fetchedJobCollections.find(
-                j =>
-                  j.jobCollection.jobIds.includes(id) &&
-                  j.subJobs.some(
-                    sj =>
-                      sj.job.uid === id &&
-                      filterForFinalStatus(
-                        typeof sj.job.status === "string"
-                          ? sj.job.status
-                          : (sj.job.status as unknown as { status: string }).status,
-                      ),
-                  ),
-              );
-            if (existingJob) {
-              job = existingJob.subJobs.find(j => j.job.uid === id)?.job;
-              job.status = typeof job.status === "string" ? job.status : (job.status as unknown as { status: string }).status;
-            } else {
-              job = functionJobs[subJobIdx];
-              job.status = typeof job.status === "string" ? job.status : (job.status as unknown as { status: string }).status;
-            }
+          for (let subJobIdx = 0; subJobIdx < functionJobs.length; subJobIdx += 1) {
+            const job: FunctionJob = functionJobs[subJobIdx];
+            job.status = typeof job.status === "string" ? job.status : (job.status as unknown as { status: string }).status;
             jobsFetched.current += 1;
-            const jobsProg = (jobsFetched.current / totalSubs) * 100;
+            const jobsProg = (jobsFetched.current / functionJobs.length) * 100;
             setJobProgress(jobsProg);
             subJobs.push({
               selected: job.status === "SUCCESS",
