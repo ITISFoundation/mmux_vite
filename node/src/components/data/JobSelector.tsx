@@ -246,6 +246,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     const idx = jobCollections.findIndex(jc => jc.jobCollection.uid === uid);
     if (poperID !== idx) {
       setPopperID(idx);
+      setPage(0);
     } else {
       setPopperID(-1);
       poperOpen.current = false;
