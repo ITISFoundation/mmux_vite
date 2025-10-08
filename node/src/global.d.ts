@@ -50,7 +50,6 @@ type PlotConfig = {
 type LoadingPropsType = {
   loading: boolean;
   setLoading?: (loading: boolean) => void;
-  progress: number;
   jobProgress: number;
   colsFetched: React.MutableRefObject<number>;
   jobsFetched: React.MutableRefObject<number>;

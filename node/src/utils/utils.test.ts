@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import fs from "fs";
+import { JSX } from "react/jsx-runtime";
 import { FunctionContextType } from "../context/FunctionContext";
 import { JobContextType } from "../context/JobContext";
 
@@ -191,6 +192,12 @@ describe("stepValidator", () => {
         throw new Error("Function not implemented.");
       },
       filteredJobList: [],
+      requestForceFetch: (): void => {
+        throw new Error("Function not implemented.");
+      },
+      parseStatus: (_jobStatus: string, _outputArray: Record<string, unknown>): string | JSX.Element[] => {
+        throw new Error("Function not implemented.");
+      },
     };
 
     expect(stepValidator(functionContext, jobContext, "", 0)).toBe(true);

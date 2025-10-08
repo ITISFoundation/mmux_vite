@@ -12,28 +12,12 @@ interface JobSamplingProps {
   loading: boolean;
   setLoading: (value: boolean) => void;
   disabled?: boolean;
-  progress: number;
-  setProgress: (value: number) => void;
-  jobProgress: number;
   setJobProgress: (value: number) => void;
-  jobsFetched: React.MutableRefObject<number>;
-  colsFetched: React.MutableRefObject<number>;
   selectedFunction: OsparcFunction | undefined;
 }
 
 export function JobSampling(props: JobSamplingProps) {
-  const {
-    loading,
-    setLoading,
-    progress,
-    setProgress,
-    jobProgress,
-    setJobProgress,
-    colsFetched,
-    jobsFetched,
-    selectedFunction,
-    disabled,
-  } = props;
+  const { loading, setLoading, setJobProgress, selectedFunction, disabled } = props;
   const theme = useTheme();
   const [jobPanelOpen, setJobPanelOpen] = useState<boolean>(false);
 
@@ -75,16 +59,7 @@ export function JobSampling(props: JobSamplingProps) {
         </CustomTooltip>
       </Button>
       <AccordionDetails sx={{ padding: "0", paddingTop: "16px" }}>
-        <JobSelector
-          loading={loading}
-          setLoading={setLoading}
-          progress={progress}
-          setProgress={setProgress}
-          jobProgress={jobProgress}
-          setJobProgress={setJobProgress}
-          jobsFetched={jobsFetched}
-          colsFetched={colsFetched}
-        />
+        <JobSelector loading={loading} setLoading={setLoading} setJobProgress={setJobProgress} />
         {selectedFunction !== undefined ? (
           <PlusButton
             onClickFun={() => null}

@@ -22,7 +22,7 @@ interface MOGAParetoProps extends LoadingPropsType {
 }
 
 export function MOGAPareto(props: MOGAParetoProps) {
-  const { loading, progress, jobProgress, setCalculating } = props;
+  const { loading, jobProgress, setCalculating } = props;
   const theme = useTheme();
   const ref = useRef<Plot>(null);
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
@@ -427,7 +427,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
   };
 
   if (loading) {
-    return <JobsLoading progress={progress} jobProgress={jobProgress} message="Creating AI model..." />;
+    return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;
   }
 
   return (
