@@ -47,6 +47,7 @@ export function JobContextProvider({ children }: Props) {
         return status.status;
       }
     }
+    console.log("job status is UNKNOWN", status);
     return "UNKNOWN";
   };
 
@@ -96,14 +97,12 @@ export function JobContextProvider({ children }: Props) {
       const fetchedJCMap = new Map(fetchedJobCollections && fetchedJobCollections.map(fjc => [fjc.jobCollection.uid, fjc]));
       const equalJC: boolean[] = jobsC.map(jc => {
         const fetchedJC = fetchedJCMap.get(jc.uid);
+        const statusList = fetchedJC ? fetchedJC.subJobs.map(j => jobStatusFilter(j.job.status)) : [];
         return (
           fetchedJC !== undefined &&
-          jc.jobIds.join(",") === fetchedJC.subJobs.map(j => j.job.uid).join(",") &&
-          fetchedJC.subJobs.every(j =>
-            typeof j.job.status === "string"
-              ? filterForFinalStatus(j.job.status)
-              : filterForFinalStatus((j.job.status as unknown as { status: string }).status),
-          )
+          fetchedJC.subJobs.map(j => j.job.uid).every(jcUID => jc.jobIds.includes(jcUID)) &&
+          fetchedJC.subJobs.length === jc.jobIds.length &&
+          statusList.every(s => filterForFinalStatus(s))
         );
       });
 
@@ -114,7 +113,7 @@ export function JobContextProvider({ children }: Props) {
 
       progress(0);
       const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
-      console.info("Fetched jobCollections: ", jobsC, totalSubs);
+      console.info("Going to update not equal JC: ", equalJC);
 
       const newJobCollections: SelectedJobCollection[] = [];
       let jobsFetched = 0;
