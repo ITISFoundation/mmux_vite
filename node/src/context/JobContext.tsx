@@ -122,6 +122,7 @@ export function JobContextProvider({ children }: Props) {
         const jc = jobsC[jcIdx];
         if (equalJC[jcIdx] === false) {
           const functionJobs = await getFunctionJobsFromFunctionJobCollection(jc.uid);
+          const oldSubJobs = fetchedJCMap.get(jc.uid)?.subJobs || [];
           const subJobs = [];
           for (let subJobIdx = 0; subJobIdx < functionJobs.length; subJobIdx += 1) {
             const job: FunctionJob = functionJobs[subJobIdx];
@@ -129,7 +130,7 @@ export function JobContextProvider({ children }: Props) {
             jobsFetched += 1;
             const jobsProg = (jobsFetched / totalSubs) * 100;
             progress(jobsProg);
-            const existingSelected = fetchedJCMap.get(jc.uid)?.subJobs.find(sj => sj.job.uid === job.uid)?.selected;
+            const existingSelected = oldSubJobs.find(sj => sj.job.uid === job.uid)?.selected;
             subJobs.push({
               selected: existingSelected !== undefined ? existingSelected : job.status === "SUCCESS",
               job,
