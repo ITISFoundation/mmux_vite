@@ -39,15 +39,11 @@ export function JobContextProvider({ children }: Props) {
 
   // Filter out job status that are not strings
   const jobStatusFilter = (status: unknown) => {
-    // console.log("Filtering job status: ", status);
     if (typeof status === "string") {
-      // console.log("job status is string: ", status);
       return status;
     }
     if (typeof status === "object" && status !== null) {
-      // console.log("job status is object: ", status);
       if ("status" in status && typeof status.status === "string") {
-        // console.log("job status is object.string: ", status);
         return status.status;
       }
     }
@@ -110,7 +106,7 @@ export function JobContextProvider({ children }: Props) {
         );
       });
 
-      console.log("equalJC: ", equalJC);
+      console.info("equalJC: ", equalJC);
       if (equalJC.every(v => v === true)) {
         console.info("Job collections already fetched, skipping fetch.");
         return;
@@ -118,7 +114,7 @@ export function JobContextProvider({ children }: Props) {
 
       progress(0);
       const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
-      console.info("Going to update: ", equalJC);
+      console.info("Going to update not equal JC: ", equalJC);
 
       const newJobCollections: SelectedJobCollection[] = [];
       let jobsFetched = 0;
