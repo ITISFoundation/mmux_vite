@@ -106,7 +106,6 @@ export function JobContextProvider({ children }: Props) {
         );
       });
 
-      console.info("equalJC: ", equalJC);
       if (equalJC.every(v => v === true)) {
         console.info("Job collections already fetched, skipping fetch.");
         return;
