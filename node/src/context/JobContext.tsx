@@ -39,14 +39,19 @@ export function JobContextProvider({ children }: Props) {
 
   // Filter out job status that are not strings
   const jobStatusFilter = (status: unknown) => {
+    // console.log("Filtering job status: ", status);
     if (typeof status === "string") {
+      // console.log("job status is string: ", status);
       return status;
     }
     if (typeof status === "object" && status !== null) {
+      // console.log("job status is object: ", status);
       if ("status" in status && typeof status.status === "string") {
+        // console.log("job status is object.string: ", status);
         return status.status;
       }
     }
+    console.log("job status is UNKNOWN", status);
     return "UNKNOWN";
   };
 
@@ -96,17 +101,16 @@ export function JobContextProvider({ children }: Props) {
       const fetchedJCMap = new Map(fetchedJobCollections && fetchedJobCollections.map(fjc => [fjc.jobCollection.uid, fjc]));
       const equalJC: boolean[] = jobsC.map(jc => {
         const fetchedJC = fetchedJCMap.get(jc.uid);
+        const statusList = fetchedJC ? fetchedJC.subJobs.map(j => jobStatusFilter(j.job.status)) : [];
         return (
           fetchedJC !== undefined &&
-          jc.jobIds.join(",") === fetchedJC.subJobs.map(j => j.job.uid).join(",") &&
-          fetchedJC.subJobs.every(j =>
-            typeof j.job.status === "string"
-              ? filterForFinalStatus(j.job.status)
-              : filterForFinalStatus((j.job.status as unknown as { status: string }).status),
-          )
+          fetchedJC.subJobs.map(j => j.job.uid).every(jcUID => jc.jobIds.includes(jcUID)) &&
+          fetchedJC.subJobs.length === jc.jobIds.length &&
+          statusList.every(s => filterForFinalStatus(s))
         );
       });
 
+      console.log("equalJC: ", equalJC);
       if (equalJC.every(v => v === true)) {
         console.info("Job collections already fetched, skipping fetch.");
         return;
@@ -114,7 +118,7 @@ export function JobContextProvider({ children }: Props) {
 
       progress(0);
       const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
-      console.info("Fetched jobCollections: ", jobsC, totalSubs);
+      console.info("Going to update: ", equalJC);
 
       const newJobCollections: SelectedJobCollection[] = [];
       let jobsFetched = 0;
