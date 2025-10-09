@@ -89,6 +89,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       }
       return auxJob;
     });
+    setPopperID(-1);
+    poperOpen.current = false;
     updateJobContext(newJobCollections);
     setJobCollections(newJobCollections);
   };
