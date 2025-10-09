@@ -176,7 +176,8 @@ export function getJobStatusCounts(subJobs: SubJob[]): JobStatusCounts {
         if (status === "SUCCESS") acc.success += 1;
         else if (status.endsWith("FAILED") || status.endsWith("FAILURE")) acc.failed += 1;
         else if (status === "STARTED" || status === "RUNNING") acc.running += 1;
-        else if (status === "PENDING" || status.startsWith("JOB_") || status === "WAITING_") acc.pending += 1;
+        else if (status === "PENDING" || status.startsWith("JOB_") || status.startsWith("WAITING_") || status === "PUBLISHED")
+          acc.pending += 1;
         else acc.unknown += 1;
         return acc;
       },
