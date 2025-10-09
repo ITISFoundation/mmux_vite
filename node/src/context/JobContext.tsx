@@ -51,7 +51,8 @@ export function JobContextProvider({ children }: Props) {
     return "UNKNOWN";
   };
 
-  const parseStatus = (jobStatus: string, outputArray: Record<string, unknown>): string | JSX.Element[] => {
+  const parseStatus = (jobStatusUnk: unknown, outputArray: Record<string, unknown>): string | JSX.Element[] => {
+    const jobStatus = jobStatusFilter(jobStatusUnk);
     let outputs;
     if (jobStatus === "SUCCESS") {
       outputs = Object.entries(outputArray).map(([key, value]) => (
