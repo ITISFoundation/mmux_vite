@@ -40,7 +40,6 @@ export function JobContextProvider({ children }: Props) {
   const [fetchedJobCollections, setFetchedJobCollections] = useState<SelectedJobCollection[] | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
 
-  // TODO change all calls to this function!! bfr Alex was passing status + outputs -- here, just pass job
   const getOutputsForTable = (job: FunctionJob | SubJob): string | JSX.Element[] => {
     const jobStatus: AllowedJobStatus = extractJobStatus(job);
     const outputArray: Record<string, unknown> = extractJobOutputs(job);
