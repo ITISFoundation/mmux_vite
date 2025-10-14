@@ -209,7 +209,7 @@ function classifyJobStatus(jobStatus: string): AllowedJobStatus {
       return "FAILED";
     }
     else if (jobStatus === "STARTED" || jobStatus === "RUNNING") {
-      return "RUNNING"
+      return "RUNNING";
     }
     else if (jobStatus === "PENDING" || jobStatus.startsWith("JOB_") || jobStatus.startsWith("WAITING_") || jobStatus === "PUBLISHED") {
       return "PENDING"
