@@ -5,8 +5,9 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import { Function as OsparcFunction } from "../../osparc-api-ts-client";
-import { createJobStudyCopy, extractJobStatus, openStudyUid } from "../../utils/function_utils";
+import { createJobStudyCopy, extractJobStatus, isFinalStatus, openStudyUid } from "../../utils/function_utils";
 import CustomTooltip from "../utils/CustomTooltip";
+import { useJobContext } from "../../context/JobContext";
 
 interface JobRowProps {
   jobUid: string;
@@ -17,8 +18,9 @@ interface JobRowProps {
 
 function JobRow(props: JobRowProps) {
   const { jobUid, jobList, setSelected, selectedFunction } = props;
-  const job = jobList.find(j => j.job.uid === jobUid);
   const [creatingJobCopy, setCreatingJobCopy] = useState(false);
+  const { getOutputsForTable } = useJobContext();
+  const job = jobList.find(j => j.job.uid === jobUid);
 
   const handleSetJob = (selected: boolean) => {
     setSelected(selected, jobUid);
@@ -92,25 +94,7 @@ function JobRow(props: JobRowProps) {
     );
   }
   const jobStatus = extractJobStatus(job);
-  let outputs;
-  if (jobStatus === "SUCCESS") {
-    outputs = Object.entries(job.job.outputs).map(([key, value]) => (
-      <Box key={`job-row-output-${key}`} display="inline">
-        {key} : {(value as number).toPrecision(3)}
-        {", "}
-      </Box>
-    ));
-  } else if (jobStatus === "RUNNING") {
-    outputs = [
-      <Box key={0} display="inline">
-        Running...
-      </Box>,
-    ];
-  } else if (jobStatus === "FAILED") outputs = "Failed - no outputs";
-  else if (jobStatus === "PENDING") outputs = "Pending to run";
-  else if (jobStatus === "UNKNOWN") outputs = "Unknown status, please try again later";
-  else outputs = "Unknown status, please contact support";
-
+  const outputs = getOutputsForTable(job);
   const inputs = Object.entries(job.job.inputs).map(([key, value]) => (
     <Box key={`job-row-input-${key}`} display="inline">
       {key} : {(value as number).toPrecision(3)}
@@ -175,8 +159,7 @@ function JobRow(props: JobRowProps) {
             variant="outlined"
             size="small"
             disabled={
-              creatingJobCopy ||
-              (!jobStatus.includes("SUCCESS") && !(jobStatus.includes("FAILED")))
+              creatingJobCopy || ! isFinalStatus(jobStatus)
             }
             onClick={async () => {
               setCreatingJobCopy(true);

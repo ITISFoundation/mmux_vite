@@ -186,7 +186,7 @@ export function extractJobStatus(job: FunctionJob | SubJob): AllowedJobStatus {
         else if (jobStatus === "STARTED" || jobStatus === "RUNNING") {
           return "RUNNING"
         }
-        else if (jobStatus === "PENDING" || jobStatus.startsWith("JOB_") || jobStatus === "WAITING_") {
+        else if (jobStatus === "PENDING" || jobStatus.startsWith("JOB_") || jobStatus.startsWith("WAITING_") || jobStatus === "PUBLISHED") {
           return "PENDING"
         }
         else {
