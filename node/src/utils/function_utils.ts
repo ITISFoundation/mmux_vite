@@ -281,8 +281,8 @@ export function getJobStatusCounts(subJobs: SubJob[]): JobStatusCounts {
         else if (status === "PENDING") acc.pending += 1;
         else if (status === "UNKNOWN") acc.unknown += 1;
         else {
-          console.warn("status should have been classified into one of the AllowedJobStatus!")
-          console.warn("status: ", status)
+          console.warn("status should have been classified into one of the AllowedJobStatus!");
+          console.warn("status: ", status);
         };
         return acc;
       },
