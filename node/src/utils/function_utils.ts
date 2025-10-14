@@ -206,17 +206,17 @@ function classifyJobStatus(jobStatus: string): AllowedJobStatus {
       return "SUCCESS";
     }
     else if (jobStatus.endsWith("FAILED") || jobStatus.endsWith("FAILURE")) {
-      return "FAILED"
+      return "FAILED";
     }
     else if (jobStatus === "STARTED" || jobStatus === "RUNNING") {
-      return "RUNNING"
+      return "RUNNING";
     }
     else if (jobStatus === "PENDING" || jobStatus.startsWith("JOB_") || jobStatus.startsWith("WAITING_") || jobStatus === "PUBLISHED") {
-      return "PENDING"
+      return "PENDING";
     }
     else {
       console.warn("Could not classify JobStatus", jobStatus)
-      return "UNKNOWN"
+      return "UNKNOWN";
     }
 }
 
@@ -281,8 +281,8 @@ export function getJobStatusCounts(subJobs: SubJob[]): JobStatusCounts {
         else if (status === "PENDING") acc.pending += 1;
         else if (status === "UNKNOWN") acc.unknown += 1;
         else {
-          console.warn("status should have been classified into one of the AllowedJobStatus!")
-          console.warn("status: ", status)
+          console.warn("status should have been classified into one of the AllowedJobStatus!");
+          console.warn("status: ", status);
         };
         return acc;
       },
