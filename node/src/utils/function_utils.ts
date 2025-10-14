@@ -206,7 +206,7 @@ function classifyJobStatus(jobStatus: string): AllowedJobStatus {
       return "SUCCESS";
     }
     else if (jobStatus.endsWith("FAILED") || jobStatus.endsWith("FAILURE")) {
-      return "FAILED"
+      return "FAILED";
     }
     else if (jobStatus === "STARTED" || jobStatus === "RUNNING") {
       return "RUNNING"
