@@ -11,6 +11,7 @@ import { getSamplingEndValue, getSamplingStartValue } from "./sampling";
 import { stepValidator } from "./stepValidator";
 import { RegisteredFunctionJobCollection, FunctionJob } from "../osparc-api-ts-client";
 import type { Function as OsparcFunction } from "../osparc-api-ts-client";
+import { getOutputsForTable } from "./table_utils";
 
 // 1st test: get the file with a given path
 describe("CSV Functions", () => {
@@ -195,7 +196,7 @@ describe("stepValidator", () => {
       requestForceFetch: (): void => {
         throw new Error("Function not implemented.");
       },
-      parseStatus: (_jobStatus: string, _outputArray: Record<string, unknown>): string | JSX.Element[] => {
+      getOutputsForTable: (_job: FunctionJob | SubJob): string | JSX.Element[] => {
         throw new Error("Function not implemented.");
       },
     };
