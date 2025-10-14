@@ -216,7 +216,7 @@ function classifyJobStatus(jobStatus: string): AllowedJobStatus {
     }
     else {
       console.warn("Could not classify JobStatus", jobStatus)
-      return "UNKNOWN"
+      return "UNKNOWN";
     }
 }
 
