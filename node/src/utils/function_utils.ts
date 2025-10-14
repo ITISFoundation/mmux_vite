@@ -169,57 +169,105 @@ export type JobStatusCounts = {
 
 export type AllowedJobStatus = "SUCCESS" | "FAILED" | "RUNNING" | "PENDING" | "UNKNOWN";
 
+export function isSubJob(job: FunctionJob | SubJob): job is SubJob {
+  if (!job) {
+      throw new Error("Job is undefined");
+  }
+
+  if (typeof job === "object") {
+    return (job as SubJob).selected !== undefined && (job as SubJob).job !== undefined;
+  }
+  else {
+    return false;
+  }
+}
+
+export function isFunctionJob(job: FunctionJob | SubJob): job is FunctionJob {
+  if (!job) {
+      throw new Error("Job is undefined");
+  }
+  
+  if (typeof job === "object") {
+    return (job as FunctionJob).inputs !== undefined && (job as FunctionJob).functionUid !== undefined && (job as FunctionJob).status !== undefined;
+  }
+  else {
+    return false;
+  }
+}
+
+function classifyJobStatus(jobStatus: string): AllowedJobStatus {
+  // This function helps homogenize job status into four categories + unknown,
+  // centralizing all corresponding logic
+    if (!jobStatus) {
+      throw new Error("JobStatus is undefined!")
+    }
+  
+    if (jobStatus === "SUCCESS") {
+      return "SUCCESS";
+    }
+    else if (jobStatus.endsWith("FAILED") || jobStatus.endsWith("FAILURE")) {
+      return "FAILED"
+    }
+    else if (jobStatus === "STARTED" || jobStatus === "RUNNING") {
+      return "RUNNING"
+    }
+    else if (jobStatus === "PENDING" || jobStatus.startsWith("JOB_") || jobStatus.startsWith("WAITING_") || jobStatus === "PUBLISHED") {
+      return "PENDING"
+    }
+    else {
+      console.warn("Could not classify JobStatus", jobStatus)
+      return "UNKNOWN"
+    }
+}
 
 export function extractJobStatus(job: FunctionJob | SubJob): AllowedJobStatus {
-    function classifyJobStatus(jobStatus: string): AllowedJobStatus {
-      // This function helps homogenize job status, centralizing all corresponding logic
-        if (!jobStatus) {
-          throw new Error("JobStatus is undefined!")
-        }
-      
-        if (jobStatus === "SUCCESS") {
-          return "SUCCESS";
-        }
-        else if (jobStatus.endsWith("FAILED") || jobStatus.endsWith("FAILURE")) {
-          return "FAILED"
-        }
-        else if (jobStatus === "STARTED" || jobStatus === "RUNNING") {
-          return "RUNNING"
-        }
-        else if (jobStatus === "PENDING" || jobStatus.startsWith("JOB_") || jobStatus.startsWith("WAITING_") || jobStatus === "PUBLISHED") {
-          return "PENDING"
-        }
-        else {
-          console.warn("Could not classify JobStatus", jobStatus)
-          return "UNKNOWN"
-        }
-    }
-
-    if (!job) {
-      throw new Error("Job is undefined");
-    }
-
-    // Check if job is of type SubJob (has 'selected' and 'job' properties)
-    if (typeof job === "object" && "selected" in job && "job" in job) {
-      // job is a SubJob, so use recursivity to extract status from its 'job' property
-      return extractJobStatus(job.job);
-      // previous way:  
-      // typeof sj.job.status === "string"
-      // ? sj.job.status
-      // : (sj.job.status as unknown as { status: string }).status,
-    }
-
+  // This function extracts the job status from either a FunctionJob or a SubJob
+  // allowing for status to be either a string or an object with a status field
+  // and classifies it into one of the AllowedJobStatus categories
+  if (isFunctionJob(job)) {
     if (typeof job.status === "string") {
       return classifyJobStatus(job.status);
     }
-    else if (job.status && typeof job.status === "object" && "status" in job.status) {
+    else if (job.status && typeof job.status === "object" && "status" in job.status && typeof job.status.status === "string") {
       return classifyJobStatus((job.status as { status: string }).status);
     }
     else {
-      console.log("Could not extract status of job ", job)
+      console.log(`job status ${job.status} could not be extracted, classifying as UNKNOWN.`);
       return "UNKNOWN";
     }
   }
+  // If it's a SubJob, recurse to extract from the inner job
+  else if (isSubJob(job)) {
+    return extractJobStatus(job.job);
+  }
+  else {
+    throw new Error("Job passed to extractJobStatus is neither FunctionJob nor SubJob!");
+  }
+  }
+
+export function extractJobOutputs(job: FunctionJob | SubJob): Record<string, unknown> {
+  // This function extracts the job outputs from either a FunctionJob or a SubJob
+  // allowing for outputs to be either a Record<string, unknown> or an object with an outputs field
+  if (isFunctionJob(job)) {
+    if (job.outputs && typeof job.outputs === "object") {
+      return job.outputs as Record<string, unknown>;
+    }
+    else if (job.outputs && typeof job.outputs === "object" && "outputs" in job.outputs && typeof job.outputs.outputs === "object") {
+      return job.outputs.outputs as Record<string, unknown>;
+    }
+    else {
+      console.log(`job outputs ${job.outputs} could not be extracted, returning empty object.`);
+      return {};
+    }
+  }
+  // If it's a SubJob, recurse to extract from the inner job
+  else if (isSubJob(job)) {
+    return extractJobOutputs(job.job);
+  }
+  else {
+    throw new Error("Job passed to extractJobOutputs is neither FunctionJob nor SubJob!");
+  }
+}
 
 export function getJobStatusCounts(subJobs: SubJob[]): JobStatusCounts {
   return subJobs
@@ -259,6 +307,6 @@ export function getJobCollectionStatus(subJobs: SubJob[]) {
   else return "UNKNOWN";
 }
 
-export function filterForFinalStatus(status: string) {
+export function isFinalStatus(status: string) {
   return status === "FAILED" || status === "SUCCESS";
 }

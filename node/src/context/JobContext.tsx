@@ -7,7 +7,10 @@ import { PersistenceType } from "./types";
 import {
   getFunctionJobCollections,
   getFunctionJobsFromFunctionJobCollection,
-  filterForFinalStatus,
+  isFinalStatus,
+  extractJobStatus,
+  extractJobOutputs,
+  AllowedJobStatus,
 } from "../utils/function_utils";
 
 export interface JobContextType {
@@ -20,7 +23,7 @@ export interface JobContextType {
   allJobsList: () => FunctionJob[];
   filteredJobList: FunctionJob[];
   requestForceFetch: (functionUID: string, progress: (progress: number) => void) => void;
-  parseStatus: (jobStatus: string, outputArray: Record<string, unknown>) => string | JSX.Element[];
+  getOutputsForTable: (job: FunctionJob | SubJob) => string | JSX.Element[];
 }
 
 export const JobContext = createContext<JobContextType | undefined>(undefined);
@@ -37,23 +40,12 @@ export function JobContextProvider({ children }: Props) {
   const [fetchedJobCollections, setFetchedJobCollections] = useState<SelectedJobCollection[] | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
 
-  // Filter out job status that are not strings
-  const jobStatusFilter = (status: unknown) => {
-    if (typeof status === "string") {
-      return status;
-    }
-    if (typeof status === "object" && status !== null) {
-      if ("status" in status && typeof status.status === "string") {
-        return status.status;
-      }
-    }
-    console.log("job status is UNKNOWN", status);
-    return "UNKNOWN";
-  };
-
-  const parseStatus = (jobStatusUnk: unknown, outputArray: Record<string, unknown>): string | JSX.Element[] => {
-    const jobStatus = jobStatusFilter(jobStatusUnk);
-    let outputs;
+  // TODO change all calls to this function!! bfr Alex was passing status + outputs -- here, just pass job
+  const getOutputsForTable = (job: FunctionJob | SubJob): string | JSX.Element[] => {
+    const jobStatus: AllowedJobStatus = extractJobStatus(job);
+    const outputArray: Record<string, unknown> = extractJobOutputs(job);
+    
+    let outputs: string | JSX.Element[];
     if (jobStatus === "SUCCESS") {
       outputs = Object.entries(outputArray).map(([key, value]) => (
         <Box key={`job-row-output-${key}`} display="inline">
@@ -61,21 +53,18 @@ export function JobContextProvider({ children }: Props) {
           {", "}
         </Box>
       ));
-    } else if (jobStatus === "STARTED") {
+    } else if (jobStatus === "RUNNING") {
       outputs = [
         <Box key={0} display="inline">
           Running...
         </Box>,
       ];
-    } else if (["FAILED", "ABORTED"].includes(jobStatus) || (jobStatus.startsWith("JOB_") && jobStatus.endsWith("_FAILURE"))) {
+    } else if (jobStatus === "FAILED") {
       outputs = "Failed - no outputs";
-    } else if (
-      ["PENDING", "WAITING_FOR_CLUSTER", "PUBLISHED", "NOT_STARTED", "WAITING_FOR_RESOURCES"].includes(jobStatus) ||
-      (jobStatus.startsWith("JOB_") && !jobStatus.endsWith("_FAILURE"))
-    ) {
+    } else if (jobStatus === "PENDING") {
       outputs = "Pending to run";
     } else if (jobStatus === "UNKNOWN") {
-      outputs = "Please try again later";
+      outputs = "Unknown status, please try again later";
     } else {
       outputs = "Unknown status, please contact support";
     }
@@ -98,12 +87,12 @@ export function JobContextProvider({ children }: Props) {
       const fetchedJCMap = new Map(fetchedJobCollections && fetchedJobCollections.map(fjc => [fjc.jobCollection.uid, fjc]));
       const equalJC: boolean[] = jobsC.map(jc => {
         const fetchedJC = fetchedJCMap.get(jc.uid);
-        const statusList = fetchedJC ? fetchedJC.subJobs.map(j => jobStatusFilter(j.job.status)) : [];
+        const statusList = fetchedJC ? fetchedJC.subJobs.map(j => extractJobStatus(j)) : [];
         return (
           fetchedJC !== undefined &&
           fetchedJC.subJobs.map(j => j.job.uid).every(jcUID => jc.jobIds.includes(jcUID)) &&
           fetchedJC.subJobs.length === jc.jobIds.length &&
-          statusList.every(s => filterForFinalStatus(s))
+          statusList.every(s => isFinalStatus(s))
         );
       });
 
@@ -127,13 +116,13 @@ export function JobContextProvider({ children }: Props) {
           const subJobs = [];
           for (let subJobIdx = 0; subJobIdx < functionJobs.length; subJobIdx += 1) {
             const job: FunctionJob = functionJobs[subJobIdx];
-            job.status = jobStatusFilter(job.status);
+            const jobStatus = extractJobStatus(job);
             jobsFetched += 1;
             const jobsProg = (jobsFetched / totalSubs) * 100;
             progress(jobsProg);
             const existingSelected = oldSubJobs.find(sj => sj.job.uid === job.uid)?.selected;
             subJobs.push({
-              selected: existingSelected !== undefined ? existingSelected : job.status === "SUCCESS",
+              selected: existingSelected !== undefined ? existingSelected : jobStatus === "SUCCESS",
               job,
             });
           }
@@ -227,7 +216,7 @@ export function JobContextProvider({ children }: Props) {
       allJobsList,
       filteredJobList,
       requestForceFetch,
-      parseStatus,
+      getOutputsForTable,
     }),
     [
       runningJobCollection,
@@ -239,7 +228,7 @@ export function JobContextProvider({ children }: Props) {
       allJobsList,
       filteredJobList,
       requestForceFetch,
-      parseStatus,
+      getOutputsForTable,
     ],
   );
   return <JobContext.Provider value={memoState}>{children}</JobContext.Provider>;

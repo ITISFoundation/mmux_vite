@@ -27,7 +27,7 @@ import {
   getFunctionJobCollections,
   getFunctionJobsFromFunctionJobCollection,
   getJobCollectionStatus,
-  filterForFinalStatus,
+  isFinalStatus,
   extractJobStatus,
 } from "../../utils/function_utils";
 import getMinMax from "../minmax";
