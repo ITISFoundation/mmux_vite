@@ -63,20 +63,34 @@ def flask_sumo_cross_validation():
     os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_sumo_cross_validation")
     _logger.debug("Cwd: " + str(Path.cwd()))
+
+    request_data: dict = json.loads(request.data.decode("utf-8"))
     
+    # Validate required fields
+    required_fields = ["output", "inputVars", "FunctionJobs"]
+    for field in required_fields:
+        if field not in request_data:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
+
+    # get request inputs
+    output_response = request_data["output"]
+    input_vars: List[str] = request_data["inputVars"]
+    jobs: List[FunctionJob] = request_data["FunctionJobs"]
+    make_log: bool = request_data.get("log", False)
+
+    # Validate types of request inputs
+    if not isinstance(output_response, str):
+        return jsonify({"error": "output must be a string"}), 400
+    if not isinstance(input_vars, list) or not all(isinstance(i, str) for i in input_vars):
+        return jsonify({"error": "inputVars must be a list of strings"}), 400
+    if not isinstance(jobs, list):
+        return jsonify({"error": "FunctionJobs must be a list"}), 400
+    if len(input_vars) == 0:
+        return jsonify({"error": "inputVars must have at least one element"}), 400
+    if len(jobs) < 5:
+        return jsonify({"error": "FunctionJobs must have at least 5 completed jobs for cross-validation"}), 400
+
     try:
-        # Convert request data into a Python dictionary
-        request_data: dict = json.loads(request.data.decode("utf-8"))
-        output_response = request_data["output"]
-        input_vars: List[str] = request_data["inputVars"]
-        
-        jobs: List[FunctionJob] = request_data["FunctionJobs"]
-        make_log: bool = request_data.get("log", False)
-
-        # Sanitize variable names
-        input_vars_sanitized = sanitize_varnames(input_vars)
-        output_response_sanitized = sanitize_varnames(output_response)
-
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
         run_dir = TRAINING_FILE.parent
 
