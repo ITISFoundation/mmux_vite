@@ -5,8 +5,15 @@ description = "MMUX Flask API"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "flask>=3.1.2",
     "gevent==25.5.1",
     "gunicorn==23.0.0",
+    "itis-dakota==1.5.9",
+    "numpy>=2.3.3",
+    "osparc==0.8.3.post0.dev30",
+    "pandas>=2.3.3",
+    "scikit-learn>=1.7.2",
+    "scipy>=1.16.2",
 ]
 
 [dependency-groups]
@@ -31,6 +38,7 @@ addopts = [
     "--tb=short",
     "--strict-markers",
     "--disable-warnings",
+    "--cov=src/mmux_flaskapi",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
     "--cov-report=xml",
@@ -39,6 +47,29 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["src/mmux_flaskapi"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
 ]
 
 [build-system]

@@ -33,3 +33,6 @@ docker-compose.yml
 *.ignore.*
 
 validation/
+.coverage
+coverage.xml
+htmlcov/
