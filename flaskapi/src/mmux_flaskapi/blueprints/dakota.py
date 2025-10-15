@@ -76,7 +76,6 @@ def flask_sumo_cross_validation():
     output_response = request_data["output"]
     input_vars: List[str] = request_data["inputVars"]
     jobs: List[FunctionJob] = request_data["FunctionJobs"]
-    make_log: bool = request_data.get("log", False)
 
     # Validate types of request inputs
     if not isinstance(output_response, str):
@@ -93,24 +92,16 @@ def flask_sumo_cross_validation():
     try:
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
         run_dir = TRAINING_FILE.parent
-
         PROCESSED_TRAINING_FILE = process_input_file(
             TRAINING_FILE,
-            make_log=make_log,
-            columns_to_keep=input_vars_sanitized + [output_response_sanitized], # type: ignore
+            columns_to_keep=input_vars + [output_response], # type: ignore
         )
-        if make_log:  # FIXME for now log applies to all inputs & the output
-            input_vars_sanitized = [f"log_{var}" for var in input_vars_sanitized]
-            output_response_sanitized = f"log_{output_response_sanitized}"
-
-        results_sanitized = evaluate_sumo_manual_crossvalidation(
+        results = evaluate_sumo_manual_crossvalidation(
             run_dir,
             PROCESSED_TRAINING_FILE,
-            input_vars_sanitized,
-            output_response_sanitized, # type: ignore
+            input_vars,
+            output_response, # type: ignore
         )
-        ## now need to de-sanitize the result keys before returning the results
-        results = {key.replace(output_response_sanitized, output_response): val for key, val in results_sanitized.items()}
 
         _logger.debug("Done!!")
 
