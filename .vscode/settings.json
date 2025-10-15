@@ -11,5 +11,11 @@
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-  "python.testing.cwd": "./flaskapi/tests/"
+  "python.testing.cwd": "./flaskapi",
+  "python.testing.pytestArgs": ["tests"],
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+  "python.defaultInterpreterPath": "./flaskapi/.venv/bin/python",
+  "python.envFile": "${workspaceFolder}/flaskapi/.env",
+  "python.terminal.activateEnvironment": true,
+  "python.testing.debugPort": 3000
 }

@@ -194,8 +194,7 @@ test-frontend: ## run Node.js frontend tests
 ## ensures the right dependencies are installed through the script; using uv was failing due to volume mounting
 test-backend: ## run Flask backend tests
 	cd ${FLASKAPI_DIR} && \
-	bash install-deps.sh && \ 
-	python -m pytest tests/ -v --cov-report=html --cov-report=term-missing
+	uv run pytest tests/ -v --cov-report=html --cov-report=term-missing
 
 .PHONY: ci
 ci: build-no-cache test-backend test-frontend ## run all tests
