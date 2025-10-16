@@ -26,12 +26,30 @@ def create_function_job_list(n, status="completed", inputs=None, outputs=None):
 
     return [make_function_job(status, inputs, outputs) for _ in range(n)]
 
+def make_incomplete_job(status: str, inputs: List[str], outputs: List[str], missing_field: str):
+    """Create a FunctionJob with a missing field for testing error cases."""
+    job = make_function_job(status, inputs, outputs)
+    if missing_field == "inputs":
+        del job["inputs"]
+    elif missing_field == "outputs":
+        del job["outputs"]
+    elif missing_field == "status":
+        del job["status"]
+    elif missing_field.startswith("input_key:"):
+        key_to_remove = missing_field.split(":", 1)[1]
+        if key_to_remove in job["inputs"]:
+            del job["inputs"][key_to_remove]
+    elif missing_field.startswith("output_key:"):
+        key_to_remove = missing_field.split(":", 1)[1]
+        if key_to_remove in job["outputs"]:
+            del job["outputs"][key_to_remove]
+    return job
+
 # ------------------- Success Cases -------------------
 
 class TestSumoCrossValidation:
     """Test suite for the /dakota/sumo_cross_validation endpoint."""
 
-    ### TODO test w many more variables, ouutputs being a list;
     # and w weirdly named variables (inc those that might go to same name after sanitization)
     def test_sumo_cross_validation_success(self, test_client: Flask):
         """Valid request returns 200 and expected result structure."""
@@ -53,9 +71,131 @@ class TestSumoCrossValidation:
             assert isinstance(v, (int, float))
 
     # ------------------- Failure Cases -------------------
-    ### TODO test when passed inputVars or outputs do not coincide w any job input/output keys
-    ### TODO test when no jobs are completed/successful
-    ### TODO test when jobs have missing inputs/outputs keys
+
+    def test_mismatched_input_variables(self, test_client: Flask):
+        """Test when passed inputVars do not coincide with any job input keys."""
+        # Create jobs with input keys that don't match the requested inputVars
+        payload = {
+            "inputVars": ["x1", "x2"],  # Request these variables
+            "output": "y",
+            "FunctionJobs": create_function_job_list(50, inputs=["a", "b"], outputs=["y"])  # Jobs have different input keys
+        }
+        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Should mention that inputVars don't match available job inputs
+        assert any(keyword in data["error"].lower() for keyword in ["input", "variable", "match", "found"])
+
+    def test_mismatched_output_variable(self, test_client: Flask):
+        """Test when passed output does not coincide with any job output keys."""
+        # Create jobs with output keys that don't match the requested output
+        payload = {
+            "inputVars": ["x1"],
+            "output": "y",  # Request this output
+            "FunctionJobs": create_function_job_list(50, inputs=["x1"], outputs=["z"])  # Jobs have different output key
+        }
+        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Should mention that output doesn't match available job outputs
+        assert any(keyword in data["error"].lower() for keyword in ["output", "match", "found"])
+
+    def test_no_completed_jobs(self, test_client: Flask):
+        """Test when no jobs are completed/successful."""
+        # Create jobs with different non-completed statuses
+        failed_jobs = create_function_job_list(25, status="failed")
+        pending_jobs = create_function_job_list(25, status="pending")
+        all_jobs = failed_jobs + pending_jobs
+        
+        payload = {
+            "inputVars": ["x1"],
+            "output": "y", 
+            "FunctionJobs": all_jobs
+        }
+        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Should mention insufficient completed/successful jobs
+        assert any(keyword in data["error"].lower() for keyword in ["completed", "successful", "samples"])
+
+    def test_jobs_missing_input_keys(self, test_client: Flask):
+        """Test when jobs have missing input keys."""
+        # Create jobs where some are missing required input keys
+        complete_jobs = create_function_job_list(25, inputs=["x1"], outputs=["y"])
+        incomplete_jobs = [make_incomplete_job("completed", ["x1"], ["y"], "input_key:x1") for _ in range(25)]
+        
+        all_jobs = complete_jobs + incomplete_jobs
+        payload = {
+            "inputVars": ["x1"],
+            "output": "y",
+            "FunctionJobs": all_jobs
+        }
+        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Should mention missing input keys or insufficient valid data
+        assert any(keyword in data["error"].lower() for keyword in ["input", "missing", "key", "data"])
+
+    def test_jobs_missing_output_keys(self, test_client: Flask):
+        """Test when jobs have missing output keys."""
+        # Create jobs where some are missing required output keys
+        complete_jobs = create_function_job_list(25, inputs=["x1"], outputs=["y"])
+        incomplete_jobs = [make_incomplete_job("completed", ["x1"], ["y"], "output_key:y") for _ in range(25)]
+        
+        all_jobs = complete_jobs + incomplete_jobs
+        payload = {
+            "inputVars": ["x1"],
+            "output": "y",
+            "FunctionJobs": all_jobs
+        }
+        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Should mention missing output keys or insufficient valid data
+        assert any(keyword in data["error"].lower() for keyword in ["output", "missing", "key", "data"])
+
+    def test_jobs_missing_inputs_structure(self, test_client: Flask):
+        """Test when jobs are missing the entire 'inputs' structure."""
+        # Create jobs where some are missing the entire inputs dict
+        complete_jobs = create_function_job_list(25, inputs=["x1"], outputs=["y"])
+        incomplete_jobs = [make_incomplete_job("completed", ["x1"], ["y"], "inputs") for _ in range(25)]
+        
+        all_jobs = complete_jobs + incomplete_jobs
+        payload = {
+            "inputVars": ["x1"],
+            "output": "y",
+            "FunctionJobs": all_jobs
+        }
+        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Should mention missing inputs structure
+        assert any(keyword in data["error"].lower() for keyword in ["input", "missing", "structure"])
+
+    def test_jobs_missing_outputs_structure(self, test_client: Flask):
+        """Test when jobs are missing the entire 'outputs' structure."""
+        # Create jobs where some are missing the entire outputs dict
+        complete_jobs = create_function_job_list(25, inputs=["x1"], outputs=["y"])
+        incomplete_jobs = [make_incomplete_job("completed", ["x1"], ["y"], "outputs") for _ in range(25)]
+        
+        all_jobs = complete_jobs + incomplete_jobs
+        payload = {
+            "inputVars": ["x1"],
+            "output": "y",
+            "FunctionJobs": all_jobs
+        }
+        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Should mention missing outputs structure
+        assert any(keyword in data["error"].lower() for keyword in ["output", "missing", "structure"])
 
     @pytest.mark.parametrize("missing_field", ["output", "inputVars", "FunctionJobs"])
     def test_missing_required_field(self, test_client: Flask, missing_field):
@@ -137,7 +277,7 @@ class TestSumoCrossValidation:
         def fail_eval(*args, **kwargs):
             raise RuntimeError("Some Dakota error")
         # monkeypatch the evaluation function here as needed
-        # monkeypatch("mmux_flaskapi.utils.funs_evaluate.evaluate_sumo_manual_crossvalidation", fail_eval)
+        monkeypatch("mmux_flaskapi.utils.funs_evaluate.evaluate_sumo_manual_crossvalidation", fail_eval)
         payload = {
             "output": "y",
             "inputVars": ["x1"],
@@ -153,7 +293,7 @@ class TestSumoCrossValidation:
         def fail_file(*args, **kwargs):
             raise IOError("Disk full")
         # monkeypatch the file writing function as needed
-        # monkeypatch("mmux_flaskapi.utils.helpers.create_run_dir", fail_file)
+        monkeypatch("mmux_flaskapi.utils.helpers.create_run_dir", fail_file)
         payload = {
             "output": "y",
             "inputVars": ["x1"],
@@ -164,5 +304,76 @@ class TestSumoCrossValidation:
         data = response.get_json()
         assert "error" in data
         assert "Disk full" in data["error"]
+
+    def test_partial_input_variable_mismatch(self, test_client: Flask):
+        """Test when some but not all inputVars match job input keys."""
+        payload = {
+            "inputVars": ["x1", "x2", "nonexistent"],  # Mix of existing and non-existing
+            "output": "y",
+            "FunctionJobs": create_function_job_list(50, inputs=["x1", "x2"], outputs=["y"])
+        }
+        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert any(keyword in data["error"].lower() for keyword in ["input", "variable", "nonexistent"])
+
+    def test_mixed_job_statuses_insufficient_completed(self, test_client: Flask):
+        """Test with mixed job statuses but insufficient completed jobs."""
+        # Create a mix where only 3 are completed (below minimum threshold)
+        completed_jobs = create_function_job_list(3, status="completed")
+        failed_jobs = create_function_job_list(25, status="failed")
+        pending_jobs = create_function_job_list(22, status="pending")
+        all_jobs = completed_jobs + failed_jobs + pending_jobs
+        
+        payload = {
+            "inputVars": ["x1"],
+            "output": "y",
+            "FunctionJobs": all_jobs
+        }
+        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert any(keyword in data["error"].lower() for keyword in ["completed", "samples", "insufficient"])
+
+    def test_empty_job_inputs_outputs(self, test_client: Flask):
+        """Test jobs with empty inputs or outputs dictionaries."""
+        # Create jobs with empty inputs/outputs
+        jobs_with_empty_inputs = []
+        for _ in range(25):
+            job = {
+                "status": "completed",
+                "inputs": {},  # Empty inputs
+                "outputs": {"y": np.random.rand()}
+            }
+            jobs_with_empty_inputs.append(job)
+        
+        normal_jobs = create_function_job_list(25)
+        all_jobs = jobs_with_empty_inputs + normal_jobs
+        
+        payload = {
+            "inputVars": ["x1"],
+            "output": "y",
+            "FunctionJobs": all_jobs
+        }
+        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_success_with_extra_variables(self, test_client: Flask):
+        """Test that the endpoint succeeds when jobs have extra variables not requested."""
+        # Jobs have more variables than requested - this should work
+        payload = {
+            "inputVars": ["x1"],  # Only request x1
+            "output": "y",
+            "FunctionJobs": create_function_job_list(50, inputs=["x1", "x2", "x3"], outputs=["y", "z"])  # Jobs have extra
+        }
+        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "y" in data
+        assert isinstance(data["y"], list)
 
     # Add more edge cases as needed
