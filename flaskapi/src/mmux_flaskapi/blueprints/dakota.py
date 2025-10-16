@@ -30,6 +30,100 @@ _logger = logging.getLogger(__name__)
 dakota_bp = Blueprint('dakota', __name__, url_prefix='/dakota')
 
 ########################################################
+def _validate_jobs_structure_and_data(jobs: List[Dict], input_vars: List[str], output_response: str) -> str | None:
+    """
+    Comprehensive validation of jobs structure and data consistency.
+    Returns error message string if validation fails, None if valid.
+    """
+    if not jobs:
+        return "FunctionJobs list cannot be empty"
+    
+    # Find completed jobs
+    completed_jobs = [job for job in jobs if isinstance(job, dict) and job.get("status", "").lower() in ["completed", "success"]]
+    
+    if len(completed_jobs) == 0:
+        return "No completed/successful jobs found. At least 5 completed jobs are required for cross-validation"
+    
+    if len(completed_jobs) < 5:
+        return f"Only {len(completed_jobs)} completed jobs found. At least 5 completed jobs are required for cross-validation"
+    
+    # Validate job structure and data consistency
+    missing_inputs_structure = []
+    missing_outputs_structure = []
+    missing_input_keys = set()
+    missing_output_keys = []
+    jobs_with_empty_inputs = []
+    jobs_with_empty_outputs = []
+    
+    for i, job in enumerate(completed_jobs):
+        # Check basic job structure
+        if not isinstance(job, dict):
+            return f"Job at index {i} is not a dictionary"
+        
+        # Check for inputs structure
+        if "inputs" not in job:
+            missing_inputs_structure.append(i)
+            continue
+        
+        if not isinstance(job["inputs"], dict):
+            return f"Job at index {i} has invalid inputs structure (must be a dictionary)"
+        
+        if len(job["inputs"]) == 0:
+            jobs_with_empty_inputs.append(i)
+            continue
+        
+        # Check for outputs structure
+        if "outputs" not in job:
+            missing_outputs_structure.append(i)
+            continue
+        
+        if not isinstance(job["outputs"], dict):
+            return f"Job at index {i} has invalid outputs structure (must be a dictionary)"
+        
+        if len(job["outputs"]) == 0:
+            jobs_with_empty_outputs.append(i)
+            continue
+        
+        # Check for required input variables
+        job_input_keys = set(job["inputs"].keys())
+        for input_var in input_vars:
+            if input_var not in job_input_keys:
+                missing_input_keys.add(input_var)
+        
+        # Check for required output variable
+        if output_response not in job["outputs"]:
+            missing_output_keys.append(i)
+    
+    # Report specific validation errors
+    if missing_inputs_structure:
+        return f"Jobs at indices {missing_inputs_structure} are missing 'inputs' structure"
+    
+    if missing_outputs_structure:
+        return f"Jobs at indices {missing_outputs_structure} are missing 'outputs' structure"
+    
+    if jobs_with_empty_inputs:
+        return f"Jobs at indices {jobs_with_empty_inputs} have empty inputs dictionaries"
+    
+    if jobs_with_empty_outputs:
+        return f"Jobs at indices {jobs_with_empty_outputs} have empty outputs dictionaries"
+    
+    if missing_input_keys:
+        available_input_keys = set()
+        for job in completed_jobs[:5]:  # Sample first 5 jobs to show available keys
+            if isinstance(job, dict) and "inputs" in job and isinstance(job["inputs"], dict):
+                available_input_keys.update(job["inputs"].keys())
+        return f"Input variables {list(missing_input_keys)} not found in job inputs. Available input keys: {list(available_input_keys)}"
+    
+    if missing_output_keys:
+        available_output_keys = set()
+        for job in completed_jobs[:5]:  # Sample first 5 jobs to show available keys
+            if isinstance(job, dict) and "outputs" in job and isinstance(job["outputs"], dict):
+                available_output_keys.update(job["outputs"].keys())
+        return f"Output variable '{output_response}' not found in {len(missing_output_keys)} job(s). Available output keys: {list(available_output_keys)}"
+    
+    return None  # All validations passed
+
+########################################################
 def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str | List[str], folder_name: str = "evaluate") -> Path:
     output_response_sanitized = sanitize_varnames(output_response)
     completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
@@ -75,7 +169,7 @@ def flask_sumo_cross_validation():
     # get request inputs
     output_response = request_data["output"]
     input_vars: List[str] = request_data["inputVars"]
-    jobs: List[FunctionJob] = request_data["FunctionJobs"]
+    jobs: List[Dict] = request_data["FunctionJobs"]
 
     # Validate types of request inputs
     if not isinstance(output_response, str):
@@ -87,7 +181,12 @@ def flask_sumo_cross_validation():
     if len(input_vars) == 0:
         return jsonify({"error": "inputVars must have at least one element"}), 400
     if len(jobs) < 5:
-        return jsonify({"error": "FunctionJobs must have at least 5 completed jobs for cross-validation"}), 400
+        return jsonify({"error": "FunctionJobs must have at least 5 jobs for cross-validation"}), 400
+
+    # Comprehensive job validation
+    validation_error = _validate_jobs_structure_and_data(jobs, input_vars, output_response)
+    if validation_error:
+        return jsonify({"error": validation_error}), 400
 
     try:
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)

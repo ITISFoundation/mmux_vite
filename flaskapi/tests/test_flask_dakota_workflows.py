@@ -276,8 +276,8 @@ class TestSumoCrossValidation:
         """If evaluation fails, error is propagated with Dakota message."""
         def fail_eval(*args, **kwargs):
             raise RuntimeError("Some Dakota error")
-        # monkeypatch the evaluation function here as needed
-        monkeypatch("mmux_flaskapi.utils.funs_evaluate.evaluate_sumo_manual_crossvalidation", fail_eval)
+        # monkeypatch the evaluation function in the dakota blueprint module where it's used
+        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation", fail_eval)
         payload = {
             "output": "y",
             "inputVars": ["x1"],
@@ -286,14 +286,14 @@ class TestSumoCrossValidation:
         response = test_client.post("/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 500
         data = response.get_json()
-        assert "Dakota execution failed" in data["error"]
+        assert "Some Dakota error" in data["error"]
 
     def test_file_io_error(self, test_client: Flask, monkeypatch):
         """File I/O errors are handled and return 500."""
         def fail_file(*args, **kwargs):
             raise IOError("Disk full")
-        # monkeypatch the file writing function as needed
-        monkeypatch("mmux_flaskapi.utils.helpers.create_run_dir", fail_file)
+        # monkeypatch the file writing function in the dakota blueprint module where it's used
+        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.create_run_dir", fail_file)
         payload = {
             "output": "y",
             "inputVars": ["x1"],
