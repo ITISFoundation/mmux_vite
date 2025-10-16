@@ -14,5 +14,6 @@
   "python.testing.cwd": "./flaskapi",
   "python.testing.pytestArgs": ["tests"],
   "python.testing.autoTestDiscoverOnSaveEnabled": true,
-  "python.defaultInterpreterPath": "./flaskapi/.venv/bin/python"
+  "python.defaultInterpreterPath": "./flaskapi/.venv/bin/python",
+  "python.analysis.typeCheckingMode": "basic"
 }
