@@ -10,9 +10,10 @@ from typing import Dict, List, Literal
 from flask import Blueprint, jsonify
 from flask import request, abort, make_response
 #
-from osparc_client.models.function_job import FunctionJob
+from mmux_flaskapi.blueprints.dakota_models import FunctionJob
 # 
-from mmux_flaskapi.utils.helpers import sanitize_varnames, create_run_dir ## taken over from mmux_python
+from mmux_flaskapi.utils.helpers import sanitize_varnames, create_run_dir
+from mmux_flaskapi.blueprints import dakota_models
 
 ## TODO eventually have it installed as a package -- absolute paths are risky...
 base_dir = Path(__file__).parent.parent.parent.parent # /faskapi
@@ -29,181 +30,83 @@ from flaskapi.mmux_python.utils.funs_data_processing import (
 _logger = logging.getLogger(__name__)
 dakota_bp = Blueprint('dakota', __name__, url_prefix='/dakota')
 
-########################################################
-def _validate_jobs_structure_and_data(jobs: List[Dict], input_vars: List[str], output_response: str) -> str | None:
-    """
-    Comprehensive validation of jobs structure and data consistency.
-    Returns error message string if validation fails, None if valid.
-    """
-    if not jobs:
-        return "FunctionJobs list cannot be empty"
-    
-    # Find completed jobs
-    completed_jobs = [job for job in jobs if isinstance(job, dict) and job.get("status", "").lower() in ["completed", "success"]]
-    
-    if len(completed_jobs) == 0:
-        return "No completed/successful jobs found. At least 5 completed jobs are required for cross-validation"
-    
-    if len(completed_jobs) < 5:
-        return f"Only {len(completed_jobs)} completed jobs found. At least 5 completed jobs are required for cross-validation"
-    
-    # Validate job structure and data consistency
-    missing_inputs_structure = []
-    missing_outputs_structure = []
-    missing_input_keys = set()
-    missing_output_keys = []
-    jobs_with_empty_inputs = []
-    jobs_with_empty_outputs = []
-    
-    for i, job in enumerate(completed_jobs):
-        # Check basic job structure
-        if not isinstance(job, dict):
-            return f"Job at index {i} is not a dictionary"
-        
-        # Check for inputs structure
-        if "inputs" not in job:
-            missing_inputs_structure.append(i)
-            continue
-        
-        if not isinstance(job["inputs"], dict):
-            return f"Job at index {i} has invalid inputs structure (must be a dictionary)"
-        
-        if len(job["inputs"]) == 0:
-            jobs_with_empty_inputs.append(i)
-            continue
-        
-        # Check for outputs structure
-        if "outputs" not in job:
-            missing_outputs_structure.append(i)
-            continue
-        
-        if not isinstance(job["outputs"], dict):
-            return f"Job at index {i} has invalid outputs structure (must be a dictionary)"
-        
-        if len(job["outputs"]) == 0:
-            jobs_with_empty_outputs.append(i)
-            continue
-        
-        # Check for required input variables
-        job_input_keys = set(job["inputs"].keys())
-        for input_var in input_vars:
-            if input_var not in job_input_keys:
-                missing_input_keys.add(input_var)
-        
-        # Check for required output variable
-        if output_response not in job["outputs"]:
-            missing_output_keys.append(i)
-    
-    # Report specific validation errors
-    if missing_inputs_structure:
-        return f"Jobs at indices {missing_inputs_structure} are missing 'inputs' structure"
-    
-    if missing_outputs_structure:
-        return f"Jobs at indices {missing_outputs_structure} are missing 'outputs' structure"
-    
-    if jobs_with_empty_inputs:
-        return f"Jobs at indices {jobs_with_empty_inputs} have empty inputs dictionaries"
-    
-    if jobs_with_empty_outputs:
-        return f"Jobs at indices {jobs_with_empty_outputs} have empty outputs dictionaries"
-    
-    if missing_input_keys:
-        available_input_keys = set()
-        for job in completed_jobs[:5]:  # Sample first 5 jobs to show available keys
-            if isinstance(job, dict) and "inputs" in job and isinstance(job["inputs"], dict):
-                available_input_keys.update(job["inputs"].keys())
-        return f"Input variables {list(missing_input_keys)} not found in job inputs. Available input keys: {list(available_input_keys)}"
-    
-    if missing_output_keys:
-        available_output_keys = set()
-        for job in completed_jobs[:5]:  # Sample first 5 jobs to show available keys
-            if isinstance(job, dict) and "outputs" in job and isinstance(job["outputs"], dict):
-                available_output_keys.update(job["outputs"].keys())
-        return f"Output variable '{output_response}' not found in {len(missing_output_keys)} job(s). Available output keys: {list(available_output_keys)}"
-    
-    return None  # All validations passed
 
 ########################################################
 def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str | List[str], folder_name: str = "evaluate") -> Path:
+    """
+    Create training file from validated jobs.
+    This function can now assume that jobs are already validated by Pydantic.
+    """
     output_response_sanitized = sanitize_varnames(output_response)
-    completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
+    # No need for manual validation - Pydantic already ensured we have >= 5 completed jobs
+    completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
 
-    if len(completed_jobs) == 0:
-        raise ValueError("No completed jobs found. Cannot create training file.")
-    elif len(completed_jobs)<5:
-        raise ValueError("At least 5 samples are necessary to build a surrogate model in Dakota - a crash would occur otherwise.")
-
     def get_job_dict(job):
-        d = {sanitize_varnames(key): job["inputs"][key] for key in input_vars}
-        assert "outputs" in job.keys(), f"Outputs not in job: {job}"
+        _logger.info("GEtting job.inputs")
+        d = {sanitize_varnames(key): job.inputs[key] for key in input_vars}
+        _logger.info("that worked!")
         output_response_sanitized_list = [output_response_sanitized] if isinstance(output_response_sanitized, str) else output_response_sanitized
         for res in output_response_sanitized_list:
-            assert res in job["outputs"].keys(), f"Output {res} not in job: {job}"
-            d[res] = job["outputs"][res] # type: ignore
+            d[res] = job.outputs[res]
         return d
-    df_jobs = pd.DataFrame(
-            [get_job_dict(job) for job in completed_jobs]
-        )
-    run_dir = create_run_dir(base_dir, folder_name)  ## TODO move create_run_dir invocation to the workflow function
-    TRAINING_FILE = run_dir/  "df_jobs.csv"
+    
+    df_jobs = pd.DataFrame([get_job_dict(job) for job in completed_jobs])
+    run_dir = create_run_dir(base_dir, folder_name)
+    TRAINING_FILE = run_dir / "df_jobs.csv"
     df_jobs.to_csv(TRAINING_FILE, index=False)
     return TRAINING_FILE
 ########################################################
-
 
 @dakota_bp.route("/sumo_cross_validation", methods=["POST"])
 def flask_sumo_cross_validation():
     os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_sumo_cross_validation")
     _logger.debug("Cwd: " + str(Path.cwd()))
+    request_model = dakota_models.SumoCrossValidationRequest
+    # _logger.debug("request model: ", request_model.model_dump()) # type: ignore
 
-    request_data: dict = json.loads(request.data.decode("utf-8"))
-    
-    # Validate required fields
-    required_fields = ["output", "inputVars", "FunctionJobs"]
-    for field in required_fields:
-        if field not in request_data:
-            return jsonify({"error": f"Missing required field: {field}"}), 400
-
-    # get request inputs
-    output_response = request_data["output"]
-    input_vars: List[str] = request_data["inputVars"]
-    jobs: List[Dict] = request_data["FunctionJobs"]
-
-    # Validate types of request inputs
-    if not isinstance(output_response, str):
-        return jsonify({"error": "output must be a string"}), 400
-    if not isinstance(input_vars, list) or not all(isinstance(i, str) for i in input_vars):
-        return jsonify({"error": "inputVars must be a list of strings"}), 400
-    if not isinstance(jobs, list):
-        return jsonify({"error": "FunctionJobs must be a list"}), 400
-    if len(input_vars) == 0:
-        return jsonify({"error": "inputVars must have at least one element"}), 400
-    if len(jobs) < 5:
-        return jsonify({"error": "FunctionJobs must have at least 5 jobs for cross-validation"}), 400
-
-    # Comprehensive job validation
-    validation_error = _validate_jobs_structure_and_data(jobs, input_vars, output_response)
-    if validation_error:
-        return jsonify({"error": validation_error}), 400
-
+    # Parse request data
     try:
-        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
+        request_data: dict = json.loads(request.data.decode("utf-8"))
+    except json.JSONDecodeError as e:
+        return jsonify({"error": f"Invalid JSON: {str(e)}"}), 400
+
+    # Validate request using Pydantic model
+    try: 
+        validated_request = request_model.model_validate(request_data)
+    except Exception as e:
+        _logger.warning(f"Validation failed for {request_model.__name__}: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
+    # At this point, all validation is complete and we have a validated request object
+    try:
+        # _logger.debug("validated request: ")
+        # _logger.debug(validated_request)
+        jobs: list[FunctionJob] = validated_request.FunctionJobs
+        input_vars: list[str] = validated_request.inputVars
+        output_var: str = validated_request.output
+
+        TRAINING_FILE = _create_training_file_from_jobs(
+            jobs,
+            input_vars,
+            output_var,
+        )
         run_dir = TRAINING_FILE.parent
         PROCESSED_TRAINING_FILE = process_input_file(
             TRAINING_FILE,
-            columns_to_keep=input_vars + [output_response], # type: ignore
+            columns_to_keep=input_vars + [output_var],
         )
         results = evaluate_sumo_manual_crossvalidation(
             run_dir,
             PROCESSED_TRAINING_FILE,
             input_vars,
-            output_response, # type: ignore
+            output_var,
         )
 
-        _logger.debug("Done!!")
+        ## TODO validate "results" (e.g. that has those input / output vars and the std for them)
 
+        _logger.debug("Done!!")
         return jsonify(results) 
     except Exception as e:
         _logger.error(f"Error during cross-validation: {e}")
