@@ -608,8 +608,31 @@ def flask_perform_moga_optimization():
         }), 400))
     except Exception as e:
         error_message = str(e)
-        # Check if it's a JSON parsing error (400 Bad Request from Flask)
-        if "400 Bad Request" in error_message and ("JSON" in error_message or "browser" in error_message):
+        
+        # Check for specific validation errors that should return 400
+        if ("Distribution for variable" in error_message and "is not defined" in error_message):
+            _logger.error(f"Missing distribution validation error: {e}")
+            # Extract variable name for better error message
+            import re
+            var_match = re.search(r"Distribution for variable '(.+?)' is not defined", error_message)
+            if var_match:
+                var_name = var_match.group(1)
+                abort(make_response(jsonify({"error": f"Validation failed: Missing distribution for variable '{var_name}'"}), 400))
+            else:
+                abort(make_response(jsonify({"error": f"Validation failed: Missing distribution - {error_message}"}), 400))
+        elif isinstance(e, KeyError):
+            # KeyError typically means missing required variables/fields
+            _logger.error(f"Missing required field validation error: {e}")
+            field_name = str(e).strip("'\"")
+            
+            # Determine if this is an input or output variable error by checking context
+            if field_name in input_vars:
+                abort(make_response(jsonify({"error": f"Validation failed: Missing required input variable '{field_name}'"}), 400))
+            elif field_name in output_responses:
+                abort(make_response(jsonify({"error": f"Validation failed: Missing required output variable '{field_name}'"}), 400))
+            else:
+                abort(make_response(jsonify({"error": f"Validation failed: Missing required variable '{field_name}'"}), 400))
+        elif "400 Bad Request" in error_message and ("JSON" in error_message or "browser" in error_message):
             _logger.error(f"Invalid JSON request: {e}")
             abort(make_response(jsonify({"error": "Invalid JSON or malformed request"}), 400))
         else:

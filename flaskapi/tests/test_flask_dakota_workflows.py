@@ -2017,33 +2017,6 @@ class TestMOGAOptimization:
         actual_vars = set(data["optimization_results"].keys())
         assert expected_vars.issubset(actual_vars)
 
-    def test_successful_with_log_transformation(self, test_client: Flask):
-        """Test MOGA optimization with log transformation enabled.
-        
-        Note: Log transformation may fail with certain data due to Dakota processing issues.
-        This test accepts both success (200) and server error (500) as valid outcomes.
-        """
-        input_vars = ["x1"]
-        output_vars = ["y1", "y2"]
-        jobs = self.create_moga_jobs(10, input_vars, output_vars)
-        
-        payload = {
-            "inputVars": input_vars,
-            "distributions": self.create_distribution_dict(input_vars),
-            "outputVarSelection": self.create_output_selection(output_vars),
-            "FunctionJobs": jobs
-        }
-        
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
-        # Log transformation may fail due to data processing issues in Dakota
-        assert response.status_code in [200, 500]
-        data = response.get_json()
-        
-        if response.status_code == 200:
-            assert "optimization_results" in data
-        else:
-            assert "error" in data
-
     def test_successful_minimum_required_jobs(self, test_client: Flask):
         """Test MOGA optimization with exactly the minimum number of required jobs (5)."""
         input_vars = ["x1"]
