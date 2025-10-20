@@ -378,11 +378,29 @@ class SumoAlongAxesResponse(BaseModel):
 
 class SumoGridEvaluationRequest(BaseModel):
     """Request model for SUMO grid evaluation."""
-    output: str = Field(..., min_length=1)
+    output: str = Field(..., min_length=1, description="Name of the output variable to evaluate")
     gridVars: List[str] = Field(..., min_length=1, max_length=3, description="Variables for grid (1-3 dimensions)")
-    inputVars: List[str] = Field(..., min_length=1)
-    FunctionJobs: List[FunctionJob] = Field(..., min_length=5)
-    sliderValues: Optional[Dict[str, float]] = None
+    inputVars: List[str] = Field(..., min_length=1, description="List of all input variable names")
+    FunctionJobs: List[FunctionJob] = Field(..., min_length=5, description="List of function jobs (minimum 5 required)")
+    sliderValues: Optional[Dict[str, float]] = Field(default=None, description="Fixed values for non-grid input variables")
+
+    @field_validator('gridVars')
+    @classmethod
+    def grid_vars_must_not_be_empty_strings(cls, v: List[str]) -> List[str]:
+        """Ensure all grid variable names are non-empty strings."""
+        for var in v:
+            if not var or not var.strip():
+                raise ValueError('Grid variable names cannot be empty')
+        return [var.strip() for var in v]
+
+    @field_validator('inputVars')
+    @classmethod
+    def input_vars_must_not_be_empty_strings(cls, v: List[str]) -> List[str]:
+        """Ensure all input variable names are non-empty strings."""
+        for var in v:
+            if not var or not var.strip():
+                raise ValueError('Input variable names cannot be empty')
+        return [var.strip() for var in v]
 
     @model_validator(mode='after')
     def validate_grid_vars_subset_of_inputs(self) -> 'SumoGridEvaluationRequest':
@@ -393,6 +411,117 @@ class SumoGridEvaluationRequest(BaseModel):
         invalid_grid_vars = [var for var in grid_vars if var not in input_vars]
         if invalid_grid_vars:
             raise ValueError(f"Grid variables {invalid_grid_vars} must be present in inputVars")
+        
+        return self
+
+    @model_validator(mode='after')
+    def validate_job_data_consistency(self) -> 'SumoGridEvaluationRequest':
+        """Validate that all jobs have the required input and output variables."""
+        output = self.output
+        input_vars = self.inputVars
+        jobs = self.FunctionJobs
+        slider_values = self.sliderValues
+
+        if not output or not input_vars or not jobs:
+            return self  # Let individual field validators handle these
+
+        # Filter to completed jobs only
+        completed_jobs = [job for job in jobs if job.status in ['completed', 'success']]
+        
+        if len(completed_jobs) < 5:
+            raise ValueError(f"At least 5 completed jobs are required for SUMO grid evaluation. Found {len(completed_jobs)} completed jobs.")
+
+        # Validate that all completed jobs have required input/output variables
+        missing_input_vars = set()
+        missing_output_jobs = []
+
+        for i, job in enumerate(completed_jobs):
+            # Check input variables
+            job_input_keys = set(job.inputs.keys())
+            for input_var in input_vars:
+                if input_var not in job_input_keys:
+                    missing_input_vars.add(input_var)
+            
+            # Check output variable
+            if output not in job.outputs:
+                missing_output_jobs.append(i)
+
+        if missing_input_vars:
+            # Get available input keys for better error message
+            available_keys = set()
+            for job in completed_jobs[:3]:  # Sample a few jobs
+                available_keys.update(job.inputs.keys())
+            raise ValueError(
+                f"Input variables {list(missing_input_vars)} not found in job inputs. "
+                f"Available input keys: {list(available_keys)}"
+            )
+
+        if missing_output_jobs:
+            # Get available output keys for better error message
+            available_keys = set()
+            for job in completed_jobs[:3]:  # Sample a few jobs
+                available_keys.update(job.outputs.keys())
+            raise ValueError(
+                f"Output variable '{output}' not found in {len(missing_output_jobs)} job(s). "
+                f"Available output keys: {list(available_keys)}"
+            )
+
+        # Validate slider values if provided
+        if slider_values:
+            invalid_slider_vars = [var for var in slider_values.keys() if var not in input_vars]
+            if invalid_slider_vars:
+                raise ValueError(
+                    f"Slider variables {invalid_slider_vars} must be present in inputVars. "
+                    f"Available input variables: {input_vars}"
+                )
+
+        return self
+
+
+class SumoGridEvaluationResponse(BaseModel):
+    """Response model for SUMO grid evaluation."""
+    model_config = ConfigDict(frozen=True)  # Make response immutable
+    
+    # Dictionary mapping variable names to their grid values
+    # For 1D grids: Lists of floats
+    # For 2D/3D grids: Lists of lists (arrays)  
+    # Keys include grid variables (input coordinates) and prediction variables
+    grid_data: Dict[str, Union[List[float], List[List[float]]]] = Field(..., description="Grid evaluation results with input coordinates and predictions")
+
+    @field_validator('grid_data')
+    @classmethod
+    def validate_grid_data_not_empty(cls, v: Dict[str, Union[List[float], List[List[float]]]]) -> Dict[str, Union[List[float], List[List[float]]]]:
+        """Ensure grid data dictionary is not empty."""
+        if not v:
+            raise ValueError("Grid data dictionary cannot be empty")
+        return v
+
+    @model_validator(mode='after')
+    def validate_grid_structure(self) -> 'SumoGridEvaluationResponse':
+        """Validate grid data structure and consistency."""
+        if not self.grid_data:
+            return self
+        
+        # Basic validation that all values are non-empty
+        for var_name, values in self.grid_data.items():
+            if not values:
+                raise ValueError(f"Variable '{var_name}' has empty values")
+        
+        # For grid data, we allow mixed dimensionality between input coordinates and output predictions
+        # Input coordinates (grid variables) should have consistent dimensionality
+        # Output predictions can have different dimensionality
+        
+        # Validate that all arrays have at least some data
+        for var_name, values in self.grid_data.items():
+            if isinstance(values[0], list):
+                # Multidimensional data - check that all inner arrays have the same length
+                expected_inner_length = len(values[0])
+                for i, inner_array in enumerate(values):
+                    if not isinstance(inner_array, list) or len(inner_array) != expected_inner_length:
+                        raise ValueError(
+                            f"All inner arrays for variable '{var_name}' must have the same length. "
+                            f"Array {i} has length {len(inner_array) if isinstance(inner_array, list) else 'non-list'}, expected {expected_inner_length}"
+                        )
         
         return self
 

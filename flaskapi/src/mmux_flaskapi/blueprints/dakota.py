@@ -16,7 +16,9 @@ from mmux_flaskapi.blueprints.dakota_models import (
     ManualUQWithUncertaintyRequest, 
     UQWithUncertaintyResponse,
     SumoAlongAxesRequest,
-    SumoAlongAxesResponse
+    SumoAlongAxesResponse,
+    SumoGridEvaluationRequest,
+    SumoGridEvaluationResponse
 )
 # 
 from mmux_flaskapi.utils.helpers import sanitize_varnames, create_run_dir
@@ -362,42 +364,69 @@ def flask_evaluate_sumo_along_axes():
 ## This method could probably be generic for N-D (thus not needing the 1D version above)
 @dakota_bp.route("/sumo_grid_evaluation", methods=["POST"])
 def flask_sumo_grid_evaluation():
+    """
+    SUMO model evaluation on a grid with optional fixed values for non-grid variables.
+    
+    Uses Pydantic validation to ensure robust input validation and consistent error handling.
+    Returns grid data with input coordinates and predictions.
+    """
     os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_sumo_grid_evaluation")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
     try:
-        # Convert request data into a Python dictionary
-        request_data: dict = json.loads(request.data.decode("utf-8"))
-        output_response = request_data["output"]
-        grid_vars: List[str] = request_data["gridVars"]
-        input_vars: List[str] = request_data["inputVars"]
-        make_log: bool = request_data.get("log", False)
-        jobs: List[FunctionJob] = request_data["FunctionJobs"]
-        slider_values = request_data.get("sliderValues", None)  # this is a dict of input_vars to cut values, e.g. {"input1": 0.5, "input2": 1.0}
+        # Parse and validate request using Pydantic
+        request_data = SumoGridEvaluationRequest.model_validate(request.get_json())
+        
+        # Extract validated data
+        output_response = request_data.output
+        grid_vars = request_data.gridVars
+        input_vars = request_data.inputVars
+        jobs = request_data.FunctionJobs
+        slider_values = request_data.sliderValues
+        
+        _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(grid_vars)} grid vars, {len(jobs)} jobs")
+        _logger.debug(f"Grid variables: {grid_vars}")
         _logger.debug(f"Slider values: {slider_values}")
+        
+        # Create training file from validated jobs
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
         run_dir = TRAINING_FILE.parent
 
+        # Process the training file
         PROCESSED_TRAINING_FILE = process_input_file(
             TRAINING_FILE,
-            make_log=make_log,
             columns_to_keep=input_vars + [output_response], # type: ignore
         )
-        if make_log:  # FIXME for now log applies to all inputs & the output
-            input_vars = [f"log_{var}" for var in input_vars]
-            output_response = f"log_{output_response}"
-
+        
+        # Evaluate SUMO on grid
         results = evaluate_sumo_on_grid(
             run_dir,
             PROCESSED_TRAINING_FILE,
             grid_vars,
             input_vars,
             output_response, # type: ignore
-            cut_values = slider_values
+            cut_values=slider_values
         )
-        _logger.debug("Done!!")
-        return jsonify(results) # check if jsonify is needed
+        
+        # Validate and structure response
+        response_data = {"grid_data": results}
+        validated_response = SumoGridEvaluationResponse.model_validate(response_data)
+        
+        _logger.debug("SUMO grid evaluation completed successfully")
+        return jsonify(validated_response.model_dump())
+        
+    except ValidationError as e:
+        _logger.error(f"Validation error in SUMO grid evaluation: {e}")
+        error_details = []
+        for error in e.errors():
+            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
+            error_details.append(f"{location}: {error['msg']}")
+        abort(make_response(jsonify({
+            "error": "Validation failed",
+            "details": error_details
+        }), 400))
+        
     except Exception as e:
         _logger.error(f"Error during grid evaluation: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))

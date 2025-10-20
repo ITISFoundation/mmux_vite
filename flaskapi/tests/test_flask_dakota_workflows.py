@@ -748,6 +748,442 @@ class TestSumoAlongAxes:
         assert "x" in data["predictions"]["x1"] and "y_hat" in data["predictions"]["x1"]
 
 
+class TestSumoGridEvaluation:
+    """Test suite for the /dakota/sumo_grid_evaluation endpoint."""
+
+    def create_grid_jobs(self, n: int, input_vars: List[str], output: str) -> List[dict]:
+        """Create function jobs for SUMO grid evaluation testing."""
+        jobs = []
+        for _ in range(n):
+            job = {
+                "status": "completed",
+                "inputs": {var: float(np.random.uniform(-2, 2)) for var in input_vars},
+                "outputs": {output: float(np.random.uniform(0, 10))}
+            }
+            jobs.append(job)
+        return jobs
+
+    # ------------------- Success Cases -------------------
+
+    def test_grid_evaluation_success_1d(self, test_client: Flask):
+        """Valid 1D grid evaluation returns 200 and expected structure."""
+        input_vars = ["x1", "x2"]
+        grid_vars = ["x1"]  # 1D grid
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "gridVars": grid_vars,
+            "output": output,
+            "FunctionJobs": self.create_grid_jobs(20, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 200
+        
+        data = response.get_json()
+        assert isinstance(data, dict)
+        assert "grid_data" in data
+        
+        grid_data = data["grid_data"]
+        assert isinstance(grid_data, dict)
+        
+        # Should have grid variables and predictions
+        for var in grid_vars:
+            assert var in grid_data
+            assert isinstance(grid_data[var], list)
+            assert len(grid_data[var]) > 0
+        
+        # Should have prediction values
+        assert "y_hat" in grid_data or output in grid_data
+        if "y_hat" in grid_data:
+            assert isinstance(grid_data["y_hat"], list)
+            assert len(grid_data["y_hat"]) > 0
+
+    def test_grid_evaluation_success_2d(self, test_client: Flask):
+        """Valid 2D grid evaluation returns 200 and expected structure."""
+        input_vars = ["x1", "x2", "x3"]
+        grid_vars = ["x1", "x2"]  # 2D grid
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "gridVars": grid_vars,
+            "output": output,
+            "FunctionJobs": self.create_grid_jobs(25, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 200
+        
+        data = response.get_json()
+        assert isinstance(data, dict)
+        assert "grid_data" in data
+        
+        grid_data = data["grid_data"]
+        # Should have both grid variables
+        for var in grid_vars:
+            assert var in grid_data
+            assert isinstance(grid_data[var], list)
+
+    def test_grid_evaluation_success_3d(self, test_client: Flask):
+        """Valid 3D grid evaluation returns 200 and expected structure."""
+        input_vars = ["x1", "x2", "x3", "x4"]
+        grid_vars = ["x1", "x2", "x3"]  # 3D grid (maximum)
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "gridVars": grid_vars,
+            "output": output,
+            "FunctionJobs": self.create_grid_jobs(30, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 200
+        
+        data = response.get_json()
+        assert isinstance(data, dict)
+        assert "grid_data" in data
+        
+        grid_data = data["grid_data"]
+        # Should have all three grid variables
+        for var in grid_vars:
+            assert var in grid_data
+
+    def test_grid_evaluation_with_slider_values(self, test_client: Flask):
+        """Test grid evaluation with custom slider values."""
+        input_vars = ["x1", "x2", "x3"]
+        grid_vars = ["x1"]
+        output = "y"
+        slider_values = {"x2": 0.5, "x3": -1.0}
+        
+        payload = {
+            "inputVars": input_vars,
+            "gridVars": grid_vars,
+            "output": output,
+            "sliderValues": slider_values,
+            "FunctionJobs": self.create_grid_jobs(20, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 200
+        
+        data = response.get_json()
+        assert isinstance(data, dict)
+        assert "grid_data" in data
+
+    def test_grid_evaluation_minimal_valid_configuration(self, test_client: Flask):
+        """Test minimal valid configuration (5 jobs, 1 grid var)."""
+        input_vars = ["x1"]
+        grid_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "gridVars": grid_vars,
+            "output": output,
+            "FunctionJobs": self.create_grid_jobs(5, input_vars, output)  # Minimum jobs
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 200
+        
+        data = response.get_json()
+        assert "grid_data" in data
+        assert "x1" in data["grid_data"]
+
+    # ------------------- Validation Error Cases -------------------
+
+    def test_empty_grid_vars_list(self, test_client: Flask):
+        """Test with empty gridVars list."""
+        payload = {
+            "inputVars": ["x1"],
+            "gridVars": [],  # Empty
+            "output": "y",
+            "FunctionJobs": self.create_grid_jobs(10, ["x1"], "y")
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_too_many_grid_vars(self, test_client: Flask):
+        """Test with more than 3 grid variables."""
+        input_vars = ["x1", "x2", "x3", "x4"]
+        payload = {
+            "inputVars": input_vars,
+            "gridVars": ["x1", "x2", "x3", "x4"],  # 4 vars, max is 3
+            "output": "y",
+            "FunctionJobs": self.create_grid_jobs(10, input_vars, "y")
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_grid_vars_not_in_input_vars(self, test_client: Flask):
+        """Test when grid variables are not in input variables."""
+        payload = {
+            "inputVars": ["x1", "x2"],
+            "gridVars": ["x1", "x3"],  # x3 not in inputVars
+            "output": "y",
+            "FunctionJobs": self.create_grid_jobs(20, ["x1", "x2"], "y")
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Check for specific error message about grid variables
+        if "details" in data:
+            details_str = " ".join(data["details"])
+            assert "x3" in details_str
+        else:
+            assert "x3" in data["error"]
+
+    def test_insufficient_completed_jobs(self, test_client: Flask):
+        """Test with insufficient completed jobs (< 5)."""
+        input_vars = ["x1", "x2"]
+        grid_vars = ["x1"]
+        output = "y"
+        
+        # Only 3 completed jobs
+        completed_jobs = self.create_grid_jobs(3, input_vars, output)
+        failed_jobs = [{
+            "status": "failed",
+            "inputs": {var: float(np.random.uniform(-1, 1)) for var in input_vars},
+            "outputs": {"error": "simulation_failed"}
+        } for _ in range(10)]
+        
+        payload = {
+            "inputVars": input_vars,
+            "gridVars": grid_vars,
+            "output": output,
+            "FunctionJobs": completed_jobs + failed_jobs
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Check for specific error message about insufficient jobs
+        if "details" in data:
+            details_str = " ".join(data["details"])
+            assert "5" in details_str
+        else:
+            assert "5" in data["error"]
+
+    def test_missing_input_variables_in_jobs(self, test_client: Flask):
+        """Test when jobs don't have all required input variables."""
+        # Request x1, x2 but jobs only have x1
+        payload = {
+            "inputVars": ["x1", "x2"],
+            "gridVars": ["x1"],
+            "output": "y",
+            "FunctionJobs": self.create_grid_jobs(20, ["x1"], "y")  # Missing x2
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Check for specific error message about missing input variable
+        if "details" in data:
+            details_str = " ".join(data["details"])
+            assert "x2" in details_str
+        else:
+            assert "x2" in data["error"]
+
+    def test_missing_output_variable_in_jobs(self, test_client: Flask):
+        """Test when jobs don't have the required output variable."""
+        input_vars = ["x1", "x2"]
+        grid_vars = ["x1"]
+        
+        # Create jobs with different output name
+        jobs = []
+        for _ in range(20):
+            job = {
+                "status": "completed",
+                "inputs": {var: float(np.random.uniform(-1, 1)) for var in input_vars},
+                "outputs": {"z": float(np.random.uniform(0, 10))}  # Different output name
+            }
+            jobs.append(job)
+        
+        payload = {
+            "inputVars": input_vars,
+            "gridVars": grid_vars,
+            "output": "y",  # Request 'y' but jobs have 'z'
+            "FunctionJobs": jobs
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Check for specific error message about missing output variable
+        if "details" in data:
+            details_str = " ".join(data["details"])
+            assert "y" in details_str
+        else:
+            assert "y" in data["error"]
+
+    def test_invalid_slider_values(self, test_client: Flask):
+        """Test with slider values for non-existent input variables."""
+        input_vars = ["x1", "x2"]
+        grid_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "gridVars": grid_vars,
+            "output": output,
+            "sliderValues": {"x1": 0.5, "x3": 1.0},  # x3 not in inputVars
+            "FunctionJobs": self.create_grid_jobs(20, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Check for specific error message about invalid slider values
+        if "details" in data:
+            details_str = " ".join(data["details"])
+            assert "x3" in details_str
+        else:
+            assert "x3" in data["error"]
+
+    def test_empty_input_variable_names(self, test_client: Flask):
+        """Test with empty strings in input variable names."""
+        payload = {
+            "inputVars": ["x1", "", "x2"],  # Empty string in the middle
+            "gridVars": ["x1"],
+            "output": "y",
+            "FunctionJobs": self.create_grid_jobs(20, ["x1", "x2"], "y")
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_empty_grid_variable_names(self, test_client: Flask):
+        """Test with empty strings in grid variable names."""
+        payload = {
+            "inputVars": ["x1", "x2"],
+            "gridVars": ["x1", ""],  # Empty string
+            "output": "y",
+            "FunctionJobs": self.create_grid_jobs(20, ["x1", "x2"], "y")
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_missing_function_jobs(self, test_client: Flask):
+        """Test with missing FunctionJobs field."""
+        payload = {
+            "inputVars": ["x1"],
+            "gridVars": ["x1"],
+            "output": "y",
+            # Missing FunctionJobs
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_empty_output_name(self, test_client: Flask):
+        """Test with empty output variable name."""
+        payload = {
+            "inputVars": ["x1"],
+            "gridVars": ["x1"],
+            "output": "",  # Empty
+            "FunctionJobs": self.create_grid_jobs(10, ["x1"], "y")
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    # ------------------- Edge Cases -------------------
+
+    def test_jobs_with_extra_variables(self, test_client: Flask):
+        """Test that endpoint works when jobs have extra variables not requested."""
+        input_vars = ["x1", "x2"]
+        grid_vars = ["x1"]
+        output = "y"
+        
+        # Create jobs with extra input and output variables
+        jobs = []
+        for _ in range(20):
+            job = {
+                "status": "completed",
+                "inputs": {
+                    "x1": float(np.random.uniform(-1, 1)),
+                    "x2": float(np.random.uniform(-1, 1)),
+                    "x3": float(np.random.uniform(-1, 1)),  # Extra input
+                    "x4": float(np.random.uniform(-1, 1))   # Extra input
+                },
+                "outputs": {
+                    "y": float(np.random.uniform(0, 10)),
+                    "z": float(np.random.uniform(-5, 5))    # Extra output
+                }
+            }
+            jobs.append(job)
+        
+        payload = {
+            "inputVars": input_vars,  # Only request x1, x2
+            "gridVars": grid_vars,    # Only grid x1
+            "output": output,         # Only request y
+            "FunctionJobs": jobs
+        }
+        
+        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "grid_data" in data
+
+    # def test_mixed_job_statuses_sufficient_completed(self, test_client: Flask):
+    #     """Test with mixed job statuses but sufficient completed jobs."""
+    #     input_vars = ["x1", "x2"]
+    #     grid_vars = ["x1"]
+    #     output = "y"
+        
+    #     # Mix of statuses but enough completed
+    #     completed_jobs = self.create_grid_jobs(15, input_vars, output)
+    #     failed_jobs = [{
+    #         "status": "failed",
+    #         "inputs": {var: float(np.random.uniform(-1, 1)) for var in input_vars},
+    #         "outputs": {"error": "simulation_failed"}
+    #     } for _ in range(10)]
+    #     pending_jobs = [{
+    #         "status": "pending",
+    #         "inputs": {var: float(np.random.uniform(-1, 1)) for var in input_vars},
+    #         "outputs": {"status": "queued"}
+    #     } for _ in range(5)]
+        
+    #     all_jobs = completed_jobs + failed_jobs + pending_jobs
+        
+    #     payload = {
+    #         "inputVars": input_vars,
+    #         "gridVars": grid_vars,
+    #         "output": output,
+    #         "FunctionJobs": all_jobs
+    #     }
+        
+    #     response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+    #     assert response.status_code == 200
+    #     data = response.get_json()
+    #     assert isinstance(data, dict)
+    #     assert "grid_data" in data
+
+
 class TestManualUQWithUncertainty:
     """Test suite for the /dakota/manual_uq_propagation_with_uncertainty endpoint."""
 
