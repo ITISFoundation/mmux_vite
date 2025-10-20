@@ -528,17 +528,105 @@ class SumoGridEvaluationResponse(BaseModel):
 
 class MOGAOptimizationRequest(BaseModel):
     """Request model for MOGA optimization."""
-    inputVars: List[str] = Field(..., min_length=1)
-    distributions: Dict[str, DistributionParams]
-    outputVarSelection: Dict[str, Literal["minimize", "maximize"]] = Field(..., min_length=2)
-    FunctionJobs: List[FunctionJob] = Field(..., min_length=5)
+    inputVars: List[str] = Field(..., min_length=1, description="List of input variable names")
+    distributions: Dict[str, DistributionParams] = Field(..., description="Distribution parameters for each input variable")
+    outputVarSelection: Dict[str, Literal["minimize", "maximize"]] = Field(..., min_length=1, description="Objective selection for output variables")
+    FunctionJobs: List[FunctionJob] = Field(..., min_length=5, description="List of function jobs (minimum 5 required)")
+
+    @field_validator('inputVars')
+    @classmethod
+    def input_vars_must_not_be_empty_strings(cls, v: List[str]) -> List[str]:
+        """Validate that input variable names are not empty."""
+        for var in v:
+            if not var or not var.strip():
+                raise ValueError('Input variable names cannot be empty')
+        return [var.strip() for var in v]
+
+    def validate_comprehensive_moga_requirements(self) -> 'MOGAOptimizationRequest':
+        """Validate comprehensive MOGA optimization requirements."""
+
+        # Check that all input variables have distributions
+        input_vars_set = set(self.inputVars)
+        distribution_vars_set = set(self.distributions.keys())
+        missing_distributions = input_vars_set - distribution_vars_set
+        if missing_distributions:
+            raise ValueError(f"Missing distributions for input variables: {sorted(missing_distributions)}")
+        
+        # Check for sufficient completed jobs
+        completed_jobs = [job for job in self.FunctionJobs if job.status in ["completed", "success"]]
+        if len(completed_jobs) < 5:
+            raise ValueError(f"At least 5 completed jobs required for MOGA optimization, got {len(completed_jobs)}")
+
+        # Check that all completed jobs have the required variables
+        output_vars = list(self.outputVarSelection.keys())
+        for i, job in enumerate(completed_jobs):
+            # Check input variables
+            missing_inputs = [var for var in self.inputVars if var not in job.inputs]
+            if missing_inputs:
+                raise ValueError(f"Job {i} missing required input variables: {missing_inputs}")
+            
+            # Check output variables  
+            missing_outputs = [var for var in output_vars if var not in job.outputs]
+            if missing_outputs:
+                raise ValueError(f"Job {i} missing required output variables: {missing_outputs}")
+
+        return self
+
+
+class MOGAOptimizationResponse(BaseModel):
+    """Response model for MOGA optimization."""
+    model_config = ConfigDict(frozen=True)  # Make response immutable
+    
+    optimization_results: Dict[str, List[float]] = Field(
+        ..., 
+        description="Dictionary mapping variable names to their optimized values across the Pareto front"
+    )
+
+    @field_validator('optimization_results')
+    @classmethod
+    def validate_optimization_results(cls, v: Dict[str, List[float]]) -> Dict[str, List[float]]:
+        """Validate optimization results structure."""
+        if not v:
+            raise ValueError("Optimization results cannot be empty")
+        
+        # Check that all values are valid numbers
+        for var_name, values in v.items():
+            if not isinstance(var_name, str) or not var_name.strip():
+                raise ValueError("Variable names must be non-empty strings")
+            if not isinstance(values, list):
+                raise ValueError(f"Values for {var_name} must be a list")
+            for i, val in enumerate(values):
+                if not isinstance(val, (int, float)) or not np.isfinite(val):
+                    raise ValueError(f"All optimization values must be finite numbers. Invalid value at {var_name}[{i}]: {val}")
+        
+        return v
 
     @model_validator(mode='after')
-    def validate_at_least_two_objectives(self) -> 'MOGAOptimizationRequest':
-        """Validate that at least two objective functions are selected."""
-        output_var_selection = self.outputVarSelection
-        if len(output_var_selection) < 2:
-            raise ValueError("At least two output variables must be selected for MOGA optimization")
+    def validate_pareto_front_structure(self) -> 'MOGAOptimizationResponse':
+        """Validate that the Pareto front results have a reasonable structure."""
+        results = self.optimization_results
+        
+        if not results:
+            raise ValueError("Optimization results cannot be empty")
+        
+        # Filter out metadata fields (like non_dominated_indices) from length validation
+        variable_fields = {k: v for k, v in results.items() if not k.startswith('non_dominated')}
+        
+        if not variable_fields:
+            raise ValueError("Must have at least one optimization variable result")
+        
+        # Check that all main variable arrays have the same length
+        lengths = [len(values) for values in variable_fields.values()]
+        if len(set(lengths)) > 1:
+            raise ValueError(f"All optimization variable arrays must have the same length. Found lengths: {dict(zip(variable_fields.keys(), lengths))}")
+        
+        # Get the number of points
+        first_key = next(iter(variable_fields.keys()))
+        num_points = len(variable_fields[first_key])
+        
+        if num_points == 0:
+            raise ValueError("Optimization must produce at least one result point")
+        
         return self
 
 

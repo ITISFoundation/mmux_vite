@@ -21,7 +21,9 @@ from mmux_flaskapi.blueprints.dakota_models import (
     SumoGridEvaluationResponse,
     SumoCVAccuracyMetricsRequest,
     SumoCVAccuracyMetricsResponse,
-    CVAccuracyMetrics
+    CVAccuracyMetrics,
+    MOGAOptimizationRequest,
+    MOGAOptimizationResponse
 )
 # 
 from mmux_flaskapi.utils.helpers import sanitize_varnames, create_run_dir
@@ -530,55 +532,86 @@ _logger.info("Flask workflows module loaded successfully!")
 
 @dakota_bp.route("/perform_moga_optimization", methods=["POST"])
 def flask_perform_moga_optimization():
-    _logger.debug("Starting flask function: flask/perform_moga_optimization")
+    """
+    Perform Multi-Objective Genetic Algorithm (MOGA) optimization.
+    
+    Uses Pydantic validation to ensure robust input validation and consistent error handling.
+    Returns Pareto front solutions with input and output variable values for multi-objective optimization.
+    """
+    os.chdir(Path(__file__).parent)
+    _logger.debug("Starting flask function: flask_perform_moga_optimization")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
     try:
-        # Convert request data into a Python dictionary
-        request_data: dict = json.loads(request.data.decode("utf-8"))
-        input_vars: List[str] = request_data["inputVars"]
-        input_distributions: Dict[str, Dict[str, float]] = request_data["distributions"]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
-        output_var_selection: Dict[str, Literal["minimize", "maximize"]] = request_data["outputVarSelection"]
-        output_responses = [k for k in output_var_selection.keys()]
+        # Parse and validate request using Pydantic
+        request_json = request.get_json()
+        if request_json is None:
+            abort(make_response(jsonify({"error": "Invalid JSON or missing content-type header"}), 400))
+            
+        request_data = MOGAOptimizationRequest.model_validate(request_json)
+        
+        # Extract validated data
+        input_vars = request_data.inputVars
+        input_distributions_raw = request_data.distributions
+        output_var_selection = request_data.outputVarSelection
+        jobs = request_data.FunctionJobs
+        
+        # Convert Pydantic distribution models to dict format expected by the optimization function
+        input_distributions = {var: dist.model_dump() for var, dist in input_distributions_raw.items()}
+        
+        output_responses = list(output_var_selection.keys())
+        _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(output_responses)} outputs, {len(jobs)} jobs")
         _logger.debug(f"Output responses: {output_responses}")
         _logger.debug(f"Output var selection: {output_var_selection}")
-        assert len(output_responses) >= 2, "At least two output responses must be selected for MOGA optimization."
-        jobs = request_data["FunctionJobs"]
 
-        input_distributions_sanitized = sanitize_varnames(input_distributions)
-        input_vars_sanitized = sanitize_varnames(input_vars)
-        output_var_selection_sanitized = sanitize_varnames(output_var_selection)
-        output_responses_sanitized = [k for k in output_var_selection_sanitized.keys()]
-        _logger.debug(f"Sanitized output responses: {output_responses_sanitized}")
-        _logger.debug(f"Sanitized output var selection: {output_var_selection_sanitized}")
-        sanitized_vars = input_vars_sanitized + output_responses_sanitized
-        original_vars = input_vars + output_responses
+        # Create mapping for converting results back to original names
 
+        # Create training file from validated jobs
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_responses, folder_name="moga")
         run_dir = TRAINING_FILE.parent
 
+        # Process the training file
         PROCESSED_TRAINING_FILE = process_input_file(
             TRAINING_FILE,
-            columns_to_keep=input_vars_sanitized + output_responses_sanitized, # type: ignore
+            columns_to_keep=input_vars + output_responses,
         )
 
-        results_sanitized = perform_moga_optimization(
+        # Perform MOGA optimization
+        results = perform_moga_optimization(
             run_dir,
             PROCESSED_TRAINING_FILE,
-            input_vars_sanitized,
-            input_distributions_sanitized,
-            list(output_var_selection_sanitized.keys()),
+            input_vars,
+            input_distributions,
+            list(output_var_selection.keys()),
             moga_kwargs={"max_function_evaluations": 1000},
         )
 
-        results = {
-            key.replace(sanitized, original): val for key, val in results_sanitized.items()
-            for sanitized, original in zip(sanitized_vars, original_vars)
-        }
+        _logger.debug(f"Final MOGA results before validation: {results}")
+        _logger.debug(f"Result array lengths: {[(k, len(v)) for k, v in results.items()]}")
 
-        _logger.debug("Done!!")
-        return jsonify(results)
-    
+        # Validate and structure response
+        response_data = {"optimization_results": results}
+        validated_response = MOGAOptimizationResponse.model_validate(response_data)
+        
+        _logger.debug("MOGA optimization completed successfully")
+        return jsonify(validated_response.model_dump())
+        
+    except ValidationError as e:
+        _logger.error(f"Validation error in MOGA optimization: {e}")
+        error_details = []
+        for error in e.errors():
+            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
+            error_details.append(f"{location}: {error['msg']}")
+        abort(make_response(jsonify({
+            "error": "Validation failed",
+            "details": error_details
+        }), 400))
     except Exception as e:
-        _logger.error(f"Error while performing MOGA optimization: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500)) 
+        error_message = str(e)
+        # Check if it's a JSON parsing error (400 Bad Request from Flask)
+        if "400 Bad Request" in error_message and ("JSON" in error_message or "browser" in error_message):
+            _logger.error(f"Invalid JSON request: {e}")
+            abort(make_response(jsonify({"error": "Invalid JSON or malformed request"}), 400))
+        else:
+            _logger.error(f"Error while performing MOGA optimization: {e}")
+            abort(make_response(jsonify({"error": str(e)}), 500)) 
