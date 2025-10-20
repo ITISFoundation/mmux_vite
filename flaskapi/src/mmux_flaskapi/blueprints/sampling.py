@@ -5,10 +5,15 @@ import logging
 from typing import NamedTuple
 #
 from flask import request, abort, jsonify, make_response, Blueprint, current_app
+from pydantic import ValidationError
 #
 from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import BodyCloneStudyV0StudiesStudyIdClonePost
 #
 from mmux_flaskapi.blueprints.osparc import _get_function_job_from_uid
+from mmux_flaskapi.blueprints.sampling_models import (
+    LHSSamplingRequest, GridSamplingRequest, TestJobRequest, CloneJobRequest,
+    SamplingResponse, ErrorResponse, validate_request_json
+)
 from mmux_flaskapi.utils.helpers import dict_keys_snake_to_camel, create_run_dir
 from mmux_flaskapi.utils.webserver_config import get_osparc_api
 #
@@ -64,62 +69,99 @@ def _run_sampling_map(function_uid, samples):
 
 @sampling_bp.route("/lhs", methods=["POST"])
 def flask_lhs():
+    """
+    Perform Latin Hypercube Sampling with validated request data.
+    
+    Returns:
+        JSON response with sampling results or error message
+    """
     _logger.debug("Starting flask function: flask/lhs_sampling")
     _logger.debug("Cwd: " + str(Path.cwd()))
-    function_uid = None
-
+    
     try:
-        # Convert request data into a Python dictionary
+        # Parse and validate request data
         request_data: dict = json.loads(request.data.decode("utf-8"))
-        config = request_data["config"]
-        k = len(config) # number of variables i.e. dimensions
-        seed = request_data["seed"]
-        n = request_data["N"]
-        function_uid = request_data["funUid"]
+        validated_request = validate_request_json(request_data, LHSSamplingRequest)
+        
+        config = validated_request.config
+        k = len(config)  # number of variables i.e. dimensions
+        seed = validated_request.seed
+        n = validated_request.N
+        function_uid = validated_request.funUid
+        
+        _logger.debug(f"Validated config: {[c.dict() for c in config]}")
+        _logger.debug(f"n: {n}, k: {k}, seed: {seed}, function_uid: {function_uid}")
         
         from flaskapi.mmux_python.utils.lhs import lhs
-        _logger.debug(f"config: {config} \n n: {n}, k: {k}, seed: {seed}")
         H = lhs(n, k, seed=seed)
         _logger.debug(f"H: {H.shape}")
 
         samples = []
         for j in range(n):
-            samples.append(
-                {config[i]["variable"] : float(H[i, j] * (config[i]["end"] - config[i]["start"]) + config[i]["start"]) for i in range(k)}
-            )
-        _logger.debug(f"Samples: {samples}")
+            sample = {}
+            for i in range(k):
+                variable_config = config[i]
+                scaled_value = float(H[i, j] * (variable_config.end - variable_config.start) + variable_config.start)
+                sample[variable_config.variable] = scaled_value
+            samples.append(sample)
+        
+        _logger.debug(f"Generated {len(samples)} samples")
 
-        # Now, the running of jobs through the OSPARC API has been moved to the Python backend
-        ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
+        # Run sampling map through OSPARC API
         jc = _run_sampling_map(function_uid, samples)
         return jsonify(jc)
+        
+    except ValidationError as e:
+        error_msg = f"Request validation failed: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 400)
+    except ValueError as e:
+        error_msg = f"Invalid request data: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 400)
     except Exception as e:
-        _logger.error(f"Error while performing LHS sampling on function {function_uid}: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))  # return an error response if the function mapping fails
+        error_msg = f"Error while performing LHS sampling: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
 
 @sampling_bp.route("/grid", methods=["POST"])
 def flask_grid_sampling():
+    """
+    Perform Grid Sampling with validated request data.
+    
+    Returns:
+        JSON response with sampling results or error message
+    """
     _logger.debug("Starting flask function: flask/grid_sampling")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
     try:
-        # Convert request data into a Python dictionary
+        # Parse and validate request data
         request_data: dict = json.loads(request.data.decode("utf-8"))
-        function_uid = request_data["funUid"]
-        config = request_data["config"]
-        input_vars = [config[i]["variable"] for i in range(len(config))] # this is the list of input variables
-        run_dir = create_run_dir(Path("."), "grid_sampling") # create a run directory for the grid sampling
+        validated_request = validate_request_json(request_data, GridSamplingRequest)
+        
+        function_uid = validated_request.funUid
+        config = validated_request.config
+        input_vars = [var_config.variable for var_config in config]
+        run_dir = create_run_dir(Path("."), "grid_sampling")
+
+        _logger.debug(f"Validated config: {[c.dict() for c in config]}")
+        _logger.debug(f"Input variables: {input_vars}, function_uid: {function_uid}")
 
         from flaskapi.mmux_python.utils.funs_evaluate import create_grid_samples
         from flaskapi.mmux_python.utils.funs_data_processing import load_data
+        
+        # Convert config to the format expected by create_grid_samples
+        config_dict = {var_config.variable: var_config.dict() for var_config in config}
+        
         PROCESSED_GRIDPOINTS_INPUT_FILE = create_grid_samples(
-            run_dir = run_dir,
-            grid_vars = input_vars,
-            input_vars = input_vars,
-            mins = [config[var]["start"] for var in input_vars],
-            cut_values = [(config[var]["end"] + config[var]["start"]) / 2 for var in input_vars], # this is the mean of the grid points
-            maxs = [config[var]["end"] for var in input_vars],
-            n_points_per_dimension=[config[var]["points"] for var in input_vars], # this is the number of points per dimension
+            run_dir=run_dir,
+            grid_vars=input_vars,
+            input_vars=input_vars,
+            mins=[config_dict[var]["start"] for var in input_vars],
+            cut_values=[(config_dict[var]["end"] + config_dict[var]["start"]) / 2 for var in input_vars],
+            maxs=[config_dict[var]["end"] for var in input_vars],
+            n_points_per_dimension=[config_dict[var]["steps"] for var in input_vars],
         )
 
         samples = []
@@ -128,81 +170,135 @@ def flask_grid_sampling():
             sample = {var: float(df.loc[i, var]) for var in input_vars} # type: ignore
             samples.append(sample)
 
-        # Now, the running of jobs through the OSPARC API has been moved to the Python backend
-        ## NB there are "registerJob(Collection)" endpoints, I could maybe use them 
-        _logger.debug(f"Samples: {samples}")
-        _logger.debug("Grid sampling not yet tested!! TODO Double check!")
+        _logger.debug(f"Generated {len(samples)} grid samples")
         jc = _run_sampling_map(function_uid, samples)
         return jsonify(jc)
+        
+    except ValidationError as e:
+        error_msg = f"Request validation failed: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 400)
+    except ValueError as e:
+        error_msg = f"Invalid request data: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 400)
     except Exception as e:
-        _logger.error(f"Error while creating Grid Sampling of {function_uid}: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
+        error_msg = f"Error while creating Grid Sampling: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
 
 
 
 @sampling_bp.route("/test_job", methods=["POST"])
 def flask_test_job():
+    """
+    Test a job with validated request data.
+    
+    Returns:
+        JSON response with job test results or error message
+    """
     _logger.debug("Starting flask function: flask/test_job")
     _logger.debug("Cwd: " + str(Path.cwd()))
+    
     try:
-        # Convert request data into a Python dictionary
+        # Parse and validate request data
         request_data: dict = json.loads(request.data.decode("utf-8"))
-        config = request_data["config"]
-        function_uid = request_data["funUid"]
+        validated_request = validate_request_json(request_data, TestJobRequest)
+        
+        config = validated_request.config
+        function_uid = validated_request.funUid
         functions_api = _get_functions_api()
 
         _logger.debug(f"Function UID: {function_uid}")
-        _logger.debug(f"Config: {config}")
-        sample = {config[i]["variable"]: config[i]["value"] for i in range(len(config))} 
+        _logger.debug(f"Validated config: {[c.dict() for c in config]}")
+        
+        # Convert config to sample format
+        sample = {var_config.variable: var_config.value for var_config in config}
 
-        _logger.debug("Input to validate_function_inputs: %s" , sample)
-        val = functions_api.validate_function_inputs(function_uid, sample)  # this is working - changing the name of the variable does return a validation error
-        _logger.debug(f"Validated function inputs for function {function_uid} with sample {sample}: {val}")
+        _logger.debug(f"Sample for validation: {sample}")
+        val = functions_api.validate_function_inputs(function_uid, sample)
+        _logger.debug(f"Validated function inputs: {val}")
+        
         parent_info = _get_parent_ids()
         response = functions_api.run_function(function_uid, body=sample,
-                                                       x_simcore_parent_node_id=parent_info.parent_node_id,
-                                                       x_simcore_parent_project_uuid=parent_info.parent_project_id)
-        _logger.debug(f"Response from run_function with sample {sample}: {response}")
-        assert hasattr(response, "actual_instance"), f"Job is None for function {function_uid} with sample {sample}. Response: {response}"
-        assert response.actual_instance is not None, f"Job is None for function {function_uid} with sample {sample}. Response: {response}"
+                                             x_simcore_parent_node_id=parent_info.parent_node_id,
+                                             x_simcore_parent_project_uuid=parent_info.parent_project_id)
+        _logger.debug(f"Response from run_function: {response}")
+        
+        if not hasattr(response, "actual_instance") or response.actual_instance is None:
+            raise ValueError(f"Job creation failed for function {function_uid}")
+            
         uid = response.actual_instance.uid 
         _logger.debug(f"Job UID: {uid}")
         job = _get_function_job_from_uid(uid)
         _logger.debug(f"Created job: {job}")
-        return jsonify(job)  # return the job details as a dictionary
+        return jsonify(job)
+        
+    except ValidationError as e:
+        error_msg = f"Request validation failed: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 400)
+    except ValueError as e:
+        error_msg = f"Invalid request data: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 400)
     except Exception as e:
-        _logger.error(f"Error while testing job for function {function_uid} with config {config}: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
+        error_msg = f"Error while testing job: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
 
 
 @sampling_bp.route("/clone_job", methods=["POST"])
 def flask_clone_job():
+    """
+    Clone a job with validated request data.
+    
+    Returns:
+        JSON response with cloned job details or error message
+    """
     _logger.debug("Starting flask function: flask/clone_job")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
     try:
-        # Convert request data into a Python dictionary
+        # Parse and validate request data
         request_data: dict = json.loads(request.data.decode("utf-8"))
-        project_job_id = request_data["projectJobId"]
-        function_name = request_data["functionName"]
-        inputs: dict = request_data["projectInputs"]
+        validated_request = validate_request_json(request_data, CloneJobRequest)
+        
+        project_job_id = validated_request.projectJobId
+        function_name = validated_request.functionName
+        inputs = validated_request.projectInputs
         studies_api = _get_studies_api()
         
-        # Clone the job using the job_id
+        _logger.debug(f"Cloning job {project_job_id} for function {function_name}")
+        
         def format_inputs_for_description(inputs: dict) -> str:
             """Formats a dictionary of inputs into a human-readable string for description."""
             formatted_inputs = "\n- ".join([""]+[f"*{key}*: {float(value):.4g}" for key, value in inputs.items()])
             return f"#### Inputs:\n\n{formatted_inputs}"
 
         formatted_inputs = format_inputs_for_description(inputs)
-        study_data = BodyCloneStudyV0StudiesStudyIdClonePost(title="Job " + function_name, 
-                                     description=f"Clone of job *{project_job_id}* from function *{function_name}*.\n\n{formatted_inputs}",)
-        _logger.debug("Study data: ", study_data)
-        study = studies_api.clone_study(project_job_id, hidden=False,
-                                        body_clone_study_v0_studies_study_id_clone_post=study_data,)
+        study_data = BodyCloneStudyV0StudiesStudyIdClonePost(
+            title="Job " + function_name, 
+            description=f"Clone of job *{project_job_id}* from function *{function_name}*.\n\n{formatted_inputs}"
+        )
+        _logger.debug(f"Study data: {study_data}")
+        study = studies_api.clone_study(
+            project_job_id, 
+            hidden=False,
+            body_clone_study_v0_studies_study_id_clone_post=study_data
+        )
         _logger.debug(f"Cloned study: {study.to_dict()}")
-        _logger.debug("Done!!")
         return jsonify(study.to_dict())
+        
+    except ValidationError as e:
+        error_msg = f"Request validation failed: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 400)
+    except ValueError as e:
+        error_msg = f"Invalid request data: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 400)
     except Exception as e:
-        _logger.error(f"Error while cloning job {project_job_id}: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))  # return an error response if the function mapping fails
+        error_msg = f"Error while cloning job: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)

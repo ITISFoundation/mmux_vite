@@ -427,3 +427,97 @@ def patch_get_function_job_status_random_error():
 def patch_get_function_job_outputs_random_error():
     with patch("osparc_client.api.function_jobs_api.FunctionJobsApi.function_job_outputs", side_effect=mock_random_error):
         yield
+
+
+#####################################################################################
+## Sampling/Mapping Function mocks for FunctionsApi.map_function()
+#####################################################################################
+
+def mock_map_function_success(*args, **kwargs):
+    """Successful map_function response with job information."""
+    function_id = kwargs.get('function_id', 'test-function-uid')
+    samples = kwargs.get('request_body', [])
+    
+    return MagicMock(
+        to_dict=lambda: {
+            "job_id": f"job-{function_id}-12345",
+            "function_id": function_id,
+            "status": "submitted",
+            "samples_count": len(samples),
+            "created_at": "2025-10-20T17:50:00Z",
+            "inputs": samples[:3] if samples else [],  # Include first 3 samples for validation
+            "result": {
+                "status": "success",
+                "message": f"Successfully submitted {len(samples)} samples for processing"
+            }
+        }
+    )
+
+
+def mock_map_function_invalid_function_id(*args, **kwargs):
+    """Map function fails with invalid function ID."""
+    raise OsparcApiException(
+        status=404, 
+        body="404 Not Found: Function with given ID not found"
+    )
+
+
+def mock_map_function_validation_error(*args, **kwargs):
+    """Map function fails with validation error for samples."""
+    raise OsparcApiException(
+        status=422,
+        body="422 Unprocessable Entity: Invalid sample data format"
+    )
+
+
+def mock_map_function_server_error(*args, **kwargs):
+    """Map function fails with server error."""
+    raise OsparcApiException(
+        status=500,
+        body="500 Internal Server Error: OSPARC service temporarily unavailable"
+    )
+
+
+def mock_map_function_timeout(*args, **kwargs):
+    """Map function fails with timeout."""
+    raise OsparcApiException(
+        status=408,
+        body="408 Request Timeout: Function mapping request timed out"
+    )
+
+
+# --- Fixtures for patching map_function ---
+
+@pytest.fixture
+def patch_map_function_success():
+    """Patch map_function to return successful response."""
+    with patch("osparc_client.api.functions_api.FunctionsApi.map_function", side_effect=mock_map_function_success):
+        yield
+
+
+@pytest.fixture
+def patch_map_function_invalid_function_id():
+    """Patch map_function to fail with invalid function ID."""
+    with patch("osparc_client.api.functions_api.FunctionsApi.map_function", side_effect=mock_map_function_invalid_function_id):
+        yield
+
+
+@pytest.fixture
+def patch_map_function_validation_error():
+    """Patch map_function to fail with validation error."""
+    with patch("osparc_client.api.functions_api.FunctionsApi.map_function", side_effect=mock_map_function_validation_error):
+        yield
+
+
+@pytest.fixture
+def patch_map_function_server_error():
+    """Patch map_function to fail with server error."""
+    with patch("osparc_client.api.functions_api.FunctionsApi.map_function", side_effect=mock_map_function_server_error):
+        yield
+
+
+@pytest.fixture
+def patch_map_function_timeout():
+    """Patch map_function to fail with timeout."""
+    with patch("osparc_client.api.functions_api.FunctionsApi.map_function", side_effect=mock_map_function_timeout):
+        yield

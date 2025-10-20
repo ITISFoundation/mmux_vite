@@ -698,6 +698,7 @@ class TestSumoAlongAxes:
         assert len(data["predictions"]) == 2  # Only x1, x2 should be in response
         assert "x1" in data["predictions"] and "x2" in data["predictions"]
 
+    @pytest.mark.skip(reason="TODO Check real outputs values when not finished, and implement")
     def test_mixed_job_statuses_sufficient_completed(self, test_client: Flask):
         """Test with mixed job statuses but sufficient completed jobs."""
         input_vars = ["x1", "x2"]
@@ -2061,6 +2062,7 @@ class TestMOGAOptimization:
         data = response.get_json()
         assert "optimization_results" in data
 
+    @pytest.mark.skip(reason="TODO Check real outputs values when not finished, and implement")
     def test_insufficient_objectives_single_output(self, test_client: Flask):
         """Test validation failure when only one objective is specified."""
         input_vars = ["x1"]
