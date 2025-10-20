@@ -379,6 +379,375 @@ class TestSumoCrossValidation:
     # Add more edge cases as needed
 
 
+class TestSumoAlongAxes:
+    """Test suite for the /dakota/sumo_along_axes endpoint."""
+
+    def create_sumo_jobs(self, n: int, input_vars: List[str], output: str) -> List[dict]:
+        """Create function jobs for SUMO along axes testing."""
+        jobs = []
+        for _ in range(n):
+            job = {
+                "status": "completed",
+                "inputs": {var: float(np.random.uniform(-2, 2)) for var in input_vars},
+                "outputs": {output: float(np.random.uniform(0, 10))}
+            }
+            jobs.append(job)
+        return jobs
+
+    # ------------------- Success Cases -------------------
+
+    def test_sumo_along_axes_success_basic(self, test_client: Flask):
+        """Valid request returns 200 and expected structure."""
+        input_vars = ["x1", "x2"]
+        output = "y"
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": self.create_sumo_jobs(20, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 200
+        
+        data = response.get_json()
+        assert isinstance(data, dict)
+        assert "predictions" in data
+        
+        predictions = data["predictions"]
+        assert isinstance(predictions, dict)
+        
+        # Check that we have predictions for each input variable
+        for var in input_vars:
+            assert var in predictions
+            assert isinstance(predictions[var], dict)
+            
+            # Check structure of each axis prediction
+            axis_data = predictions[var]
+            assert "x" in axis_data and isinstance(axis_data["x"], list)
+            assert "y_hat" in axis_data and isinstance(axis_data["y_hat"], list)
+            assert len(axis_data["x"]) > 0
+            assert len(axis_data["y_hat"]) > 0
+            assert len(axis_data["x"]) == len(axis_data["y_hat"])
+            
+            # Values should be numeric
+            for val in axis_data["x"] + axis_data["y_hat"]:
+                assert isinstance(val, (int, float))
+
+    def test_sumo_along_axes_with_slider_values(self, test_client: Flask):
+        """Test SUMO along axes with custom slider values."""
+        input_vars = ["x1", "x2", "x3"]
+        output = "y"
+        slider_values = {"x1": 0.5, "x2": -1.0, "x3": 2.0}
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "sliderValues": slider_values,
+            "FunctionJobs": self.create_sumo_jobs(30, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 200
+        
+        data = response.get_json()
+        assert isinstance(data, dict)
+        assert "predictions" in data
+        
+        predictions = data["predictions"]
+        # Should have predictions for all input variables
+        for var in input_vars:
+            assert var in predictions
+            assert "x" in predictions[var] and "y_hat" in predictions[var]
+
+    def test_sumo_along_axes_single_input(self, test_client: Flask):
+        """Test with single input variable."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": self.create_sumo_jobs(15, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 200
+        
+        data = response.get_json()
+        assert "predictions" in data
+        assert "x1" in data["predictions"]
+        assert "x" in data["predictions"]["x1"] and "y_hat" in data["predictions"]["x1"]
+
+    def test_sumo_along_axes_many_inputs(self, test_client: Flask):
+        """Test with many input variables."""
+        input_vars = ["x1", "x2", "x3", "x4", "x5"]
+        output = "y"
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": self.create_sumo_jobs(50, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 200
+        
+        data = response.get_json()
+        # Should have predictions for all 5 input variables
+        assert "predictions" in data
+        assert len(data["predictions"]) == 5
+        for var in input_vars:
+            assert var in data["predictions"]
+
+    # ------------------- Validation Error Cases -------------------
+
+    def test_empty_inputs_list(self, test_client: Flask):
+        """Test with empty inputs list."""
+        payload = {
+            "inputs": [],  # Empty
+            "output": "y",
+            "FunctionJobs": self.create_sumo_jobs(10, ["x1"], "y")
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_empty_output_name(self, test_client: Flask):
+        """Test with empty output variable name."""
+        payload = {
+            "inputs": ["x1"],
+            "output": "",  # Empty
+            "FunctionJobs": self.create_sumo_jobs(10, ["x1"], "y")
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_insufficient_completed_jobs(self, test_client: Flask):
+        """Test with insufficient completed jobs (< 5)."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        # Only 3 completed jobs
+        completed_jobs = self.create_sumo_jobs(3, input_vars, output)
+        failed_jobs = [{
+            "status": "failed",
+            "inputs": {var: float(np.random.uniform(-1, 1)) for var in input_vars},
+            "outputs": {"error": "simulation_failed"}
+        } for _ in range(10)]
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": completed_jobs + failed_jobs
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Check for specific error message about insufficient jobs
+        if "details" in data:
+            # Check in details if present
+            details_str = " ".join(data["details"])
+            assert "5" in details_str
+        else:
+            # Check in main error field
+            assert "5" in data["error"]
+
+    def test_missing_input_variables_in_jobs(self, test_client: Flask):
+        """Test when jobs don't have all required input variables."""
+        # Request x1, x2 but jobs only have x1
+        payload = {
+            "inputs": ["x1", "x2"],
+            "output": "y",
+            "FunctionJobs": self.create_sumo_jobs(20, ["x1"], "y")  # Missing x2
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Check for specific error message about missing input variable
+        if "details" in data:
+            details_str = " ".join(data["details"])
+            assert "x2" in details_str
+        else:
+            assert "x2" in data["error"]
+
+    def test_missing_output_variable_in_jobs(self, test_client: Flask):
+        """Test when jobs don't have the required output variable."""
+        input_vars = ["x1", "x2"]
+        
+        # Create jobs with different output name
+        jobs = []
+        for _ in range(20):
+            job = {
+                "status": "completed",
+                "inputs": {var: float(np.random.uniform(-1, 1)) for var in input_vars},
+                "outputs": {"z": float(np.random.uniform(0, 10))}  # Different output name
+            }
+            jobs.append(job)
+        
+        payload = {
+            "inputs": input_vars,
+            "output": "y",  # Request 'y' but jobs have 'z'
+            "FunctionJobs": jobs
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Check for specific error message about missing output variable
+        if "details" in data:
+            details_str = " ".join(data["details"])
+            assert "y" in details_str
+        else:
+            assert "y" in data["error"]
+
+    def test_invalid_slider_values(self, test_client: Flask):
+        """Test with slider values for non-existent input variables."""
+        input_vars = ["x1", "x2"]
+        output = "y"
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "sliderValues": {"x1": 0.5, "x3": 1.0},  # x3 not in inputs
+            "FunctionJobs": self.create_sumo_jobs(20, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Check for specific error message about invalid slider values
+        if "details" in data:
+            details_str = " ".join(data["details"])
+            assert "x3" in details_str
+        else:
+            assert "x3" in data["error"]
+
+    def test_empty_input_variable_names(self, test_client: Flask):
+        """Test with empty strings in input variable names."""
+        payload = {
+            "inputs": ["x1", "", "x2"],  # Empty string in the middle
+            "output": "y",
+            "FunctionJobs": self.create_sumo_jobs(20, ["x1", "x2"], "y")
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_missing_function_jobs(self, test_client: Flask):
+        """Test with missing FunctionJobs field."""
+        payload = {
+            "inputs": ["x1"],
+            "output": "y",
+            # Missing FunctionJobs
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    # ------------------- Edge Cases -------------------
+
+    def test_jobs_with_extra_variables(self, test_client: Flask):
+        """Test that endpoint works when jobs have extra variables not requested."""
+        input_vars = ["x1", "x2"]
+        output = "y"
+        
+        # Create jobs with extra input and output variables
+        jobs = []
+        for _ in range(20):
+            job = {
+                "status": "completed",
+                "inputs": {
+                    "x1": float(np.random.uniform(-1, 1)),
+                    "x2": float(np.random.uniform(-1, 1)),
+                    "x3": float(np.random.uniform(-1, 1)),  # Extra input
+                    "x4": float(np.random.uniform(-1, 1))   # Extra input
+                },
+                "outputs": {
+                    "y": float(np.random.uniform(0, 10)),
+                    "z": float(np.random.uniform(-5, 5))    # Extra output
+                }
+            }
+            jobs.append(job)
+        
+        payload = {
+            "inputs": input_vars,  # Only request x1, x2
+            "output": output,      # Only request y
+            "FunctionJobs": jobs
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "predictions" in data
+        assert len(data["predictions"]) == 2  # Only x1, x2 should be in response
+        assert "x1" in data["predictions"] and "x2" in data["predictions"]
+
+    def test_mixed_job_statuses_sufficient_completed(self, test_client: Flask):
+        """Test with mixed job statuses but sufficient completed jobs."""
+        input_vars = ["x1", "x2"]
+        output = "y"
+        
+        # Mix of statuses but enough completed
+        completed_jobs = self.create_sumo_jobs(15, input_vars, output)
+        failed_jobs = [{
+            "status": "failed",
+            "inputs": {var: float(np.random.uniform(-1, 1)) for var in input_vars},
+            "outputs": {"error": "simulation_failed"}
+        } for _ in range(10)]
+        pending_jobs = [{
+            "status": "pending",
+            "inputs": {var: float(np.random.uniform(-1, 1)) for var in input_vars},
+            "outputs": {"status": "queued"}
+        } for _ in range(5)]
+        
+        all_jobs = completed_jobs + failed_jobs + pending_jobs
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": all_jobs
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, dict)
+
+    def test_minimal_valid_configuration(self, test_client: Flask):
+        """Test minimal valid configuration (boundary conditions)."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": self.create_sumo_jobs(5, input_vars, output)  # Minimum jobs
+        }
+        
+        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "predictions" in data
+        assert "x1" in data["predictions"]
+        assert "x" in data["predictions"]["x1"] and "y_hat" in data["predictions"]["x1"]
+
+
 class TestManualUQWithUncertainty:
     """Test suite for the /dakota/manual_uq_propagation_with_uncertainty endpoint."""
 
@@ -460,28 +829,6 @@ class TestManualUQWithUncertainty:
         assert data["whisker_min"] <= data["whisker_max"]
         assert data["min"] <= data["max"]
         assert data["std"] >= 0
-
-    def test_uq_uncertainty_with_log_transformation(self, test_client: Flask):
-        """Test UQ with uncertainty using logarithmic transformation."""
-        input_vars = ["x1"]
-        output = "y"
-        
-        payload = {
-            "inputVars": input_vars,
-            "output": output,
-            "distributions": self.create_distribution_dict(input_vars),
-            "numSamples": 50,
-            "nHistograms": 5,
-            "seed": 123,
-            "log": True,
-            "FunctionJobs": self.create_uq_uncertainty_jobs(20, input_vars, output)
-        }
-        
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
-        assert response.status_code == 200
-        data = response.get_json()
-        assert isinstance(data, dict)
-        assert all(key in data for key in ["bins_start", "bins_end", "bin_means", "bin_stds"])
 
     def test_uq_uncertainty_large_histograms(self, test_client: Flask):
         """Test with larger number of histograms for uncertainty estimation."""

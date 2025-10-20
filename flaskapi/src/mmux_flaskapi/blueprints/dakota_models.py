@@ -223,10 +223,157 @@ class ManualUQWithUncertaintyRequest(ManualUQPropagationRequest):
 
 class SumoAlongAxesRequest(BaseModel):
     """Request model for SUMO along axes evaluation."""
-    output: str = Field(..., min_length=1)
-    inputs: List[str] = Field(..., min_length=1)
-    FunctionJobs: List[FunctionJob] = Field(..., min_length=5)
-    sliderValues: Optional[Dict[str, float]] = None
+    output: str = Field(..., min_length=1, description="Name of the output variable to evaluate")
+    inputs: List[str] = Field(..., min_length=1, description="List of input variable names")
+    FunctionJobs: List[FunctionJob] = Field(..., min_length=5, description="List of function jobs (minimum 5 required)")
+    sliderValues: Optional[Dict[str, float]] = Field(default=None, description="Cut values for input variables")
+
+    @field_validator('inputs')
+    @classmethod
+    def input_vars_must_not_be_empty_strings(cls, v: List[str]) -> List[str]:
+        """Ensure all input variable names are non-empty strings."""
+        for var in v:
+            if not var or not var.strip():
+                raise ValueError('Input variable names cannot be empty')
+        return [var.strip() for var in v]
+
+    @model_validator(mode='after')
+    def validate_job_data_consistency(self) -> 'SumoAlongAxesRequest':
+        """Validate that all jobs have the required input and output variables."""
+        output = self.output
+        input_vars = self.inputs
+        jobs = self.FunctionJobs
+        slider_values = self.sliderValues
+
+        if not output or not input_vars or not jobs:
+            return self  # Let individual field validators handle these
+
+        # Filter to completed jobs only
+        completed_jobs = [job for job in jobs if job.status in ['completed', 'success']]
+        
+        if len(completed_jobs) < 5:
+            raise ValueError(f"At least 5 completed jobs are required for SUMO along axes evaluation. Found {len(completed_jobs)} completed jobs.")
+
+        # Validate that all completed jobs have required input/output variables
+        missing_input_vars = set()
+        missing_output_jobs = []
+
+        for i, job in enumerate(completed_jobs):
+            # Check input variables
+            job_input_keys = set(job.inputs.keys())
+            for input_var in input_vars:
+                if input_var not in job_input_keys:
+                    missing_input_vars.add(input_var)
+            
+            # Check output variable
+            if output not in job.outputs:
+                missing_output_jobs.append(i)
+
+        if missing_input_vars:
+            # Get available input keys for better error message
+            available_keys = set()
+            for job in completed_jobs[:3]:  # Sample a few jobs
+                available_keys.update(job.inputs.keys())
+            raise ValueError(
+                f"Input variables {list(missing_input_vars)} not found in job inputs. "
+                f"Available input keys: {list(available_keys)}"
+            )
+
+        if missing_output_jobs:
+            # Get available output keys for better error message
+            available_keys = set()
+            for job in completed_jobs[:3]:  # Sample a few jobs
+                available_keys.update(job.outputs.keys())
+            raise ValueError(
+                f"Output variable '{output}' not found in {len(missing_output_jobs)} job(s). "
+                f"Available output keys: {list(available_keys)}"
+            )
+
+        # Validate slider values if provided
+        if slider_values:
+            invalid_slider_vars = [var for var in slider_values.keys() if var not in input_vars]
+            if invalid_slider_vars:
+                raise ValueError(
+                    f"Slider variables {invalid_slider_vars} must be present in inputs. "
+                    f"Available input variables: {input_vars}"
+                )
+
+        return self
+
+
+class AxisPrediction(BaseModel):
+    """Model for predictions along a single axis."""
+    x: List[float] = Field(..., description="Input values along the axis")
+    y_hat: List[float] = Field(..., description="Predicted output values")
+    std_hat: Optional[List[float]] = Field(default=None, description="Prediction uncertainties (if available)")
+
+    @field_validator('x', 'y_hat')
+    @classmethod
+    def validate_non_empty_lists(cls, v: List[float]) -> List[float]:
+        """Ensure prediction arrays are not empty."""
+        if not v:
+            raise ValueError("Prediction arrays cannot be empty")
+        return v
+
+    @field_validator('std_hat')
+    @classmethod
+    def validate_std_hat_optional(cls, v: Optional[List[float]]) -> Optional[List[float]]:
+        """Validate std_hat if provided."""
+        if v is not None and not v:
+            raise ValueError("std_hat array cannot be empty if provided")
+        return v
+
+    @model_validator(mode='after')
+    def validate_array_lengths_match(self) -> 'AxisPrediction':
+        """Validate that all arrays have the same length."""
+        x_len = len(self.x)
+        y_hat_len = len(self.y_hat)
+        
+        if x_len != y_hat_len:
+            raise ValueError(f"x and y_hat arrays must have same length. Got x: {x_len}, y_hat: {y_hat_len}")
+        
+        if self.std_hat is not None:
+            std_hat_len = len(self.std_hat)
+            if x_len != std_hat_len:
+                raise ValueError(f"std_hat array must have same length as x and y_hat. Got std_hat: {std_hat_len}, expected: {x_len}")
+        
+        return self
+
+
+class SumoAlongAxesResponse(BaseModel):
+    """Response model for SUMO along axes evaluation."""
+    model_config = ConfigDict(frozen=True)  # Make response immutable
+    
+    # Dictionary mapping input variable names to their axis predictions
+    predictions: Dict[str, AxisPrediction] = Field(..., description="Predictions for each input variable axis")
+
+    @field_validator('predictions')
+    @classmethod
+    def validate_predictions_not_empty(cls, v: Dict[str, AxisPrediction]) -> Dict[str, AxisPrediction]:
+        """Ensure predictions dictionary is not empty."""
+        if not v:
+            raise ValueError("Predictions dictionary cannot be empty")
+        return v
+
+    @model_validator(mode='after')
+    def validate_consistent_prediction_lengths(self) -> 'SumoAlongAxesResponse':
+        """Validate that all axis predictions have consistent array lengths."""
+        if not self.predictions:
+            return self
+        
+        # Check that all axes have the same number of samples
+        first_axis = next(iter(self.predictions.values()))
+        expected_length = len(first_axis.x)
+        
+        for axis_name, axis_prediction in self.predictions.items():
+            if len(axis_prediction.x) != expected_length:
+                raise ValueError(
+                    f"All axes must have the same number of samples. "
+                    f"Axis '{axis_name}' has {len(axis_prediction.x)} samples, "
+                    f"expected {expected_length}"
+                )
+        
+        return self
 
 
 class SumoGridEvaluationRequest(BaseModel):

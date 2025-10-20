@@ -11,7 +11,13 @@ from pydantic import ValidationError
 from flask import Blueprint, jsonify
 from flask import request, abort, make_response
 #
-from mmux_flaskapi.blueprints.dakota_models import FunctionJob, ManualUQWithUncertaintyRequest, UQWithUncertaintyResponse
+from mmux_flaskapi.blueprints.dakota_models import (
+    FunctionJob, 
+    ManualUQWithUncertaintyRequest, 
+    UQWithUncertaintyResponse,
+    SumoAlongAxesRequest,
+    SumoAlongAxesResponse
+)
 # 
 from mmux_flaskapi.utils.helpers import sanitize_varnames, create_run_dir
 from mmux_flaskapi.blueprints import dakota_models
@@ -289,41 +295,66 @@ def flask_manual_uq_propagation_with_uncertainty():
 
 @dakota_bp.route("/sumo_along_axes", methods=["POST"])
 def flask_evaluate_sumo_along_axes():
+    """
+    SuMo model evaluation along each input axis with optional fixed values.
+    
+    Uses Pydantic validation to ensure robust input validation and consistent error handling.
+    Returns predictions along each specified input variable axis.
+    """
     os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_evaluate_sumo_along_axes")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
     try:
-        # Convert request data into a Python dictionary
-        request_data: dict = json.loads(request.data.decode("utf-8"))
-        output_response = request_data["output"]
-        input_vars: List[str] = request_data["inputs"]
-        make_log: bool = request_data.get("log", False)
-        jobs: List[FunctionJob] = request_data["FunctionJobs"]
-        slider_values = request_data.get("sliderValues", None)  # this is a dict of input_vars to cut values, e.g. {"input1": 0.5, "input2": 1.0}
+        # Parse and validate request using Pydantic
+        request_data = SumoAlongAxesRequest.model_validate(request.get_json())
+        
+        # Extract validated data
+        output_response = request_data.output
+        input_vars = request_data.inputs
+        jobs = request_data.FunctionJobs
+        slider_values = request_data.sliderValues
+        
+        _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(jobs)} jobs")
         _logger.debug(f"Slider values: {slider_values}")
+        
+        # Create training file from validated jobs  
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
         run_dir = TRAINING_FILE.parent
 
+        # Process the training file
         PROCESSED_TRAINING_FILE = process_input_file(
             TRAINING_FILE,
-            make_log=make_log,
             columns_to_keep=input_vars + [output_response],
         )
-        if make_log:  # FIXME for now log applies to all inputs & the output
-            input_vars = [f"log_{var}" for var in input_vars]
-            output_response = f"log_{output_response}"
-
+        
+        # Evaluate SUMO along axes
         results = evaluate_sumo_along_axes(
             run_dir,
             PROCESSED_TRAINING_FILE,
             input_vars,
             output_response, 
-            cut_values = slider_values
+            cut_values=slider_values
         )
         
-        _logger.debug("Done!!")
-        return jsonify(results) 
+        # Validate and structure response
+        response_data = {"predictions": results}
+        validated_response = SumoAlongAxesResponse.model_validate(response_data)
+        
+        _logger.debug("SUMO along axes evaluation completed successfully")
+        return jsonify(validated_response.model_dump())
+        
+    except ValidationError as e:
+        _logger.error(f"Validation error in SUMO along axes: {e}")
+        error_details = []
+        for error in e.errors():
+            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
+            error_details.append(f"{location}: {error['msg']}")
+        abort(make_response(jsonify({
+            "error": "Validation failed",
+            "details": error_details
+        }), 400))
+        
     except Exception as e:
         _logger.error(f"Error during evaluation along axes: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
