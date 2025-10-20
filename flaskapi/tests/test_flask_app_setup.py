@@ -65,10 +65,9 @@ class TestRouteExistence:
     def test_dakota_routes(self, test_app: Flask):
         """Test that the dakota-related routes exist in the Flask app."""
         assert_route_exists(test_app, "dakota", "sumo_cross_validation")
-        assert_route_exists(test_app, "dakota", "manual_uq_propagation")
-        assert_route_exists(test_app, "dakota", "manual_uq_propagation_with_uncertainty")
         assert_route_exists(test_app, "dakota", "sumo_along_axes")
         assert_route_exists(test_app, "dakota", "sumo_grid_evaluation")
+        assert_route_exists(test_app, "dakota", "manual_uq_propagation_with_uncertainty")
         assert_route_exists(test_app, "dakota", "get_sumo_cv_accuracy_metrics")
         assert_route_exists(test_app, "dakota", "perform_moga_optimization")
 
