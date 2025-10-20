@@ -377,3 +377,435 @@ class TestSumoCrossValidation:
         assert isinstance(data["y"], list)
 
     # Add more edge cases as needed
+
+
+class TestManualUQWithUncertainty:
+    """Test suite for the /dakota/manual_uq_propagation_with_uncertainty endpoint."""
+
+    def create_uq_uncertainty_jobs(self, n: int, input_vars: List[str], output: str, include_uncertainty: bool = True) -> List[dict]:
+        """Create function jobs with both predicted output and uncertainty estimation."""
+        jobs = []
+        for _ in range(n):
+            job = {
+                "status": "completed",
+                "inputs": {var: np.random.uniform(-1, 1) for var in input_vars},
+                "outputs": {output: np.random.uniform(0, 10)}
+            }
+            
+            if include_uncertainty:
+                # Add uncertainty prediction (std_hat)
+                job["outputs"][f"{output}_std_hat"] = np.random.uniform(0.1, 2.0)
+            
+            jobs.append(job)
+        return jobs
+
+    def create_distribution_dict(self, input_vars: List[str]) -> dict:
+        """Create distributions dictionary for given input variables."""
+        return {
+            var: {
+                "distribution": "normal",
+                "mean": 0.0,
+                "std": 1.0,
+                "min": -3.0,
+                "max": 3.0
+            } for var in input_vars
+        }
+
+    # ------------------- Success Cases -------------------
+
+    def test_uq_uncertainty_success_basic(self, test_client: Flask):
+        """Valid request returns 200 and expected statistical structure."""
+        input_vars = ["x1", "x2"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 100,
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 200
+        
+        data = response.get_json()
+        assert isinstance(data, dict)
+        
+        # Check histogram statistics
+        assert "bins_start" in data and isinstance(data["bins_start"], (int, float))
+        assert "bins_end" in data and isinstance(data["bins_end"], (int, float))
+        assert "bin_means" in data and isinstance(data["bin_means"], list)
+        assert "bin_stds" in data and isinstance(data["bin_stds"], list)
+        assert len(data["bin_means"]) == len(data["bin_stds"])
+        
+        # Check box plot statistics
+        assert "q1" in data and isinstance(data["q1"], (int, float))
+        assert "median" in data and isinstance(data["median"], (int, float))
+        assert "q3" in data and isinstance(data["q3"], (int, float))
+        assert "whisker_min" in data and isinstance(data["whisker_min"], (int, float))
+        assert "whisker_max" in data and isinstance(data["whisker_max"], (int, float))
+        assert "outliers" in data and isinstance(data["outliers"], list)
+        
+        # Check overall statistics
+        assert "mean" in data and isinstance(data["mean"], (int, float))
+        assert "std" in data and isinstance(data["std"], (int, float))
+        assert "min" in data and isinstance(data["min"], (int, float))
+        assert "max" in data and isinstance(data["max"], (int, float))
+        
+        # Validate statistical ordering
+        assert data["q1"] <= data["median"] <= data["q3"]
+        assert data["whisker_min"] <= data["whisker_max"]
+        assert data["min"] <= data["max"]
+        assert data["std"] >= 0
+
+    def test_uq_uncertainty_with_log_transformation(self, test_client: Flask):
+        """Test UQ with uncertainty using logarithmic transformation."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 50,
+            "nHistograms": 5,
+            "seed": 123,
+            "log": True,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(20, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, dict)
+        assert all(key in data for key in ["bins_start", "bins_end", "bin_means", "bin_stds"])
+
+    def test_uq_uncertainty_large_histograms(self, test_client: Flask):
+        """Test with larger number of histograms for uncertainty estimation."""
+        input_vars = ["x1", "x2", "x3"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 500,
+            "nHistograms": 50,
+            "seed": 999,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(100, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data["bin_means"]) > 0
+        assert len(data["bin_stds"]) > 0
+
+    # ------------------- Validation Error Cases -------------------
+
+    def test_missing_uncertainty_output(self, test_client: Flask):
+        """Test when jobs don't have required uncertainty output (_std_hat)."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 100,
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output, include_uncertainty=False)
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "std_hat" in data["error"]
+
+    def test_invalid_n_histograms_zero(self, test_client: Flask):
+        """Test with zero histograms (invalid)."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 100,
+            "nHistograms": 0,  # Invalid
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_invalid_n_histograms_too_large(self, test_client: Flask):
+        """Test with too many histograms (performance constraint)."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 100,
+            "nHistograms": 1001,  # Too large
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "1000" in data["error"]
+
+    def test_num_samples_less_than_histograms(self, test_client: Flask):
+        """Test when numSamples < nHistograms (should fail)."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 5,    # Less than nHistograms
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "samples" in data["error"].lower() and "histograms" in data["error"].lower()
+
+    def test_missing_distributions_for_input_vars(self, test_client: Flask):
+        """Test when distributions are missing for some input variables."""
+        input_vars = ["x1", "x2", "x3"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(["x1", "x2"]),  # Missing x3
+            "numSamples": 100,
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "x3" in data["error"]
+
+    def test_insufficient_completed_jobs(self, test_client: Flask):
+        """Test with insufficient completed jobs (< 5)."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        # Only 3 completed jobs
+        completed_jobs = self.create_uq_uncertainty_jobs(3, input_vars, output)
+        failed_jobs = [{
+            "status": "failed",
+            "inputs": {var: np.random.uniform(-1, 1) for var in input_vars},
+            "outputs": {"error": "simulation_failed"}  # Some output to satisfy validation
+        } for _ in range(10)]
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 100,
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": completed_jobs + failed_jobs
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "5" in data["error"]
+
+    def test_empty_input_vars(self, test_client: Flask):
+        """Test with empty input variables list."""
+        payload = {
+            "inputVars": [],  # Empty
+            "output": "y",
+            "distributions": {},
+            "numSamples": 100,
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(50, ["x1"], "y")
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_empty_output_name(self, test_client: Flask):
+        """Test with empty output variable name."""
+        input_vars = ["x1"]
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": "",  # Empty
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 100,
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, "y")
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_negative_num_samples(self, test_client: Flask):
+        """Test with negative number of samples."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": -10,  # Invalid
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    # ------------------- Edge Cases -------------------
+
+    def test_minimal_valid_configuration(self, test_client: Flask):
+        """Test minimal valid configuration (boundary conditions)."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 10,  # Minimum reasonable
+            "nHistograms": 1,  # Minimum
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(5, input_vars, output)  # Minimum jobs
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, dict)
+        assert len(data["bin_means"]) > 0
+
+    def test_single_input_variable(self, test_client: Flask):
+        """Test with single input variable."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 100,
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(30, input_vars, output)
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert all(key in data for key in ["bins_start", "bins_end", "median", "mean"])
+
+    def test_jobs_with_extra_outputs(self, test_client: Flask):
+        """Test that endpoint works when jobs have extra outputs not requested."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        # Create jobs with extra outputs
+        jobs = []
+        for _ in range(20):
+            job = {
+                "status": "completed",
+                "inputs": {var: np.random.uniform(-1, 1) for var in input_vars},
+                "outputs": {
+                    output: np.random.uniform(0, 10),
+                    f"{output}_std_hat": np.random.uniform(0.1, 2.0),
+                    "extra_output1": np.random.uniform(-5, 5),
+                    "extra_output2": np.random.uniform(0, 1)
+                }
+            }
+            jobs.append(job)
+        
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 100,
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": jobs
+        }
+        
+        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, dict)
+
+    ## TODO check the actual format of Failed / Pending jobs in their outputs & fix the model & test accordingly
+    # def test_mixed_job_statuses_sufficient_completed(self, test_client: Flask):
+    #     """Test with mixed job statuses but sufficient completed jobs."""
+    #     input_vars = ["x1"]
+    #     output = "y"
+        
+    #     # Mix of statuses but enough completed
+    #     completed_jobs = self.create_uq_uncertainty_jobs(15, input_vars, output)
+    #     # Failed jobs should have at least some minimal outputs to pass validation
+    #     failed_jobs = [{
+    #         "status": "failed",
+    #         "inputs": {var: np.random.uniform(-1, 1) for var in input_vars},
+    #         "outputs": {}
+    #     } for _ in range(10)]
+    #     pending_jobs = [{
+    #         "status": "pending",
+    #         "inputs": {var: np.random.uniform(-1, 1) for var in input_vars},
+    #         "outputs": {"status": "queued"}  # Some output to satisfy validation
+    #     } for _ in range(5)]
+        
+    #     all_jobs = completed_jobs + failed_jobs + pending_jobs
+        
+    #     payload = {
+    #         "inputVars": input_vars,
+    #         "output": output,
+    #         "distributions": self.create_distribution_dict(input_vars),
+    #         "numSamples": 100,
+    #         "nHistograms": 10,
+    #         "seed": 42,
+    #         "FunctionJobs": all_jobs
+    #     }
+        
+    #     response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+    #     assert response.status_code == 200
+    #     data = response.get_json()
+    #     assert isinstance(data, dict)

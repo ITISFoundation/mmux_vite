@@ -4,6 +4,7 @@ Pydantic models for Dakota API endpoints validation.
 from typing import Dict, List, Optional, Union, Literal, Any, Type
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 import logging
+import numpy as np
 
 _logger = logging.getLogger(__name__)
 
@@ -111,10 +112,27 @@ class DistributionParams(BaseModel):
     """Model for distribution parameters."""
     model_config = ConfigDict(extra="allow")  # Allow additional distribution parameters
     
+    distribution: Literal["normal", "uniform"] = Field(..., description="Type of distribution (normal or uniform)")
     mean: Optional[float] = None
     std: Optional[float] = None
     min: Optional[float] = None
     max: Optional[float] = None
+
+    @model_validator(mode='after')
+    def validate_distribution_params(self) -> 'DistributionParams':
+        """Validate that required parameters are provided for each distribution type."""
+        if self.distribution == "normal":
+            if self.mean is None or self.std is None:
+                raise ValueError("Normal distribution requires 'mean' and 'std' parameters")
+            if self.std <= 0:
+                raise ValueError("Standard deviation must be positive for normal distribution")
+        elif self.distribution == "uniform":
+            if self.min is None or self.max is None:
+                raise ValueError("Uniform distribution requires 'min' and 'max' parameters")
+            if self.min >= self.max:
+                raise ValueError("Min must be less than max for uniform distribution")
+        
+        return self
 
 
 class ManualUQPropagationRequest(BaseModel):
@@ -138,18 +156,69 @@ class ManualUQPropagationRequest(BaseModel):
         """Validate that distributions are provided for all input variables."""
         input_vars = self.inputVars
         distributions = self.distributions
+        jobs = self.FunctionJobs
         
         missing_distributions = [var for var in input_vars if var not in distributions]
         if missing_distributions:
             raise ValueError(f"Distributions missing for input variables: {missing_distributions}")
+        
+        # Validate minimum completed jobs for UQ operations
+        completed_jobs = [job for job in jobs if job.status in ['completed', 'success']]
+        if len(completed_jobs) < 5:
+            raise ValueError(f"At least 5 completed jobs are required for UQ operations. Found {len(completed_jobs)} completed jobs.")
         
         return self
 
 
 class ManualUQWithUncertaintyRequest(ManualUQPropagationRequest):
     """Request model for manual UQ propagation with uncertainty endpoint."""
-    nHistograms: int = Field(..., gt=0, description="Number of histograms for uncertainty estimation")
+    nHistograms: int = Field(..., gt=0, le=1000, description="Number of histograms for uncertainty estimation (1-1000)")
     seed: int = Field(..., description="Random seed for reproducibility")
+
+    @field_validator('nHistograms')
+    @classmethod
+    def validate_n_histograms(cls, v: int) -> int:
+        """Validate number of histograms is reasonable."""
+        if v < 1:
+            raise ValueError("Number of histograms must be positive")
+        if v > 1000:
+            raise ValueError("Number of histograms cannot exceed 1000 (performance constraint)")
+        return v
+
+    @model_validator(mode='after')
+    def validate_uncertainty_requirements(self) -> 'ManualUQWithUncertaintyRequest':
+        """Additional validation specific to uncertainty quantification."""
+        # Additional validation: ensure we have enough samples relative to histograms
+        if self.numSamples < self.nHistograms:
+            raise ValueError(f"Number of samples ({self.numSamples}) should be >= number of histograms ({self.nHistograms})")
+        
+        # Warn if numSamples/nHistograms ratio is too low for statistical reliability
+        if self.numSamples // self.nHistograms < 10:
+            _logger.warning(f"Low samples per histogram ({self.numSamples // self.nHistograms}). Consider increasing numSamples for better statistics.")
+        
+        # Check that at least some jobs have the required uncertainty output
+        output = self.output
+        jobs = self.FunctionJobs
+        completed_jobs = [job for job in jobs if job.status in ['completed', 'success']]
+        
+        if completed_jobs:  # Only check if we have completed jobs
+            uncertainty_output_key = f"{output}_std_hat"
+            jobs_with_uncertainty = [
+                job for job in completed_jobs 
+                if uncertainty_output_key in job.outputs
+            ]
+            
+            if not jobs_with_uncertainty:
+                # Get available output keys for better error message
+                available_keys = set()
+                for job in completed_jobs[:3]:  # Sample a few jobs
+                    available_keys.update(job.outputs.keys())
+                raise ValueError(
+                    f"UQ with uncertainty requires '{uncertainty_output_key}' in job outputs for uncertainty estimation. "
+                    f"Available output keys: {list(available_keys)}"
+                )
+        
+        return self
 
 
 class SumoAlongAxesRequest(BaseModel):
@@ -194,5 +263,73 @@ class MOGAOptimizationRequest(BaseModel):
         output_var_selection = self.outputVarSelection
         if len(output_var_selection) < 2:
             raise ValueError("At least two output variables must be selected for MOGA optimization")
+        return self
+
+
+class UQWithUncertaintyResponse(BaseModel):
+    """Response model for UQ with uncertainty endpoint."""
+    model_config = ConfigDict(frozen=True)  # Make response immutable
+    
+    # Histogram statistics
+    bins_start: float = Field(..., description="Start of histogram bin range")
+    bins_end: float = Field(..., description="End of histogram bin range")
+    bin_means: List[float] = Field(..., description="Mean of bin heights across histograms")
+    bin_stds: List[float] = Field(..., description="Standard deviation of bin heights across histograms")
+    
+    # Box plot statistics
+    q1: float = Field(..., description="First quartile (25th percentile)")
+    median: float = Field(..., description="Median (50th percentile)")
+    q3: float = Field(..., description="Third quartile (75th percentile)")
+    whisker_min: float = Field(..., description="Lower whisker boundary")
+    whisker_max: float = Field(..., description="Upper whisker boundary")
+    outliers: List[float] = Field(..., description="Outlier values beyond whiskers")
+    
+    # Overall distribution statistics
+    mean: float = Field(..., description="Overall mean of all samples")
+    std: float = Field(..., description="Overall standard deviation of all samples")
+    min: float = Field(..., description="Minimum value across all samples")
+    max: float = Field(..., description="Maximum value across all samples")
+
+    @field_validator('bin_means', 'bin_stds')
+    @classmethod
+    def validate_bin_arrays_same_length(cls, v: List[float]) -> List[float]:
+        """Ensure bin arrays are not empty and contain valid numbers."""
+        if not v:
+            raise ValueError("Bin arrays cannot be empty")
+        if any(not isinstance(x, (int, float)) or not np.isfinite(x) for x in v):
+            raise ValueError("All bin values must be finite numbers")
+        return v
+
+    @field_validator('outliers')
+    @classmethod
+    def validate_outliers(cls, v: List[float]) -> List[float]:
+        """Validate outliers list (can be empty)."""
+        if any(not isinstance(x, (int, float)) or not np.isfinite(x) for x in v):
+            raise ValueError("All outlier values must be finite numbers")
+        return v
+
+    @model_validator(mode='after')
+    def validate_statistical_consistency(self) -> 'UQWithUncertaintyResponse':
+        """Validate statistical consistency of the response."""
+        # Check bin arrays have same length
+        if len(self.bin_means) != len(self.bin_stds):
+            raise ValueError("bin_means and bin_stds must have the same length")
+        
+        # Check quartile ordering
+        if not (self.q1 <= self.median <= self.q3):
+            raise ValueError("Quartiles must satisfy q1 <= median <= q3")
+        
+        # Check whisker boundaries are reasonable
+        if self.whisker_min > self.whisker_max:
+            raise ValueError("whisker_min must be <= whisker_max")
+        
+        # Check overall min/max are consistent
+        if self.min > self.max:
+            raise ValueError("min must be <= max")
+        
+        # Check that std is non-negative
+        if self.std < 0:
+            raise ValueError("Standard deviation must be non-negative")
+        
         return self
 
