@@ -609,3 +609,102 @@ class UQWithUncertaintyResponse(BaseModel):
         
         return self
 
+
+class SumoCVAccuracyMetricsRequest(BaseModel):
+    """Request model for SUMO cross-validation accuracy metrics endpoint."""
+    output: str = Field(..., min_length=1, description="Name of the output variable to validate")
+    inputs: List[str] = Field(..., min_length=1, description="List of input variable names")
+    log: Optional[bool] = Field(False, description="Whether to apply log transformation to data")
+    FunctionJobs: List[FunctionJob] = Field(..., min_length=5, description="List of function jobs (minimum 5 required)")
+
+    @field_validator('inputs')
+    @classmethod
+    def input_vars_must_not_be_empty_strings(cls, v: List[str]) -> List[str]:
+        """Validate that input variable names are not empty."""
+        for var in v:
+            if not var or not var.strip():
+                raise ValueError('Input variable names cannot be empty')
+        return [var.strip() for var in v]
+
+    @field_validator('output')
+    @classmethod
+    def output_must_not_be_empty(cls, v: str) -> str:
+        """Validate that output variable name is not empty."""
+        if not v or not v.strip():
+            raise ValueError('Output variable name cannot be empty')
+        return v.strip()
+
+    @model_validator(mode='after')
+    def validate_job_data_consistency(self) -> 'SumoCVAccuracyMetricsRequest':
+        """Validate that all jobs have required input/output variables and sufficient completed jobs."""
+        completed_jobs = [job for job in self.FunctionJobs if job.status in ["completed", "success"]]
+        
+        if len(completed_jobs) < 5:
+            raise ValueError(f"At least 5 completed jobs required for cross-validation, got {len(completed_jobs)}")
+
+        # Check that all completed jobs have the required input variables
+        for i, job in enumerate(completed_jobs):
+            missing_inputs = [var for var in self.inputs if var not in job.inputs]
+            if missing_inputs:
+                raise ValueError(f"Job {i} missing required input variables: {missing_inputs}")
+            
+            # Check that the job has the required output variable
+            if self.output not in job.outputs:
+                raise ValueError(f"Job {i} missing required output variable: {self.output}")
+
+        return self
+
+
+class CVAccuracyMetrics(BaseModel):
+    """Model for cross-validation accuracy metrics for a single output variable."""
+    root_mean_squared: Optional[Union[float, str]] = Field(None, description="Root mean squared error")
+    sum_abs: Optional[Union[float, str]] = Field(None, description="Sum of absolute errors") 
+    mean_abs: Optional[Union[float, str]] = Field(None, description="Mean absolute error")
+    max_abs: Optional[Union[float, str]] = Field(None, description="Maximum absolute error")
+
+    @field_validator('root_mean_squared', 'sum_abs', 'mean_abs', 'max_abs', mode='before')
+    @classmethod
+    def validate_metric_value(cls, v: Union[float, str, None]) -> Union[float, str, None]:
+        """Validate metric values (can be float, 'nan', or None)."""
+        if v is None:
+            return v
+        if isinstance(v, str):
+            if v.lower() in ['nan', 'none']:
+                return v
+            try:
+                return float(v)
+            except ValueError:
+                raise ValueError(f"Invalid metric value: {v}")
+        if isinstance(v, (int, float)):
+            return float(v)
+        raise ValueError(f"Metric value must be a number, 'nan', or None, got {type(v)}")
+
+
+class SumoCVAccuracyMetricsResponse(BaseModel):
+    """Response model for SUMO cross-validation accuracy metrics."""
+    metrics: Dict[str, Union[CVAccuracyMetrics, str]] = Field(
+        ..., 
+        description="Dictionary mapping output variable names to their accuracy metrics"
+    )
+
+    @field_validator('metrics')
+    @classmethod
+    def validate_metrics_not_empty(cls, v: Dict[str, Union[CVAccuracyMetrics, str]]) -> Dict[str, Union[CVAccuracyMetrics, str]]:
+        """Validate that metrics dictionary is not empty."""
+        if not v:
+            raise ValueError("Metrics dictionary cannot be empty")
+        return v
+
+    @model_validator(mode='after')
+    def validate_metrics_structure(self) -> 'SumoCVAccuracyMetricsResponse':
+        """Validate the overall structure of metrics."""
+        for var_name, metrics in self.metrics.items():
+            if not isinstance(var_name, str) or not var_name.strip():
+                raise ValueError("Variable names in metrics must be non-empty strings")
+            if isinstance(metrics, str):
+                # Allow string values for error messages like "No surrogate quality metrics found."
+                continue
+            elif not isinstance(metrics, CVAccuracyMetrics):
+                raise ValueError(f"Metrics for {var_name} must be CVAccuracyMetrics or string")
+        return self
+

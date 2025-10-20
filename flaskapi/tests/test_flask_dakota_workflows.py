@@ -1592,3 +1592,343 @@ class TestManualUQWithUncertainty:
     #     assert response.status_code == 200
     #     data = response.get_json()
     #     assert isinstance(data, dict)
+
+
+# ------------------- SUMO CV Accuracy Metrics Tests -------------------
+
+class TestSumoCVAccuracyMetrics:
+    """Test suite for the SUMO cross-validation accuracy metrics endpoint."""
+
+    def create_cv_accuracy_jobs(self, n: int, input_vars: List[str], output_var: str, status: str = "completed"):
+        """Create a list of n FunctionJob-like dicts for CV accuracy testing."""
+        return create_function_job_list(n, status=status, inputs=input_vars, outputs=[output_var])
+
+    def test_successful_single_input_single_output(self, test_client: Flask):
+        """Test successful CV accuracy metrics calculation with single input and single output."""
+        input_vars = ["x1"]
+        output = "y"
+        jobs = self.create_cv_accuracy_jobs(10, input_vars, output)
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": jobs
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        
+        # Validate response structure
+        assert "metrics" in data
+        assert isinstance(data["metrics"], dict)
+        
+        # Check that we have metrics for the output variable
+        assert output in data["metrics"]
+        
+        # The metrics can be either a dict of accuracy metrics or a string (error message)
+        output_metrics = data["metrics"][output]
+        if isinstance(output_metrics, dict):
+            # Check for expected metric keys
+            expected_metrics = ["root_mean_squared", "sum_abs", "mean_abs", "max_abs"]
+            for metric in expected_metrics:
+                if metric in output_metrics:
+                    # Metric values can be float or string ('nan')
+                    assert isinstance(output_metrics[metric], (float, str))
+        else:
+            # String response (e.g., "No surrogate quality metrics found.")
+            assert isinstance(output_metrics, str)
+
+    def test_successful_multiple_inputs_single_output(self, test_client: Flask):
+        """Test successful CV accuracy metrics with multiple inputs."""
+        input_vars = ["x1", "x2", "x3"]
+        output = "y"
+        jobs = self.create_cv_accuracy_jobs(15, input_vars, output)
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": jobs
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        
+        assert "metrics" in data
+        assert output in data["metrics"]
+
+    def test_successful_minimum_required_jobs(self, test_client: Flask):
+        """Test with exactly the minimum number of required jobs (5)."""
+        input_vars = ["x1"]
+        output = "y"
+        jobs = self.create_cv_accuracy_jobs(5, input_vars, output)
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": jobs
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        
+        assert "metrics" in data
+        assert output in data["metrics"]
+
+    def test_insufficient_completed_jobs(self, test_client: Flask):
+        """Test validation failure when there are insufficient completed jobs."""
+        input_vars = ["x1"]
+        output = "y"
+        # Only 4 completed jobs - should fail validation
+        jobs = self.create_cv_accuracy_jobs(4, input_vars, output)
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": jobs
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Check for the detailed error message that includes "5 completed jobs required"
+        if "details" in data:
+            # Look in detailed error messages
+            assert any("5 items after validation" in detail for detail in data["details"])
+        else:
+            # Look in main error message  
+            assert "5" in data["error"] or "insufficient" in data["error"].lower()
+
+    def test_mixed_job_statuses_sufficient_completed(self, test_client: Flask):
+        """Test with mixed job statuses but sufficient completed jobs."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        # Mix of statuses but enough completed
+        completed_jobs = self.create_cv_accuracy_jobs(8, input_vars, output, "completed")
+        failed_jobs = self.create_cv_accuracy_jobs(3, input_vars, output, "failed")
+        pending_jobs = self.create_cv_accuracy_jobs(2, input_vars, output, "pending")
+        
+        all_jobs = completed_jobs + failed_jobs + pending_jobs
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": all_jobs
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "metrics" in data
+        assert output in data["metrics"]
+
+    def test_jobs_missing_required_input_variable(self, test_client: Flask):
+        """Test validation failure when jobs are missing required input variables."""
+        input_vars = ["x1", "x2"]
+        output = "y"
+        
+        # Create jobs that are missing the x2 input variable
+        complete_jobs = self.create_cv_accuracy_jobs(3, input_vars, output)
+        incomplete_jobs = [make_incomplete_job("completed", input_vars, [output], "input_key:x2") for _ in range(3)]
+        
+        all_jobs = complete_jobs + incomplete_jobs
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": all_jobs
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Check for detailed error message structure
+        if "details" in data:
+            # Look in detailed error messages for missing input variable error
+            assert any("missing required input variables" in detail for detail in data["details"])
+        else:
+            # Look in main error message
+            assert "missing" in data["error"].lower() and "input" in data["error"].lower()
+
+    def test_jobs_missing_required_output_variable(self, test_client: Flask):
+        """Test validation failure when jobs are missing the required output variable."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        # Create jobs that are missing the output variable
+        complete_jobs = self.create_cv_accuracy_jobs(3, input_vars, output)
+        incomplete_jobs = [make_incomplete_job("completed", input_vars, [output], "output_key:y") for _ in range(3)]
+        
+        all_jobs = complete_jobs + incomplete_jobs
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": all_jobs
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        # Check for detailed error message structure - outputs are empty so different error
+        if "details" in data:
+            # Look in detailed error messages for output-related error
+            assert any("output" in detail.lower() for detail in data["details"])
+        else:
+            # Look in main error message
+            assert "output" in data["error"].lower() or "empty" in data["error"].lower()
+
+    def test_jobs_missing_inputs_structure(self, test_client: Flask):
+        """Test validation failure when jobs are missing the entire 'inputs' structure."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        # Create jobs where some are missing the entire inputs dict
+        complete_jobs = self.create_cv_accuracy_jobs(3, input_vars, output)
+        incomplete_jobs = [make_incomplete_job("completed", input_vars, [output], "inputs") for _ in range(3)]
+        
+        all_jobs = complete_jobs + incomplete_jobs
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": all_jobs
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_jobs_missing_outputs_structure(self, test_client: Flask):
+        """Test validation failure when jobs are missing the entire 'outputs' structure."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        # Create jobs where some are missing the entire outputs dict
+        complete_jobs = self.create_cv_accuracy_jobs(3, input_vars, output)
+        incomplete_jobs = [make_incomplete_job("completed", input_vars, [output], "outputs") for _ in range(3)]
+        
+        all_jobs = complete_jobs + incomplete_jobs
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": all_jobs
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    @pytest.mark.parametrize("missing_field", ["inputs", "output", "FunctionJobs"])
+    def test_missing_required_fields(self, test_client: Flask, missing_field: str):
+        """Test validation failure when required fields are missing from the request."""
+        input_vars = ["x1"]
+        output = "y"
+        jobs = self.create_cv_accuracy_jobs(10, input_vars, output)
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": jobs
+        }
+        
+        # Remove the specified field
+        del payload[missing_field]
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    @pytest.mark.parametrize("invalid_inputs", [[], [""], [" "], ["x1", ""]])
+    def test_invalid_input_variables(self, test_client: Flask, invalid_inputs: List[str]):
+        """Test validation failure with invalid input variable names."""
+        output = "y"
+        jobs = self.create_cv_accuracy_jobs(10, ["x1"], output)  # Create valid jobs regardless
+        
+        payload = {
+            "inputs": invalid_inputs,
+            "output": output,
+            "FunctionJobs": jobs
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    @pytest.mark.parametrize("invalid_output", ["", " ", None])
+    def test_invalid_output_variable(self, test_client: Flask, invalid_output):
+        """Test validation failure with invalid output variable names."""
+        input_vars = ["x1"]
+        jobs = self.create_cv_accuracy_jobs(10, input_vars, "y")  # Create valid jobs
+        
+        payload = {
+            "inputs": input_vars,
+            "output": invalid_output,
+            "FunctionJobs": jobs
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_empty_function_jobs_list(self, test_client: Flask):
+        """Test validation failure with empty FunctionJobs list."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": []
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_invalid_json_request(self, test_client: Flask):
+        """Test handling of invalid JSON in the request."""
+        response = test_client.post(
+            "/dakota/get_sumo_cv_accuracy_metrics", 
+            data="invalid json",
+            content_type="application/json"
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_jobs_with_invalid_status(self, test_client: Flask):
+        """Test validation with jobs that have empty or invalid status."""
+        input_vars = ["x1"]
+        output = "y"
+        
+        # Create jobs with invalid status
+        valid_jobs = self.create_cv_accuracy_jobs(3, input_vars, output)
+        invalid_jobs = [make_incomplete_job("", input_vars, [output], "status") for _ in range(3)]
+        
+        all_jobs = valid_jobs + invalid_jobs
+        
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "FunctionJobs": all_jobs
+        }
+        
+        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+

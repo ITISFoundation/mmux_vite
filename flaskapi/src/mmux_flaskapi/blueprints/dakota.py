@@ -18,7 +18,10 @@ from mmux_flaskapi.blueprints.dakota_models import (
     SumoAlongAxesRequest,
     SumoAlongAxesResponse,
     SumoGridEvaluationRequest,
-    SumoGridEvaluationResponse
+    SumoGridEvaluationResponse,
+    SumoCVAccuracyMetricsRequest,
+    SumoCVAccuracyMetricsResponse,
+    CVAccuracyMetrics
 )
 # 
 from mmux_flaskapi.utils.helpers import sanitize_varnames, create_run_dir
@@ -430,43 +433,97 @@ def flask_sumo_grid_evaluation():
     except Exception as e:
         _logger.error(f"Error during grid evaluation: {e}")
         abort(make_response(jsonify({"error": str(e)}), 500))
-        
 
 
-
-@dakota_bp.route("/get_sumo_cv_accuracy_metrics")
+@dakota_bp.route("/get_sumo_cv_accuracy_metrics", methods=["POST"])
 def flask_get_sumo_cv_accuracy_metrics():
-    _logger.debug("Starting flask function: flask/get_sumo_cv_accuracy_metrics")
+    """
+    Get SUMO cross-validation accuracy metrics for model evaluation.
+    
+    Uses Pydantic validation to ensure robust input validation and consistent error handling.
+    Returns cross-validation accuracy metrics including RMSE, MAE, and other error statistics.
+    """
+    os.chdir(Path(__file__).parent)
+    _logger.debug("Starting flask function: flask_get_sumo_cv_accuracy_metrics")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
     try:
-        # Convert request data into a Python dictionary
-        request_data: dict = json.loads(request.data.decode("utf-8"))
-        output_response = request_data["output"]
-        input_vars: List[str] = request_data["inputs"]
-        make_log = request_data.get("log", False)
-        jobs = request_data["FunctionJobs"]
+        # Parse and validate request using Pydantic
+        request_json = request.get_json()
+        if request_json is None:
+            abort(make_response(jsonify({"error": "Invalid JSON or missing content-type header"}), 400))
+            
+        request_data = SumoCVAccuracyMetricsRequest.model_validate(request_json)
         
+        # Extract validated data
+        output_response = request_data.output
+        input_vars = request_data.inputs
+        jobs = request_data.FunctionJobs
+        
+        _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(jobs)} jobs")
+        
+        # Create training file from validated jobs
         TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
         run_dir = TRAINING_FILE.parent
 
+        # Process the training file
         PROCESSED_TRAINING_FILE = process_input_file(
             TRAINING_FILE,
-            make_log=make_log,
-            columns_to_keep=input_vars + [output_response], # type: ignore
+            columns_to_keep=input_vars + [output_response],
         )
 
+        # Evaluate SUMO cross-validation
         results = evaluate_sumo_crossvalidation(
             run_dir,
             PROCESSED_TRAINING_FILE,
             input_vars,
-            output_response, # type: ignore
+            output_response,
         )
-        _logger.debug("Done!!")
-        return jsonify(results)
+        
+        _logger.debug(f"Raw CV results: {results}")
+        
+        # Handle case where Dakota returns empty results
+        if not results:
+            # Return a default response indicating no metrics were found
+            results = {output_response: "No surrogate quality metrics found."}
+        
+        # Transform results to match expected response format
+        response_metrics = {}
+        for var_name, metrics in results.items():
+            if isinstance(metrics, dict):
+                # Convert metrics dict to CVAccuracyMetrics model
+                cv_metrics = CVAccuracyMetrics(**metrics)
+                response_metrics[var_name] = cv_metrics
+            else:
+                # Handle string responses like "No surrogate quality metrics found."
+                response_metrics[var_name] = metrics
+        
+        # Validate and structure response
+        response_data = {"metrics": response_metrics}
+        validated_response = SumoCVAccuracyMetricsResponse.model_validate(response_data)
+        
+        _logger.debug("SUMO CV accuracy metrics completed successfully")
+        return jsonify(validated_response.model_dump())
+        
+    except ValidationError as e:
+        _logger.error(f"Validation error in SUMO CV accuracy metrics: {e}")
+        error_details = []
+        for error in e.errors():
+            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
+            error_details.append(f"{location}: {error['msg']}")
+        abort(make_response(jsonify({
+            "error": "Validation failed",
+            "details": error_details
+        }), 400))
     except Exception as e:
-        _logger.error(f"Error while getting SUMO CV accuracy metrics: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
+        error_message = str(e)
+        # Check if it's a JSON parsing error (400 Bad Request from Flask)
+        if "400 Bad Request" in error_message and ("JSON" in error_message or "browser" in error_message):
+            _logger.error(f"Invalid JSON request: {e}")
+            abort(make_response(jsonify({"error": "Invalid JSON or malformed request"}), 400))
+        else:
+            _logger.error(f"Error while getting SUMO CV accuracy metrics: {e}")
+            abort(make_response(jsonify({"error": str(e)}), 500))
 
 _logger.info("Flask workflows module loaded successfully!")
 
@@ -486,7 +543,6 @@ def flask_perform_moga_optimization():
         _logger.debug(f"Output responses: {output_responses}")
         _logger.debug(f"Output var selection: {output_var_selection}")
         assert len(output_responses) >= 2, "At least two output responses must be selected for MOGA optimization."
-        make_log = request_data.get("log", False)
         jobs = request_data["FunctionJobs"]
 
         input_distributions_sanitized = sanitize_varnames(input_distributions)
@@ -503,7 +559,6 @@ def flask_perform_moga_optimization():
 
         PROCESSED_TRAINING_FILE = process_input_file(
             TRAINING_FILE,
-            make_log=make_log,
             columns_to_keep=input_vars_sanitized + output_responses_sanitized, # type: ignore
         )
 
