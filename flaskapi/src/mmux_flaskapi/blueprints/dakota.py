@@ -43,9 +43,7 @@ def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[st
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
 
     def get_job_dict(job):
-        _logger.info("GEtting job.inputs")
         d = {sanitize_varnames(key): job.inputs[key] for key in input_vars}
-        _logger.info("that worked!")
         output_response_sanitized_list = [output_response_sanitized] if isinstance(output_response_sanitized, str) else output_response_sanitized
         for res in output_response_sanitized_list:
             d[res] = job.outputs[res]
@@ -104,7 +102,12 @@ def flask_sumo_cross_validation():
             output_var,
         )
 
-        ## TODO validate "results" (e.g. that has those input / output vars and the std for them)
+        # Validate that "results" contains the expected keys: estimate of output (_hat) and its std (_std_hat)
+        expected_keys = [output_var + "_hat", output_var + "_std_hat"]
+        missing_keys = [key for key in expected_keys if key not in results]
+        if missing_keys:
+            _logger.error(f"Missing expected keys in results: {missing_keys}")
+            return jsonify({"error": f"Missing expected keys in results: {missing_keys}"}), 422  # Unprocessable Entity
 
         _logger.debug("Done!!")
         return jsonify(results) 
