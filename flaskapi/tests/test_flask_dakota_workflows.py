@@ -856,7 +856,7 @@ class TestSumoGridEvaluation:
         input_vars = ["x1", "x2", "x3"]
         grid_vars = ["x1"]
         output = "y"
-        slider_values = {"x2": 0.5, "x3": -1.0}
+        slider_values = {"x1": np.nan, "x2": 0.5, "x3": -1.0}
         
         payload = {
             "inputVars": input_vars,
