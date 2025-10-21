@@ -170,36 +170,3 @@ def flask_get_function_job_outputs():
     job_uid = request.args["jobUid"]
     job_outputs = osparc_api.get_job_api().function_job_outputs(job_uid)
     return job_outputs, 200
-
-def test_job_retrieval_endpoints_speed(job_uid: str, N: int = 1):
-    def _timeit(fun: Callable, N: int, *args, **kwargs):
-        """Helper function to time the execution of a function N times."""
-        import time
-        start_time = time.time()
-        for i in range(N):
-            result = fun(*args, **kwargs)
-            _logger.info(f"Iteration {i+1}/{N}: {result}")   # Print the result of each iteration
-        end_time = time.time()
-        return (end_time - start_time) / N
-    osparc_api = get_osparc_api()
-    time_job_full = _timeit(osparc_api.get_job_api().get_function_job, N, job_uid)
-    time_job_outputs = _timeit(osparc_api.get_job_api().function_job_outputs, N, job_uid)
-    time_job_status = _timeit(osparc_api.get_job_api().function_job_status, N, job_uid)
-
-    _logger.debug(f"Average time to retrieve full job: {time_job_full:.4f} seconds")
-    _logger.debug(f"Average time to retrieve job outputs: {time_job_outputs:.4f} seconds")
-    _logger.debug(f"Average time to retrieve job status: {time_job_status:.4f} seconds")
-
-def test_job_retrieval_paginated(function_uid: str):
-    def _timeit(fun: Callable, *args, **kwargs):
-        import time
-        start_time = time.time()
-        result = fun(*args, **kwargs)
-        end_time = time.time()
-        _logger.info(f"Retrieved {len(result)} items in {end_time - start_time:.4f} seconds")
-        _logger.info(f"First item: {result[0] if result else 'No items retrieved'}")
-        _logger.info(f"Last item: {result[-1] if result else 'No items retrieved'}")
-        if result:
-            _logger.info(f"That is {(end_time - start_time)/len(result):.2f} seconds per item")
-    osparc_api = get_osparc_api()
-    _timeit(_get_all_items, api_call=osparc_api.get_functions_api().list_function_jobs_for_functionid, function_id=function_uid)  # type: ignore
