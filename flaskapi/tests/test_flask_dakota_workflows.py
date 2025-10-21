@@ -2937,3 +2937,28 @@ class TestDakotaValidationEndpoints:
             # Test PUT method
             response = test_client.put(endpoint, json={})
             assert response.status_code == 405  # Method Not Allowed
+
+
+class TestDakotaBasicErrorHandling:
+    """Test basic JSON error handling to improve coverage for Dakota endpoints."""
+
+    def test_sumo_cross_validation_json_decode_error(self, test_client):
+        """Test JSON decode error in sumo_cross_validation."""
+        response = test_client.post('/dakota/sumo_cross_validation',
+                                   data='invalid json',
+                                   content_type='application/json')
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "Invalid JSON" in data["error"]
+
+    def test_manual_uq_propagation_json_decode_error(self, test_client):
+        """Test JSON decode error in manual_uq_propagation_with_uncertainty."""
+        response = test_client.post('/dakota/manual_uq_propagation_with_uncertainty',
+                                   data='invalid json',
+                                   content_type='application/json')
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        # This endpoint catches JSON decode errors differently
+        assert "error" in data

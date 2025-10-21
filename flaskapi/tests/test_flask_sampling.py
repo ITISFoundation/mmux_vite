@@ -1801,3 +1801,250 @@ class TestJobWithMocks:
                         x_simcore_parent_node_id="test-node-123",
                         x_simcore_parent_project_uuid="test-project-456"
                     )
+
+
+class TestSamplingErrorHandlingMissingCoverage:
+    """Test class to cover the specific error handling branches that are missing coverage."""
+
+    def test_lhs_sampling_json_decode_error(self, test_client):
+        """Test LHS sampling with malformed JSON that causes decode error."""
+        # Send malformed JSON that will cause json.loads to fail
+        response = test_client.post(
+            "/sampling/lhs",
+            data="{'invalid': json}",  # Invalid JSON syntax
+            content_type="application/json"
+        )
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "Invalid request data" in data["error"]
+
+    def test_lhs_sampling_assertion_error_empty_samples(self, test_client):
+        """Test LHS sampling when empty samples would trigger assertion error."""
+        payload = {
+            "config": [{"variable": "x", "start": 0, "end": 1}],
+            "seed": 42,
+            "N": 0,  # This should cause no samples to be generated
+            "funUid": "test-function"
+        }
+        
+        response = test_client.post("/sampling/lhs", json=payload)
+        # Should get validation error for N=0 before reaching assertion
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_grid_sampling_json_decode_error(self, test_client):
+        """Test Grid sampling with malformed JSON that causes decode error."""
+        # Send malformed JSON that will cause json.loads to fail
+        response = test_client.post(
+            "/sampling/grid",
+            data="{'config': [invalid json}",  # Invalid JSON syntax
+            content_type="application/json"
+        )
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "Invalid request data" in data["error"]
+
+    def test_grid_sampling_import_error(self, test_client):
+        """Test Grid sampling when import fails."""
+        payload = {
+            "config": [{"variable": "x", "start": 0, "end": 1, "steps": 2}],
+            "funUid": "test-function"
+        }
+        
+        # Mock import error for create_grid_samples
+        with patch("flaskapi.mmux_python.utils.funs_evaluate.create_grid_samples") as mock_create_grid:
+            mock_create_grid.side_effect = ImportError("Cannot import create_grid_samples")
+            
+            response = test_client.post("/sampling/grid", json=payload)
+            
+            assert response.status_code == 500
+            data = response.get_json()
+            assert "error" in data
+            assert "Error while creating Grid Sampling" in data["error"]
+            assert "Cannot import create_grid_samples" in data["error"]
+
+    def test_test_job_json_decode_error(self, test_client):
+        """Test test_job with malformed JSON that causes decode error."""
+        # Send malformed JSON that will cause json.loads to fail
+        response = test_client.post(
+            "/sampling/test_job",
+            data="{'funUid': 'test', 'config': [malformed}",  # Invalid JSON syntax
+            content_type="application/json"
+        )
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "Invalid request data" in data["error"]
+
+    def test_test_job_get_function_job_from_uid_error(self, test_client):
+        """Test test_job when _get_function_job_from_uid fails."""
+        payload = {
+            "funUid": "test-function-uid",
+            "config": [{"variable": "input1", "value": 10.5}]
+        }
+        
+        mock_functions_api = Mock()
+        mock_validation_result = {"status": "valid"}
+        mock_functions_api.validate_function_inputs.return_value = mock_validation_result
+        
+        mock_run_response = Mock()
+        mock_job_instance = Mock()
+        mock_job_instance.uid = "job-uid-12345"
+        mock_run_response.actual_instance = mock_job_instance
+        mock_functions_api.run_function.return_value = mock_run_response
+        
+        mock_parent_info = Mock()
+        mock_parent_info.parent_node_id = "test-node"
+        mock_parent_info.parent_project_id = "test-project"
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_functions_api') as mock_get_functions:
+            with patch('mmux_flaskapi.blueprints.sampling._get_parent_ids') as mock_get_parent:
+                with patch('mmux_flaskapi.blueprints.sampling._get_function_job_from_uid') as mock_get_job:
+                    mock_get_functions.return_value = mock_functions_api
+                    mock_get_parent.return_value = mock_parent_info
+                    
+                    # Make _get_function_job_from_uid raise an exception
+                    mock_get_job.side_effect = Exception("Failed to get job details")
+                    
+                    response = test_client.post("/sampling/test_job", json=payload)
+                    
+                    assert response.status_code == 500
+                    data = response.get_json()
+                    assert "error" in data
+                    assert "Error while testing job" in data["error"]
+                    assert "Failed to get job details" in data["error"]
+
+    def test_clone_job_json_decode_error(self, test_client):
+        """Test clone_job with malformed JSON that causes decode error."""
+        # Send malformed JSON that will cause json.loads to fail
+        response = test_client.post(
+            "/sampling/clone_job",
+            data="{'projectJobId': 'test', invalid json}",  # Invalid JSON syntax
+            content_type="application/json"
+        )
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "Invalid request data" in data["error"]
+
+    def test_clone_job_studies_api_generic_exception(self, test_client):
+        """Test clone_job when studies API raises a generic (non-OsparcApiException) exception."""
+        payload = {
+            "projectJobId": "test-study-uuid",
+            "functionName": "TestFunction",
+            "projectInputs": {"param1": 10.5}
+        }
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_studies_api') as mock_get_api:
+            mock_studies_api = Mock()
+            # Raise a generic exception (not OsparcApiException)
+            mock_studies_api.clone_study.side_effect = RuntimeError("Unexpected database error")
+            mock_get_api.return_value = mock_studies_api
+            
+            response = test_client.post("/sampling/clone_job", json=payload)
+            
+            assert response.status_code == 500
+            data = response.get_json()
+            assert "error" in data
+            assert "Error while cloning job" in data["error"]
+            assert "Unexpected database error" in data["error"]
+
+    def test_lhs_sampling_osparc_api_generic_exception(self, test_client):
+        """Test LHS sampling when OSPARC API raises a generic (non-OsparcApiException) exception."""
+        payload = {
+            "config": [{"variable": "x", "start": 0, "end": 1}],
+            "seed": 42,
+            "N": 3,
+            "funUid": "test-function"
+        }
+        
+        # Mock a generic exception (not OsparcApiException) in map_function
+        def mock_generic_exception(*args, **kwargs):
+            raise ConnectionError("Network connection failed")
+        
+        with patch("osparc_client.api.functions_api.FunctionsApi.map_function", side_effect=mock_generic_exception):
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
+                with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_api:
+                    mock_parent_ids.return_value.parent_node_id = "test-node"
+                    mock_parent_ids.return_value.parent_project_id = "test-project"
+                    
+                    mock_api = Mock()
+                    mock_api.map_function = Mock(side_effect=mock_generic_exception)
+                    mock_get_api.return_value = mock_api
+                    
+                    response = test_client.post("/sampling/lhs", json=payload)
+                    
+                    assert response.status_code == 500
+                    data = response.get_json()
+                    assert "error" in data
+                    assert "Error while performing LHS sampling" in data["error"]
+                    assert "Network connection failed" in data["error"]
+
+    def test_grid_sampling_osparc_api_generic_exception(self, test_client):
+        """Test Grid sampling when OSPARC API raises a generic exception."""
+        payload = {
+            "config": [{"variable": "x", "start": 0, "end": 1, "steps": 2}],
+            "funUid": "test-function"
+        }
+        
+        # Mock grid dependencies
+        with patch("flaskapi.mmux_python.utils.funs_evaluate.create_grid_samples") as mock_create_grid:
+            with patch("flaskapi.mmux_python.utils.funs_data_processing.load_data") as mock_load_data:
+                with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
+                    mock_create_grid.return_value = "/tmp/grid_samples.csv"
+                    import pandas as pd
+                    sample_df = pd.DataFrame({'x': [0.0, 1.0]})
+                    mock_load_data.return_value = sample_df
+                    from pathlib import Path
+                    mock_create_run_dir.return_value = Path("/tmp/test_run")
+                    
+                    # Mock a generic exception in map_function
+                    def mock_generic_exception(*args, **kwargs):
+                        raise TimeoutError("Request timed out")
+                    
+                    with patch("osparc_client.api.functions_api.FunctionsApi.map_function", side_effect=mock_generic_exception):
+                        with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
+                            with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_api:
+                                mock_parent_ids.return_value.parent_node_id = "test-node"
+                                mock_parent_ids.return_value.parent_project_id = "test-project"
+                                
+                                mock_api = Mock()
+                                mock_api.map_function = Mock(side_effect=mock_generic_exception)
+                                mock_get_api.return_value = mock_api
+                                
+                                response = test_client.post("/sampling/grid", json=payload)
+                                
+                                assert response.status_code == 500
+                                data = response.get_json()
+                                assert "error" in data
+                                assert "Error while creating Grid Sampling" in data["error"]
+                                assert "Request timed out" in data["error"]
+
+    def test_test_job_osparc_api_generic_exception(self, test_client):
+        """Test test_job when OSPARC API raises a generic exception."""
+        payload = {
+            "funUid": "test-function-uid",
+            "config": [{"variable": "input1", "value": 10.5}]
+        }
+        
+        mock_functions_api = Mock()
+        # Make validate_function_inputs raise a generic exception
+        mock_functions_api.validate_function_inputs.side_effect = KeyError("API key missing")
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_functions_api') as mock_get_functions:
+            mock_get_functions.return_value = mock_functions_api
+            
+            response = test_client.post("/sampling/test_job", json=payload)
+            
+            assert response.status_code == 500
+            data = response.get_json()
+            assert "error" in data
+            assert "Error while testing job" in data["error"]
+            assert "API key missing" in data["error"]
