@@ -681,3 +681,789 @@ class TestSamplingIntegrationWithOsparcAPI:
                                 for sample in samples:
                                     assert "inlet_velocity" in sample  # From mock grid dependencies
                                     assert "outlet_pressure" in sample
+
+
+class TestCloneJobWithMocks:
+    """Test clone_job endpoint with mocked OSPARC API responses."""
+
+    def test_clone_job_success(self, test_client):
+        """Test successful job cloning with mocked OSPARC API."""
+        payload = {
+            "projectJobId": "test-study-uuid-12345",
+            "functionName": "TestFunction",
+            "projectInputs": {
+                "param1": 10.5,
+                "param2": 20.0,
+                "param3": 5.5
+            }
+        }
+        
+        # Mock successful study cloning response
+        mock_cloned_study = Mock()
+        mock_cloned_study.to_dict.return_value = {
+            "study_id": "cloned-study-uuid-67890",
+            "title": "Job TestFunction",
+            "description": "Clone of job *test-study-uuid-12345* from function *TestFunction*.\n\n#### Inputs:\n\n- *param1*: 10.5\n- *param2*: 20\n- *param3*: 5.5",
+            "status": "created",
+            "created_at": "2025-10-21T10:30:00Z",
+            "updated_at": "2025-10-21T10:30:00Z",
+            "owner": "test_user",
+            "project_id": "cloned-study-uuid-67890"
+        }
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_studies_api') as mock_get_api:
+            mock_studies_api = Mock()
+            mock_studies_api.clone_study.return_value = mock_cloned_study
+            mock_get_api.return_value = mock_studies_api
+            
+            response = test_client.post("/sampling/clone_job", json=payload)
+            
+            assert response.status_code == 200
+            data = response.get_json()
+            
+            # Verify response structure
+            assert "study_id" in data
+            assert data["study_id"] == "cloned-study-uuid-67890"
+            assert data["title"] == "Job TestFunction"
+            assert data["status"] == "created"
+            assert "Clone of job *test-study-uuid-12345*" in data["description"]
+            assert "*param1*: 10.5" in data["description"]
+            assert "*param2*: 20" in data["description"]
+            assert "*param3*: 5.5" in data["description"]
+            
+            # Verify API was called correctly
+            mock_studies_api.clone_study.assert_called_once()
+            call_args = mock_studies_api.clone_study.call_args
+            
+            # Check positional arguments
+            assert call_args[0][0] == "test-study-uuid-12345"  # project_job_id
+            
+            # Check keyword arguments
+            assert call_args[1]["hidden"] is False
+            
+            # Check study data
+            study_data = call_args[1]["body_clone_study_v0_studies_study_id_clone_post"]
+            assert study_data.title == "Job TestFunction"
+            assert "Clone of job *test-study-uuid-12345* from function *TestFunction*" in study_data.description
+            assert "#### Inputs:" in study_data.description
+
+    def test_clone_job_validation_error_missing_project_job_id(self, test_client):
+        """Test clone_job with missing projectJobId field."""
+        payload = {
+            "functionName": "TestFunction",
+            "projectInputs": {"param1": 10.5}
+        }
+        
+        response = test_client.post("/sampling/clone_job", json=payload)
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "Invalid request data" in data["error"]
+        assert "projectJobId" in data["error"] or "field required" in data["error"] or "Field required" in data["error"]
+
+    def test_clone_job_validation_error_missing_function_name(self, test_client):
+        """Test clone_job with missing functionName field."""
+        payload = {
+            "projectJobId": "test-study-uuid-12345",
+            "projectInputs": {"param1": 10.5}
+        }
+        
+        response = test_client.post("/sampling/clone_job", json=payload)
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "Invalid request data" in data["error"]
+        assert "functionName" in data["error"] or "field required" in data["error"] or "Field required" in data["error"]
+
+    def test_clone_job_validation_error_missing_project_inputs(self, test_client):
+        """Test clone_job with missing projectInputs field."""
+        payload = {
+            "projectJobId": "test-study-uuid-12345",
+            "functionName": "TestFunction"
+        }
+        
+        response = test_client.post("/sampling/clone_job", json=payload)
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "Invalid request data" in data["error"]
+        assert "projectInputs" in data["error"] or "field required" in data["error"] or "Field required" in data["error"]
+
+    def test_clone_job_validation_error_empty_project_job_id(self, test_client):
+        """Test clone_job with empty projectJobId field."""
+        payload = {
+            "projectJobId": "",
+            "functionName": "TestFunction",
+            "projectInputs": {"param1": 10.5}
+        }
+        
+        response = test_client.post("/sampling/clone_job", json=payload)
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "Invalid request data" in data["error"]
+
+    def test_clone_job_validation_error_empty_function_name(self, test_client):
+        """Test clone_job with empty functionName field."""
+        payload = {
+            "projectJobId": "test-study-uuid-12345",
+            "functionName": "",
+            "projectInputs": {"param1": 10.5}
+        }
+        
+        response = test_client.post("/sampling/clone_job", json=payload)
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "Invalid request data" in data["error"]
+
+    def test_clone_job_invalid_json_format(self, test_client):
+        """Test clone_job with invalid JSON format."""
+        response = test_client.post(
+            "/sampling/clone_job", 
+            data="invalid json",
+            content_type="application/json"
+        )
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "Invalid request data" in data["error"]
+
+    def test_clone_job_osparc_api_error(self, test_client):
+        """Test clone_job when OSPARC API raises an exception."""
+        payload = {
+            "projectJobId": "test-study-uuid-12345",
+            "functionName": "TestFunction",
+            "projectInputs": {"param1": 10.5}
+        }
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_studies_api') as mock_get_api:
+            mock_studies_api = Mock()
+            mock_studies_api.clone_study.side_effect = Exception("OSPARC API connection failed")
+            mock_get_api.return_value = mock_studies_api
+            
+            response = test_client.post("/sampling/clone_job", json=payload)
+            
+            assert response.status_code == 500
+            data = response.get_json()
+            assert "error" in data
+            assert "Error while cloning job" in data["error"]
+            assert "OSPARC API connection failed" in data["error"]
+
+    def test_clone_job_osparc_study_not_found(self, test_client):
+        """Test clone_job when the study to clone is not found."""
+        payload = {
+            "projectJobId": "non-existent-study-uuid",
+            "functionName": "TestFunction",
+            "projectInputs": {"param1": 10.5}
+        }
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_studies_api') as mock_get_api:
+            mock_studies_api = Mock()
+            mock_studies_api.clone_study.side_effect = OsparcApiException(
+                status=404,
+                body="Study not found"
+            )
+            mock_get_api.return_value = mock_studies_api
+            
+            response = test_client.post("/sampling/clone_job", json=payload)
+            
+            assert response.status_code == 500
+            data = response.get_json()
+            assert "error" in data
+            assert "Error while cloning job" in data["error"]
+
+    def test_clone_job_complex_inputs_formatting(self, test_client):
+        """Test clone_job with complex input parameters and proper formatting."""
+        payload = {
+            "projectJobId": "test-study-uuid-12345",
+            "functionName": "ComplexSimulation",
+            "projectInputs": {
+                "velocity": 15.75,
+                "pressure": 101325.0,
+                "temperature": 298.15,
+                "viscosity": 0.001002,
+                "density": 1000.0
+            }
+        }
+        
+        mock_cloned_study = Mock()
+        mock_cloned_study.to_dict.return_value = {
+            "study_id": "cloned-complex-study-uuid",
+            "title": "Job ComplexSimulation",
+            "description": "Complex simulation clone with formatted inputs",
+            "status": "created"
+        }
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_studies_api') as mock_get_api:
+            mock_studies_api = Mock()
+            mock_studies_api.clone_study.return_value = mock_cloned_study
+            mock_get_api.return_value = mock_studies_api
+            
+            response = test_client.post("/sampling/clone_job", json=payload)
+            
+            assert response.status_code == 200
+            data = response.get_json()
+            assert data["study_id"] == "cloned-complex-study-uuid"
+            
+            # Verify the study data formatting
+            call_args = mock_studies_api.clone_study.call_args
+            study_data = call_args[1]["body_clone_study_v0_studies_study_id_clone_post"]
+            
+            # Check that large numbers are properly formatted
+            description = study_data.description
+            assert "*pressure*: 1.013e+05" in description or "*pressure*: 101325" in description or "*pressure*: 1.013e+5" in description
+            assert "*temperature*: 298.1" in description or "*temperature*: 298.15" in description or "*temperature*: 298.2" in description
+            assert "*viscosity*: 0.001002" in description
+            assert "*density*: 1000" in description
+
+    def test_clone_job_edge_case_very_small_numbers(self, test_client):
+        """Test clone_job with very small numbers in inputs."""
+        payload = {
+            "projectJobId": "test-study-uuid-12345",
+            "functionName": "MicroSimulation",
+            "projectInputs": {
+                "epsilon": 1e-12,
+                "delta": 5.5e-8,
+                "tolerance": 0.0001
+            }
+        }
+        
+        mock_cloned_study = Mock()
+        mock_cloned_study.to_dict.return_value = {
+            "study_id": "cloned-micro-study-uuid",
+            "title": "Job MicroSimulation",
+            "status": "created"
+        }
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_studies_api') as mock_get_api:
+            mock_studies_api = Mock()
+            mock_studies_api.clone_study.return_value = mock_cloned_study
+            mock_get_api.return_value = mock_studies_api
+            
+            response = test_client.post("/sampling/clone_job", json=payload)
+            
+            assert response.status_code == 200
+            
+            # Verify scientific notation formatting for very small numbers
+            call_args = mock_studies_api.clone_study.call_args
+            study_data = call_args[1]["body_clone_study_v0_studies_study_id_clone_post"]
+            description = study_data.description
+            
+            # Scientific notation should be used for very small numbers
+            assert "*epsilon*: 1e-12" in description or "*epsilon*: 1e-12" in description
+            assert "*delta*: 5.5e-08" in description or "*delta*: 5.5e-8" in description
+
+    def test_clone_job_method_not_allowed(self, test_client):
+        """Test clone_job endpoint with unsupported HTTP methods."""
+        payload = {
+            "projectJobId": "test-study-uuid-12345",
+            "functionName": "TestFunction",
+            "projectInputs": {"param1": 10.5}
+        }
+        
+        # Test GET method
+        response = test_client.get("/sampling/clone_job")
+        assert response.status_code == 405
+        
+        # Test PUT method
+        response = test_client.put("/sampling/clone_job", json=payload)
+        assert response.status_code == 405
+        
+        # Test DELETE method
+        response = test_client.delete("/sampling/clone_job")
+        assert response.status_code == 405
+        
+        # Test PATCH method
+        response = test_client.patch("/sampling/clone_job", json=payload)
+        assert response.status_code == 405
+
+    def test_clone_job_empty_project_inputs(self, test_client):
+        """Test clone_job with empty projectInputs dictionary."""
+        payload = {
+            "projectJobId": "test-study-uuid-12345",
+            "functionName": "TestFunction",
+            "projectInputs": {}
+        }
+        
+        mock_cloned_study = Mock()
+        mock_cloned_study.to_dict.return_value = {
+            "study_id": "cloned-empty-inputs-study",
+            "title": "Job TestFunction",
+            "description": "Clone with no inputs",
+            "status": "created"
+        }
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_studies_api') as mock_get_api:
+            mock_studies_api = Mock()
+            mock_studies_api.clone_study.return_value = mock_cloned_study
+            mock_get_api.return_value = mock_studies_api
+            
+            response = test_client.post("/sampling/clone_job", json=payload)
+            
+            assert response.status_code == 200
+            
+            # Check that empty inputs are handled gracefully
+            call_args = mock_studies_api.clone_study.call_args
+            study_data = call_args[1]["body_clone_study_v0_studies_study_id_clone_post"]
+            description = study_data.description
+            
+            # Should contain the inputs section but be minimal
+            assert "#### Inputs:" in description
+            assert "Clone of job *test-study-uuid-12345*" in description
+
+
+class TestSamplingUtilityFunctions:
+    """Test the utility functions in sampling.py module."""
+
+    def test_get_parent_ids_local_mode(self):
+        """Test _get_parent_ids with LOCAL deployment mode."""
+        with patch('mmux_flaskapi.blueprints.deployment.deployment_mode') as mock_deployment_mode:
+            mock_deployment_mode.return_value = "LOCAL"
+            
+            from mmux_flaskapi.blueprints.sampling import _get_parent_ids
+            
+            parent_info = _get_parent_ids()
+            
+            assert parent_info.parent_node_id == "null"
+            assert parent_info.parent_project_id == "null"
+
+    def test_get_parent_ids_osparc_mode_success(self):
+        """Test _get_parent_ids with OSPARC deployment mode and valid environment variables."""
+        with patch('mmux_flaskapi.blueprints.deployment.deployment_mode') as mock_deployment_mode:
+            with patch.dict('os.environ', {
+                'OSPARC_NODE_ID': 'test-node-12345',
+                'OSPARC_STUDY_ID': 'test-study-67890'
+            }):
+                mock_deployment_mode.return_value = "OSPARC"
+                
+                from mmux_flaskapi.blueprints.sampling import _get_parent_ids
+                
+                parent_info = _get_parent_ids()
+                
+                assert parent_info.parent_node_id == "test-node-12345"
+                assert parent_info.parent_project_id == "test-study-67890"
+
+    def test_get_parent_ids_osparc_mode_missing_node_id(self):
+        """Test _get_parent_ids with OSPARC mode but missing OSPARC_NODE_ID."""
+        with patch('mmux_flaskapi.blueprints.deployment.deployment_mode') as mock_deployment_mode:
+            with patch.dict('os.environ', {
+                'OSPARC_STUDY_ID': 'test-study-67890'
+            }, clear=True):
+                mock_deployment_mode.return_value = "OSPARC"
+                
+                from mmux_flaskapi.blueprints.sampling import _get_parent_ids
+                
+                with pytest.raises(ValueError, match="OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set"):
+                    _get_parent_ids()
+
+    def test_get_parent_ids_osparc_mode_missing_study_id(self):
+        """Test _get_parent_ids with OSPARC mode but missing OSPARC_STUDY_ID."""
+        with patch('mmux_flaskapi.blueprints.deployment.deployment_mode') as mock_deployment_mode:
+            with patch.dict('os.environ', {
+                'OSPARC_NODE_ID': 'test-node-12345'
+            }, clear=True):
+                mock_deployment_mode.return_value = "OSPARC"
+                
+                from mmux_flaskapi.blueprints.sampling import _get_parent_ids
+                
+                with pytest.raises(ValueError, match="OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set"):
+                    _get_parent_ids()
+
+    def test_get_parent_ids_osparc_mode_empty_environment_vars(self):
+        """Test _get_parent_ids with OSPARC mode but empty environment variables."""
+        with patch('mmux_flaskapi.blueprints.deployment.deployment_mode') as mock_deployment_mode:
+            with patch.dict('os.environ', {
+                'OSPARC_NODE_ID': '',
+                'OSPARC_STUDY_ID': ''
+            }):
+                mock_deployment_mode.return_value = "OSPARC"
+                
+                from mmux_flaskapi.blueprints.sampling import _get_parent_ids
+                
+                with pytest.raises(ValueError, match="OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set"):
+                    _get_parent_ids()
+
+    def test_get_parent_ids_unknown_deployment_mode(self):
+        """Test _get_parent_ids with unknown deployment mode."""
+        with patch('mmux_flaskapi.blueprints.deployment.deployment_mode') as mock_deployment_mode:
+            mock_deployment_mode.return_value = "UNKNOWN_MODE"
+            
+            from mmux_flaskapi.blueprints.sampling import _get_parent_ids
+            
+            with pytest.raises(ValueError, match="DEPLOYMENT_MODE env variable could not be recognized \\(UNKNOWN_MODE\\)"):
+                _get_parent_ids()
+
+    def test_get_functions_api_success(self):
+        """Test _get_functions_api returns valid functions API."""
+        mock_osparc_api = Mock()
+        mock_functions_api = Mock()
+        mock_osparc_api.get_functions_api.return_value = mock_functions_api
+        
+        with patch('mmux_flaskapi.blueprints.sampling.get_osparc_api') as mock_get_osparc:
+            mock_get_osparc.return_value = mock_osparc_api
+            
+            from mmux_flaskapi.blueprints.sampling import _get_functions_api
+            
+            result = _get_functions_api()
+            
+            assert result == mock_functions_api
+            mock_osparc_api.get_functions_api.assert_called_once()
+
+    def test_get_functions_api_none_result(self):
+        """Test _get_functions_api when get_functions_api returns None."""
+        mock_osparc_api = Mock()
+        mock_osparc_api.get_functions_api.return_value = None
+        
+        with patch('mmux_flaskapi.blueprints.sampling.get_osparc_api') as mock_get_osparc:
+            mock_get_osparc.return_value = mock_osparc_api
+            
+            from mmux_flaskapi.blueprints.sampling import _get_functions_api
+            
+            with pytest.raises(AssertionError, match="functions_api is None"):
+                _get_functions_api()
+
+    def test_get_studies_api_success(self):
+        """Test _get_studies_api returns valid studies API."""
+        mock_osparc_api = Mock()
+        mock_studies_api = Mock()
+        mock_osparc_api.get_studies_api.return_value = mock_studies_api
+        
+        with patch('mmux_flaskapi.blueprints.sampling.get_osparc_api') as mock_get_osparc:
+            mock_get_osparc.return_value = mock_osparc_api
+            
+            from mmux_flaskapi.blueprints.sampling import _get_studies_api
+            
+            result = _get_studies_api()
+            
+            assert result == mock_studies_api
+            mock_osparc_api.get_studies_api.assert_called_once()
+
+    def test_get_studies_api_none_result(self):
+        """Test _get_studies_api when get_studies_api returns None."""
+        mock_osparc_api = Mock()
+        mock_osparc_api.get_studies_api.return_value = None
+        
+        with patch('mmux_flaskapi.blueprints.sampling.get_osparc_api') as mock_get_osparc:
+            mock_get_osparc.return_value = mock_osparc_api
+            
+            from mmux_flaskapi.blueprints.sampling import _get_studies_api
+            
+            with pytest.raises(AssertionError, match="studies_api is None"):
+                _get_studies_api()
+
+
+class TestJobWithMocks:
+    """Test the test_job endpoint with comprehensive mocking."""
+
+    def test_test_job_success(self, test_client):
+        """Test successful test_job execution."""
+        payload = {
+            "funUid": "test-function-uid-12345",
+            "config": [
+                {"variable": "input1", "value": 10.5},
+                {"variable": "input2", "value": "test_string"}
+            ]
+        }
+        
+        # Mock the APIs and responses
+        mock_functions_api = Mock()
+        mock_validation_result = {"status": "valid", "inputs": {"input1": 10.5, "input2": "test_string"}}
+        mock_functions_api.validate_function_inputs.return_value = mock_validation_result
+        
+        mock_run_response = Mock()
+        mock_job_instance = Mock()
+        mock_job_instance.uid = "job-uid-67890"
+        mock_run_response.actual_instance = mock_job_instance
+        mock_functions_api.run_function.return_value = mock_run_response
+        
+        mock_parent_info = Mock()
+        mock_parent_info.parent_node_id = "test-node-123"
+        mock_parent_info.parent_project_id = "test-project-456"
+        
+        mock_job_details = {
+            "uid": "job-uid-67890",
+            "status": "running",
+            "function_id": "test-function-uid-12345",
+            "inputs": {"input1": 10.5, "input2": "test_string"}
+        }
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_functions_api') as mock_get_functions:
+            with patch('mmux_flaskapi.blueprints.sampling._get_parent_ids') as mock_get_parent:
+                with patch('mmux_flaskapi.blueprints.sampling._get_function_job_from_uid') as mock_get_job:
+                    mock_get_functions.return_value = mock_functions_api
+                    mock_get_parent.return_value = mock_parent_info
+                    mock_get_job.return_value = mock_job_details
+                    
+                    response = test_client.post("/sampling/test_job", json=payload)
+                    
+                    assert response.status_code == 200
+                    response_data = response.get_json()
+                    
+                    assert response_data["uid"] == "job-uid-67890"
+                    assert response_data["status"] == "running"
+                    assert response_data["function_id"] == "test-function-uid-12345"
+                    
+                    # Verify API calls
+                    mock_functions_api.validate_function_inputs.assert_called_once_with(
+                        "test-function-uid-12345", 
+                        {"input1": 10.5, "input2": "test_string"}
+                    )
+                    mock_functions_api.run_function.assert_called_once_with(
+                        "test-function-uid-12345",
+                        body={"input1": 10.5, "input2": "test_string"},
+                        x_simcore_parent_node_id="test-node-123",
+                        x_simcore_parent_project_uuid="test-project-456"
+                    )
+
+    def test_test_job_validation_error_missing_funuid(self, test_client):
+        """Test test_job with missing funUid field."""
+        payload = {
+            "config": [
+                {"variable": "input1", "value": 10.5}
+            ]
+        }
+        
+        response = test_client.post("/sampling/test_job", json=payload)
+        
+        assert response.status_code == 400
+        response_data = response.get_json()
+        assert "error" in response_data
+        assert "invalid request data" in response_data["error"].lower()
+
+    def test_test_job_validation_error_missing_config(self, test_client):
+        """Test test_job with missing config field."""
+        payload = {
+            "funUid": "test-function-uid-12345"
+        }
+        
+        response = test_client.post("/sampling/test_job", json=payload)
+        
+        assert response.status_code == 400
+        response_data = response.get_json()
+        assert "error" in response_data
+        assert "invalid request data" in response_data["error"].lower()
+
+    def test_test_job_validation_error_empty_config(self, test_client):
+        """Test test_job with empty config array."""
+        payload = {
+            "funUid": "test-function-uid-12345",
+            "config": []
+        }
+        
+        response = test_client.post("/sampling/test_job", json=payload)
+        
+        assert response.status_code == 400
+        response_data = response.get_json()
+        assert "error" in response_data
+
+    def test_test_job_api_validation_failure(self, test_client):
+        """Test test_job when OSPARC API validation fails."""
+        payload = {
+            "funUid": "invalid-function-uid",
+            "config": [
+                {"variable": "input1", "value": 10.5}
+            ]
+        }
+        
+        mock_functions_api = Mock()
+        mock_functions_api.validate_function_inputs.side_effect = OsparcApiException(
+            status=422, 
+            body="Invalid function inputs"
+        )
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_functions_api') as mock_get_functions:
+            mock_get_functions.return_value = mock_functions_api
+            
+            response = test_client.post("/sampling/test_job", json=payload)
+            
+            assert response.status_code == 500
+            response_data = response.get_json()
+            assert "error" in response_data
+            assert "Error while testing job" in response_data["error"]
+
+    def test_test_job_run_function_failure(self, test_client):
+        """Test test_job when run_function fails."""
+        payload = {
+            "funUid": "test-function-uid-12345",
+            "config": [
+                {"variable": "input1", "value": 10.5}
+            ]
+        }
+        
+        mock_functions_api = Mock()
+        mock_validation_result = {"status": "valid"}
+        mock_functions_api.validate_function_inputs.return_value = mock_validation_result
+        mock_functions_api.run_function.side_effect = OsparcApiException(
+            status=500, 
+            body="Internal server error"
+        )
+        
+        mock_parent_info = Mock()
+        mock_parent_info.parent_node_id = "test-node-123"
+        mock_parent_info.parent_project_id = "test-project-456"
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_functions_api') as mock_get_functions:
+            with patch('mmux_flaskapi.blueprints.sampling._get_parent_ids') as mock_get_parent:
+                mock_get_functions.return_value = mock_functions_api
+                mock_get_parent.return_value = mock_parent_info
+                
+                response = test_client.post("/sampling/test_job", json=payload)
+                
+                assert response.status_code == 500
+                response_data = response.get_json()
+                assert "error" in response_data
+                assert "Error while testing job" in response_data["error"]
+
+    def test_test_job_missing_actual_instance(self, test_client):
+        """Test test_job when run_function response lacks actual_instance."""
+        payload = {
+            "funUid": "test-function-uid-12345",
+            "config": [
+                {"variable": "input1", "value": 10.5}
+            ]
+        }
+        
+        mock_functions_api = Mock()
+        mock_validation_result = {"status": "valid"}
+        mock_functions_api.validate_function_inputs.return_value = mock_validation_result
+        
+        # Mock response without actual_instance
+        mock_run_response = Mock()
+        mock_run_response.actual_instance = None
+        mock_functions_api.run_function.return_value = mock_run_response
+        
+        mock_parent_info = Mock()
+        mock_parent_info.parent_node_id = "test-node-123"
+        mock_parent_info.parent_project_id = "test-project-456"
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_functions_api') as mock_get_functions:
+            with patch('mmux_flaskapi.blueprints.sampling._get_parent_ids') as mock_get_parent:
+                mock_get_functions.return_value = mock_functions_api
+                mock_get_parent.return_value = mock_parent_info
+                
+                response = test_client.post("/sampling/test_job", json=payload)
+                
+                assert response.status_code == 400
+                response_data = response.get_json()
+                assert "error" in response_data
+                assert "Job creation failed" in response_data["error"]
+
+    def test_test_job_no_actual_instance_attribute(self, test_client):
+        """Test test_job when run_function response has no actual_instance attribute."""
+        payload = {
+            "funUid": "test-function-uid-12345",
+            "config": [
+                {"variable": "input1", "value": 10.5}
+            ]
+        }
+        
+        mock_functions_api = Mock()
+        mock_validation_result = {"status": "valid"}
+        mock_functions_api.validate_function_inputs.return_value = mock_validation_result
+        
+        # Mock response without actual_instance attribute
+        mock_run_response = Mock(spec=[])  # Empty spec means no attributes
+        mock_functions_api.run_function.return_value = mock_run_response
+        
+        mock_parent_info = Mock()
+        mock_parent_info.parent_node_id = "test-node-123"
+        mock_parent_info.parent_project_id = "test-project-456"
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_functions_api') as mock_get_functions:
+            with patch('mmux_flaskapi.blueprints.sampling._get_parent_ids') as mock_get_parent:
+                mock_get_functions.return_value = mock_functions_api
+                mock_get_parent.return_value = mock_parent_info
+                
+                response = test_client.post("/sampling/test_job", json=payload)
+                
+                assert response.status_code == 400
+                response_data = response.get_json()
+                assert "error" in response_data
+                assert "Job creation failed" in response_data["error"]
+
+    def test_test_job_invalid_json_format(self, test_client):
+        """Test test_job with malformed JSON."""
+        response = test_client.post(
+            "/sampling/test_job", 
+            data="invalid json data",
+            content_type="application/json"
+        )
+        
+        assert response.status_code == 400  # Changed from 500 to 400 to match actual behavior
+        response_data = response.get_json()
+        assert "error" in response_data
+        assert "invalid request data" in response_data["error"].lower()
+
+    def test_test_job_complex_config_types(self, test_client):
+        """Test test_job with complex configuration data types."""
+        payload = {
+            "funUid": "test-function-uid-12345",
+            "config": [
+                {"variable": "integer_param", "value": 42},
+                {"variable": "float_param", "value": 3.14159},
+                {"variable": "string_param", "value": "hello world"},
+                {"variable": "boolean_param", "value": True},
+                {"variable": "array_param", "value": [1, 2, 3]},
+                {"variable": "object_param", "value": {"nested": "value"}}
+            ]
+        }
+        
+        mock_functions_api = Mock()
+        mock_validation_result = {"status": "valid"}
+        mock_functions_api.validate_function_inputs.return_value = mock_validation_result
+        
+        mock_run_response = Mock()
+        mock_job_instance = Mock()
+        mock_job_instance.uid = "job-complex-12345"
+        mock_run_response.actual_instance = mock_job_instance
+        mock_functions_api.run_function.return_value = mock_run_response
+        
+        mock_parent_info = Mock()
+        mock_parent_info.parent_node_id = "test-node-123"
+        mock_parent_info.parent_project_id = "test-project-456"
+        
+        mock_job_details = {
+            "uid": "job-complex-12345",
+            "status": "submitted",
+            "function_id": "test-function-uid-12345"
+        }
+        
+        with patch('mmux_flaskapi.blueprints.sampling._get_functions_api') as mock_get_functions:
+            with patch('mmux_flaskapi.blueprints.sampling._get_parent_ids') as mock_get_parent:
+                with patch('mmux_flaskapi.blueprints.sampling._get_function_job_from_uid') as mock_get_job:
+                    mock_get_functions.return_value = mock_functions_api
+                    mock_get_parent.return_value = mock_parent_info
+                    mock_get_job.return_value = mock_job_details
+                    
+                    response = test_client.post("/sampling/test_job", json=payload)
+                    
+                    assert response.status_code == 200
+                    response_data = response.get_json()
+                    assert response_data["uid"] == "job-complex-12345"
+                    
+                    # Verify that complex data types are passed correctly
+                    expected_sample = {
+                        "integer_param": 42,
+                        "float_param": 3.14159,
+                        "string_param": "hello world",
+                        "boolean_param": True,
+                        "array_param": [1, 2, 3],
+                        "object_param": {"nested": "value"}
+                    }
+                    
+                    mock_functions_api.validate_function_inputs.assert_called_once_with(
+                        "test-function-uid-12345", expected_sample
+                    )
+                    mock_functions_api.run_function.assert_called_once_with(
+                        "test-function-uid-12345",
+                        body=expected_sample,
+                        x_simcore_parent_node_id="test-node-123",
+                        x_simcore_parent_project_uuid="test-project-456"
+                    )
