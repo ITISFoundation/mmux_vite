@@ -2344,3 +2344,596 @@ class TestMOGAOptimization:
         data = response.get_json()
         assert "error" in data
 
+
+class TestDakotaValidationEndpoints:
+    """Test class for comprehensive Dakota endpoint validation."""
+
+    def test_sumo_cross_validation_missing_required_fields(self, test_client):
+        """Test SuMo cross validation with various missing required fields."""
+        # Valid base payload for reference
+        valid_job = {
+            "status": "completed",
+            "inputs": {"x1": 1.0, "x2": 2.0},
+            "outputs": {"y": 3.0}
+        }
+        
+        test_cases = [
+            # Missing output
+            {
+                "payload": {
+                    "inputVars": ["x1", "x2"],
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "output"
+            },
+            # Missing inputVars
+            {
+                "payload": {
+                    "output": "y",
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "inputvars"  # Pydantic shows 'inputVars' as lowercase
+            },
+            # Missing FunctionJobs
+            {
+                "payload": {
+                    "output": "y",
+                    "inputVars": ["x1", "x2"]
+                },
+                "expected_error": "functionjobs"  # Pydantic shows 'FunctionJobs' as lowercase
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post('/dakota/sumo_cross_validation', json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+            assert case["expected_error"] in data['error'].lower()
+
+    def test_sumo_cross_validation_invalid_field_types(self, test_client):
+        """Test SuMo cross validation with invalid field types."""
+        test_cases = [
+            # Invalid output type
+            {
+                "output": 123,  # should be string
+                "inputVars": ["x1", "x2"],
+                "FunctionJobs": [{"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}}] * 5
+            },
+            # Invalid inputVars type
+            {
+                "output": "y",
+                "inputVars": "not_a_list",  # should be list
+                "FunctionJobs": [{"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}}] * 5
+            },
+            # Invalid FunctionJobs type
+            {
+                "output": "y",
+                "inputVars": ["x1", "x2"],
+                "FunctionJobs": "not_a_list"  # should be list
+            }
+        ]
+        
+        for payload in test_cases:
+            response = test_client.post('/dakota/sumo_cross_validation', json=payload)
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+
+    def test_sumo_cross_validation_insufficient_jobs(self, test_client):
+        """Test SuMo cross validation with insufficient completed jobs."""
+        test_cases = [
+            # Empty FunctionJobs list
+            {
+                "output": "y",
+                "inputVars": ["x1"],
+                "FunctionJobs": []
+            },
+            # Less than 5 jobs
+            {
+                "output": "y",
+                "inputVars": ["x1"],
+                "FunctionJobs": [{"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}}] * 3
+            },
+            # 5 jobs but none completed
+            {
+                "output": "y",
+                "inputVars": ["x1"],
+                "FunctionJobs": [{"status": "failed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}}] * 5
+            }
+        ]
+        
+        for payload in test_cases:
+            response = test_client.post('/dakota/sumo_cross_validation', json=payload)
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+
+    def test_sumo_cross_validation_missing_input_output_variables(self, test_client):
+        """Test SuMo cross validation with missing input/output variables in jobs."""
+        test_cases = [
+            # Jobs missing required input variable
+            {
+                "output": "y",
+                "inputVars": ["x1", "x2"],
+                "FunctionJobs": [
+                    {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}},  # missing x2
+                    {"status": "completed", "inputs": {"x1": 1.0, "x2": 2.0}, "outputs": {"y": 3.0}},
+                    {"status": "completed", "inputs": {"x1": 1.0, "x2": 2.0}, "outputs": {"y": 3.0}},
+                    {"status": "completed", "inputs": {"x1": 1.0, "x2": 2.0}, "outputs": {"y": 3.0}},
+                    {"status": "completed", "inputs": {"x1": 1.0, "x2": 2.0}, "outputs": {"y": 3.0}}
+                ]
+            },
+            # Jobs missing required output variable
+            {
+                "output": "y",
+                "inputVars": ["x1"],
+                "FunctionJobs": [
+                    {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"z": 2.0}},  # missing y
+                    {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 3.0}},
+                    {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 3.0}},
+                    {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 3.0}},
+                    {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 3.0}}
+                ]
+            }
+        ]
+        
+        for payload in test_cases:
+            response = test_client.post('/dakota/sumo_cross_validation', json=payload)
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+
+    def test_manual_uq_propagation_missing_required_fields(self, test_client):
+        """Test manual UQ propagation with missing required fields."""
+        valid_job = {
+            "status": "completed",
+            "inputs": {"x1": 1.0},
+            "outputs": {"y": 2.0}
+        }
+        
+        test_cases = [
+            # Missing output
+            {
+                "payload": {
+                    "inputVars": ["x1"],
+                    "distributions": {"x1": {"distribution": "normal", "mean": 0, "std": 1}},
+                    "numSamples": 100,
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "output"
+            },
+            # Missing distributions
+            {
+                "payload": {
+                    "output": "y",
+                    "inputVars": ["x1"],
+                    "numSamples": 100,
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "distributions"
+            },
+            # Missing numSamples
+            {
+                "payload": {
+                    "output": "y",
+                    "inputVars": ["x1"],
+                    "distributions": {"x1": {"distribution": "normal", "mean": 0, "std": 1}},
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "numsamples"  # Pydantic shows 'numSamples' as lowercase
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post('/dakota/manual_uq_propagation_with_uncertainty', json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+            assert case["expected_error"] in data['error'].lower()
+
+    def test_manual_uq_propagation_invalid_distributions(self, test_client):
+        """Test manual UQ propagation with invalid distribution parameters."""
+        valid_job = {
+            "status": "completed",
+            "inputs": {"x1": 1.0},
+            "outputs": {"y": 2.0}
+        }
+        
+        test_cases = [
+            # Normal distribution missing std
+            {
+                "output": "y",
+                "inputVars": ["x1"],
+                "distributions": {"x1": {"distribution": "normal", "mean": 0}},  # missing std
+                "numSamples": 100,
+                "FunctionJobs": [valid_job] * 5
+            },
+            # Uniform distribution missing max
+            {
+                "output": "y",
+                "inputVars": ["x1"],
+                "distributions": {"x1": {"distribution": "uniform", "min": 0}},  # missing max
+                "numSamples": 100,
+                "FunctionJobs": [valid_job] * 5
+            },
+            # Normal distribution with negative std
+            {
+                "output": "y",
+                "inputVars": ["x1"],
+                "distributions": {"x1": {"distribution": "normal", "mean": 0, "std": -1}},
+                "numSamples": 100,
+                "FunctionJobs": [valid_job] * 5
+            },
+            # Uniform distribution with min >= max
+            {
+                "output": "y",
+                "inputVars": ["x1"],
+                "distributions": {"x1": {"distribution": "uniform", "min": 5, "max": 1}},
+                "numSamples": 100,
+                "FunctionJobs": [valid_job] * 5
+            }
+        ]
+        
+        for payload in test_cases:
+            response = test_client.post('/dakota/manual_uq_propagation_with_uncertainty', json=payload)
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+
+    def test_sumo_along_axes_missing_required_fields(self, test_client):
+        """Test SuMo along axes with missing required fields."""
+        valid_job = {
+            "status": "completed",
+            "inputs": {"x1": 1.0, "x2": 2.0},
+            "outputs": {"y": 3.0}
+        }
+        
+        test_cases = [
+            # Missing inputs
+            {
+                "payload": {
+                    "output": "y",
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "validation failed"  # Dakota returns "Validation failed"
+            },
+            # Missing output
+            {
+                "payload": {
+                    "inputs": ["x1", "x2"],
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "validation failed"
+            },
+            # Missing FunctionJobs
+            {
+                "payload": {
+                    "inputs": ["x1", "x2"],
+                    "output": "y"
+                },
+                "expected_error": "validation failed"
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post('/dakota/sumo_along_axes', json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+            assert case["expected_error"] in data['error'].lower()
+
+    def test_sumo_grid_evaluation_missing_required_fields(self, test_client):
+        """Test SuMo grid evaluation with missing required fields."""
+        valid_job = {
+            "status": "completed",
+            "inputs": {"x1": 1.0, "x2": 2.0},
+            "outputs": {"y": 3.0}
+        }
+        
+        test_cases = [
+            # Missing gridVars
+            {
+                "payload": {
+                    "inputVars": ["x1", "x2"],
+                    "output": "y",
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "validation failed"  # Dakota returns "Validation failed"
+            },
+            # Missing inputVars
+            {
+                "payload": {
+                    "gridVars": ["x1"],
+                    "output": "y",
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "validation failed"
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post('/dakota/sumo_grid_evaluation', json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+            assert case["expected_error"] in data['error'].lower()
+
+    def test_sumo_cv_accuracy_metrics_missing_required_fields(self, test_client):
+        """Test SuMo CV accuracy metrics with missing required fields."""
+        valid_job = {
+            "status": "completed",
+            "inputs": {"x1": 1.0, "x2": 2.0},
+            "outputs": {"y": 3.0}
+        }
+        
+        test_cases = [
+            # Missing inputs
+            {
+                "payload": {
+                    "output": "y",
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "validation failed"  # Dakota returns "Validation failed"
+            },
+            # Missing output
+            {
+                "payload": {
+                    "inputs": ["x1", "x2"],
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "validation failed"
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post('/dakota/get_sumo_cv_accuracy_metrics', json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+            assert case["expected_error"] in data['error'].lower()
+
+    def test_moga_optimization_missing_required_fields(self, test_client):
+        """Test MOGA optimization with missing required fields."""
+        valid_job = {
+            "status": "completed",
+            "inputs": {"x1": 1.0, "x2": 2.0},
+            "outputs": {"y1": 3.0, "y2": 4.0}
+        }
+        
+        test_cases = [
+            # Missing inputVars
+            {
+                "payload": {
+                    "distributions": {"x1": {"distribution": "normal", "mean": 0, "std": 1}},
+                    "outputVarSelection": {"y1": "minimize", "y2": "maximize"},  # Should be dict, not list
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "validation failed"  # Dakota returns "Validation failed"
+            },
+            # Missing distributions
+            {
+                "payload": {
+                    "inputVars": ["x1", "x2"],
+                    "outputVarSelection": {"y1": "minimize", "y2": "maximize"},
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "validation failed"
+            },
+            # Missing outputVarSelection
+            {
+                "payload": {
+                    "inputVars": ["x1", "x2"],
+                    "distributions": {"x1": {"distribution": "normal", "mean": 0, "std": 1}},
+                    "FunctionJobs": [valid_job] * 5
+                },
+                "expected_error": "validation failed"
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post('/dakota/perform_moga_optimization', json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+            assert case["expected_error"] in data['error'].lower()
+
+    def test_function_job_validation_errors(self, test_client):
+        """Test FunctionJob model validation through endpoints."""
+        test_cases = [
+            # Job with empty status
+            {
+                "endpoint": "/dakota/sumo_cross_validation",
+                "payload": {
+                    "output": "y",
+                    "inputVars": ["x1"],
+                    "FunctionJobs": [
+                        {"status": "", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}},  # empty status
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}},
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}},
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}},
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}}
+                    ]
+                }
+            },
+            # Job with empty inputs
+            {
+                "endpoint": "/dakota/sumo_cross_validation",
+                "payload": {
+                    "output": "y",
+                    "inputVars": ["x1"],
+                    "FunctionJobs": [
+                        {"status": "completed", "inputs": {}, "outputs": {"y": 2.0}},  # empty inputs
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}},
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}},
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}},
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}}
+                    ]
+                }
+            },
+            # Job with empty outputs
+            {
+                "endpoint": "/dakota/sumo_cross_validation",
+                "payload": {
+                    "output": "y",
+                    "inputVars": ["x1"],
+                    "FunctionJobs": [
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {}},  # empty outputs
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}},
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}},
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}},
+                        {"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}}
+                    ]
+                }
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post(case["endpoint"], json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+
+    def test_empty_string_validation(self, test_client):
+        """Test validation of empty strings in various fields."""
+        valid_job = {
+            "status": "completed",
+            "inputs": {"x1": 1.0},
+            "outputs": {"y": 2.0}
+        }
+        
+        test_cases = [
+            # Empty output string
+            {
+                "endpoint": "/dakota/sumo_cross_validation",
+                "payload": {
+                    "output": "",  # empty string
+                    "inputVars": ["x1"],
+                    "FunctionJobs": [valid_job] * 5
+                }
+            },
+            # Empty input variable name
+            {
+                "endpoint": "/dakota/sumo_cross_validation",
+                "payload": {
+                    "output": "y",
+                    "inputVars": [""],  # empty string in list
+                    "FunctionJobs": [valid_job] * 5
+                }
+            },
+            # Empty input variables list
+            {
+                "endpoint": "/dakota/sumo_cross_validation",
+                "payload": {
+                    "output": "y",
+                    "inputVars": [],  # empty list
+                    "FunctionJobs": [valid_job] * 5
+                }
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post(case["endpoint"], json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+
+    def test_numerical_validation_errors(self, test_client):
+        """Test numerical validation in various endpoints."""
+        valid_job = {
+            "status": "completed",
+            "inputs": {"x1": 1.0},
+            "outputs": {"y": 2.0}
+        }
+        
+        test_cases = [
+            # Zero numSamples
+            {
+                "endpoint": "/dakota/manual_uq_propagation_with_uncertainty",
+                "payload": {
+                    "output": "y",
+                    "inputVars": ["x1"],
+                    "distributions": {"x1": {"distribution": "normal", "mean": 0, "std": 1}},
+                    "numSamples": 0,  # should be > 0
+                    "FunctionJobs": [valid_job] * 5
+                }
+            },
+            # Negative numSamples
+            {
+                "endpoint": "/dakota/manual_uq_propagation_with_uncertainty",
+                "payload": {
+                    "output": "y",
+                    "inputVars": ["x1"],
+                    "distributions": {"x1": {"distribution": "normal", "mean": 0, "std": 1}},
+                    "numSamples": -10,  # should be > 0
+                    "FunctionJobs": [valid_job] * 5
+                }
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post(case["endpoint"], json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+
+    def test_invalid_json_requests(self, test_client):
+        """Test all endpoints with invalid JSON."""
+        endpoints = [
+            "/dakota/sumo_cross_validation",
+            "/dakota/manual_uq_propagation_with_uncertainty",
+            # Skip endpoints that don't have JSON parsing error handling
+            # "/dakota/sumo_along_axes",
+            # "/dakota/sumo_grid_evaluation",
+            # "/dakota/get_sumo_cv_accuracy_metrics",
+            # "/dakota/perform_moga_optimization"
+        ]
+        
+        invalid_json = '{"invalid": "json", "missing": "closing_brace"'
+        
+        for endpoint in endpoints:
+            response = test_client.post(
+                endpoint, 
+                data=invalid_json, 
+                content_type='application/json'
+            )
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+            # Check for JSON error indicators - can be "json", "delimiter", "expecting"
+            assert any(keyword in data['error'].lower() for keyword in ['json', 'delimiter', 'expecting'])
+
+    def test_validation_error_response_format(self, test_client):
+        """Test that validation errors return properly formatted error responses."""
+        # Test with missing required field
+        response = test_client.post('/dakota/sumo_cross_validation', json={
+            "inputVars": ["x1"],
+            "FunctionJobs": [{"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}}] * 5
+            # Missing "output" field
+        })
+        
+        assert response.status_code == 400
+        data = response.get_json()
+        assert 'error' in data
+        assert isinstance(data['error'], str)
+        assert len(data['error']) > 0
+
+    def test_method_not_allowed(self, test_client):
+        """Test that non-POST methods are not allowed on Dakota endpoints."""
+        endpoints = [
+            "/dakota/sumo_cross_validation",
+            "/dakota/manual_uq_propagation_with_uncertainty",
+            "/dakota/sumo_along_axes",
+            "/dakota/sumo_grid_evaluation",
+            "/dakota/get_sumo_cv_accuracy_metrics",
+            "/dakota/perform_moga_optimization"
+        ]
+        
+        for endpoint in endpoints:
+            # Test GET method
+            response = test_client.get(endpoint)
+            assert response.status_code == 405  # Method Not Allowed
+            
+            # Test PUT method
+            response = test_client.put(endpoint, json={})
+            assert response.status_code == 405  # Method Not Allowed

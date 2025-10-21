@@ -250,6 +250,340 @@ class TestSamplingEndpoints:
         assert "error" in data
 
 
+class TestSamplingValidationEndpoints:
+    """Test class for comprehensive validation of sampling endpoints with invalid payloads."""
+
+    def test_lhs_sampling_missing_required_fields(self, test_client):
+        """Test LHS sampling with various missing required fields."""
+        test_cases = [
+            # Missing config
+            {
+                "payload": {"seed": 42, "N": 100, "funUid": "test-func"},
+                "expected_error": "config"
+            },
+            # Missing seed
+            {
+                "payload": {"config": [{"variable": "x", "start": 0, "end": 1}], "N": 100, "funUid": "test-func"},
+                "expected_error": "seed"
+            },
+            # Missing N
+            {
+                "payload": {"config": [{"variable": "x", "start": 0, "end": 1}], "seed": 42, "funUid": "test-func"},
+                "expected_error": "n"  # Pydantic shows field 'N' as lowercase 'n' in error message
+            },
+            # Missing funUid
+            {
+                "payload": {"config": [{"variable": "x", "start": 0, "end": 1}], "seed": 42, "N": 100},
+                "expected_error": "funuid"  # Pydantic shows field 'funUid' as lowercase 'funuid'
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post('/sampling/lhs', json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+            assert case["expected_error"] in data['error'].lower()
+
+    def test_lhs_sampling_invalid_field_types(self, test_client):
+        """Test LHS sampling with invalid field types."""
+        test_cases = [
+            # Invalid config type
+            {"config": "not_a_list", "seed": 42, "N": 100, "funUid": "test-func"},
+            # Invalid seed type
+            {"config": [{"variable": "x", "start": 0, "end": 1}], "seed": "not_an_int", "N": 100, "funUid": "test-func"},
+            # Invalid N type
+            {"config": [{"variable": "x", "start": 0, "end": 1}], "seed": 42, "N": "not_an_int", "funUid": "test-func"},
+            # Invalid funUid type
+            {"config": [{"variable": "x", "start": 0, "end": 1}], "seed": 42, "N": 100, "funUid": 123}
+        ]
+        
+        for payload in test_cases:
+            response = test_client.post('/sampling/lhs', json=payload)
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+
+    def test_lhs_sampling_invalid_config_validation(self, test_client):
+        """Test LHS sampling with invalid config validation."""
+        test_cases = [
+            # Empty config
+            {
+                "config": [],
+                "seed": 42,
+                "N": 100,
+                "funUid": "test-func"
+            },
+            # Config with end <= start
+            {
+                "config": [{"variable": "x", "start": 10, "end": 5}],
+                "seed": 42,
+                "N": 100,
+                "funUid": "test-func"
+            },
+            # Config with end == start
+            {
+                "config": [{"variable": "x", "start": 5, "end": 5}],
+                "seed": 42,
+                "N": 100,
+                "funUid": "test-func"
+            },
+            # Negative seed
+            {
+                "config": [{"variable": "x", "start": 0, "end": 1}],
+                "seed": -1,
+                "N": 100,
+                "funUid": "test-func"
+            },
+            # Zero or negative N
+            {
+                "config": [{"variable": "x", "start": 0, "end": 1}],
+                "seed": 42,
+                "N": 0,
+                "funUid": "test-func"
+            },
+            # Empty funUid
+            {
+                "config": [{"variable": "x", "start": 0, "end": 1}],
+                "seed": 42,
+                "N": 100,
+                "funUid": ""
+            }
+        ]
+        
+        for payload in test_cases:
+            response = test_client.post('/sampling/lhs', json=payload)
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+
+    def test_grid_sampling_missing_required_fields(self, test_client):
+        """Test Grid sampling with various missing required fields."""
+        test_cases = [
+            # Missing config
+            {
+                "payload": {"funUid": "test-func"},
+                "expected_error": "config"
+            },
+            # Missing funUid
+            {
+                "payload": {"config": [{"variable": "x", "start": 0, "end": 1, "steps": 5}]},
+                "expected_error": "funuid"  # Pydantic shows field 'funUid' as lowercase 'funuid'
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post('/sampling/grid', json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+            assert case["expected_error"] in data['error'].lower()
+
+    def test_grid_sampling_invalid_config_validation(self, test_client):
+        """Test Grid sampling with invalid config validation."""
+        test_cases = [
+            # Empty config
+            {
+                "config": [],
+                "funUid": "test-func"
+            },
+            # Config with end <= start
+            {
+                "config": [{"variable": "x", "start": 10, "end": 5, "steps": 5}],
+                "funUid": "test-func"
+            },
+            # Config with zero steps
+            {
+                "config": [{"variable": "x", "start": 0, "end": 1, "steps": 0}],
+                "funUid": "test-func"
+            },
+            # Config with negative steps
+            {
+                "config": [{"variable": "x", "start": 0, "end": 1, "steps": -5}],
+                "funUid": "test-func"
+            },
+            # Empty funUid
+            {
+                "config": [{"variable": "x", "start": 0, "end": 1, "steps": 5}],
+                "funUid": ""
+            }
+        ]
+        
+        for payload in test_cases:
+            response = test_client.post('/sampling/grid', json=payload)
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+
+    def test_test_job_missing_required_fields(self, test_client):
+        """Test test_job with various missing required fields."""
+        test_cases = [
+            # Missing config
+            {
+                "payload": {"funUid": "test-func"},
+                "expected_error": "config"
+            },
+            # Missing funUid
+            {
+                "payload": {"config": [{"variable": "x", "value": 0.5}]},
+                "expected_error": "funuid"  # Pydantic shows field 'funUid' as lowercase 'funuid'
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post('/sampling/test_job', json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+            assert case["expected_error"] in data['error'].lower()
+
+    def test_test_job_invalid_config_validation(self, test_client):
+        """Test test_job with invalid config validation."""
+        test_cases = [
+            # Empty config
+            {
+                "config": [],
+                "funUid": "test-func"
+            },
+            # Empty funUid
+            {
+                "config": [{"variable": "x", "value": 0.5}],
+                "funUid": ""
+            },
+            # Invalid config structure - missing variable
+            {
+                "config": [{"value": 0.5}],
+                "funUid": "test-func"
+            },
+            # Invalid config structure - missing value
+            {
+                "config": [{"variable": "x"}],
+                "funUid": "test-func"
+            }
+        ]
+        
+        for payload in test_cases:
+            response = test_client.post('/sampling/test_job', json=payload)
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+
+    def test_clone_job_missing_required_fields(self, test_client):
+        """Test clone_job with various missing required fields."""
+        test_cases = [
+            # Missing projectJobId
+            {
+                "payload": {"functionName": "test-func", "projectInputs": {}},
+                "expected_error": "projectjobid"  # Pydantic shows field 'projectJobId' as lowercase 'projectjobid'
+            },
+            # Missing functionName
+            {
+                "payload": {"projectJobId": "job-123", "projectInputs": {}},
+                "expected_error": "functionname"  # Pydantic shows field 'functionName' as lowercase 'functionname'
+            },
+            # Missing projectInputs
+            {
+                "payload": {"projectJobId": "job-123", "functionName": "test-func"},
+                "expected_error": "projectinputs"  # Pydantic shows field 'projectInputs' as lowercase 'projectinputs'
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post('/sampling/clone_job', json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+            assert case["expected_error"] in data['error'].lower()
+
+    def test_clone_job_invalid_field_validation(self, test_client):
+        """Test clone_job with invalid field validation."""
+        test_cases = [
+            # Empty projectJobId
+            {
+                "projectJobId": "",
+                "functionName": "test-func",
+                "projectInputs": {}
+            },
+            # Empty functionName
+            {
+                "projectJobId": "job-123",
+                "functionName": "",
+                "projectInputs": {}
+            },
+            # Invalid projectInputs type
+            {
+                "projectJobId": "job-123",
+                "functionName": "test-func",
+                "projectInputs": "not_a_dict"
+            }
+        ]
+        
+        for payload in test_cases:
+            response = test_client.post('/sampling/clone_job', json=payload)
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+
+    def test_validation_error_response_format(self, test_client):
+        """Test that validation errors return proper error response format."""
+        # Test with completely invalid JSON structure
+        response = test_client.post('/sampling/lhs', json={"invalid": "structure"})
+        assert response.status_code == 400
+        data = response.get_json()
+        
+        # Ensure error response follows expected format
+        assert 'error' in data
+        assert isinstance(data['error'], str)
+        
+        # Test with invalid data types
+        response = test_client.post('/sampling/grid', json={
+            "config": "not_a_list",
+            "funUid": 123  # Should be string
+        })
+        assert response.status_code == 400
+        data = response.get_json()
+        assert 'error' in data
+
+    def test_mixed_validation_errors(self, test_client):
+        """Test payloads with multiple validation errors simultaneously."""
+        test_cases = [
+            # LHS with multiple errors
+            {
+                "endpoint": "/sampling/lhs",
+                "payload": {
+                    "config": [],  # Empty config
+                    "seed": -1,    # Negative seed
+                    "N": 0,        # Zero N
+                    "funUid": ""   # Empty funUid
+                }
+            },
+            # Grid with multiple errors
+            {
+                "endpoint": "/sampling/grid",
+                "payload": {
+                    "config": [{"variable": "x", "start": 10, "end": 5, "steps": -1}],  # Multiple config errors
+                    "funUid": ""  # Empty funUid
+                }
+            },
+            # Test job with multiple errors
+            {
+                "endpoint": "/sampling/test_job",
+                "payload": {
+                    "config": [],  # Empty config
+                    "funUid": ""   # Empty funUid
+                }
+            }
+        ]
+        
+        for case in test_cases:
+            response = test_client.post(case["endpoint"], json=case["payload"])
+            assert response.status_code == 400
+            data = response.get_json()
+            assert 'error' in data
+            # Should contain detailed validation error information
+            assert len(data['error']) > 0
+
+
 class TestLHSSamplingWithMocks:
     """Test LHS sampling with mocked OSPARC API responses."""
 

@@ -15,5 +15,6 @@
   "python.testing.pytestArgs": ["tests"],
   "python.testing.autoTestDiscoverOnSaveEnabled": true,
   "python.defaultInterpreterPath": "./flaskapi/.venv/bin/python",
-  "python.analysis.typeCheckingMode": "basic"
+  "python.analysis.typeCheckingMode": "basic",
+  "chat.agent.maxRequests": 250
 }
