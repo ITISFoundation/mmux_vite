@@ -22,7 +22,7 @@ async function runLhsSampling(
   const fun = selectedFunction as OsparcFunction;
   // send config to Python backend to create LHS
   context.setLaunchingSampling(true);
-  const jc = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/lhs_sampling`, {
+  const jc = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sampling/lhs`, {
     method: "POST",
     body: JSON.stringify({
       funUid: fun.uid,

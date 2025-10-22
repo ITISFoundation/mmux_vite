@@ -91,7 +91,7 @@ function SuMoValidation() {
     setPlotData([]);
     setPropagating(true);
 
-    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_cross_validation`, {
+    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/dakota/sumo_cross_validation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

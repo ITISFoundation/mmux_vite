@@ -14,6 +14,7 @@ class MMUXFlask(Flask):
 def create_flask_app() -> MMUXFlask:
     app = MMUXFlask("MMUX Flask API")
     app.osparc_api = OsparcApi()
+    app.config['APPLICATION_ROOT'] = '/flask'
     app.register_blueprint(deployment_bp)
     app.register_blueprint(osparc_bp)
     app.register_blueprint(textfile_bp)  
