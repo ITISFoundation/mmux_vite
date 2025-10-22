@@ -39,7 +39,7 @@ jobs:
     - name: Set up uv
       uses: astral-sh/setup-uv@v3
     - name: Install sub-packages
-      run: ./install-deps.sh
+      run: cd flaskapi && bash ./install-deps.sh
     - name: Run flaskapi tests
       run: make test-flaskapi
     - name: Upload coverage reports
@@ -50,7 +50,9 @@ jobs:
         name: flaskapi-coverage
 
   verify-image-build:
-    needs: node-tests
+    needs: 
+      - node-tests
+      - flaskapi-tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo content
