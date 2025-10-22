@@ -31,44 +31,22 @@ jobs:
     - name: Run node tests
       run: make test-node
 
-  python-tests:
+  flaskapi-tests:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./flaskapi
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies (single source-of-truth)
-      run: |
-        ./install-deps.sh
-
-    
-    - name: Run Python tests
-      run: |
-        . .venv/bin/activate
-        python -m pytest tests/ -v --cov-report=xml --cov-report=html
-      env:
-        LOG_LEVEL: DEBUG
-        OSPARC_API_BASE_URL: https://test.osparc.io
-        OSPARC_API_KEY: test_key
-        OSPARC_API_SECRET: test_secret
-        SERVICE_MODE: TEST
-        PERMISSIONS: READ-ONLY
-        DEPLOYMENT_MODE: LOCAL
-    
+    - name: Checkout repo content
+      uses: actions/checkout@v5
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+      run: ./install-deps.sh
+    - name: Run flaskapi tests
+      run: make test-flaskapi
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
       with:
         file: ./flaskapi/coverage.xml
-        flags: backend
-        name: backend-coverage
+        flags: flaskapi
+        name: flaskapi-coverage
 
   verify-image-build:
     needs: node-tests

@@ -188,28 +188,23 @@ clean:
 	rm -rf flaskapi/.venv
 	rm -rf flaskapi/mmux_python
 
+
+	
+# TESTING
 .PHONY: test-node
 test-node: clean
-	cd node && \
+	cd ${NODE_DIR} && \
 		npm ci && \
 		npm test
 
-.PHONY: test
-test: test-node
-	
-# TESTING
-.PHONY: test-frontend
-test-frontend: ## run Node.js frontend tests
-	cd ${NODE_DIR} && npm test
-
-.PHONY: test-backend
+.PHONY: test-flaskapi
 ## ensures the right dependencies are installed through the script; using uv was failing due to volume mounting
-test-backend: ## run Flask backend tests
+test-flaskapi: ## run Flask backend tests
 	cd ${FLASKAPI_DIR} && \
 	uv run pytest tests/ -v --cov-report=html --cov-report=term-missing
 
 .PHONY: ci
-ci: build-no-cache test-backend test-frontend ## run all tests
+ci: build-no-cache test-flaskapi test-node ## run all tests
 
 .PHONY: help
 help: ## this colorful help
