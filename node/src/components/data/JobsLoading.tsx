@@ -1,14 +1,13 @@
 import { Box, Typography, LinearProgress, useTheme } from "@mui/material";
 
 interface JobsLoadingProps {
-  progress: number;
   jobProgress: number;
   message: string;
 }
 
 export function JobsLoading(props: JobsLoadingProps) {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { jobProgress, message, progress: _progress } = props;
+  const { jobProgress, message } = props;
   const theme = useTheme();
 
   return (

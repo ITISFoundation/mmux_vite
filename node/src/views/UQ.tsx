@@ -12,7 +12,6 @@ export default function UQ() {
   const { setSelectedQoI } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [sumoModal, setSumoModal] = useState<boolean>(false);
-  const [progress, setProgress] = useState<number>(0);
   const [jobProgress, setJobProgress] = useState<number>(0);
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
@@ -26,23 +25,12 @@ export default function UQ() {
   return (
     <MetaModelingUX headerType="title" tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}>
       <OutputSetup loading={loading} setSumoModal={setSumoModal} mode="full" />
-      <UncertainUQ
-        colsFetched={colsFetched}
-        jobProgress={jobProgress}
-        jobsFetched={jobsFetched}
-        loading={loading}
-        progress={progress}
-      />
+      <UncertainUQ colsFetched={colsFetched} jobProgress={jobProgress} jobsFetched={jobsFetched} loading={loading} />
       <SuMoModal open={sumoModal} setOpen={setSumoModal} />
       <JobSampling
         loading={loading}
         setLoading={setLoading}
-        progress={progress}
-        setProgress={setProgress}
-        jobProgress={jobProgress}
         setJobProgress={setJobProgress}
-        jobsFetched={jobsFetched}
-        colsFetched={colsFetched}
         selectedFunction={selectedFunction}
       />
     </MetaModelingUX>

@@ -27,11 +27,10 @@ export function RunSamplingButton(props: RunSamplingButtonProps) {
   const handleRunSamplingWithErrorHandling = async () => {
     try {
       await handleRunSampling();
-      setLaunchingSampling(false);
       setRunningSampling(true);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to run sampling. Please check the console for details.");
+      toast.error("Failed to run job(s). Please check the console for details.");
       setLaunchingSampling(false);
       setRunningSampling(false);
     }
@@ -53,6 +52,7 @@ export function RunSamplingButton(props: RunSamplingButtonProps) {
           variant="contained"
           onClick={handleRunSamplingWithErrorHandling}
           disabled={launchingSampling || disabled || permissions !== "WRITE"}
+          mmux-testid="run-sampling-btn"
           sx={{
             "&:disabled": {
               backgroundColor: launchingSampling ? theme.palette.grey[100] : undefined,
@@ -66,7 +66,7 @@ export function RunSamplingButton(props: RunSamplingButtonProps) {
               <CircularProgress size="1.1rem" thickness={6} sx={{ marginLeft: "1rem" }} />
             </>
           ) : (
-            "Run Sampling"
+            "Run"
           )}
         </Button>
       </span>

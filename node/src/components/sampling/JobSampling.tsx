@@ -11,24 +11,19 @@ import { Function as OsparcFunction } from "../../osparc-api-ts-client";
 interface JobSamplingProps {
   loading: boolean;
   setLoading: (value: boolean) => void;
-  progress: number;
-  setProgress: (value: number) => void;
-  jobProgress: number;
+  disabled?: boolean;
   setJobProgress: (value: number) => void;
-  jobsFetched: React.MutableRefObject<number>;
-  colsFetched: React.MutableRefObject<number>;
   selectedFunction: OsparcFunction | undefined;
 }
 
 export function JobSampling(props: JobSamplingProps) {
-  const { loading, setLoading, progress, setProgress, jobProgress, setJobProgress, colsFetched, jobsFetched, selectedFunction } =
-    props;
+  const { loading, setLoading, setJobProgress, selectedFunction, disabled } = props;
   const theme = useTheme();
   const [jobPanelOpen, setJobPanelOpen] = useState<boolean>(false);
 
   return (
     <Accordion
-      expanded={jobPanelOpen && !loading}
+      expanded={jobPanelOpen && !loading && !disabled}
       disableGutters
       variant="outlined"
       sx={{
@@ -41,20 +36,21 @@ export function JobSampling(props: JobSamplingProps) {
       <Button
         variant="contained"
         color="primary"
-        disabled={loading}
-        onClick={() => setJobPanelOpen(loading ? false : !jobPanelOpen)}
+        disabled={loading || disabled}
+        mmux-testid="extend-sampling-btn"
+        onClick={() => setJobPanelOpen(loading || disabled ? false : !jobPanelOpen)}
       >
         Adapt / Extend Sampling
         <CustomTooltip
           title="Improve surrogate model accuracy by modifying or adding sample points"
-          ExtendedTootlip={AdaptExtedSamplingDocument}
+          ExtendedTooltip={AdaptExtedSamplingDocument}
           placement="right"
           arrow
         >
           <InfoOutline
             sx={{
-              color: loading ? theme.palette.grey[400] : theme.palette.primary.light,
-              backgroundColor: loading ? theme.palette.grey[200] : theme.palette.background.default,
+              color: loading || disabled ? theme.palette.grey[400] : theme.palette.primary.light,
+              backgroundColor: loading || disabled ? theme.palette.grey[200] : theme.palette.background.default,
               borderRadius: "50%",
               padding: "2px",
               marginLeft: "8px",
@@ -63,22 +59,14 @@ export function JobSampling(props: JobSamplingProps) {
         </CustomTooltip>
       </Button>
       <AccordionDetails sx={{ padding: "0", paddingTop: "16px" }}>
-        <JobSelector
-          loading={loading}
-          setLoading={setLoading}
-          progress={progress}
-          setProgress={setProgress}
-          jobProgress={jobProgress}
-          setJobProgress={setJobProgress}
-          jobsFetched={jobsFetched}
-          colsFetched={colsFetched}
-        />
+        <JobSelector loading={loading} setLoading={setLoading} setJobProgress={setJobProgress} />
         {selectedFunction !== undefined ? (
           <PlusButton
             onClickFun={() => null}
             PlotFunComponent={Sampling}
             text="Create new sampling campaign"
             enabled={selectedFunction !== undefined}
+            mmmuxTestid="new-sampling-campaign-btn"
           />
         ) : undefined}
       </AccordionDetails>

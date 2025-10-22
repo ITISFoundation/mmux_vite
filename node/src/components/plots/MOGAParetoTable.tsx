@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
-import { Typography, Button, Box, Chip, Popover, Slider } from "@mui/material";
+import { EditAttributes } from "@mui/icons-material";
+import { Typography, Box, IconButton } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
-import { useMMUXContext } from "../../context/MMUXContext";
+import { useMOGATableContext } from "../../context/MOGATableContext";
+import PerformanceModal from "./PerformanceModal";
 import Header from "../navigation/Header";
+import { RunSamplingButton } from "../sampling/RunSamplingButton";
+import { runSingleJob } from "../../utils/sampling_utils";
+import { useFunctionContext } from "../../context/FunctionContext";
+import { useSamplingContext } from "../../context/SamplingContext";
 
 interface MogaParetoTableProps {
   tableData: MogaDataType | undefined;
@@ -14,56 +20,69 @@ function getRowId(value: MogaDataRowType) {
   return value.NDI;
 }
 
+const defaultSortModel: GridSortModel = [
+  {
+    field: "performance",
+    sort: "desc",
+  },
+];
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProps) {
-  const { weights, setWeights, sortModel, setSortModel } = useMMUXContext();
+  const { weights, setWeights, sortModel, setSortModel } = useMOGATableContext();
+  const { selectedFunction } = useFunctionContext();
+  const { setLaunchingSampling } = useSamplingContext();
   const [data, setData] = useState<MogaDataType | undefined>(undefined);
-  const [localWeights, setLocalWeights] = useState(weights || {});
   const [loading, setLoading] = useState(true);
-  const [anchorElms, setAnchorElms] = useState<{
-    [key: string]: HTMLButtonElement | null;
-  }>({});
-  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(
-    sortModel || [
-      {
-        field: "Performance",
-        sort: "desc",
-      },
-    ],
-  );
-
-  const handleWeightsChange = (key: string, newValue: number) => {
-    const newWeights = { ...localWeights, [key]: newValue };
-    console.log("setting weights!", newWeights);
-    setWeights(newWeights);
-    setLocalWeights(newWeights);
-  };
+  const [openPerformanceModal, setOpenPerformanceModal] = useState(false);
+  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel || defaultSortModel);
 
   const handleSortModelChange = (model: GridSortModel) => {
     setSortModel(model);
     setLocalSortModel(model);
   };
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>, key: string) => {
-    setAnchorElms(prev => ({ ...prev, [key]: event.currentTarget }));
-  };
+  useEffect(() => {
+    if (
+      data &&
+      data.outputs.length > 0 &&
+      (Object.keys(weights).length !== data.outputs.length || Object.keys(weights).some(k => !data.outputs.includes(k)))
+    ) {
+      console.log("Output vars changed:", data.outputs, weights);
+      const generatedWeights: { [key: string]: number } = {};
+      for (let i = 0; i < data.outputs.length; i += 1) {
+        generatedWeights[data.outputs[i]] = 0.5; // Example weight, can be adjusted
+      }
+      Object.keys(generatedWeights).map(x => {
+        if (Object.keys(weights).includes(x)) generatedWeights[x] = weights[x];
+        return x;
+      });
+      setWeights(generatedWeights);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
-  const handleClose = (key: string) => {
-    setAnchorElms(prev => ({ ...prev, [key]: null }));
-  };
+  useEffect(() => {
+    if (data !== undefined && data.rows && weights !== undefined) {
+      console.log("Updating performance column with weights:", weights);
+      const updatedRows = data.rows.map(row => {
+        let performance = 0;
+        Object.keys(weights).forEach(key => {
+          if (row[key] !== undefined) {
+            performance += weights[key] * row[key];
+          }
+        });
+        return { ...row, Performance: performance };
+      });
+      setData({ ...data, rows: updatedRows });
+    }
+    handleSortModelChange(defaultSortModel); // reset sorting when changing weights
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weights]);
 
   useEffect(() => {
     // Simulate loading data
     setData(tableData);
-    if (weights === undefined || Object.keys(weights).length === 0) {
-      const outputKeys: string[] = tableData?.outputs || [];
-      const generatedWeights: { [key: string]: number } = {};
-      for (let i = 0; i < outputKeys.length; i += 1) {
-        generatedWeights[outputKeys[i]] = 0.5; // Example weight, can be adjusted
-      }
-      setLocalWeights(generatedWeights);
-      setWeights(generatedWeights);
-    }
     setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableData]);
@@ -79,10 +98,12 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
     ? data.inputs.map(key => ({
         ...columnProps,
         field: key,
-        maxWidth: 120,
+        minWidth: 120,
+        maxWidth: 200,
         headerName: key.toUpperCase(),
         type: "number",
-        renderCell: params => params.row[key].toFixed(3),
+        cellClassName: "input-cols",
+        renderCell: params => params.row[key].toPrecision(3),
         valueGetter: (_value, row) => row[key],
       }))
     : [];
@@ -92,101 +113,83 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       ? data.outputs.map(key => ({
           ...columnProps,
           field: key,
+          minWidth: 120,
+          maxWidth: 200,
           headerName: key.toUpperCase(),
           type: "number",
-          renderHeader: () => (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="subtitle2">{key.toUpperCase()}</Typography>
-              <Chip
-                label={(localWeights[key] ?? 0).toFixed(2)}
-                size="small"
-                color="primary"
-                onClick={e => handleClick(e as unknown as React.MouseEvent<HTMLButtonElement>, key)}
-              />
-              <Popover
-                id={`popover-${key}`}
-                sx={{
-                  "& .MuiPaper-root": {
-                    width: "280px",
-                    padding: "8px 16px",
-                    display: "flex",
-                    boxShadow: "none",
-                  },
-                }}
-                open={Boolean(anchorElms[key])}
-                anchorEl={anchorElms[key]}
-                onClose={() => handleClose(key)}
-                anchorOrigin={{
-                  vertical: "top",
-                  horizontal: "center",
-                }}
-                transformOrigin={{
-                  vertical: "bottom",
-                  horizontal: "center",
-                }}
-              >
-                <Box>
-                  <Typography variant="body1" gutterBottom>
-                    Adjust Weight for {key.toUpperCase()}
-                  </Typography>
-                  <Slider
-                    value={localWeights[key]}
-                    sx={{ width: 240 }}
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    defaultValue={0.5}
-                    onChange={(_event, newValue) => {
-                      setLocalWeights(prev => ({ ...prev, [key]: newValue }));
-                    }}
-                    onChangeCommitted={() => {
-                      handleWeightsChange(key, localWeights[key]);
-                    }}
-                    valueLabelDisplay="auto"
-                    aria-labelledby={`slider-${key}`}
-                  />
-                  <Typography variant="caption" color="textSecondary">
-                    Adjust the weight for {key.toUpperCase()} to influence the Pareto front.
-                  </Typography>
-                </Box>
-              </Popover>
-            </Box>
-          ),
-          renderCell: params => params.row[key].toFixed(3),
+          cellClassName: "output-cols",
+          renderCell: params => params.row[key].toPrecision(3),
           valueGetter: (_value, row) => row[key],
         }))
       : [],
   );
+
+  // Launches a single job using the selected row's input parameters
+  const handleRunSampling = async (row?: MogaDataRowType) => {
+    if (!row || !data) return;
+    // Build config from data.inputs and row
+    const jobInputs = data.inputs.map(variable => ({
+      variable,
+      value: row[variable],
+    }));
+
+    await runSingleJob(selectedFunction, jobInputs, setLaunchingSampling);
+  };
 
   columns = columns.concat([
     {
       ...columnProps,
       field: "performance",
       headerName: "Performance",
-      minWidth: 105,
-      maxWidth: 105,
+      minWidth: 200,
+      maxWidth: 200,
       type: "number",
-      renderCell: params => params.row.Performance.toFixed(2),
+      cellClassName: "performance-cols",
+      renderHeader: () => (
+        <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 0.5 }}>
+          <IconButton onClick={() => setOpenPerformanceModal(true)} size="small">
+            <EditAttributes />
+          </IconButton>
+          <Typography variant="body2" sx={{ padding: "8px" }}>
+            Performance
+          </Typography>
+        </Box>
+      ),
+      renderCell: params => (Number.isNaN(params.row.Performance) ? "-" : params.row.Performance.toPrecision(2)),
       valueGetter: (_value, row) => row.Performance,
     },
     {
       ...columnProps,
       field: "action",
       headerName: "",
-      minWidth: 95,
-      maxWidth: 95,
+      minWidth: 140,
+      maxWidth: 140,
       type: "actions",
       sortable: false,
-      renderCell: () => (
-        <Button variant="contained" color="primary">
-          Show
-        </Button>
+      renderCell: params => (
+        <Box display="flex" flexDirection="row" justifyContent="space-between" marginTop={2}>
+          <RunSamplingButton disabled={loading} handleRunSampling={() => handleRunSampling(params.row)} />
+        </Box>
       ),
     },
   ]);
 
+  const orangeWithOpacity = (opacity: number) => `rgba(255, 177, 75, ${opacity})`;
+
   return (
-    <>
+    <Box
+      sx={{
+        "& .input-cols": {
+          backgroundColor: orangeWithOpacity(0.05),
+        },
+        "& .output-cols": {
+          backgroundColor: orangeWithOpacity(0.1),
+        },
+        "& .performance-cols": {
+          backgroundColor: orangeWithOpacity(0.15),
+        },
+      }}
+    >
       <Header tabTitle="Pareto-Optimal MOGA Samples" headerType="subTitle" infoText="Explore the pareto-optimal solutions" />
       <DataGrid
         rows={data?.rows || []}
@@ -195,7 +198,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
           borderRadius: theme.spacing(2),
           overflow: "hidden",
           fontFamily: "inherit",
-          padding: "0px 8px",
+          padding: "0px",
           "& .MuiDataGrid-cell": {
             fontWeight: 400,
           },
@@ -215,7 +218,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         getRowId={getRowId}
         initialState={{
           pagination: {
-            paginationModel: { pageSize: 10 },
+            paginationModel: { pageSize: 5 },
           },
           filter: {
             filterModel: {
@@ -246,7 +249,8 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
         disableColumnSelector
         disableRowSelectionOnClick
       />
-    </>
+      <PerformanceModal open={openPerformanceModal} setOpen={setOpenPerformanceModal} />
+    </Box>
   );
 }
 

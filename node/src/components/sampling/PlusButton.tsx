@@ -12,9 +12,10 @@ type PlusButtonProps = {
   PlotFunComponent: (props: unknown) => JSX.Element;
   text: string;
   enabled: boolean;
+  mmmuxTestid?: string;
 };
 function PlusButton(props: PlusButtonProps) {
-  const { enabled, text, onClickFun, PlotFunComponent } = props;
+  const { enabled, text, onClickFun, PlotFunComponent, mmmuxTestid } = props;
   const { launchingSampling } = useSamplingContext();
   const [showElement, setShowElement] = useState(false);
 
@@ -40,6 +41,7 @@ function PlusButton(props: PlusButtonProps) {
       }}
     >
       <AccordionSummary
+        mmux-testid={mmmuxTestid}
         disabled={!enabled}
         onClick={() => {
           setShowElement(!showElement);

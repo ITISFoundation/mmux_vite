@@ -88,6 +88,32 @@ export function CreateSelect({ axis, idx, setAxis }: CreateSelectProps) {
   );
 }
 
+interface OutputSelectProps {
+  values: string[];
+  selected: number;
+  allSelected: string[];
+  setSelected: (value: string) => void;
+}
+export function OutputSelect({ values, selected, allSelected, setSelected }: OutputSelectProps) {
+  // Removed debug console.log statement
+  return (
+    <Select
+      labelId={`select-output-${selected}`}
+      id={`select-output-${selected}`}
+      size="small"
+      value={values[selected]}
+      onChange={e => setSelected(e.target.value)}
+      sx={{ flex: 1 }}
+    >
+      {values.map(key => (
+        <MenuItem key={key} value={key} disabled={allSelected.includes(key) && values[selected] !== key}>
+          {key}
+        </MenuItem>
+      ))}
+    </Select>
+  );
+}
+
 interface CreateSliderProps {
   dist: VarSelection;
   input: string;
@@ -216,4 +242,5 @@ export function CreateSlider({ dist, input, otherAxis, setOtherAxis }: CreateSli
 }
 
 // plot margings to be applied to all plots
-export const plotMargins = { l: 20, r: 40, b: 30, t: 55 };
+export const plotMarginsNarrow = { l: 20, r: 40, b: 30, t: 55 };
+export const plotMarginsMedium = { l: 60, r: 40, b: 60, t: 40 };

@@ -11,8 +11,8 @@ import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
-export default function UncertainUQ(props: UncertainUQPropsType) {
-  const { loading, progress, jobProgress } = props;
+export default function UncertainUQ(props: LoadingPropsType) {
+  const { loading, jobProgress } = props;
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { numSamples, selectedQoI } = useMMUXContext();
@@ -23,7 +23,7 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
 
   useEffect(() => {
     (async () => {
-      console.log("running job collections: ", fetchedJobCollections, filteredJobList);
+      console.log("running job collections: ", filteredJobList);
       setDataUQHistogram(undefined);
       setPlotData([]);
       setPropagating(true);
@@ -78,10 +78,9 @@ export default function UncertainUQ(props: UncertainUQPropsType) {
         setDataUQHistogram(undefined);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredJobList]);
+  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction, theme.palette.primary.main]);
   if (loading) {
-    return <JobsLoading progress={progress} jobProgress={jobProgress} message="Creating AI model..." />;
+    return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;
   }
 
   const layout = {

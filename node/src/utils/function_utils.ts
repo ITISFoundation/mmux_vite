@@ -35,16 +35,12 @@ export async function getServiceMode(): Promise<string> {
 }
 
 export async function listFunctions(): Promise<OsparcFunction[]> {
-  const result = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/list_functions`);
+  const result = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/list_functions`);
   return result.json();
 }
 
 export async function listJobs(): Promise<FunctionJob[]> {
   return fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/list_jobs`).then(response => response.json());
-}
-
-export async function getFunctionJob(jobUid: string): Promise<FunctionJob> {
-  return fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/get_function_job?jobUid=${jobUid}`).then(response => response.json());
 }
 
 export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<FunctionJob[]> {
@@ -54,15 +50,15 @@ export async function getFunctionJobsFromFunctionUid(functionUid: string): Promi
 }
 
 export async function getFunctionJobCollections(functionUid: string): Promise<FunctionJobCollection[]> {
-  return fetch(
+  return fetchWithRetry(
     `${PYTHON_DAKOTA_BACKEND}/flask/list_function_job_collections_for_functionid?functionUid=${functionUid}`,
   ).then(response => response.json());
 }
 
 export async function getFunctionJobsFromFunctionJobCollection(JobCollectionUid: string): Promise<FunctionJob[]> {
-  return fetch(`${PYTHON_DAKOTA_BACKEND}/flask/list_function_jobs_for_jobcollectionid?JobCollectionUid=${JobCollectionUid}`).then(
-    response => response.json(),
-  );
+  return fetchWithRetry(
+    `${PYTHON_DAKOTA_BACKEND}/flask/list_function_jobs_for_jobcollectionid?JobCollectionUid=${JobCollectionUid}`,
+  ).then(response => response.json());
 }
 
 export function getSimplifiedHost(): string {
@@ -101,14 +97,19 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
   try {
     const { projectJobId } = job;
     const { inputs } = job;
-    const study: StudyType = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/clone_job`, {
+    const response = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/clone_job`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         functionName, //
         projectJobId,
         projectInputs: inputs,
       }),
-    }).then(response => response.json());
+    });
+
+    if (!response.ok) throw new Error(`Failed to open job copy: ${response.statusText}`);
+
+    const study: StudyType = await response.json();
 
     if (study && study.uid) {
       return study.uid;
@@ -155,4 +156,56 @@ export function aggregateOutputValues(jobs: FunctionJob[]): Record<string, numbe
   });
 
   return outputValues;
+}
+
+// Helper function to count job statuses
+export type JobStatusCounts = {
+  success: number;
+  running: number;
+  failed: number;
+  pending: number;
+  unknown: number;
+};
+
+export function getJobStatusCounts(subJobs: SubJob[]): JobStatusCounts {
+  return subJobs
+    .filter(j => j.job)
+    .map(j => (typeof j.job.status === "string" ? j.job.status : (j.job.status as unknown as { status: string }).status))
+    .reduce(
+      (acc, status: string) => {
+        if (status === "SUCCESS") acc.success += 1;
+        else if (status.endsWith("FAILED") || status.endsWith("FAILURE")) acc.failed += 1;
+        else if (status === "STARTED" || status === "RUNNING") acc.running += 1;
+        else if (status === "PENDING" || status.startsWith("JOB_") || status.startsWith("WAITING_") || status === "PUBLISHED")
+          acc.pending += 1;
+        else acc.unknown += 1;
+        return acc;
+      },
+      { success: 0, failed: 0, running: 0, pending: 0, unknown: 0 },
+    );
+}
+
+export function getJobCollectionStatus(subJobs: SubJob[]) {
+  if (!subJobs || subJobs.length === 0) return "NO JOBS";
+  const jobStatusCounts = getJobStatusCounts(subJobs);
+  if (jobStatusCounts.unknown > 0) {
+    // toast.warn("Could not classify some job statuses - please revise console logs")
+    console.warn("SubJobs that gave UNKNOWN status: ", subJobs);
+  }
+  const allSuccess = jobStatusCounts.success === subJobs.length;
+  const anySuccess = jobStatusCounts.success > 0;
+  const anyRunning = jobStatusCounts.running > 0;
+  const anyFailed = jobStatusCounts.failed > 0;
+  const allFailed = jobStatusCounts.failed === subJobs.length;
+  const anyPending = jobStatusCounts.pending > 0;
+  if (allSuccess) return "COMPLETE";
+  if (allFailed) return "FAILED";
+  if (anyRunning) return "RUNNING";
+  if (anyPending) return "PENDING";
+  if (anyFailed && anySuccess) return "FAILED PARTIALLY";
+  return "UNKNOWN";
+}
+
+export function filterForFinalStatus(status: string) {
+  return status === "FAILED" || status === "SUCCESS" || status.includes("FAILURE");
 }

@@ -1,6 +1,17 @@
 import React from "react";
-import { Box, Button, Card, CardActions, CardContent, MobileStepper, useTheme } from "@mui/material";
-import { KeyboardArrowLeft, KeyboardArrowRight } from "@mui/icons-material";
+import {
+  Box,
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  InputLabel,
+  MenuItem,
+  MobileStepper,
+  Select,
+  useTheme,
+} from "@mui/material";
+import { InfoOutline, KeyboardArrowLeft, KeyboardArrowRight } from "@mui/icons-material";
 import IsoSurface3DPlot from "./IsoSurface3DPlot";
 import Curves1DPlots from "./Curves1DPlot";
 import SuMoValidation from "./SuMoValidation";
@@ -10,10 +21,16 @@ import { filterInputVars } from "./PlotTools";
 import CrossValidationDocument from "../documents/CrossValidationDocument";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { useMMUXContext } from "../../context/MMUXContext";
+import SelectQoIDocument from "../documents/SelectQoIDocument";
+import CustomTooltip from "../utils/CustomTooltip";
+import { useServiceContext } from "../../context/ServiceContext";
 
 function SuMoPlotsSteps() {
   const theme = useTheme();
-  const { inputVars, selectedFunction, distribution } = useFunctionContext();
+  const { inputVars, selectedFunction, distribution, outputVars } = useFunctionContext();
+  const { selectedQoI, setSelectedQoI } = useMMUXContext();
+  const { ServiceMode } = useServiceContext();
   const context = useJobContext();
   const { filteredJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);
@@ -73,6 +90,59 @@ function SuMoPlotsSteps() {
           tabTitle={stepTitles[activeStep]}
           infoText={stepInfoTexts[stepTitles[activeStep]]}
           ExtendedInfoText={stepExtendedInfoTexts[stepTitles[activeStep]]}
+          QOISelector={
+            (ServiceMode === "MOGA" || ServiceMode === "UQ") && (
+              <InputLabel
+                size="small"
+                sx={{
+                  display: "flex",
+                  flex: 1,
+                  transform: "none",
+                  alignItems: "baseline",
+                  gap: "8px",
+                  fontFamily: "inherit",
+                  fontWeight: 300,
+                  fontSize: "1.2em",
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  Select Quantity of Interest
+                  <CustomTooltip
+                    title="Choose the simulation output to analyze"
+                    ExtendedTooltip={SelectQoIDocument}
+                    placement="right"
+                    arrow
+                  >
+                    <InfoOutline
+                      sx={{
+                        color: theme.palette.primary.light,
+                        backgroundColor: theme.palette.background.default,
+                        borderRadius: "50%",
+                        padding: "2px",
+                        marginLeft: "4px",
+                      }}
+                    />
+                  </CustomTooltip>
+                </Box>
+                <Select
+                  size="small"
+                  variant="outlined"
+                  sx={{ flex: 1 }}
+                  value={selectedQoI}
+                  onChange={e => {
+                    setSelectedQoI(e.target.value);
+                  }}
+                  mmux-testid="qoi-select"
+                >
+                  {outputVars.map(qoi => (
+                    <MenuItem key={`qoi-${qoi}`} value={qoi}>
+                      {qoi}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </InputLabel>
+            )
+          }
         />
       </Box>
       <CardContent

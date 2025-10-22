@@ -4,7 +4,7 @@ import Plot from "react-plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { CreateSelect, CreateSlider, filterInputVars, plotMargins } from "./PlotTools";
+import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow } from "./PlotTools";
 import Header from "../navigation/Header";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
@@ -154,6 +154,7 @@ function IsoSurface3DPlot() {
     setPropagating(true);
     fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_grid_evaluation`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         gridVars: [localAxis1, localAxis2, axis3],
         inputVars,
@@ -199,7 +200,7 @@ function IsoSurface3DPlot() {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
-    margin: plotMargins,
+    margin: plotMarginsNarrow,
     scene: {
       xaxis: { title: { text: axis1 }, tickangle: -45 },
       yaxis: { title: { text: axis2 }, tickangle: -45 },

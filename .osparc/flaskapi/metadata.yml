@@ -1,12 +1,21 @@
 key: simcore/services/dynamic/mmux-vite-backend
 name: MMUX Backend
-version: 1.5.1
+version: 1.5.14
 description: Python (Flask) and Dakota meta-modeling functionality in an interactive, user-friendly, guided step-by-step way
 integration-version: 2.0.0
 type: dynamic
 authors:
   - name: "Javier Garcia Ordonez"
     email: "ordonez@itis.swiss"
+    affiliation: "IT'IS Foundation"
+  - name: "Alejandro Parcet"
+    email: "parcet@speag.com"
+    affiliation: "IT'IS Foundation"
+  - name: "Werner Van Geit"
+    email: "vangeit@itis.swiss"
+    affiliation: "IT'IS Foundation"
+  - name: "Esra Neufeld"
+    email: "neufeld@itis.swiss"
     affiliation: "IT'IS Foundation"
 contact: "ordonez@itis.swiss"
 inputs: {}

@@ -32,7 +32,8 @@ export function OutputVariableDist() {
     if (outputTargets && selectedFunction && outputTargets[selectedFunction.uid]) {
       setConfiguredOutputs(outputTargets[selectedFunction.uid]);
     } else if (outputVars && outputVars.length > 0) {
-      handlesetConfiguredOutputs(Object.fromEntries(outputVars.map(v => [v, "minimize"])));
+      // handlesetConfiguredOutputs(Object.fromEntries(outputVars.map(v => [v, "minimize"])));
+      handlesetConfiguredOutputs({});
     } else {
       handlesetConfiguredOutputs({});
     }
@@ -50,6 +51,9 @@ export function OutputVariableDist() {
         headerType="subTitle"
         tabTitle="Optimization Objectives"
         infoText="Optimize the output variables by minimizing or maximizing their range"
+        errorMessage={
+          Object.keys(configuredOutputs).length === 0 ? "Please select at least one output variable to optimize." : undefined
+        }
       />
       <Box sx={{ display: "flex", overflowX: "auto" }}>
         {Object.keys(configuredOutputs).map(outputVar => (
@@ -162,6 +166,7 @@ export function OutputVariableDist() {
               }}
               disableRipple
               onClick={() => setOpenModal(!openModal)}
+              mmux-testid="add-output-var-btn"
             >
               <Add sx={{ fontSize: "2em" }} />
             </IconButton>

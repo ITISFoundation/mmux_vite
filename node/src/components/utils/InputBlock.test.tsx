@@ -10,6 +10,8 @@ describe("InputBlock", () => {
     name: "Test Input",
     value: 42,
     error: false,
+    type: "number",
+    minmax: { min: -1e9, max: 1e9 },
     onChange: vi.fn(),
   };
 
@@ -34,6 +36,7 @@ describe("InputBlock", () => {
       value: 100,
       type: "number",
       error: false,
+      minmax: { min: -1e9, max: 1e9 },
       onChange: vi.fn(),
     };
     const { getByRole } = render(<InputBlock {...customProps} error />);
@@ -53,6 +56,7 @@ describe("InputBlock", () => {
       value: 100,
       type: "text",
       error: false,
+      minmax: { min: -1e9, max: 1e9 },
       onChange: vi.fn(),
     };
     const { getByRole } = render(<InputBlock {...customProps} />);

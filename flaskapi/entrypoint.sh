@@ -17,7 +17,7 @@ export LOG_LEVEL=${LOG_LEVEL:-INFO}
 
 # NOTE: only required to test in local oSPARC deployment
 # uncomment and adjust with correct IP and PORT where the api servver is exposed
-# export OSPARC_API_BASE_URL=api.10.43.103.149.nip.io:8006
+# export OSPARC_API_BASE_URL=api.10.43.103.120.nip.io:8006
 
 if [ "$DEVELOPMENT_MODE" = "true" ]; then
     # Development mode - use Flask's built-in server
@@ -35,9 +35,9 @@ else
     # Production mode - use gunicorn
     echo "$INFO" "Starting gunicorn production server on $HOST:$PORT"
     exec gunicorn --bind "$HOST:$PORT" \
-        --workers=1 \
+        --workers=4 \
         --worker-class=gevent \
-        --timeout=120 \
+        --timeout=1200 \
         --access-logfile=- \
         --error-logfile=- \
         --log-level=INFO \

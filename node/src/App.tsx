@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { styled, ThemeProvider } from "@mui/material/styles";
-import { Container, useColorScheme } from "@mui/material";
+import { Container, useColorScheme, CssBaseline } from "@mui/material";
 import { toast, ToastContainer } from "react-toastify";
 import { setupTheme } from "./theme";
 import Navigation from "./components/navigation/Navigation";
@@ -16,6 +16,8 @@ import { FunctionContextProvider } from "./context/FunctionContext";
 import { SamplingContextProvider } from "./context/SamplingContext";
 import { JobContextProvider } from "./context/JobContext";
 import { usePersistenceContext } from "./context/PersistenceContext";
+import { MOGASettingsContextProvider } from "./context/MOGASettingsContext";
+import { MOGATableContextProvider } from "./context/MOGATableContext";
 
 const AppRoot = styled("div")(
   ({ theme }) => `
@@ -74,7 +76,7 @@ function App() {
         timeoutId = setTimeout(pollHealthStatus, 1000, retries - 1);
       }
     };
-    pollHealthStatus(30);
+    pollHealthStatus(300);
     return () => {
       clearTimeout(timeoutId);
     };
@@ -109,6 +111,7 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
+      <CssBaseline />
       <AppRoot>
         {!healthStatus || loading ? (
           <SplashScreen />
@@ -116,16 +119,20 @@ function App() {
           <ServiceContextProvider>
             <FunctionContextProvider>
               <SamplingContextProvider>
-                <JobContextProvider>
-                  <MMUXContextProvider>
-                    <PreviewWarning />
-                    <Container sx={{ paddingBottom: 4 }}>
-                      <Navigation steps={steps} activeStep={currentView} />
-                      <ReturnCurrentView currentView={currentView} />
-                      <Footer steps={steps} />
-                    </Container>
-                  </MMUXContextProvider>
-                </JobContextProvider>
+                <MOGASettingsContextProvider>
+                  <MOGATableContextProvider>
+                    <JobContextProvider>
+                      <MMUXContextProvider>
+                        <PreviewWarning />
+                        <Container sx={{ paddingBottom: 4 }}>
+                          <Navigation steps={steps} activeStep={currentView} />
+                          <ReturnCurrentView currentView={currentView} />
+                          <Footer steps={steps} />
+                        </Container>
+                      </MMUXContextProvider>
+                    </JobContextProvider>
+                  </MOGATableContextProvider>
+                </MOGASettingsContextProvider>
               </SamplingContextProvider>
             </FunctionContextProvider>
           </ServiceContextProvider>

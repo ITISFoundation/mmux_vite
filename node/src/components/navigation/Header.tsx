@@ -43,7 +43,7 @@ const types: { [key in HeaderTypes]: TypographyVariant } = {
 };
 
 function Header(props: HeaderProps) {
-  const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents, fontWeight } = props;
+  const { tabTitle, infoText, ExtendedInfoText, headerType, helpContents, fontWeight, errorMessage, QOISelector } = props;
   const theme = useTheme();
   return (
     <HeaderContainer headerType={headerType}>
@@ -53,11 +53,12 @@ function Header(props: HeaderProps) {
           component="h1"
           fontWeight={fontWeight || (headerType === "subTitle" ? 100 : 100)}
           fontFamily="inherit"
+          mmux-testid="header-title"
         >
           {tabTitle}
         </Typography>
         {infoText && infoText.length > 0 && (
-          <CustomTooltip title={infoText} ExtendedTootlip={ExtendedInfoText} placement="right" arrow>
+          <CustomTooltip title={infoText} ExtendedTooltip={ExtendedInfoText} placement="right" arrow>
             <InfoOutline
               sx={{
                 color: theme.palette.primary.light,
@@ -71,7 +72,13 @@ function Header(props: HeaderProps) {
             />
           </CustomTooltip>
         )}
+        {errorMessage && (
+          <Typography color="error" sx={{ marginLeft: "16px", fontSize: "0.9em", fontWeight: 400 }}>
+            {errorMessage}
+          </Typography>
+        )}
       </Box>
+      {QOISelector}
       {helpContents && (
         <CustomTooltip title={helpContents} placement="right" arrow>
           <HelpOutline

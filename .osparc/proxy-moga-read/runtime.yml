@@ -6,15 +6,16 @@ settings:
     type: Resources
     value:
       Limits:
-        NanoCPUs: 500000000
-        MemoryBytes: 268435456 # 256MB
+        NanoCPUs: 4000000000 # max 4 CPUs
+        MemoryBytes: 12884901888 # 12 GB
       Reservations:
-        NanoCPUs: 500000000
-        MemoryBytes: 268435456 # 256MB
+        NanoCPUs: 3000000000 # 3 CPUs reserved
+        MemoryBytes: 12884901888 # 12 GB
 paths-mapping:
   inputs_path: /tmp/inputs
   outputs_path: /tmp/outputs
-  state_paths: []
+  state_paths:
+    - /text-files
 
 compose-spec:
   version: "3.8"

@@ -22,7 +22,7 @@ type LHSamplingConfig = {
   seed: number;
 };
 
-type GRIDSamplingConfig = SamplingInputsState[];
+type GridSamplingConfig = SamplingInputsState[];
 
 type DataUQHistogramType = {
   bins_start: number;
@@ -41,17 +41,15 @@ type DataUQHistogramType = {
   min: number;
   max: number;
 };
-type UncertainUQPropsType = {
-  loading: boolean;
-  progress: number;
-  jobProgress: number;
-  colsFetched: React.MutableRefObject<number>;
-  jobsFetched: React.MutableRefObject<number>;
+
+type PlotConfig = {
+  dimensionType: "1D" | "2D" | "3D";
+  scaleType: "linear" | "log";
 };
 
-type MogaParetoPropsType = {
+type LoadingPropsType = {
   loading: boolean;
-  progress: number;
+  setLoading?: (loading: boolean) => void;
   jobProgress: number;
   colsFetched: React.MutableRefObject<number>;
   jobsFetched: React.MutableRefObject<number>;
@@ -78,6 +76,8 @@ interface HeaderProps {
   ExtendedInfoText?: ReactElement;
   helpContents?: ReactElement;
   fontWeight?: React.CSSProperties["fontWeight"];
+  errorMessage?: string;
+  QOISelector?: React.ReactNode;
 }
 
 interface SubJob {
@@ -123,6 +123,7 @@ interface InputBlockProps {
   type?: "number" | "text";
   onChange: (value: unknown) => void;
   error?: boolean;
+  minmax: { min: number; max: number };
 }
 
 interface InputTextBlockProps {
@@ -167,5 +168,6 @@ type MogaDataRowType = { [key: string]: number; Performance: number; NDI: number
 interface MogaDataType {
   inputs: string[];
   outputs: string[];
+  raw: { [key: string]: number[] };
   rows: Array<MogaDataRowType>;
 }

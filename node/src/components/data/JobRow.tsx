@@ -1,11 +1,13 @@
+import { Box, Button, Checkbox, CircularProgress } from "@mui/material";
 import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
-import { Box, Button, Checkbox, CircularProgress, Tooltip } from "@mui/material";
-import { toast } from "react-toastify";
 import { useState } from "react";
-import { openStudyUid, createJobStudyCopy } from "../../utils/function_utils";
+import { toast } from "react-toastify";
 import { Function as OsparcFunction } from "../../osparc-api-ts-client";
+import { createJobStudyCopy, openStudyUid } from "../../utils/function_utils";
+import CustomTooltip from "../utils/CustomTooltip";
+import { useJobContext } from "../../context/JobContext";
 
 interface JobRowProps {
   jobUid: string;
@@ -16,8 +18,9 @@ interface JobRowProps {
 
 function JobRow(props: JobRowProps) {
   const { jobUid, jobList, setSelected, selectedFunction } = props;
-  const job = jobList.find(j => j.job.uid === jobUid);
   const [creatingJobCopy, setCreatingJobCopy] = useState(false);
+  const { parseStatus } = useJobContext();
+  const job = jobList.find(j => j.job.uid === jobUid);
 
   const handleSetJob = (selected: boolean) => {
     setSelected(selected, jobUid);
@@ -25,49 +28,78 @@ function JobRow(props: JobRowProps) {
 
   if (job === undefined) {
     return (
-      <TableRow>
-        <TableCell colSpan={6}>
-          <Typography variant="body1" gutterBottom component="div">
-            Loading job {jobUid}...
-          </Typography>
+      <TableRow
+        key={jobUid}
+        sx={theme => ({
+          backgroundColor: theme.palette.grey[200],
+          "& .MuiTableCell-root": {
+            color: theme.palette.grey[500],
+          },
+        })}
+      >
+        <TableCell padding="checkbox">
+          <Checkbox color="primary" checked={false} disabled />
+        </TableCell>
+        <TableCell
+          component="th"
+          scope="row"
+          sx={{ minWidth: 100, maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        >
+          <CustomTooltip title={jobUid} placement="bottom-start">
+            <span>{jobUid ? `${jobUid.slice(0, 5)}...` : ""}</span>
+          </CustomTooltip>
+        </TableCell>
+        <TableCell sx={{ minWidth: 250, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <CustomTooltip title="" placement="bottom-start">
+            <span />
+          </CustomTooltip>
+        </TableCell>
+        <TableCell
+          sx={{
+            minWidth: 250,
+            maxWidth: 250,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            cursor: "auto",
+          }}
+        >
+          <CustomTooltip title="" placement="bottom-start">
+            <span />
+          </CustomTooltip>
+        </TableCell>
+        <TableCell
+          align="right"
+          sx={{ minWidth: 120, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        >
+          <CustomTooltip title="CREATING" placement="bottom-start">
+            <span>CREATING</span>
+          </CustomTooltip>
+        </TableCell>
+
+        <TableCell align="right" sx={{ gap: "8px" }}>
+          <>
+            <Button variant="outlined" size="small" disabled>
+              {creatingJobCopy ? (
+                <Box sx={{ display: "flex" }}>
+                  <CircularProgress size={21} />
+                </Box>
+              ) : (
+                <Typography variant="body2">View</Typography>
+              )}
+            </Button>
+          </>
         </TableCell>
       </TableRow>
     );
   }
+
   const jobStatus = job.job.status;
-  let outputs;
-  if (jobStatus === "SUCCESS") {
-    outputs = Object.entries(job.job.outputs).map(([key, value]) => (
-      <Box key={`job-row-output-${key}`} display="inline">
-        {key} : {(value as number).toExponential(3)}
-        {", "}
-      </Box>
-    ));
-  } else if (jobStatus === "STARTED") {
-    outputs = [
-      <Box key={0} display="inline">
-        Running...
-      </Box>,
-    ];
-  } else if (jobStatus === "FAILED" || jobStatus === "ABORTED") {
-    outputs = "Failed - no outputs";
-  } else if (
-    jobStatus === "PENDING" ||
-    jobStatus === "WAITING_FOR_CLUSTER" ||
-    jobStatus === "PUBLISHED" ||
-    jobStatus === "NOT_STARTED" ||
-    jobStatus === "WAITING_FOR_RESOURCES" // all are valid options
-  ) {
-    outputs = "Pending to run";
-  } else if (jobStatus === "UNKNOWN") {
-    outputs = "Please try again later";
-  } else {
-    outputs = "Unknown status, please contact support";
-  }
+  const outputs = parseStatus(jobStatus, job.job.outputs);
 
   const inputs = Object.entries(job.job.inputs).map(([key, value]) => (
     <Box key={`job-row-input-${key}`} display="inline">
-      {key} : {(value as number).toExponential(3)}
+      {key} : {(value as number).toPrecision(3)}
       {", "}
     </Box>
   ));
@@ -96,29 +128,42 @@ function JobRow(props: JobRowProps) {
       <TableCell
         component="th"
         scope="row"
-        sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        sx={{ minWidth: 100, maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
       >
-        <Tooltip title={job.job.uid} placement="bottom-start">
+        <CustomTooltip border title={job.job.uid} placement="bottom-start">
           <span>{job.job.uid ? `${job.job.uid.slice(0, 5)}...` : ""}</span>
-        </Tooltip>
+        </CustomTooltip>
       </TableCell>
-      <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        <Tooltip title={inputs} placement="bottom-start">
+      <TableCell sx={{ minWidth: 250, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <CustomTooltip border title={inputs} placement="bottom-start">
           <span>{inputs}</span>
-        </Tooltip>
+        </CustomTooltip>
       </TableCell>
-      <TableCell sx={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "auto" }}>
-        <Tooltip title={outputs} placement="bottom-start">
+      <TableCell
+        sx={{ minWidth: 250, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "auto" }}
+      >
+        <CustomTooltip border title={outputs} placement="bottom-start">
           <span>{outputs}</span>
-        </Tooltip>
+        </CustomTooltip>
       </TableCell>
-      <TableCell align="right">{jobStatus}</TableCell>
+      <TableCell
+        align="right"
+        sx={{ minWidth: 120, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+      >
+        <CustomTooltip border title={jobStatus} placement="bottom-start">
+          <span>{jobStatus}</span>
+        </CustomTooltip>
+      </TableCell>
 
       <TableCell align="right" sx={{ gap: "8px" }}>
         <>
           <Button
             variant="outlined"
             size="small"
+            disabled={
+              creatingJobCopy ||
+              (!jobStatus.includes("SUCCESS") && !(jobStatus.includes("FAILED") || jobStatus.includes("FAILURE")))
+            }
             onClick={async () => {
               setCreatingJobCopy(true);
               const copyUID = (await createJobStudyCopy(selectedFunction?.title as string, job.job)) as string;

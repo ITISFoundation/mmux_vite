@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
@@ -11,111 +12,333 @@ import MogaParetoTable from "./MOGAParetoTable";
 import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import { aggregateOutputValues } from "../../utils/function_utils";
-import { useMMUXContext } from "../../context/MMUXContext";
+import { useMOGATableContext } from "../../context/MOGATableContext";
+import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
+import { MOGAPlotModal } from "./MOGAPlotModal";
+import { plotMarginsNarrow, plotMarginsMedium } from "./PlotTools";
 
-export function MOGAPareto(props: MogaParetoPropsType) {
-  const { loading, progress, jobProgress } = props;
+interface MOGAParetoProps extends LoadingPropsType {
+  setCalculating?: (value: boolean) => void;
+}
+
+export function MOGAPareto(props: MOGAParetoProps) {
+  const { loading, jobProgress, setCalculating } = props;
   const theme = useTheme();
   const ref = useRef<Plot>(null);
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
-  const { fetchedJobCollections, filteredJobList, selectedJobUids } = useJobContext();
-  const { weights } = useMMUXContext();
+  const { fetchedJobCollections, filteredJobList } = useJobContext();
+  const { mogaSettings } = useMOGASettingsContext();
+  const { weights } = useMOGATableContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
-  const [propagating, setPropagating] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [outputVarSelection, setOutputVarSelection] = useState<OutputVarSelection>({});
-  const [optVars, setOptVars] = useState<Array<string>>([]);
+  const [layout, setLayout] = useState<Partial<Plotly.Layout>>({});
+  const [plotType, setPlotType] = useState<PlotConfig>();
+  const [selectedOptVars, setSelectedOptVars] = useState<Array<string>>([]);
   const [tableData, setTableData] = useState<MogaDataType | undefined>(undefined);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [propagating, setPropagating] = useState(false);
 
   const calculatePerformance = useCallback(
-    (row: { [x: string]: number }) => {
-      console.log("performance: ", optVars, weights ? weights[optVars[0]] : "", row[optVars[0]]);
-      if (optVars.length === 0 || !weights) return 0;
-      let performance = 0;
+    (row: { [x: string]: number }, OVS: OutputVarSelection, minMax: { [k: string]: { min: number; max: number } }) => {
+      const optVars = Object.keys(OVS);
+      if (optVars.length === 0) {
+        console.warn("OutputVarSelection passed to performance calculation is empty!");
+        return NaN;
+      }
+      if (!weights) {
+        console.warn("Weights passed to calculate performance are empty! ", weights);
+        return NaN;
+      }
+      if (Object.values(weights).every(w => w === 0)) {
+        return NaN;
+      }
+
+      // Performance: P_i = w_i / sum_j(w_j) * sum_j( (x_ij - min(x_j)) / (max(x_j) - min(x_j)) )
+      // If minimizing, denominator is (max(x_j) - x_ij)
+      let normSum = 0;
+      let weightSum = 0;
       for (let i = 0; i < optVars.length; i += 1) {
         const varName = optVars[i];
-        performance += weights[varName] * (row[varName] as number);
+        const w = weights[varName] || 0;
+        weightSum += w;
+        const ValueAtRowVar = row[varName] as number;
+        const MinJVal = minMax[varName].min;
+        const MaxJVal = minMax[varName].max;
+        let norm = 0;
+        let diff = 0;
+
+        if (MaxJVal !== MinJVal) {
+          if (OVS[varName] === "minimize") {
+            diff = MaxJVal - ValueAtRowVar;
+          } else if (OVS[varName] === "maximize") {
+            diff = ValueAtRowVar - MinJVal;
+          }
+          norm = diff / (MaxJVal - MinJVal);
+        } else {
+          console.warn("Normalized difference setting to zero bcs MinMax is identical");
+          norm = 0; // Avoid division by zero
+        }
+        normSum += w * norm;
+        // console.log("For loop: ", varName)
+        // console.log("weitght: ", w)
+        // console.log("weightSum: ", weightSum)
+        // console.log("ValueAtRowVar: ", ValueAtRowVar)
+        // console.log("MinJVal: ", MinJVal)
+        // console.log("MaxJVal: ", MaxJVal)
+        // console.log("diff: ", diff)
+        // console.log("norm: ", norm)
+        // console.log("normSum: ", normSum)
       }
-      performance /= Object.values(weights).reduce((a, b) => a + b, 0);
+      let performance = 0;
+      if (weightSum > 0) {
+        performance = normSum / weightSum;
+      } else if (weightSum === 0) {
+        console.warn("weightSum is equal to zero! Setting performance to NaN ");
+        performance = NaN;
+      } else {
+        console.warn("weightedSum is smaller than zero! Setting performance to NaN");
+        performance = NaN;
+      }
+      if (performance < 0 || performance > 1 || Number.isNaN(performance)) {
+        // eslint-disable-next-line no-console
+        console.warn("Performance calculation out of bounds:", performance, { row, ovs: OVS, weights, minMax });
+      }
+      // console.log("Performance: ", performance)
       return performance;
     },
-    [optVars, weights],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [weights, tableData],
   );
 
+  // Utility to get min/max for each optVar from results or tableData
+  function getMinMax(optVars: string[], results: { [key: string]: number[] }, localTableData?: MogaDataType) {
+    const minMax: { [k: string]: { min: number; max: number } } = {};
+    if (localTableData && localTableData.rows && localTableData.rows.length > 0) {
+      // console.log("Extracting min-max from Table data")
+      optVars.forEach((varName: string) => {
+        const values = localTableData.rows.map(r => r[varName]).filter(v => typeof v === "number") as number[];
+        minMax[varName] = {
+          min: Math.min(...values),
+          max: Math.max(...values),
+        };
+      });
+    } else if (results) {
+      // console.log("Extracting min-max from MOGA results")
+      optVars.forEach((varName: string) => {
+        const values = results[varName] || [];
+        minMax[varName] = {
+          min: Math.min(...values),
+          max: Math.max(...values),
+        };
+      });
+    } else {
+      // Fallback: set min/max to NaN if no data
+      console.warn("Neither MOGA Table nor MOGA results are available to calculate min-max");
+      optVars.forEach((varName: string) => {
+        minMax[varName] = { min: NaN, max: NaN };
+      });
+    }
+    return minMax;
+  }
+
   const runMOGA = useCallback(
-    async (jobs: FunctionJob[], ovs: OutputVarSelection) => {
-      let localOptVars = optVars;
-      if (localOptVars.length === 0) {
-        console.warn("No optimization variables selected., using output var selection", ovs);
-        localOptVars = Object.keys(ovs);
-      }
+    async (jobs: FunctionJob[], OVS: OutputVarSelection) => {
+      const localsettings = mogaSettings[selectedFunction?.uid as string] || defaultMogaValues;
+      const localOptVars = Object.keys(OVS);
+      // console.log("localOptVars: ", localOptVars)
+      // console.log("weights: ", weights)
+      // console.log("outputVarSelection: ", OVS)
       const bodyData = JSON.stringify({
-        inputVars,
-        outputVarSelection: ovs,
-        distributions: distribution[selectedFunction?.uid || ""],
+        mogaSettings: localsettings,
+        inputDistributions: distribution[selectedFunction?.uid || ""],
+        outputVarSelection: OVS,
         FunctionJobs: jobs,
       });
-      console.info("Running MOGA...", bodyData);
       const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/perform_moga_optimization`, {
         method: "POST",
         body: bodyData,
       });
+
       if (!response.ok) {
         throw new Error(`Error in MOGA response: ${response.status}, ${response.statusText}`);
       }
 
       const results: { [key: string]: number[] } = await response.json();
-      console.log("MOGA results:", localOptVars);
-      console.log("MOGA results:", results);
+      const minMax = getMinMax(localOptVars, results);
+      // console.info("MOGA results:", results);
+      // console.log("localOptVars: ", localOptVars)
+      // console.log("weights: ", weights)
+      // console.log("outputVarSelection: ", OVS)
+      // console.log("minMax: ", minMax)
 
       // set table data
       const newTableData: MogaDataType = {
         inputs: inputVars,
         outputs: localOptVars,
+        raw: results,
         rows: results.non_dominated_indices.map((ndi: number) => ({
           ...inputVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
           ...localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
           Performance: calculatePerformance(
             localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
+            OVS,
+            minMax,
           ),
           NDI: ndi,
         })),
       };
+      setSelectedOptVars(localOptVars);
       setTableData(newTableData);
+      return { newTableData, localOptVars };
+    },
+    [mogaSettings, selectedFunction?.uid, distribution, inputVars, calculatePerformance],
+  );
 
+  const updatePlot = useCallback(
+    (jobs: FunctionJob[], localTableData: MogaDataType, extPlotType?: PlotConfig, extSelectedOptVars?: string[]) => {
+      const localsettings = mogaSettings[selectedFunction?.uid as string] || defaultMogaValues;
+      const localOptVars = extSelectedOptVars || selectedOptVars;
+      const results = localTableData?.raw ? localTableData.raw : {};
       const outputValues = aggregateOutputValues(jobs);
+      // console.log("Updating MOGA Pareto plot...", jobs, localOptVars, results, outputValues);
+      let scaleType: "linear" | "log" = "linear";
+      let localPlotType: "1D" | "2D" | "3D" = localOptVars.length < 2 ? "1D" : "2D";
+      // localPlotType = localOptVars.length > 2 ? "3D" : localPlotType;
+      if (extPlotType) {
+        localPlotType = extPlotType.dimensionType;
+        scaleType = extPlotType.scaleType;
+      }
 
-      const newPlotData: Plotly.Data[] = [
+      const newPlotData: Partial<Plotly.ScatterData>[] = [
         {
           name: "Sample Points",
-          x: outputValues[localOptVars[0]],
-          y: outputValues[localOptVars[1]], // TODO enable selection, when more than 2
           mode: "markers",
-          type: "scatter",
-          marker: { color: "rgb(41, 146, 221)", size: 4, symbol: "x" },
+          type: localPlotType === "3D" ? "scatter3d" : "box",
+          marker: { color: "rgb(41, 146, 221)", size: 3, symbol: "·" },
         },
         {
           name: "MOGA Samples",
-          x: results[localOptVars[0]],
-          y: results[localOptVars[1]],
           mode: "markers",
-          type: "scatter",
+          type: localPlotType === "3D" ? "scatter3d" : "box",
           marker: { color: "rgb(255, 127, 14)", size: 2 },
         },
         {
           name: "Pareto Front",
-          x: results.non_dominated_indices.map(i => (results[localOptVars[0]] as Array<number>)[i]),
-          y: results.non_dominated_indices.map(i => (results[localOptVars[1]] as Array<number>)[i]),
-          mode: "lines",
-          type: "scatter",
-          marker: { color: "lightblue", size: 10 },
+          mode: "lines+markers",
+          type: localPlotType === "3D" ? "scatter3d" : "scatter",
+          marker: { color: "white", size: 6 },
         },
       ];
+
+      const newLayout: Partial<Plotly.Layout> = {
+        title: { text: "Pareto Front Diagram" },
+        plot_bgcolor: `${theme.palette.background.default}`,
+        paper_bgcolor: `${theme.palette.background.default}`,
+        font: { color: `${theme.palette.text.primary}` },
+        autosize: true,
+        margin: localPlotType === "3D" ? plotMarginsNarrow : plotMarginsMedium,
+      };
+
+      switch (localPlotType) {
+        case "1D": {
+          // Group initial (real) samples in a single bin at x = 0
+          newPlotData.push({
+            ...newPlotData[0],
+            type: "box",
+            boxpoints: "all",
+            y: outputValues[localOptVars[0]],
+            x: Array(outputValues[localOptVars[0]].length).fill(0),
+            name: "Sample Points",
+          });
+
+          // Group MOGA samples by iteration using populationSize
+          const mogaResults = results[localOptVars[0]] || [];
+          // const samplesPerIteration = localsettings.populationSize;
+          // const numIterations = Math.ceil(mogaResults.length / samplesPerIteration);
+          const numIterations = localsettings.maxIterations;
+          const samplesPerIteration = Math.ceil(mogaResults.length / numIterations);
+
+          for (let iteration = 1; iteration <= numIterations; iteration += 1) {
+            const startIdx = (iteration - 1) * samplesPerIteration;
+            const endIdx = Math.min(iteration * samplesPerIteration, mogaResults.length);
+            const iterationData = mogaResults.slice(startIdx, endIdx);
+            // console.log("Iteration: ", iteration)
+            // console.log(startIdx, endIdx)
+            // console.log(iterationData)
+
+            if (iterationData.length > 0) {
+              newPlotData.push({
+                ...newPlotData[1],
+                type: "box",
+                boxpoints: "outliers",
+                y: iterationData,
+                x: Array(iterationData.length).fill(iteration),
+                name: `MOGA Evaluations`,
+                showlegend: iteration === 1, // Only show legend for the first boxplot
+              });
+            }
+          }
+
+          Object.assign(newLayout, {
+            xaxis: { title: { text: "Iteration" } },
+            yaxis: { title: { text: localOptVars[0] }, type: scaleType },
+            showlegend: true, // Show legend to distinguish between initial and MOGA samples
+            legend: {
+              x: 0.92, // Position legend inside plot area (right side)
+              y: 0.98, // Position at top
+              xanchor: "left",
+              yanchor: "top",
+            },
+          });
+          break;
+        }
+        case "2D": {
+          newPlotData[0].x = outputValues[localOptVars[0]];
+          newPlotData[0].y = outputValues[localOptVars[1]];
+          newPlotData[0].z = undefined;
+          newPlotData[1].x = results[localOptVars[0]].slice(localsettings.populationSize * 3, results[localOptVars[0]].length);
+          newPlotData[1].y = results[localOptVars[1]].slice(localsettings.populationSize * 3, results[localOptVars[1]].length);
+          newPlotData[1].z = undefined;
+          newPlotData[2].x = results.non_dominated_indices.map(i => (results[localOptVars[0]] as Array<number>)[i]);
+          newPlotData[2].y = results.non_dominated_indices.map(i => (results[localOptVars[1]] as Array<number>)[i]);
+          newPlotData[2].z = undefined;
+          newPlotData[0].type = "scatter";
+          newPlotData[1].type = "scatter";
+          newPlotData[2].type = "scatter";
+          newLayout.xaxis = { title: { text: localOptVars[0] }, type: scaleType };
+          newLayout.yaxis = { title: { text: localOptVars[1] }, type: scaleType };
+          break;
+        }
+        case "3D": {
+          newPlotData[0].x = outputValues[localOptVars[0]];
+          newPlotData[0].y = outputValues[localOptVars[1]];
+          newPlotData[0].z = outputValues[localOptVars[2]];
+          newPlotData[1].x = results[localOptVars[0]].slice(localsettings.populationSize * 3, results[localOptVars[0]].length);
+          newPlotData[1].y = results[localOptVars[1]].slice(localsettings.populationSize * 3, results[localOptVars[1]].length);
+          newPlotData[1].z = results[localOptVars[2]].slice(localsettings.populationSize * 3, results[localOptVars[2]].length);
+          newPlotData[2].x = results.non_dominated_indices.map(i => (results[localOptVars[0]] as Array<number>)[i]);
+          newPlotData[2].y = results.non_dominated_indices.map(i => (results[localOptVars[1]] as Array<number>)[i]);
+          newPlotData[2].z = results.non_dominated_indices.map(i => (results[localOptVars[2]] as Array<number>)[i]);
+          newPlotData[0].type = "scatter3d";
+          newPlotData[1].type = "scatter3d";
+          newPlotData[2].type = "scatter3d";
+          newLayout.scene = {
+            xaxis: { title: { text: localOptVars[0] }, type: scaleType },
+            yaxis: { title: { text: localOptVars[1] }, type: scaleType },
+            zaxis: { title: { text: localOptVars[2] }, type: scaleType },
+          };
+          break;
+        }
+        default: {
+          break;
+        }
+      }
+      // console.log("MOGA plot data:", newPlotData);
+
       setPlotData(newPlotData);
-      setPropagating(false);
+      setLayout(newLayout);
+      setPlotType({ dimensionType: localPlotType, scaleType });
     },
-    [optVars, inputVars, distribution, selectedFunction, calculatePerformance],
+    [mogaSettings, selectedFunction, selectedOptVars, theme],
   );
 
   useEffect(() => {
@@ -123,8 +346,7 @@ export function MOGAPareto(props: MogaParetoPropsType) {
       console.warn("No function selected!!");
     } else {
       console.debug("Information about optimization vars fetched");
-      setOptVars(Object.keys(outputTargets[selectedFunction?.uid as string] || {}));
-      setOutputVarSelection(outputTargets[selectedFunction.uid]);
+      setPlotData([]);
 
       const run = async () => {
         const jobs = filteredJobList;
@@ -134,67 +356,84 @@ export function MOGAPareto(props: MogaParetoPropsType) {
         }
         try {
           setPropagating(true);
+          if (setCalculating) setCalculating(true);
           console.info("Fetching MOGA Pareto data...");
-          await runMOGA(jobs, outputTargets[selectedFunction.uid]);
+          const { newTableData, localOptVars } = await runMOGA(jobs, outputTargets[selectedFunction.uid]);
+          await updatePlot(jobs, newTableData, plotType, localOptVars);
+          setPropagating(false);
+          if (setCalculating) setCalculating(false);
         } catch (error) {
+          setPropagating(false);
+          if (setCalculating) setCalculating(false);
           console.error("Error fetching MOGA Pareto data:", error);
         }
-        setPropagating(false);
       };
       run();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFunction, outputTargets, weights, selectedJobUids]);
+  }, [filteredJobList, mogaSettings]);
+
+  // When weights change, recalculate tableData (refresh table) but do NOT rerun runMOGA
+  useEffect(() => {
+    if (!tableData || !tableData.rows) return;
+    if (!selectedFunction) return;
+
+    const localOptVars = Object.keys(outputTargets[selectedFunction.uid]);
+    const minMax = getMinMax(localOptVars, {}, tableData);
+    // Recalculate performance for each row
+    const newRows = tableData.rows.map(row => ({
+      ...row,
+      Performance: calculatePerformance(row, outputTargets[selectedFunction.uid], minMax),
+    }));
+    setTableData({ ...tableData, rows: newRows });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weights]);
 
   useEffect(() => {
-    if (hovered !== null && tableData) {
-      const hoveredRow = tableData.rows.find(r => r.NDI === hovered);
-      console.log("hovered row:", hoveredRow);
-      if (hoveredRow && optVars.length >= 2) {
+    if (tableData) {
+      if (hovered !== null) {
+        const hoveredRow = tableData.rows.find(r => r.NDI === hovered);
+        // console.log("hovered row:", hoveredRow, plotType);
+        if (hoveredRow && plotType && (plotType.dimensionType === "2D" || plotType.dimensionType === "3D")) {
+          const newPlotData = [...plotData];
+          const noSelected = newPlotData.filter(d => d.name !== "Selected");
+          noSelected.push({
+            name: "Selected",
+            mode: "markers",
+            type: plotType.dimensionType === "3D" ? "scatter3d" : "scatter",
+            marker: { color: "red", size: 8, symbol: "circle" },
+            x: [hoveredRow[selectedOptVars[0]]],
+            y: [hoveredRow[selectedOptVars[1]]],
+            z: plotType?.dimensionType === "3D" ? [hoveredRow[selectedOptVars[2]]] : undefined,
+          });
+          setPlotData(noSelected);
+        }
+      } else {
         const newPlotData = [...plotData];
-        newPlotData[3] = {
-          name: "Current Selection",
-          mode: "markers",
-          type: "scatter",
-          marker: { color: "red", size: 10, symbol: "circle" },
-          x: [hoveredRow[optVars[0]]],
-          y: [hoveredRow[optVars[1]]],
-        };
-        setPlotData(newPlotData);
-      }
-    } else {
-      const newPlotData = [...plotData];
-      if (newPlotData.length > 3) {
-        newPlotData.pop();
-        setPlotData(newPlotData);
+        const noSelected = newPlotData.filter(d => d.name === "Selected");
+        if (noSelected.length > 0) {
+          setPlotData(newPlotData.filter(d => d.name !== "Selected"));
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hovered]);
-
-  const layout = {
-    title: { text: "Pareto Front Diagram" },
-    xaxis: { title: { text: optVars[0] } },
-    yaxis: { title: { text: optVars[1] } },
-    plot_bgcolor: `${theme.palette.background.default}`,
-    paper_bgcolor: `${theme.palette.background.default}`,
-    font: { color: `${theme.palette.text.primary}` },
-  };
+  }, [hovered, plotType, tableData]);
 
   const plotStyle = {
     width: "100%",
-    height: 400,
+    height: 500,
     borderRadius: "8px",
     overflow: "hidden",
   };
 
   if (loading) {
-    return <JobsLoading progress={progress} jobProgress={jobProgress} message="Creating AI model..." />;
+    return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;
   }
 
   return (
-    <Box display="flex" flexDirection="column" gap={1} width="100%">
+    <Box display="flex" flexDirection="column" gap={1} width="100%" mmux-testid="moga-pareto-plot">
       {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
+      {/* Similar to the "Calculating..." warning, help me introduce a warning for "Generating Visualization..." for when data has already come back from the backend but the UI is working on generating the plot */}
       {!propagating && plotData.length === 0 && (
         <InsufficientDataWarning
           fetchedJobCollections={fetchedJobCollections}
@@ -202,9 +441,18 @@ export function MOGAPareto(props: MogaParetoPropsType) {
           height={plotStyle.height}
         />
       )}
-      {!propagating && plotData.length !== 0 && (
+      {!propagating && selectedFunction && plotData.length !== 0 && (
         <>
           <Plot ref={ref} data={plotData} layout={layout} style={plotStyle} />
+          <MOGAPlotModal
+            plotType={plotType}
+            tableData={tableData}
+            updatePlot={updatePlot}
+            filteredJobList={filteredJobList}
+            optVars={Object.keys(outputTargets[selectedFunction.uid])}
+            selectedOptVars={selectedOptVars}
+            setSelectedOptVars={setSelectedOptVars}
+          />
           <MogaParetoTable tableData={tableData} hovered={hovered} setHovered={setHovered} />
         </>
       )}
