@@ -38,8 +38,8 @@ jobs:
       uses: actions/checkout@v5
     - name: Set up uv
       uses: astral-sh/setup-uv@v3
-    - name: Install sub-packages
-      run: cd flaskapi && bash ./install-deps.sh
+    - name: Install Flask API dependencies
+      run: make install-flaskapi-deps
     - name: Run flaskapi tests
       run: make test-flaskapi
     - name: Upload coverage reports

@@ -30,11 +30,11 @@ if [ "$DEVELOPMENT_MODE" = "true" ]; then
     FLASK_ARGS=("--host=$HOST" "--port=$PORT" "--debug" "--debugger" "--reload")
 
     echo "$INFO" "Starting Flask development server with arguments: ${FLASK_ARGS[@]}"
-    exec python -m flask run "${FLASK_ARGS[@]}"
+    exec uv run python -m flask run "${FLASK_ARGS[@]}"
 else
     # Production mode - use gunicorn
     echo "$INFO" "Starting gunicorn production server on $HOST:$PORT"
-    exec gunicorn --bind "$HOST:$PORT" \
+    exec uvx gunicorn --bind "$HOST:$PORT" \
         --workers=4 \
         --worker-class=gevent \
         --timeout=1200 \

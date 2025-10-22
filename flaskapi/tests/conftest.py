@@ -43,7 +43,7 @@ def configure_test_logging():
     yield
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_test_env_vars():
     """Fixture to set environment variables for testing."""
     with patch.dict(
@@ -55,9 +55,8 @@ def mock_test_env_vars():
         yield
 
 
-# @pytest.fixture(scope='module')
 @pytest.fixture
-def test_app(mock_test_env_vars) -> Flask:
+def test_app() -> Flask:
     """Fixture to initialize the Flask app in test mode."""
     app = create_flask_app()
     return app

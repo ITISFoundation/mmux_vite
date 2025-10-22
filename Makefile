@@ -2,8 +2,6 @@ SHELL 				 			:= /bin/sh
 .DEFAULT_GOAL 		 			:= help
 
 DOCKER_IMAGE_TAG := 1.5.14
-
-
 FLASKAPI_DIR := ./flaskapi
 NODE_DIR := ./node
 
@@ -16,8 +14,19 @@ install-node:
 start-frontend:
 	cd ${NODE_DIR} && npm run dev
 
+## Expose make objectives from flaskapi/Makefile
+.PHONY: setup-mmux-python
+setup-mmux-python: ## clone and setup mmux_python dependency
+	cd ${FLASKAPI_DIR} && make setup-mmux-python
+
+.PHONY: install-flaskapi-deps
+install-flaskapi-deps: ## install Flask API Python dependencies
+	cd ${FLASKAPI_DIR} && make install-flaskapi-deps
+
+## Fix issue of permissions on mmux_python folder
+.PHONY: get-access-write-on-mmux-python
 get-access-write-on-mmux-python:
-	sudo chown -R ordonez:ordonez ./flaskapi/mmux_python/
+	sudo chown -R ${USER}:${USER} ./flaskapi/mmux_python/
 
 # Builds new service version ----------------------------------------------------------------------------
 define _bumpversion
@@ -183,7 +192,7 @@ build-publish-local: build-no-cache publish-local
 	@echo "WARNING ##### $@ does not exist, cloning $< as $@ ############"; cp $< $@)
 
 .PHONY: clean
-clean:
+clean: ## clean build artifacts and dependencies
 	rm -rf node/node_modules
 	rm -rf flaskapi/.venv
 	rm -rf flaskapi/mmux_python
@@ -198,8 +207,7 @@ test-node: clean
 		npm test
 
 .PHONY: test-flaskapi
-## ensures the right dependencies are installed through the script; using uv was failing due to volume mounting
-test-flaskapi: ## run Flask backend tests
+test-flaskapi: install-flaskapi-deps ## run Flask backend tests
 	cd ${FLASKAPI_DIR} && \
 	uv run pytest tests/ -v --cov-report=html --cov-report=term-missing
 
