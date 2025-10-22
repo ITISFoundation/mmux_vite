@@ -15,7 +15,7 @@ from mmux_flaskapi.utils.webserver_config import get_osparc_api, OsparcApiExcept
 # Initialize logger and OsparcApi
 #####################################################################################
 _logger = logging.getLogger(__name__)
-osparc_bp = Blueprint('osparc', __name__, url_prefix='/osparc')
+osparc_bp = Blueprint('osparc', __name__)
 
 
 #####################################################################################

@@ -20,7 +20,7 @@ from mmux_flaskapi.utils.webserver_config import get_osparc_api
 #
 
 _logger = logging.getLogger(__name__)
-sampling_bp = Blueprint('sampling', __name__, url_prefix='/sampling')
+sampling_bp = Blueprint('sampling', __name__)
 
 class ParentInfo(NamedTuple):
     parent_node_id : str

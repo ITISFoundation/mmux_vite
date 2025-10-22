@@ -6,7 +6,7 @@ from typing import Final
 from flask import request, jsonify, Blueprint
 #
 
-textfile_bp = Blueprint("text-file", __name__, url_prefix="/text-file")
+textfile_bp = Blueprint("text-file", __name__)
 
 
 _logger = logging.getLogger(__name__)

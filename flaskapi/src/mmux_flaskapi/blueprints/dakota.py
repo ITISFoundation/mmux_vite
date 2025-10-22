@@ -29,12 +29,8 @@ from mmux_flaskapi.blueprints.dakota_models import (
 from mmux_flaskapi.utils.helpers import sanitize_varnames, create_run_dir
 from mmux_flaskapi.blueprints import dakota_models
 
-## TODO eventually have it installed as a package -- absolute paths are risky...
-base_dir = Path(__file__).parent.parent.parent.parent # /faskapi
-print("Adding to sys.path: ", str(base_dir.parent)) # /mmux_vite
-sys.path.append(str(base_dir.parent))
-from flaskapi.mmux_python.utils.funs_evaluate import evaluate_sumo_along_axes, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid, perform_moga_optimization
-from flaskapi.mmux_python.utils.funs_data_processing import (
+from mmux_python.funs_evaluate import evaluate_sumo_along_axes, evaluate_sumo, evaluate_sumo_crossvalidation, evaluate_sumo_manual_crossvalidation, evaluate_sumo_on_grid, perform_moga_optimization
+from mmux_python.funs_data_processing import (
     process_input_file,
     create_manual_uq_samples,
     sanitize_varnames,
@@ -42,7 +38,7 @@ from flaskapi.mmux_python.utils.funs_data_processing import (
 
 
 _logger = logging.getLogger(__name__)
-dakota_bp = Blueprint('dakota', __name__, url_prefix='/dakota')
+dakota_bp = Blueprint('dakota', __name__)
 
 
 ########################################################

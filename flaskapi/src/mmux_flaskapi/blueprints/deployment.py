@@ -4,7 +4,7 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
-deployment_bp = Blueprint('deployment', __name__, url_prefix='/deployment')
+deployment_bp = Blueprint('deployment', __name__)
 
 @deployment_bp.route('/health')
 def health_check():
