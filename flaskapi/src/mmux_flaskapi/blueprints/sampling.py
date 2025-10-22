@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import json
 import logging
+import time
 from typing import NamedTuple
 #
 from flask import request, abort, jsonify, make_response, Blueprint, current_app
@@ -230,7 +231,11 @@ def flask_test_job():
             
         uid = response.actual_instance.uid 
         _logger.debug(f"Job UID: {uid}")
-        job = _get_function_job_from_uid(uid)
+        while (
+            "JOB_TASK_" in (job := _get_function_job_from_uid(uid))["status"]
+            and not "FAILURE" in job
+        ):
+            time.sleep(1)
         _logger.debug(f"Created job: {job}")
         return jsonify(job)
         
