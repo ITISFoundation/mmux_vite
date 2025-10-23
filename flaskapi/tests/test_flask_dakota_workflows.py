@@ -48,7 +48,7 @@ def make_incomplete_job(status: str, inputs: List[str], outputs: List[str], miss
 # ------------------- Success Cases -------------------
 
 class TestSumoCrossValidation:
-    """Test suite for the /dakota/sumo_cross_validation endpoint."""
+    """Test suite for the /flask/dakota/sumo_cross_validation endpoint."""
 
     # and w weirdly named variables (inc those that might go to same name after sanitization)
     def test_sumo_cross_validation_success(self, test_client: Flask):
@@ -60,7 +60,7 @@ class TestSumoCrossValidation:
             "output": OUTPUT,
             "FunctionJobs": create_function_job_list(50, inputs=INPUTVARS, outputs=[OUTPUT])
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, dict)
@@ -80,7 +80,7 @@ class TestSumoCrossValidation:
             "output": "y",
             "FunctionJobs": create_function_job_list(50, inputs=["a", "b"], outputs=["y"])  # Jobs have different input keys
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -95,7 +95,7 @@ class TestSumoCrossValidation:
             "output": "y",  # Request this output
             "FunctionJobs": create_function_job_list(50, inputs=["x1"], outputs=["z"])  # Jobs have different output key
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -114,7 +114,7 @@ class TestSumoCrossValidation:
             "output": "y", 
             "FunctionJobs": all_jobs
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -133,7 +133,7 @@ class TestSumoCrossValidation:
             "output": "y",
             "FunctionJobs": all_jobs
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -152,7 +152,7 @@ class TestSumoCrossValidation:
             "output": "y",
             "FunctionJobs": all_jobs
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -171,7 +171,7 @@ class TestSumoCrossValidation:
             "output": "y",
             "FunctionJobs": all_jobs
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -190,7 +190,7 @@ class TestSumoCrossValidation:
             "output": "y",
             "FunctionJobs": all_jobs
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -206,7 +206,7 @@ class TestSumoCrossValidation:
             "FunctionJobs": create_function_job_list(50)
         }
         del payload[missing_field]
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -219,7 +219,7 @@ class TestSumoCrossValidation:
             "inputVars": [],
             "FunctionJobs": create_function_job_list(50)
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "inputVars" in data["error"]
@@ -231,7 +231,7 @@ class TestSumoCrossValidation:
             "inputVars": ["x1"],
             "FunctionJobs": create_function_job_list(3)
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "FunctionJobs" in data["error"] or "samples" in data["error"]
@@ -243,7 +243,7 @@ class TestSumoCrossValidation:
             "inputVars": ["x1"],
             "FunctionJobs": create_function_job_list(50)
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "output" in data["error"]
@@ -255,7 +255,7 @@ class TestSumoCrossValidation:
             "inputVars": "x1",  # Should be a list
             "FunctionJobs": create_function_job_list(50)
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "inputVars" in data["error"]
@@ -267,7 +267,7 @@ class TestSumoCrossValidation:
             "inputVars": ["x1"],
             "FunctionJobs": "not_a_list"
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "FunctionJobs" in data["error"]
@@ -283,7 +283,7 @@ class TestSumoCrossValidation:
             "inputVars": ["x1"],
             "FunctionJobs": create_function_job_list(50)
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 500
         data = response.get_json()
         assert "Some Dakota error" in data["error"]
@@ -299,7 +299,7 @@ class TestSumoCrossValidation:
             "inputVars": ["x1"],
             "FunctionJobs": create_function_job_list(50)
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 500
         data = response.get_json()
         assert "error" in data
@@ -312,7 +312,7 @@ class TestSumoCrossValidation:
             "output": "y",
             "FunctionJobs": create_function_job_list(50, inputs=["x1", "x2"], outputs=["y"])
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -331,7 +331,7 @@ class TestSumoCrossValidation:
             "output": "y",
             "FunctionJobs": all_jobs
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -357,7 +357,7 @@ class TestSumoCrossValidation:
             "output": "y",
             "FunctionJobs": all_jobs
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -370,7 +370,7 @@ class TestSumoCrossValidation:
             "output": "y",
             "FunctionJobs": create_function_job_list(50, inputs=["x1", "x2", "x3"], outputs=["y", "z"])  # Jobs have extra
         }
-        response = test_client.post("/dakota/sumo_cross_validation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert "y" in data
@@ -407,7 +407,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": self.create_sumo_jobs(20, input_vars, output)
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 200
         
         data = response.get_json()
@@ -447,7 +447,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": self.create_sumo_jobs(30, input_vars, output)
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 200
         
         data = response.get_json()
@@ -471,7 +471,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": self.create_sumo_jobs(15, input_vars, output)
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 200
         
         data = response.get_json()
@@ -490,7 +490,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": self.create_sumo_jobs(50, input_vars, output)
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 200
         
         data = response.get_json()
@@ -510,7 +510,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": self.create_sumo_jobs(10, ["x1"], "y")
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -523,7 +523,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": self.create_sumo_jobs(10, ["x1"], "y")
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -547,7 +547,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": completed_jobs + failed_jobs
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -569,7 +569,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": self.create_sumo_jobs(20, ["x1"], "y")  # Missing x2
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -600,7 +600,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -623,7 +623,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": self.create_sumo_jobs(20, input_vars, output)
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -642,7 +642,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": self.create_sumo_jobs(20, ["x1", "x2"], "y")
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -655,7 +655,7 @@ class TestSumoAlongAxes:
             # Missing FunctionJobs
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -691,7 +691,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert "predictions" in data
@@ -725,7 +725,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": all_jobs
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, dict)
@@ -741,7 +741,7 @@ class TestSumoAlongAxes:
             "FunctionJobs": self.create_sumo_jobs(5, input_vars, output)  # Minimum jobs
         }
         
-        response = test_client.post("/dakota/sumo_along_axes", json=payload)
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert "predictions" in data
@@ -779,7 +779,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(20, input_vars, output)
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 200
         
         data = response.get_json()
@@ -814,7 +814,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(25, input_vars, output)
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 200
         
         data = response.get_json()
@@ -840,7 +840,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(30, input_vars, output)
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 200
         
         data = response.get_json()
@@ -867,7 +867,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(20, input_vars, output)
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 200
         
         data = response.get_json()
@@ -887,7 +887,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(5, input_vars, output)  # Minimum jobs
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 200
         
         data = response.get_json()
@@ -905,7 +905,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(10, ["x1"], "y")
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -920,7 +920,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(10, input_vars, "y")
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -934,7 +934,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(20, ["x1", "x2"], "y")
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -966,7 +966,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": completed_jobs + failed_jobs
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -987,7 +987,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(20, ["x1"], "y")  # Missing x2
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1020,7 +1020,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1045,7 +1045,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(20, input_vars, output)
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1065,7 +1065,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(20, ["x1", "x2"], "y")
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1079,7 +1079,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(20, ["x1", "x2"], "y")
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1093,7 +1093,7 @@ class TestSumoGridEvaluation:
             # Missing FunctionJobs
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1107,7 +1107,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": self.create_grid_jobs(10, ["x1"], "y")
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1145,7 +1145,7 @@ class TestSumoGridEvaluation:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert "grid_data" in data
@@ -1178,7 +1178,7 @@ class TestSumoGridEvaluation:
     #         "FunctionJobs": all_jobs
     #     }
         
-    #     response = test_client.post("/dakota/sumo_grid_evaluation", json=payload)
+    #     response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
     #     assert response.status_code == 200
     #     data = response.get_json()
     #     assert isinstance(data, dict)
@@ -1234,7 +1234,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output)
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 200
         
         data = response.get_json()
@@ -1282,7 +1282,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": self.create_uq_uncertainty_jobs(100, input_vars, output)
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert len(data["bin_means"]) > 0
@@ -1305,7 +1305,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output, include_uncertainty=False)
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1326,7 +1326,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output)
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1346,7 +1346,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output)
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1367,7 +1367,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output)
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1388,7 +1388,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output)
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1417,7 +1417,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": completed_jobs + failed_jobs
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1435,7 +1435,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": self.create_uq_uncertainty_jobs(50, ["x1"], "y")
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1454,7 +1454,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, "y")
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1474,7 +1474,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output)
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1496,7 +1496,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": self.create_uq_uncertainty_jobs(5, input_vars, output)  # Minimum jobs
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, dict)
@@ -1517,7 +1517,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": self.create_uq_uncertainty_jobs(30, input_vars, output)
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert all(key in data for key in ["bins_start", "bins_end", "median", "mean"])
@@ -1552,7 +1552,7 @@ class TestManualUQWithUncertainty:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+        response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, dict)
@@ -1589,7 +1589,7 @@ class TestManualUQWithUncertainty:
     #         "FunctionJobs": all_jobs
     #     }
         
-    #     response = test_client.post("/dakota/manual_uq_propagation_with_uncertainty", json=payload)
+    #     response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
     #     assert response.status_code == 200
     #     data = response.get_json()
     #     assert isinstance(data, dict)
@@ -1616,7 +1616,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         
@@ -1652,7 +1652,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         
@@ -1671,7 +1671,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         
@@ -1691,7 +1691,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1721,7 +1721,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": all_jobs
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert "metrics" in data
@@ -1744,7 +1744,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": all_jobs
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1773,7 +1773,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": all_jobs
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1802,7 +1802,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": all_jobs
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1824,7 +1824,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": all_jobs
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1845,7 +1845,7 @@ class TestSumoCVAccuracyMetrics:
         # Remove the specified field
         del payload[missing_field]
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1862,7 +1862,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1879,7 +1879,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1895,7 +1895,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": []
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1903,7 +1903,7 @@ class TestSumoCVAccuracyMetrics:
     def test_invalid_json_request(self, test_client: Flask):
         """Test handling of invalid JSON in the request."""
         response = test_client.post(
-            "/dakota/get_sumo_cv_accuracy_metrics", 
+            "/flask/dakota/get_sumo_cv_accuracy_metrics", 
             data="invalid json",
             content_type="application/json"
         )
@@ -1928,7 +1928,7 @@ class TestSumoCVAccuracyMetrics:
             "FunctionJobs": all_jobs
         }
         
-        response = test_client.post("/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -1971,7 +1971,7 @@ class TestMOGAOptimization:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         
@@ -2007,7 +2007,7 @@ class TestMOGAOptimization:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         
@@ -2030,7 +2030,7 @@ class TestMOGAOptimization:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert "optimization_results" in data
@@ -2049,7 +2049,7 @@ class TestMOGAOptimization:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -2072,7 +2072,7 @@ class TestMOGAOptimization:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -2101,7 +2101,7 @@ class TestMOGAOptimization:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -2129,7 +2129,7 @@ class TestMOGAOptimization:
             "FunctionJobs": all_jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -2156,7 +2156,7 @@ class TestMOGAOptimization:
             "FunctionJobs": all_jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -2184,7 +2184,7 @@ class TestMOGAOptimization:
             "FunctionJobs": all_jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 200
         data = response.get_json()
         assert "optimization_results" in data
@@ -2206,7 +2206,7 @@ class TestMOGAOptimization:
         # Remove the specified field
         del payload[missing_field]
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -2224,7 +2224,7 @@ class TestMOGAOptimization:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -2241,7 +2241,7 @@ class TestMOGAOptimization:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -2258,7 +2258,7 @@ class TestMOGAOptimization:
             "FunctionJobs": []
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -2266,7 +2266,7 @@ class TestMOGAOptimization:
     def test_invalid_json_request(self, test_client: Flask):
         """Test handling of invalid JSON in the request."""
         response = test_client.post(
-            "/dakota/perform_moga_optimization", 
+            "/flask/dakota/perform_moga_optimization", 
             data="invalid json",
             content_type="application/json"
         )
@@ -2292,7 +2292,7 @@ class TestMOGAOptimization:
             "FunctionJobs": all_jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -2315,7 +2315,7 @@ class TestMOGAOptimization:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -2339,7 +2339,7 @@ class TestMOGAOptimization:
             "FunctionJobs": jobs
         }
         
-        response = test_client.post("/dakota/perform_moga_optimization", json=payload)
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
@@ -2385,7 +2385,7 @@ class TestDakotaValidationEndpoints:
         ]
         
         for case in test_cases:
-            response = test_client.post('/dakota/sumo_cross_validation', json=case["payload"])
+            response = test_client.post('/flask/dakota/sumo_cross_validation', json=case["payload"])
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -2415,7 +2415,7 @@ class TestDakotaValidationEndpoints:
         ]
         
         for payload in test_cases:
-            response = test_client.post('/dakota/sumo_cross_validation', json=payload)
+            response = test_client.post('/flask/dakota/sumo_cross_validation', json=payload)
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -2444,7 +2444,7 @@ class TestDakotaValidationEndpoints:
         ]
         
         for payload in test_cases:
-            response = test_client.post('/dakota/sumo_cross_validation', json=payload)
+            response = test_client.post('/flask/dakota/sumo_cross_validation', json=payload)
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -2479,7 +2479,7 @@ class TestDakotaValidationEndpoints:
         ]
         
         for payload in test_cases:
-            response = test_client.post('/dakota/sumo_cross_validation', json=payload)
+            response = test_client.post('/flask/dakota/sumo_cross_validation', json=payload)
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -2526,7 +2526,7 @@ class TestDakotaValidationEndpoints:
         ]
         
         for case in test_cases:
-            response = test_client.post('/dakota/manual_uq_propagation_with_uncertainty', json=case["payload"])
+            response = test_client.post('/flask/dakota/manual_uq_propagation_with_uncertainty', json=case["payload"])
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -2576,7 +2576,7 @@ class TestDakotaValidationEndpoints:
         ]
         
         for payload in test_cases:
-            response = test_client.post('/dakota/manual_uq_propagation_with_uncertainty', json=payload)
+            response = test_client.post('/flask/dakota/manual_uq_propagation_with_uncertainty', json=payload)
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -2617,7 +2617,7 @@ class TestDakotaValidationEndpoints:
         ]
         
         for case in test_cases:
-            response = test_client.post('/dakota/sumo_along_axes', json=case["payload"])
+            response = test_client.post('/flask/dakota/sumo_along_axes', json=case["payload"])
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -2653,7 +2653,7 @@ class TestDakotaValidationEndpoints:
         ]
         
         for case in test_cases:
-            response = test_client.post('/dakota/sumo_grid_evaluation', json=case["payload"])
+            response = test_client.post('/flask/dakota/sumo_grid_evaluation', json=case["payload"])
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -2687,7 +2687,7 @@ class TestDakotaValidationEndpoints:
         ]
         
         for case in test_cases:
-            response = test_client.post('/dakota/get_sumo_cv_accuracy_metrics', json=case["payload"])
+            response = test_client.post('/flask/dakota/get_sumo_cv_accuracy_metrics', json=case["payload"])
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -2732,7 +2732,7 @@ class TestDakotaValidationEndpoints:
         ]
         
         for case in test_cases:
-            response = test_client.post('/dakota/perform_moga_optimization', json=case["payload"])
+            response = test_client.post('/flask/dakota/perform_moga_optimization', json=case["payload"])
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -2743,7 +2743,7 @@ class TestDakotaValidationEndpoints:
         test_cases = [
             # Job with empty status
             {
-                "endpoint": "/dakota/sumo_cross_validation",
+                "endpoint": "/flask/dakota/sumo_cross_validation",
                 "payload": {
                     "output": "y",
                     "inputVars": ["x1"],
@@ -2758,7 +2758,7 @@ class TestDakotaValidationEndpoints:
             },
             # Job with empty inputs
             {
-                "endpoint": "/dakota/sumo_cross_validation",
+                "endpoint": "/flask/dakota/sumo_cross_validation",
                 "payload": {
                     "output": "y",
                     "inputVars": ["x1"],
@@ -2773,7 +2773,7 @@ class TestDakotaValidationEndpoints:
             },
             # Job with empty outputs
             {
-                "endpoint": "/dakota/sumo_cross_validation",
+                "endpoint": "/flask/dakota/sumo_cross_validation",
                 "payload": {
                     "output": "y",
                     "inputVars": ["x1"],
@@ -2805,7 +2805,7 @@ class TestDakotaValidationEndpoints:
         test_cases = [
             # Empty output string
             {
-                "endpoint": "/dakota/sumo_cross_validation",
+                "endpoint": "/flask/dakota/sumo_cross_validation",
                 "payload": {
                     "output": "",  # empty string
                     "inputVars": ["x1"],
@@ -2814,7 +2814,7 @@ class TestDakotaValidationEndpoints:
             },
             # Empty input variable name
             {
-                "endpoint": "/dakota/sumo_cross_validation",
+                "endpoint": "/flask/dakota/sumo_cross_validation",
                 "payload": {
                     "output": "y",
                     "inputVars": [""],  # empty string in list
@@ -2823,7 +2823,7 @@ class TestDakotaValidationEndpoints:
             },
             # Empty input variables list
             {
-                "endpoint": "/dakota/sumo_cross_validation",
+                "endpoint": "/flask/dakota/sumo_cross_validation",
                 "payload": {
                     "output": "y",
                     "inputVars": [],  # empty list
@@ -2849,7 +2849,7 @@ class TestDakotaValidationEndpoints:
         test_cases = [
             # Zero numSamples
             {
-                "endpoint": "/dakota/manual_uq_propagation_with_uncertainty",
+                "endpoint": "/flask/dakota/manual_uq_propagation_with_uncertainty",
                 "payload": {
                     "output": "y",
                     "inputVars": ["x1"],
@@ -2860,7 +2860,7 @@ class TestDakotaValidationEndpoints:
             },
             # Negative numSamples
             {
-                "endpoint": "/dakota/manual_uq_propagation_with_uncertainty",
+                "endpoint": "/flask/dakota/manual_uq_propagation_with_uncertainty",
                 "payload": {
                     "output": "y",
                     "inputVars": ["x1"],
@@ -2880,13 +2880,13 @@ class TestDakotaValidationEndpoints:
     def test_invalid_json_requests(self, test_client):
         """Test all endpoints with invalid JSON."""
         endpoints = [
-            "/dakota/sumo_cross_validation",
-            "/dakota/manual_uq_propagation_with_uncertainty",
+            "/flask/dakota/sumo_cross_validation",
+            "/flask/dakota/manual_uq_propagation_with_uncertainty",
             # Skip endpoints that don't have JSON parsing error handling
-            # "/dakota/sumo_along_axes",
-            # "/dakota/sumo_grid_evaluation",
-            # "/dakota/get_sumo_cv_accuracy_metrics",
-            # "/dakota/perform_moga_optimization"
+            # "/flask/dakota/sumo_along_axes",
+            # "/flask/dakota/sumo_grid_evaluation",
+            # "/flask/dakota/get_sumo_cv_accuracy_metrics",
+            # "/flask/dakota/perform_moga_optimization"
         ]
         
         invalid_json = '{"invalid": "json", "missing": "closing_brace"'
@@ -2906,7 +2906,7 @@ class TestDakotaValidationEndpoints:
     def test_validation_error_response_format(self, test_client):
         """Test that validation errors return properly formatted error responses."""
         # Test with missing required field
-        response = test_client.post('/dakota/sumo_cross_validation', json={
+        response = test_client.post('/flask/dakota/sumo_cross_validation', json={
             "inputVars": ["x1"],
             "FunctionJobs": [{"status": "completed", "inputs": {"x1": 1.0}, "outputs": {"y": 2.0}}] * 5
             # Missing "output" field
@@ -2921,12 +2921,12 @@ class TestDakotaValidationEndpoints:
     def test_method_not_allowed(self, test_client):
         """Test that non-POST methods are not allowed on Dakota endpoints."""
         endpoints = [
-            "/dakota/sumo_cross_validation",
-            "/dakota/manual_uq_propagation_with_uncertainty",
-            "/dakota/sumo_along_axes",
-            "/dakota/sumo_grid_evaluation",
-            "/dakota/get_sumo_cv_accuracy_metrics",
-            "/dakota/perform_moga_optimization"
+            "/flask/dakota/sumo_cross_validation",
+            "/flask/dakota/manual_uq_propagation_with_uncertainty",
+            "/flask/dakota/sumo_along_axes",
+            "/flask/dakota/sumo_grid_evaluation",
+            "/flask/dakota/get_sumo_cv_accuracy_metrics",
+            "/flask/dakota/perform_moga_optimization"
         ]
         
         for endpoint in endpoints:
@@ -2944,7 +2944,7 @@ class TestDakotaBasicErrorHandling:
 
     def test_sumo_cross_validation_json_decode_error(self, test_client):
         """Test JSON decode error in sumo_cross_validation."""
-        response = test_client.post('/dakota/sumo_cross_validation',
+        response = test_client.post('/flask/dakota/sumo_cross_validation',
                                    data='invalid json',
                                    content_type='application/json')
         
@@ -2954,7 +2954,7 @@ class TestDakotaBasicErrorHandling:
 
     def test_manual_uq_propagation_json_decode_error(self, test_client):
         """Test JSON decode error in manual_uq_propagation_with_uncertainty."""
-        response = test_client.post('/dakota/manual_uq_propagation_with_uncertainty',
+        response = test_client.post('/flask/dakota/manual_uq_propagation_with_uncertainty',
                                    data='invalid json',
                                    content_type='application/json')
         

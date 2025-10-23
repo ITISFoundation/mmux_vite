@@ -74,7 +74,7 @@ class TestSamplingEndpoints:
 
     def test_flask_lhs_missing_required_fields(self, test_client):
         """Test that LHS endpoint properly handles missing required fields"""
-        response = test_client.post('/sampling/lhs', json={})
+        response = test_client.post('flask/sampling/lhs', json={})
         # Expecting 400 since required fields are missing and will cause validation errors
         assert response.status_code == 400
         data = response.get_json()
@@ -84,7 +84,7 @@ class TestSamplingEndpoints:
         """Test grid sampling endpoint with missing required fields."""
         payload = {}
         
-        response = test_client.post("/sampling/grid", json=payload)
+        response = test_client.post("/flask/sampling/grid", json=payload)
         # With Pydantic validation, this should return 400 for validation errors
         assert response.status_code == 400
         
@@ -95,7 +95,7 @@ class TestSamplingEndpoints:
         """Test test_job endpoint with missing required fields."""
         payload = {}
         
-        response = test_client.post("/sampling/test_job", json=payload)
+        response = test_client.post("/flask/sampling/test_job", json=payload)
         # With Pydantic validation, this should return 400 for validation errors
         assert response.status_code == 400
         
@@ -106,7 +106,7 @@ class TestSamplingEndpoints:
         """Test clone_job endpoint with missing required fields."""
         payload = {}
         
-        response = test_client.post("/sampling/clone_job", json=payload)
+        response = test_client.post("/flask/sampling/clone_job", json=payload)
         # With Pydantic validation, this should return 400 for validation errors
         assert response.status_code == 400
         
@@ -116,32 +116,32 @@ class TestSamplingEndpoints:
     def test_sampling_methods_not_allowed(self, test_client):
         """Test that unsupported HTTP methods return 405."""
         # Test GET on POST endpoints (actual endpoint names)
-        response = test_client.get("/sampling/lhs")
+        response = test_client.get("/flask/sampling/lhs")
         assert response.status_code == 405
         
-        response = test_client.get("/sampling/grid")
+        response = test_client.get("/flask/sampling/grid")
         assert response.status_code == 405
         
-        response = test_client.get("/sampling/test_job")
+        response = test_client.get("/flask/sampling/test_job")
         assert response.status_code == 405
         
-        response = test_client.get("/sampling/clone_job")
+        response = test_client.get("/flask/sampling/clone_job")
         assert response.status_code == 405
         
         # Test PUT/DELETE/PATCH methods
-        response = test_client.put("/sampling/lhs", json={})
+        response = test_client.put("/flask/sampling/lhs", json={})
         assert response.status_code == 405
         
-        response = test_client.delete("/sampling/grid")
+        response = test_client.delete("/flask/sampling/grid")
         assert response.status_code == 405
         
-        response = test_client.patch("/sampling/test_job", json={})
+        response = test_client.patch("/flask/sampling/test_job", json={})
         assert response.status_code == 405
 
     def test_invalid_json_requests(self, test_client):
         """Test handling of invalid JSON in requests."""
         # Test invalid JSON data for LHS endpoint
-        response = test_client.post("/sampling/lhs", 
+        response = test_client.post("/flask/sampling/lhs", 
                                   data="invalid json", 
                                   content_type='application/json')
         # Expecting 400 since invalid JSON will cause validation errors 
@@ -149,7 +149,7 @@ class TestSamplingEndpoints:
         data = response.get_json()
         assert 'error' in data
         
-        response = test_client.post("/sampling/grid", 
+        response = test_client.post("/flask/sampling/grid", 
                                   data="invalid json",
                                   content_type='application/json')
         assert response.status_code == 400
@@ -172,16 +172,16 @@ class TestSamplingEndpoints:
     def test_correct_sampling_endpoints_exist(self, test_client):
         """Test that the expected sampling endpoints exist."""
         # These should not return 404 (they should return 500 due to missing data)
-        response = test_client.post("/sampling/lhs", json={})
+        response = test_client.post("/flask/sampling/lhs", json={})
         assert response.status_code != 404
         
-        response = test_client.post("/sampling/grid", json={})
+        response = test_client.post("/flask/sampling/grid", json={})
         assert response.status_code != 404
         
-        response = test_client.post("/sampling/test_job", json={})
+        response = test_client.post("/flask/sampling/test_job", json={})
         assert response.status_code != 404
         
-        response = test_client.post("/sampling/clone_job", json={})
+        response = test_client.post("/flask/sampling/clone_job", json={})
         assert response.status_code != 404
 
     def test_content_type_handling(self, test_client):
@@ -189,7 +189,7 @@ class TestSamplingEndpoints:
         payload = {}
         
         # Test with explicit JSON content type
-        response = test_client.post("/sampling/lhs", 
+        response = test_client.post("/flask/sampling/lhs", 
                                   data=json.dumps(payload),
                                   content_type='application/json')
         # Should not fail due to content type issues
@@ -203,7 +203,7 @@ class TestSamplingEndpoints:
             "N": 10
         }
         
-        response = test_client.post("/sampling/lhs", json=payload)
+        response = test_client.post("/flask/sampling/lhs", json=payload)
         # Should return 400 for validation error (missing funUid and empty config)
         assert response.status_code == 400
         
@@ -216,7 +216,7 @@ class TestSamplingEndpoints:
             "config": []  # Empty config, missing funUid
         }
         
-        response = test_client.post("/sampling/grid", json=payload)
+        response = test_client.post("/flask/sampling/grid", json=payload)
         # Should return 400 for validation error
         assert response.status_code == 400
         
@@ -229,7 +229,7 @@ class TestSamplingEndpoints:
             "config": []  # Empty config, missing funUid
         }
         
-        response = test_client.post("/sampling/test_job", json=payload)
+        response = test_client.post("/flask/sampling/test_job", json=payload)
         # Should return 400 for validation error
         assert response.status_code == 400
         
@@ -242,7 +242,7 @@ class TestSamplingEndpoints:
             "functionName": "test_function"  # Missing projectJobId and projectInputs
         }
         
-        response = test_client.post("/sampling/clone_job", json=payload)
+        response = test_client.post("/flask/sampling/clone_job", json=payload)
         # Should return 400 for validation error
         assert response.status_code == 400
         
@@ -279,7 +279,7 @@ class TestSamplingValidationEndpoints:
         ]
         
         for case in test_cases:
-            response = test_client.post('/sampling/lhs', json=case["payload"])
+            response = test_client.post('/flask/sampling/lhs', json=case["payload"])
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -299,7 +299,7 @@ class TestSamplingValidationEndpoints:
         ]
         
         for payload in test_cases:
-            response = test_client.post('/sampling/lhs', json=payload)
+            response = test_client.post('/flask/sampling/lhs', json=payload)
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -352,7 +352,7 @@ class TestSamplingValidationEndpoints:
         ]
         
         for payload in test_cases:
-            response = test_client.post('/sampling/lhs', json=payload)
+            response = test_client.post('/flask/sampling/lhs', json=payload)
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -373,7 +373,7 @@ class TestSamplingValidationEndpoints:
         ]
         
         for case in test_cases:
-            response = test_client.post('/sampling/grid', json=case["payload"])
+            response = test_client.post('/flask/sampling/grid', json=case["payload"])
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -410,7 +410,7 @@ class TestSamplingValidationEndpoints:
         ]
         
         for payload in test_cases:
-            response = test_client.post('/sampling/grid', json=payload)
+            response = test_client.post('/flask/sampling/grid', json=payload)
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -431,7 +431,7 @@ class TestSamplingValidationEndpoints:
         ]
         
         for case in test_cases:
-            response = test_client.post('/sampling/test_job', json=case["payload"])
+            response = test_client.post('/flask/sampling/test_job', json=case["payload"])
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -463,7 +463,7 @@ class TestSamplingValidationEndpoints:
         ]
         
         for payload in test_cases:
-            response = test_client.post('/sampling/test_job', json=payload)
+            response = test_client.post('/flask/sampling/test_job', json=payload)
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -489,7 +489,7 @@ class TestSamplingValidationEndpoints:
         ]
         
         for case in test_cases:
-            response = test_client.post('/sampling/clone_job', json=case["payload"])
+            response = test_client.post('/flask/sampling/clone_job', json=case["payload"])
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -519,7 +519,7 @@ class TestSamplingValidationEndpoints:
         ]
         
         for payload in test_cases:
-            response = test_client.post('/sampling/clone_job', json=payload)
+            response = test_client.post('/flask/sampling/clone_job', json=payload)
             assert response.status_code == 400
             data = response.get_json()
             assert 'error' in data
@@ -527,7 +527,7 @@ class TestSamplingValidationEndpoints:
     def test_validation_error_response_format(self, test_client):
         """Test that validation errors return proper error response format."""
         # Test with completely invalid JSON structure
-        response = test_client.post('/sampling/lhs', json={"invalid": "structure"})
+        response = test_client.post('/flask/sampling/lhs', json={"invalid": "structure"})
         assert response.status_code == 400
         data = response.get_json()
         
@@ -536,7 +536,7 @@ class TestSamplingValidationEndpoints:
         assert isinstance(data['error'], str)
         
         # Test with invalid data types
-        response = test_client.post('/sampling/grid', json={
+        response = test_client.post('/flask/sampling/grid', json={
             "config": "not_a_list",
             "funUid": 123  # Should be string
         })
@@ -549,7 +549,7 @@ class TestSamplingValidationEndpoints:
         test_cases = [
             # LHS with multiple errors
             {
-                "endpoint": "/sampling/lhs",
+                "endpoint": "/flask/sampling/lhs",
                 "payload": {
                     "config": [],  # Empty config
                     "seed": -1,    # Negative seed
@@ -559,7 +559,7 @@ class TestSamplingValidationEndpoints:
             },
             # Grid with multiple errors
             {
-                "endpoint": "/sampling/grid",
+                "endpoint": "/flask/sampling/grid",
                 "payload": {
                     "config": [{"variable": "x", "start": 10, "end": 5, "steps": -1}],  # Multiple config errors
                     "funUid": ""  # Empty funUid
@@ -567,7 +567,7 @@ class TestSamplingValidationEndpoints:
             },
             # Test job with multiple errors
             {
-                "endpoint": "/sampling/test_job",
+                "endpoint": "/flask/sampling/test_job",
                 "payload": {
                     "config": [],  # Empty config
                     "funUid": ""   # Empty funUid
@@ -611,7 +611,7 @@ class TestLHSSamplingWithMocks:
                     mock_api.map_function = Mock(side_effect=mock_map_function_success)
                     mock_get_api.return_value = mock_api
                     
-                    response = test_client.post("/sampling/lhs", json=payload)
+                    response = test_client.post("/flask/sampling/lhs", json=payload)
                     
                     assert response.status_code == 200
                     data = response.get_json()
@@ -659,7 +659,7 @@ class TestLHSSamplingWithMocks:
                     mock_api.map_function = Mock(side_effect=mock_map_function_invalid_function_id)
                     mock_get_api.return_value = mock_api
                     
-                    response = test_client.post("/sampling/lhs", json=payload)
+                    response = test_client.post("/flask/sampling/lhs", json=payload)
                     
                     assert response.status_code == 500
                     data = response.get_json()
@@ -687,7 +687,7 @@ class TestLHSSamplingWithMocks:
                     mock_api.map_function = Mock(side_effect=mock_map_function_validation_error)
                     mock_get_api.return_value = mock_api
                     
-                    response = test_client.post("/sampling/lhs", json=payload)
+                    response = test_client.post("/flask/sampling/lhs", json=payload)
                     
                     assert response.status_code == 500
                     data = response.get_json()
@@ -715,7 +715,7 @@ class TestLHSSamplingWithMocks:
                     mock_api.map_function = Mock(side_effect=mock_map_function_server_error)
                     mock_get_api.return_value = mock_api
                     
-                    response = test_client.post("/sampling/lhs", json=payload)
+                    response = test_client.post("/flask/sampling/lhs", json=payload)
                     
                     assert response.status_code == 500
                     data = response.get_json()
@@ -728,8 +728,8 @@ class TestGridSamplingWithMocks:
     @pytest.fixture
     def mock_grid_dependencies(self):
         """Mock the grid sampling dependencies."""
-        with patch("flaskapi.mmux_python.utils.funs_evaluate.create_grid_samples") as mock_create_grid:
-            with patch("flaskapi.mmux_python.utils.funs_data_processing.load_data") as mock_load_data:
+        with patch("mmux_python.funs_evaluate.create_grid_samples") as mock_create_grid:
+            with patch("mmux_python.funs_data_processing.load_data") as mock_load_data:
                 with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
                     # Mock create_grid_samples to return a file path
                     mock_create_grid.return_value = "/tmp/grid_samples.csv"
@@ -772,7 +772,7 @@ class TestGridSamplingWithMocks:
                     mock_api.map_function = Mock(side_effect=mock_map_function_success)
                     mock_get_api.return_value = mock_api
                     
-                    response = test_client.post("/sampling/grid", json=payload)
+                    response = test_client.post("/flask/sampling/grid", json=payload)
                     
                     assert response.status_code == 200
                     data = response.get_json()
@@ -814,7 +814,7 @@ class TestGridSamplingWithMocks:
                     mock_api.map_function = Mock(side_effect=mock_map_function_invalid_function_id)
                     mock_get_api.return_value = mock_api
                     
-                    response = test_client.post("/sampling/grid", json=payload)
+                    response = test_client.post("/flask/sampling/grid", json=payload)
                     
                     assert response.status_code == 500
                     data = response.get_json()
@@ -840,7 +840,7 @@ class TestGridSamplingWithMocks:
                     mock_api.map_function = Mock(side_effect=mock_map_function_timeout)
                     mock_get_api.return_value = mock_api
                     
-                    response = test_client.post("/sampling/grid", json=payload)
+                    response = test_client.post("/flask/sampling/grid", json=payload)
                     
                     assert response.status_code == 500
                     data = response.get_json()
@@ -900,7 +900,7 @@ class TestSamplingIntegrationWithOsparcAPI:
                     mock_api.map_function = Mock(side_effect=mock_realistic_map_function)
                     mock_get_api.return_value = mock_api
                     
-                    response = test_client.post("/sampling/lhs", json=payload)
+                    response = test_client.post("/flask/sampling/lhs", json=payload)
                     
                     # Verify successful submission
                     assert response.status_code == 200
@@ -973,8 +973,8 @@ class TestSamplingIntegrationWithOsparcAPI:
                 }
             )
         
-        with patch("flaskapi.mmux_python.utils.funs_evaluate.create_grid_samples") as mock_create_grid:
-            with patch("flaskapi.mmux_python.utils.funs_data_processing.load_data") as mock_load_data:
+        with patch("mmux_python.funs_evaluate.create_grid_samples") as mock_create_grid:
+            with patch("mmux_python.funs_data_processing.load_data") as mock_load_data:
                 with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
                     with patch("osparc_client.api.functions_api.FunctionsApi.map_function", side_effect=mock_engineering_map_function):
                         with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
@@ -996,7 +996,7 @@ class TestSamplingIntegrationWithOsparcAPI:
                                 mock_api.map_function = Mock(side_effect=mock_engineering_map_function)
                                 mock_get_api.return_value = mock_api
                                 
-                                response = test_client.post("/sampling/grid", json=payload)
+                                response = test_client.post("/flask/sampling/grid", json=payload)
                                 
                                 assert response.status_code == 200
                                 data = response.get_json()
@@ -1050,7 +1050,7 @@ class TestCloneJobWithMocks:
             mock_studies_api.clone_study.return_value = mock_cloned_study
             mock_get_api.return_value = mock_studies_api
             
-            response = test_client.post("/sampling/clone_job", json=payload)
+            response = test_client.post("/flask/sampling/clone_job", json=payload)
             
             assert response.status_code == 200
             data = response.get_json()
@@ -1088,7 +1088,7 @@ class TestCloneJobWithMocks:
             "projectInputs": {"param1": 10.5}
         }
         
-        response = test_client.post("/sampling/clone_job", json=payload)
+        response = test_client.post("/flask/sampling/clone_job", json=payload)
         
         assert response.status_code == 400
         data = response.get_json()
@@ -1103,7 +1103,7 @@ class TestCloneJobWithMocks:
             "projectInputs": {"param1": 10.5}
         }
         
-        response = test_client.post("/sampling/clone_job", json=payload)
+        response = test_client.post("/flask/sampling/clone_job", json=payload)
         
         assert response.status_code == 400
         data = response.get_json()
@@ -1118,7 +1118,7 @@ class TestCloneJobWithMocks:
             "functionName": "TestFunction"
         }
         
-        response = test_client.post("/sampling/clone_job", json=payload)
+        response = test_client.post("/flask/sampling/clone_job", json=payload)
         
         assert response.status_code == 400
         data = response.get_json()
@@ -1134,7 +1134,7 @@ class TestCloneJobWithMocks:
             "projectInputs": {"param1": 10.5}
         }
         
-        response = test_client.post("/sampling/clone_job", json=payload)
+        response = test_client.post("/flask/sampling/clone_job", json=payload)
         
         assert response.status_code == 400
         data = response.get_json()
@@ -1149,7 +1149,7 @@ class TestCloneJobWithMocks:
             "projectInputs": {"param1": 10.5}
         }
         
-        response = test_client.post("/sampling/clone_job", json=payload)
+        response = test_client.post("/flask/sampling/clone_job", json=payload)
         
         assert response.status_code == 400
         data = response.get_json()
@@ -1159,7 +1159,7 @@ class TestCloneJobWithMocks:
     def test_clone_job_invalid_json_format(self, test_client):
         """Test clone_job with invalid JSON format."""
         response = test_client.post(
-            "/sampling/clone_job", 
+            "/flask/sampling/clone_job", 
             data="invalid json",
             content_type="application/json"
         )
@@ -1182,7 +1182,7 @@ class TestCloneJobWithMocks:
             mock_studies_api.clone_study.side_effect = Exception("OSPARC API connection failed")
             mock_get_api.return_value = mock_studies_api
             
-            response = test_client.post("/sampling/clone_job", json=payload)
+            response = test_client.post("/flask/sampling/clone_job", json=payload)
             
             assert response.status_code == 500
             data = response.get_json()
@@ -1206,7 +1206,7 @@ class TestCloneJobWithMocks:
             )
             mock_get_api.return_value = mock_studies_api
             
-            response = test_client.post("/sampling/clone_job", json=payload)
+            response = test_client.post("/flask/sampling/clone_job", json=payload)
             
             assert response.status_code == 500
             data = response.get_json()
@@ -1240,7 +1240,7 @@ class TestCloneJobWithMocks:
             mock_studies_api.clone_study.return_value = mock_cloned_study
             mock_get_api.return_value = mock_studies_api
             
-            response = test_client.post("/sampling/clone_job", json=payload)
+            response = test_client.post("/flask/sampling/clone_job", json=payload)
             
             assert response.status_code == 200
             data = response.get_json()
@@ -1281,7 +1281,7 @@ class TestCloneJobWithMocks:
             mock_studies_api.clone_study.return_value = mock_cloned_study
             mock_get_api.return_value = mock_studies_api
             
-            response = test_client.post("/sampling/clone_job", json=payload)
+            response = test_client.post("/flask/sampling/clone_job", json=payload)
             
             assert response.status_code == 200
             
@@ -1303,19 +1303,19 @@ class TestCloneJobWithMocks:
         }
         
         # Test GET method
-        response = test_client.get("/sampling/clone_job")
+        response = test_client.get("/flask/sampling/clone_job")
         assert response.status_code == 405
         
         # Test PUT method
-        response = test_client.put("/sampling/clone_job", json=payload)
+        response = test_client.put("/flask/sampling/clone_job", json=payload)
         assert response.status_code == 405
         
         # Test DELETE method
-        response = test_client.delete("/sampling/clone_job")
+        response = test_client.delete("/flask/sampling/clone_job")
         assert response.status_code == 405
         
         # Test PATCH method
-        response = test_client.patch("/sampling/clone_job", json=payload)
+        response = test_client.patch("/flask/sampling/clone_job", json=payload)
         assert response.status_code == 405
 
     def test_clone_job_empty_project_inputs(self, test_client):
@@ -1339,7 +1339,7 @@ class TestCloneJobWithMocks:
             mock_studies_api.clone_study.return_value = mock_cloned_study
             mock_get_api.return_value = mock_studies_api
             
-            response = test_client.post("/sampling/clone_job", json=payload)
+            response = test_client.post("/flask/sampling/clone_job", json=payload)
             
             assert response.status_code == 200
             
@@ -1535,7 +1535,7 @@ class TestJobWithMocks:
                     mock_get_parent.return_value = mock_parent_info
                     mock_get_job.return_value = mock_job_details
                     
-                    response = test_client.post("/sampling/test_job", json=payload)
+                    response = test_client.post("/flask/sampling/test_job", json=payload)
                     
                     assert response.status_code == 200
                     response_data = response.get_json()
@@ -1564,7 +1564,7 @@ class TestJobWithMocks:
             ]
         }
         
-        response = test_client.post("/sampling/test_job", json=payload)
+        response = test_client.post("/flask/sampling/test_job", json=payload)
         
         assert response.status_code == 400
         response_data = response.get_json()
@@ -1577,7 +1577,7 @@ class TestJobWithMocks:
             "funUid": "test-function-uid-12345"
         }
         
-        response = test_client.post("/sampling/test_job", json=payload)
+        response = test_client.post("/flask/sampling/test_job", json=payload)
         
         assert response.status_code == 400
         response_data = response.get_json()
@@ -1591,7 +1591,7 @@ class TestJobWithMocks:
             "config": []
         }
         
-        response = test_client.post("/sampling/test_job", json=payload)
+        response = test_client.post("/flask/sampling/test_job", json=payload)
         
         assert response.status_code == 400
         response_data = response.get_json()
@@ -1615,7 +1615,7 @@ class TestJobWithMocks:
         with patch('mmux_flaskapi.blueprints.sampling._get_functions_api') as mock_get_functions:
             mock_get_functions.return_value = mock_functions_api
             
-            response = test_client.post("/sampling/test_job", json=payload)
+            response = test_client.post("/flask/sampling/test_job", json=payload)
             
             assert response.status_code == 500
             response_data = response.get_json()
@@ -1648,7 +1648,7 @@ class TestJobWithMocks:
                 mock_get_functions.return_value = mock_functions_api
                 mock_get_parent.return_value = mock_parent_info
                 
-                response = test_client.post("/sampling/test_job", json=payload)
+                response = test_client.post("/flask/sampling/test_job", json=payload)
                 
                 assert response.status_code == 500
                 response_data = response.get_json()
@@ -1682,7 +1682,7 @@ class TestJobWithMocks:
                 mock_get_functions.return_value = mock_functions_api
                 mock_get_parent.return_value = mock_parent_info
                 
-                response = test_client.post("/sampling/test_job", json=payload)
+                response = test_client.post("/flask/sampling/test_job", json=payload)
                 
                 assert response.status_code == 400
                 response_data = response.get_json()
@@ -1715,7 +1715,7 @@ class TestJobWithMocks:
                 mock_get_functions.return_value = mock_functions_api
                 mock_get_parent.return_value = mock_parent_info
                 
-                response = test_client.post("/sampling/test_job", json=payload)
+                response = test_client.post("/flask/sampling/test_job", json=payload)
                 
                 assert response.status_code == 400
                 response_data = response.get_json()
@@ -1725,7 +1725,7 @@ class TestJobWithMocks:
     def test_test_job_invalid_json_format(self, test_client):
         """Test test_job with malformed JSON."""
         response = test_client.post(
-            "/sampling/test_job", 
+            "/flask/sampling/test_job", 
             data="invalid json data",
             content_type="application/json"
         )
@@ -1776,7 +1776,7 @@ class TestJobWithMocks:
                     mock_get_parent.return_value = mock_parent_info
                     mock_get_job.return_value = mock_job_details
                     
-                    response = test_client.post("/sampling/test_job", json=payload)
+                    response = test_client.post("/flask/sampling/test_job", json=payload)
                     
                     assert response.status_code == 200
                     response_data = response.get_json()
@@ -1810,7 +1810,7 @@ class TestSamplingErrorHandlingMissingCoverage:
         """Test LHS sampling with malformed JSON that causes decode error."""
         # Send malformed JSON that will cause json.loads to fail
         response = test_client.post(
-            "/sampling/lhs",
+            "/flask/sampling/lhs",
             data="{'invalid': json}",  # Invalid JSON syntax
             content_type="application/json"
         )
@@ -1829,7 +1829,7 @@ class TestSamplingErrorHandlingMissingCoverage:
             "funUid": "test-function"
         }
         
-        response = test_client.post("/sampling/lhs", json=payload)
+        response = test_client.post("/flask/sampling/lhs", json=payload)
         # Should get validation error for N=0 before reaching assertion
         assert response.status_code == 400
         data = response.get_json()
@@ -1839,7 +1839,7 @@ class TestSamplingErrorHandlingMissingCoverage:
         """Test Grid sampling with malformed JSON that causes decode error."""
         # Send malformed JSON that will cause json.loads to fail
         response = test_client.post(
-            "/sampling/grid",
+            "/flask/sampling/grid",
             data="{'config': [invalid json}",  # Invalid JSON syntax
             content_type="application/json"
         )
@@ -1857,10 +1857,10 @@ class TestSamplingErrorHandlingMissingCoverage:
         }
         
         # Mock import error for create_grid_samples
-        with patch("flaskapi.mmux_python.utils.funs_evaluate.create_grid_samples") as mock_create_grid:
+        with patch("mmux_python.funs_evaluate.create_grid_samples") as mock_create_grid:
             mock_create_grid.side_effect = ImportError("Cannot import create_grid_samples")
             
-            response = test_client.post("/sampling/grid", json=payload)
+            response = test_client.post("/flask/sampling/grid", json=payload)
             
             assert response.status_code == 500
             data = response.get_json()
@@ -1872,7 +1872,7 @@ class TestSamplingErrorHandlingMissingCoverage:
         """Test test_job with malformed JSON that causes decode error."""
         # Send malformed JSON that will cause json.loads to fail
         response = test_client.post(
-            "/sampling/test_job",
+            "/flask/sampling/test_job",
             data="{'funUid': 'test', 'config': [malformed}",  # Invalid JSON syntax
             content_type="application/json"
         )
@@ -1912,7 +1912,7 @@ class TestSamplingErrorHandlingMissingCoverage:
                     # Make _get_function_job_from_uid raise an exception
                     mock_get_job.side_effect = Exception("Failed to get job details")
                     
-                    response = test_client.post("/sampling/test_job", json=payload)
+                    response = test_client.post("/flask/sampling/test_job", json=payload)
                     
                     assert response.status_code == 500
                     data = response.get_json()
@@ -1924,7 +1924,7 @@ class TestSamplingErrorHandlingMissingCoverage:
         """Test clone_job with malformed JSON that causes decode error."""
         # Send malformed JSON that will cause json.loads to fail
         response = test_client.post(
-            "/sampling/clone_job",
+            "/flask/sampling/clone_job",
             data="{'projectJobId': 'test', invalid json}",  # Invalid JSON syntax
             content_type="application/json"
         )
@@ -1948,7 +1948,7 @@ class TestSamplingErrorHandlingMissingCoverage:
             mock_studies_api.clone_study.side_effect = RuntimeError("Unexpected database error")
             mock_get_api.return_value = mock_studies_api
             
-            response = test_client.post("/sampling/clone_job", json=payload)
+            response = test_client.post("/flask/sampling/clone_job", json=payload)
             
             assert response.status_code == 500
             data = response.get_json()
@@ -1979,7 +1979,7 @@ class TestSamplingErrorHandlingMissingCoverage:
                     mock_api.map_function = Mock(side_effect=mock_generic_exception)
                     mock_get_api.return_value = mock_api
                     
-                    response = test_client.post("/sampling/lhs", json=payload)
+                    response = test_client.post("/flask/sampling/lhs", json=payload)
                     
                     assert response.status_code == 500
                     data = response.get_json()
@@ -1995,8 +1995,8 @@ class TestSamplingErrorHandlingMissingCoverage:
         }
         
         # Mock grid dependencies
-        with patch("flaskapi.mmux_python.utils.funs_evaluate.create_grid_samples") as mock_create_grid:
-            with patch("flaskapi.mmux_python.utils.funs_data_processing.load_data") as mock_load_data:
+        with patch("mmux_python.funs_evaluate.create_grid_samples") as mock_create_grid:
+            with patch("mmux_python.funs_data_processing.load_data") as mock_load_data:
                 with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
                     mock_create_grid.return_value = "/tmp/grid_samples.csv"
                     import pandas as pd
@@ -2019,7 +2019,7 @@ class TestSamplingErrorHandlingMissingCoverage:
                                 mock_api.map_function = Mock(side_effect=mock_generic_exception)
                                 mock_get_api.return_value = mock_api
                                 
-                                response = test_client.post("/sampling/grid", json=payload)
+                                response = test_client.post("/flask/sampling/grid", json=payload)
                                 
                                 assert response.status_code == 500
                                 data = response.get_json()
@@ -2041,7 +2041,7 @@ class TestSamplingErrorHandlingMissingCoverage:
         with patch('mmux_flaskapi.blueprints.sampling._get_functions_api') as mock_get_functions:
             mock_get_functions.return_value = mock_functions_api
             
-            response = test_client.post("/sampling/test_job", json=payload)
+            response = test_client.post("/flask/sampling/test_job", json=payload)
             
             assert response.status_code == 500
             data = response.get_json()

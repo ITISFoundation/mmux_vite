@@ -120,7 +120,7 @@ class TestMainEntrypoint:
             with app.test_client() as client:
                 # Test that the app can process requests (basic smoke test)
                 # We'll test a deployment endpoint that should always be available
-                response = client.get('/deployment/health-check')
+                response = client.get('/flask/deployment/health')
                 
                 # Should get a response (whether 200 or 404, it means the app is working)
                 assert response is not None
@@ -206,11 +206,11 @@ class TestMainEntrypointIntegration:
             
             # Should have routes from different blueprints (note: text-file not textfile)
             expected_route_patterns = [
-                '/deployment/',
-                '/sampling/',
-                '/osparc/',
-                '/text-file/',
-                '/dakota/'
+                '/flask/deployment/',
+                '/flask/sampling/',
+                '/flask/osparc/',
+                '/flask/text-file/',
+                '/flask/dakota/'
             ]
             
             for pattern in expected_route_patterns:
@@ -260,7 +260,7 @@ class TestMainEntrypointIntegration:
             
             # Basic WSGI smoke test using test client instead of direct WSGI call
             with app.test_client() as client:
-                response = client.get('/deployment/health-check')
+                response = client.get('/flask/deployment/health')
                 # Should get some response, indicating WSGI compatibility
                 assert response is not None
 
@@ -278,8 +278,8 @@ class TestMainEntrypointIntegration:
             # Check that app can handle concurrent requests (basic test)
             with app.test_client() as client1, app.test_client() as client2:
                 # Two concurrent clients should work
-                response1 = client1.get('/deployment/health-check')
-                response2 = client2.get('/deployment/health-check')
+                response1 = client1.get('/flask/deployment/health')
+                response2 = client2.get('/flask/deployment/health')
                 
                 assert response1 is not None
                 assert response2 is not None

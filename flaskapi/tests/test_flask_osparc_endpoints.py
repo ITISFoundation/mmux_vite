@@ -1,5 +1,5 @@
 """
-These tests cover the /osparc/*** endpoints in the Flask app.
+These tests cover the /flask/osparc/*** endpoints in the Flask app.
 
 Different patches for osparc_client.api.functions_api.***Api.*** are provided, to ensure that they are handled correctly.
 """
@@ -11,14 +11,14 @@ Different patches for osparc_client.api.functions_api.***Api.*** are provided, t
 
 class TestOsparcListFunctions:
     def test_list_functions_random_error(self, test_client, patch_list_functions_random_error):
-        response = test_client.get("/osparc/list_functions")
+        response = test_client.get("/flask/osparc/list_functions")
         assert response.status_code in {418, 429, 431, 499}
         data = response.get_json()
         assert "error" in data
         assert "random error" in data["error"].lower()
     def test_list_functions_success(self, test_client, patch_list_functions_success):
-        """Test /osparc/list_functions with a successful response."""
-        response = test_client.get("/osparc/list_functions")
+        """Test /flask/osparc/list_functions with a successful response."""
+        response = test_client.get("/flask/osparc/list_functions")
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
@@ -29,7 +29,7 @@ class TestOsparcListFunctions:
 
     def test_list_functions_empty(self, test_client, patch_list_functions_empty):
         """Test /osparc/list_functions with an empty result set."""
-        response = test_client.get("/osparc/list_functions")
+        response = test_client.get("/flask/osparc/list_functions")
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
@@ -37,7 +37,7 @@ class TestOsparcListFunctions:
 
     def test_list_functions_422(self, test_client, patch_list_functions_422):
         """Test /osparc/list_functions with a 422 Validation Error."""
-        response = test_client.get("/osparc/list_functions")
+        response = test_client.get("/flask/osparc/list_functions")
         assert response.status_code == 422
         data = response.get_json()
         assert "error" in data
@@ -45,14 +45,14 @@ class TestOsparcListFunctions:
 
 class TestOsparcListJobs:
     def test_list_jobs_random_error(self, test_client, patch_list_function_jobs_random_error):
-        response = test_client.get("/osparc/list_jobs")
+        response = test_client.get("/flask/osparc/list_jobs")
         assert response.status_code in {418, 429, 431, 499}
         data = response.get_json()
         assert "error" in data
         assert "random error" in data["error"].lower()
     def test_list_jobs_success(self, test_client, patch_list_function_jobs_success):
         """Test /osparc/list_jobs with a successful response."""
-        response = test_client.get("/osparc/list_jobs")
+        response = test_client.get("/flask/osparc/list_jobs")
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
@@ -62,7 +62,7 @@ class TestOsparcListJobs:
 
     def test_list_jobs_empty(self, test_client, patch_list_function_jobs_empty):
         """Test /osparc/list_jobs with an empty response."""
-        response = test_client.get("/osparc/list_jobs")
+        response = test_client.get("/flask/osparc/list_jobs")
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
@@ -70,7 +70,7 @@ class TestOsparcListJobs:
 
     def test_list_jobs_422(self, test_client, patch_list_function_jobs_422):
         """Test /osparc/list_jobs with a 422 error from the API client."""
-        response = test_client.get("/osparc/list_jobs")
+        response = test_client.get("/flask/osparc/list_jobs")
         assert response.status_code == 422
         data = response.get_json()
         assert "error" in data
@@ -78,13 +78,13 @@ class TestOsparcListJobs:
 
 class TestOsparcListFunctionJobCollections:
     def test_list_function_job_collections_random_error(self, test_client, patch_list_function_job_collections_random_error):
-        response = test_client.get("/osparc/list_function_job_collections")
+        response = test_client.get("/flask/osparc/list_function_job_collections")
         assert response.status_code in {418, 429, 431, 499}
         data = response.get_json()
         assert "error" in data
         assert "random error" in data["error"].lower()
     def test_list_function_job_collections_success(self, test_client, patch_list_function_job_collections_success):
-        response = test_client.get("/osparc/list_function_job_collections")
+        response = test_client.get("/flask/osparc/list_function_job_collections")
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
@@ -93,14 +93,14 @@ class TestOsparcListFunctionJobCollections:
         assert data[1]["uid"] == "jc-2"
 
     def test_list_function_job_collections_empty(self, test_client, patch_list_function_job_collections_empty):
-        response = test_client.get("/osparc/list_function_job_collections")
+        response = test_client.get("/flask/osparc/list_function_job_collections")
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
         assert len(data) == 0
 
     def test_list_function_job_collections_422(self, test_client, patch_list_function_job_collections_422):
-        response = test_client.get("/osparc/list_function_job_collections")
+        response = test_client.get("/flask/osparc/list_function_job_collections")
         assert response.status_code == 422
         data = response.get_json()
         assert "error" in data
@@ -114,14 +114,14 @@ class TestOsparcListFunctionJobCollections:
 # --- Tests for /osparc/list_function_jobs_for_functionid ---
 class TestOsparcListFunctionJobsForFunctionId:
     def test_list_function_jobs_for_functionid_random_error(self, test_client, patch_list_function_jobs_for_functionid_random_error):
-        response = test_client.get("/osparc/list_function_jobs_for_functionid?functionUid=func1")
+        response = test_client.get("/flask/osparc/list_function_jobs_for_functionid?functionUid=func1")
         assert response.status_code in {418, 429, 431, 499}
         data = response.get_json()
         assert "error" in data
         assert "random error" in data["error"].lower()
     def test_list_function_jobs_for_functionid_success(self, test_client, patch_list_function_jobs_for_functionid_success):
         """Test /osparc/list_function_jobs_for_functionid with a successful response."""
-        response = test_client.get("/osparc/list_function_jobs_for_functionid?functionUid=func1")
+        response = test_client.get("/flask/osparc/list_function_jobs_for_functionid?functionUid=func1")
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
@@ -130,7 +130,7 @@ class TestOsparcListFunctionJobsForFunctionId:
 
     def test_list_function_jobs_for_functionid_empty(self, test_client, patch_list_function_jobs_for_functionid_empty):
         """Test /osparc/list_function_jobs_for_functionid with an empty result set."""
-        response = test_client.get("/osparc/list_function_jobs_for_functionid?functionUid=func1")
+        response = test_client.get("/flask/osparc/list_function_jobs_for_functionid?functionUid=func1")
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
@@ -138,7 +138,7 @@ class TestOsparcListFunctionJobsForFunctionId:
 
     def test_list_function_jobs_for_functionid_422(self, test_client, patch_list_function_jobs_for_functionid_422):
         """Test /osparc/list_function_jobs_for_functionid with a 422 Validation Error."""
-        response = test_client.get("/osparc/list_function_jobs_for_functionid?functionUid=func1")
+        response = test_client.get("/flask/osparc/list_function_jobs_for_functionid?functionUid=func1")
         assert response.status_code == 422
         data = response.get_json()
         assert "error" in data
@@ -146,7 +146,7 @@ class TestOsparcListFunctionJobsForFunctionId:
 
     def test_list_function_jobs_for_functionid_404(self, test_client, patch_list_function_jobs_for_functionid_404):
         """Test /osparc/list_function_jobs_for_functionid with a 404 Not Found error."""
-        response = test_client.get("/osparc/list_function_jobs_for_functionid?functionUid=notfound")
+        response = test_client.get("/flask/osparc/list_function_jobs_for_functionid?functionUid=notfound")
         assert response.status_code == 404
         data = response.get_json()
         assert "error" in data
@@ -154,14 +154,14 @@ class TestOsparcListFunctionJobsForFunctionId:
 
 class TestOsparcListFunctionJobsForJobCollectionId:
     def test_list_function_jobs_for_jobcollectionid_random_error(self, test_client, patch_list_function_jobs_for_jobcollectionid_random_error):
-        response = test_client.get("/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
+        response = test_client.get("/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
         assert response.status_code in {418, 429, 431, 499}
         data = response.get_json()
         assert "error" in data
         assert "random error" in data["error"].lower()
     def test_list_function_jobs_for_jobcollectionid_success(self, test_client, patch_list_function_jobs_for_jobcollectionid_success):
         """Test /osparc/list_function_jobs_for_jobcollectionid with a successful response."""
-        response = test_client.get("/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
+        response = test_client.get("/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
@@ -171,7 +171,7 @@ class TestOsparcListFunctionJobsForJobCollectionId:
 
     def test_list_function_jobs_for_jobcollectionid_empty(self, test_client, patch_list_function_jobs_for_jobcollectionid_empty):
         """Test /osparc/list_function_jobs_for_jobcollectionid with an empty job collection."""
-        response = test_client.get("/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
+        response = test_client.get("/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
@@ -179,7 +179,7 @@ class TestOsparcListFunctionJobsForJobCollectionId:
 
     def test_list_function_jobs_for_jobcollectionid_422(self, test_client, patch_list_function_jobs_for_jobcollectionid_422):
         """Test /osparc/list_function_jobs_for_jobcollectionid with a 422 Validation Error."""
-        response = test_client.get("/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
+        response = test_client.get("/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
         assert response.status_code == 422
         data = response.get_json()
         assert "error" in data
@@ -187,7 +187,7 @@ class TestOsparcListFunctionJobsForJobCollectionId:
 
     def test_list_function_jobs_for_jobcollectionid_404(self, test_client, patch_list_function_jobs_for_jobcollectionid_404):
         """Test /osparc/list_function_jobs_for_jobcollectionid with a 404 Not Found error (collection)."""
-        response = test_client.get("/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=notfound")
+        response = test_client.get("/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=notfound")
         assert response.status_code == 404
         data = response.get_json()
         assert "error" in data
@@ -195,7 +195,7 @@ class TestOsparcListFunctionJobsForJobCollectionId:
 
     def test_list_function_jobs_for_jobcollectionid_job_404(self, test_client, patch_list_function_jobs_for_jobcollectionid_job_404):
         """Test /osparc/list_function_jobs_for_jobcollectionid with a 404 Not Found error (job)."""
-        response = test_client.get("/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
+        response = test_client.get("/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=jc-1")
         assert response.status_code == 404
         data = response.get_json()
         assert "error" in data
@@ -207,13 +207,13 @@ class TestOsparcListFunctionJobsForJobCollectionId:
 ### because it uses the same osparc_client endpoint
 class TestOsparcListFunctionJobCollectionsForFunctionId:
     def test_list_function_job_collections_for_functionid_random_error(self, test_client, patch_list_function_job_collections_for_functionid_random_error):
-        response = test_client.get("/osparc/list_function_job_collections_for_functionid?functionUid=func1")
+        response = test_client.get("/flask/osparc/list_function_job_collections_for_functionid?functionUid=func1")
         assert response.status_code in {418, 429, 431, 499}
         data = response.get_json()
         assert "error" in data
         assert "random error" in data["error"].lower()
     def test_list_function_job_collections_for_functionid_success(self, test_client, patch_list_function_job_collections_success):
-        response = test_client.get("/osparc/list_function_job_collections_for_functionid?functionUid=func1")
+        response = test_client.get("/flask/osparc/list_function_job_collections_for_functionid?functionUid=func1")
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
@@ -222,14 +222,14 @@ class TestOsparcListFunctionJobCollectionsForFunctionId:
         assert data[1]["uid"] == "jc-2"
 
     def test_list_function_job_collections_for_functionid_empty(self, test_client, patch_list_function_job_collections_empty):
-        response = test_client.get("/osparc/list_function_job_collections_for_functionid?functionUid=func1")
+        response = test_client.get("/flask/osparc/list_function_job_collections_for_functionid?functionUid=func1")
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, list)
         assert len(data) == 0
 
     def test_list_function_job_collections_for_functionid_422(self, test_client, patch_list_function_job_collections_422):
-        response = test_client.get("/osparc/list_function_job_collections_for_functionid?functionUid=func1")
+        response = test_client.get("/flask/osparc/list_function_job_collections_for_functionid?functionUid=func1")
         assert response.status_code == 422
         data = response.get_json()
         assert "error" in data
@@ -244,13 +244,13 @@ class TestOsparcListFunctionJobCollectionsForFunctionId:
 # --- Tests for /osparc/get_function_job ---
 class TestOsparcGetFunctionJob:
     def test_get_function_job_random_error(self, test_client, patch_get_function_job_random_error):
-        response = test_client.get("/osparc/get_function_job?jobUid=job-1")
+        response = test_client.get("/flask/osparc/get_function_job?jobUid=job-1")
         assert response.status_code in {418, 429, 431, 499}
         data = response.get_json()
         assert "error" in data
         assert "random error" in data["error"].lower()
     def test_get_function_job_success(self, test_client, patch_get_function_job_success):
-        response = test_client.get("/osparc/get_function_job?jobUid=job-1")
+        response = test_client.get("/flask/osparc/get_function_job?jobUid=job-1")
         assert response.status_code == 200
         data = response.get_json()
         assert data["uid"] == "job-1"
@@ -258,14 +258,14 @@ class TestOsparcGetFunctionJob:
         assert data["outputs"]["result"] == 3
 
     def test_get_function_job_422(self, test_client, patch_get_function_job_422):
-        response = test_client.get("/osparc/get_function_job?jobUid=job-1")
+        response = test_client.get("/flask/osparc/get_function_job?jobUid=job-1")
         assert response.status_code == 422
         data = response.get_json()
         assert "error" in data
         assert "422" in data["error"]
 
     def test_get_function_job_404(self, test_client, patch_get_function_job_404):
-        response = test_client.get("/osparc/get_function_job?jobUid=notfound")
+        response = test_client.get("/flask/osparc/get_function_job?jobUid=notfound")
         assert response.status_code == 404
         data = response.get_json()
         assert "error" in data
@@ -275,25 +275,25 @@ class TestOsparcGetFunctionJob:
 # --- Tests for /osparc/get_function_job_status ---
 class TestOsparcGetFunctionJobStatus:
     def test_get_function_job_status_random_error(self, test_client, patch_get_function_job_status_random_error):
-        response = test_client.get("/osparc/get_function_job_status?jobUid=job-1")
+        response = test_client.get("/flask/osparc/get_function_job_status?jobUid=job-1")
         assert response.status_code in {418, 429, 431, 499}
         data = response.get_json()
         assert "error" in data
         assert "random error" in data["error"].lower()
     def test_get_function_job_status_success(self, test_client, patch_get_function_job_status_success):
-        response = test_client.get("/osparc/get_function_job_status?jobUid=job-1")
+        response = test_client.get("/flask/osparc/get_function_job_status?jobUid=job-1")
         assert response.status_code == 200
         assert response.get_json()["status"] == "SUCCESS"
 
     def test_get_function_job_status_422(self, test_client, patch_get_function_job_status_422):
-        response = test_client.get("/osparc/get_function_job_status?jobUid=job-1")
+        response = test_client.get("/flask/osparc/get_function_job_status?jobUid=job-1")
         assert response.status_code == 422
         data = response.get_json()
         assert "error" in data
         assert "422" in data["error"]
 
     def test_get_function_job_status_404(self, test_client, patch_get_function_job_status_404):
-        response = test_client.get("/osparc/get_function_job_status?jobUid=notfound")
+        response = test_client.get("/flask/osparc/get_function_job_status?jobUid=notfound")
         assert response.status_code == 404
         data = response.get_json()
         assert "error" in data
@@ -302,26 +302,26 @@ class TestOsparcGetFunctionJobStatus:
 # --- Tests for /osparc/get_function_job_outputs ---
 class TestOsparcGetFunctionJobOutputs:
     def test_get_function_job_outputs_random_error(self, test_client, patch_get_function_job_outputs_random_error):
-        response = test_client.get("/osparc/get_function_job_outputs?jobUid=job-1")
+        response = test_client.get("/flask/osparc/get_function_job_outputs?jobUid=job-1")
         assert response.status_code in {418, 429, 431, 499}
         data = response.get_json()
         assert "error" in data
         assert "random error" in data["error"].lower()
     def test_get_function_job_outputs_success(self, test_client, patch_get_function_job_outputs_success):
-        response = test_client.get("/osparc/get_function_job_outputs?jobUid=job-1")
+        response = test_client.get("/flask/osparc/get_function_job_outputs?jobUid=job-1")
         assert response.status_code == 200
         data = response.get_json()
         assert data["result"] == 3
 
     def test_get_function_job_outputs_422(self, test_client, patch_get_function_job_outputs_422):
-        response = test_client.get("/osparc/get_function_job_outputs?jobUid=job-1")
+        response = test_client.get("/flask/osparc/get_function_job_outputs?jobUid=job-1")
         assert response.status_code == 422
         data = response.get_json()
         assert "error" in data
         assert "422" in data["error"]
 
     def test_get_function_job_outputs_404(self, test_client, patch_get_function_job_outputs_404):
-        response = test_client.get("/osparc/get_function_job_outputs?jobUid=notfound")
+        response = test_client.get("/flask/osparc/get_function_job_outputs?jobUid=notfound")
         assert response.status_code == 404
         data = response.get_json()
         assert "error" in data

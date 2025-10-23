@@ -17,5 +17,6 @@
   "python.defaultInterpreterPath": "./flaskapi/.venv/bin/python",
   "python.analysis.typeCheckingMode": "basic",
   "chat.agent.maxRequests": 250,
-  "remote.autoForwardPortsFallback": 0
+  "remote.autoForwardPortsFallback": 0,
+  "python-envs.pythonProjects": []
 }

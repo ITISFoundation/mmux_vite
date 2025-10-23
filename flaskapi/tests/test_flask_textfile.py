@@ -30,7 +30,7 @@ class TestTextFileEndpoints:
         }
         
         with patch("builtins.open", mock_open()) as mock_file:
-            response = test_client.post("/text-file/", json=payload)
+            response = test_client.post("/flask/text-file/", json=payload)
             assert response.status_code == 200
             
             data = response.get_json()
@@ -51,7 +51,7 @@ class TestTextFileEndpoints:
         }
         
         with patch("builtins.open", mock_open()) as mock_file:
-            response = test_client.post("/text-file/", json=payload)
+            response = test_client.post("/flask/text-file/", json=payload)
             assert response.status_code == 200
             
             data = response.get_json()
@@ -66,7 +66,7 @@ class TestTextFileEndpoints:
         }
         
         with patch("builtins.open", mock_open()) as mock_file:
-            response = test_client.post("/text-file/", json=payload)
+            response = test_client.post("/flask/text-file/", json=payload)
             assert response.status_code == 200
             
             data = response.get_json()
@@ -81,7 +81,7 @@ class TestTextFileEndpoints:
         }
         
         with patch("builtins.open", mock_open()) as mock_file:
-            response = test_client.post("/text-file/", json=payload)
+            response = test_client.post("/flask/text-file/", json=payload)
             assert response.status_code == 200
             
             data = response.get_json()
@@ -94,7 +94,7 @@ class TestTextFileEndpoints:
             "content": "Hello, World!"
         }
         
-        response = test_client.post("/text-file/", json=payload)
+        response = test_client.post("/flask/text-file/", json=payload)
         assert response.status_code == 400
         
         data = response.get_json()
@@ -108,7 +108,7 @@ class TestTextFileEndpoints:
             "filename": "test.txt"
         }
         
-        response = test_client.post("/text-file/", json=payload)
+        response = test_client.post("/flask/text-file/", json=payload)
         assert response.status_code == 400
         
         data = response.get_json()
@@ -120,7 +120,7 @@ class TestTextFileEndpoints:
         """Test saving a file without filename and content."""
         payload = {}
         
-        response = test_client.post("/text-file/", json=payload)
+        response = test_client.post("/flask/text-file/", json=payload)
         assert response.status_code == 400
         
         data = response.get_json()
@@ -135,7 +135,7 @@ class TestTextFileEndpoints:
             "content": "malicious content"
         }
         
-        response = test_client.post("/text-file/", json=payload)
+        response = test_client.post("/flask/text-file/", json=payload)
         assert response.status_code == 400
         
         data = response.get_json()
@@ -149,7 +149,7 @@ class TestTextFileEndpoints:
             "content": "malicious content"
         }
         
-        response = test_client.post("/text-file/", json=payload)
+        response = test_client.post("/flask/text-file/", json=payload)
         assert response.status_code == 400
         
         data = response.get_json()
@@ -163,7 +163,7 @@ class TestTextFileEndpoints:
             "content": "malicious content"
         }
         
-        response = test_client.post("/text-file/", json=payload)
+        response = test_client.post("/flask/text-file/", json=payload)
         assert response.status_code == 400
         
         data = response.get_json()
@@ -172,7 +172,7 @@ class TestTextFileEndpoints:
 
     def test_save_file_invalid_json(self, test_client):
         """Test saving with invalid JSON data."""
-        response = test_client.post("/text-file/", 
+        response = test_client.post("/flask/text-file/", 
                                   data="invalid json",
                                   content_type='application/json')
         assert response.status_code == 500
@@ -188,7 +188,7 @@ class TestTextFileEndpoints:
         }
         
         with patch("builtins.open", side_effect=IOError("Permission denied")):
-            response = test_client.post("/text-file/", json=payload)
+            response = test_client.post("/flask/text-file/", json=payload)
             assert response.status_code == 500
             
             data = response.get_json()
@@ -201,7 +201,7 @@ class TestTextFileEndpoints:
         
         with patch("builtins.open", mock_open(read_data=file_content)):
             with patch("pathlib.Path.exists", return_value=True):
-                response = test_client.get("/text-file/test.txt")
+                response = test_client.get("/flask/text-file/test.txt")
                 assert response.status_code == 200
                 
                 data = response.get_json()
@@ -214,7 +214,7 @@ class TestTextFileEndpoints:
         
         with patch("builtins.open", mock_open(read_data=file_content)):
             with patch("pathlib.Path.exists", return_value=True):
-                response = test_client.get("/text-file/multiline.txt")
+                response = test_client.get("/flask/text-file/multiline.txt")
                 assert response.status_code == 200
                 
                 data = response.get_json()
@@ -227,7 +227,7 @@ class TestTextFileEndpoints:
         
         with patch("builtins.open", mock_open(read_data=file_content)):
             with patch("pathlib.Path.exists", return_value=True):
-                response = test_client.get("/text-file/special.txt")
+                response = test_client.get("/flask/text-file/special.txt")
                 assert response.status_code == 200
                 
                 data = response.get_json()
@@ -240,7 +240,7 @@ class TestTextFileEndpoints:
         
         with patch("builtins.open", mock_open(read_data=file_content)):
             with patch("pathlib.Path.exists", return_value=True):
-                response = test_client.get("/text-file/empty.txt")
+                response = test_client.get("/flask/text-file/empty.txt")
                 assert response.status_code == 200
                 
                 data = response.get_json()
@@ -250,7 +250,7 @@ class TestTextFileEndpoints:
     def test_get_file_not_found(self, test_client):
         """Test retrieving a non-existent file."""
         with patch("pathlib.Path.exists", return_value=False):
-            response = test_client.get("/text-file/nonexistent.txt")
+            response = test_client.get("/flask/text-file/nonexistent.txt")
             assert response.status_code == 404
             
             data = response.get_json()
@@ -261,13 +261,13 @@ class TestTextFileEndpoints:
     def test_get_file_path_traversal_attack_forward_slash(self, test_client):
         """Test that path traversal attacks are blocked on file retrieval."""
         # Flask routing handles this as 404 for URL with path separators outside the parameter
-        response = test_client.get("/text-file/../../../etc/passwd")
+        response = test_client.get("/flask/text-file/../../../etc/passwd")
         # This returns 404 because Flask doesn't match the route pattern
         assert response.status_code == 404
 
     def test_get_file_path_traversal_attack_backslash(self, test_client):
         """Test that backslash path traversal attacks are blocked on file retrieval."""
-        response = test_client.get("/text-file/..\\..\\windows\\system32\\config")
+        response = test_client.get("/flask/text-file/..\\..\\windows\\system32\\config")
         assert response.status_code == 400
         
         data = response.get_json()
@@ -278,7 +278,7 @@ class TestTextFileEndpoints:
         """Test handling of file I/O errors during retrieval."""
         with patch("pathlib.Path.exists", return_value=True):
             with patch("builtins.open", side_effect=IOError("Permission denied")):
-                response = test_client.get("/text-file/test.txt")
+                response = test_client.get("/flask/text-file/test.txt")
                 assert response.status_code == 500
                 
                 data = response.get_json()
@@ -287,27 +287,27 @@ class TestTextFileEndpoints:
 
     def test_method_not_allowed_put(self, test_client):
         """Test that PUT method is not allowed."""
-        response = test_client.put("/text-file/", json={"filename": "test.txt", "content": "test"})
+        response = test_client.put("/flask/text-file/", json={"filename": "test.txt", "content": "test"})
         assert response.status_code == 405
 
     def test_method_not_allowed_delete(self, test_client):
         """Test that DELETE method is not allowed."""
-        response = test_client.delete("/text-file/test.txt")
+        response = test_client.delete("/flask/text-file/test.txt")
         assert response.status_code == 405
 
     def test_method_not_allowed_patch(self, test_client):
         """Test that PATCH method is not allowed."""
-        response = test_client.patch("/text-file/test.txt", json={"content": "new content"})
+        response = test_client.patch("/flask/text-file/test.txt", json={"content": "new content"})
         assert response.status_code == 405
 
     def test_invalid_endpoint_routes(self, test_client):
         """Test that invalid routes return appropriate status codes."""
         # GET to root textfile endpoint returns 405 Method Not Allowed (only POST allowed)
-        response = test_client.get("/text-file/")
+        response = test_client.get("/flask/text-file/")
         assert response.status_code == 405
         
         # Complex paths are handled by Flask routing as 404
-        response = test_client.get("/text-file/invalid/path/with/slashes")
+        response = test_client.get("/flask/text-file/invalid/path/with/slashes")
         assert response.status_code == 404
 
     def test_endpoint_url_prefix(self, test_client):
@@ -328,7 +328,7 @@ class TestTextFileEndpoints:
         }
         
         with patch("builtins.open", mock_open()) as mock_file:
-            response = test_client.post("/text-file/", json=payload)
+            response = test_client.post("/flask/text-file/", json=payload)
             assert response.status_code == 200
             
             data = response.get_json()
@@ -343,7 +343,7 @@ class TestTextFileEndpoints:
         }
         
         with patch("builtins.open", mock_open()) as mock_file:
-            response = test_client.post("/text-file/", json=payload)
+            response = test_client.post("/flask/text-file/", json=payload)
             assert response.status_code == 200
             
             data = response.get_json()
@@ -358,7 +358,7 @@ class TestTextFileEndpoints:
         }
         
         with patch("builtins.open", mock_open()) as mock_file:
-            response = test_client.post("/text-file/", json=payload)
+            response = test_client.post("/flask/text-file/", json=payload)
             assert response.status_code == 200
             
             data = response.get_json()
@@ -373,7 +373,7 @@ class TestTextFileEndpoints:
         }
         
         with patch("builtins.open", mock_open()) as mock_file:
-            response = test_client.post("/text-file/", json=payload)
+            response = test_client.post("/flask/text-file/", json=payload)
             assert response.status_code == 200
             
             data = response.get_json()
@@ -389,7 +389,7 @@ class TestTextFileEndpoints:
         
         # Test with explicit JSON content type
         with patch("builtins.open", mock_open()) as mock_file:
-            response = test_client.post("/text-file/", 
+            response = test_client.post("/flask/text-file/", 
                                       data=json.dumps(payload),
                                       content_type='application/json')
             assert response.status_code == 200
@@ -402,7 +402,7 @@ class TestTextFileEndpoints:
         }
         
         with patch("builtins.open", mock_open()) as mock_file:
-            response = test_client.post("/text-file/", json=payload)
+            response = test_client.post("/flask/text-file/", json=payload)
             assert response.status_code == 200
             
             data = response.get_json()

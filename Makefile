@@ -19,14 +19,16 @@ start-frontend:
 setup-mmux-python: ## clone and setup mmux_python dependency
 	cd ${FLASKAPI_DIR} && make setup-mmux-python
 
-.PHONY: install-flaskapi-deps
-install-flaskapi-deps: ## install Flask API Python dependencies
-	cd ${FLASKAPI_DIR} && make install-flaskapi-deps
-
 ## Fix issue of permissions on mmux_python folder
 .PHONY: get-access-write-on-mmux-python
 get-access-write-on-mmux-python:
-	sudo chown -R ${USER}:${USER} ./flaskapi/mmux_python/
+	sudo chown -R ordonez:ordonez ${FLASKAPI_DIR}/mmux_python/
+
+.PHONY: install-flaskapi-deps
+install-flaskapi-deps: setup-mmux-python ## install Flask API Python dependencies
+	cd ${FLASKAPI_DIR} && make install-flaskapi-deps
+
+
 
 # Builds new service version ----------------------------------------------------------------------------
 define _bumpversion
@@ -212,7 +214,7 @@ test-flaskapi: install-flaskapi-deps ## run Flask backend tests
 	uv run pytest tests/ -v --cov-report=html --cov-report=term-missing
 
 .PHONY: ci
-ci: build-no-cache test-flaskapi test-node ## run all tests
+ci: test-flaskapi test-node build-no-cache ## mimmicks the GitHub CI
 
 .PHONY: help
 help: ## this colorful help

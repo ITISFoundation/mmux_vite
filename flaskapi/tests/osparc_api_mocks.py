@@ -1,6 +1,6 @@
 """
 Pytest fixtures and mocks for osparc_client.api.functions_api.FunctionsApi.list_functions
-Covers: success, empty, and error (422) cases for /osparc/list_functions endpoint.
+Covers: success, empty, and error (422) cases for /flask/osparc/list_functions endpoint.
 """
 import pytest
 from unittest.mock import patch
@@ -246,7 +246,7 @@ def mock_get_function_job_collection_404(jc_uid):
     raise OsparcApiException(status=404, body=f"404 Not Found: Job Collection UID {jc_uid} does not exist")
 
 
-# --- Fixtures for patching /osparc/list_function_jobs_for_jobcollectionid ---
+# --- Fixtures for patching /flask/osparc/list_function_jobs_for_jobcollectionid ---
 @pytest.fixture
 def patch_list_function_jobs_for_jobcollectionid_success():
     with patch("osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.get_function_job_collection", side_effect=mock_get_function_job_collection_success), \
