@@ -1,11 +1,15 @@
 import os
 from datetime import datetime
 import logging
+from pathlib import Path
+
 #
 import pytest
 from unittest.mock import patch
 from flask import Flask
 from mmux_flaskapi.app import create_flask_app
+
+TEST_RUNS_DIR = Path.cwd() / "runs_test"
 
 
 @pytest.fixture(autouse=True)
@@ -47,11 +51,13 @@ def configure_test_logging():
 def mock_test_env_vars():
     """Fixture to set environment variables for testing."""
     with patch.dict(
-        'os.environ', {
+        "os.environ",
+        {
             "OSPARC_API_BASE_URL": "https://test.example.io",
             "OSPARC_API_KEY": "test_key",
             "OSPARC_API_SECRET": "test_secret",
-    }):
+        },
+    ):
         yield
 
 
@@ -60,6 +66,7 @@ def test_app() -> Flask:
     """Fixture to initialize the Flask app in test mode."""
     app = create_flask_app()
     return app
+
 
 @pytest.fixture
 def test_client(test_app):
@@ -77,5 +84,6 @@ def assert_route_exists(app: Flask, prefix: str, route: str):
     prefix = f"/flask/{prefix.strip('/')}"
     full_route = f"{prefix}/{route}"
     assert full_route in routes, f"The route '{full_route}' should be registered."
+
 
 from osparc_api_mocks import *

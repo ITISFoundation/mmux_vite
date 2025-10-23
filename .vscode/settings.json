@@ -18,5 +18,8 @@
   "python.analysis.typeCheckingMode": "basic",
   "chat.agent.maxRequests": 250,
   "remote.autoForwardPortsFallback": 0,
-  "python-envs.pythonProjects": []
+  "python-envs.pythonProjects": [],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  }
 }
