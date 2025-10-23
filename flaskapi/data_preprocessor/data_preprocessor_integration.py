@@ -19,7 +19,7 @@ def create_training_file_with_preprocessor(
     input_vars: List[str],
     output_response: List[str],
     preprocessor: DataPreprocessor,
-    folder_name: str = "evaluate"
+    run_dir: Path,
 ) -> tuple[Path, DataPreprocessor]:
     """
     Create a training file from jobs using the DataPreprocessor for transformation.
@@ -37,8 +37,6 @@ def create_training_file_with_preprocessor(
     Returns:
         Tuple of (training_file_path, fitted_preprocessor)
     """
-    from mmux_python.utils.funs_evaluate import create_run_dir
-    
     # Filter completed jobs
     completed_jobs = [
         job for job in jobs 
@@ -88,9 +86,6 @@ def create_training_file_with_preprocessor(
     df_transformed = preprocessor.fit_transform(df_jobs)
     _logger.info(f"Transformed DataFrame with shape: {df_transformed.shape}")
     _logger.info(f"Transformed columns: {list(df_transformed.columns)}")
-    
-    # Create run directory and save files
-    run_dir = create_run_dir(Path("."), folder_name)
     
     # Save original data
     original_file = run_dir / "df_jobs_original.csv"
@@ -191,16 +186,16 @@ def setup_preprocessor_from_config(
 
 
 def load_and_inverse_transform_results(
-    results: Union[Dict[str, float], pd.DataFrame, List[Dict[str, float]]],
+    results: Union[Dict[str, List[float]], pd.DataFrame, List[Dict[str, float]]],
     config_file_path: Union[str, Path]
-) -> Union[Dict[str, float], List[Dict[str, float]]]:
+) -> Union[Dict[str, float], List[Dict[str, float]], Dict[str, List[float]], List[Dict[str, List[float]]]]:
     """
     Load a preprocessor configuration and inverse transform algorithm results.
-    
+
     Args:
         results: Results from ML algorithms (with mapped variable names)
         config_file_path: Path to the preprocessor configuration file
-        
+
     Returns:
         Results with original variable names and scales
     """

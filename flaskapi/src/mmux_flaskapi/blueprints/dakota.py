@@ -1,11 +1,9 @@
 import os
 import json
 import logging
-import sys
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from typing import Dict, List, Literal
 from pydantic import ValidationError
 #
 from flask import Blueprint, jsonify
@@ -42,29 +40,34 @@ dakota_bp = Blueprint('dakota', __name__)
 
 
 ########################################################
-def _create_training_file_from_jobs(jobs: List[FunctionJob], input_vars: List[str], output_response: str | List[str], folder_name: str = "evaluate") -> Path:
-    """
-    Create training file from validated jobs.
-    This function can now assume that jobs are already validated by Pydantic.
-    """
+def _create_training_file_from_jobs(jobs: list[FunctionJob], input_vars: list[str], output_response: str | list[str], folder_name: str = "evaluate") -> Path:
     output_response_sanitized = sanitize_varnames(output_response)
-    # No need for manual validation - Pydantic already ensured we have >= 5 completed jobs
-    completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
+    completed_jobs = [job for job in jobs if job.status.lower() == "completed" or job.status.lower() == "success"]
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
 
+    if len(completed_jobs) == 0:
+        raise ValueError("No completed jobs found. Cannot create training file.")
+    elif len(completed_jobs)<5:
+        raise ValueError("At least 5 samples are necessary to build a surrogate model in Dakota - a crash would occur otherwise.")
+    
     def get_job_dict(job):
         d = {sanitize_varnames(key): job.inputs[key] for key in input_vars}
+        if not hasattr(job, 'outputs') or not job.outputs:
+            raise ValueError(f"Missing outputs in job: {job}")
         output_response_sanitized_list = [output_response_sanitized] if isinstance(output_response_sanitized, str) else output_response_sanitized
         for res in output_response_sanitized_list:
+            if res not in job.outputs.keys():
+                raise ValueError(f"Missing required output variable '{res}' in job")
             d[res] = job.outputs[res]
         return d
     
-    df_jobs = pd.DataFrame([get_job_dict(job) for job in completed_jobs])
-    run_dir = create_run_dir(base_dir, folder_name)
-    TRAINING_FILE = run_dir / "df_jobs.csv"
+    df_jobs = pd.DataFrame(
+            [get_job_dict(job) for job in completed_jobs]
+        )
+    run_dir = create_run_dir(Path.cwd().parent.parent.parent, folder_name)
+    TRAINING_FILE = run_dir/  "df_jobs.csv"
     df_jobs.to_csv(TRAINING_FILE, index=False)
     return TRAINING_FILE
-########################################################
 
 @dakota_bp.route("/sumo_cross_validation", methods=["POST"])
 def flask_sumo_cross_validation():
@@ -72,7 +75,6 @@ def flask_sumo_cross_validation():
     _logger.debug("Starting flask function: flask_sumo_cross_validation")
     _logger.debug("Cwd: " + str(Path.cwd()))
     request_model = dakota_models.SumoCrossValidationRequest
-    # _logger.debug("request model: ", request_model.model_dump()) # type: ignore
 
     # Parse request data
     try:
@@ -89,9 +91,7 @@ def flask_sumo_cross_validation():
 
     # At this point, all validation is complete and we have a validated request object
     try:
-        # _logger.debug("validated request: ")
-        # _logger.debug(validated_request)
-        jobs: list[FunctionJob] = validated_request.FunctionJobs
+        jobs: list[FunctionJob] = validated_request.FunctionJobs  
         input_vars: list[str] = validated_request.inputVars
         output_var: str = validated_request.output
 
@@ -606,7 +606,10 @@ def flask_perform_moga_optimization():
         error_message = str(e)
         
         # Check for specific validation errors that should return 400
-        if ("Distribution for variable" in error_message and "is not defined" in error_message):
+        if ("Missing required output variable" in error_message or ("Missing outputs" in error_message and "job" in error_message)):
+            _logger.error(f"Missing output variable validation error: {e}")
+            abort(make_response(jsonify({"error": f"Validation failed: {error_message}"}), 400))
+        elif ("Distribution for variable" in error_message and "is not defined" in error_message):
             _logger.error(f"Missing distribution validation error: {e}")
             # Extract variable name for better error message
             import re
