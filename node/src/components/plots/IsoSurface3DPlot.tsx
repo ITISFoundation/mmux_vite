@@ -152,7 +152,7 @@ function IsoSurface3DPlot() {
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
     setPropagating(true);
-    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_grid_evaluation`, {
+    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/dakota/sumo_grid_evaluation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -15,7 +15,7 @@ export async function runSingleJob(
   const fun = selectedFunction as OsparcFunction;
   // send config to Python backend to create LHS
   setLaunchingSampling(true);
-  const job = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/test_job`, {
+  const job = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sampling/test_job`, {
     method: "POST",
     body: JSON.stringify({
       funUid: fun.uid,

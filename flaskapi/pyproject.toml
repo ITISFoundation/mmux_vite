@@ -1,0 +1,101 @@
+[project]
+name = "mmux_flaskapi"
+version = "1.5.14"
+description = "MMUX Flask API"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "flask==3.1.1",
+    "flask-cors==6.0.0",
+    "gevent==25.5.1",
+    "gitpython==3.1.44",
+    "gunicorn==23.0.0",
+    "httpx==0.18.0",
+    "ipykernel==6.29.5",
+    "itis-dakota==1.5.9",
+    "matplotlib==3.10.3",
+    "mmux-python",
+    "numpy==2.2.6",
+    "osparc==0.8.3.post0.dev30",
+    "pandas==2.2.3",
+    "python-dotenv==1.1.0",
+    "scikit-learn==1.6.1",
+    "scipy==1.15.3",
+    "seaborn==0.13.2",
+    "tqdm==4.67.1",
+]
+
+[dependency-groups]
+dev = [
+  {include-group = "test"}
+]
+test = [
+    "coverage>=7.0.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "pytest-xdist>=3.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+    "--cov=src/mmux_flaskapi",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["src/mmux_flaskapi"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/mmux_python/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[build-system]
+requires = ["setuptools>=65.5", "wheel>=0.44", "setuptools_scm[toml]>=7.1.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"mmux_flaskapi" = ["py.typed"]
+
+[tool.uv.workspace]
+members = [
+    "mmux_python",
+]
+
+[tool.uv.sources]
+mmux-python = { workspace = true }

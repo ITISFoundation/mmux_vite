@@ -8,5 +8,18 @@
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "eslint.workingDirectories": [
     { "directory": "./node", "changeProcessCWD": true }
-  ]
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "python.testing.cwd": "./flaskapi",
+  "python.testing.pytestArgs": ["tests"],
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+  "python.defaultInterpreterPath": "./flaskapi/.venv/bin/python",
+  "python.analysis.typeCheckingMode": "basic",
+  "chat.agent.maxRequests": 250,
+  "remote.autoForwardPortsFallback": 0,
+  "python-envs.pythonProjects": [],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  }
 }

@@ -1,4 +1,3 @@
-version: "3.7"
 services:
   mmux-vite-backend:
     image: simcore/services/dynamic/mmux-vite-backend:1.5.14
