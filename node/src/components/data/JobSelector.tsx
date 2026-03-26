@@ -197,6 +197,10 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       setLoading(false);
       setIsSuMoGenerated(true);
     }
+    if (jobCollections.length === 0 && loading === true) {
+      setLoading(false);
+      setIsSuMoGenerated(true);
+    }
   }, [jobCollections, loading, onToggleAll, setIsSuMoGenerated, setLoading, updateJobContext]);
 
   useEffect(() => {
