@@ -192,6 +192,9 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   }, [requestForceFetch, selectedFunction, setJobProgress]);
 
   useEffect(() => {
+    // fetchedJobCollections === undefined means the API call hasn't completed yet;
+    // only clear loading once we have a definitive response ([] or non-empty).
+    if (fetchedJobCollections === undefined) return;
     if (jobCollections.length > 0 && loading === true) {
       onToggleAll(true);
       setLoading(false);
@@ -201,7 +204,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       setLoading(false);
       setIsSuMoGenerated(true);
     }
-  }, [jobCollections, loading, onToggleAll, setIsSuMoGenerated, setLoading, updateJobContext]);
+  }, [fetchedJobCollections, jobCollections, loading, onToggleAll, setIsSuMoGenerated, setLoading, updateJobContext]);
 
   useEffect(() => {
     if (fetchedJobCollections) {
