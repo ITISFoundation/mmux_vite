@@ -237,6 +237,7 @@ function LHSSampling() {
         <form style={{ display: "flex", alignItems: "center", gap: "40px" }}>
           <Typography variant="body1">Number of sampling points: </Typography>
           <Input
+            mmux-testid="lhs-number-of-sampling-points-input"
             type="number"
             placeholder="Number of sampling points"
             value={localSamplingPoints.toString()}
@@ -253,6 +254,7 @@ function LHSSampling() {
           />
           <Typography variant="body1">Seed: </Typography>
           <Input
+            mmux-testid="lhs-seed-input"
             type="number"
             placeholder="seed"
             value={lhsInputs.seed.toString()}
