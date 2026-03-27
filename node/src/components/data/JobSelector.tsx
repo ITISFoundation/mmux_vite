@@ -246,6 +246,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             type: "boolean",
             renderHeader: () => (
               <IconButton
+                mmux-testid="refresh-job-collections-btn"
                 sx={theme => ({
                   padding: "8px",
                   alignSelf: "right",
