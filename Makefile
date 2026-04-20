@@ -24,7 +24,15 @@ setup-mmux-python: ## clone and setup mmux_python dependency
 ## Fix issue of permissions on mmux_python folder
 .PHONY: get-access-write-on-mmux-python
 get-access-write-on-mmux-python:
-	sudo chown -R ordonez:ordonez ${FLASKAPI_DIR}/mmux_python/
+	@if [ ! -e ${FLASKAPI_DIR}/mmux_python ]; then \
+		echo "${FLASKAPI_DIR}/mmux_python does not exist; skipping permission fix"; \
+	elif [ -w ${FLASKAPI_DIR}/mmux_python ]; then \
+		echo "${FLASKAPI_DIR}/mmux_python is already writable; skipping permission fix"; \
+	elif command -v sudo >/dev/null 2>&1; then \
+		sudo chown -R "$$(id -u):$$(id -g)" ${FLASKAPI_DIR}/mmux_python/; \
+	else \
+		chown -R "$$(id -u):$$(id -g)" ${FLASKAPI_DIR}/mmux_python/; \
+	fi
 
 .PHONY: install-flaskapi-deps ## install Flask API Python dependencies
 install-flaskapi-deps: setup-mmux-python get-access-write-on-mmux-python 
