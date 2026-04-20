@@ -209,10 +209,10 @@ def load_and_inverse_transform_results(
     elif isinstance(results, pd.DataFrame):
         inverse_results = []
         for _, row in results.iterrows():
-            inverse_results.append(preprocessor.inverse_transform(row.to_dict()))
+            inverse_results.append(preprocessor.inverse_transform(row.to_dict())) # type: ignore
         return inverse_results
     elif isinstance(results, list):
-        return [preprocessor.inverse_transform(result) for result in results]
+        return [preprocessor.inverse_transform(result) for result in results] # type: ignore
     else:
         raise ValueError(f"Unsupported results format: {type(results)}")
 

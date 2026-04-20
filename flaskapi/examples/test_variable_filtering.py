@@ -12,10 +12,9 @@ This script demonstrates all the filtering capabilities:
 
 import numpy as np
 import pandas as pd
-from pathlib import Path
 import logging
 from mmux_flaskapi.data_preprocessor import DataPreprocessor
-from mmux_flaskapi.data_preprocessor_integration import (
+from mmux_flaskapi.data_preprocessor.data_preprocessor_integration import (
     setup_preprocessor_from_config,
     create_filtered_preprocessor,
     get_variable_statistics,

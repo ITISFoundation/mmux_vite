@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from mmux_flaskapi.data_preprocessor import DataPreprocessor
-from mmux_flaskapi.data_preprocessor_integration import (
+from mmux_flaskapi.data_preprocessor.data_preprocessor_integration import (
     create_training_file_with_preprocessor,
     setup_preprocessor_from_config,
     load_and_inverse_transform_results
