@@ -32,9 +32,8 @@ from mmux_flaskapi.blueprints.dakota_models import (
 
 #
 from mmux_flaskapi.utils.helpers import create_run_dir
-from data_preprocessor.data_preprocessor import DataPreprocessor
+from mmux_flaskapi.data_preprocessor import DataPreprocessor
 
-# from mmux_flaskapi.utils.data_preprocessor import DataPreprocessor
 from mmux_python.funs_evaluate import (
     evaluate_sumo_along_axes,
     evaluate_sumo,
@@ -1039,8 +1038,6 @@ def flask_perform_moga_optimization():
         df_completed_jobs = _jobs_to_df(completed_jobs)
         TRAINING_FILE = run_dir / "df_jobs.csv"
         df_completed_jobs.to_csv(TRAINING_FILE, index=False)
-
-        from data_preprocessor.data_preprocessor import DataPreprocessor
 
         preprocessor = DataPreprocessor()
         preprocessor.setup_variables(input_vars=list(jobs[0]["inputs"].keys()), output_vars=list(jobs[0]["outputs"].keys()))  # type: ignore
