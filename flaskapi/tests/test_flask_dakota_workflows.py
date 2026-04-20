@@ -64,10 +64,18 @@ class TestSumoCrossValidation:
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, dict)
-        # Should contain the output key and lists of numbers
+        # Should contain observations and prediction outputs in original names.
         assert OUTPUT in data
+        assert f"{OUTPUT}_hat" in data
+        assert f"{OUTPUT}_std_hat" in data
         assert isinstance(data[OUTPUT], list)
+        assert isinstance(data[f"{OUTPUT}_hat"], list)
+        assert isinstance(data[f"{OUTPUT}_std_hat"], list)
         for v in data[OUTPUT]:
+            assert isinstance(v, (int, float))
+        for v in data[f"{OUTPUT}_hat"]:
+            assert isinstance(v, (int, float))
+        for v in data[f"{OUTPUT}_std_hat"]:
             assert isinstance(v, (int, float))
 
     # ------------------- Failure Cases -------------------
@@ -304,6 +312,30 @@ class TestSumoCrossValidation:
         data = response.get_json()
         assert "error" in data
         assert "Disk full" in data["error"]
+        assert "traceback" not in data
+
+    def test_evaluation_error_does_not_leak_traceback(self, test_client: Flask, monkeypatch):
+        """Unexpected runtime errors should not include a traceback by default."""
+
+        def fail_eval(*args, **kwargs):
+            raise RuntimeError("Exploded during evaluation")
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
+            fail_eval,
+        )
+        payload = {
+            "output": "y",
+            "inputVars": ["x1"],
+            "FunctionJobs": create_function_job_list(50),
+        }
+
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 500
+        data = response.get_json()
+        assert data["error"] == "Exploded during evaluation"
+        assert data["workflow"] == "flask_sumo_cross_validation"
+        assert "traceback" not in data
 
     def test_partial_input_variable_mismatch(self, test_client: Flask):
         """Test when some but not all inputVars match job input keys."""
