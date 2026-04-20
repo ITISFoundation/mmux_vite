@@ -1,10 +1,12 @@
 import os
 import json
 import logging
+import traceback
 import pandas as pd
 import numpy as np
 from pathlib import Path
 from pydantic import ValidationError
+from typing import Dict, List, Any, Optional, Tuple
 
 #
 from flask import Blueprint, jsonify
@@ -29,7 +31,8 @@ from mmux_flaskapi.blueprints.dakota_models import (
 )
 
 #
-from mmux_flaskapi.utils.helpers import sanitize_varnames, create_run_dir
+from mmux_flaskapi.utils.helpers import create_run_dir
+from data_preprocessor.data_preprocessor import DataPreprocessor
 
 # from mmux_flaskapi.utils.data_preprocessor import DataPreprocessor
 from mmux_python.funs_evaluate import (
@@ -175,8 +178,181 @@ def _create_training_file_from_jobs(
     return TRAINING_FILE
 
 
+########################################################
+# Utility Functions for Advanced Error Handling and Data Preprocessing
+########################################################
+
+
+def _check_jobs(jobs: list[FunctionJob]) -> list[FunctionJob]:
+    """
+    Check and validate jobs, returning only completed ones.
+    
+    Args:
+        jobs: List of FunctionJob objects
+        
+    Returns:
+        List of completed jobs
+        
+    Raises:
+        ValueError: If no completed jobs found or not enough samples
+    """
+    completed_jobs = [
+        job
+        for job in jobs
+        if job.status.lower() == "completed" or job.status.lower() == "success"
+    ]
+    _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
+
+    if len(completed_jobs) == 0:
+        raise ValueError("No completed jobs found. Cannot create training file.")
+    elif len(completed_jobs) < 5:
+        raise ValueError(
+            "At least 5 samples are necessary to build a surrogate model in Dakota - a crash would occur otherwise."
+        )
+
+    return completed_jobs
+
+
+def _jobs_to_df(jobs: list[FunctionJob]) -> pd.DataFrame:
+    """
+    Convert list of FunctionJob objects to DataFrame.
+    
+    Args:
+        jobs: List of FunctionJob objects
+        
+    Returns:
+        DataFrame with all inputs and outputs
+    """
+    assert jobs[0].inputs is not None, f"No inputs found for job: {jobs[0]}"
+    assert jobs[0].outputs is not None, f"No outputs found for job: {jobs[0]}"
+    input_vars = list(jobs[0].inputs.keys())
+    output_vars = list(jobs[0].outputs.keys())
+
+    list_of_dicts = []
+    for job in jobs:
+        d = {}
+        assert job.inputs is not None, f"No inputs found for job: {job}"
+        for key in input_vars:
+            assert key in job.inputs.keys(), f"Input {key} not in job: {job}"
+            d[key] = job.inputs[key]
+        assert job.outputs is not None, f"No outputs found for job: {job}"
+        for res in output_vars:
+            assert res in job.outputs.keys(), f"Output {res} not in job: {job}"
+            d[res] = job.outputs[res]
+        list_of_dicts.append(d)
+    return pd.DataFrame(list_of_dicts)
+
+
+def setup_preprocessor_for_workflow(
+    jobs: List[FunctionJob],
+    input_vars: List[str],
+    output_vars: List[str],
+    run_dir: Path,
+    input_normalizations: Optional[Dict[str, str]] = None,
+    output_normalizations: Optional[Dict[str, str]] = None,
+    input_sign_switches: Optional[List[str]] = None,
+    output_sign_switches: Optional[List[str]] = None,
+) -> Tuple[Path, DataPreprocessor]:
+    """
+    Standardized preprocessor setup for Dakota workflows.
+    
+    Args:
+        jobs: List of completed FunctionJob objects
+        input_vars: List of input variable names
+        output_vars: List of output variable names (can be single string or list)
+        run_dir: Directory to save files
+        input_normalizations: Optional dict mapping input vars to normalization methods
+        output_normalizations: Optional dict mapping output vars to normalization methods
+        input_sign_switches: Optional list of input vars to switch signs
+        output_sign_switches: Optional list of output vars to switch signs
+        
+    Returns:
+        Tuple of (processed_training_file_path, fitted_preprocessor)
+    """
+    # Ensure output_vars is a list
+    if isinstance(output_vars, str):
+        output_vars = [output_vars]
+    
+    # Validate and filter jobs
+    completed_jobs = _check_jobs(jobs)
+    df_completed_jobs = _jobs_to_df(completed_jobs)
+    
+    # Save original training file
+    training_file = run_dir / "df_jobs.csv"
+    df_completed_jobs.to_csv(training_file, index=False)
+    
+    # Setup preprocessor
+    preprocessor = DataPreprocessor()
+    preprocessor.setup_variables(
+        input_vars=input_vars,
+        output_vars=output_vars
+    )
+    
+    # Configure normalizations if provided
+    if input_normalizations or output_normalizations:
+        preprocessor.setup_normalization(
+            input_normalizations=input_normalizations,
+            output_normalizations=output_normalizations
+        )
+    
+    # Configure sign switching if provided
+    if input_sign_switches or output_sign_switches:
+        preprocessor.setup_sign_switching(
+            input_sign_switches=input_sign_switches,
+            output_sign_switches=output_sign_switches
+        )
+    
+    # Fit and transform
+    df_preprocessed = preprocessor.fit_transform(df_completed_jobs)
+    
+    # Save configuration
+    preprocessor.save_config(run_dir / "preprocessor_config.json")
+    
+    # Save processed file (Dakota format - space separated)
+    processed_file = run_dir / "df_processed_jobs.dat"
+    df_preprocessed.to_csv(processed_file, sep=" ", index=False)
+    
+    _logger.info(f"Preprocessor fitted and saved to {run_dir}")
+    
+    return processed_file, preprocessor
+
+
+def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 500):
+    """
+    Standardized error handling for Dakota workflows.
+    
+    Args:
+        e: The exception
+        workflow_name: Name of the workflow for logging
+        status_code: HTTP status code to return
+    """
+    traceback_str = traceback.format_exc()
+    _logger.error(f"Error in {workflow_name}: {e}")
+    _logger.debug(f"Traceback:\n{traceback_str}")
+    
+    abort(make_response(
+        jsonify({
+            "error": str(e),
+            "traceback": traceback_str,
+            "workflow": workflow_name
+        }),
+        status_code
+    ))
+
+
+########################################################
+# Flask Endpoints
+########################################################
+
+
 @dakota_bp.route("/sumo_cross_validation", methods=["POST"])
 def flask_sumo_cross_validation():
+    """
+    Perform SUMO cross-validation to assess surrogate model accuracy.
+    
+    Uses DataPreprocessor for variable mapping and normalization.
+    Returns cross-validation predictions with uncertainty estimates in original variable names.
+    """
     os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_sumo_cross_validation")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -201,25 +377,31 @@ def flask_sumo_cross_validation():
         input_vars: list[str] = validated_request.inputVars
         output_var: str = validated_request.output
 
-        TRAINING_FILE = _create_training_file_from_jobs(
-            jobs,
-            input_vars,
-            output_var,
+        # Create run directory
+        run_dir = create_run_dir(DAKOTA_RUNS_DIR, "cross_validation")
+        
+        # Use DataPreprocessor for standardized data handling
+        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_var],
+            run_dir=run_dir
         )
-        run_dir = TRAINING_FILE.parent
-        PROCESSED_TRAINING_FILE = process_input_file(
-            TRAINING_FILE,
-            columns_to_keep=input_vars + [output_var],
-        )
+        
+        # Get mapped variable names for Dakota
+        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
+        mapped_output_var = preprocessor.output_variables[output_var].mapped_name
+        
+        # Evaluate cross-validation with mapped variable names
         results = evaluate_sumo_manual_crossvalidation(
             run_dir,
             PROCESSED_TRAINING_FILE,
-            input_vars,
-            output_var,
+            mapped_input_vars,
+            mapped_output_var,
         )
 
         # Validate that "results" contains the expected keys: estimate of output (_hat) and its std (_std_hat)
-        expected_keys = [output_var + "_hat", output_var + "_std_hat"]
+        expected_keys = [mapped_output_var + "_hat", mapped_output_var + "_std_hat"]
         missing_keys = [key for key in expected_keys if key not in results]
         if missing_keys:
             _logger.error(f"Missing expected keys in results: {missing_keys}")
@@ -228,11 +410,15 @@ def flask_sumo_cross_validation():
                 422,
             )  # Unprocessable Entity
 
-        _logger.debug("Done!!")
-        return jsonify(results)
+        # Inverse transform results to return original variable names
+        results_transformed = preprocessor.inverse_transform(results)
+        
+        _logger.debug("Cross-validation completed successfully!")
+        return jsonify(results_transformed)
+        
     except Exception as e:
-        _logger.error(f"Error during cross-validation: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
+        handle_workflow_error(e, "flask_sumo_cross_validation", 500)
+
 
 
 @dakota_bp.route("/manual_uq_propagation_with_uncertainty", methods=["POST"])
@@ -240,8 +426,10 @@ def flask_manual_uq_propagation_with_uncertainty():
     """
     Perform manual UQ propagation with uncertainty quantification.
 
-    This endpoint creates multiple histogram realizations using uncertainty estimates
+    Uses DataPreprocessor for variable mapping and normalization.
+    Creates multiple histogram realizations using uncertainty estimates
     from a trained surrogate model to quantify the uncertainty in the UQ results.
+    Returns results in original variable space.
     """
     os.chdir(Path(__file__).parent)
     _logger.debug(
@@ -268,18 +456,20 @@ def flask_manual_uq_propagation_with_uncertainty():
         n_histograms = validated_request.nHistograms
         seed = validated_request.seed
 
-        # Create training file from validated jobs
-        TRAINING_FILE = _create_training_file_from_jobs(
-            jobs, input_vars, output_response
+        # Create run directory
+        run_dir = create_run_dir(DAKOTA_RUNS_DIR, "uq_with_uncertainty")
+        
+        # Use DataPreprocessor for standardized data handling
+        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_response],
+            run_dir=run_dir
         )
-        run_dir = TRAINING_FILE.parent
-        _logger.debug(f"Training file created: {TRAINING_FILE}")
-
-        # Process training data
-        PROCESSED_TRAINING_FILE = process_input_file(
-            TRAINING_FILE,
-            columns_to_keep=input_vars + [output_response],
-        )
+        
+        # Get mapped variable names
+        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
+        mapped_output_var = preprocessor.output_variables[output_response].mapped_name
 
         # Generate UQ samples using provided distributions
         _logger.debug(f"Generating {num_samples} UQ samples with seed {seed}")
@@ -290,16 +480,15 @@ def flask_manual_uq_propagation_with_uncertainty():
         samples = create_manual_uq_samples(
             input_vars, distributions_dict, num_samples, seed
         )
-        df = pd.DataFrame(samples)
+        df_samples = pd.DataFrame(samples)
         UQ_SAMPLES_FILE = run_dir / "manual_uq_samples.csv"
-        df.to_csv(UQ_SAMPLES_FILE, index=False)
+        df_samples.to_csv(UQ_SAMPLES_FILE, index=False)
         _logger.debug(f"Generated manual UQ samples saved to {UQ_SAMPLES_FILE}")
 
-        # Process UQ samples
-        PROCESSED_UQ_SAMPLES_FILE = process_input_file(
-            UQ_SAMPLES_FILE,
-            columns_to_keep=input_vars,
-        )
+        # Transform UQ samples using preprocessor
+        df_samples_transformed = preprocessor.transform(df_samples)
+        PROCESSED_UQ_SAMPLES_FILE = run_dir / "manual_uq_samples_processed.csv"
+        df_samples_transformed.to_csv(PROCESSED_UQ_SAMPLES_FILE, sep=" ", index=False)
 
         # Evaluate surrogate model on UQ samples
         _logger.debug("Evaluating surrogate model on UQ samples")
@@ -307,13 +496,13 @@ def flask_manual_uq_propagation_with_uncertainty():
             run_dir,
             PROCESSED_TRAINING_FILE,
             PROCESSED_UQ_SAMPLES_FILE,
-            input_vars,
-            output_response,
+            mapped_input_vars,
+            mapped_output_var,
         )
 
         # Verify uncertainty predictions are available
-        uncertainty_key = output_response + "_std_hat"
-        prediction_key = output_response + "_hat"
+        uncertainty_key = mapped_output_var + "_std_hat"
+        prediction_key = mapped_output_var + "_hat"
 
         if uncertainty_key not in results:
             available_keys = list(results.keys())
@@ -343,21 +532,31 @@ def flask_manual_uq_propagation_with_uncertainty():
         # Set random seed for reproducibility
         np.random.seed(seed)
 
-        all_results = np.empty(shape=(n_histograms, num_samples), dtype=float)
+        # Generate samples in transformed space
+        all_results_transformed = np.empty(shape=(n_histograms, num_samples), dtype=float)
         for i in range(n_histograms):
             # Generate random samples from uniform distribution and transform via erfinv
             r = erfinv(
                 np.random.uniform(-1 + 1e-10, 1 - 1e-10, size=num_samples)
             )  # Avoid exact -1,1 for erfinv
-            all_results[i, :] = results[prediction_key] + r * results[uncertainty_key]
+            all_results_transformed[i, :] = results[prediction_key] + r * results[uncertainty_key]
 
-        # Compute histogram statistics
-        _logger.debug("Computing histogram and statistical summaries")
-        all_values = all_results.flatten()
+        # Inverse transform results to original space for histogram calculation
+        # Create a results dict with all samples for inverse transform
+        all_samples_dict = {mapped_output_var: all_results_transformed.flatten()}
+        all_samples_original = preprocessor.inverse_transform(all_samples_dict)
+        all_values = np.array(all_samples_original[output_response])
+        
+        # Reshape back to (n_histograms, num_samples)
+        all_values_reshaped = all_values.reshape(n_histograms, num_samples)
+
+        # Compute histogram statistics in original space
+        _logger.debug("Computing histogram and statistical summaries in original space")
+        all_values_flat = all_values.flatten()
         num_bins = min(
             50, max(10, num_samples // 10)
         )  # Ensure reasonable number of bins
-        hist_min, hist_max = np.percentile(all_values, 1), np.percentile(all_values, 99)
+        hist_min, hist_max = np.percentile(all_values_flat, 1), np.percentile(all_values_flat, 99)
 
         # Handle edge case where hist_min == hist_max
         if hist_min == hist_max:
@@ -372,7 +571,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         # Compute histograms for each realization
         histograms = np.array(
             [
-                np.histogram(all_results[i, :], bins=bin_edges, density=True)[0]
+                np.histogram(all_values_reshaped[i, :], bins=bin_edges, density=True)[0]
                 for i in range(n_histograms)
             ]
         )
@@ -382,9 +581,9 @@ def flask_manual_uq_propagation_with_uncertainty():
         bin_stds = np.std(histograms, axis=0)
 
         # Calculate box plot quantities
-        q1 = np.percentile(all_values, 25)
-        median = np.percentile(all_values, 50)
-        q3 = np.percentile(all_values, 75)
+        q1 = np.percentile(all_values_flat, 25)
+        median = np.percentile(all_values_flat, 50)
+        q3 = np.percentile(all_values_flat, 75)
         iqr = q3 - q1
 
         # Calculate whisker boundaries (1.5 * IQR rule)
@@ -392,7 +591,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         whisker_max = min(hist_max, q3 + 1.5 * iqr)
 
         # Identify outliers
-        outliers = all_values[(all_values < whisker_min) | (all_values > whisker_max)]
+        outliers = all_values_flat[(all_values_flat < whisker_min) | (all_values_flat > whisker_max)]
 
         # Create response object
         response_data = {
@@ -406,10 +605,10 @@ def flask_manual_uq_propagation_with_uncertainty():
             "whisker_min": float(whisker_min),
             "whisker_max": float(whisker_max),
             "outliers": outliers.tolist(),
-            "mean": float(np.mean(all_values)),
-            "std": float(np.std(all_values)),
-            "min": float(np.min(all_values)),
-            "max": float(np.max(all_values)),
+            "mean": float(np.mean(all_values_flat)),
+            "std": float(np.std(all_values_flat)),
+            "min": float(np.min(all_values_flat)),
+            "max": float(np.max(all_values_flat)),
         }
 
         # Validate response using Pydantic
@@ -419,16 +618,12 @@ def flask_manual_uq_propagation_with_uncertainty():
         return jsonify(validated_response.model_dump())
 
     except ValidationError as e:
-        _logger.error(f"Request validation error: {e}")
-        abort(make_response(jsonify({"error": f"Validation error: {str(e)}"}), 400))
+        handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
     except ValueError as e:
-        _logger.error(f"Value error during UQ with uncertainty: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 400))
+        handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
     except Exception as e:
-        _logger.error(f"Unexpected error during UQ with uncertainty: {e}")
-        abort(
-            make_response(jsonify({"error": f"Internal server error: {str(e)}"}), 500)
-        )
+        handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 500)
+
 
 
 @dakota_bp.route("/sumo_along_axes", methods=["POST"])
@@ -436,8 +631,9 @@ def flask_evaluate_sumo_along_axes():
     """
     SuMo model evaluation along each input axis with optional fixed values.
 
+    Uses DataPreprocessor for variable mapping and normalization.
     Uses Pydantic validation to ensure robust input validation and consistent error handling.
-    Returns predictions along each specified input variable axis.
+    Returns predictions along each specified input variable axis in original space.
     """
     os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_evaluate_sumo_along_axes")
@@ -456,29 +652,54 @@ def flask_evaluate_sumo_along_axes():
         _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(jobs)} jobs")
         _logger.debug(f"Slider values: {slider_values}")
 
-        # Create training file from validated jobs
-        TRAINING_FILE = _create_training_file_from_jobs(
-            jobs, input_vars, output_response
+        # Create run directory
+        run_dir = create_run_dir(DAKOTA_RUNS_DIR, "along_axes")
+        
+        # Use DataPreprocessor for standardized data handling
+        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_response],
+            run_dir=run_dir
         )
-        run_dir = TRAINING_FILE.parent
+        
+        # Get mapped variable names
+        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
+        mapped_output_var = preprocessor.output_variables[output_response].mapped_name
+        
+        # Transform slider values to mapped space if provided
+        mapped_slider_values = None
+        if slider_values:
+            # Transform the slider values using the preprocessor
+            slider_df = pd.DataFrame([slider_values])
+            slider_df_transformed = preprocessor.transform(slider_df)
+            mapped_slider_values = slider_df_transformed.iloc[0].to_dict()
+            _logger.debug(f"Mapped slider values: {mapped_slider_values}")
 
-        # Process the training file
-        PROCESSED_TRAINING_FILE = process_input_file(
-            TRAINING_FILE,
-            columns_to_keep=input_vars + [output_response],
-        )
-
-        # Evaluate SUMO along axes
+        # Evaluate SUMO along axes with mapped variables
         results = evaluate_sumo_along_axes(
             run_dir,
             PROCESSED_TRAINING_FILE,
-            input_vars,
-            output_response,
-            cut_values=slider_values,
+            mapped_input_vars,
+            mapped_output_var,
+            cut_values=mapped_slider_values,
         )
 
+        # Inverse transform results to return original variable names
+        # Map results from mapped input names back to original names
+        mapped_to_orig_input = {cfg.mapped_name: orig for orig, cfg in preprocessor.input_variables.items()}
+        predictions_original = {}
+        for m_var, axis_data in results.items():
+            orig_var = mapped_to_orig_input.get(m_var, m_var)
+            x_inv = preprocessor.inverse_transform({m_var: list(axis_data["x"])}).get(orig_var, list(axis_data["x"]))
+            y_inv = preprocessor.inverse_transform({mapped_output_var: list(axis_data["y_hat"])}).get(output_response, list(axis_data["y_hat"]))
+            axis_orig: dict = {"x": x_inv, "y_hat": y_inv}
+            if "std_hat" in axis_data:
+                axis_orig["std_hat"] = list(axis_data["std_hat"])
+            predictions_original[orig_var] = axis_orig
+
         # Validate and structure response
-        response_data = {"predictions": results}
+        response_data = {"predictions": predictions_original}
         validated_response = SumoAlongAxesResponse.model_validate(response_data)
 
         _logger.debug("SUMO along axes evaluation completed successfully")
@@ -492,15 +713,15 @@ def flask_evaluate_sumo_along_axes():
                 " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
             )
             error_details.append(f"{location}: {error['msg']}")
-        abort(
-            make_response(
-                jsonify({"error": "Validation failed", "details": error_details}), 400
-            )
+        handle_workflow_error(
+            Exception(f"Validation failed: {', '.join(error_details)}"),
+            "flask_evaluate_sumo_along_axes",
+            400
         )
 
     except Exception as e:
-        _logger.error(f"Error during evaluation along axes: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
+        handle_workflow_error(e, "flask_evaluate_sumo_along_axes", 500)
+
 
 
 ## This method could probably be generic for N-D (thus not needing the 1D version above)
@@ -509,8 +730,9 @@ def flask_sumo_grid_evaluation():
     """
     SUMO model evaluation on a grid with optional fixed values for non-grid variables.
 
+    Uses DataPreprocessor for variable mapping and normalization.
     Uses Pydantic validation to ensure robust input validation and consistent error handling.
-    Returns grid data with input coordinates and predictions.
+    Returns grid data with input coordinates and predictions in original space.
     """
     os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_sumo_grid_evaluation")
@@ -533,30 +755,62 @@ def flask_sumo_grid_evaluation():
         _logger.debug(f"Grid variables: {grid_vars}")
         _logger.debug(f"Slider values: {slider_values}")
 
-        # Create training file from validated jobs
-        TRAINING_FILE = _create_training_file_from_jobs(
-            jobs, input_vars, output_response
+        # Create run directory
+        run_dir = create_run_dir(DAKOTA_RUNS_DIR, "grid_evaluation")
+        
+        # Use DataPreprocessor for standardized data handling
+        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_response],
+            run_dir=run_dir
         )
-        run_dir = TRAINING_FILE.parent
+        
+        # Get mapped variable names
+        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
+        mapped_grid_vars = [preprocessor.input_variables[var].mapped_name for var in grid_vars]
+        mapped_output_var = preprocessor.output_variables[output_response].mapped_name
+        
+        # Transform slider values to mapped space if provided
+        mapped_slider_values = None
+        if slider_values:
+            # Transform the slider values using the preprocessor
+            slider_df = pd.DataFrame([slider_values])
+            slider_df_transformed = preprocessor.transform(slider_df)
+            mapped_slider_values = slider_df_transformed.iloc[0].to_dict()
+            _logger.debug(f"Mapped slider values: {mapped_slider_values}")
 
-        # Process the training file
-        PROCESSED_TRAINING_FILE = process_input_file(
-            TRAINING_FILE,
-            columns_to_keep=input_vars + [output_response],  # type: ignore
-        )
-
-        # Evaluate SUMO on grid
+        # Evaluate SUMO on grid with mapped variables
         results = evaluate_sumo_on_grid(
             run_dir,
             PROCESSED_TRAINING_FILE,
-            grid_vars,
-            input_vars,
-            output_response,  # type: ignore
-            cut_values=slider_values,
+            mapped_grid_vars,
+            mapped_input_vars,
+            mapped_output_var,
+            cut_values=mapped_slider_values,
         )
 
+        # Inverse transform results to return original variable names
+        # Map results from mapped names back to original names, handling nested arrays
+        mapped_to_orig = {
+            cfg.mapped_name: orig
+            for d in (preprocessor.input_variables, preprocessor.output_variables)
+            for orig, cfg in d.items()
+        }
+        grid_data_original = {}
+        for key, values in results.items():
+            orig_key = mapped_to_orig.get(key, key)
+            if values and isinstance(values[0], list):
+                # 2D array (reshaped grid output) - flatten, inverse transform, reshape back
+                flat = [item for row in values for item in row]
+                flat_inv = preprocessor.inverse_transform({key: flat}).get(orig_key, flat)
+                inner = len(values[0])
+                grid_data_original[orig_key] = [flat_inv[i:i + inner] for i in range(0, len(flat_inv), inner)]
+            else:
+                grid_data_original[orig_key] = preprocessor.inverse_transform({key: list(values)}).get(orig_key, list(values))
+
         # Validate and structure response
-        response_data = {"grid_data": results}
+        response_data = {"grid_data": grid_data_original}
         validated_response = SumoGridEvaluationResponse.model_validate(response_data)
 
         _logger.debug("SUMO grid evaluation completed successfully")
@@ -570,15 +824,15 @@ def flask_sumo_grid_evaluation():
                 " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
             )
             error_details.append(f"{location}: {error['msg']}")
-        abort(
-            make_response(
-                jsonify({"error": "Validation failed", "details": error_details}), 400
-            )
+        handle_workflow_error(
+            Exception(f"Validation failed: {', '.join(error_details)}"),
+            "flask_sumo_grid_evaluation",
+            400
         )
 
     except Exception as e:
-        _logger.error(f"Error during grid evaluation: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
+        handle_workflow_error(e, "flask_sumo_grid_evaluation", 500)
+
 
 
 @dakota_bp.route("/get_sumo_cv_accuracy_metrics", methods=["POST"])
@@ -801,7 +1055,7 @@ def flask_perform_moga_optimization():
 
         df_preprocessed_jobs = preprocessor.fit_transform(df_completed_jobs)
         preprocessor.save_config(run_dir / "preprocessor_config.json")
-        PROCESSED_TRAINING_FILE = run_dir / "df_processed_jobs.csv"
+        PROCESSED_TRAINING_FILE = run_dir / "df_processed_jobs.dat"
         df_preprocessed_jobs.to_csv(
             PROCESSED_TRAINING_FILE, sep=" ", index=False
         )  # Dakota expects a space-separated file
