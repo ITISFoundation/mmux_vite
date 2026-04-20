@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from typing import Dict, List, Optional, Tuple
 
 #
-from flask import Blueprint, jsonify
+from flask import Blueprint, current_app, jsonify
 from flask import request, abort, make_response
 
 #
@@ -212,31 +212,42 @@ def _check_jobs(jobs: list[FunctionJob]) -> list[FunctionJob]:
     return completed_jobs
 
 
-def _jobs_to_df(jobs: list[FunctionJob]) -> pd.DataFrame:
+def _jobs_to_df(
+    jobs: list[FunctionJob], input_vars: List[str], output_vars: List[str]
+) -> pd.DataFrame:
     """
     Convert list of FunctionJob objects to DataFrame.
     
     Args:
         jobs: List of FunctionJob objects
+        input_vars: Requested input variable names
+        output_vars: Requested output variable names
         
     Returns:
-        DataFrame with all inputs and outputs
+        DataFrame with the requested inputs and outputs
+
+    Raises:
+        ValueError: If a job is missing requested inputs or outputs
     """
-    assert jobs[0].inputs is not None, f"No inputs found for job: {jobs[0]}"
-    assert jobs[0].outputs is not None, f"No outputs found for job: {jobs[0]}"
-    input_vars = list(jobs[0].inputs.keys())
-    output_vars = list(jobs[0].outputs.keys())
+    if len(jobs) == 0:
+        raise ValueError("No jobs found. Cannot create DataFrame.")
 
     list_of_dicts = []
     for job in jobs:
         d = {}
-        assert job.inputs is not None, f"No inputs found for job: {job}"
+        if job.inputs is None:
+            raise ValueError(f"No inputs found for job: {job}")
         for key in input_vars:
-            assert key in job.inputs.keys(), f"Input {key} not in job: {job}"
+            if key not in job.inputs:
+                raise ValueError(f"Missing requested input variable '{key}' in job: {job}")
             d[key] = job.inputs[key]
-        assert job.outputs is not None, f"No outputs found for job: {job}"
+        if job.outputs is None:
+            raise ValueError(f"No outputs found for job: {job}")
         for res in output_vars:
-            assert res in job.outputs.keys(), f"Output {res} not in job: {job}"
+            if res not in job.outputs:
+                raise ValueError(
+                    f"Missing requested output variable '{res}' in job: {job}"
+                )
             d[res] = job.outputs[res]
         list_of_dicts.append(d)
     return pd.DataFrame(list_of_dicts)
@@ -274,7 +285,7 @@ def setup_preprocessor_for_workflow(
     
     # Validate and filter jobs
     completed_jobs = _check_jobs(jobs)
-    df_completed_jobs = _jobs_to_df(completed_jobs)
+    df_completed_jobs = _jobs_to_df(completed_jobs, input_vars, output_vars)
     
     # Save original training file
     training_file = run_dir / "df_jobs.csv"
@@ -328,15 +339,44 @@ def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 5
     traceback_str = traceback.format_exc()
     _logger.error(f"Error in {workflow_name}: {e}")
     _logger.debug(f"Traceback:\n{traceback_str}")
-    
+
+    response_payload = {
+        "error": str(e),
+        "workflow": workflow_name,
+    }
+    if current_app.config.get("MMUX_INCLUDE_TRACEBACKS", False):
+        response_payload["traceback"] = traceback_str
+
     abort(make_response(
-        jsonify({
-            "error": str(e),
-            "traceback": traceback_str,
-            "workflow": workflow_name
-        }),
+        jsonify(response_payload),
         status_code
     ))
+
+
+def _inverse_transform_output_results(
+    preprocessor: DataPreprocessor,
+    results: Dict[str, List[float]],
+) -> Dict[str, List[float]]:
+    """Inverse transform output values while preserving Dakota suffixes."""
+    transformed: Dict[str, List[float]] = {}
+
+    for original_name, config in preprocessor.output_variables.items():
+        mapped_name = config.mapped_name
+
+        if mapped_name in results:
+            inverse = preprocessor.inverse_transform({mapped_name: results[mapped_name]})
+            if original_name in inverse:
+                transformed[original_name] = inverse[original_name]
+
+        for suffix in ("_hat", "_std_hat"):
+            suffixed_key = mapped_name + suffix
+            if suffixed_key not in results:
+                continue
+            inverse = preprocessor.inverse_transform({mapped_name: results[suffixed_key]})
+            if original_name in inverse:
+                transformed[original_name + suffix] = inverse[original_name]
+
+    return transformed
 
 
 ########################################################
@@ -409,12 +449,16 @@ def flask_sumo_cross_validation():
                 422,
             )  # Unprocessable Entity
 
-        # Inverse transform results to return original variable names
-        results_transformed = preprocessor.inverse_transform(results)
+        # Inverse transform results to return original variable names while
+        # preserving prediction suffixes expected by the client.
+        results_transformed = _inverse_transform_output_results(preprocessor, results)
         
         _logger.debug("Cross-validation completed successfully!")
         return jsonify(results_transformed)
-        
+    except ValidationError as e:
+        handle_workflow_error(e, "flask_sumo_cross_validation", 422)
+    except ValueError as e:
+        handle_workflow_error(e, "flask_sumo_cross_validation", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_sumo_cross_validation", 500)
 
