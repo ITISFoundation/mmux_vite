@@ -8,7 +8,7 @@ with the existing _create_training_file_from_jobs function and other workflow co
 import pandas as pd
 from pathlib import Path
 from typing import List, Union, Dict, Any, Optional, Callable
-from .data_preprocessor import DataPreprocessor
+from mmux_flaskapi.data_preprocessor import DataPreprocessor
 import logging
 
 _logger = logging.getLogger(__name__)
