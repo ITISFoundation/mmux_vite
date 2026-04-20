@@ -17,7 +17,7 @@ HEALTHCHECK \
 WORKDIR /app
 
 COPY . .
-  
+
 RUN make install-flaskapi-deps
-  
+
 ENTRYPOINT ["./entrypoint.sh"]

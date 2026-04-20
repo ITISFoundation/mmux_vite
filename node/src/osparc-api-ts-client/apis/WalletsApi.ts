@@ -23,9 +23,9 @@ export class WalletsApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Checkout licensed item
      * Checkout Licensed Item
-     * @param walletId 
-     * @param licensedItemId 
-     * @param licensedItemCheckoutData 
+     * @param walletId
+     * @param licensedItemId
+     * @param licensedItemCheckoutData
      */
     public async checkoutLicensedItem(walletId: number, licensedItemId: string, licensedItemCheckoutData: LicensedItemCheckoutData, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -75,7 +75,7 @@ export class WalletsApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -87,7 +87,7 @@ export class WalletsApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Get all available licensed items for a given wallet  New in *version 0.6*
      * Get Available Licensed Items For Wallet
-     * @param walletId 
+     * @param walletId
      * @param limit Page size limit
      * @param offset Page offset
      */
@@ -127,7 +127,7 @@ export class WalletsApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -157,7 +157,7 @@ export class WalletsApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -169,7 +169,7 @@ export class WalletsApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Get wallet  New in *version 0.7*
      * Get Wallet
-     * @param walletId 
+     * @param walletId
      */
     public async getWallet(walletId: number, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -195,7 +195,7 @@ export class WalletsApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);

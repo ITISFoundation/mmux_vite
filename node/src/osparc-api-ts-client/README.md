@@ -32,8 +32,8 @@ npm install PATH_TO_GENERATED_PACKAGE --save
 
 ### Usage
 
-Below code snippet shows exemplary usage of the configuration and the API based 
-on the typical `PetStore` example used for OpenAPI. 
+Below code snippet shows exemplary usage of the configuration and the API based
+on the typical `PetStore` example used for OpenAPI.
 
 ```
 import * as your_api from 'your_api_package'
@@ -44,7 +44,7 @@ const authConfig: your_api.AuthMethodsConfiguration = {
 }
 
 // Implements a simple middleware to modify requests before (`pre`) they are sent
-// and after (`post`) they have been received 
+// and after (`post`) they have been received
 class Test implements your_api.Middleware {
     pre(context: your_api.RequestContext): Promise<your_api.RequestContext> {
         // Modify context here and return

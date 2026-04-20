@@ -66,9 +66,9 @@ const fitnessTypeInfo = (
 
 const replacementTypeInfo = (
   <span>
-    The strategy for selecting individuals for the next generation. Below Limit&quot; selects individuals below a certain fitness threshold,
-    &quot;Elitist&quot; retains the best individuals,
-    &quot;Unique Roulette Wheel&quot; selects (unique) individuals based on fitness proportion.{" "}
+    The strategy for selecting individuals for the next generation. Below Limit&quot; selects individuals below a certain fitness
+    threshold, &quot;Elitist&quot; retains the best individuals, &quot;Unique Roulette Wheel&quot; selects (unique) individuals
+    based on fitness proportion.{" "}
     <Link
       target="_blank"
       href="https://snl-dakota.github.io/docs/6.19.0/users/usingdakota/reference/method-moga.html?highlight=moga"
@@ -92,10 +92,9 @@ const seedInfo = (
 
 const seedNumberInfo = (
   <span>
-    Allows to run the MOGA optimization multiple times with identical configuration and multiple seeds
-    (starting at the seed specified above and incrementing in integer steps). Increasing this number keeps
-    previous results and adds new MOGA runs. Wider variability
-    of starting conditions increases exploration and variety of results.{" "}
+    Allows to run the MOGA optimization multiple times with identical configuration and multiple seeds (starting at the seed
+    specified above and incrementing in integer steps). Increasing this number keeps previous results and adds new MOGA runs.
+    Wider variability of starting conditions increases exploration and variety of results.{" "}
     <Link
       target="_blank"
       href="https://snl-dakota.github.io/docs/6.19.0/users/usingdakota/reference/method-moga.html?highlight=moga"
