@@ -107,7 +107,7 @@ def test_user_workflow(client):
         json={'email': 'e2e@example.com', 'password': 'TestPassword123'}
     )
     assert register_response.status_code == 201
-    
+
     # Login
     login_response = client.post(
         '/auth/login',
@@ -115,7 +115,7 @@ def test_user_workflow(client):
     )
     assert login_response.status_code == 200
     token = login_response.json['access_token']
-    
+
     # Update profile
     update_response = client.put(
         '/users/profile',
@@ -160,7 +160,7 @@ Create a specific configuration for testing in your Flask app:
 # config.py
 class Config:
     # Base configuration
-    
+
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
@@ -181,7 +181,7 @@ from app import create_app, db
 def app():
     """Create and configure a Flask app for testing."""
     app = create_app('testing')
-    
+
     # Create a test context
     with app.app_context():
         db.create_all()
@@ -297,7 +297,7 @@ Group related tests in classes:
 class TestUserAPI:
     def test_get_user(self, client):
         # Test implementation
-    
+
     def test_create_user(self, client):
         # Test implementation
 ```
@@ -326,9 +326,9 @@ def users_in_db():
     ]
     db.session.add_all(users)
     db.session.commit()
-    
+
     yield users
-    
+
     # Clean up
     for user in users:
         db.session.delete(user)

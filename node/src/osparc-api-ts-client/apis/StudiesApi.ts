@@ -28,9 +28,9 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
      * Clone Study
-     * @param studyId 
-     * @param xSimcoreParentProjectUuid 
-     * @param xSimcoreParentNodeId 
+     * @param studyId
+     * @param xSimcoreParentProjectUuid
+     * @param xSimcoreParentNodeId
      */
     public async cloneStudy(studyId: string, xSimcoreParentProjectUuid?: string, xSimcoreParentNodeId?: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -64,7 +64,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -76,11 +76,11 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * hidden -- if True (default) hides project from UI
      * Create Study Job
-     * @param studyId 
-     * @param jobInputs 
-     * @param hidden 
-     * @param xSimcoreParentProjectUuid 
-     * @param xSimcoreParentNodeId 
+     * @param studyId
+     * @param jobInputs
+     * @param hidden
+     * @param xSimcoreParentProjectUuid
+     * @param xSimcoreParentNodeId
      */
     public async createStudyJob(studyId: string, jobInputs: JobInputs, hidden?: boolean, xSimcoreParentProjectUuid?: string, xSimcoreParentNodeId?: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -137,7 +137,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -149,8 +149,8 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Deletes an existing study job
      * Delete Study Job
-     * @param studyId 
-     * @param jobId 
+     * @param studyId
+     * @param jobId
      */
     public async deleteStudyJob(studyId: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -183,7 +183,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -195,7 +195,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Get study by ID  New in *version 0.5*
      * Get Study
-     * @param studyId 
+     * @param studyId
      */
     public async getStudy(studyId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -221,7 +221,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -233,8 +233,8 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Get custom metadata from a study\'s job  New in *version 0.7*
      * Get Study Job Custom Metadata
-     * @param studyId 
-     * @param jobId 
+     * @param studyId
+     * @param jobId
      */
     public async getStudyJobCustomMetadata(studyId: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -267,7 +267,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -278,8 +278,8 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
      * Get download links for study job log files
-     * @param studyId 
-     * @param jobId 
+     * @param studyId
+     * @param jobId
      */
     public async getStudyJobOutputLogfile(studyId: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -312,7 +312,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -323,8 +323,8 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
      * Get Study Job Outputs
-     * @param studyId 
-     * @param jobId 
+     * @param studyId
+     * @param jobId
      */
     public async getStudyJobOutputs(studyId: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -357,7 +357,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -368,8 +368,8 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
      * Inspect Study Job
-     * @param studyId 
-     * @param jobId 
+     * @param studyId
+     * @param jobId
      */
     public async inspectStudyJob(studyId: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -402,7 +402,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -446,7 +446,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -458,7 +458,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Lists metadata on ports of a given study  New in *version 0.5*
      * List Study Ports
-     * @param studyId 
+     * @param studyId
      */
     public async listStudyPorts(studyId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -484,7 +484,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -496,9 +496,9 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Changes custom metadata of a study\'s job  New in *version 0.7*
      * Replace Study Job Custom Metadata
-     * @param studyId 
-     * @param jobId 
-     * @param jobMetadataUpdate 
+     * @param studyId
+     * @param jobId
+     * @param jobMetadataUpdate
      */
     public async replaceStudyJobCustomMetadata(studyId: string, jobId: string, jobMetadataUpdate: JobMetadataUpdate, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -548,7 +548,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -560,9 +560,9 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Changed in *version 0.6*: Now responds with a 202 when successfully starting a computation
      * Start Study Job
-     * @param studyId 
-     * @param jobId 
-     * @param clusterId Changed in *version 0.7*: query parameter &#x60;cluster_id&#x60; deprecated 
+     * @param studyId
+     * @param jobId
+     * @param clusterId Changed in *version 0.7*: query parameter &#x60;cluster_id&#x60; deprecated
      */
     public async startStudyJob(studyId: string, jobId: string, clusterId?: number, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -601,7 +601,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -612,8 +612,8 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
      * Stop Study Job
-     * @param studyId 
-     * @param jobId 
+     * @param studyId
+     * @param jobId
      */
     public async stopStudyJob(studyId: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -646,7 +646,7 @@ export class StudiesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);

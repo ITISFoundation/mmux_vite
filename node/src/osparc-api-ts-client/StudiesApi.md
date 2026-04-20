@@ -34,11 +34,11 @@ const configuration = createConfiguration();
 const apiInstance = new StudiesApi(configuration);
 
 const request: StudiesApiCloneStudyRequest = {
-  
+
   studyId: "study_id_example",
-  
+
   xSimcoreParentProjectUuid: "x-simcore-parent-project-uuid_example",
-  
+
   xSimcoreParentNodeId: "x-simcore-parent-node-id_example",
 };
 
@@ -95,19 +95,19 @@ const configuration = createConfiguration();
 const apiInstance = new StudiesApi(configuration);
 
 const request: StudiesApiCreateStudyJobRequest = {
-  
+
   studyId: "study_id_example",
-  
+
   jobInputs: {
     values: {
       "key": null,
     },
   },
-  
+
   hidden: true,
-  
+
   xSimcoreParentProjectUuid: "x-simcore-parent-project-uuid_example",
-  
+
   xSimcoreParentNodeId: "x-simcore-parent-node-id_example",
 };
 
@@ -165,9 +165,9 @@ const configuration = createConfiguration();
 const apiInstance = new StudiesApi(configuration);
 
 const request: StudiesApiDeleteStudyJobRequest = {
-  
+
   studyId: "study_id_example",
-  
+
   jobId: "job_id_example",
 };
 
@@ -223,7 +223,7 @@ const configuration = createConfiguration();
 const apiInstance = new StudiesApi(configuration);
 
 const request: StudiesApiGetStudyRequest = {
-  
+
   studyId: "study_id_example",
 };
 
@@ -278,9 +278,9 @@ const configuration = createConfiguration();
 const apiInstance = new StudiesApi(configuration);
 
 const request: StudiesApiGetStudyJobCustomMetadataRequest = {
-  
+
   studyId: "study_id_example",
-  
+
   jobId: "job_id_example",
 };
 
@@ -334,9 +334,9 @@ const configuration = createConfiguration();
 const apiInstance = new StudiesApi(configuration);
 
 const request: StudiesApiGetStudyJobOutputLogfileRequest = {
-  
+
   studyId: "study_id_example",
-  
+
   jobId: "job_id_example",
 };
 
@@ -390,9 +390,9 @@ const configuration = createConfiguration();
 const apiInstance = new StudiesApi(configuration);
 
 const request: StudiesApiGetStudyJobOutputsRequest = {
-  
+
   studyId: "study_id_example",
-  
+
   jobId: "job_id_example",
 };
 
@@ -446,9 +446,9 @@ const configuration = createConfiguration();
 const apiInstance = new StudiesApi(configuration);
 
 const request: StudiesApiInspectStudyJobRequest = {
-  
+
   studyId: "study_id_example",
-  
+
   jobId: "job_id_example",
 };
 
@@ -560,7 +560,7 @@ const configuration = createConfiguration();
 const apiInstance = new StudiesApi(configuration);
 
 const request: StudiesApiListStudyPortsRequest = {
-  
+
   studyId: "study_id_example",
 };
 
@@ -615,11 +615,11 @@ const configuration = createConfiguration();
 const apiInstance = new StudiesApi(configuration);
 
 const request: StudiesApiReplaceStudyJobCustomMetadataRequest = {
-  
+
   studyId: "study_id_example",
-  
+
   jobId: "job_id_example",
-  
+
   jobMetadataUpdate: {
     metadata: {
       "key": null,
@@ -679,9 +679,9 @@ const configuration = createConfiguration();
 const apiInstance = new StudiesApi(configuration);
 
 const request: StudiesApiStartStudyJobRequest = {
-  
+
   studyId: "study_id_example",
-  
+
   jobId: "job_id_example",
     // Changed in *version 0.7*: query parameter `cluster_id` deprecated  (optional)
   clusterId: 0,
@@ -747,9 +747,9 @@ const configuration = createConfiguration();
 const apiInstance = new StudiesApi(configuration);
 
 const request: StudiesApiStopStudyJobRequest = {
-  
+
   studyId: "study_id_example",
-  
+
   jobId: "job_id_example",
 };
 
@@ -787,5 +787,3 @@ Name | Type | Description  | Notes
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
-
-

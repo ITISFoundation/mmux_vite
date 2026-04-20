@@ -1,4 +1,5 @@
 import logging
+
 from mmux_flaskapi.app import create_flask_app
 
 # Configure logging for the module

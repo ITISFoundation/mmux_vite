@@ -44,8 +44,8 @@ export async function listJobs(): Promise<FunctionJob[]> {
 }
 
 export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<FunctionJob[]> {
-  return fetch(`${PYTHON_DAKOTA_BACKEND}/flask/osparc/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(response =>
-    response.json(),
+  return fetch(`${PYTHON_DAKOTA_BACKEND}/flask/osparc/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(
+    response => response.json(),
   );
 }
 

@@ -21,11 +21,11 @@ export class ProgramsApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Creates a program job
      * Create Program Job
-     * @param programKey 
-     * @param version 
-     * @param xSimcoreParentProjectUuid 
-     * @param xSimcoreParentNodeId 
-     * @param bodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost 
+     * @param programKey
+     * @param version
+     * @param xSimcoreParentProjectUuid
+     * @param xSimcoreParentNodeId
+     * @param bodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost
      */
     public async createProgramJob(programKey: string, version: string, xSimcoreParentProjectUuid?: string, xSimcoreParentNodeId?: string, bodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost?: BodyCreateProgramJobV0ProgramsProgramKeyReleasesVersionJobsPost, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -78,7 +78,7 @@ export class ProgramsApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -90,8 +90,8 @@ export class ProgramsApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Gets a specific release of a solver
      * Get Program Release
-     * @param programKey 
-     * @param version 
+     * @param programKey
+     * @param version
      */
     public async getProgramRelease(programKey: string, version: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -124,7 +124,7 @@ export class ProgramsApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
