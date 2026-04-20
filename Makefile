@@ -26,10 +26,9 @@ setup-mmux-python: ## clone and setup mmux_python dependency
 get-access-write-on-mmux-python:
 	sudo chown -R ordonez:ordonez ${FLASKAPI_DIR}/mmux_python/
 
-.PHONY: install-flaskapi-deps
-install-flaskapi-deps: setup-mmux-python ## install Flask API Python dependencies
+.PHONY: install-flaskapi-deps ## install Flask API Python dependencies
+install-flaskapi-deps: setup-mmux-python get-access-write-on-mmux-python 
 	cd ${FLASKAPI_DIR} && make install-flaskapi-deps
-
 
 
 # Builds new service version ----------------------------------------------------------------------------
@@ -214,6 +213,9 @@ test-node: clean
 test-flaskapi: install-flaskapi-deps ## run Flask backend tests
 	cd ${FLASKAPI_DIR} && \
 	uv run pytest tests/ -v --cov-report=html --cov-report=term-missing
+
+.PHONY: tests-flaskapi
+tests-flaskapi: test-flaskapi ## alias for test-flaskapi
 
 .PHONY: ci
 ci: test-flaskapi test-node build-no-cache ## mimmicks the GitHub CI
