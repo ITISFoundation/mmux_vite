@@ -1,15 +1,18 @@
 from flask import Flask
+
+from mmux_flaskapi.blueprints.dakota import dakota_bp
 from mmux_flaskapi.blueprints.deployment import deployment_bp
 from mmux_flaskapi.blueprints.osparc import osparc_bp
-from mmux_flaskapi.utils.webserver_config import OsparcApi
-from mmux_flaskapi.blueprints.textfile import textfile_bp
 from mmux_flaskapi.blueprints.sampling import sampling_bp
-from mmux_flaskapi.blueprints.dakota import dakota_bp
+from mmux_flaskapi.blueprints.textfile import textfile_bp
+from mmux_flaskapi.utils.webserver_config import OsparcApi
+
 
 class MMUXFlask(Flask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.osparc_api: OsparcApi
+
 
 def create_flask_app() -> MMUXFlask:
     app = MMUXFlask("MMUX Flask API")

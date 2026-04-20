@@ -1,0 +1,33 @@
+repos:
+  # Python: ruff lint + format
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.1
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^flaskapi/
+      - id: ruff-format
+        files: ^flaskapi/
+
+  # General file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        exclude: tsconfig.*\.json$
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=2000]
+
+  # TypeScript/React: prettier via eslint (flat config requires cwd=node/)
+  - repo: local
+    hooks:
+      - id: eslint-node
+        name: ESLint (node/)
+        language: system
+        entry: bash -c 'cd node && npx eslint src/ --fix --max-warnings=0'
+        files: ^node/src/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false

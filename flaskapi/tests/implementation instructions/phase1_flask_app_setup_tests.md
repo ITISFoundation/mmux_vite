@@ -18,7 +18,7 @@ The MMUX Flask API is structured with a main entrypoint file `main.py`, a packag
    - Test the `is_test_environment()` function in `mmux_flaskapi/helpers.py`
 
 2. Configuration loading
-   - Test the `OsparcConfig` class in `mmux_flaskapi/webserver_config.py` 
+   - Test the `OsparcConfig` class in `mmux_flaskapi/webserver_config.py`
    - Test that configuration is loaded from the proper sources
    - Verify default values are set correctly
    - Check that environment variables override defaults when appropriate

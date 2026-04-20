@@ -4,16 +4,14 @@ Comprehensive tests for deployment endpoints.
 This module tests all deployment-related functionality including:
 - Health check endpoint
 - Service mode configuration
-- Permissions configuration  
+- Permissions configuration
 - Deployment mode configuration
 - Environment variable handling
 - Error conditions
 """
 
 import os
-import pytest
 from unittest.mock import patch
-from flask import Flask
 
 
 class TestDeploymentEndpoints:
@@ -23,7 +21,7 @@ class TestDeploymentEndpoints:
         """Test successful health check endpoint."""
         response = test_client.get("/flask/deployment/health")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "status" in data
         assert data["status"] == "healthy"
@@ -38,7 +36,7 @@ class TestDeploymentEndpoints:
         """Test service mode retrieval for development environment."""
         response = test_client.get("/flask/deployment/service-mode")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "service_mode" in data
         assert data["service_mode"] == "development"
@@ -48,7 +46,7 @@ class TestDeploymentEndpoints:
         """Test service mode retrieval for testing environment."""
         response = test_client.get("/flask/deployment/service-mode")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "service_mode" in data
         assert data["service_mode"] == "testing"
@@ -59,10 +57,10 @@ class TestDeploymentEndpoints:
         # Clear any existing SERVICE_MODE
         if "SERVICE_MODE" in os.environ:
             del os.environ["SERVICE_MODE"]
-            
+
         response = test_client.get("/flask/deployment/service-mode")
         assert response.status_code == 500
-        
+
         data = response.get_json()
         assert "error" in data
         assert data["error"] == "SERVICE_MODE not set"
@@ -77,7 +75,7 @@ class TestDeploymentEndpoints:
         """Test successful permissions retrieval."""
         response = test_client.get("/flask/deployment/permissions")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "permissions" in data
         assert data["permissions"] == "read-write"
@@ -87,7 +85,7 @@ class TestDeploymentEndpoints:
         """Test permissions retrieval for read-only configuration."""
         response = test_client.get("/flask/deployment/permissions")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "permissions" in data
         assert data["permissions"] == "read-only"
@@ -97,7 +95,7 @@ class TestDeploymentEndpoints:
         """Test permissions retrieval for admin configuration."""
         response = test_client.get("/flask/deployment/permissions")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "permissions" in data
         assert data["permissions"] == "admin"
@@ -108,10 +106,10 @@ class TestDeploymentEndpoints:
         # Clear any existing PERMISSIONS
         if "PERMISSIONS" in os.environ:
             del os.environ["PERMISSIONS"]
-            
+
         response = test_client.get("/flask/deployment/permissions")
         assert response.status_code == 500
-        
+
         data = response.get_json()
         assert "error" in data
         assert data["error"] == "PERMISSIONS not set"
@@ -126,7 +124,7 @@ class TestDeploymentEndpoints:
         """Test deployment mode retrieval for local environment."""
         response = test_client.get("/flask/deployment/mode")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "deployment_mode" in data
         assert data["deployment_mode"] == "LOCAL"
@@ -136,7 +134,7 @@ class TestDeploymentEndpoints:
         """Test deployment mode retrieval for OSPARC environment."""
         response = test_client.get("/flask/deployment/mode")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "deployment_mode" in data
         assert data["deployment_mode"] == "OSPARC"
@@ -146,7 +144,7 @@ class TestDeploymentEndpoints:
         """Test deployment mode retrieval for Docker environment."""
         response = test_client.get("/flask/deployment/mode")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "deployment_mode" in data
         assert data["deployment_mode"] == "DOCKER"
@@ -157,10 +155,10 @@ class TestDeploymentEndpoints:
         # Clear any existing DEPLOYMENT_MODE
         if "DEPLOYMENT_MODE" in os.environ:
             del os.environ["DEPLOYMENT_MODE"]
-            
+
         response = test_client.get("/flask/deployment/mode")
         assert response.status_code == 500
-        
+
         data = response.get_json()
         assert "error" in data
         assert data["error"] == "DEPLOYMENT_MODE not set"
@@ -170,29 +168,28 @@ class TestDeploymentEndpoints:
         response = test_client.post("/flask/deployment/mode")
         assert response.status_code == 405  # Method Not Allowed
 
-    @patch.dict(os.environ, {
-        "SERVICE_MODE": "production",
-        "PERMISSIONS": "read-write", 
-        "DEPLOYMENT_MODE": "OSPARC"
-    })
+    @patch.dict(
+        os.environ,
+        {"SERVICE_MODE": "production", "PERMISSIONS": "read-write", "DEPLOYMENT_MODE": "OSPARC"},
+    )
     def test_all_environment_variables_set(self, test_client):
         """Test that all endpoints work when all environment variables are properly set."""
         # Test health check
         response = test_client.get("/flask/deployment/health")
         assert response.status_code == 200
-        
+
         # Test service mode
         response = test_client.get("/flask/deployment/service-mode")
         assert response.status_code == 200
         data = response.get_json()
         assert data["service_mode"] == "production"
-        
+
         # Test permissions
         response = test_client.get("/flask/deployment/permissions")
         assert response.status_code == 200
         data = response.get_json()
         assert data["permissions"] == "read-write"
-        
+
         # Test deployment mode
         response = test_client.get("/flask/deployment/mode")
         assert response.status_code == 200
@@ -209,7 +206,7 @@ class TestDeploymentEndpoints:
         """Test service mode endpoint with empty string value."""
         response = test_client.get("/flask/deployment/service-mode")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "service_mode" in data
         assert data["service_mode"] == ""
@@ -219,7 +216,7 @@ class TestDeploymentEndpoints:
         """Test permissions endpoint with empty string value."""
         response = test_client.get("/flask/deployment/permissions")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "permissions" in data
         assert data["permissions"] == ""
@@ -229,7 +226,7 @@ class TestDeploymentEndpoints:
         """Test deployment mode endpoint with empty string value."""
         response = test_client.get("/flask/deployment/mode")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "deployment_mode" in data
         assert data["deployment_mode"] == ""
@@ -239,13 +236,13 @@ class TestDeploymentEndpoints:
         # Test that endpoints without prefix don't work
         response = test_client.get("/health")
         assert response.status_code == 404
-        
+
         response = test_client.get("/service-mode")
         assert response.status_code == 404
-        
+
         response = test_client.get("/permissions")
         assert response.status_code == 404
-        
+
         response = test_client.get("/mode")
         assert response.status_code == 404
 
@@ -254,7 +251,7 @@ class TestDeploymentEndpoints:
         """Test service mode endpoint with special characters."""
         response = test_client.get("/flask/deployment/service-mode")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "service_mode" in data
         assert data["service_mode"] == "special@chars!123"
@@ -264,7 +261,7 @@ class TestDeploymentEndpoints:
         """Test permissions endpoint with custom permission value."""
         response = test_client.get("/flask/deployment/permissions")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "permissions" in data
         assert data["permissions"] == "custom-permission-level"
@@ -274,7 +271,7 @@ class TestDeploymentEndpoints:
         """Test deployment mode endpoint with custom deployment value."""
         response = test_client.get("/flask/deployment/mode")
         assert response.status_code == 200
-        
+
         data = response.get_json()
         assert "deployment_mode" in data
         assert data["deployment_mode"] == "CUSTOM_DEPLOYMENT"
