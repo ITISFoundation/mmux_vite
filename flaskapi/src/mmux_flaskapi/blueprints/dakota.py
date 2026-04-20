@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from pydantic import ValidationError
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 #
 from flask import Blueprint, jsonify
