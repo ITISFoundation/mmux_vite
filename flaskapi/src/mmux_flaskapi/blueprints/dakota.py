@@ -53,81 +53,6 @@ _logger.info(f"Saving runs in {DAKOTA_RUNS_DIR}")
 DAKOTA_RUNS_DIR.mkdir(exist_ok=True)
 assert DAKOTA_RUNS_DIR.is_dir(), "Dakota Runs Dir does not exist!!"
 
-"""
-def _check_jobs(jobs: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
-    completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
-
-    for job in completed_jobs:
-        assert "outputs" in job, f"No outputs key found for completed job: {job} with status: {job['status']}"  # type: ignore
-
-    _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
-
-    if len(completed_jobs) == 0:
-        raise ValueError("No completed jobs found. Cannot create training file.")
-    elif len(completed_jobs) < 5:
-        raise ValueError(
-            "At least 5 samples are necessary to build a surrogate model in Dakota - a crash would occur otherwise."
-        )
-
-    return completed_jobs
-
-
-def _jobs_to_df(jobs: list[Dict[str, Any]]) -> pd.DataFrame:
-    assert jobs[0]["inputs"] is not None, f"No inputs found for job: {jobs[0]}"
-    assert jobs[0]["outputs"] is not None, f"No outputs found for job: {jobs[0]}"
-    input_vars = list(jobs[0]["inputs"].keys())
-    output_vars = list(jobs[0]["outputs"].keys())
-
-    list_of_dicts = []
-    for job in jobs:
-        d = {}
-        for key in input_vars:
-            assert job["inputs"] is not None, f"No inputs found for job: {job}"
-            assert key in job["inputs"].keys(), f"Input {key} not in job: {job}"
-            d[key] = job["inputs"][key]
-        for res in output_vars:
-            assert job["outputs"] is not None, f"No outputs found for job: {job}"
-            assert res in job["outputs"].keys(), f"Output {res} not in job: {job}"
-            d[res] = job["outputs"][res]
-        list_of_dicts.append(d)
-    return pd.DataFrame(list_of_dicts)
-
-def _get_job_dict(job: Dict[str, Any], output_response_sanitized: str | list[str]) -> Dict[str, Any]:
-    assert job["inputs"] is not None, f"No inputs found for job: {job}"
-    assert job["outputs"] is not None, f"No outputs found for job: {job}"
-    d = {key: job["inputs"][key] for key in job["inputs"].keys()}
-    output_response_sanitized_list = (
-        [output_response_sanitized]
-        if isinstance(output_response_sanitized, str)
-        else output_response_sanitized
-    )
-    for res in output_response_sanitized_list:
-        assert res in job["outputs"].keys(), f"Output {res} not in job: {job}"
-        d[res] = job["outputs"][res]  # type: ignore
-    return d
-
-### DEPRECATED
-def _create_training_file_from_jobs(
-    jobs: list[Dict[str, Any]],
-    input_vars: list[str],
-    output_response: str | list[str],
-    folder_name: str = "evaluate",
-) -> Path:
-    print(
-        "_create_training_file_from_jobs is deprecated. Use create_training_file_from_preprocessed_jobs instead."
-    )
-    completed_jobs = _check_jobs(jobs)
-    output_response_sanitized = sanitize_varnames(output_response)
-
-    df_jobs = pd.DataFrame([_get_job_dict(job, output_response_sanitized) for job in completed_jobs])
-
-    run_dir = create_run_dir(RUNS_DIR, folder_name)
-    TRAINING_FILE = run_dir / "df_jobs.csv"
-    df_jobs.to_csv(TRAINING_FILE, index=False)
-    return TRAINING_FILE
-########################################################
-"""
-
 
 ########################################################
 def _create_training_file_from_jobs(
@@ -138,7 +63,9 @@ def _create_training_file_from_jobs(
 ) -> Path:
     output_response_sanitized = sanitize_varnames(output_response)
     completed_jobs = [
-        job for job in jobs if job.status.lower() == "completed" or job.status.lower() == "success"
+        job
+        for job in jobs
+        if job.status.lower() == "completed" or job.status.lower() == "success"
     ]
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
 
@@ -190,7 +117,9 @@ def _check_jobs(jobs: list[FunctionJob]) -> list[FunctionJob]:
         ValueError: If no completed jobs found or not enough samples
     """
     completed_jobs = [
-        job for job in jobs if job.status.lower() == "completed" or job.status.lower() == "success"
+        job
+        for job in jobs
+        if job.status.lower() == "completed" or job.status.lower() == "success"
     ]
     _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
 
@@ -305,6 +234,28 @@ def setup_preprocessor_for_workflow(
     return processed_file, preprocessor
 
 
+def _mapped_to_original(preprocessor: DataPreprocessor) -> dict[str, str]:
+    """Build mapped-name to original-name lookup for inputs and outputs."""
+    return {
+        cfg.mapped_name: orig
+        for variables in (preprocessor.input_variables, preprocessor.output_variables)
+        for orig, cfg in variables.items()
+    }
+
+
+def _inverse_transform_values(
+    preprocessor: DataPreprocessor,
+    mapped_var: str,
+    values: list[float],
+    mapped_to_original: dict[str, str],
+) -> list[float]:
+    """Inverse transform one mapped series and return original-space values."""
+    original_var = mapped_to_original.get(mapped_var, mapped_var)
+    return preprocessor.inverse_transform({mapped_var: values}).get(
+        original_var, values
+    )
+
+
 def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 500):
     """
     Standardized error handling for Dakota workflows.
@@ -320,7 +271,9 @@ def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 5
 
     abort(
         make_response(
-            jsonify({"error": str(e), "traceback": traceback_str, "workflow": workflow_name}),
+            jsonify(
+                {"error": str(e), "traceback": traceback_str, "workflow": workflow_name}
+            ),
             status_code,
         )
     )
@@ -372,7 +325,9 @@ def flask_sumo_cross_validation():
         )
 
         # Get mapped variable names for Dakota
-        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
+        mapped_input_vars = [
+            preprocessor.input_variables[var].mapped_name for var in input_vars
+        ]
         mapped_output_var = preprocessor.output_variables[output_var].mapped_name
 
         # Evaluate cross-validation with mapped variable names
@@ -414,7 +369,9 @@ def flask_manual_uq_propagation_with_uncertainty():
     Returns results in original variable space.
     """
     os.chdir(Path(__file__).parent)
-    _logger.debug("Starting flask function: flask_manual_uq_propagation_with_uncertainty")
+    _logger.debug(
+        "Starting flask function: flask_manual_uq_propagation_with_uncertainty"
+    )
     _logger.debug("Cwd: " + str(Path.cwd()))
 
     try:
@@ -448,14 +405,20 @@ def flask_manual_uq_propagation_with_uncertainty():
         )
 
         # Get mapped variable names
-        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
+        mapped_input_vars = [
+            preprocessor.input_variables[var].mapped_name for var in input_vars
+        ]
         mapped_output_var = preprocessor.output_variables[output_response].mapped_name
 
         # Generate UQ samples using provided distributions
         _logger.debug(f"Generating {num_samples} UQ samples with seed {seed}")
         # Convert Pydantic models to dict format expected by create_manual_uq_samples
-        distributions_dict = {var: dist.model_dump() for var, dist in distributions.items()}
-        samples = create_manual_uq_samples(input_vars, distributions_dict, num_samples, seed)
+        distributions_dict = {
+            var: dist.model_dump() for var, dist in distributions.items()
+        }
+        samples = create_manual_uq_samples(
+            input_vars, distributions_dict, num_samples, seed
+        )
         df_samples = pd.DataFrame(samples)
         UQ_SAMPLES_FILE = run_dir / "manual_uq_samples.csv"
         df_samples.to_csv(UQ_SAMPLES_FILE, index=False)
@@ -495,7 +458,9 @@ def flask_manual_uq_propagation_with_uncertainty():
                 f"Available result keys: {available_keys}."
             )
 
-        _logger.debug(f"Found required predictions: {prediction_key} and {uncertainty_key}")
+        _logger.debug(
+            f"Found required predictions: {prediction_key} and {uncertainty_key}"
+        )
 
         # Perform uncertainty propagation using error function inverse
         _logger.debug(
@@ -507,13 +472,17 @@ def flask_manual_uq_propagation_with_uncertainty():
         np.random.seed(seed)
 
         # Generate samples in transformed space
-        all_results_transformed = np.empty(shape=(n_histograms, num_samples), dtype=float)
+        all_results_transformed = np.empty(
+            shape=(n_histograms, num_samples), dtype=float
+        )
         for i in range(n_histograms):
             # Generate random samples from uniform distribution and transform via erfinv
             r = erfinv(
                 np.random.uniform(-1 + 1e-10, 1 - 1e-10, size=num_samples)
             )  # Avoid exact -1,1 for erfinv
-            all_results_transformed[i, :] = results[prediction_key] + r * results[uncertainty_key]
+            all_results_transformed[i, :] = (
+                results[prediction_key] + r * results[uncertainty_key]
+            )
 
         # Inverse transform results to original space for histogram calculation
         # Create a results dict with all samples for inverse transform
@@ -527,7 +496,9 @@ def flask_manual_uq_propagation_with_uncertainty():
         # Compute histogram statistics in original space
         _logger.debug("Computing histogram and statistical summaries in original space")
         all_values_flat = all_values.flatten()
-        num_bins = min(50, max(10, num_samples // 10))  # Ensure reasonable number of bins
+        num_bins = min(
+            50, max(10, num_samples // 10)
+        )  # Ensure reasonable number of bins
         hist_min, hist_max = (
             np.percentile(all_values_flat, 1),
             np.percentile(all_values_flat, 99),
@@ -535,7 +506,9 @@ def flask_manual_uq_propagation_with_uncertainty():
 
         # Handle edge case where hist_min == hist_max
         if hist_min == hist_max:
-            hist_range = max(1e-10, abs(hist_min) * 1e-6)  # Small range around the value
+            hist_range = max(
+                1e-10, abs(hist_min) * 1e-6
+            )  # Small range around the value
             hist_min -= hist_range
             hist_max += hist_range
 
@@ -638,7 +611,9 @@ def flask_evaluate_sumo_along_axes():
         )
 
         # Get mapped variable names
-        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
+        mapped_input_vars = [
+            preprocessor.input_variables[var].mapped_name for var in input_vars
+        ]
         mapped_output_var = preprocessor.output_variables[output_response].mapped_name
 
         # Transform slider values to mapped space if provided
@@ -659,20 +634,20 @@ def flask_evaluate_sumo_along_axes():
             cut_values=mapped_slider_values,
         )
 
-        # Inverse transform results to return original variable names
-        # Map results from mapped input names back to original names
-        mapped_to_orig_input = {
-            cfg.mapped_name: orig for orig, cfg in preprocessor.input_variables.items()
-        }
+        # Inverse transform results to return original variable names.
+        mapped_to_orig = _mapped_to_original(preprocessor)
         predictions_original = {}
         for m_var, axis_data in results.items():
-            orig_var = mapped_to_orig_input.get(m_var, m_var)
-            x_inv = preprocessor.inverse_transform({m_var: list(axis_data["x"])}).get(
-                orig_var, list(axis_data["x"])
+            orig_var = mapped_to_orig.get(m_var, m_var)
+            x_inv = _inverse_transform_values(
+                preprocessor, m_var, list(axis_data["x"]), mapped_to_orig
             )
-            y_inv = preprocessor.inverse_transform(
-                {mapped_output_var: list(axis_data["y_hat"])}
-            ).get(output_response, list(axis_data["y_hat"]))
+            y_inv = _inverse_transform_values(
+                preprocessor,
+                mapped_output_var,
+                list(axis_data["y_hat"]),
+                mapped_to_orig,
+            )
             axis_orig: dict = {"x": x_inv, "y_hat": y_inv}
             if "std_hat" in axis_data:
                 axis_orig["std_hat"] = list(axis_data["std_hat"])
@@ -689,7 +664,9 @@ def flask_evaluate_sumo_along_axes():
         _logger.error(f"Validation error in SUMO along axes: {e}")
         error_details = []
         for error in e.errors():
-            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
+            location = (
+                " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
+            )
             error_details.append(f"{location}: {error['msg']}")
         handle_workflow_error(
             Exception(f"Validation failed: {', '.join(error_details)}"),
@@ -744,8 +721,12 @@ def flask_sumo_grid_evaluation():
         )
 
         # Get mapped variable names
-        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
-        mapped_grid_vars = [preprocessor.input_variables[var].mapped_name for var in grid_vars]
+        mapped_input_vars = [
+            preprocessor.input_variables[var].mapped_name for var in input_vars
+        ]
+        mapped_grid_vars = [
+            preprocessor.input_variables[var].mapped_name for var in grid_vars
+        ]
         mapped_output_var = preprocessor.output_variables[output_response].mapped_name
 
         # Transform slider values to mapped space if provided
@@ -767,28 +748,25 @@ def flask_sumo_grid_evaluation():
             cut_values=mapped_slider_values,
         )
 
-        # Inverse transform results to return original variable names
-        # Map results from mapped names back to original names, handling nested arrays
-        mapped_to_orig = {
-            cfg.mapped_name: orig
-            for d in (preprocessor.input_variables, preprocessor.output_variables)
-            for orig, cfg in d.items()
-        }
+        # Inverse transform results to return original variable names.
+        mapped_to_orig = _mapped_to_original(preprocessor)
         grid_data_original = {}
         for key, values in results.items():
             orig_key = mapped_to_orig.get(key, key)
             if values and isinstance(values[0], list):
                 # 2D array (reshaped grid output) - flatten, inverse transform, reshape back
                 flat = [item for row in values for item in row]
-                flat_inv = preprocessor.inverse_transform({key: flat}).get(orig_key, flat)
+                flat_inv = _inverse_transform_values(
+                    preprocessor, key, flat, mapped_to_orig
+                )
                 inner = len(values[0])
                 grid_data_original[orig_key] = [
                     flat_inv[i : i + inner] for i in range(0, len(flat_inv), inner)
                 ]
             else:
-                grid_data_original[orig_key] = preprocessor.inverse_transform(
-                    {key: list(values)}
-                ).get(orig_key, list(values))
+                grid_data_original[orig_key] = _inverse_transform_values(
+                    preprocessor, key, list(values), mapped_to_orig
+                )
 
         # Validate and structure response
         response_data = {"grid_data": grid_data_original}
@@ -801,7 +779,9 @@ def flask_sumo_grid_evaluation():
         _logger.error(f"Validation error in SUMO grid evaluation: {e}")
         error_details = []
         for error in e.errors():
-            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
+            location = (
+                " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
+            )
             error_details.append(f"{location}: {error['msg']}")
         handle_workflow_error(
             Exception(f"Validation failed: {', '.join(error_details)}"),
@@ -846,7 +826,9 @@ def flask_get_sumo_cv_accuracy_metrics():
         _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(jobs)} jobs")
 
         # Create training file from validated jobs
-        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
+        TRAINING_FILE = _create_training_file_from_jobs(
+            jobs, input_vars, output_response
+        )
         run_dir = TRAINING_FILE.parent
 
         # Process the training file
@@ -892,9 +874,15 @@ def flask_get_sumo_cv_accuracy_metrics():
         _logger.error(f"Validation error in SUMO CV accuracy metrics: {e}")
         error_details = []
         for error in e.errors():
-            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
+            location = (
+                " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
+            )
             error_details.append(f"{location}: {error['msg']}")
-        abort(make_response(jsonify({"error": "Validation failed", "details": error_details}), 400))
+        abort(
+            make_response(
+                jsonify({"error": "Validation failed", "details": error_details}), 400
+            )
+        )
     except Exception as e:
         error_message = str(e)
         # Check if it's a JSON parsing error (400 Bad Request from Flask)
@@ -902,7 +890,11 @@ def flask_get_sumo_cv_accuracy_metrics():
             "JSON" in error_message or "browser" in error_message
         ):
             _logger.error(f"Invalid JSON request: {e}")
-            abort(make_response(jsonify({"error": "Invalid JSON or malformed request"}), 400))
+            abort(
+                make_response(
+                    jsonify({"error": "Invalid JSON or malformed request"}), 400
+                )
+            )
         else:
             _logger.error(f"Error while getting SUMO CV accuracy metrics: {e}")
             abort(make_response(jsonify({"error": str(e)}), 500))
@@ -979,7 +971,9 @@ def flask_perform_moga_optimization():
         )
 
         _logger.debug(f"Final MOGA results before validation: {results}")
-        _logger.debug(f"Result array lengths: {[(k, len(v)) for k, v in results.items()]}")
+        _logger.debug(
+            f"Result array lengths: {[(k, len(v)) for k, v in results.items()]}"
+        )
 
         # Validate and structure response
         response_data = {"optimization_results": results}
@@ -1113,9 +1107,15 @@ def flask_perform_moga_optimization():
         _logger.error(f"Validation error in MOGA optimization: {e}")
         error_details = []
         for error in e.errors():
-            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
+            location = (
+                " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
+            )
             error_details.append(f"{location}: {error['msg']}")
-        abort(make_response(jsonify({"error": "Validation failed", "details": error_details}), 400))
+        abort(
+            make_response(
+                jsonify({"error": "Validation failed", "details": error_details}), 400
+            )
+        )
     except Exception as e:
         error_message = str(e)
 
@@ -1124,8 +1124,15 @@ def flask_perform_moga_optimization():
             "Missing outputs" in error_message and "job" in error_message
         ):
             _logger.error(f"Missing output variable validation error: {e}")
-            abort(make_response(jsonify({"error": f"Validation failed: {error_message}"}), 400))
-        elif "Distribution for variable" in error_message and "is not defined" in error_message:
+            abort(
+                make_response(
+                    jsonify({"error": f"Validation failed: {error_message}"}), 400
+                )
+            )
+        elif (
+            "Distribution for variable" in error_message
+            and "is not defined" in error_message
+        ):
             _logger.error(f"Missing distribution validation error: {e}")
             # Extract variable name for better error message
             import re
@@ -1149,7 +1156,9 @@ def flask_perform_moga_optimization():
                 abort(
                     make_response(
                         jsonify(
-                            {"error": f"Validation failed: Missing distribution - {error_message}"}
+                            {
+                                "error": f"Validation failed: Missing distribution - {error_message}"
+                            }
                         ),
                         400,
                     )
@@ -1197,7 +1206,11 @@ def flask_perform_moga_optimization():
             "JSON" in error_message or "browser" in error_message
         ):
             _logger.error(f"Invalid JSON request: {e}")
-            abort(make_response(jsonify({"error": "Invalid JSON or malformed request"}), 400))
+            abort(
+                make_response(
+                    jsonify({"error": "Invalid JSON or malformed request"}), 400
+                )
+            )
         else:
             _logger.error(f"Error while performing MOGA optimization: {e}")
             abort(make_response(jsonify({"error": str(e)}), 500))
