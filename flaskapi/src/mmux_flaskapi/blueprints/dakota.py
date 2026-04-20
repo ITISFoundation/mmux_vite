@@ -309,7 +309,7 @@ def setup_preprocessor_for_workflow(
     preprocessor.save_config(run_dir / "preprocessor_config.json")
     
     # Save processed file (Dakota format - space separated)
-    processed_file = run_dir / "df_processed_jobs.csv"
+    processed_file = run_dir / "df_processed_jobs.dat"
     df_preprocessed.to_csv(processed_file, sep=" ", index=False)
     
     _logger.info(f"Preprocessor fitted and saved to {run_dir}")
@@ -543,12 +543,9 @@ def flask_manual_uq_propagation_with_uncertainty():
 
         # Inverse transform results to original space for histogram calculation
         # Create a results dict with all samples for inverse transform
-        all_samples_dict = {mapped_output_var + "_hat": all_results_transformed.flatten()}
+        all_samples_dict = {mapped_output_var: all_results_transformed.flatten()}
         all_samples_original = preprocessor.inverse_transform(all_samples_dict)
-        
-        # Get the original output variable name with _hat suffix
-        original_output_key = output_response + "_hat"
-        all_values = np.array(all_samples_original[original_output_key])
+        all_values = np.array(all_samples_original[output_response])
         
         # Reshape back to (n_histograms, num_samples)
         all_values_reshaped = all_values.reshape(n_histograms, num_samples)
@@ -689,10 +686,20 @@ def flask_evaluate_sumo_along_axes():
         )
 
         # Inverse transform results to return original variable names
-        results_transformed = preprocessor.inverse_transform(results)
-        
+        # Map results from mapped input names back to original names
+        mapped_to_orig_input = {cfg.mapped_name: orig for orig, cfg in preprocessor.input_variables.items()}
+        predictions_original = {}
+        for m_var, axis_data in results.items():
+            orig_var = mapped_to_orig_input.get(m_var, m_var)
+            x_inv = preprocessor.inverse_transform({m_var: list(axis_data["x"])}).get(orig_var, list(axis_data["x"]))
+            y_inv = preprocessor.inverse_transform({mapped_output_var: list(axis_data["y_hat"])}).get(output_response, list(axis_data["y_hat"]))
+            axis_orig: dict = {"x": x_inv, "y_hat": y_inv}
+            if "std_hat" in axis_data:
+                axis_orig["std_hat"] = list(axis_data["std_hat"])
+            predictions_original[orig_var] = axis_orig
+
         # Validate and structure response
-        response_data = {"predictions": results_transformed}
+        response_data = {"predictions": predictions_original}
         validated_response = SumoAlongAxesResponse.model_validate(response_data)
 
         _logger.debug("SUMO along axes evaluation completed successfully")
@@ -784,10 +791,26 @@ def flask_sumo_grid_evaluation():
         )
 
         # Inverse transform results to return original variable names
-        results_transformed = preprocessor.inverse_transform(results)
-        
+        # Map results from mapped names back to original names, handling nested arrays
+        mapped_to_orig = {
+            cfg.mapped_name: orig
+            for d in (preprocessor.input_variables, preprocessor.output_variables)
+            for orig, cfg in d.items()
+        }
+        grid_data_original = {}
+        for key, values in results.items():
+            orig_key = mapped_to_orig.get(key, key)
+            if values and isinstance(values[0], list):
+                # 2D array (reshaped grid output) - flatten, inverse transform, reshape back
+                flat = [item for row in values for item in row]
+                flat_inv = preprocessor.inverse_transform({key: flat}).get(orig_key, flat)
+                inner = len(values[0])
+                grid_data_original[orig_key] = [flat_inv[i:i + inner] for i in range(0, len(flat_inv), inner)]
+            else:
+                grid_data_original[orig_key] = preprocessor.inverse_transform({key: list(values)}).get(orig_key, list(values))
+
         # Validate and structure response
-        response_data = {"grid_data": results_transformed}
+        response_data = {"grid_data": grid_data_original}
         validated_response = SumoGridEvaluationResponse.model_validate(response_data)
 
         _logger.debug("SUMO grid evaluation completed successfully")
@@ -1032,7 +1055,7 @@ def flask_perform_moga_optimization():
 
         df_preprocessed_jobs = preprocessor.fit_transform(df_completed_jobs)
         preprocessor.save_config(run_dir / "preprocessor_config.json")
-        PROCESSED_TRAINING_FILE = run_dir / "df_processed_jobs.csv"
+        PROCESSED_TRAINING_FILE = run_dir / "df_processed_jobs.dat"
         df_preprocessed_jobs.to_csv(
             PROCESSED_TRAINING_FILE, sep=" ", index=False
         )  # Dakota expects a space-separated file
