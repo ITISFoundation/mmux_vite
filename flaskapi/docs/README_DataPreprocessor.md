@@ -133,7 +133,7 @@ df_transformed = new_preprocessor.transform(new_data)
 - Use for: Normal distributions, when you want zero mean and unit variance
 - Parameter: `"z_score"`
 
-### Min-Max Normalization  
+### Min-Max Normalization
 - Formula: `(x - min) / (max - min)`
 - Use for: When you want values scaled to [0, 1] range
 - Parameter: `"min_max"`
@@ -171,7 +171,7 @@ output_sign_switches=["efficiency"]    # Convert maximization to minimization
 When using `create_training_file_with_preprocessor`, three files are created:
 
 1. **`df_jobs_original.csv`**: Original data before transformation
-2. **`df_jobs_transformed.csv`**: Transformed data for ML algorithms  
+2. **`df_jobs_transformed.csv`**: Transformed data for ML algorithms
 3. **`preprocessor_config.json`**: Configuration for reproducibility
 
 ## Error Handling

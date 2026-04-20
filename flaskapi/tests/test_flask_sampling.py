@@ -10,12 +10,12 @@ This module tests sampling functionality including:
 """
 
 import json
+from unittest.mock import MagicMock, Mock, patch
+
 import pandas as pd
 import pytest
-from unittest.mock import patch, Mock, MagicMock
-from osparc_client.exceptions import ApiException as OsparcApiException
-
 from conftest import TEST_RUNS_DIR
+from osparc_client.exceptions import ApiException as OsparcApiException
 
 
 # Define the mocks directly in this file for simplicity
@@ -31,9 +31,7 @@ def mock_map_function_success(*args, **kwargs):
             "status": "submitted",
             "samples_count": len(samples),
             "created_at": "2025-10-20T17:50:00Z",
-            "inputs": (
-                samples[:3] if samples else []
-            ),  # Include first 3 samples for validation
+            "inputs": (samples[:3] if samples else []),  # Include first 3 samples for validation
             "result": {
                 "status": "success",
                 "message": f"Successfully submitted {len(samples)} samples for processing",
@@ -44,9 +42,7 @@ def mock_map_function_success(*args, **kwargs):
 
 def mock_map_function_invalid_function_id(*args, **kwargs):
     """Map function fails with invalid function ID."""
-    raise OsparcApiException(
-        status=404, body="404 Not Found: Function with given ID not found"
-    )
+    raise OsparcApiException(status=404, body="404 Not Found: Function with given ID not found")
 
 
 def mock_map_function_validation_error(*args, **kwargs):
@@ -197,9 +193,7 @@ class TestSamplingEndpoints:
             content_type="application/json",
         )
         # Should not fail due to content type issues
-        assert (
-            response.status_code == 400
-        )  # Fails due to missing required fields, not content type
+        assert response.status_code == 400  # Fails due to missing required fields, not content type
 
     def test_lhs_with_incomplete_config(self, test_client):
         """Test LHS with incomplete but present config field."""
@@ -384,9 +378,7 @@ class TestSamplingValidationEndpoints:
             {"payload": {"funUid": "test-func"}, "expected_error": "config"},
             # Missing funUid
             {
-                "payload": {
-                    "config": [{"variable": "x", "start": 0, "end": 1, "steps": 5}]
-                },
+                "payload": {"config": [{"variable": "x", "start": 0, "end": 1, "steps": 5}]},
                 "expected_error": "funuid",  # Pydantic shows field 'funUid' as lowercase 'funuid'
             },
         ]
@@ -444,9 +436,7 @@ class TestSamplingValidationEndpoints:
         ]
 
         for case in test_cases:
-            response = test_client.post(
-                "/flask/sampling/test_job", json=case["payload"]
-            )
+            response = test_client.post("/flask/sampling/test_job", json=case["payload"])
             assert response.status_code == 400
             data = response.get_json()
             assert "error" in data
@@ -492,9 +482,7 @@ class TestSamplingValidationEndpoints:
         ]
 
         for case in test_cases:
-            response = test_client.post(
-                "/flask/sampling/clone_job", json=case["payload"]
-            )
+            response = test_client.post("/flask/sampling/clone_job", json=case["payload"])
             assert response.status_code == 400
             data = response.get_json()
             assert "error" in data
@@ -524,9 +512,7 @@ class TestSamplingValidationEndpoints:
     def test_validation_error_response_format(self, test_client):
         """Test that validation errors return proper error response format."""
         # Test with completely invalid JSON structure
-        response = test_client.post(
-            "/flask/sampling/lhs", json={"invalid": "structure"}
-        )
+        response = test_client.post("/flask/sampling/lhs", json={"invalid": "structure"})
         assert response.status_code == 400
         data = response.get_json()
 
@@ -601,17 +587,11 @@ class TestLHSSamplingWithMocks:
             "osparc_client.api.functions_api.FunctionsApi.map_function",
             side_effect=mock_map_function_success,
         ):
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_parent_ids:
-                with patch(
-                    "mmux_flaskapi.blueprints.sampling._get_functions_api"
-                ) as mock_get_api:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
+                with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_api:
                     # Mock parent IDs
                     mock_parent_ids.return_value.parent_node_id = "parent-node-123"
-                    mock_parent_ids.return_value.parent_project_id = (
-                        "parent-project-456"
-                    )
+                    mock_parent_ids.return_value.parent_project_id = "parent-project-456"
 
                     # Mock functions API
                     mock_api = Mock()
@@ -658,21 +638,13 @@ class TestLHSSamplingWithMocks:
             "osparc_client.api.functions_api.FunctionsApi.map_function",
             side_effect=mock_map_function_invalid_function_id,
         ):
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_parent_ids:
-                with patch(
-                    "mmux_flaskapi.blueprints.sampling._get_functions_api"
-                ) as mock_get_api:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
+                with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_api:
                     mock_parent_ids.return_value.parent_node_id = "parent-node-123"
-                    mock_parent_ids.return_value.parent_project_id = (
-                        "parent-project-456"
-                    )
+                    mock_parent_ids.return_value.parent_project_id = "parent-project-456"
 
                     mock_api = Mock()
-                    mock_api.map_function = Mock(
-                        side_effect=mock_map_function_invalid_function_id
-                    )
+                    mock_api.map_function = Mock(side_effect=mock_map_function_invalid_function_id)
                     mock_get_api.return_value = mock_api
 
                     response = test_client.post("/flask/sampling/lhs", json=payload)
@@ -695,21 +667,13 @@ class TestLHSSamplingWithMocks:
             "osparc_client.api.functions_api.FunctionsApi.map_function",
             side_effect=mock_map_function_validation_error,
         ):
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_parent_ids:
-                with patch(
-                    "mmux_flaskapi.blueprints.sampling._get_functions_api"
-                ) as mock_get_api:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
+                with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_api:
                     mock_parent_ids.return_value.parent_node_id = "parent-node-123"
-                    mock_parent_ids.return_value.parent_project_id = (
-                        "parent-project-456"
-                    )
+                    mock_parent_ids.return_value.parent_project_id = "parent-project-456"
 
                     mock_api = Mock()
-                    mock_api.map_function = Mock(
-                        side_effect=mock_map_function_validation_error
-                    )
+                    mock_api.map_function = Mock(side_effect=mock_map_function_validation_error)
                     mock_get_api.return_value = mock_api
 
                     response = test_client.post("/flask/sampling/lhs", json=payload)
@@ -732,21 +696,13 @@ class TestLHSSamplingWithMocks:
             "osparc_client.api.functions_api.FunctionsApi.map_function",
             side_effect=mock_map_function_server_error,
         ):
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_parent_ids:
-                with patch(
-                    "mmux_flaskapi.blueprints.sampling._get_functions_api"
-                ) as mock_get_api:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
+                with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_api:
                     mock_parent_ids.return_value.parent_node_id = "parent-node-123"
-                    mock_parent_ids.return_value.parent_project_id = (
-                        "parent-project-456"
-                    )
+                    mock_parent_ids.return_value.parent_project_id = "parent-project-456"
 
                     mock_api = Mock()
-                    mock_api.map_function = Mock(
-                        side_effect=mock_map_function_server_error
-                    )
+                    mock_api.map_function = Mock(side_effect=mock_map_function_server_error)
                     mock_get_api.return_value = mock_api
 
                     response = test_client.post("/flask/sampling/lhs", json=payload)
@@ -765,18 +721,14 @@ class TestGridSamplingWithMocks:
         """Mock the grid sampling dependencies."""
         with patch("mmux_python.funs_evaluate.create_grid_samples") as mock_create_grid:
             with patch("mmux_python.funs_data_processing.load_data") as mock_load_data:
-                with patch(
-                    "mmux_flaskapi.utils.helpers.create_run_dir"
-                ) as mock_create_run_dir:
+                with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
                     # Mock create_grid_samples to return a file path
                     run_dir = TEST_RUNS_DIR / "test_run"
                     mock_create_run_dir.return_value = run_dir
                     mock_create_grid.return_value = run_dir / "grid_samples.csv"
 
                     # Mock load_data to return sample data
-                    sample_df = pd.DataFrame(
-                        {"x1": [1.0, 2.0, 3.0], "x2": [10.0, 20.0, 30.0]}
-                    )
+                    sample_df = pd.DataFrame({"x1": [1.0, 2.0, 3.0], "x2": [10.0, 20.0, 30.0]})
                     mock_load_data.return_value = sample_df
 
                     yield {
@@ -799,16 +751,10 @@ class TestGridSamplingWithMocks:
             "osparc_client.api.functions_api.FunctionsApi.map_function",
             side_effect=mock_map_function_success,
         ):
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_parent_ids:
-                with patch(
-                    "mmux_flaskapi.blueprints.sampling._get_functions_api"
-                ) as mock_get_api:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
+                with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_api:
                     mock_parent_ids.return_value.parent_node_id = "parent-node-123"
-                    mock_parent_ids.return_value.parent_project_id = (
-                        "parent-project-456"
-                    )
+                    mock_parent_ids.return_value.parent_project_id = "parent-project-456"
 
                     mock_api = Mock()
                     mock_api.map_function = Mock(side_effect=mock_map_function_success)
@@ -837,9 +783,7 @@ class TestGridSamplingWithMocks:
                         assert "x1" in sample
                         assert "x2" in sample
 
-    def test_grid_sampling_invalid_function_id(
-        self, test_client, mock_grid_dependencies
-    ):
+    def test_grid_sampling_invalid_function_id(self, test_client, mock_grid_dependencies):
         """Test grid sampling with invalid function ID."""
         payload = {
             "config": [{"variable": "x1", "start": 0.0, "end": 10.0, "steps": 2}],
@@ -850,21 +794,13 @@ class TestGridSamplingWithMocks:
             "osparc_client.api.functions_api.FunctionsApi.map_function",
             side_effect=mock_map_function_invalid_function_id,
         ):
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_parent_ids:
-                with patch(
-                    "mmux_flaskapi.blueprints.sampling._get_functions_api"
-                ) as mock_get_api:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
+                with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_api:
                     mock_parent_ids.return_value.parent_node_id = "parent-node-123"
-                    mock_parent_ids.return_value.parent_project_id = (
-                        "parent-project-456"
-                    )
+                    mock_parent_ids.return_value.parent_project_id = "parent-project-456"
 
                     mock_api = Mock()
-                    mock_api.map_function = Mock(
-                        side_effect=mock_map_function_invalid_function_id
-                    )
+                    mock_api.map_function = Mock(side_effect=mock_map_function_invalid_function_id)
                     mock_get_api.return_value = mock_api
 
                     response = test_client.post("/flask/sampling/grid", json=payload)
@@ -885,16 +821,10 @@ class TestGridSamplingWithMocks:
             "osparc_client.api.functions_api.FunctionsApi.map_function",
             side_effect=mock_map_function_timeout,
         ):
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_parent_ids:
-                with patch(
-                    "mmux_flaskapi.blueprints.sampling._get_functions_api"
-                ) as mock_get_api:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
+                with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_api:
                     mock_parent_ids.return_value.parent_node_id = "parent-node-123"
-                    mock_parent_ids.return_value.parent_project_id = (
-                        "parent-project-456"
-                    )
+                    mock_parent_ids.return_value.parent_project_id = "parent-project-456"
 
                     mock_api = Mock()
                     mock_api.map_function = Mock(side_effect=mock_map_function_timeout)
@@ -956,23 +886,15 @@ class TestSamplingIntegrationWithOsparcAPI:
             "osparc_client.api.functions_api.FunctionsApi.map_function",
             side_effect=mock_realistic_map_function,
         ):
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_parent_ids:
-                with patch(
-                    "mmux_flaskapi.blueprints.sampling._get_functions_api"
-                ) as mock_get_api:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
+                with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_api:
                     # Set up parent information
                     mock_parent_ids.return_value.parent_node_id = "thermal-node-abc123"
-                    mock_parent_ids.return_value.parent_project_id = (
-                        "thermal-project-def456"
-                    )
+                    mock_parent_ids.return_value.parent_project_id = "thermal-project-def456"
 
                     # Set up mock API
                     mock_api = Mock()
-                    mock_api.map_function = Mock(
-                        side_effect=mock_realistic_map_function
-                    )
+                    mock_api.map_function = Mock(side_effect=mock_realistic_map_function)
                     mock_get_api.return_value = mock_api
 
                     response = test_client.post("/flask/sampling/lhs", json=payload)
@@ -999,13 +921,8 @@ class TestSamplingIntegrationWithOsparcAPI:
                     call_kwargs = mock_api.map_function.call_args[1]
 
                     assert call_kwargs["function_id"] == "thermal-simulation-v2.1.0"
-                    assert (
-                        call_kwargs["x_simcore_parent_node_id"] == "thermal-node-abc123"
-                    )
-                    assert (
-                        call_kwargs["x_simcore_parent_project_uuid"]
-                        == "thermal-project-def456"
-                    )
+                    assert call_kwargs["x_simcore_parent_node_id"] == "thermal-node-abc123"
+                    assert call_kwargs["x_simcore_parent_project_uuid"] == "thermal-project-def456"
 
                     # Verify generated samples
                     samples = call_kwargs["request_body"]
@@ -1059,9 +976,7 @@ class TestSamplingIntegrationWithOsparcAPI:
 
         with patch("mmux_python.funs_evaluate.create_grid_samples") as mock_create_grid:
             with patch("mmux_python.funs_data_processing.load_data") as mock_load_data:
-                with patch(
-                    "mmux_flaskapi.utils.helpers.create_run_dir"
-                ) as mock_create_run_dir:
+                with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
                     with patch(
                         "osparc_client.api.functions_api.FunctionsApi.map_function",
                         side_effect=mock_engineering_map_function,
@@ -1075,9 +990,7 @@ class TestSamplingIntegrationWithOsparcAPI:
                                 # Set up grid dependencies mocks
                                 run_dir = TEST_RUNS_DIR / "test_run"
                                 mock_create_run_dir.return_value = run_dir
-                                mock_create_grid.return_value = (
-                                    run_dir / "grid_samples.csv"
-                                )
+                                mock_create_grid.return_value = run_dir / "grid_samples.csv"
                                 sample_df = pd.DataFrame(
                                     {
                                         "inlet_velocity": [1.0, 2.5, 4.0],
@@ -1085,9 +998,7 @@ class TestSamplingIntegrationWithOsparcAPI:
                                     }
                                 )
                                 mock_load_data.return_value = sample_df
-                                mock_parent_ids.return_value.parent_node_id = (
-                                    "cfd-node-xyz789"
-                                )
+                                mock_parent_ids.return_value.parent_node_id = "cfd-node-xyz789"
                                 mock_parent_ids.return_value.parent_project_id = (
                                     "cfd-project-uvw012"
                                 )
@@ -1098,9 +1009,7 @@ class TestSamplingIntegrationWithOsparcAPI:
                                 )
                                 mock_get_api.return_value = mock_api
 
-                                response = test_client.post(
-                                    "/flask/sampling/grid", json=payload
-                                )
+                                response = test_client.post("/flask/sampling/grid", json=payload)
 
                                 assert response.status_code == 200
                                 data = response.get_json()
@@ -1117,9 +1026,7 @@ class TestSamplingIntegrationWithOsparcAPI:
                                 assert len(samples) == 3  # From mocked DataFrame
 
                                 for sample in samples:
-                                    assert (
-                                        "inlet_velocity" in sample
-                                    )  # From mock grid dependencies
+                                    assert "inlet_velocity" in sample  # From mock grid dependencies
                                     assert "outlet_pressure" in sample
 
 
@@ -1147,9 +1054,7 @@ class TestCloneJobWithMocks:
             "project_id": "cloned-study-uuid-67890",
         }
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_studies_api"
-        ) as mock_get_api:
+        with patch("mmux_flaskapi.blueprints.sampling._get_studies_api") as mock_get_api:
             mock_studies_api = Mock()
             mock_studies_api.clone_study.return_value = mock_cloned_study
             mock_get_api.return_value = mock_studies_api
@@ -1293,13 +1198,9 @@ class TestCloneJobWithMocks:
             "projectInputs": {"param1": 10.5},
         }
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_studies_api"
-        ) as mock_get_api:
+        with patch("mmux_flaskapi.blueprints.sampling._get_studies_api") as mock_get_api:
             mock_studies_api = Mock()
-            mock_studies_api.clone_study.side_effect = Exception(
-                "OSPARC API connection failed"
-            )
+            mock_studies_api.clone_study.side_effect = Exception("OSPARC API connection failed")
             mock_get_api.return_value = mock_studies_api
 
             response = test_client.post("/flask/sampling/clone_job", json=payload)
@@ -1318,9 +1219,7 @@ class TestCloneJobWithMocks:
             "projectInputs": {"param1": 10.5},
         }
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_studies_api"
-        ) as mock_get_api:
+        with patch("mmux_flaskapi.blueprints.sampling._get_studies_api") as mock_get_api:
             mock_studies_api = Mock()
             mock_studies_api.clone_study.side_effect = OsparcApiException(
                 status=404, body="Study not found"
@@ -1356,9 +1255,7 @@ class TestCloneJobWithMocks:
             "status": "created",
         }
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_studies_api"
-        ) as mock_get_api:
+        with patch("mmux_flaskapi.blueprints.sampling._get_studies_api") as mock_get_api:
             mock_studies_api = Mock()
             mock_studies_api.clone_study.return_value = mock_cloned_study
             mock_get_api.return_value = mock_studies_api
@@ -1403,9 +1300,7 @@ class TestCloneJobWithMocks:
             "status": "created",
         }
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_studies_api"
-        ) as mock_get_api:
+        with patch("mmux_flaskapi.blueprints.sampling._get_studies_api") as mock_get_api:
             mock_studies_api = Mock()
             mock_studies_api.clone_study.return_value = mock_cloned_study
             mock_get_api.return_value = mock_studies_api
@@ -1420,9 +1315,7 @@ class TestCloneJobWithMocks:
             description = study_data.description
 
             # Scientific notation should be used for very small numbers
-            assert (
-                "*epsilon*: 1e-12" in description or "*epsilon*: 1e-12" in description
-            )
+            assert "*epsilon*: 1e-12" in description or "*epsilon*: 1e-12" in description
             assert "*delta*: 5.5e-08" in description or "*delta*: 5.5e-8" in description
 
     def test_clone_job_method_not_allowed(self, test_client):
@@ -1465,9 +1358,7 @@ class TestCloneJobWithMocks:
             "status": "created",
         }
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_studies_api"
-        ) as mock_get_api:
+        with patch("mmux_flaskapi.blueprints.sampling._get_studies_api") as mock_get_api:
             mock_studies_api = Mock()
             mock_studies_api.clone_study.return_value = mock_cloned_study
             mock_get_api.return_value = mock_studies_api
@@ -1491,9 +1382,7 @@ class TestSamplingUtilityFunctions:
 
     def test_get_parent_ids_local_mode(self):
         """Test _get_parent_ids with LOCAL deployment mode."""
-        with patch(
-            "mmux_flaskapi.blueprints.deployment.deployment_mode"
-        ) as mock_deployment_mode:
+        with patch("mmux_flaskapi.blueprints.deployment.deployment_mode") as mock_deployment_mode:
             mock_deployment_mode.return_value = "LOCAL"
 
             from mmux_flaskapi.blueprints.sampling import _get_parent_ids
@@ -1505,9 +1394,7 @@ class TestSamplingUtilityFunctions:
 
     def test_get_parent_ids_osparc_mode_success(self):
         """Test _get_parent_ids with OSPARC deployment mode and valid environment variables."""
-        with patch(
-            "mmux_flaskapi.blueprints.deployment.deployment_mode"
-        ) as mock_deployment_mode:
+        with patch("mmux_flaskapi.blueprints.deployment.deployment_mode") as mock_deployment_mode:
             with patch.dict(
                 "os.environ",
                 {
@@ -1526,12 +1413,8 @@ class TestSamplingUtilityFunctions:
 
     def test_get_parent_ids_osparc_mode_missing_node_id(self):
         """Test _get_parent_ids with OSPARC mode but missing OSPARC_NODE_ID."""
-        with patch(
-            "mmux_flaskapi.blueprints.deployment.deployment_mode"
-        ) as mock_deployment_mode:
-            with patch.dict(
-                "os.environ", {"OSPARC_STUDY_ID": "test-study-67890"}, clear=True
-            ):
+        with patch("mmux_flaskapi.blueprints.deployment.deployment_mode") as mock_deployment_mode:
+            with patch.dict("os.environ", {"OSPARC_STUDY_ID": "test-study-67890"}, clear=True):
                 mock_deployment_mode.return_value = "OSPARC"
 
                 from mmux_flaskapi.blueprints.sampling import _get_parent_ids
@@ -1544,12 +1427,8 @@ class TestSamplingUtilityFunctions:
 
     def test_get_parent_ids_osparc_mode_missing_study_id(self):
         """Test _get_parent_ids with OSPARC mode but missing OSPARC_STUDY_ID."""
-        with patch(
-            "mmux_flaskapi.blueprints.deployment.deployment_mode"
-        ) as mock_deployment_mode:
-            with patch.dict(
-                "os.environ", {"OSPARC_NODE_ID": "test-node-12345"}, clear=True
-            ):
+        with patch("mmux_flaskapi.blueprints.deployment.deployment_mode") as mock_deployment_mode:
+            with patch.dict("os.environ", {"OSPARC_NODE_ID": "test-node-12345"}, clear=True):
                 mock_deployment_mode.return_value = "OSPARC"
 
                 from mmux_flaskapi.blueprints.sampling import _get_parent_ids
@@ -1562,12 +1441,8 @@ class TestSamplingUtilityFunctions:
 
     def test_get_parent_ids_osparc_mode_empty_environment_vars(self):
         """Test _get_parent_ids with OSPARC mode but empty environment variables."""
-        with patch(
-            "mmux_flaskapi.blueprints.deployment.deployment_mode"
-        ) as mock_deployment_mode:
-            with patch.dict(
-                "os.environ", {"OSPARC_NODE_ID": "", "OSPARC_STUDY_ID": ""}
-            ):
+        with patch("mmux_flaskapi.blueprints.deployment.deployment_mode") as mock_deployment_mode:
+            with patch.dict("os.environ", {"OSPARC_NODE_ID": "", "OSPARC_STUDY_ID": ""}):
                 mock_deployment_mode.return_value = "OSPARC"
 
                 from mmux_flaskapi.blueprints.sampling import _get_parent_ids
@@ -1580,9 +1455,7 @@ class TestSamplingUtilityFunctions:
 
     def test_get_parent_ids_unknown_deployment_mode(self):
         """Test _get_parent_ids with unknown deployment mode."""
-        with patch(
-            "mmux_flaskapi.blueprints.deployment.deployment_mode"
-        ) as mock_deployment_mode:
+        with patch("mmux_flaskapi.blueprints.deployment.deployment_mode") as mock_deployment_mode:
             mock_deployment_mode.return_value = "UNKNOWN_MODE"
 
             from mmux_flaskapi.blueprints.sampling import _get_parent_ids
@@ -1599,9 +1472,7 @@ class TestSamplingUtilityFunctions:
         mock_functions_api = Mock()
         mock_osparc_api.get_functions_api.return_value = mock_functions_api
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling.get_osparc_api"
-        ) as mock_get_osparc:
+        with patch("mmux_flaskapi.blueprints.sampling.get_osparc_api") as mock_get_osparc:
             mock_get_osparc.return_value = mock_osparc_api
 
             from mmux_flaskapi.blueprints.sampling import _get_functions_api
@@ -1616,9 +1487,7 @@ class TestSamplingUtilityFunctions:
         mock_osparc_api = Mock()
         mock_osparc_api.get_functions_api.return_value = None
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling.get_osparc_api"
-        ) as mock_get_osparc:
+        with patch("mmux_flaskapi.blueprints.sampling.get_osparc_api") as mock_get_osparc:
             mock_get_osparc.return_value = mock_osparc_api
 
             from mmux_flaskapi.blueprints.sampling import _get_functions_api
@@ -1632,9 +1501,7 @@ class TestSamplingUtilityFunctions:
         mock_studies_api = Mock()
         mock_osparc_api.get_studies_api.return_value = mock_studies_api
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling.get_osparc_api"
-        ) as mock_get_osparc:
+        with patch("mmux_flaskapi.blueprints.sampling.get_osparc_api") as mock_get_osparc:
             mock_get_osparc.return_value = mock_osparc_api
 
             from mmux_flaskapi.blueprints.sampling import _get_studies_api
@@ -1649,9 +1516,7 @@ class TestSamplingUtilityFunctions:
         mock_osparc_api = Mock()
         mock_osparc_api.get_studies_api.return_value = None
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling.get_osparc_api"
-        ) as mock_get_osparc:
+        with patch("mmux_flaskapi.blueprints.sampling.get_osparc_api") as mock_get_osparc:
             mock_get_osparc.return_value = mock_osparc_api
 
             from mmux_flaskapi.blueprints.sampling import _get_studies_api
@@ -1679,9 +1544,7 @@ class TestJobWithMocks:
             "status": "valid",
             "inputs": {"input1": 10.5, "input2": "test_string"},
         }
-        mock_functions_api.validate_function_inputs.return_value = (
-            mock_validation_result
-        )
+        mock_functions_api.validate_function_inputs.return_value = mock_validation_result
 
         mock_run_response = Mock()
         mock_job_instance = Mock()
@@ -1700,12 +1563,8 @@ class TestJobWithMocks:
             "inputs": {"input1": 10.5, "input2": "test_string"},
         }
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_functions_api"
-        ) as mock_get_functions:
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_get_parent:
+        with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_functions:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_get_parent:
                 with patch(
                     "mmux_flaskapi.blueprints.sampling._get_function_job_from_uid"
                 ) as mock_get_job:
@@ -1713,9 +1572,7 @@ class TestJobWithMocks:
                     mock_get_parent.return_value = mock_parent_info
                     mock_get_job.return_value = mock_job_details
 
-                    response = test_client.post(
-                        "/flask/sampling/test_job", json=payload
-                    )
+                    response = test_client.post("/flask/sampling/test_job", json=payload)
 
                     assert response.status_code == 200
                     response_data = response.get_json()
@@ -1780,9 +1637,7 @@ class TestJobWithMocks:
             status=422, body="Invalid function inputs"
         )
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_functions_api"
-        ) as mock_get_functions:
+        with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_functions:
             mock_get_functions.return_value = mock_functions_api
 
             response = test_client.post("/flask/sampling/test_job", json=payload)
@@ -1801,9 +1656,7 @@ class TestJobWithMocks:
 
         mock_functions_api = Mock()
         mock_validation_result = {"status": "valid"}
-        mock_functions_api.validate_function_inputs.return_value = (
-            mock_validation_result
-        )
+        mock_functions_api.validate_function_inputs.return_value = mock_validation_result
         mock_functions_api.run_function.side_effect = OsparcApiException(
             status=500, body="Internal server error"
         )
@@ -1812,12 +1665,8 @@ class TestJobWithMocks:
         mock_parent_info.parent_node_id = "test-node-123"
         mock_parent_info.parent_project_id = "test-project-456"
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_functions_api"
-        ) as mock_get_functions:
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_get_parent:
+        with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_functions:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_get_parent:
                 mock_get_functions.return_value = mock_functions_api
                 mock_get_parent.return_value = mock_parent_info
 
@@ -1837,9 +1686,7 @@ class TestJobWithMocks:
 
         mock_functions_api = Mock()
         mock_validation_result = {"status": "valid"}
-        mock_functions_api.validate_function_inputs.return_value = (
-            mock_validation_result
-        )
+        mock_functions_api.validate_function_inputs.return_value = mock_validation_result
 
         # Mock response without actual_instance
         mock_run_response = Mock()
@@ -1850,12 +1697,8 @@ class TestJobWithMocks:
         mock_parent_info.parent_node_id = "test-node-123"
         mock_parent_info.parent_project_id = "test-project-456"
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_functions_api"
-        ) as mock_get_functions:
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_get_parent:
+        with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_functions:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_get_parent:
                 mock_get_functions.return_value = mock_functions_api
                 mock_get_parent.return_value = mock_parent_info
 
@@ -1875,9 +1718,7 @@ class TestJobWithMocks:
 
         mock_functions_api = Mock()
         mock_validation_result = {"status": "valid"}
-        mock_functions_api.validate_function_inputs.return_value = (
-            mock_validation_result
-        )
+        mock_functions_api.validate_function_inputs.return_value = mock_validation_result
 
         # Mock response without actual_instance attribute
         mock_run_response = Mock(spec=[])  # Empty spec means no attributes
@@ -1887,12 +1728,8 @@ class TestJobWithMocks:
         mock_parent_info.parent_node_id = "test-node-123"
         mock_parent_info.parent_project_id = "test-project-456"
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_functions_api"
-        ) as mock_get_functions:
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_get_parent:
+        with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_functions:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_get_parent:
                 mock_get_functions.return_value = mock_functions_api
                 mock_get_parent.return_value = mock_parent_info
 
@@ -1911,9 +1748,7 @@ class TestJobWithMocks:
             content_type="application/json",
         )
 
-        assert (
-            response.status_code == 400
-        )  # Changed from 500 to 400 to match actual behavior
+        assert response.status_code == 400  # Changed from 500 to 400 to match actual behavior
         response_data = response.get_json()
         assert "error" in response_data
         assert "invalid request data" in response_data["error"].lower()
@@ -1934,9 +1769,7 @@ class TestJobWithMocks:
 
         mock_functions_api = Mock()
         mock_validation_result = {"status": "valid"}
-        mock_functions_api.validate_function_inputs.return_value = (
-            mock_validation_result
-        )
+        mock_functions_api.validate_function_inputs.return_value = mock_validation_result
 
         mock_run_response = Mock()
         mock_job_instance = Mock()
@@ -1954,12 +1787,8 @@ class TestJobWithMocks:
             "function_id": "test-function-uid-12345",
         }
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_functions_api"
-        ) as mock_get_functions:
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_get_parent:
+        with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_functions:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_get_parent:
                 with patch(
                     "mmux_flaskapi.blueprints.sampling._get_function_job_from_uid"
                 ) as mock_get_job:
@@ -1967,9 +1796,7 @@ class TestJobWithMocks:
                     mock_get_parent.return_value = mock_parent_info
                     mock_get_job.return_value = mock_job_details
 
-                    response = test_client.post(
-                        "/flask/sampling/test_job", json=payload
-                    )
+                    response = test_client.post("/flask/sampling/test_job", json=payload)
 
                     assert response.status_code == 200
                     response_data = response.get_json()
@@ -2051,9 +1878,7 @@ class TestSamplingErrorHandlingMissingCoverage:
 
         # Mock import error for create_grid_samples
         with patch("mmux_python.funs_evaluate.create_grid_samples") as mock_create_grid:
-            mock_create_grid.side_effect = ImportError(
-                "Cannot import create_grid_samples"
-            )
+            mock_create_grid.side_effect = ImportError("Cannot import create_grid_samples")
 
             response = test_client.post("/flask/sampling/grid", json=payload)
 
@@ -2086,9 +1911,7 @@ class TestSamplingErrorHandlingMissingCoverage:
 
         mock_functions_api = Mock()
         mock_validation_result = {"status": "valid"}
-        mock_functions_api.validate_function_inputs.return_value = (
-            mock_validation_result
-        )
+        mock_functions_api.validate_function_inputs.return_value = mock_validation_result
 
         mock_run_response = Mock()
         mock_job_instance = Mock()
@@ -2100,12 +1923,8 @@ class TestSamplingErrorHandlingMissingCoverage:
         mock_parent_info.parent_node_id = "test-node"
         mock_parent_info.parent_project_id = "test-project"
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_functions_api"
-        ) as mock_get_functions:
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_get_parent:
+        with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_functions:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_get_parent:
                 with patch(
                     "mmux_flaskapi.blueprints.sampling._get_function_job_from_uid"
                 ) as mock_get_job:
@@ -2115,9 +1934,7 @@ class TestSamplingErrorHandlingMissingCoverage:
                     # Make _get_function_job_from_uid raise an exception
                     mock_get_job.side_effect = Exception("Failed to get job details")
 
-                    response = test_client.post(
-                        "/flask/sampling/test_job", json=payload
-                    )
+                    response = test_client.post("/flask/sampling/test_job", json=payload)
 
                     assert response.status_code == 500
                     data = response.get_json()
@@ -2147,14 +1964,10 @@ class TestSamplingErrorHandlingMissingCoverage:
             "projectInputs": {"param1": 10.5},
         }
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_studies_api"
-        ) as mock_get_api:
+        with patch("mmux_flaskapi.blueprints.sampling._get_studies_api") as mock_get_api:
             mock_studies_api = Mock()
             # Raise a generic exception (not OsparcApiException)
-            mock_studies_api.clone_study.side_effect = RuntimeError(
-                "Unexpected database error"
-            )
+            mock_studies_api.clone_study.side_effect = RuntimeError("Unexpected database error")
             mock_get_api.return_value = mock_studies_api
 
             response = test_client.post("/flask/sampling/clone_job", json=payload)
@@ -2182,12 +1995,8 @@ class TestSamplingErrorHandlingMissingCoverage:
             "osparc_client.api.functions_api.FunctionsApi.map_function",
             side_effect=mock_generic_exception,
         ):
-            with patch(
-                "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-            ) as mock_parent_ids:
-                with patch(
-                    "mmux_flaskapi.blueprints.sampling._get_functions_api"
-                ) as mock_get_api:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
+                with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_api:
                     mock_parent_ids.return_value.parent_node_id = "test-node"
                     mock_parent_ids.return_value.parent_project_id = "test-project"
 
@@ -2213,9 +2022,7 @@ class TestSamplingErrorHandlingMissingCoverage:
         # Mock grid dependencies
         with patch("mmux_python.funs_evaluate.create_grid_samples") as mock_create_grid:
             with patch("mmux_python.funs_data_processing.load_data") as mock_load_data:
-                with patch(
-                    "mmux_flaskapi.utils.helpers.create_run_dir"
-                ) as mock_create_run_dir:
+                with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
                     run_dir = TEST_RUNS_DIR / "test_run"
                     mock_create_run_dir.return_value = run_dir
                     mock_create_grid.return_value = run_dir / "grid_samples.csv"
@@ -2236,30 +2043,19 @@ class TestSamplingErrorHandlingMissingCoverage:
                             with patch(
                                 "mmux_flaskapi.blueprints.sampling._get_functions_api"
                             ) as mock_get_api:
-                                mock_parent_ids.return_value.parent_node_id = (
-                                    "test-node"
-                                )
-                                mock_parent_ids.return_value.parent_project_id = (
-                                    "test-project"
-                                )
+                                mock_parent_ids.return_value.parent_node_id = "test-node"
+                                mock_parent_ids.return_value.parent_project_id = "test-project"
 
                                 mock_api = Mock()
-                                mock_api.map_function = Mock(
-                                    side_effect=mock_generic_exception
-                                )
+                                mock_api.map_function = Mock(side_effect=mock_generic_exception)
                                 mock_get_api.return_value = mock_api
 
-                                response = test_client.post(
-                                    "/flask/sampling/grid", json=payload
-                                )
+                                response = test_client.post("/flask/sampling/grid", json=payload)
 
                                 assert response.status_code == 500
                                 data = response.get_json()
                                 assert "error" in data
-                                assert (
-                                    "Error while creating Grid Sampling"
-                                    in data["error"]
-                                )
+                                assert "Error while creating Grid Sampling" in data["error"]
                                 assert "Request timed out" in data["error"]
 
     def test_test_job_osparc_api_generic_exception(self, test_client):
@@ -2271,13 +2067,9 @@ class TestSamplingErrorHandlingMissingCoverage:
 
         mock_functions_api = Mock()
         # Make validate_function_inputs raise a generic exception
-        mock_functions_api.validate_function_inputs.side_effect = KeyError(
-            "API key missing"
-        )
+        mock_functions_api.validate_function_inputs.side_effect = KeyError("API key missing")
 
-        with patch(
-            "mmux_flaskapi.blueprints.sampling._get_functions_api"
-        ) as mock_get_functions:
+        with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_functions:
             mock_get_functions.return_value = mock_functions_api
 
             response = test_client.post("/flask/sampling/test_job", json=payload)
