@@ -18,6 +18,110 @@ from osparc_client.exceptions import ApiException as OsparcApiException
 from conftest import TEST_RUNS_DIR
 
 
+def _roundtrip_csv() -> str:
+    return "\n".join(
+        [
+            "schema_version,source_job_collection_uid,source_function_uid,source_job_uid,status,input__x,input__y,output__result",
+            "1,jc-1,func1,job-1,SUCCESS,1,2,3",
+            "1,jc-1,func1,job-2,SUCCESS,4,5,9",
+        ]
+    )
+
+
+class TestUploadJobCollectionCsv:
+    def test_upload_csv_to_existing_function_success(
+        self,
+        test_client,
+        patch_get_function_success,
+    ):
+        response = test_client.post(
+            "/flask/sampling/upload_job_collection_csv",
+            json={
+                "csvContent": _roundtrip_csv(),
+                "targetMode": "existing",
+                "targetFunctionUid": "func1",
+            },
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["targetMode"] == "existing"
+        assert data["targetFunctionUid"] == "func1"
+        assert data["importedSamples"] == 2
+        assert data["jobCollection"]["uid"].startswith("local-jc-")
+
+    def test_upload_csv_to_new_function_success(
+        self,
+        test_client,
+        patch_get_function_success,
+    ):
+        response = test_client.post(
+            "/flask/sampling/upload_job_collection_csv",
+            json={
+                "csvContent": _roundtrip_csv(),
+                "targetMode": "new",
+                "sourceFunctionUid": "func1",
+                "newFunctionTitle": "Uploaded Function",
+            },
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["targetMode"] == "new"
+        assert data["targetFunctionUid"].startswith("local-func-")
+        assert data["importedSamples"] == 2
+        assert data["jobCollection"]["uid"].startswith("local-jc-")
+
+    def test_upload_csv_incompatible_schema(
+        self,
+        test_client,
+        patch_get_function_incompatible_schema,
+    ):
+        response = test_client.post(
+            "/flask/sampling/upload_job_collection_csv",
+            json={
+                "csvContent": _roundtrip_csv(),
+                "targetMode": "existing",
+                "targetFunctionUid": "func1",
+            },
+        )
+        assert response.status_code == 422
+        data = response.get_json()
+        assert "error" in data
+
+    def test_upload_new_function_visible_in_osparc_collection_endpoints(
+        self,
+        test_client,
+        patch_get_function_success,
+    ):
+        upload_response = test_client.post(
+            "/flask/sampling/upload_job_collection_csv",
+            json={
+                "csvContent": _roundtrip_csv(),
+                "targetMode": "new",
+                "sourceFunctionUid": "func1",
+                "newFunctionTitle": "Uploaded Function",
+            },
+        )
+        assert upload_response.status_code == 200
+        upload_data = upload_response.get_json()
+        local_function_uid = upload_data["targetFunctionUid"]
+
+        collections_response = test_client.get(
+            f"/flask/osparc/list_function_job_collections_for_functionid?functionUid={local_function_uid}"
+        )
+        assert collections_response.status_code == 200
+        collections = collections_response.get_json()
+        assert len(collections) == 1
+        assert collections[0]["uid"].startswith("local-jc-")
+
+        jobs_response = test_client.get(
+            f"/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid={collections[0]['uid']}"
+        )
+        assert jobs_response.status_code == 200
+        jobs = jobs_response.get_json()
+        assert len(jobs) == 2
+        assert jobs[0]["uid"].startswith("local-job-")
+
+
 # Define the mocks directly in this file for simplicity
 def mock_map_function_success(*args, **kwargs):
     """Successful map_function response with job information."""

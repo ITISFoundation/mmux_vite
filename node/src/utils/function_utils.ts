@@ -61,6 +61,34 @@ export async function getFunctionJobsFromFunctionJobCollection(JobCollectionUid:
   ).then(response => response.json());
 }
 
+export async function downloadJobCollectionCsv(JobCollectionUid: string): Promise<string> {
+  const response = await fetchWithRetry(
+    `${PYTHON_DAKOTA_BACKEND}/flask/osparc/download_job_collection_csv?JobCollectionUid=${JobCollectionUid}`,
+  );
+  return response.text();
+}
+
+export async function uploadJobCollectionCsv(params: {
+  csvContent: string;
+  targetMode: "existing" | "new";
+  targetFunctionUid?: string;
+  newFunctionTitle?: string;
+  sourceFunctionUid?: string;
+}) {
+  const response = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sampling/upload_job_collection_csv`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(errorData.error || "Failed to upload JobCollection CSV");
+  }
+
+  return response.json();
+}
+
 export function getSimplifiedHost(): string {
   const serviceAddress = window.location.href;
   const url = new URL(serviceAddress);

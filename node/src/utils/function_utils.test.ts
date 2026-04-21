@@ -3,6 +3,7 @@ import { FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
 import {
   createInputOutputSchema,
   createJobStudyCopy,
+  downloadJobCollectionCsv,
   getFunctionJobCollections,
   getFunctionJobsFromFunctionJobCollection,
   getFunctionJobsFromFunctionUid,
@@ -11,6 +12,7 @@ import {
   getServiceMode,
   listFunctions,
   listJobs,
+  uploadJobCollectionCsv,
 } from "./function_utils";
 
 const mockJobs: FunctionJob[] = [
@@ -49,12 +51,15 @@ vi.mock("./fetch_retry.ts", () => ({
       response = sampleJobs;
     } else if (path.includes("list_function_job_collections")) {
       response = mockCollections;
+    } else if (path.includes("download_job_collection_csv")) {
+      response = "schema_version,source_job_uid\n1,job-1\n";
     } else {
       response = "not mocked";
     }
 
     return Promise.resolve({
       json: () => Promise.resolve(response),
+      text: () => Promise.resolve(response),
     });
   },
 }));
@@ -198,5 +203,52 @@ describe("Function Utils", () => {
   it("should get function jobs from a job collection", async () => {
     const jobs = await getFunctionJobsFromFunctionJobCollection("collection1");
     expect(jobs).toEqual(sampleJobs);
+  });
+
+  it("should download a job collection CSV", async () => {
+    const csv = await downloadJobCollectionCsv("jc-1");
+    expect(csv).toContain("schema_version");
+    expect(csv).toContain("job-1");
+  });
+
+  it("should upload a job collection CSV", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ targetFunctionUid: "func1", importedSamples: 2 }),
+        }),
+      ),
+    );
+
+    const response = await uploadJobCollectionCsv({
+      csvContent: "schema_version,source_job_uid\n1,job-1\n",
+      targetMode: "existing",
+      targetFunctionUid: "func1",
+    });
+    expect(response.targetFunctionUid).toBe("func1");
+    expect(response.importedSamples).toBe(2);
+  });
+
+  it("should throw when upload job collection CSV fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          statusText: "Bad Request",
+          json: () => Promise.resolve({ error: "boom" }),
+        }),
+      ),
+    );
+
+    await expect(
+      uploadJobCollectionCsv({
+        csvContent: "schema_version,source_job_uid\n1,job-1\n",
+        targetMode: "existing",
+        targetFunctionUid: "func1",
+      }),
+    ).rejects.toThrow("boom");
   });
 });

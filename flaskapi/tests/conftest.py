@@ -8,6 +8,7 @@ import pytest
 from unittest.mock import patch
 from flask import Flask
 from mmux_flaskapi.app import create_flask_app
+from mmux_flaskapi.utils.local_job_store import LOCAL_STORE_FILE
 
 TEST_RUNS_DIR = Path.cwd() / "runs_test"
 
@@ -59,6 +60,35 @@ def mock_test_env_vars():
         },
     ):
         yield
+
+
+@pytest.fixture(autouse=True)
+def mock_osparc_connection_check(request):
+    """Prevent real network calls in endpoint tests while allowing config tests to validate connection logic."""
+
+    if request.module.__name__.endswith(
+        "test_flask_app_setup"
+    ) or request.module.__name__.endswith("test_webserver_config"):
+        yield
+        return
+
+    def _mark_connected(self):
+        self._is_connected = True
+
+    with patch(
+        "mmux_flaskapi.utils.webserver_config.OsparcApi._test_connection",
+        _mark_connected,
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def clear_local_uploaded_store():
+    if LOCAL_STORE_FILE.exists():
+        LOCAL_STORE_FILE.unlink()
+    yield
+    if LOCAL_STORE_FILE.exists():
+        LOCAL_STORE_FILE.unlink()
 
 
 @pytest.fixture

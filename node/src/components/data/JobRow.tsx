@@ -95,6 +95,7 @@ function JobRow(props: JobRowProps) {
   }
 
   const jobStatus = job.job.status;
+  const isLocalOnlyJob = job.job.uid?.startsWith("local-job-") === true;
   const outputs = parseStatus(jobStatus, job.job.outputs);
 
   const inputs = Object.entries(job.job.inputs).map(([key, value]) => (
@@ -162,6 +163,7 @@ function JobRow(props: JobRowProps) {
             size="small"
             disabled={
               creatingJobCopy ||
+              isLocalOnlyJob ||
               (!jobStatus.includes("SUCCESS") && !(jobStatus.includes("FAILED") || jobStatus.includes("FAILURE")))
             }
             onClick={async () => {
