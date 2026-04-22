@@ -180,7 +180,7 @@ const LogNormalInputDistribution = ({ inputVar, distribution, handleSetValue }: 
 
 export function InputVariableDist() {
   const { selectedFunction, inputVars, distribution, setDistribution } = useFunctionContext();
-  const { ServiceMode } = useServiceContext();
+  const { serviceMode } = useServiceContext();
   const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
 
@@ -202,7 +202,7 @@ export function InputVariableDist() {
     const newInputVars = { ...localDistribution };
     if (!newInputVars[inputVar]) {
       newInputVars[inputVar] = {
-        distribution: ["SUMO", "MOGA"].includes(ServiceMode) ? "uniform" : "normal",
+        distribution: ["SUMO", "MOGA"].includes(serviceMode) ? "uniform" : "normal",
       };
     }
     newInputVars[inputVar][type as Variables] = value;
@@ -277,7 +277,7 @@ export function InputVariableDist() {
         max: NaN,
       };
     }
-    console.warn("Unknow ServiceMode: ", operationMode, " for inputDistribution default!");
+    console.warn("Unknown serviceMode:", operationMode, "for inputDistribution default!");
     return {
       distribution: "uniform",
       mean: NaN,
@@ -293,7 +293,7 @@ export function InputVariableDist() {
     } else if (inputVars && inputVars.length > 0) {
       const initialInputVars = inputVars.reduce(
         (acc, val) => {
-          acc[val] = setInitialValues(val, ServiceMode);
+          acc[val] = setInitialValues(val, serviceMode);
           return acc;
         },
         {} as typeof localDistribution,
@@ -309,7 +309,7 @@ export function InputVariableDist() {
 
   return (
     <Box sx={{ marginTop: "8px", paddingTop: "8px", borderRadius: "8px" }}>
-      {ServiceMode === "SUMO" && (
+      {serviceMode === "SUMO" && (
         <Header
           fontWeight={300}
           headerType="subTitle"
@@ -317,16 +317,16 @@ export function InputVariableDist() {
           infoText="Define the range of the parameters for which you would like to examine their impact on your Quantities of Interest"
         />
       )}
-      {ServiceMode === "UQ" && (
+      {serviceMode === "UQ" && (
         <Header
           fontWeight={300}
           headerType="subTitle"
           tabTitle="Parameter Distributions"
           infoText="Define probability distributions for each input parameter (assumed independent)"
-          ExtendedInfoText={InputVariableDistDocument}
+          extendedInfoText={InputVariableDistDocument}
         />
       )}
-      {ServiceMode === "MOGA" && (
+      {serviceMode === "MOGA" && (
         <Header
           fontWeight={300}
           headerType="subTitle"

@@ -92,6 +92,48 @@ export default [
       "no-console": "off",
       "no-await-in-loop": "off",
       "react/jsx-props-no-spreading": "off",
+      "@typescript-eslint/naming-convention": [
+        "error",
+        {
+          selector: "default",
+          format: ["camelCase"],
+          leadingUnderscore: "allow",
+          trailingUnderscore: "allow",
+        },
+        {
+          selector: "variableLike",
+          format: ["camelCase", "PascalCase"],
+          leadingUnderscore: "allow",
+          trailingUnderscore: "allow",
+        },
+        {
+          selector: "import",
+          format: ["camelCase", "PascalCase"],
+        },
+        {
+          selector: "typeLike",
+          format: ["PascalCase"],
+        },
+        {
+          selector: "objectLiteralProperty",
+          format: null,
+        },
+        {
+          selector: "property",
+          modifiers: ["requiresQuotes"],
+          format: null,
+        },
+        {
+          selector: "typeProperty",
+          format: ["camelCase"],
+          leadingUnderscore: "allow",
+          trailingUnderscore: "allow",
+        },
+        {
+          selector: "typeMethod",
+          format: ["camelCase"],
+        },
+      ],
       "@typescript-eslint/no-unused-vars": [
         "error",
         {

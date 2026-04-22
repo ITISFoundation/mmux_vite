@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Plot from "react-plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
+import { pythonDakotaBackend } from "../../utils/api_objects";
 import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow } from "./PlotTools";
 import Header from "../navigation/Header";
 import CalculatingWarning from "./CalculatingWarning";
@@ -152,7 +152,7 @@ function IsoSurface3DPlot() {
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
     setPropagating(true);
-    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/dakota/sumo_grid_evaluation`, {
+    fetch(`${pythonDakotaBackend}/flask/dakota/sumo_grid_evaluation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

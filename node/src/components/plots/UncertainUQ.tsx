@@ -4,7 +4,7 @@ import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
+import { pythonDakotaBackend } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
@@ -35,7 +35,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
       try {
         console.info("Propagating UQ...");
         console.info("SelectedQoI: ", selectedQoI);
-        const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/dakota/manual_uq_propagation_with_uncertainty`, {
+        const response = await fetchWithRetry(`${pythonDakotaBackend}/flask/dakota/manual_uq_propagation_with_uncertainty`, {
           method: "POST",
           body: JSON.stringify({
             inputVars,
@@ -55,16 +55,16 @@ export default function UncertainUQ(props: LoadingPropsType) {
         const newPlotData: Plotly.Data[] = [
           {
             x: Array.from(
-              { length: data.bin_means.length },
-              (_, i) => data.bins_start + ((data.bins_end - data.bins_start) / data.bin_means.length) * (i + 0.5),
+              { length: data.binMeans.length },
+              (_, i) => data.binsStart + ((data.binsEnd - data.binsStart) / data.binMeans.length) * (i + 0.5),
             ),
-            y: data.bin_means,
+            y: data.binMeans,
             type: "bar",
             marker: { color: `${theme.palette.primary.main}` },
             name: "UQ Histogram",
             error_y: {
               type: "data",
-              array: data.bin_stds,
+              array: data.binStds,
               visible: true,
             },
           },

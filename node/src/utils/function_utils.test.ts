@@ -161,8 +161,8 @@ describe("Function Utils", () => {
       ),
     );
 
-    const ServiceMode = await getServiceMode();
-    expect(ServiceMode).toBe(mockResponse.service_mode);
+    const serviceMode = await getServiceMode();
+    expect(serviceMode).toBe(mockResponse.service_mode);
   });
 
   it("should list functions", async () => {

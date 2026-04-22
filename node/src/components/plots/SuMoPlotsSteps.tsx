@@ -30,7 +30,7 @@ function SuMoPlotsSteps() {
   const theme = useTheme();
   const { inputVars, selectedFunction, distribution, outputVars } = useFunctionContext();
   const { selectedQoI, setSelectedQoI } = useMMUXContext();
-  const { ServiceMode } = useServiceContext();
+  const { serviceMode: ServiceMode } = useServiceContext();
   const context = useJobContext();
   const { filteredJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);
@@ -89,8 +89,8 @@ function SuMoPlotsSteps() {
           headerType="titleNoMargin"
           tabTitle={stepTitles[activeStep]}
           infoText={stepInfoTexts[stepTitles[activeStep]]}
-          ExtendedInfoText={stepExtendedInfoTexts[stepTitles[activeStep]]}
-          QOISelector={
+          extendedInfoText={stepExtendedInfoTexts[stepTitles[activeStep]]}
+          qoiSelector={
             (ServiceMode === "MOGA" || ServiceMode === "UQ") && (
               <InputLabel
                 size="small"
@@ -109,7 +109,7 @@ function SuMoPlotsSteps() {
                   Select Quantity of Interest
                   <CustomTooltip
                     title="Choose the simulation output to analyze"
-                    ExtendedTooltip={SelectQoIDocument}
+                    extendedTooltip={SelectQoIDocument}
                     placement="right"
                     arrow
                   >
@@ -128,7 +128,7 @@ function SuMoPlotsSteps() {
                   size="small"
                   variant="outlined"
                   sx={{ flex: 1 }}
-                  value={selectedQoI}
+                  value={selectedQoI || ""}
                   onChange={e => {
                     setSelectedQoI(e.target.value);
                   }}

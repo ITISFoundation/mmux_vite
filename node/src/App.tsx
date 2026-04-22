@@ -97,10 +97,10 @@ function App() {
     };
     const messageHandler = (e: MessageEvent) => {
       const msg: string = e.data;
-      const OSPARC_MSG_PREFIX = "osparc;";
-      if (typeof msg === "string" && msg.indexOf(OSPARC_MSG_PREFIX) === 0) {
+      const osparcMsgPrefix = "osparc;";
+      if (typeof msg === "string" && msg.indexOf(osparcMsgPrefix) === 0) {
         console.info("Received message from parent window:", e);
-        const osparcMsg = msg.slice(OSPARC_MSG_PREFIX.length);
+        const osparcMsg = msg.slice(osparcMsgPrefix.length);
         osparcMsg.split("&").forEach(processKeyValue);
       }
     };

@@ -6,7 +6,6 @@ interface JobsLoadingProps {
 }
 
 export function JobsLoading(props: JobsLoadingProps) {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { jobProgress, message } = props;
   const theme = useTheme();
 

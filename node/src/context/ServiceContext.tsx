@@ -6,7 +6,7 @@ type ServiceModeEnum = "UQ" | "SUMO" | "MOGA" | ""; // this will need to be expa
 
 export interface ServiceContextType {
   permissions: PermissionsEnum;
-  ServiceMode: ServiceModeEnum;
+  serviceMode: ServiceModeEnum;
 }
 
 export const ServiceContext = createContext<ServiceContextType>(undefined!);
@@ -17,7 +17,7 @@ type Props = {
 
 export function ServiceContextProvider({ children }: Props) {
   const [permissions, setPermissions] = useState<PermissionsEnum>("READ-ONLY");
-  const [ServiceMode, setServiceMode] = useState<ServiceModeEnum>("");
+  const [serviceMode, setServiceMode] = useState<ServiceModeEnum>("");
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -37,9 +37,9 @@ export function ServiceContextProvider({ children }: Props) {
   const memo = React.useMemo(
     () => ({
       permissions,
-      ServiceMode,
+      serviceMode,
     }),
-    [permissions, ServiceMode],
+    [permissions, serviceMode],
   );
 
   return <ServiceContext.Provider value={memo}>{children}</ServiceContext.Provider>;

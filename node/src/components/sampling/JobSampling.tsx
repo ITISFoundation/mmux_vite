@@ -43,7 +43,7 @@ export function JobSampling(props: JobSamplingProps) {
         Adapt / Extend Sampling
         <CustomTooltip
           title="Improve surrogate model accuracy by modifying or adding sample points"
-          ExtendedTooltip={AdaptExtedSamplingDocument}
+          extendedTooltip={AdaptExtedSamplingDocument}
           placement="right"
           arrow
         >
@@ -63,7 +63,7 @@ export function JobSampling(props: JobSamplingProps) {
         {selectedFunction !== undefined ? (
           <PlusButton
             onClickFun={() => null}
-            PlotFunComponent={Sampling}
+            plotFunComponent={Sampling}
             text="Create new sampling campaign"
             enabled={selectedFunction !== undefined}
             mmmuxTestid="new-sampling-campaign-btn"

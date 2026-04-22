@@ -2,12 +2,12 @@ import { Modal, styled, Tooltip, tooltipClasses, TooltipProps, Typography, useTh
 import { ReactElement, useState } from "react";
 
 interface CustomTooltipProps extends TooltipProps {
-  ExtendedTooltip?: ReactElement;
+  extendedTooltip?: ReactElement;
   border?: boolean;
 }
 
 const CustomTooltip = styled((props: CustomTooltipProps) => {
-  const { ExtendedTooltip, className, title, border, ...rest } = props;
+  const { extendedTooltip, className, title, border, ...rest } = props;
   const theme = useTheme();
   const [open, setOpen] = useState(false);
 
@@ -23,7 +23,7 @@ const CustomTooltip = styled((props: CustomTooltipProps) => {
       }}
     >
       {title}
-      {ExtendedTooltip ? (
+      {extendedTooltip ? (
         <button
           type="button"
           onClick={e => {
@@ -50,7 +50,7 @@ const CustomTooltip = styled((props: CustomTooltipProps) => {
   return (
     <>
       <Tooltip {...rest} title={infotextWButton} arrow classes={{ popper: className }} />
-      {ExtendedTooltip && (
+      {extendedTooltip && (
         <Modal
           open={open}
           onClose={() => setOpen(false)}
@@ -62,7 +62,7 @@ const CustomTooltip = styled((props: CustomTooltipProps) => {
             justifyContent: "center",
           }}
         >
-          {ExtendedTooltip}
+          {extendedTooltip}
         </Modal>
       )}
     </>

@@ -9,7 +9,7 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import MogaParetoTable from "./MOGAParetoTable";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
+import { pythonDakotaBackend } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import { aggregateOutputValues } from "../../utils/function_utils";
 import { useMOGATableContext } from "../../context/MOGATableContext";
@@ -153,7 +153,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
         outputVarSelection: OVS,
         FunctionJobs: jobs,
       });
-      const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/dakota/perform_moga_optimization`, {
+      const response = await fetchWithRetry(`${pythonDakotaBackend}/flask/dakota/perform_moga_optimization`, {
         method: "POST",
         body: bodyData,
       });
@@ -178,12 +178,12 @@ export function MOGAPareto(props: MOGAParetoProps) {
         rows: results.non_dominated_indices.map((ndi: number) => ({
           ...inputVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
           ...localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
-          Performance: calculatePerformance(
+          performance: calculatePerformance(
             localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
             OVS,
             minMax,
           ),
-          NDI: ndi,
+          ndi,
         })),
       };
       setSelectedOptVars(localOptVars);
@@ -392,7 +392,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
   useEffect(() => {
     if (tableData) {
       if (hovered !== null) {
-        const hoveredRow = tableData.rows.find(r => r.NDI === hovered);
+        const hoveredRow = tableData.rows.find(r => r.ndi === hovered);
         // console.log("hovered row:", hoveredRow, plotType);
         if (hoveredRow && plotType && (plotType.dimensionType === "2D" || plotType.dimensionType === "3D")) {
           const newPlotData = [...plotData];
