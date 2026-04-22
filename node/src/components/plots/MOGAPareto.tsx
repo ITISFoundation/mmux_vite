@@ -153,7 +153,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
         outputVarSelection: OVS,
         FunctionJobs: jobs,
       });
-      const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/perform_moga_optimization`, {
+      const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/dakota/perform_moga_optimization`, {
         method: "POST",
         body: bodyData,
       });

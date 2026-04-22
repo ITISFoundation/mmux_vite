@@ -19,7 +19,7 @@ async function runGridSampling(
   const fun = selectedFunction as OsparcFunction;
   // send config to Python backend to create LHS
   context.setLaunchingSampling(true);
-  const jc = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/grid_sampling`, {
+  const jc = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sampling/grid`, {
     method: "POST",
     body: JSON.stringify({
       funUid: fun.uid,

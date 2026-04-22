@@ -18,46 +18,46 @@ export function createInputOutputSchema(vars: string[]) {
 }
 
 export async function getHealth(): Promise<number> {
-  const result = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/health`);
+  const result = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/deployment/health`);
   return result.status;
 }
 
 export async function getPermissions(): Promise<string> {
-  const result = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/permissions`);
+  const result = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/deployment/permissions`);
   const permissionsJson = await result.json();
   return permissionsJson.permissions;
 }
 
 export async function getServiceMode(): Promise<string> {
-  const result = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/service-mode`);
+  const result = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/deployment/service-mode`);
   const ServiceModeJson = await result.json();
   return ServiceModeJson.service_mode;
 }
 
 export async function listFunctions(): Promise<OsparcFunction[]> {
-  const result = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/list_functions`);
+  const result = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/osparc/list_functions`);
   return result.json();
 }
 
 export async function listJobs(): Promise<FunctionJob[]> {
-  return fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/list_jobs`).then(response => response.json());
+  return fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/osparc/list_jobs`).then(response => response.json());
 }
 
 export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<FunctionJob[]> {
-  return fetch(`${PYTHON_DAKOTA_BACKEND}/flask/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(response =>
+  return fetch(`${PYTHON_DAKOTA_BACKEND}/flask/osparc/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(response =>
     response.json(),
   );
 }
 
 export async function getFunctionJobCollections(functionUid: string): Promise<FunctionJobCollection[]> {
   return fetchWithRetry(
-    `${PYTHON_DAKOTA_BACKEND}/flask/list_function_job_collections_for_functionid?functionUid=${functionUid}`,
+    `${PYTHON_DAKOTA_BACKEND}/flask/osparc/list_function_job_collections_for_functionid?functionUid=${functionUid}`,
   ).then(response => response.json());
 }
 
 export async function getFunctionJobsFromFunctionJobCollection(JobCollectionUid: string): Promise<FunctionJob[]> {
   return fetchWithRetry(
-    `${PYTHON_DAKOTA_BACKEND}/flask/list_function_jobs_for_jobcollectionid?JobCollectionUid=${JobCollectionUid}`,
+    `${PYTHON_DAKOTA_BACKEND}/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=${JobCollectionUid}`,
   ).then(response => response.json());
 }
 
@@ -97,7 +97,7 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
   try {
     const { projectJobId } = job;
     const { inputs } = job;
-    const response = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/clone_job`, {
+    const response = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sampling/clone_job`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

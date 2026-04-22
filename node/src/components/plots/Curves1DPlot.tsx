@@ -100,7 +100,7 @@ function Curves1DPlots() {
   const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[]) => {
     setPropagating(true);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
-    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_along_axes`, {
+    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/dakota/sumo_along_axes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
