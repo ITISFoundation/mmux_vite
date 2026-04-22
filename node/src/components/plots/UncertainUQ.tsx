@@ -4,7 +4,6 @@ import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { pythonDakotaBackend } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
@@ -35,7 +34,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
       try {
         console.info("Propagating UQ...");
         console.info("SelectedQoI: ", selectedQoI);
-        const response = await fetchWithRetry(`${pythonDakotaBackend}/flask/dakota/manual_uq_propagation_with_uncertainty`, {
+        const response = await fetchWithRetry(`/flask/dakota/manual_uq_propagation_with_uncertainty`, {
           method: "POST",
           body: JSON.stringify({
             inputVars,

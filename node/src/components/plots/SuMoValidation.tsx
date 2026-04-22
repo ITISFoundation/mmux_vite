@@ -3,7 +3,6 @@ import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
 import { Layout } from "plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { pythonDakotaBackend } from "../../utils/api_objects";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import Metric from "./Metric";
 import MetricRow from "./MetricRow";

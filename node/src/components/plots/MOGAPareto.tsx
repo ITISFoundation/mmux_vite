@@ -9,7 +9,6 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import MogaParetoTable from "./MOGAParetoTable";
-import { pythonDakotaBackend } from "../../utils/api_objects";
 import { fetchWithRetry } from "../../utils/fetch_retry";
 import { aggregateOutputValues } from "../../utils/function_utils";
 import { useMOGATableContext } from "../../context/MOGATableContext";
@@ -153,7 +152,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
         outputVarSelection: OVS,
         FunctionJobs: jobs,
       });
-      const response = await fetchWithRetry(`${pythonDakotaBackend}/flask/dakota/perform_moga_optimization`, {
+      const response = await fetchWithRetry(`/flask/dakota/perform_moga_optimization`, {
         method: "POST",
         body: bodyData,
       });
