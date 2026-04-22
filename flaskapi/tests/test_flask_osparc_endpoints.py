@@ -220,6 +220,7 @@ class TestOsparcListFunctionJobCollectionsForFunctionId:
         assert len(data) == 2
         assert data[0]["uid"] == "jc-1"
         assert data[1]["uid"] == "jc-2"
+        assert data[0]["jobIds"] == ["job-1", "job-2"]
 
     def test_list_function_job_collections_for_functionid_empty(self, test_client, patch_list_function_job_collections_empty):
         response = test_client.get("/flask/osparc/list_function_job_collections_for_functionid?functionUid=func1")
