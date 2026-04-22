@@ -3,7 +3,6 @@ import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
 import { FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { useMMUXContext } from "../../context/MMUXContext";
 import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
@@ -13,9 +12,22 @@ import { useJobContext } from "../../context/JobContext";
 
 type GPPrediction = {
   x: number[];
-  y_hat: number[];
-  std_hat: number[];
+  yHat: number[];
+  stdHat: number[];
 };
+
+function normalizePredictionData(data: Record<string, { x: number[] } & Record<string, number[]>>): Record<string, GPPrediction> {
+  return Object.fromEntries(
+    Object.entries(data).map(([key, prediction]) => [
+      key,
+      {
+        x: prediction.x,
+        yHat: prediction.y_hat,
+        stdHat: prediction.std_hat,
+      },
+    ]),
+  );
+}
 
 function Curves1DPlots() {
   const theme = useTheme();
@@ -53,8 +65,8 @@ function Curves1DPlots() {
     } else {
       const varName = axis;
       const x = data[varName]?.x || [];
-      const yHat = data[varName]?.y_hat || [];
-      const stdHat = data[varName]?.std_hat || [];
+      const yHat = data[varName]?.yHat || [];
+      const stdHat = data[varName]?.stdHat || [];
       const traces: Data[] = [
         {
           x,
@@ -100,7 +112,7 @@ function Curves1DPlots() {
   const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[]) => {
     setPropagating(true);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
-    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/dakota/sumo_along_axes`, {
+    fetch(`/flask/dakota/sumo_along_axes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -114,7 +126,7 @@ function Curves1DPlots() {
     })
       .then(response => response.json())
       .then(data => {
-        createPlotData(data);
+        createPlotData(normalizePredictionData(data));
         setPropagating(false);
       })
       .catch(_error => {

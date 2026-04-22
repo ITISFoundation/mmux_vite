@@ -6,11 +6,15 @@ import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { OutputSetup } from "./OutputSetup";
 import { JobSampling } from "../components/sampling/JobSampling";
 import { useFunctionContext } from "../context/FunctionContext";
+import { useJobContext } from "../context/JobContext";
 
 export default function UQ() {
   const { selectedFunction, outputVars } = useFunctionContext();
   const { setSelectedQoI } = useMMUXContext();
-  const [loading, setLoading] = useState<boolean>(true);
+  const { fetchedJobCollections } = useJobContext();
+  // Only show loading bar when we have no cached job data yet (fresh load).
+  // If persistence already restored job collections, render immediately.
+  const [loading, setLoading] = useState<boolean>(fetchedJobCollections === undefined);
   const [sumoModal, setSumoModal] = useState<boolean>(false);
   const [jobProgress, setJobProgress] = useState<number>(0);
   const jobsFetched = useRef(0);

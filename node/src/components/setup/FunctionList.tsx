@@ -97,12 +97,25 @@ export function FunctionList() {
   };
 
   const showInputOutputSchema = (schema: JSONFunctionInputSchema | JSONFunctionOutputSchema) => {
-    if (schema === undefined || schema.schemaContent === undefined || schema.schemaContent.properties === undefined) {
-      console.error("Invalid schema:", schema);
+    if (!schema) {
+      console.error("Invalid schema: undefined");
       return [];
     }
 
-    const vars = Object.keys(schema.schemaContent.properties);
+    const typedSchema = schema as unknown as {
+      properties?: Record<string, unknown>;
+      schemaContent?: { properties?: Record<string, unknown> };
+    };
+
+    // Try direct properties first, then nested schemaContent.properties
+    const properties = typedSchema.properties ?? typedSchema.schemaContent?.properties;
+
+    if (!properties) {
+      console.error("Invalid schema: missing properties", schema);
+      return [];
+    }
+
+    const vars = Object.keys(properties);
     return vars.join(", ");
   };
 
@@ -169,10 +182,22 @@ export function FunctionList() {
       return;
     }
     handleSelectedFunction(fun);
-    setInputVars(fun.inputSchema?.schemaContent?.properties ? Object.keys(fun.inputSchema.schemaContent.properties) : []);
-    console.log("inputVars registered:", Object.keys(fun.inputSchema.schemaContent.properties));
-    setOutputVars(fun.outputSchema?.schemaContent?.properties ? Object.keys(fun.outputSchema.schemaContent.properties) : []);
-    console.log("outputVars registered:", Object.keys(fun.outputSchema.schemaContent.properties));
+
+    // Extract schemas - handle both direct and nested (schemaContent) structures
+    const typedFun = fun as unknown as {
+      inputSchema?: { properties?: Record<string, unknown>; schemaContent?: { properties?: Record<string, unknown> } };
+      outputSchema?: { properties?: Record<string, unknown>; schemaContent?: { properties?: Record<string, unknown> } };
+    };
+
+    const { inputSchema, outputSchema } = typedFun;
+
+    const inputProperties = inputSchema?.properties ?? inputSchema?.schemaContent?.properties;
+    const outputProperties = outputSchema?.properties ?? outputSchema?.schemaContent?.properties;
+
+    setInputVars(inputProperties ? Object.keys(inputProperties) : []);
+    console.log("inputVars registered:", inputProperties ? Object.keys(inputProperties) : []);
+    setOutputVars(outputProperties ? Object.keys(outputProperties) : []);
+    console.log("outputVars registered:", outputProperties ? Object.keys(outputProperties) : []);
   }
 
   const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {
@@ -252,7 +277,10 @@ export function FunctionList() {
           flex: 1,
           minWidth: 20,
           maxWidth: 100,
-          renderCell: params => showInputOutputSchema(params.row.inputSchema),
+          renderCell: params => {
+            const { inputSchema } = params.row as unknown as { inputSchema?: JSONFunctionInputSchema };
+            return showInputOutputSchema(inputSchema as JSONFunctionInputSchema);
+          },
         },
         {
           field: "outputSchema",
@@ -260,7 +288,10 @@ export function FunctionList() {
           flex: 1,
           minWidth: 20,
           maxWidth: 100,
-          renderCell: params => showInputOutputSchema(params.row.outputSchema),
+          renderCell: params => {
+            const { outputSchema } = params.row as unknown as { outputSchema?: JSONFunctionOutputSchema };
+            return showInputOutputSchema(outputSchema as JSONFunctionOutputSchema);
+          },
         },
         {
           field: "n_evaluations",

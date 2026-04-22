@@ -6,10 +6,13 @@ import { OutputSetup } from "./OutputSetup";
 import { JobSampling } from "../components/sampling/JobSampling";
 import { useFunctionContext } from "../context/FunctionContext";
 import { MOGAPareto } from "../components/plots/MOGAPareto";
+import { useJobContext } from "../context/JobContext";
 
 export default function MOGA() {
   const { selectedFunction } = useFunctionContext();
-  const [loading, setLoading] = useState<boolean>(true);
+  const { fetchedJobCollections } = useJobContext();
+  // Only show loading bar when we have no cached job data yet (fresh load).
+  const [loading, setLoading] = useState<boolean>(fetchedJobCollections === undefined);
   const [sumoModal, setSumoModal] = useState<boolean>(false);
   const [mogaModal, setMogaModal] = useState<boolean>(false);
   const [jobProgress, setJobProgress] = useState<number>(0);

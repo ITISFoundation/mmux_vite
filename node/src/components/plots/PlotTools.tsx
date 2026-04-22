@@ -32,7 +32,7 @@ export const GetUniqueValues = (context: FullContext) => {
 
 export const filterOutConstantDataVars = (context: FullContext) => {
   const { distribution, selectedFunction } = context;
-  const selectedDist = distribution[selectedFunction?.uid || ""];
+  const selectedDist = distribution[selectedFunction?.uid || ""] || {};
   // Filter out variables with only one unique value
   const uniqueValuesPerVar: { [varName: string]: Set<number> } = GetUniqueValues(context);
   const newFilteredInputVars = Object.entries(uniqueValuesPerVar)
@@ -43,7 +43,15 @@ export const filterOutConstantDataVars = (context: FullContext) => {
 };
 export const filterOutConstantDistributionVars = (context: FullContext) => {
   const { distribution, inputVars, selectedFunction } = context;
-  return inputVars.filter(i => (distribution[selectedFunction?.uid || ""][i].distribution as Distribution) !== "constant");
+  const selectedDist = distribution[selectedFunction?.uid || ""];
+
+  // If distribution data is missing (e.g. freshly restored persistence),
+  // keep variables visible instead of throwing on undefined access.
+  if (!selectedDist) {
+    return inputVars;
+  }
+
+  return inputVars.filter(i => (selectedDist[i]?.distribution as Distribution | undefined) !== "constant");
 };
 export const filterInputVars = (context: FullContext) => {
   const { allJobsList } = context;

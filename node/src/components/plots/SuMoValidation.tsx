@@ -52,6 +52,13 @@ function SuMoValidation() {
       const y = data[selectedQoI];
       const yHat = data[`${selectedQoI}_hat`];
 
+      if (!y || !yHat || !Array.isArray(y) || !Array.isArray(yHat)) {
+        console.warn(`Data not available for QoI "${selectedQoI}". Expected keys: "${selectedQoI}" and "${selectedQoI}_hat"`);
+        setPlotData([]);
+        setCvMetrics(undefined);
+        return;
+      }
+
       // For violin plots, y should be the data and x should be the label
       const createViolinPlot = (
         localData: number[],
@@ -91,7 +98,14 @@ function SuMoValidation() {
     setPlotData([]);
     setPropagating(true);
 
-    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/dakota/sumo_cross_validation`, {
+    // Persistence can restore the SuMo view before QoI is initialized.
+    // In that case skip validation until a QoI is available.
+    if (!selectedQoI) {
+      setPropagating(false);
+      return;
+    }
+
+    fetch(`/flask/dakota/sumo_cross_validation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -107,7 +121,18 @@ function SuMoValidation() {
           console.warn("SuMo Validation error: ", response.error);
           throw new Error(`Error running SuMo Validation: ${response.error}`);
         } else {
-          const data = response;
+          const data = { ...response } as { [key: string]: number[] };
+
+          // Some backend paths return only prediction arrays (e.g. charge5_hat).
+          // If observed output is missing, derive it from selected SUCCESS jobs.
+          if (selectedQoI && Array.isArray(data[`${selectedQoI}_hat`]) && !Array.isArray(data[selectedQoI])) {
+            const observed = jobs.map(job => job.outputs?.[selectedQoI]).filter((v): v is number => typeof v === "number");
+
+            if (observed.length > 0) {
+              data[selectedQoI] = observed;
+            }
+          }
+
           createDataAndMetrics(data);
           setPropagating(false);
         }
