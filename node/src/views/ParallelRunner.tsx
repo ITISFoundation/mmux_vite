@@ -241,8 +241,8 @@ export function Dashboard(props: JobDashboardProps) {
     return () => clearInterval(intervalId);
   }, [fetchJobs]);
 
-  const classifyJobStatus = (job_status: string) => {
-    switch (job_status) {
+  const classifyJobStatus = (jobStatus: string) => {
+    switch (jobStatus) {
       case "UNKNOWN":
         return undefined;
       case "PUBLISHED":

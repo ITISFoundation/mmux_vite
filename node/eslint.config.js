@@ -123,6 +123,14 @@ export default [
           modifiers: ["requiresQuotes"],
           format: null,
         },
+        { // for job status-es
+          selector: "typeProperty",
+          filter: {
+            regex: "^(PENDING|RUNNING|COMPLETED|FAILED)$",
+            match: true,
+          },
+          format: ["UPPER_CASE"],
+        },
         {
           selector: "typeProperty",
           format: ["camelCase"],
