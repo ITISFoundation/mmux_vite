@@ -1,7 +1,9 @@
 SHELL 				 			:= /bin/sh
 .DEFAULT_GOAL 		 			:= help
 
-DOCKER_IMAGE_TAG := 1.5.14
+DOCKER_IMAGE_TAG := 1.5.18
+
+
 FLASKAPI_DIR := ./flaskapi
 NODE_DIR := ./node
 
