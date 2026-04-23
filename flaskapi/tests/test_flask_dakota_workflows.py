@@ -359,6 +359,33 @@ class TestSnakeCaseDakotaRequestCompatibility:
         assert data["workflow"] == "flask_sumo_cross_validation"
         assert "traceback" not in data
 
+    def test_evaluation_error_does_not_leak_traceback_when_config_enabled(
+        self, test_client: Flask, monkeypatch
+    ):
+        """Tracebacks should stay server-side even if verbose error config is enabled."""
+
+        def fail_eval(*args, **kwargs):
+            raise RuntimeError("Exploded during evaluation")
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
+            fail_eval,
+        )
+        test_client.application.config["MMUX_INCLUDE_TRACEBACKS"] = True
+
+        payload = {
+            "output": "y",
+            "inputVars": ["x1"],
+            "FunctionJobs": create_function_job_list(50),
+        }
+
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 500
+        data = response.get_json()
+        assert data["error"] == "Exploded during evaluation"
+        assert data["workflow"] == "flask_sumo_cross_validation"
+        assert "traceback" not in data
+
     def test_partial_input_variable_mismatch(self, test_client: Flask):
         """Test when some but not all inputVars match job input keys."""
         payload = {

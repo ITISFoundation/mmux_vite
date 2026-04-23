@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 #
-from flask import Blueprint, abort, current_app, jsonify, make_response
+from flask import Blueprint, abort, jsonify, make_response
 from mmux_python.funs_data_processing import (
     create_manual_uq_samples,
     process_input_file,
@@ -197,8 +197,6 @@ def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 5
         "error": str(e),
         "workflow": workflow_name,
     }
-    if current_app.config.get("MMUX_INCLUDE_TRACEBACKS", False):
-        response_payload["traceback"] = traceback_str
 
     abort(make_response(jsonify(response_payload), status_code))
 
