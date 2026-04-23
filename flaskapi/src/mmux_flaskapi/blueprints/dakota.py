@@ -106,13 +106,13 @@ def _create_training_file_from_jobs(
 def _check_jobs(jobs: list[FunctionJob]) -> list[FunctionJob]:
     """
     Check and validate jobs, returning only completed ones.
-
+    
     Args:
         jobs: List of FunctionJob objects
-
+        
     Returns:
         List of completed jobs
-
+        
     Raises:
         ValueError: If no completed jobs found or not enough samples
     """
@@ -133,49 +133,60 @@ def _check_jobs(jobs: list[FunctionJob]) -> list[FunctionJob]:
     return completed_jobs
 
 
-def _jobs_to_df(jobs: list[FunctionJob]) -> pd.DataFrame:
+def _jobs_to_df(
+    jobs: list[FunctionJob], input_vars: List[str], output_vars: List[str]
+) -> pd.DataFrame:
     """
     Convert list of FunctionJob objects to DataFrame.
-
+    
     Args:
         jobs: List of FunctionJob objects
-
+        input_vars: Requested input variable names
+        output_vars: Requested output variable names
+        
     Returns:
-        DataFrame with all inputs and outputs
+        DataFrame with the requested inputs and outputs
+
+    Raises:
+        ValueError: If a job is missing requested inputs or outputs
     """
-    assert jobs[0].inputs is not None, f"No inputs found for job: {jobs[0]}"
-    assert jobs[0].outputs is not None, f"No outputs found for job: {jobs[0]}"
-    input_vars = list(jobs[0].inputs.keys())
-    output_vars = list(jobs[0].outputs.keys())
+    if len(jobs) == 0:
+        raise ValueError("No jobs found. Cannot create DataFrame.")
 
     list_of_dicts = []
     for job in jobs:
         d = {}
-        assert job.inputs is not None, f"No inputs found for job: {job}"
+        if job.inputs is None:
+            raise ValueError(f"No inputs found for job: {job}")
         for key in input_vars:
-            assert key in job.inputs.keys(), f"Input {key} not in job: {job}"
+            if key not in job.inputs:
+                raise ValueError(f"Missing requested input variable '{key}' in job: {job}")
             d[key] = job.inputs[key]
-        assert job.outputs is not None, f"No outputs found for job: {job}"
+        if job.outputs is None:
+            raise ValueError(f"No outputs found for job: {job}")
         for res in output_vars:
-            assert res in job.outputs.keys(), f"Output {res} not in job: {job}"
+            if res not in job.outputs:
+                raise ValueError(
+                    f"Missing requested output variable '{res}' in job: {job}"
+                )
             d[res] = job.outputs[res]
         list_of_dicts.append(d)
     return pd.DataFrame(list_of_dicts)
 
 
 def setup_preprocessor_for_workflow(
-    jobs: list[FunctionJob],
-    input_vars: list[str],
-    output_vars: list[str],
+    jobs: List[FunctionJob],
+    input_vars: List[str],
+    output_vars: List[str],
     run_dir: Path,
-    input_normalizations: dict[str, str] | None = None,
-    output_normalizations: dict[str, str] | None = None,
-    input_sign_switches: list[str] | None = None,
-    output_sign_switches: list[str] | None = None,
-) -> tuple[Path, DataPreprocessor]:
+    input_normalizations: Optional[Dict[str, str]] = None,
+    output_normalizations: Optional[Dict[str, str]] = None,
+    input_sign_switches: Optional[List[str]] = None,
+    output_sign_switches: Optional[List[str]] = None,
+) -> Tuple[Path, DataPreprocessor]:
     """
     Standardized preprocessor setup for Dakota workflows.
-
+    
     Args:
         jobs: List of completed FunctionJob objects
         input_vars: List of input variable names
@@ -185,81 +196,62 @@ def setup_preprocessor_for_workflow(
         output_normalizations: Optional dict mapping output vars to normalization methods
         input_sign_switches: Optional list of input vars to switch signs
         output_sign_switches: Optional list of output vars to switch signs
-
+        
     Returns:
         Tuple of (processed_training_file_path, fitted_preprocessor)
     """
     # Ensure output_vars is a list
     if isinstance(output_vars, str):
         output_vars = [output_vars]
-
+    
     # Validate and filter jobs
     completed_jobs = _check_jobs(jobs)
-    df_completed_jobs = _jobs_to_df(completed_jobs)
-
+    df_completed_jobs = _jobs_to_df(completed_jobs, input_vars, output_vars)
+    
     # Save original training file
     training_file = run_dir / "df_jobs.csv"
     df_completed_jobs.to_csv(training_file, index=False)
-
+    
     # Setup preprocessor
     preprocessor = DataPreprocessor()
-    preprocessor.setup_variables(input_vars=input_vars, output_vars=output_vars)
-
+    preprocessor.setup_variables(
+        input_vars=input_vars,
+        output_vars=output_vars
+    )
+    
     # Configure normalizations if provided
     if input_normalizations or output_normalizations:
         preprocessor.setup_normalization(
             input_normalizations=input_normalizations,
-            output_normalizations=output_normalizations,
+            output_normalizations=output_normalizations
         )
-
+    
     # Configure sign switching if provided
     if input_sign_switches or output_sign_switches:
         preprocessor.setup_sign_switching(
             input_sign_switches=input_sign_switches,
-            output_sign_switches=output_sign_switches,
+            output_sign_switches=output_sign_switches
         )
-
+    
     # Fit and transform
     df_preprocessed = preprocessor.fit_transform(df_completed_jobs)
-
+    
     # Save configuration
     preprocessor.save_config(run_dir / "preprocessor_config.json")
-
+    
     # Save processed file (Dakota format - space separated)
     processed_file = run_dir / "df_processed_jobs.dat"
     df_preprocessed.to_csv(processed_file, sep=" ", index=False)
-
+    
     _logger.info(f"Preprocessor fitted and saved to {run_dir}")
-
+    
     return processed_file, preprocessor
-
-
-def _mapped_to_original(preprocessor: DataPreprocessor) -> dict[str, str]:
-    """Build mapped-name to original-name lookup for inputs and outputs."""
-    return {
-        cfg.mapped_name: orig
-        for variables in (preprocessor.input_variables, preprocessor.output_variables)
-        for orig, cfg in variables.items()
-    }
-
-
-def _inverse_transform_values(
-    preprocessor: DataPreprocessor,
-    mapped_var: str,
-    values: list[float],
-    mapped_to_original: dict[str, str],
-) -> list[float]:
-    """Inverse transform one mapped series and return original-space values."""
-    original_var = mapped_to_original.get(mapped_var, mapped_var)
-    return preprocessor.inverse_transform({mapped_var: values}).get(
-        original_var, values
-    )
 
 
 def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 500):
     """
     Standardized error handling for Dakota workflows.
-
+    
     Args:
         e: The exception
         workflow_name: Name of the workflow for logging
@@ -269,14 +261,43 @@ def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 5
     _logger.error(f"Error in {workflow_name}: {e}")
     _logger.debug(f"Traceback:\n{traceback_str}")
 
-    abort(
-        make_response(
-            jsonify(
-                {"error": str(e), "traceback": traceback_str, "workflow": workflow_name}
-            ),
-            status_code,
-        )
-    )
+    response_payload = {
+        "error": str(e),
+        "workflow": workflow_name,
+    }
+    if current_app.config.get("MMUX_INCLUDE_TRACEBACKS", False):
+        response_payload["traceback"] = traceback_str
+
+    abort(make_response(
+        jsonify(response_payload),
+        status_code
+    ))
+
+
+def _inverse_transform_output_results(
+    preprocessor: DataPreprocessor,
+    results: Dict[str, List[float]],
+) -> Dict[str, List[float]]:
+    """Inverse transform output values while preserving Dakota suffixes."""
+    transformed: Dict[str, List[float]] = {}
+
+    for original_name, config in preprocessor.output_variables.items():
+        mapped_name = config.mapped_name
+
+        if mapped_name in results:
+            inverse = preprocessor.inverse_transform({mapped_name: results[mapped_name]})
+            if original_name in inverse:
+                transformed[original_name] = inverse[original_name]
+
+        for suffix in ("_hat", "_std_hat"):
+            suffixed_key = mapped_name + suffix
+            if suffixed_key not in results:
+                continue
+            inverse = preprocessor.inverse_transform({mapped_name: results[suffixed_key]})
+            if original_name in inverse:
+                transformed[original_name + suffix] = inverse[original_name]
+
+    return transformed
 
 
 ########################################################
@@ -286,6 +307,12 @@ def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 5
 
 @dakota_bp.route("/sumo_cross_validation", methods=["POST"])
 def flask_sumo_cross_validation():
+    """
+    Perform SUMO cross-validation to assess surrogate model accuracy.
+    
+    Uses DataPreprocessor for variable mapping and normalization.
+    Returns cross-validation predictions with uncertainty estimates in original variable names.
+    """
     """
     Perform SUMO cross-validation to assess surrogate model accuracy.
 
@@ -318,27 +345,31 @@ def flask_sumo_cross_validation():
 
         # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "cross_validation")
-
+        
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_var], run_dir=run_dir
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_var],
+            run_dir=run_dir
         )
-
+        
         # Get mapped variable names for Dakota
-        mapped_input_vars = [
-            preprocessor.input_variables[var].mapped_name for var in input_vars
-        ]
+        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
         mapped_output_var = preprocessor.output_variables[output_var].mapped_name
-
+        
         # Evaluate cross-validation with mapped variable names
         results = evaluate_sumo_manual_crossvalidation(
             run_dir,
             PROCESSED_TRAINING_FILE,
             mapped_input_vars,
             mapped_output_var,
+            mapped_input_vars,
+            mapped_output_var,
         )
 
         # Validate that "results" contains the expected keys: estimate of output (_hat) and its std (_std_hat)
+        expected_keys = [mapped_output_var + "_hat", mapped_output_var + "_std_hat"]
         expected_keys = [mapped_output_var + "_hat", mapped_output_var + "_std_hat"]
         missing_keys = [key for key in expected_keys if key not in results]
         if missing_keys:
@@ -348,14 +379,19 @@ def flask_sumo_cross_validation():
                 422,
             )  # Unprocessable Entity
 
-        # Inverse transform results to return original variable names
-        results_transformed = preprocessor.inverse_transform(results)
-
+        # Inverse transform results to return original variable names while
+        # preserving prediction suffixes expected by the client.
+        results_transformed = _inverse_transform_output_results(preprocessor, results)
+        
         _logger.debug("Cross-validation completed successfully!")
         return jsonify(results_transformed)
-
+    except ValidationError as e:
+        handle_workflow_error(e, "flask_sumo_cross_validation", 422)
+    except ValueError as e:
+        handle_workflow_error(e, "flask_sumo_cross_validation", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_sumo_cross_validation", 500)
+
 
 
 @dakota_bp.route("/manual_uq_propagation_with_uncertainty", methods=["POST"])
@@ -365,7 +401,10 @@ def flask_manual_uq_propagation_with_uncertainty():
 
     Uses DataPreprocessor for variable mapping and normalization.
     Creates multiple histogram realizations using uncertainty estimates
+    Uses DataPreprocessor for variable mapping and normalization.
+    Creates multiple histogram realizations using uncertainty estimates
     from a trained surrogate model to quantify the uncertainty in the UQ results.
+    Returns results in original variable space.
     Returns results in original variable space.
     """
     os.chdir(Path(__file__).parent)
@@ -395,19 +434,17 @@ def flask_manual_uq_propagation_with_uncertainty():
 
         # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "uq_with_uncertainty")
-
+        
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
             jobs=jobs,
             input_vars=input_vars,
             output_vars=[output_response],
-            run_dir=run_dir,
+            run_dir=run_dir
         )
-
+        
         # Get mapped variable names
-        mapped_input_vars = [
-            preprocessor.input_variables[var].mapped_name for var in input_vars
-        ]
+        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
         mapped_output_var = preprocessor.output_variables[output_response].mapped_name
 
         # Generate UQ samples using provided distributions
@@ -420,10 +457,16 @@ def flask_manual_uq_propagation_with_uncertainty():
             input_vars, distributions_dict, num_samples, seed
         )
         df_samples = pd.DataFrame(samples)
+        df_samples = pd.DataFrame(samples)
         UQ_SAMPLES_FILE = run_dir / "manual_uq_samples.csv"
+        df_samples.to_csv(UQ_SAMPLES_FILE, index=False)
         df_samples.to_csv(UQ_SAMPLES_FILE, index=False)
         _logger.debug(f"Generated manual UQ samples saved to {UQ_SAMPLES_FILE}")
 
+        # Transform UQ samples using preprocessor
+        df_samples_transformed = preprocessor.transform(df_samples)
+        PROCESSED_UQ_SAMPLES_FILE = run_dir / "manual_uq_samples_processed.csv"
+        df_samples_transformed.to_csv(PROCESSED_UQ_SAMPLES_FILE, sep=" ", index=False)
         # Transform UQ samples using preprocessor
         df_samples_transformed = preprocessor.transform(df_samples)
         PROCESSED_UQ_SAMPLES_FILE = run_dir / "manual_uq_samples_processed.csv"
@@ -437,9 +480,13 @@ def flask_manual_uq_propagation_with_uncertainty():
             PROCESSED_UQ_SAMPLES_FILE,
             mapped_input_vars,
             mapped_output_var,
+            mapped_input_vars,
+            mapped_output_var,
         )
 
         # Verify uncertainty predictions are available
+        uncertainty_key = mapped_output_var + "_std_hat"
+        prediction_key = mapped_output_var + "_hat"
         uncertainty_key = mapped_output_var + "_std_hat"
         prediction_key = mapped_output_var + "_hat"
 
@@ -472,24 +519,20 @@ def flask_manual_uq_propagation_with_uncertainty():
         np.random.seed(seed)
 
         # Generate samples in transformed space
-        all_results_transformed = np.empty(
-            shape=(n_histograms, num_samples), dtype=float
-        )
+        all_results_transformed = np.empty(shape=(n_histograms, num_samples), dtype=float)
         for i in range(n_histograms):
             # Generate random samples from uniform distribution and transform via erfinv
             r = erfinv(
                 np.random.uniform(-1 + 1e-10, 1 - 1e-10, size=num_samples)
             )  # Avoid exact -1,1 for erfinv
-            all_results_transformed[i, :] = (
-                results[prediction_key] + r * results[uncertainty_key]
-            )
+            all_results_transformed[i, :] = results[prediction_key] + r * results[uncertainty_key]
 
         # Inverse transform results to original space for histogram calculation
         # Create a results dict with all samples for inverse transform
         all_samples_dict = {mapped_output_var: all_results_transformed.flatten()}
         all_samples_original = preprocessor.inverse_transform(all_samples_dict)
         all_values = np.array(all_samples_original[output_response])
-
+        
         # Reshape back to (n_histograms, num_samples)
         all_values_reshaped = all_values.reshape(n_histograms, num_samples)
 
@@ -499,10 +542,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         num_bins = min(
             50, max(10, num_samples // 10)
         )  # Ensure reasonable number of bins
-        hist_min, hist_max = (
-            np.percentile(all_values_flat, 1),
-            np.percentile(all_values_flat, 99),
-        )
+        hist_min, hist_max = np.percentile(all_values_flat, 1), np.percentile(all_values_flat, 99)
 
         # Handle edge case where hist_min == hist_max
         if hist_min == hist_max:
@@ -518,6 +558,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         histograms = np.array(
             [
                 np.histogram(all_values_reshaped[i, :], bins=bin_edges, density=True)[0]
+                np.histogram(all_values_reshaped[i, :], bins=bin_edges, density=True)[0]
                 for i in range(n_histograms)
             ]
         )
@@ -530,6 +571,9 @@ def flask_manual_uq_propagation_with_uncertainty():
         q1 = np.percentile(all_values_flat, 25)
         median = np.percentile(all_values_flat, 50)
         q3 = np.percentile(all_values_flat, 75)
+        q1 = np.percentile(all_values_flat, 25)
+        median = np.percentile(all_values_flat, 50)
+        q3 = np.percentile(all_values_flat, 75)
         iqr = q3 - q1
 
         # Calculate whisker boundaries (1.5 * IQR rule)
@@ -537,9 +581,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         whisker_max = min(hist_max, q3 + 1.5 * iqr)
 
         # Identify outliers
-        outliers = all_values_flat[
-            (all_values_flat < whisker_min) | (all_values_flat > whisker_max)
-        ]
+        outliers = all_values_flat[(all_values_flat < whisker_min) | (all_values_flat > whisker_max)]
 
         # Create response object
         response_data = {
@@ -557,6 +599,10 @@ def flask_manual_uq_propagation_with_uncertainty():
             "std": float(np.std(all_values_flat)),
             "min": float(np.min(all_values_flat)),
             "max": float(np.max(all_values_flat)),
+            "mean": float(np.mean(all_values_flat)),
+            "std": float(np.std(all_values_flat)),
+            "min": float(np.min(all_values_flat)),
+            "max": float(np.max(all_values_flat)),
         }
 
         # Validate response using Pydantic
@@ -567,7 +613,9 @@ def flask_manual_uq_propagation_with_uncertainty():
 
     except ValidationError as e:
         handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
+        handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
     except ValueError as e:
+        handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
         handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 500)
@@ -579,7 +627,9 @@ def flask_evaluate_sumo_along_axes():
     SuMo model evaluation along each input axis with optional fixed values.
 
     Uses DataPreprocessor for variable mapping and normalization.
+    Uses DataPreprocessor for variable mapping and normalization.
     Uses Pydantic validation to ensure robust input validation and consistent error handling.
+    Returns predictions along each specified input variable axis in original space.
     Returns predictions along each specified input variable axis in original space.
     """
     os.chdir(Path(__file__).parent)
@@ -601,21 +651,19 @@ def flask_evaluate_sumo_along_axes():
 
         # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "along_axes")
-
+        
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
             jobs=jobs,
             input_vars=input_vars,
             output_vars=[output_response],
-            run_dir=run_dir,
+            run_dir=run_dir
         )
-
+        
         # Get mapped variable names
-        mapped_input_vars = [
-            preprocessor.input_variables[var].mapped_name for var in input_vars
-        ]
+        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
         mapped_output_var = preprocessor.output_variables[output_response].mapped_name
-
+        
         # Transform slider values to mapped space if provided
         mapped_slider_values = None
         if slider_values:
@@ -626,6 +674,7 @@ def flask_evaluate_sumo_along_axes():
             _logger.debug(f"Mapped slider values: {mapped_slider_values}")
 
         # Evaluate SUMO along axes with mapped variables
+        # Evaluate SUMO along axes with mapped variables
         results = evaluate_sumo_along_axes(
             run_dir,
             PROCESSED_TRAINING_FILE,
@@ -634,26 +683,21 @@ def flask_evaluate_sumo_along_axes():
             cut_values=mapped_slider_values,
         )
 
-        # Inverse transform results to return original variable names.
-        mapped_to_orig = _mapped_to_original(preprocessor)
+        # Inverse transform results to return original variable names
+        # Map results from mapped input names back to original names
+        mapped_to_orig_input = {cfg.mapped_name: orig for orig, cfg in preprocessor.input_variables.items()}
         predictions_original = {}
         for m_var, axis_data in results.items():
-            orig_var = mapped_to_orig.get(m_var, m_var)
-            x_inv = _inverse_transform_values(
-                preprocessor, m_var, list(axis_data["x"]), mapped_to_orig
-            )
-            y_inv = _inverse_transform_values(
-                preprocessor,
-                mapped_output_var,
-                list(axis_data["y_hat"]),
-                mapped_to_orig,
-            )
+            orig_var = mapped_to_orig_input.get(m_var, m_var)
+            x_inv = preprocessor.inverse_transform({m_var: list(axis_data["x"])}).get(orig_var, list(axis_data["x"]))
+            y_inv = preprocessor.inverse_transform({mapped_output_var: list(axis_data["y_hat"])}).get(output_response, list(axis_data["y_hat"]))
             axis_orig: dict = {"x": x_inv, "y_hat": y_inv}
             if "std_hat" in axis_data:
                 axis_orig["std_hat"] = list(axis_data["std_hat"])
             predictions_original[orig_var] = axis_orig
 
         # Validate and structure response
+        response_data = {"predictions": predictions_original}
         response_data = {"predictions": predictions_original}
         validated_response = SumoAlongAxesResponse.model_validate(response_data)
 
@@ -685,7 +729,9 @@ def flask_sumo_grid_evaluation():
     SUMO model evaluation on a grid with optional fixed values for non-grid variables.
 
     Uses DataPreprocessor for variable mapping and normalization.
+    Uses DataPreprocessor for variable mapping and normalization.
     Uses Pydantic validation to ensure robust input validation and consistent error handling.
+    Returns grid data with input coordinates and predictions in original space.
     Returns grid data with input coordinates and predictions in original space.
     """
     os.chdir(Path(__file__).parent)
@@ -711,24 +757,20 @@ def flask_sumo_grid_evaluation():
 
         # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "grid_evaluation")
-
+        
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
             jobs=jobs,
             input_vars=input_vars,
             output_vars=[output_response],
-            run_dir=run_dir,
+            run_dir=run_dir
         )
-
+        
         # Get mapped variable names
-        mapped_input_vars = [
-            preprocessor.input_variables[var].mapped_name for var in input_vars
-        ]
-        mapped_grid_vars = [
-            preprocessor.input_variables[var].mapped_name for var in grid_vars
-        ]
+        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
+        mapped_grid_vars = [preprocessor.input_variables[var].mapped_name for var in grid_vars]
         mapped_output_var = preprocessor.output_variables[output_response].mapped_name
-
+        
         # Transform slider values to mapped space if provided
         mapped_slider_values = None
         if slider_values:
