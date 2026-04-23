@@ -946,29 +946,43 @@ def flask_perform_moga_optimization():
         _logger.debug(f"Output responses: {output_responses}")
         _logger.debug(f"Output var selection: {output_var_selection}")
 
-        # Create mapping for converting results back to original names
+        run_dir = create_run_dir(DAKOTA_RUNS_DIR, "moga")
+        maximize_outputs = [
+            variable
+            for variable, direction in output_var_selection.items()
+            if direction == "maximize"
+        ]
 
-        # Create training file from validated jobs
-        TRAINING_FILE = _create_training_file_from_jobs(
-            jobs, input_vars, output_responses, folder_name="moga"
+        processed_training_file, preprocessor = setup_preprocessor_for_workflow(
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=output_responses,
+            run_dir=run_dir,
+            output_sign_switches=maximize_outputs,
         )
-        run_dir = TRAINING_FILE.parent
 
-        # Process the training file
-        PROCESSED_TRAINING_FILE = process_input_file(
-            TRAINING_FILE,
-            columns_to_keep=input_vars + output_responses,
-        )
+        mapped_input_vars = [
+            preprocessor.input_variables[var].mapped_name for var in input_vars
+        ]
+        mapped_output_vars = [
+            preprocessor.output_variables[var].mapped_name for var in output_responses
+        ]
+        mapped_input_distributions = {
+            preprocessor.input_variables[var].mapped_name: distribution
+            for var, distribution in input_distributions.items()
+        }
 
         # Perform MOGA optimization
         results = perform_moga_optimization(
             run_dir,
-            PROCESSED_TRAINING_FILE,
-            input_vars,
-            input_distributions,
-            list(output_var_selection.keys()),
+            processed_training_file,
+            mapped_input_vars,
+            mapped_input_distributions,
+            mapped_output_vars,
             moga_kwargs={"max_function_evaluations": 1000},
         )
+
+        results = preprocessor.inverse_transform(results)
 
         _logger.debug(f"Final MOGA results before validation: {results}")
         _logger.debug(
@@ -1202,6 +1216,32 @@ def flask_perform_moga_optimization():
                         400,
                     )
                 )
+        elif error_message.startswith("Input ") and " not in job:" in error_message:
+            field_name = error_message[len("Input ") :].split(" not in job:", 1)[0]
+            _logger.error(f"Missing required input variable validation error: {e}")
+            abort(
+                make_response(
+                    jsonify(
+                        {
+                            "error": f"Validation failed: Missing required input variable '{field_name}'"
+                        }
+                    ),
+                    400,
+                )
+            )
+        elif error_message.startswith("Output ") and " not in job:" in error_message:
+            field_name = error_message[len("Output ") :].split(" not in job:", 1)[0]
+            _logger.error(f"Missing required output variable validation error: {e}")
+            abort(
+                make_response(
+                    jsonify(
+                        {
+                            "error": f"Validation failed: Missing required output variable '{field_name}'"
+                        }
+                    ),
+                    400,
+                )
+            )
         elif "400 Bad Request" in error_message and (
             "JSON" in error_message or "browser" in error_message
         ):
