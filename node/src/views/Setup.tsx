@@ -6,21 +6,21 @@ import { InputVariableDist } from "../components/setup/InputVariableDist";
 import { OutputVariableDist } from "../components/setup/OutputVariableDist";
 
 interface SetupProps {
-  ServiceMode: string;
+  serviceMode: string;
 }
 
 export default function Setup(props: SetupProps) {
-  const { ServiceMode } = props;
+  const { serviceMode } = props;
   return (
     <MetaModelingUX
       tabTitle="Select Function"
       infoText="Choose a function created from your parameterized simulation pipeline."
-      ExtendedInfoText={SelectFunctionDocument}
+      extendedInfoText={SelectFunctionDocument}
       headerType="title"
     >
       <FunctionList />
       <InputVariableDist />
-      {ServiceMode === "MOGA" && <OutputVariableDist />}
+      {serviceMode === "MOGA" && <OutputVariableDist />}
     </MetaModelingUX>
   );
 }

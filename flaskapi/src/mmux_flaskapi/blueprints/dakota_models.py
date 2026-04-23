@@ -50,16 +50,100 @@ class FunctionJob(BaseModel):
         return v
 
 
+class JobVariableSelection(BaseModel):
+    """Validated selection of jobs and variables for workflow helpers."""
+
+    jobs: list[FunctionJob] = Field(..., min_length=1)
+    input_vars: list[str] = Field(..., min_length=1)
+    output_vars: list[str] = Field(..., min_length=1)
+    minimum_completed_jobs: int = Field(5, ge=1)
+
+    @field_validator("input_vars", "output_vars")
+    @classmethod
+    def variable_names_must_not_be_empty_strings(cls, v: list[str]) -> list[str]:
+        cleaned = []
+        for var in v:
+            if not var or not var.strip():
+                raise ValueError("Variable names cannot be empty")
+            cleaned.append(var.strip())
+        return cleaned
+
+    @property
+    def completed_jobs(self) -> list[FunctionJob]:
+        return [job for job in self.jobs if job.status in ["completed", "success"]]
+
+    @model_validator(mode="after")
+    def validate_completed_jobs_have_requested_variables(self) -> "JobVariableSelection":
+        completed_jobs = self.completed_jobs
+
+        if len(completed_jobs) < self.minimum_completed_jobs:
+            raise ValueError(
+                "At least "
+                f"{self.minimum_completed_jobs} samples are necessary to build a surrogate model in Dakota. "
+                f"Found {len(completed_jobs)} completed jobs."
+            )
+
+        missing_input_vars = set()
+        missing_output_vars = set()
+        available_input_keys = set()
+        available_output_keys = set()
+
+        for job in completed_jobs:
+            available_input_keys.update(job.inputs.keys())
+            available_output_keys.update(job.outputs.keys())
+
+            for input_var in self.input_vars:
+                if input_var not in job.inputs:
+                    missing_input_vars.add(input_var)
+
+            for output_var in self.output_vars:
+                if output_var not in job.outputs:
+                    missing_output_vars.add(output_var)
+
+        if missing_input_vars:
+            raise ValueError(
+                f"Input variables {sorted(missing_input_vars)} not found in completed job inputs. "
+                f"Available input keys: {sorted(available_input_keys)}"
+            )
+
+        if missing_output_vars:
+            raise ValueError(
+                f"Output variables {sorted(missing_output_vars)} not found in completed job outputs. "
+                f"Available output keys: {sorted(available_output_keys)}"
+            )
+
+        return self
+
+    def to_records(self) -> list[dict[str, float | int]]:
+        records = []
+        for job in self.completed_jobs:
+            record: dict[str, float | int] = {}
+            for input_var in self.input_vars:
+                record[input_var] = job.inputs[input_var]
+            for output_var in self.output_vars:
+                record[output_var] = job.outputs[output_var]
+            records.append(record)
+        return records
+
+
 class SumoCrossValidationRequest(BaseModel):
     """Request model for SuMo cross-validation endpoint."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     output: str = Field(..., min_length=1, description="Name of the output variable to validate")
-    inputVars: list[str] = Field(..., min_length=1, description="List of input variable names")
-    FunctionJobs: list[FunctionJob] = Field(
-        ..., min_length=5, description="List of function jobs (minimum 5 required)"
+    input_vars: list[str] = Field(
+        ...,
+        min_length=1,
+        description="List of input variable names",
+    )
+    function_jobs: list[FunctionJob] = Field(
+        ...,
+        min_length=5,
+        description="List of function jobs (minimum 5 required)",
     )
 
-    @field_validator("inputVars")
+    @field_validator("input_vars")
     @classmethod
     def input_vars_must_not_be_empty_strings(cls, v: list[str]) -> list[str]:
         """Ensure all input variable names are non-empty strings."""
@@ -72,8 +156,8 @@ class SumoCrossValidationRequest(BaseModel):
     def validate_job_data_consistency(self) -> "SumoCrossValidationRequest":
         """Validate that all jobs have the required input and output variables."""
         output = self.output
-        input_vars = self.inputVars
-        jobs = self.FunctionJobs
+        input_vars = self.input_vars
+        jobs = self.function_jobs
 
         if not output or not input_vars or not jobs:
             return self  # Let individual field validators handle these
@@ -158,12 +242,12 @@ class ManualUQPropagationRequest(BaseModel):
     """Request model for manual UQ propagation endpoint."""
 
     output: str = Field(..., min_length=1)
-    inputVars: list[str] = Field(..., min_length=1)
+    input_vars: list[str] = Field(..., min_length=1)
     distributions: dict[str, DistributionParams]
-    numSamples: int = Field(..., gt=0, description="Number of samples to generate")
-    FunctionJobs: list[FunctionJob] = Field(..., min_length=5)
+    num_samples: int = Field(..., gt=0, description="Number of samples to generate")
+    function_jobs: list[FunctionJob] = Field(..., min_length=5)
 
-    @field_validator("inputVars")
+    @field_validator("input_vars")
     @classmethod
     def input_vars_must_not_be_empty_strings(cls, v: list[str]) -> list[str]:
         for var in v:
@@ -174,9 +258,9 @@ class ManualUQPropagationRequest(BaseModel):
     @model_validator(mode="after")
     def validate_distributions_match_inputs(self) -> "ManualUQPropagationRequest":
         """Validate that distributions are provided for all input variables."""
-        input_vars = self.inputVars
+        input_vars = self.input_vars
         distributions = self.distributions
-        jobs = self.FunctionJobs
+        jobs = self.function_jobs
 
         missing_distributions = [var for var in input_vars if var not in distributions]
         if missing_distributions:
@@ -195,7 +279,7 @@ class ManualUQPropagationRequest(BaseModel):
 class ManualUQWithUncertaintyRequest(ManualUQPropagationRequest):
     """Request model for manual UQ propagation with uncertainty endpoint."""
 
-    nHistograms: int = Field(
+    n_histograms: int = Field(
         ...,
         gt=0,
         le=1000,
@@ -203,7 +287,7 @@ class ManualUQWithUncertaintyRequest(ManualUQPropagationRequest):
     )
     seed: int = Field(..., description="Random seed for reproducibility")
 
-    @field_validator("nHistograms")
+    @field_validator("n_histograms")
     @classmethod
     def validate_n_histograms(cls, v: int) -> int:
         """Validate number of histograms is reasonable."""
@@ -217,20 +301,20 @@ class ManualUQWithUncertaintyRequest(ManualUQPropagationRequest):
     def validate_uncertainty_requirements(self) -> "ManualUQWithUncertaintyRequest":
         """Additional validation specific to uncertainty quantification."""
         # Additional validation: ensure we have enough samples relative to histograms
-        if self.numSamples < self.nHistograms:
+        if self.num_samples < self.n_histograms:
             raise ValueError(
-                f"Number of samples ({self.numSamples}) should be >= number of histograms ({self.nHistograms})"
+                f"Number of samples ({self.num_samples}) should be >= number of histograms ({self.n_histograms})"
             )
 
         # Warn if numSamples/nHistograms ratio is too low for statistical reliability
-        if self.numSamples // self.nHistograms < 10:
+        if self.num_samples // self.n_histograms < 10:
             _logger.warning(
-                f"Low samples per histogram ({self.numSamples // self.nHistograms}). Consider increasing numSamples for better statistics."
+                f"Low samples per histogram ({self.num_samples // self.n_histograms}). Consider increasing numSamples for better statistics."
             )
 
         # Check that at least some jobs have the required uncertainty output
         output = self.output
-        jobs = self.FunctionJobs
+        jobs = self.function_jobs
         completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
 
         if completed_jobs:  # Only check if we have completed jobs
@@ -257,10 +341,12 @@ class SumoAlongAxesRequest(BaseModel):
 
     output: str = Field(..., min_length=1, description="Name of the output variable to evaluate")
     inputs: list[str] = Field(..., min_length=1, description="List of input variable names")
-    FunctionJobs: list[FunctionJob] = Field(
-        ..., min_length=5, description="List of function jobs (minimum 5 required)"
+    function_jobs: list[FunctionJob] = Field(
+        ...,
+        min_length=5,
+        description="List of function jobs (minimum 5 required)",
     )
-    sliderValues: dict[str, float] | None = Field(
+    slider_values: dict[str, float] | None = Field(
         default=None, description="Cut values for input variables"
     )
 
@@ -278,8 +364,8 @@ class SumoAlongAxesRequest(BaseModel):
         """Validate that all jobs have the required input and output variables."""
         output = self.output
         input_vars = self.inputs
-        jobs = self.FunctionJobs
-        slider_values = self.sliderValues
+        jobs = self.function_jobs
+        slider_values = self.slider_values
 
         if not output or not input_vars or not jobs:
             return self  # Let individual field validators handle these
@@ -430,21 +516,20 @@ class SumoGridEvaluationRequest(BaseModel):
     """Request model for SUMO grid evaluation."""
 
     output: str = Field(..., min_length=1, description="Name of the output variable to evaluate")
-    gridVars: list[str] = Field(
+    grid_vars: list[str] = Field(
+        ..., min_length=1, max_length=3, description="Variables for grid (1-3 dimensions)"
+    )
+    input_vars: list[str] = Field(..., min_length=1, description="List of all input variable names")
+    function_jobs: list[FunctionJob] = Field(
         ...,
-        min_length=1,
-        max_length=3,
-        description="Variables for grid (1-3 dimensions)",
+        min_length=5,
+        description="List of function jobs (minimum 5 required)",
     )
-    inputVars: list[str] = Field(..., min_length=1, description="List of all input variable names")
-    FunctionJobs: list[FunctionJob] = Field(
-        ..., min_length=5, description="List of function jobs (minimum 5 required)"
-    )
-    sliderValues: dict[str, float] | None = Field(
+    slider_values: dict[str, float] | None = Field(
         default=None, description="Fixed values for non-grid input variables"
     )
 
-    @field_validator("gridVars")
+    @field_validator("grid_vars")
     @classmethod
     def grid_vars_must_not_be_empty_strings(cls, v: list[str]) -> list[str]:
         """Ensure all grid variable names are non-empty strings."""
@@ -453,7 +538,7 @@ class SumoGridEvaluationRequest(BaseModel):
                 raise ValueError("Grid variable names cannot be empty")
         return [var.strip() for var in v]
 
-    @field_validator("inputVars")
+    @field_validator("input_vars")
     @classmethod
     def input_vars_must_not_be_empty_strings(cls, v: list[str]) -> list[str]:
         """Ensure all input variable names are non-empty strings."""
@@ -465,8 +550,8 @@ class SumoGridEvaluationRequest(BaseModel):
     @model_validator(mode="after")
     def validate_grid_vars_subset_of_inputs(self) -> "SumoGridEvaluationRequest":
         """Validate that grid variables are a subset of input variables."""
-        grid_vars = self.gridVars
-        input_vars = self.inputVars
+        grid_vars = self.grid_vars
+        input_vars = self.input_vars
 
         invalid_grid_vars = [var for var in grid_vars if var not in input_vars]
         if invalid_grid_vars:
@@ -478,9 +563,9 @@ class SumoGridEvaluationRequest(BaseModel):
     def validate_job_data_consistency(self) -> "SumoGridEvaluationRequest":
         """Validate that all jobs have the required input and output variables."""
         output = self.output
-        input_vars = self.inputVars
-        jobs = self.FunctionJobs
-        slider_values = self.sliderValues
+        input_vars = self.input_vars
+        jobs = self.function_jobs
+        slider_values = self.slider_values
 
         if not output or not input_vars or not jobs:
             return self  # Let individual field validators handle these
@@ -550,8 +635,7 @@ class SumoGridEvaluationResponse(BaseModel):
     # For 2D/3D grids: Lists of lists (arrays)
     # Keys include grid variables (input coordinates) and prediction variables
     grid_data: dict[str, list[float] | list[list[float]]] = Field(
-        ...,
-        description="Grid evaluation results with input coordinates and predictions",
+        ..., description="Grid evaluation results with input coordinates and predictions"
     )
 
     @field_validator("grid_data")
@@ -600,18 +684,22 @@ class SumoGridEvaluationResponse(BaseModel):
 class MOGAOptimizationRequest(BaseModel):
     """Request model for MOGA optimization."""
 
-    inputVars: list[str] = Field(..., min_length=1, description="List of input variable names")
+    input_vars: list[str] = Field(..., min_length=1, description="List of input variable names")
     distributions: dict[str, DistributionParams] = Field(
         ..., description="Distribution parameters for each input variable"
     )
-    outputVarSelection: dict[str, Literal["minimize", "maximize"]] = Field(
-        ..., min_length=1, description="Objective selection for output variables"
+    output_var_selection: dict[str, Literal["minimize", "maximize"]] = Field(
+        ...,
+        min_length=1,
+        description="Objective selection for output variables",
     )
-    FunctionJobs: list[FunctionJob] = Field(
-        ..., min_length=5, description="List of function jobs (minimum 5 required)"
+    function_jobs: list[FunctionJob] = Field(
+        ...,
+        min_length=5,
+        description="List of function jobs (minimum 5 required)",
     )
 
-    @field_validator("inputVars")
+    @field_validator("input_vars")
     @classmethod
     def input_vars_must_not_be_empty_strings(cls, v: list[str]) -> list[str]:
         """Validate that input variable names are not empty."""
@@ -620,11 +708,12 @@ class MOGAOptimizationRequest(BaseModel):
                 raise ValueError("Input variable names cannot be empty")
         return [var.strip() for var in v]
 
+    @model_validator(mode="after")
     def validate_comprehensive_moga_requirements(self) -> "MOGAOptimizationRequest":
         """Validate comprehensive MOGA optimization requirements."""
 
         # Check that all input variables have distributions
-        input_vars_set = set(self.inputVars)
+        input_vars_set = set(self.input_vars)
         distribution_vars_set = set(self.distributions.keys())
         missing_distributions = input_vars_set - distribution_vars_set
         if missing_distributions:
@@ -634,7 +723,7 @@ class MOGAOptimizationRequest(BaseModel):
 
         # Check for sufficient completed jobs
         completed_jobs = [
-            job for job in self.FunctionJobs if job.status in ["completed", "success"]
+            job for job in self.function_jobs if job.status in ["completed", "success"]
         ]
         if len(completed_jobs) < 5:
             raise ValueError(
@@ -642,10 +731,10 @@ class MOGAOptimizationRequest(BaseModel):
             )
 
         # Check that all completed jobs have the required variables
-        output_vars = list(self.outputVarSelection.keys())
+        output_vars = list(self.output_var_selection.keys())
         for i, job in enumerate(completed_jobs):
             # Check input variables
-            missing_inputs = [var for var in self.inputVars if var not in job.inputs]
+            missing_inputs = [var for var in self.input_vars if var not in job.inputs]
             if missing_inputs:
                 raise ValueError(f"Job {i} missing required input variables: {missing_inputs}")
 
@@ -796,8 +885,10 @@ class SumoCVAccuracyMetricsRequest(BaseModel):
     output: str = Field(..., min_length=1, description="Name of the output variable to validate")
     inputs: list[str] = Field(..., min_length=1, description="List of input variable names")
     log: bool | None = Field(False, description="Whether to apply log transformation to data")
-    FunctionJobs: list[FunctionJob] = Field(
-        ..., min_length=5, description="List of function jobs (minimum 5 required)"
+    function_jobs: list[FunctionJob] = Field(
+        ...,
+        min_length=5,
+        description="List of function jobs (minimum 5 required)",
     )
 
     @field_validator("inputs")
@@ -821,7 +912,7 @@ class SumoCVAccuracyMetricsRequest(BaseModel):
     def validate_job_data_consistency(self) -> "SumoCVAccuracyMetricsRequest":
         """Validate that all jobs have required input/output variables and sufficient completed jobs."""
         completed_jobs = [
-            job for job in self.FunctionJobs if job.status in ["completed", "success"]
+            job for job in self.function_jobs if job.status in ["completed", "success"]
         ]
 
         if len(completed_jobs) < 5:
@@ -872,8 +963,7 @@ class SumoCVAccuracyMetricsResponse(BaseModel):
     """Response model for SUMO cross-validation accuracy metrics."""
 
     metrics: dict[str, CVAccuracyMetrics | str] = Field(
-        ...,
-        description="Dictionary mapping output variable names to their accuracy metrics",
+        ..., description="Dictionary mapping output variable names to their accuracy metrics"
     )
 
     @field_validator("metrics")

@@ -1,10 +1,11 @@
-import json
 import logging
 from pathlib import Path
 from typing import Final
 
 #
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
+
+from mmux_flaskapi.utils.json_serializer import get_request
 
 #
 
@@ -22,7 +23,7 @@ def save_file():
     """Create or update a text file in the FILES_STORAGE_DIR folder.
     Request body should be JSON with 'filename' and 'content' fields."""
     try:
-        request_data = json.loads(request.data.decode("utf-8"))
+        request_data = get_request()
         _logger.debug(f"Request data: {request_data}")
 
         if "filename" not in request_data or "content" not in request_data:

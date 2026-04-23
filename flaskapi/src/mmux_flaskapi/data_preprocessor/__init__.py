@@ -1,4 +1,4 @@
-from .data_preprocessor import DataPreprocessor as DataPreprocessor
+from .data_preprocessor import DataPreprocessor
 from .data_preprocessor_integration import (
     create_filtered_preprocessor,
     create_training_file_with_preprocessor,

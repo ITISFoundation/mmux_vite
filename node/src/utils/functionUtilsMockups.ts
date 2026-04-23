@@ -8,12 +8,12 @@ import {
   SolverFunctionJob,
 } from "../osparc-api-ts-client";
 
-const MOCKUP_FUNCTIONS: OsparcFunction[] = [new SolverFunction()];
-MOCKUP_FUNCTIONS[0].title = "Mockup Function";
-MOCKUP_FUNCTIONS[0].description = "A simple mockup Function for FrontEnd development & testing";
-MOCKUP_FUNCTIONS[0].uid = "asdfasdfasdf";
-MOCKUP_FUNCTIONS[0].inputSchema = new JSONFunctionInputSchema();
-MOCKUP_FUNCTIONS[0].inputSchema.schemaContent = {
+const mockupFunctions: OsparcFunction[] = [new SolverFunction()];
+mockupFunctions[0].title = "Mockup Function";
+mockupFunctions[0].description = "A simple mockup Function for FrontEnd development & testing";
+mockupFunctions[0].uid = "asdfasdfasdf";
+mockupFunctions[0].inputSchema = new JSONFunctionInputSchema();
+mockupFunctions[0].inputSchema.schemaContent = {
   type: "object",
   properties: {
     x: { type: "number" },
@@ -21,8 +21,8 @@ MOCKUP_FUNCTIONS[0].inputSchema.schemaContent = {
   },
   required: ["x", "y"],
 };
-MOCKUP_FUNCTIONS[0].outputSchema = new JSONFunctionOutputSchema();
-MOCKUP_FUNCTIONS[0].outputSchema.schemaContent = {
+mockupFunctions[0].outputSchema = new JSONFunctionOutputSchema();
+mockupFunctions[0].outputSchema.schemaContent = {
   type: "object",
   properties: { result: { type: "number" } },
   required: ["result"],
@@ -40,19 +40,19 @@ function jobGenerator(fun: OsparcFunction, uuid: string): FunctionJob {
   j.status = "COMPLETED";
   return j;
 }
-const MOCKUP_JOBS: FunctionJob[] = [
-  jobGenerator(MOCKUP_FUNCTIONS[0], "aaa"),
-  jobGenerator(MOCKUP_FUNCTIONS[0], "bbb"),
-  jobGenerator(MOCKUP_FUNCTIONS[0], "ccc"),
-  jobGenerator(MOCKUP_FUNCTIONS[0], "ddd"),
+const mockupJobs: FunctionJob[] = [
+  jobGenerator(mockupFunctions[0], "aaa"),
+  jobGenerator(mockupFunctions[0], "bbb"),
+  jobGenerator(mockupFunctions[0], "ccc"),
+  jobGenerator(mockupFunctions[0], "ddd"),
 ];
 
 /// //////////////////////////////
 
-const MOCKUP_JOB_COLLECTIONS: FunctionJobCollection[] = [new FunctionJobCollection()]; // TODO fill up the first JobCOllection w the MOCKUP_JOBS
-MOCKUP_JOB_COLLECTIONS[0].title = "Mockup Job Campaign 1";
-MOCKUP_JOB_COLLECTIONS[0].description = "A simple mockup for a Job Collection of a Solver Function";
-MOCKUP_JOB_COLLECTIONS[0].jobIds = MOCKUP_JOBS.map(j => j.uid);
+const mockupJobCollections: FunctionJobCollection[] = [new FunctionJobCollection()]; // TODO fill up the first JobCOllection w the MOCKUP_JOBS
+mockupJobCollections[0].title = "Mockup Job Campaign 1";
+mockupJobCollections[0].description = "A simple mockup for a Job Collection of a Solver Function";
+mockupJobCollections[0].jobIds = mockupJobs.map(j => j.uid);
 
 export function createInputOutputSchema(vars: string[]) {
   return {
@@ -69,27 +69,27 @@ export function createInputOutputSchema(vars: string[]) {
 }
 
 export async function listFunctions(): Promise<OsparcFunction[]> {
-  return MOCKUP_FUNCTIONS;
+  return mockupFunctions;
 }
 
 export async function listJobs(): Promise<FunctionJob[]> {
-  return MOCKUP_JOBS;
+  return mockupJobs;
 }
 
 export async function getFunctionJob(jobUid: string): Promise<FunctionJob> {
   // get the MOCKUP_JOB with the right UID
-  const j = MOCKUP_JOBS.find(k => k.uid === jobUid);
+  const j = mockupJobs.find(k => k.uid === jobUid);
   if (!j) {
     // console.debug("Job with ID " + jobUid + " not found");
-    return MOCKUP_JOBS[0];
+    return mockupJobs[0];
   }
   return j;
 }
 
 export async function getFunctionJobsFromFunctionUid(_functionUid: string): Promise<FunctionJob[]> {
-  return MOCKUP_JOBS;
+  return mockupJobs;
 }
 
 export async function getFunctionJobCollections(_functionUid: string): Promise<FunctionJobCollection[]> {
-  return MOCKUP_JOB_COLLECTIONS;
+  return mockupJobCollections;
 }

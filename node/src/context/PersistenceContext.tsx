@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { PersistenceType } from "./types";
-import { fetchWithRetry } from "../utils/fetch_retry";
+import { fetchWithRetry } from "../utils/fetchRetry";
 
 interface PersistenceContextType {
   persistence: PersistenceType | undefined;

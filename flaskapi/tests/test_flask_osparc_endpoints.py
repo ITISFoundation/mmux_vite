@@ -150,7 +150,18 @@ class TestOsparcListFunctionJobsForFunctionId:
         data = response.get_json()
         assert isinstance(data, list)
         assert len(data) == 2
-        assert all(job["function_uid"] == "func1" for job in data)
+        assert all(job["functionUid"] == "func1" for job in data)
+
+    def test_list_function_jobs_for_functionid_accepts_snake_case_query_param(
+        self, test_client, patch_list_function_jobs_for_functionid_success
+    ):
+        response = test_client.get(
+            "/flask/osparc/list_function_jobs_for_functionid?function_uid=func1"
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, list)
+        assert len(data) == 2
 
     def test_list_function_jobs_for_functionid_empty(
         self, test_client, patch_list_function_jobs_for_functionid_empty
@@ -214,6 +225,17 @@ class TestOsparcListFunctionJobsForJobCollectionId:
         assert len(data) == 2
         assert data[0]["uid"] == "job-1"
         assert data[1]["uid"] == "job-2"
+
+    def test_list_function_jobs_for_jobcollectionid_accepts_snake_case_query_param(
+        self, test_client, patch_list_function_jobs_for_jobcollectionid_success
+    ):
+        response = test_client.get(
+            "/flask/osparc/list_function_jobs_for_jobcollectionid?job_collection_uid=jc-1"
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, list)
+        assert len(data) == 2
 
     def test_list_function_jobs_for_jobcollectionid_empty(
         self, test_client, patch_list_function_jobs_for_jobcollectionid_empty
@@ -291,6 +313,18 @@ class TestOsparcListFunctionJobCollectionsForFunctionId:
         assert len(data) == 2
         assert data[0]["uid"] == "jc-1"
         assert data[1]["uid"] == "jc-2"
+        assert data[0]["jobIds"] == ["job-1", "job-2"]
+
+    def test_list_function_job_collections_for_functionid_accepts_snake_case_query_param(
+        self, test_client, patch_list_function_job_collections_success
+    ):
+        response = test_client.get(
+            "/flask/osparc/list_function_job_collections_for_functionid?function_uid=func1"
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, list)
+        assert len(data) == 2
 
     def test_list_function_job_collections_for_functionid_empty(
         self, test_client, patch_list_function_job_collections_empty

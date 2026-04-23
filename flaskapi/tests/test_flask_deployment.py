@@ -38,8 +38,8 @@ class TestDeploymentEndpoints:
         assert response.status_code == 200
 
         data = response.get_json()
-        assert "service_mode" in data
-        assert data["service_mode"] == "development"
+        assert "serviceMode" in data
+        assert data["serviceMode"] == "development"
 
     @patch.dict(os.environ, {"SERVICE_MODE": "testing"})
     def test_service_mode_testing(self, test_client):
@@ -48,8 +48,8 @@ class TestDeploymentEndpoints:
         assert response.status_code == 200
 
         data = response.get_json()
-        assert "service_mode" in data
-        assert data["service_mode"] == "testing"
+        assert "serviceMode" in data
+        assert data["serviceMode"] == "testing"
 
     @patch.dict(os.environ, {}, clear=True)
     def test_service_mode_missing_env_var(self, test_client):
@@ -126,8 +126,8 @@ class TestDeploymentEndpoints:
         assert response.status_code == 200
 
         data = response.get_json()
-        assert "deployment_mode" in data
-        assert data["deployment_mode"] == "LOCAL"
+        assert "deploymentMode" in data
+        assert data["deploymentMode"] == "LOCAL"
 
     @patch.dict(os.environ, {"DEPLOYMENT_MODE": "OSPARC"})
     def test_deployment_mode_osparc(self, test_client):
@@ -136,8 +136,8 @@ class TestDeploymentEndpoints:
         assert response.status_code == 200
 
         data = response.get_json()
-        assert "deployment_mode" in data
-        assert data["deployment_mode"] == "OSPARC"
+        assert "deploymentMode" in data
+        assert data["deploymentMode"] == "OSPARC"
 
     @patch.dict(os.environ, {"DEPLOYMENT_MODE": "DOCKER"})
     def test_deployment_mode_docker(self, test_client):
@@ -146,8 +146,8 @@ class TestDeploymentEndpoints:
         assert response.status_code == 200
 
         data = response.get_json()
-        assert "deployment_mode" in data
-        assert data["deployment_mode"] == "DOCKER"
+        assert "deploymentMode" in data
+        assert data["deploymentMode"] == "DOCKER"
 
     @patch.dict(os.environ, {}, clear=True)
     def test_deployment_mode_missing_env_var(self, test_client):
@@ -182,7 +182,7 @@ class TestDeploymentEndpoints:
         response = test_client.get("/flask/deployment/service-mode")
         assert response.status_code == 200
         data = response.get_json()
-        assert data["service_mode"] == "production"
+        assert data["serviceMode"] == "production"
 
         # Test permissions
         response = test_client.get("/flask/deployment/permissions")
@@ -194,7 +194,7 @@ class TestDeploymentEndpoints:
         response = test_client.get("/flask/deployment/mode")
         assert response.status_code == 200
         data = response.get_json()
-        assert data["deployment_mode"] == "OSPARC"
+        assert data["deploymentMode"] == "OSPARC"
 
     def test_invalid_endpoint(self, test_client):
         """Test that invalid deployment endpoints return 404."""
@@ -208,8 +208,8 @@ class TestDeploymentEndpoints:
         assert response.status_code == 200
 
         data = response.get_json()
-        assert "service_mode" in data
-        assert data["service_mode"] == ""
+        assert "serviceMode" in data
+        assert data["serviceMode"] == ""
 
     @patch.dict(os.environ, {"PERMISSIONS": ""})
     def test_permissions_empty_string(self, test_client):
@@ -228,8 +228,8 @@ class TestDeploymentEndpoints:
         assert response.status_code == 200
 
         data = response.get_json()
-        assert "deployment_mode" in data
-        assert data["deployment_mode"] == ""
+        assert "deploymentMode" in data
+        assert data["deploymentMode"] == ""
 
     def test_deployment_endpoint_url_prefix(self, test_client):
         """Test that all deployment endpoints use the correct URL prefix."""
@@ -253,8 +253,8 @@ class TestDeploymentEndpoints:
         assert response.status_code == 200
 
         data = response.get_json()
-        assert "service_mode" in data
-        assert data["service_mode"] == "special@chars!123"
+        assert "serviceMode" in data
+        assert data["serviceMode"] == "special@chars!123"
 
     @patch.dict(os.environ, {"PERMISSIONS": "custom-permission-level"})
     def test_permissions_custom_value(self, test_client):
@@ -273,5 +273,5 @@ class TestDeploymentEndpoints:
         assert response.status_code == 200
 
         data = response.get_json()
-        assert "deployment_mode" in data
-        assert data["deployment_mode"] == "CUSTOM_DEPLOYMENT"
+        assert "deploymentMode" in data
+        assert data["deploymentMode"] == "CUSTOM_DEPLOYMENT"

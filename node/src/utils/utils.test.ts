@@ -5,8 +5,8 @@ import { FunctionContextType } from "../context/FunctionContext";
 import { JobContextType } from "../context/JobContext";
 
 // import the functions to be tested
-import { pickCsv, readCsvData } from "./csv_utils";
-import { fetchWithRetry } from "./fetch_retry";
+import { pickCsv, readCsvData } from "./csvUtils";
+import { fetchWithRetry } from "./fetchRetry";
 import { getSamplingEndValue, getSamplingStartValue } from "./sampling";
 import { stepValidator } from "./stepValidator";
 import { RegisteredFunctionJobCollection, FunctionJob } from "../osparc-api-ts-client";

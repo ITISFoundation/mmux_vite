@@ -206,6 +206,15 @@ class TestSamplingEndpoints:
         data = response.get_json()
         assert "error" in data
 
+    def test_lhs_accepts_snake_case_fun_uid(self, test_client):
+        payload = {"config": [], "seed": 42, "N": 10, "fun_uid": "test-func"}
+
+        response = test_client.post("/flask/sampling/lhs", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "funuid" not in data["error"].lower()
+
     def test_grid_with_incomplete_config(self, test_client):
         """Test grid sampling with incomplete but present config field."""
         payload = {"config": []}  # Empty config, missing funUid
@@ -278,7 +287,7 @@ class TestSamplingValidationEndpoints:
                     "seed": 42,
                     "N": 100,
                 },
-                "expected_error": "funuid",  # Pydantic shows field 'funUid' as lowercase 'funuid'
+                "expected_error": "fun_uid",
             },
         ]
 
@@ -379,7 +388,7 @@ class TestSamplingValidationEndpoints:
             # Missing funUid
             {
                 "payload": {"config": [{"variable": "x", "start": 0, "end": 1, "steps": 5}]},
-                "expected_error": "funuid",  # Pydantic shows field 'funUid' as lowercase 'funuid'
+                "expected_error": "fun_uid",
             },
         ]
 
@@ -431,7 +440,7 @@ class TestSamplingValidationEndpoints:
             # Missing funUid
             {
                 "payload": {"config": [{"variable": "x", "value": 0.5}]},
-                "expected_error": "funuid",  # Pydantic shows field 'funUid' as lowercase 'funuid'
+                "expected_error": "fun_uid",
             },
         ]
 
@@ -467,17 +476,17 @@ class TestSamplingValidationEndpoints:
             # Missing projectJobId
             {
                 "payload": {"functionName": "test-func", "projectInputs": {}},
-                "expected_error": "projectjobid",  # Pydantic shows field 'projectJobId' as lowercase 'projectjobid'
+                "expected_error": "project_job_id",
             },
             # Missing functionName
             {
                 "payload": {"projectJobId": "job-123", "projectInputs": {}},
-                "expected_error": "functionname",  # Pydantic shows field 'functionName' as lowercase 'functionname'
+                "expected_error": "function_name",
             },
             # Missing projectInputs
             {
                 "payload": {"projectJobId": "job-123", "functionName": "test-func"},
-                "expected_error": "projectinputs",  # Pydantic shows field 'projectInputs' as lowercase 'projectinputs'
+                "expected_error": "project_inputs",
             },
         ]
 
@@ -508,6 +517,19 @@ class TestSamplingValidationEndpoints:
             assert response.status_code == 400
             data = response.get_json()
             assert "error" in data
+
+    def test_clone_job_accepts_snake_case_payload_fields(self, test_client):
+        payload = {
+            "project_job_id": "",
+            "function_name": "test_function",
+            "project_inputs": {},
+        }
+
+        response = test_client.post("/flask/sampling/clone_job", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "field required" not in data["error"].lower()
 
     def test_validation_error_response_format(self, test_client):
         """Test that validation errors return proper error response format."""
@@ -1065,8 +1087,8 @@ class TestCloneJobWithMocks:
             data = response.get_json()
 
             # Verify response structure
-            assert "study_id" in data
-            assert data["study_id"] == "cloned-study-uuid-67890"
+            assert "studyId" in data
+            assert data["studyId"] == "cloned-study-uuid-67890"
             assert data["title"] == "Job TestFunction"
             assert data["status"] == "created"
             assert "Clone of job *test-study-uuid-12345*" in data["description"]
@@ -1264,7 +1286,7 @@ class TestCloneJobWithMocks:
 
             assert response.status_code == 200
             data = response.get_json()
-            assert data["study_id"] == "cloned-complex-study-uuid"
+            assert data["studyId"] == "cloned-complex-study-uuid"
 
             # Verify the study data formatting
             call_args = mock_studies_api.clone_study.call_args
@@ -1382,7 +1404,9 @@ class TestSamplingUtilityFunctions:
 
     def test_get_parent_ids_local_mode(self):
         """Test _get_parent_ids with LOCAL deployment mode."""
-        with patch("mmux_flaskapi.blueprints.deployment.deployment_mode") as mock_deployment_mode:
+        with patch(
+            "mmux_flaskapi.blueprints.deployment.get_deployment_mode_value"
+        ) as mock_deployment_mode:
             mock_deployment_mode.return_value = "LOCAL"
 
             from mmux_flaskapi.blueprints.sampling import _get_parent_ids
@@ -1394,7 +1418,9 @@ class TestSamplingUtilityFunctions:
 
     def test_get_parent_ids_osparc_mode_success(self):
         """Test _get_parent_ids with OSPARC deployment mode and valid environment variables."""
-        with patch("mmux_flaskapi.blueprints.deployment.deployment_mode") as mock_deployment_mode:
+        with patch(
+            "mmux_flaskapi.blueprints.deployment.get_deployment_mode_value"
+        ) as mock_deployment_mode:
             with patch.dict(
                 "os.environ",
                 {
@@ -1413,7 +1439,9 @@ class TestSamplingUtilityFunctions:
 
     def test_get_parent_ids_osparc_mode_missing_node_id(self):
         """Test _get_parent_ids with OSPARC mode but missing OSPARC_NODE_ID."""
-        with patch("mmux_flaskapi.blueprints.deployment.deployment_mode") as mock_deployment_mode:
+        with patch(
+            "mmux_flaskapi.blueprints.deployment.get_deployment_mode_value"
+        ) as mock_deployment_mode:
             with patch.dict("os.environ", {"OSPARC_STUDY_ID": "test-study-67890"}, clear=True):
                 mock_deployment_mode.return_value = "OSPARC"
 
@@ -1427,7 +1455,9 @@ class TestSamplingUtilityFunctions:
 
     def test_get_parent_ids_osparc_mode_missing_study_id(self):
         """Test _get_parent_ids with OSPARC mode but missing OSPARC_STUDY_ID."""
-        with patch("mmux_flaskapi.blueprints.deployment.deployment_mode") as mock_deployment_mode:
+        with patch(
+            "mmux_flaskapi.blueprints.deployment.get_deployment_mode_value"
+        ) as mock_deployment_mode:
             with patch.dict("os.environ", {"OSPARC_NODE_ID": "test-node-12345"}, clear=True):
                 mock_deployment_mode.return_value = "OSPARC"
 
@@ -1441,7 +1471,9 @@ class TestSamplingUtilityFunctions:
 
     def test_get_parent_ids_osparc_mode_empty_environment_vars(self):
         """Test _get_parent_ids with OSPARC mode but empty environment variables."""
-        with patch("mmux_flaskapi.blueprints.deployment.deployment_mode") as mock_deployment_mode:
+        with patch(
+            "mmux_flaskapi.blueprints.deployment.get_deployment_mode_value"
+        ) as mock_deployment_mode:
             with patch.dict("os.environ", {"OSPARC_NODE_ID": "", "OSPARC_STUDY_ID": ""}):
                 mock_deployment_mode.return_value = "OSPARC"
 
@@ -1455,7 +1487,9 @@ class TestSamplingUtilityFunctions:
 
     def test_get_parent_ids_unknown_deployment_mode(self):
         """Test _get_parent_ids with unknown deployment mode."""
-        with patch("mmux_flaskapi.blueprints.deployment.deployment_mode") as mock_deployment_mode:
+        with patch(
+            "mmux_flaskapi.blueprints.deployment.get_deployment_mode_value"
+        ) as mock_deployment_mode:
             mock_deployment_mode.return_value = "UNKNOWN_MODE"
 
             from mmux_flaskapi.blueprints.sampling import _get_parent_ids
@@ -1579,7 +1613,7 @@ class TestJobWithMocks:
 
                     assert response_data["uid"] == "job-uid-67890"
                     assert response_data["status"] == "running"
-                    assert response_data["function_id"] == "test-function-uid-12345"
+                    assert response_data["functionId"] == "test-function-uid-12345"
 
                     # Verify API calls
                     mock_functions_api.validate_function_inputs.assert_called_once_with(

@@ -3,7 +3,6 @@ import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
 import { Layout } from "plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import Metric from "./Metric";
 import MetricRow from "./MetricRow";
@@ -24,23 +23,21 @@ function SuMoValidation() {
   const [width, setWidth] = useState(1080);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  function computeStatisticsCv(y: number[], y_hat: number[]) {
+  function computeStatisticsCv(y: number[], yHat: number[]) {
     // compute statistics
-    const mae = y.reduce((sum: number, value: number, index: number) => sum + Math.abs(value - y_hat[index]), 0) / y.length;
+    const mae = y.reduce((sum: number, value: number, index: number) => sum + Math.abs(value - yHat[index]), 0) / y.length;
     const rmse = Math.sqrt(
-      y.reduce((sum: number, value: number, index: number) => sum + (value - y_hat[index]) ** 2, 0) / y.length,
+      y.reduce((sum: number, value: number, index: number) => sum + (value - yHat[index]) ** 2, 0) / y.length,
     );
     const meanY = y.reduce((a: number, b: number) => a + b, 0) / y.length;
     const stdY = Math.sqrt(y.reduce((sum: number, value: number) => sum + (value - meanY) ** 2, 0) / (y.length - 1));
-    const meanYhat = y_hat.reduce((a: number, b: number) => a + b, 0) / y_hat.length;
-    const stdYhat = Math.sqrt(
-      y_hat.reduce((sum: number, value: number) => sum + (value - meanYhat) ** 2, 0) / (y_hat.length - 1),
-    );
+    const meanYhat = yHat.reduce((a: number, b: number) => a + b, 0) / yHat.length;
+    const stdYhat = Math.sqrt(yHat.reduce((sum: number, value: number) => sum + (value - meanYhat) ** 2, 0) / (yHat.length - 1));
     const cvMetricsData = {
-      mean_y: meanY,
-      std_y: stdY,
-      mean_y_hat: meanYhat,
-      std_y_hat: stdYhat,
+      meanY,
+      stdY,
+      meanYHat: meanYhat,
+      stdYHat: stdYhat,
       mae,
       rmse,
     };
@@ -91,7 +88,7 @@ function SuMoValidation() {
     setPlotData([]);
     setPropagating(true);
 
-    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/dakota/sumo_cross_validation`, {
+    fetch(`/flask/dakota/sumo_cross_validation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -182,13 +179,13 @@ function SuMoValidation() {
       {cvMetrics ? (
         <Box display="flex" flexDirection="row" flex={1} justifyContent="space-around" mt={4}>
           <MetricRow width={width}>
-            <Metric metricName="Mean" metricValue={cvMetrics.mean_y} color="rgb(41, 146, 221)" />
-            <Metric metricName="Std" metricValue={cvMetrics.std_y} color="rgb(41, 146, 221)" />
+            <Metric metricName="Mean" metricValue={cvMetrics.meanY} color="rgb(41, 146, 221)" />
+            <Metric metricName="Std" metricValue={cvMetrics.stdY} color="rgb(41, 146, 221)" />
             {/* rgb(31, 119, 180) is the original; changed it slightly to improve visibility */}
           </MetricRow>
           <MetricRow width={width}>
-            <Metric metricName="Mean" metricValue={cvMetrics.mean_y_hat} color="rgb(255, 127, 14)" />
-            <Metric metricName="Std" metricValue={cvMetrics.std_y_hat} color="rgb(255, 127, 14)" />
+            <Metric metricName="Mean" metricValue={cvMetrics.meanYHat} color="rgb(255, 127, 14)" />
+            <Metric metricName="Std" metricValue={cvMetrics.stdYHat} color="rgb(255, 127, 14)" />
           </MetricRow>
           <MetricRow width={width}>
             <Metric metricName="MAE" metricValue={cvMetrics.mae} />

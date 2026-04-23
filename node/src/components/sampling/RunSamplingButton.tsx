@@ -2,7 +2,7 @@ import { Button, CircularProgress, useTheme } from "@mui/material";
 import { toast } from "react-toastify";
 import { useServiceContext } from "../../context/ServiceContext";
 import CustomTooltip from "../utils/CustomTooltip";
-import { getSimplifiedHost } from "../../utils/function_utils";
+import { getSimplifiedHost } from "../../utils/functionUtils";
 import { useSamplingContext } from "../../context/SamplingContext";
 
 type RunSamplingButtonProps = {

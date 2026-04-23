@@ -108,7 +108,7 @@ export function OutputSetup(props: UQSetupProps) {
           Select Quantity of Interest
           <CustomTooltip
             title="Choose the simulation output to analyze"
-            ExtendedTooltip={SelectQoIDocument}
+            extendedTooltip={SelectQoIDocument}
             placement="right"
             arrow
           >
