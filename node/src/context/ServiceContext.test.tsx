@@ -14,11 +14,11 @@ const getPermissions = getPermissionsImport as unknown as Mock;
 const getServiceMode = getServiceModeImport as unknown as Mock;
 
 function TestComponent() {
-  const { permissions, serviceMode: ServiceMode } = useServiceContext();
+  const { permissions, serviceMode } = useServiceContext();
   return (
     <div>
       <span data-testid="permissions">{permissions}</span>
-      <span data-testid="serviceMode">{ServiceMode}</span>
+      <span data-testid="serviceMode">{serviceMode}</span>
     </div>
   );
 }

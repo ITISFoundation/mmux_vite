@@ -30,7 +30,7 @@ function SuMoPlotsSteps() {
   const theme = useTheme();
   const { inputVars, selectedFunction, distribution, outputVars } = useFunctionContext();
   const { selectedQoI, setSelectedQoI } = useMMUXContext();
-  const { serviceMode: ServiceMode } = useServiceContext();
+  const { serviceMode } = useServiceContext();
   const context = useJobContext();
   const { filteredJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);
@@ -91,7 +91,7 @@ function SuMoPlotsSteps() {
           infoText={stepInfoTexts[stepTitles[activeStep]]}
           extendedInfoText={stepExtendedInfoTexts[stepTitles[activeStep]]}
           qoiSelector={
-            (ServiceMode === "MOGA" || ServiceMode === "UQ") && (
+            (serviceMode === "MOGA" || serviceMode === "UQ") && (
               <InputLabel
                 size="small"
                 sx={{
