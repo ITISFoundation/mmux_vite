@@ -51,7 +51,7 @@ mmux_vite/
 - **Dev server:** `npm run dev` → Vite dev server on http://localhost:5173
   - Hot reload enabled
   - Proxies API calls to http://localhost:5000 (configured in package.json)
-  
+
 - **Production build:** `npm run build`
   - TypeScript compilation (`tsc -b`)
   - Vite bundling → `dist/`
