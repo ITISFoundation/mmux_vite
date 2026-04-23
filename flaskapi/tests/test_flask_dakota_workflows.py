@@ -78,6 +78,35 @@ class TestSumoCrossValidation:
         for v in data[f"{OUTPUT}_std_hat"]:
             assert isinstance(v, (int, float))
 
+    def test_sumo_cross_validation_accepts_snake_case_payload(self, test_client: Flask):
+        payload = {
+            "input_vars": ["x1"],
+            "output": "y",
+            "function_jobs": create_function_job_list(3, inputs=["x1"], outputs=["y"]),
+        }
+
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "field required" not in data["error"].lower()
+
+
+class TestSnakeCaseDakotaRequestCompatibility:
+    def test_perform_moga_optimization_accepts_snake_case_payload(self, test_client: Flask):
+        payload = {
+            "input_vars": ["x1"],
+            "distributions": {"x1": {"distribution": "uniform", "min": 0.0, "max": 1.0}},
+            "output_var_selection": {"y": "minimize"},
+            "function_jobs": create_function_job_list(3, inputs=["x1"], outputs=["y"]),
+        }
+
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "field required" not in data["error"].lower()
+
     # ------------------- Failure Cases -------------------
 
     def test_mismatched_input_variables(self, test_client: Flask):

@@ -2,7 +2,7 @@
 Pydantic models for Dakota API endpoints validation.
 """
 from typing import Dict, List, Optional, Union, Literal, Any, Type
-from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
+from pydantic import AliasChoices, BaseModel, Field, field_validator, model_validator, ConfigDict
 import logging
 import numpy as np
 
@@ -117,9 +117,21 @@ class JobVariableSelection(BaseModel):
 
 class SumoCrossValidationRequest(BaseModel):
     """Request model for SuMo cross-validation endpoint."""
+    model_config = ConfigDict(populate_by_name=True)
+
     output: str = Field(..., min_length=1, description="Name of the output variable to validate")
-    inputVars: List[str] = Field(..., min_length=1, description="List of input variable names")
-    FunctionJobs: List[FunctionJob] = Field(..., min_length=5, description="List of function jobs (minimum 5 required)")
+    inputVars: List[str] = Field(
+        ...,
+        min_length=1,
+        description="List of input variable names",
+        validation_alias=AliasChoices("inputVars", "input_vars"),
+    )
+    FunctionJobs: List[FunctionJob] = Field(
+        ...,
+        min_length=5,
+        description="List of function jobs (minimum 5 required)",
+        validation_alias=AliasChoices("FunctionJobs", "function_jobs"),
+    )
 
     @field_validator('inputVars')
     @classmethod
@@ -213,11 +225,26 @@ class DistributionParams(BaseModel):
 
 class ManualUQPropagationRequest(BaseModel):
     """Request model for manual UQ propagation endpoint."""
+    model_config = ConfigDict(populate_by_name=True)
+
     output: str = Field(..., min_length=1)
-    inputVars: List[str] = Field(..., min_length=1)
+    inputVars: List[str] = Field(
+        ...,
+        min_length=1,
+        validation_alias=AliasChoices("inputVars", "input_vars"),
+    )
     distributions: Dict[str, DistributionParams]
-    numSamples: int = Field(..., gt=0, description="Number of samples to generate")
-    FunctionJobs: List[FunctionJob] = Field(..., min_length=5)
+    numSamples: int = Field(
+        ...,
+        gt=0,
+        description="Number of samples to generate",
+        validation_alias=AliasChoices("numSamples", "num_samples"),
+    )
+    FunctionJobs: List[FunctionJob] = Field(
+        ...,
+        min_length=5,
+        validation_alias=AliasChoices("FunctionJobs", "function_jobs"),
+    )
 
     @field_validator('inputVars')
     @classmethod
@@ -248,7 +275,13 @@ class ManualUQPropagationRequest(BaseModel):
 
 class ManualUQWithUncertaintyRequest(ManualUQPropagationRequest):
     """Request model for manual UQ propagation with uncertainty endpoint."""
-    nHistograms: int = Field(..., gt=0, le=1000, description="Number of histograms for uncertainty estimation (1-1000)")
+    nHistograms: int = Field(
+        ...,
+        gt=0,
+        le=1000,
+        description="Number of histograms for uncertainty estimation (1-1000)",
+        validation_alias=AliasChoices("nHistograms", "n_histograms"),
+    )
     seed: int = Field(..., description="Random seed for reproducibility")
 
     @field_validator('nHistograms')
@@ -299,10 +332,21 @@ class ManualUQWithUncertaintyRequest(ManualUQPropagationRequest):
 
 class SumoAlongAxesRequest(BaseModel):
     """Request model for SUMO along axes evaluation."""
+    model_config = ConfigDict(populate_by_name=True)
+
     output: str = Field(..., min_length=1, description="Name of the output variable to evaluate")
     inputs: List[str] = Field(..., min_length=1, description="List of input variable names")
-    FunctionJobs: List[FunctionJob] = Field(..., min_length=5, description="List of function jobs (minimum 5 required)")
-    sliderValues: Optional[Dict[str, float]] = Field(default=None, description="Cut values for input variables")
+    FunctionJobs: List[FunctionJob] = Field(
+        ...,
+        min_length=5,
+        description="List of function jobs (minimum 5 required)",
+        validation_alias=AliasChoices("FunctionJobs", "function_jobs"),
+    )
+    sliderValues: Optional[Dict[str, float]] = Field(
+        default=None,
+        description="Cut values for input variables",
+        validation_alias=AliasChoices("sliderValues", "slider_values"),
+    )
 
     @field_validator('inputs')
     @classmethod
@@ -454,11 +498,33 @@ class SumoAlongAxesResponse(BaseModel):
 
 class SumoGridEvaluationRequest(BaseModel):
     """Request model for SUMO grid evaluation."""
+    model_config = ConfigDict(populate_by_name=True)
+
     output: str = Field(..., min_length=1, description="Name of the output variable to evaluate")
-    gridVars: List[str] = Field(..., min_length=1, max_length=3, description="Variables for grid (1-3 dimensions)")
-    inputVars: List[str] = Field(..., min_length=1, description="List of all input variable names")
-    FunctionJobs: List[FunctionJob] = Field(..., min_length=5, description="List of function jobs (minimum 5 required)")
-    sliderValues: Optional[Dict[str, float]] = Field(default=None, description="Fixed values for non-grid input variables")
+    gridVars: List[str] = Field(
+        ...,
+        min_length=1,
+        max_length=3,
+        description="Variables for grid (1-3 dimensions)",
+        validation_alias=AliasChoices("gridVars", "grid_vars"),
+    )
+    inputVars: List[str] = Field(
+        ...,
+        min_length=1,
+        description="List of all input variable names",
+        validation_alias=AliasChoices("inputVars", "input_vars"),
+    )
+    FunctionJobs: List[FunctionJob] = Field(
+        ...,
+        min_length=5,
+        description="List of function jobs (minimum 5 required)",
+        validation_alias=AliasChoices("FunctionJobs", "function_jobs"),
+    )
+    sliderValues: Optional[Dict[str, float]] = Field(
+        default=None,
+        description="Fixed values for non-grid input variables",
+        validation_alias=AliasChoices("sliderValues", "slider_values"),
+    )
 
     @field_validator('gridVars')
     @classmethod
@@ -604,10 +670,27 @@ class SumoGridEvaluationResponse(BaseModel):
 
 class MOGAOptimizationRequest(BaseModel):
     """Request model for MOGA optimization."""
-    inputVars: List[str] = Field(..., min_length=1, description="List of input variable names")
+    model_config = ConfigDict(populate_by_name=True)
+
+    inputVars: List[str] = Field(
+        ...,
+        min_length=1,
+        description="List of input variable names",
+        validation_alias=AliasChoices("inputVars", "input_vars"),
+    )
     distributions: Dict[str, DistributionParams] = Field(..., description="Distribution parameters for each input variable")
-    outputVarSelection: Dict[str, Literal["minimize", "maximize"]] = Field(..., min_length=1, description="Objective selection for output variables")
-    FunctionJobs: List[FunctionJob] = Field(..., min_length=5, description="List of function jobs (minimum 5 required)")
+    outputVarSelection: Dict[str, Literal["minimize", "maximize"]] = Field(
+        ...,
+        min_length=1,
+        description="Objective selection for output variables",
+        validation_alias=AliasChoices("outputVarSelection", "output_var_selection"),
+    )
+    FunctionJobs: List[FunctionJob] = Field(
+        ...,
+        min_length=5,
+        description="List of function jobs (minimum 5 required)",
+        validation_alias=AliasChoices("FunctionJobs", "function_jobs"),
+    )
 
     @field_validator('inputVars')
     @classmethod
@@ -777,10 +860,17 @@ class UQWithUncertaintyResponse(BaseModel):
 
 class SumoCVAccuracyMetricsRequest(BaseModel):
     """Request model for SUMO cross-validation accuracy metrics endpoint."""
+    model_config = ConfigDict(populate_by_name=True)
+
     output: str = Field(..., min_length=1, description="Name of the output variable to validate")
     inputs: List[str] = Field(..., min_length=1, description="List of input variable names")
     log: Optional[bool] = Field(False, description="Whether to apply log transformation to data")
-    FunctionJobs: List[FunctionJob] = Field(..., min_length=5, description="List of function jobs (minimum 5 required)")
+    FunctionJobs: List[FunctionJob] = Field(
+        ...,
+        min_length=5,
+        description="List of function jobs (minimum 5 required)",
+        validation_alias=AliasChoices("FunctionJobs", "function_jobs"),
+    )
 
     @field_validator('inputs')
     @classmethod

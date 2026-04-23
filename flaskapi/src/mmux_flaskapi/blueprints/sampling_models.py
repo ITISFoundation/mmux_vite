@@ -6,10 +6,16 @@ providing proper validation and type safety.
 """
 
 from typing import Dict, List, Any, Optional
-from pydantic import BaseModel, Field, validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, validator
 import logging
 
 _logger = logging.getLogger(__name__)
+
+
+class CompatibilityRequestModel(BaseModel):
+    """Base model that accepts both legacy camelCase and snake_case request keys."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class VariableConfig(BaseModel):
@@ -31,12 +37,17 @@ class TestJobVariableConfig(BaseModel):
     value: Any = Field(..., description="Value for the variable")
 
 
-class LHSSamplingRequest(BaseModel):
+class LHSSamplingRequest(CompatibilityRequestModel):
     """Request model for Latin Hypercube Sampling."""
     config: List[VariableConfig] = Field(..., description="List of variable configurations")
     seed: int = Field(..., ge=0, description="Random seed for sampling")
     N: int = Field(..., gt=0, description="Number of samples to generate", alias="N")
-    funUid: str = Field(..., min_length=1, description="Function UID for OSPARC")
+    funUid: str = Field(
+        ...,
+        min_length=1,
+        description="Function UID for OSPARC",
+        validation_alias=AliasChoices("funUid", "fun_uid"),
+    )
     
     @validator('config')
     def config_must_not_be_empty(cls, v):
@@ -44,9 +55,6 @@ class LHSSamplingRequest(BaseModel):
             raise ValueError('config must not be empty')
         return v
     
-    class Config:
-        allow_population_by_field_name = True
-
 
 class GridSamplingVariableConfig(BaseModel):
     """Configuration for a single variable in grid sampling."""
@@ -62,10 +70,15 @@ class GridSamplingVariableConfig(BaseModel):
         return v
 
 
-class GridSamplingRequest(BaseModel):
+class GridSamplingRequest(CompatibilityRequestModel):
     """Request model for Grid Sampling."""
     config: List[GridSamplingVariableConfig] = Field(..., description="List of variable configurations")
-    funUid: str = Field(..., min_length=1, description="Function UID for OSPARC")
+    funUid: str = Field(
+        ...,
+        min_length=1,
+        description="Function UID for OSPARC",
+        validation_alias=AliasChoices("funUid", "fun_uid"),
+    )
     
     @validator('config')
     def config_must_not_be_empty(cls, v):
@@ -74,10 +87,15 @@ class GridSamplingRequest(BaseModel):
         return v
 
 
-class TestJobRequest(BaseModel):
+class TestJobRequest(CompatibilityRequestModel):
     """Request model for testing a job."""
     config: List[TestJobVariableConfig] = Field(..., description="List of variable configurations with values")
-    funUid: str = Field(..., min_length=1, description="Function UID for OSPARC")
+    funUid: str = Field(
+        ...,
+        min_length=1,
+        description="Function UID for OSPARC",
+        validation_alias=AliasChoices("funUid", "fun_uid"),
+    )
     
     @validator('config')
     def config_must_not_be_empty(cls, v):
@@ -86,11 +104,25 @@ class TestJobRequest(BaseModel):
         return v
 
 
-class CloneJobRequest(BaseModel):
+class CloneJobRequest(CompatibilityRequestModel):
     """Request model for cloning a job."""
-    projectJobId: str = Field(..., min_length=1, description="ID of the project job to clone")
-    functionName: str = Field(..., min_length=1, description="Name of the function")
-    projectInputs: Dict[str, Any] = Field(..., description="Inputs for the project")
+    projectJobId: str = Field(
+        ...,
+        min_length=1,
+        description="ID of the project job to clone",
+        validation_alias=AliasChoices("projectJobId", "project_job_id"),
+    )
+    functionName: str = Field(
+        ...,
+        min_length=1,
+        description="Name of the function",
+        validation_alias=AliasChoices("functionName", "function_name"),
+    )
+    projectInputs: Dict[str, Any] = Field(
+        ...,
+        description="Inputs for the project",
+        validation_alias=AliasChoices("projectInputs", "project_inputs"),
+    )
 
 
 class SamplingResponse(BaseModel):

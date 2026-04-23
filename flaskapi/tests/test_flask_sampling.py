@@ -212,6 +212,15 @@ class TestSamplingEndpoints:
         data = response.get_json()
         assert "error" in data
 
+    def test_lhs_accepts_snake_case_fun_uid(self, test_client):
+        payload = {"config": [], "seed": 42, "N": 10, "fun_uid": "test-func"}
+
+        response = test_client.post("/flask/sampling/lhs", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "funuid" not in data["error"].lower()
+
     def test_grid_with_incomplete_config(self, test_client):
         """Test grid sampling with incomplete but present config field."""
         payload = {"config": []}  # Empty config, missing funUid
@@ -520,6 +529,19 @@ class TestSamplingValidationEndpoints:
             assert response.status_code == 400
             data = response.get_json()
             assert "error" in data
+
+    def test_clone_job_accepts_snake_case_payload_fields(self, test_client):
+        payload = {
+            "project_job_id": "",
+            "function_name": "test_function",
+            "project_inputs": {},
+        }
+
+        response = test_client.post("/flask/sampling/clone_job", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "field required" not in data["error"].lower()
 
     def test_validation_error_response_format(self, test_client):
         """Test that validation errors return proper error response format."""

@@ -17,7 +17,7 @@ def service_mode():
     try:
         service_mode = os.environ["SERVICE_MODE"]
         _logger.info(f"Service mode: {service_mode}")
-        return jsonify({'service_mode': service_mode}), 200
+        return jsonify({'service_mode': service_mode, 'serviceMode': service_mode}), 200
     except KeyError:
         _logger.error("SERVICE_MODE environment variable is not set.")
         return jsonify({'error': 'SERVICE_MODE not set'}), 500
@@ -39,7 +39,7 @@ def deployment_mode():
     try:
         deployment_mode = os.environ["DEPLOYMENT_MODE"]
         _logger.info(f"Deployment mode: {deployment_mode}")
-        return jsonify({'deployment_mode': deployment_mode}), 200
+        return jsonify({'deployment_mode': deployment_mode, 'deploymentMode': deployment_mode}), 200
     except KeyError:
         _logger.error("DEPLOYMENT_MODE environment variable is not set.")
         return jsonify({'error': 'DEPLOYMENT_MODE not set'}), 500
