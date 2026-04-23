@@ -6,7 +6,7 @@ import { useJobContext } from "../../context/JobContext";
 import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
 import { useServiceContext } from "../../context/ServiceContext";
 import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "../../osparc-api-ts-client";
-import { getFunctionJobsFromFunctionJobCollection, getJobStatusCounts } from "../../utils/function_utils";
+import { getFunctionJobsFromFunctionJobCollection, getJobStatusCounts } from "../../utils/functionUtils";
 import { getSamplingEndValue, getSamplingStartValue } from "../../utils/sampling";
 import { filterInputVars } from "../plots/PlotTools";
 import VariableConfig from "../setup/VariableConfig";

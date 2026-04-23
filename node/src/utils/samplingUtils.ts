@@ -1,6 +1,6 @@
 import { toast } from "react-toastify";
 import { Function as OsparcFunction, FunctionJob as OsparcFunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
-import { createJobStudyCopy, openStudyUid } from "./function_utils";
+import { createJobStudyCopy, openStudyUid } from "./functionUtils";
 
 export async function runSingleJob(
   selectedFunction: OsparcFunction | undefined,

@@ -366,7 +366,7 @@ export function InputVariableDist() {
               />
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {["UQ"].includes(ServiceMode) && (
+              {["UQ"].includes(serviceMode) && (
                 <InputLabel
                   sx={{
                     display: "flex",

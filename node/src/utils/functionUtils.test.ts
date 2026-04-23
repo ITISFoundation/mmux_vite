@@ -11,7 +11,7 @@ import {
   getServiceMode,
   listFunctions,
   listJobs,
-} from "./function_utils";
+} from "./functionUtils";
 
 const mockJobs: FunctionJob[] = [
   {
@@ -36,7 +36,7 @@ const mockFunctions = [{ uid: "func1" }, { uid: "func2" }];
 const sampleJobs = [{ uid: "job1" }, { uid: "job2" }];
 const mockCollections = [{ uid: "collection1" }, { uid: "collection2" }];
 
-vi.mock("./fetch_retry.ts", () => ({
+vi.mock("./fetchRetry.ts", () => ({
   fetchWithRetry: (path: string) => {
     let response: unknown;
     if (path.includes("list_jobs")) {

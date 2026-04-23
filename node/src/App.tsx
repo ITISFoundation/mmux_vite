@@ -6,7 +6,7 @@ import { setupTheme } from "./theme";
 import Navigation from "./components/navigation/Navigation";
 import { Footer } from "./components/navigation/Footer";
 import { useNavigationContext } from "./context/NavigationContext";
-import { getHealth } from "./utils/function_utils";
+import { getHealth } from "./utils/functionUtils";
 import SplashScreen from "./views/SplashScreen";
 import { ServiceContextProvider } from "./context/ServiceContext";
 import PreviewWarning from "./components/navigation/PreviewWarning";

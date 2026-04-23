@@ -1,6 +1,6 @@
 import { toast } from "react-toastify";
 import { Function as OsparcFunction, ProjectFunctionJob, FunctionJob, FunctionJobCollection } from "../osparc-api-ts-client";
-import { fetchWithRetry } from "./fetch_retry";
+import { fetchWithRetry } from "./fetchRetry";
 
 function snakeToCamelCase(value: string): string {
   return value.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase());

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getPermissions, getServiceMode } from "../utils/function_utils";
+import { getPermissions, getServiceMode } from "../utils/functionUtils";
 
 type PermissionsEnum = "WRITE" | "READ-ONLY";
 type ServiceModeEnum = "UQ" | "SUMO" | "MOGA" | ""; // this will need to be expanded as we include more flavours

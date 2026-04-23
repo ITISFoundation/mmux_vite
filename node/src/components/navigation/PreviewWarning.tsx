@@ -1,6 +1,6 @@
 import { Alert, Container, Box } from "@mui/material";
 import { useServiceContext } from "../../context/ServiceContext";
-import { getSimplifiedHost } from "../../utils/function_utils";
+import { getSimplifiedHost } from "../../utils/functionUtils";
 
 function PreviewWarning() {
   const simplifiedHost = getSimplifiedHost();

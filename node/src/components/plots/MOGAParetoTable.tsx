@@ -6,7 +6,7 @@ import { useMOGATableContext } from "../../context/MOGATableContext";
 import PerformanceModal from "./PerformanceModal";
 import Header from "../navigation/Header";
 import { RunSamplingButton } from "../sampling/RunSamplingButton";
-import { runSingleJob } from "../../utils/sampling_utils";
+import { runSingleJob } from "../../utils/samplingUtils";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useSamplingContext } from "../../context/SamplingContext";
 

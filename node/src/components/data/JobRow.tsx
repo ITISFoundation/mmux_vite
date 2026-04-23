@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import { Function as OsparcFunction } from "../../osparc-api-ts-client";
-import { createJobStudyCopy, openStudyUid } from "../../utils/function_utils";
+import { createJobStudyCopy, openStudyUid } from "../../utils/functionUtils";
 import CustomTooltip from "../utils/CustomTooltip";
 import { useJobContext } from "../../context/JobContext";
 
