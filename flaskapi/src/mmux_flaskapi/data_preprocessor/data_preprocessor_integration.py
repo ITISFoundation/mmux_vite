@@ -5,11 +5,15 @@ This module provides helper functions to integrate the DataPreprocessor class
 with the existing _create_training_file_from_jobs function and other workflow components.
 """
 
+import logging
 import pandas as pd
 from pathlib import Path
 from typing import List, Union, Dict, Any, Optional, Callable
-from mmux_flaskapi.data_preprocessor import DataPreprocessor
-import logging
+
+from pydantic import ValidationError
+
+from mmux_flaskapi.blueprints.dakota_models import JobVariableSelection
+from mmux_flaskapi.data_preprocessor.data_preprocessor import DataPreprocessor
 
 _logger = logging.getLogger(__name__)
 
@@ -37,49 +41,23 @@ def create_training_file_with_preprocessor(
     Returns:
         Tuple of (training_file_path, fitted_preprocessor)
     """
-    # Filter completed jobs
-    completed_jobs = [
-        job for job in jobs 
-        if job.get("status", "").lower() in ["completed", "success"]
-    ]
-    
-    _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
-    
-    if len(completed_jobs) == 0:
-        raise ValueError("No completed jobs found. Cannot create training file.")
-    elif len(completed_jobs) < 5:
-        raise ValueError("At least 5 samples are necessary to build a surrogate model in Dakota - a crash would occur otherwise.")
-    
-    # Convert output_response to list if string
-    if isinstance(output_response, str):
-        output_response_list = [output_response]
-    else:
-        output_response_list = output_response
-    
-    # Extract data from jobs
-    def get_job_dict(job):
-        d = {}
-        # Add input variables
-        for key in input_vars:
-            if key in job.get("inputs", {}):
-                d[key] = job["inputs"][key]
-            else:
-                _logger.warning(f"Input variable {key} not found in job inputs")
-        
-        # Add output variables
-        if "outputs" not in job:
-            raise ValueError(f"Outputs not found in job: {job}")
-            
-        for res in output_response_list:
-            if res in job["outputs"]:
-                d[res] = job["outputs"][res]
-            else:
-                raise ValueError(f"Output {res} not found in job outputs: {list(job['outputs'].keys())}")
-        
-        return d
-    
-    # Create DataFrame from jobs
-    df_jobs = pd.DataFrame([get_job_dict(job) for job in completed_jobs])
+    output_response_list = (
+        [output_response] if isinstance(output_response, str) else output_response
+    )
+
+    try:
+        validated_selection = JobVariableSelection.model_validate(
+            {
+                "jobs": jobs,
+                "input_vars": input_vars,
+                "output_vars": output_response_list,
+            }
+        )
+    except ValidationError as exc:
+        raise ValueError(str(exc)) from exc
+
+    run_dir.mkdir(parents=True, exist_ok=True)
+    df_jobs = pd.DataFrame(validated_selection.to_records())
     _logger.info(f"Created DataFrame with shape: {df_jobs.shape}")
     
     # Apply preprocessing

@@ -36,3 +36,4 @@ validation/
 .coverage
 coverage.xml
 htmlcov/
+.codex
