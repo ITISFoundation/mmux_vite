@@ -185,13 +185,8 @@ class TestDeploymentEndpoints:
         response = test_client.get("/flask/deployment/service-mode")
         assert response.status_code == 200
         data = response.get_json()
-<<<<<<< HEAD
         assert data["service_mode"] == "production"
         
-=======
-        assert data["serviceMode"] == "production"
-
->>>>>>> 8e29ff8 ([FIX] env-vars to camelCase)
         # Test permissions
         response = test_client.get("/flask/deployment/permissions")
         assert response.status_code == 200
@@ -281,43 +276,5 @@ class TestDeploymentEndpoints:
         assert response.status_code == 200
         
         data = response.get_json()
-<<<<<<< HEAD
         assert "deployment_mode" in data
         assert data["deployment_mode"] == "CUSTOM_DEPLOYMENT"
-=======
-        assert "deploymentMode" in data
-        assert data["deploymentMode"] == "CUSTOM_DEPLOYMENT"
-
-
-class TestDeploymentConfigHelpers:
-    """Test pure config helpers used by internal backend callers."""
-
-    @patch.dict(os.environ, {"SERVICE_MODE": "development"}, clear=True)
-    def test_get_service_mode_value(self):
-        """Test internal service mode lookup without HTTP response wrapping."""
-        assert get_service_mode_value() == "development"
-
-    @patch.dict(os.environ, {"PERMISSIONS": "read-write"}, clear=True)
-    def test_get_permissions_value(self):
-        """Test internal permissions lookup without HTTP response wrapping."""
-        assert get_permissions_value() == "read-write"
-
-    @patch.dict(os.environ, {"DEPLOYMENT_MODE": "OSPARC"}, clear=True)
-    def test_get_deployment_mode_value(self):
-        """Test internal deployment mode lookup without HTTP response wrapping."""
-        assert get_deployment_mode_value() == "OSPARC"
-
-    @pytest.mark.parametrize(
-        ("helper", "env_name"),
-        [
-            (get_service_mode_value, "SERVICE_MODE"),
-            (get_permissions_value, "PERMISSIONS"),
-            (get_deployment_mode_value, "DEPLOYMENT_MODE"),
-        ],
-    )
-    @patch.dict(os.environ, {}, clear=True)
-    def test_helpers_raise_key_error_for_missing_values(self, helper, env_name):
-        """Test helpers surface missing configuration to internal callers."""
-        with pytest.raises(KeyError, match=env_name):
-            helper()
->>>>>>> 8e29ff8 ([FIX] env-vars to camelCase)

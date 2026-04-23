@@ -81,17 +81,8 @@ def flask_list_jobs():
 @api_endpoint
 def flask_get_function_job_collections():
     osparc_api = get_osparc_api()
-<<<<<<< HEAD
     # this is a list of items of Paginated object -- deserialize into a list of JobCollection objects
     job_collections = _get_all_items(osparc_api.get_job_collection_api().list_function_job_collections)
-=======
-    # Deserialize the paginated response into plain JobCollection dictionaries.
-    # _get_all_items already converts keys from camelCase to snake_case
-    job_collections = _get_all_items(
-        osparc_api.get_job_collection_api().list_function_job_collections
-    )
-    job_collections += list_local_job_collections()
->>>>>>> 8e29ff8 ([FIX] env-vars to camelCase)
     _logger.debug(f"N Job collections: {len(job_collections)}")
     return job_collections, 200
 
@@ -131,32 +122,9 @@ def flask_get_function_job_collections_for_functionid():
     _logger.debug(f"Request args: {request.args}")
     function_uid = request.args["functionUid"]
     _logger.debug(f"Function ID: {function_uid}")
-<<<<<<< HEAD
     response = osparc_api.get_job_collection_api().list_function_job_collections(has_function_id=function_uid)
     job_collections = [dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
     _logger.debug(f"N Job collections for function {function_uid}: {len(job_collections)}")
-=======
-
-    local_collections = list_local_job_collections(function_uid)
-
-    if is_local_function_uid(function_uid):
-        _logger.debug(
-            "N local Job collections for local function %s: %s",
-            function_uid,
-            len(local_collections),
-        )
-        return local_collections, 200
-
-    osparc_api = get_osparc_api()
-    response = osparc_api.get_job_collection_api().list_function_job_collections(
-        has_function_id=function_uid
-    )
-    job_collections = [dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
-    job_collections += local_collections
-    _logger.debug(
-        f"N Job collections for function {function_uid}: {len(job_collections)}"
-    )
->>>>>>> 8e29ff8 ([FIX] env-vars to camelCase)
     return job_collections, 200
 
 ###########################################################################################

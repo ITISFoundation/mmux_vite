@@ -1,12 +1,6 @@
 from flask import Flask
 from mmux_flaskapi.blueprints.deployment import deployment_bp
 from mmux_flaskapi.blueprints.osparc import osparc_bp
-<<<<<<< HEAD
-=======
-from mmux_flaskapi.blueprints.sampling import sampling_bp
-from mmux_flaskapi.blueprints.textfile import textfile_bp
-from mmux_flaskapi.utils.json_serializer import register_json_transformers
->>>>>>> 8e29ff8 ([FIX] env-vars to camelCase)
 from mmux_flaskapi.utils.webserver_config import OsparcApi
 from mmux_flaskapi.blueprints.textfile import textfile_bp
 from mmux_flaskapi.blueprints.sampling import sampling_bp
@@ -20,15 +14,9 @@ class MMUXFlask(Flask):
 def create_flask_app() -> MMUXFlask:
     app = MMUXFlask("MMUX Flask API")
     app.osparc_api = OsparcApi()
-<<<<<<< HEAD
     app.register_blueprint(deployment_bp, url_prefix="/flask/deployment")
     app.register_blueprint(osparc_bp, url_prefix="/flask/osparc")
     app.register_blueprint(textfile_bp, url_prefix="/flask/text-file")
     app.register_blueprint(sampling_bp, url_prefix="/flask/sampling")
     app.register_blueprint(dakota_bp, url_prefix="/flask/dakota")
-=======
-    _register_blueprints(app)
-    # Register JSON case converters for automatic snake_case <-> camelCase conversion
-    register_json_transformers(app)
->>>>>>> 8e29ff8 ([FIX] env-vars to camelCase)
     return app
