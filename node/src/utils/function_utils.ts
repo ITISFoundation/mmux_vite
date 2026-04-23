@@ -1,6 +1,5 @@
 import { toast } from "react-toastify";
 import { Function as OsparcFunction, ProjectFunctionJob, FunctionJob, FunctionJobCollection } from "../osparc-api-ts-client";
-import { pythonDakotaBackend } from "./api_objects";
 import { fetchWithRetry } from "./fetch_retry";
 
 function snakeToCamelCase(value: string): string {

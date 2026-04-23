@@ -3,7 +3,6 @@ import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
 import { FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
-import { pythonDakotaBackend } from "../../utils/api_objects";
 import { useMMUXContext } from "../../context/MMUXContext";
 import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
@@ -100,7 +99,7 @@ function Curves1DPlots() {
   const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[]) => {
     setPropagating(true);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
-    fetch(`${pythonDakotaBackend}/flask/dakota/sumo_along_axes`, {
+    fetch(`/flask/dakota/sumo_along_axes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
