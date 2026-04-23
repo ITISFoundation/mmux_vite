@@ -1990,6 +1990,64 @@ class TestMOGAOptimization:
             for i, var in enumerate(output_vars)
         }
 
+    def test_moga_restores_original_names_and_maximize_direction(
+        self, test_client: Flask, monkeypatch
+    ):
+        """Mapped optimizer outputs should be returned in original variable names and original sign."""
+        input_vars = ["temperature"]
+        output_vars = ["loss", "activation"]
+        jobs = self.create_moga_jobs(10, input_vars, output_vars)
+
+        captured_call = {}
+
+        def fake_perform_moga_optimization(
+            run_dir,
+            processed_training_file,
+            mapped_input_vars,
+            mapped_distributions,
+            mapped_output_vars,
+            moga_kwargs,
+        ):
+            captured_call["mapped_input_vars"] = mapped_input_vars
+            captured_call["mapped_distributions"] = mapped_distributions
+            captured_call["mapped_output_vars"] = mapped_output_vars
+            captured_call["moga_kwargs"] = moga_kwargs
+            return {
+                mapped_input_vars[0]: [0.25, 0.75],
+                mapped_output_vars[0]: [-2.0, -1.5],
+                mapped_output_vars[1]: [-2.0, -1.5],
+            }
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.perform_moga_optimization",
+            fake_perform_moga_optimization,
+        )
+
+        payload = {
+            "inputVars": input_vars,
+            "distributions": self.create_distribution_dict(input_vars),
+            "outputVarSelection": {
+                "loss": "minimize",
+                "activation": "maximize",
+            },
+            "FunctionJobs": jobs,
+        }
+
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
+
+        assert response.status_code == 200
+        data = response.get_json()
+        results = data["optimization_results"]
+
+        assert captured_call["mapped_input_vars"] == ["x1"]
+        assert set(captured_call["mapped_output_vars"]) == {"y1", "y2"}
+        assert set(captured_call["mapped_distributions"].keys()) == {"x1"}
+
+        assert set(results.keys()) == {"temperature", "loss", "activation"}
+        assert results["temperature"] == [0.25, 0.75]
+        assert results["loss"] == [-2.0, -1.5]
+        assert results["activation"] == [2.0, 1.5]
+
     def test_successful_basic_moga_optimization(self, test_client: Flask):
         """Test successful MOGA optimization with basic configuration."""
         input_vars = ["x1", "x2"]
