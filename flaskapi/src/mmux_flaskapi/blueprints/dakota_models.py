@@ -39,6 +39,82 @@ class FunctionJob(BaseModel):
         return v
 
 
+class JobVariableSelection(BaseModel):
+    """Validated selection of jobs and variables for workflow helpers."""
+
+    jobs: List[FunctionJob] = Field(..., min_length=1)
+    input_vars: List[str] = Field(..., min_length=1)
+    output_vars: List[str] = Field(..., min_length=1)
+    minimum_completed_jobs: int = Field(5, ge=1)
+
+    @field_validator("input_vars", "output_vars")
+    @classmethod
+    def variable_names_must_not_be_empty_strings(cls, v: List[str]) -> List[str]:
+        cleaned = []
+        for var in v:
+            if not var or not var.strip():
+                raise ValueError("Variable names cannot be empty")
+            cleaned.append(var.strip())
+        return cleaned
+
+    @property
+    def completed_jobs(self) -> List[FunctionJob]:
+        return [job for job in self.jobs if job.status in ["completed", "success"]]
+
+    @model_validator(mode="after")
+    def validate_completed_jobs_have_requested_variables(self) -> "JobVariableSelection":
+        completed_jobs = self.completed_jobs
+
+        if len(completed_jobs) < self.minimum_completed_jobs:
+            raise ValueError(
+                "At least "
+                f"{self.minimum_completed_jobs} samples are necessary to build a surrogate model in Dakota. "
+                f"Found {len(completed_jobs)} completed jobs."
+            )
+
+        missing_input_vars = set()
+        missing_output_vars = set()
+        available_input_keys = set()
+        available_output_keys = set()
+
+        for job in completed_jobs:
+            available_input_keys.update(job.inputs.keys())
+            available_output_keys.update(job.outputs.keys())
+
+            for input_var in self.input_vars:
+                if input_var not in job.inputs:
+                    missing_input_vars.add(input_var)
+
+            for output_var in self.output_vars:
+                if output_var not in job.outputs:
+                    missing_output_vars.add(output_var)
+
+        if missing_input_vars:
+            raise ValueError(
+                f"Input variables {sorted(missing_input_vars)} not found in completed job inputs. "
+                f"Available input keys: {sorted(available_input_keys)}"
+            )
+
+        if missing_output_vars:
+            raise ValueError(
+                f"Output variables {sorted(missing_output_vars)} not found in completed job outputs. "
+                f"Available output keys: {sorted(available_output_keys)}"
+            )
+
+        return self
+
+    def to_records(self) -> List[Dict[str, Union[float, int]]]:
+        records = []
+        for job in self.completed_jobs:
+            record: Dict[str, Union[float, int]] = {}
+            for input_var in self.input_vars:
+                record[input_var] = job.inputs[input_var]
+            for output_var in self.output_vars:
+                record[output_var] = job.outputs[output_var]
+            records.append(record)
+        return records
+
+
 class SumoCrossValidationRequest(BaseModel):
     """Request model for SuMo cross-validation endpoint."""
     output: str = Field(..., min_length=1, description="Name of the output variable to validate")
@@ -542,6 +618,7 @@ class MOGAOptimizationRequest(BaseModel):
                 raise ValueError('Input variable names cannot be empty')
         return [var.strip() for var in v]
 
+    @model_validator(mode='after')
     def validate_comprehensive_moga_requirements(self) -> 'MOGAOptimizationRequest':
         """Validate comprehensive MOGA optimization requirements."""
 
@@ -795,4 +872,3 @@ class SumoCVAccuracyMetricsResponse(BaseModel):
             elif not isinstance(metrics, CVAccuracyMetrics):
                 raise ValueError(f"Metrics for {var_name} must be CVAccuracyMetrics or string")
         return self
-
