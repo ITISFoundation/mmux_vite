@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 import logging
 import os
@@ -134,7 +135,7 @@ def _check_jobs(jobs: list[FunctionJob]) -> list[FunctionJob]:
 
 
 def _jobs_to_df(
-    jobs: list[FunctionJob], input_vars: List[str], output_vars: List[str]
+    jobs: list[FunctionJob], input_vars: list[str], output_vars: list[str]
 ) -> pd.DataFrame:
     """
     Convert list of FunctionJob objects to DataFrame.
@@ -175,15 +176,15 @@ def _jobs_to_df(
 
 
 def setup_preprocessor_for_workflow(
-    jobs: List[FunctionJob],
-    input_vars: List[str],
-    output_vars: List[str],
+    jobs: list[FunctionJob],
+    input_vars: list[str],
+    output_vars: list[str],
     run_dir: Path,
-    input_normalizations: Optional[Dict[str, str]] = None,
-    output_normalizations: Optional[Dict[str, str]] = None,
-    input_sign_switches: Optional[List[str]] = None,
-    output_sign_switches: Optional[List[str]] = None,
-) -> Tuple[Path, DataPreprocessor]:
+    input_normalizations: dict[str, str] | None = None,
+    output_normalizations: dict[str, str] | None = None,
+    input_sign_switches: list[str] | None = None,
+    output_sign_switches: list[str] | None = None,
+) -> tuple[Path, DataPreprocessor]:
     """
     Standardized preprocessor setup for Dakota workflows.
     
@@ -313,12 +314,6 @@ def flask_sumo_cross_validation():
     Uses DataPreprocessor for variable mapping and normalization.
     Returns cross-validation predictions with uncertainty estimates in original variable names.
     """
-    """
-    Perform SUMO cross-validation to assess surrogate model accuracy.
-
-    Uses DataPreprocessor for variable mapping and normalization.
-    Returns cross-validation predictions with uncertainty estimates in original variable names.
-    """
     os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_sumo_cross_validation")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -364,12 +359,9 @@ def flask_sumo_cross_validation():
             PROCESSED_TRAINING_FILE,
             mapped_input_vars,
             mapped_output_var,
-            mapped_input_vars,
-            mapped_output_var,
         )
 
         # Validate that "results" contains the expected keys: estimate of output (_hat) and its std (_std_hat)
-        expected_keys = [mapped_output_var + "_hat", mapped_output_var + "_std_hat"]
         expected_keys = [mapped_output_var + "_hat", mapped_output_var + "_std_hat"]
         missing_keys = [key for key in expected_keys if key not in results]
         if missing_keys:
@@ -401,10 +393,7 @@ def flask_manual_uq_propagation_with_uncertainty():
 
     Uses DataPreprocessor for variable mapping and normalization.
     Creates multiple histogram realizations using uncertainty estimates
-    Uses DataPreprocessor for variable mapping and normalization.
-    Creates multiple histogram realizations using uncertainty estimates
     from a trained surrogate model to quantify the uncertainty in the UQ results.
-    Returns results in original variable space.
     Returns results in original variable space.
     """
     os.chdir(Path(__file__).parent)
@@ -457,9 +446,7 @@ def flask_manual_uq_propagation_with_uncertainty():
             input_vars, distributions_dict, num_samples, seed
         )
         df_samples = pd.DataFrame(samples)
-        df_samples = pd.DataFrame(samples)
         UQ_SAMPLES_FILE = run_dir / "manual_uq_samples.csv"
-        df_samples.to_csv(UQ_SAMPLES_FILE, index=False)
         df_samples.to_csv(UQ_SAMPLES_FILE, index=False)
         _logger.debug(f"Generated manual UQ samples saved to {UQ_SAMPLES_FILE}")
 
@@ -485,8 +472,6 @@ def flask_manual_uq_propagation_with_uncertainty():
         )
 
         # Verify uncertainty predictions are available
-        uncertainty_key = mapped_output_var + "_std_hat"
-        prediction_key = mapped_output_var + "_hat"
         uncertainty_key = mapped_output_var + "_std_hat"
         prediction_key = mapped_output_var + "_hat"
 
@@ -558,7 +543,6 @@ def flask_manual_uq_propagation_with_uncertainty():
         histograms = np.array(
             [
                 np.histogram(all_values_reshaped[i, :], bins=bin_edges, density=True)[0]
-                np.histogram(all_values_reshaped[i, :], bins=bin_edges, density=True)[0]
                 for i in range(n_histograms)
             ]
         )
@@ -599,10 +583,6 @@ def flask_manual_uq_propagation_with_uncertainty():
             "std": float(np.std(all_values_flat)),
             "min": float(np.min(all_values_flat)),
             "max": float(np.max(all_values_flat)),
-            "mean": float(np.mean(all_values_flat)),
-            "std": float(np.std(all_values_flat)),
-            "min": float(np.min(all_values_flat)),
-            "max": float(np.max(all_values_flat)),
         }
 
         # Validate response using Pydantic
@@ -613,9 +593,7 @@ def flask_manual_uq_propagation_with_uncertainty():
 
     except ValidationError as e:
         handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
-        handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
     except ValueError as e:
-        handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
         handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 500)
@@ -626,10 +604,7 @@ def flask_evaluate_sumo_along_axes():
     """
     SuMo model evaluation along each input axis with optional fixed values.
 
-    Uses DataPreprocessor for variable mapping and normalization.
-    Uses DataPreprocessor for variable mapping and normalization.
     Uses Pydantic validation to ensure robust input validation and consistent error handling.
-    Returns predictions along each specified input variable axis in original space.
     Returns predictions along each specified input variable axis in original space.
     """
     os.chdir(Path(__file__).parent)
@@ -698,7 +673,6 @@ def flask_evaluate_sumo_along_axes():
 
         # Validate and structure response
         response_data = {"predictions": predictions_original}
-        response_data = {"predictions": predictions_original}
         validated_response = SumoAlongAxesResponse.model_validate(response_data)
 
         _logger.debug("SUMO along axes evaluation completed successfully")
@@ -729,9 +703,7 @@ def flask_sumo_grid_evaluation():
     SUMO model evaluation on a grid with optional fixed values for non-grid variables.
 
     Uses DataPreprocessor for variable mapping and normalization.
-    Uses DataPreprocessor for variable mapping and normalization.
     Uses Pydantic validation to ensure robust input validation and consistent error handling.
-    Returns grid data with input coordinates and predictions in original space.
     Returns grid data with input coordinates and predictions in original space.
     """
     os.chdir(Path(__file__).parent)
