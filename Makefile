@@ -209,6 +209,13 @@ clean: ## clean build artifacts and dependencies
 	rm -rf flaskapi/mmux_python
 
 
+.PHONY: prek pre-commit
+prek: install-node install-flaskapi-deps ## run repository prek hooks
+	uvx prek run --all-files
+
+pre-commit: prek ## backward-compatible alias for prek
+
+
 
 # TESTING
 .PHONY: test-node
