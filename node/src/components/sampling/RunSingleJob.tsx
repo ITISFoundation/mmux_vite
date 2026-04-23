@@ -4,7 +4,7 @@ import { RunSamplingButton } from "./RunSamplingButton";
 import ValueConfig from "../setup/ValueConfig";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useSamplingContext } from "../../context/SamplingContext";
-import { runSingleJob } from "../../utils/sampling_utils";
+import { runSingleJob } from "../../utils/samplingUtils";
 
 function TestJob() {
   const { selectedFunction, inputVars } = useFunctionContext();

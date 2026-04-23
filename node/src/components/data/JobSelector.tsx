@@ -22,7 +22,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { useSamplingContext } from "../../context/SamplingContext";
-import { getJobCollectionStatus } from "../../utils/function_utils";
+import { getJobCollectionStatus } from "../../utils/functionUtils";
 import getMinMax from "../minmax";
 import CustomTooltip from "../utils/CustomTooltip";
 import JobRow from "./JobRow";

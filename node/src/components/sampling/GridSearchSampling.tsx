@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Box, Skeleton, Typography } from "@mui/material";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "../../osparc-api-ts-client";
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
@@ -19,7 +18,7 @@ async function runGridSampling(
   const fun = selectedFunction as OsparcFunction;
   // send config to Python backend to create LHS
   context.setLaunchingSampling(true);
-  const jc = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sampling/grid`, {
+  const jc = await fetch(`/flask/sampling/grid`, {
     method: "POST",
     body: JSON.stringify({
       funUid: fun.uid,

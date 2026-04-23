@@ -35,8 +35,8 @@ class LHSSamplingRequest(BaseModel):
     """Request model for Latin Hypercube Sampling."""
     config: List[VariableConfig] = Field(..., description="List of variable configurations")
     seed: int = Field(..., ge=0, description="Random seed for sampling")
-    N: int = Field(..., gt=0, description="Number of samples to generate", alias="N")
-    funUid: str = Field(..., min_length=1, description="Function UID for OSPARC")
+    n: int = Field(..., gt=0, description="Number of samples to generate")
+    fun_uid: str = Field(..., min_length=1, description="Function UID for OSPARC")
     
     @validator('config')
     def config_must_not_be_empty(cls, v):
@@ -44,9 +44,6 @@ class LHSSamplingRequest(BaseModel):
             raise ValueError('config must not be empty')
         return v
     
-    class Config:
-        allow_population_by_field_name = True
-
 
 class GridSamplingVariableConfig(BaseModel):
     """Configuration for a single variable in grid sampling."""
@@ -65,7 +62,7 @@ class GridSamplingVariableConfig(BaseModel):
 class GridSamplingRequest(BaseModel):
     """Request model for Grid Sampling."""
     config: List[GridSamplingVariableConfig] = Field(..., description="List of variable configurations")
-    funUid: str = Field(..., min_length=1, description="Function UID for OSPARC")
+    fun_uid: str = Field(..., min_length=1, description="Function UID for OSPARC")
     
     @validator('config')
     def config_must_not_be_empty(cls, v):
@@ -77,7 +74,7 @@ class GridSamplingRequest(BaseModel):
 class TestJobRequest(BaseModel):
     """Request model for testing a job."""
     config: List[TestJobVariableConfig] = Field(..., description="List of variable configurations with values")
-    funUid: str = Field(..., min_length=1, description="Function UID for OSPARC")
+    fun_uid: str = Field(..., min_length=1, description="Function UID for OSPARC")
     
     @validator('config')
     def config_must_not_be_empty(cls, v):
@@ -88,9 +85,9 @@ class TestJobRequest(BaseModel):
 
 class CloneJobRequest(BaseModel):
     """Request model for cloning a job."""
-    projectJobId: str = Field(..., min_length=1, description="ID of the project job to clone")
-    functionName: str = Field(..., min_length=1, description="Name of the function")
-    projectInputs: Dict[str, Any] = Field(..., description="Inputs for the project")
+    project_job_id: str = Field(..., min_length=1, description="ID of the project job to clone")
+    function_name: str = Field(..., min_length=1, description="Name of the function")
+    project_inputs: Dict[str, Any] = Field(..., description="Inputs for the project")
 
 
 class SamplingResponse(BaseModel):
@@ -104,23 +101,3 @@ class ErrorResponse(BaseModel):
     """Standard error response model."""
     error: str = Field(..., description="Error message")
 
-
-def validate_request_json(request_data: dict, model_class):
-    """
-    Validate request data against a Pydantic model.
-    
-    Args:
-        request_data: The request data dictionary
-        model_class: The Pydantic model class to validate against
-        
-    Returns:
-        The validated model instance
-        
-    Raises:
-        ValueError: If validation fails
-    """
-    try:
-        return model_class.parse_obj(request_data)
-    except Exception as e:
-        _logger.error(f"Request validation failed: {e}")
-        raise ValueError(f"Invalid request data: {e}")

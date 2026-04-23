@@ -8,7 +8,7 @@ import {
   getFunctionJobCollections,
   getFunctionJobsFromFunctionJobCollection,
   filterForFinalStatus,
-} from "../utils/function_utils";
+} from "../utils/functionUtils";
 
 export interface JobContextType {
   runningJobCollection: RegisteredFunctionJobCollection | undefined;

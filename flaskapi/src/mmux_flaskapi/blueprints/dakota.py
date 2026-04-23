@@ -1,15 +1,15 @@
 from __future__ import annotations
-import json
 import logging
 import os
 import traceback
 from pathlib import Path
+from typing import Dict, List, NoReturn, cast
 
 import numpy as np
 import pandas as pd
 
 #
-from flask import Blueprint, abort, current_app, jsonify, make_response, request
+from flask import Blueprint, abort, current_app, jsonify, make_response
 from mmux_python.funs_data_processing import (
     create_manual_uq_samples,
     process_input_file,
@@ -46,6 +46,7 @@ from mmux_flaskapi.data_preprocessor import DataPreprocessor
 
 #
 from mmux_flaskapi.utils.helpers import create_run_dir
+from mmux_flaskapi.utils.json_serializer import parse_request_model
 
 _logger = logging.getLogger(__name__)
 dakota_bp = Blueprint("dakota", __name__)
@@ -181,7 +182,7 @@ def setup_preprocessor_for_workflow(
     return processed_file, preprocessor
 
 
-def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 500):
+def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 500) -> NoReturn:
     """
     Standardized error handling for Dakota workflows.
     
@@ -269,25 +270,12 @@ def flask_sumo_cross_validation():
     os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_sumo_cross_validation")
     _logger.debug("Cwd: " + str(Path.cwd()))
-    request_model = SumoCrossValidationRequest
-
-    # Parse request data
-    try:
-        request_data: dict = json.loads(request.data.decode("utf-8"))
-    except json.JSONDecodeError as e:
-        return jsonify({"error": f"Invalid JSON: {str(e)}"}), 400
-
-    # Validate request using Pydantic model
-    try:
-        validated_request = request_model.model_validate(request_data)
-    except Exception as e:
-        _logger.warning(f"Validation failed for {request_model.__name__}: {str(e)}")
-        return jsonify({"error": str(e)}), 400
+    validated_request = parse_request_model(SumoCrossValidationRequest)
 
     # At this point, all validation is complete and we have a validated request object
     try:
-        jobs: list[FunctionJob] = validated_request.FunctionJobs
-        input_vars: list[str] = validated_request.inputVars
+        jobs: list[FunctionJob] = validated_request.function_jobs
+        input_vars: list[str] = validated_request.input_vars
         output_var: str = validated_request.output
 
         # Create run directory
@@ -354,23 +342,20 @@ def flask_manual_uq_propagation_with_uncertainty():
     )
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    try:
-        # Parse and validate request using Pydantic
-        request_data: dict = json.loads(request.data.decode("utf-8"))
-        _logger.debug(f"Request data received with keys: {list(request_data.keys())}")
+    validated_request = parse_request_model(ManualUQWithUncertaintyRequest)
 
-        validated_request = ManualUQWithUncertaintyRequest.model_validate(request_data)
+    try:
         _logger.debug(
-            f"Request validation successful. Processing {len(validated_request.FunctionJobs)} jobs"
+            f"Request validation successful. Processing {len(validated_request.function_jobs)} jobs"
         )
 
         # Extract validated parameters
         output_response = validated_request.output
-        input_vars = validated_request.inputVars
+        input_vars = validated_request.input_vars
         distributions = validated_request.distributions
-        num_samples = validated_request.numSamples
-        jobs = validated_request.FunctionJobs
-        n_histograms = validated_request.nHistograms
+        num_samples = validated_request.num_samples
+        jobs = validated_request.function_jobs
+        n_histograms = validated_request.n_histograms
         seed = validated_request.seed
 
         # Create run directory
@@ -459,7 +444,7 @@ def flask_manual_uq_propagation_with_uncertainty():
 
         # Inverse transform results to original space for histogram calculation
         # Create a results dict with all samples for inverse transform
-        all_samples_dict = {mapped_output_var: all_results_transformed.flatten()}
+        all_samples_dict = {mapped_output_var: all_results_transformed.flatten().tolist()}
         all_samples_original = preprocessor.inverse_transform(all_samples_dict)
         all_values = np.array(all_samples_original[output_response])
         
@@ -546,6 +531,7 @@ def flask_evaluate_sumo_along_axes():
     """
     SuMo model evaluation along each input axis with optional fixed values.
 
+    Uses DataPreprocessor for variable mapping and normalization.
     Uses Pydantic validation to ensure robust input validation and consistent error handling.
     Returns predictions along each specified input variable axis in original space.
     """
@@ -553,15 +539,14 @@ def flask_evaluate_sumo_along_axes():
     _logger.debug("Starting flask function: flask_evaluate_sumo_along_axes")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    try:
-        # Parse and validate request using Pydantic
-        request_data = SumoAlongAxesRequest.model_validate(request.get_json())
+    request_data = parse_request_model(SumoAlongAxesRequest)
 
+    try:
         # Extract validated data
         output_response = request_data.output
         input_vars = request_data.inputs
-        jobs = request_data.FunctionJobs
-        slider_values = request_data.sliderValues
+        jobs = request_data.function_jobs
+        slider_values = request_data.slider_values
 
         _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(jobs)} jobs")
         _logger.debug(f"Slider values: {slider_values}")
@@ -587,7 +572,7 @@ def flask_evaluate_sumo_along_axes():
             # Transform the slider values using the preprocessor
             slider_df = pd.DataFrame([slider_values])
             slider_df_transformed = preprocessor.transform(slider_df)
-            mapped_slider_values = slider_df_transformed.iloc[0].to_dict()
+            mapped_slider_values = cast(dict[str, float], slider_df_transformed.iloc[0].to_dict())
             _logger.debug(f"Mapped slider values: {mapped_slider_values}")
 
         # Evaluate SUMO along axes with mapped variables
@@ -651,16 +636,15 @@ def flask_sumo_grid_evaluation():
     _logger.debug("Starting flask function: flask_sumo_grid_evaluation")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    try:
-        # Parse and validate request using Pydantic
-        request_data = SumoGridEvaluationRequest.model_validate(request.get_json())
+    request_data = parse_request_model(SumoGridEvaluationRequest)
 
+    try:
         # Extract validated data
         output_response = request_data.output
-        grid_vars = request_data.gridVars
-        input_vars = request_data.inputVars
-        jobs = request_data.FunctionJobs
-        slider_values = request_data.sliderValues
+        grid_vars = request_data.grid_vars
+        input_vars = request_data.input_vars
+        jobs = request_data.function_jobs
+        slider_values = request_data.slider_values
 
         _logger.debug(
             f"Validated request: {len(input_vars)} inputs, {len(grid_vars)} grid vars, {len(jobs)} jobs"
@@ -690,7 +674,7 @@ def flask_sumo_grid_evaluation():
             # Transform the slider values using the preprocessor
             slider_df = pd.DataFrame([slider_values])
             slider_df_transformed = preprocessor.transform(slider_df)
-            mapped_slider_values = slider_df_transformed.iloc[0].to_dict()
+            mapped_slider_values = cast(dict[str, float], slider_df_transformed.iloc[0].to_dict())
             _logger.debug(f"Mapped slider values: {mapped_slider_values}")
 
         # Evaluate SUMO on grid with mapped variables
@@ -710,11 +694,12 @@ def flask_sumo_grid_evaluation():
             orig_key = mapped_to_orig.get(key, key)
             if values and isinstance(values[0], list):
                 # 2D array (reshaped grid output) - flatten, inverse transform, reshape back
-                flat = [item for row in values for item in row]
+                nested_values = cast(list[list[float]], values)
+                flat = [item for row in nested_values for item in row]
                 flat_inv = _inverse_transform_values(
                     preprocessor, key, flat, mapped_to_orig
                 )
-                inner = len(values[0])
+                inner = len(nested_values[0])
                 grid_data_original[orig_key] = [
                     flat_inv[i : i + inner] for i in range(0, len(flat_inv), inner)
                 ]
@@ -760,23 +745,13 @@ def flask_get_sumo_cv_accuracy_metrics():
     _logger.debug("Starting flask function: flask_get_sumo_cv_accuracy_metrics")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
+    request_data = parse_request_model(SumoCVAccuracyMetricsRequest)
+
     try:
-        # Parse and validate request using Pydantic
-        request_json = request.get_json()
-        if request_json is None:
-            abort(
-                make_response(
-                    jsonify({"error": "Invalid JSON or missing content-type header"}),
-                    400,
-                )
-            )
-
-        request_data = SumoCVAccuracyMetricsRequest.model_validate(request_json)
-
         # Extract validated data
         output_response = request_data.output
         input_vars = request_data.inputs
-        jobs = request_data.FunctionJobs
+        jobs = request_data.function_jobs
 
         _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(jobs)} jobs")
 
@@ -825,34 +800,9 @@ def flask_get_sumo_cv_accuracy_metrics():
         _logger.debug("SUMO CV accuracy metrics completed successfully")
         return jsonify(validated_response.model_dump())
 
-    except ValidationError as e:
-        _logger.error(f"Validation error in SUMO CV accuracy metrics: {e}")
-        error_details = []
-        for error in e.errors():
-            location = (
-                " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
-            )
-            error_details.append(f"{location}: {error['msg']}")
-        abort(
-            make_response(
-                jsonify({"error": "Validation failed", "details": error_details}), 400
-            )
-        )
     except Exception as e:
-        error_message = str(e)
-        # Check if it's a JSON parsing error (400 Bad Request from Flask)
-        if "400 Bad Request" in error_message and (
-            "JSON" in error_message or "browser" in error_message
-        ):
-            _logger.error(f"Invalid JSON request: {e}")
-            abort(
-                make_response(
-                    jsonify({"error": "Invalid JSON or malformed request"}), 400
-                )
-            )
-        else:
-            _logger.error(f"Error while getting SUMO CV accuracy metrics: {e}")
-            abort(make_response(jsonify({"error": str(e)}), 500))
+        _logger.error(f"Error while getting SUMO CV accuracy metrics: {e}")
+        abort(make_response(jsonify({"error": str(e)}), 500))
 
 
 @dakota_bp.route("/perform_moga_optimization", methods=["POST"])
@@ -867,24 +817,14 @@ def flask_perform_moga_optimization():
     _logger.debug("Starting flask function: flask_perform_moga_optimization")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
+    request_data = parse_request_model(MOGAOptimizationRequest)
+
     try:
-        # Parse and validate request using Pydantic
-        request_json = request.get_json()
-        if request_json is None:
-            abort(
-                make_response(
-                    jsonify({"error": "Invalid JSON or missing content-type header"}),
-                    400,
-                )
-            )
-
-        request_data = MOGAOptimizationRequest.model_validate(request_json)
-
         # Extract validated data
-        input_vars = request_data.inputVars
+        input_vars = request_data.input_vars
         input_distributions_raw = request_data.distributions
-        output_var_selection = request_data.outputVarSelection
-        jobs = request_data.FunctionJobs
+        output_var_selection = request_data.output_var_selection
+        jobs = request_data.function_jobs
 
         # Convert Pydantic distribution models to dict format expected by the optimization function
         input_distributions = {
@@ -1071,15 +1011,6 @@ def flask_perform_moga_optimization():
                         }
                     ),
                     400,
-                )
-            )
-        elif "400 Bad Request" in error_message and (
-            "JSON" in error_message or "browser" in error_message
-        ):
-            _logger.error(f"Invalid JSON request: {e}")
-            abort(
-                make_response(
-                    jsonify({"error": "Invalid JSON or malformed request"}), 400
                 )
             )
         else:

@@ -12,7 +12,7 @@ import {
   ProjectFunction,
   PythonCodeFunction,
 } from "../../osparc-api-ts-client";
-import { listFunctions, getFunctionJobCollections } from "../../utils/function_utils";
+import { listFunctions, getFunctionJobCollections } from "../../utils/functionUtils";
 import { HelpContents } from "../navigation/TutorialManualLinks";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useSamplingContext } from "../../context/SamplingContext";

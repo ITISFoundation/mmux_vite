@@ -18,6 +18,14 @@ _logger = logging.getLogger(__name__)
 osparc_bp = Blueprint('osparc', __name__)
 
 
+def _get_query_arg(*names: str) -> str:
+    """Return the first matching query argument from a list of compatible names."""
+    for name in names:
+        if name in request.args:
+            return request.args[name]
+    raise KeyError(names[0])
+
+
 #####################################################################################
 # Decorators for error handling and logging
 #####################################################################################
@@ -95,7 +103,7 @@ def flask_get_function_job_collections():
 @api_endpoint
 def flask_list_function_jobs_for_functionid():
     osparc_api = get_osparc_api()
-    function_uid = request.args["functionUid"]
+    function_uid = _get_query_arg("functionUid", "function_uid")
     _logger.info(f"Function ID: {function_uid}")
     jobs = _get_all_items(osparc_api.get_functions_api().list_function_jobs_for_functionid, function_uid)
     _logger.debug(f"N Jobs for function {function_uid}: {len(jobs)}")
@@ -108,7 +116,7 @@ def flask_list_function_jobs_for_functionid():
 @api_endpoint
 def flask_list_function_jobs_for_jobcollectionid():
     osparc_api = get_osparc_api()
-    jc_uid = request.args["JobCollectionUid"]
+    jc_uid = _get_query_arg("JobCollectionUid", "job_collection_uid")
     _logger.debug(f"jc ID: {jc_uid}")
     jc = osparc_api.get_job_collection_api().get_function_job_collection(jc_uid)
     jobs = [_get_function_job_from_uid(job_uid) for job_uid in jc.job_ids]  # type: ignore
@@ -120,7 +128,7 @@ def flask_list_function_jobs_for_jobcollectionid():
 def flask_get_function_job_collections_for_functionid():
     osparc_api = get_osparc_api()
     _logger.debug(f"Request args: {request.args}")
-    function_uid = request.args["functionUid"]
+    function_uid = _get_query_arg("functionUid", "function_uid")
     _logger.debug(f"Function ID: {function_uid}")
     response = osparc_api.get_job_collection_api().list_function_job_collections(has_function_id=function_uid)
     job_collections = [dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
@@ -134,7 +142,7 @@ def flask_get_function_job_collections_for_functionid():
 @osparc_bp.route("/get_function_job", methods=["GET"])
 @api_endpoint
 def flask_get_function_job():
-    job_uid = request.args["jobUid"]
+    job_uid = _get_query_arg("jobUid", "job_uid")
     return _get_function_job_from_uid(job_uid), 200
 
 def _get_function_job_from_uid(job_uid: str) -> Dict[str, Any]:
@@ -159,7 +167,7 @@ def _get_function_job_from_uid(job_uid: str) -> Dict[str, Any]:
 @api_endpoint
 def flask_get_function_job_status():
     osparc_api = get_osparc_api()
-    job_uid = request.args["jobUid"]
+    job_uid = _get_query_arg("jobUid", "job_uid")
     job_status = osparc_api.get_job_api().function_job_status(job_uid).status
     return {"status": job_status}, 200
 
@@ -167,6 +175,6 @@ def flask_get_function_job_status():
 @api_endpoint
 def flask_get_function_job_outputs():
     osparc_api = get_osparc_api()
-    job_uid = request.args["jobUid"]
+    job_uid = _get_query_arg("jobUid", "job_uid")
     job_outputs = osparc_api.get_job_api().function_job_outputs(job_uid)
     return job_outputs, 200
