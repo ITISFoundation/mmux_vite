@@ -126,7 +126,7 @@ class TestOsparcListFunctionJobsForFunctionId:
         data = response.get_json()
         assert isinstance(data, list)
         assert len(data) == 2
-        assert all(job["function_uid"] == "func1" for job in data)
+        assert all(job["functionUid"] == "func1" for job in data)
 
     def test_list_function_jobs_for_functionid_accepts_snake_case_query_param(self, test_client, patch_list_function_jobs_for_functionid_success):
         response = test_client.get("/flask/osparc/list_function_jobs_for_functionid?function_uid=func1")

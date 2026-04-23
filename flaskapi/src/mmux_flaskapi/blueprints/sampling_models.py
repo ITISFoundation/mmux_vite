@@ -6,16 +6,10 @@ providing proper validation and type safety.
 """
 
 from typing import Dict, List, Any, Optional
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, validator
+from pydantic import BaseModel, Field, validator
 import logging
 
 _logger = logging.getLogger(__name__)
-
-
-class CompatibilityRequestModel(BaseModel):
-    """Base model that accepts both legacy camelCase and snake_case request keys."""
-
-    model_config = ConfigDict(populate_by_name=True)
 
 
 class VariableConfig(BaseModel):
@@ -37,17 +31,12 @@ class TestJobVariableConfig(BaseModel):
     value: Any = Field(..., description="Value for the variable")
 
 
-class LHSSamplingRequest(CompatibilityRequestModel):
+class LHSSamplingRequest(BaseModel):
     """Request model for Latin Hypercube Sampling."""
     config: List[VariableConfig] = Field(..., description="List of variable configurations")
     seed: int = Field(..., ge=0, description="Random seed for sampling")
-    N: int = Field(..., gt=0, description="Number of samples to generate", alias="N")
-    funUid: str = Field(
-        ...,
-        min_length=1,
-        description="Function UID for OSPARC",
-        validation_alias=AliasChoices("funUid", "fun_uid"),
-    )
+    n: int = Field(..., gt=0, description="Number of samples to generate")
+    fun_uid: str = Field(..., min_length=1, description="Function UID for OSPARC")
     
     @validator('config')
     def config_must_not_be_empty(cls, v):
@@ -70,15 +59,10 @@ class GridSamplingVariableConfig(BaseModel):
         return v
 
 
-class GridSamplingRequest(CompatibilityRequestModel):
+class GridSamplingRequest(BaseModel):
     """Request model for Grid Sampling."""
     config: List[GridSamplingVariableConfig] = Field(..., description="List of variable configurations")
-    funUid: str = Field(
-        ...,
-        min_length=1,
-        description="Function UID for OSPARC",
-        validation_alias=AliasChoices("funUid", "fun_uid"),
-    )
+    fun_uid: str = Field(..., min_length=1, description="Function UID for OSPARC")
     
     @validator('config')
     def config_must_not_be_empty(cls, v):
@@ -87,15 +71,10 @@ class GridSamplingRequest(CompatibilityRequestModel):
         return v
 
 
-class TestJobRequest(CompatibilityRequestModel):
+class TestJobRequest(BaseModel):
     """Request model for testing a job."""
     config: List[TestJobVariableConfig] = Field(..., description="List of variable configurations with values")
-    funUid: str = Field(
-        ...,
-        min_length=1,
-        description="Function UID for OSPARC",
-        validation_alias=AliasChoices("funUid", "fun_uid"),
-    )
+    fun_uid: str = Field(..., min_length=1, description="Function UID for OSPARC")
     
     @validator('config')
     def config_must_not_be_empty(cls, v):
@@ -104,25 +83,11 @@ class TestJobRequest(CompatibilityRequestModel):
         return v
 
 
-class CloneJobRequest(CompatibilityRequestModel):
+class CloneJobRequest(BaseModel):
     """Request model for cloning a job."""
-    projectJobId: str = Field(
-        ...,
-        min_length=1,
-        description="ID of the project job to clone",
-        validation_alias=AliasChoices("projectJobId", "project_job_id"),
-    )
-    functionName: str = Field(
-        ...,
-        min_length=1,
-        description="Name of the function",
-        validation_alias=AliasChoices("functionName", "function_name"),
-    )
-    projectInputs: Dict[str, Any] = Field(
-        ...,
-        description="Inputs for the project",
-        validation_alias=AliasChoices("projectInputs", "project_inputs"),
-    )
+    project_job_id: str = Field(..., min_length=1, description="ID of the project job to clone")
+    function_name: str = Field(..., min_length=1, description="Name of the function")
+    project_inputs: Dict[str, Any] = Field(..., description="Inputs for the project")
 
 
 class SamplingResponse(BaseModel):
@@ -136,23 +101,3 @@ class ErrorResponse(BaseModel):
     """Standard error response model."""
     error: str = Field(..., description="Error message")
 
-
-def validate_request_json(request_data: dict, model_class):
-    """
-    Validate request data against a Pydantic model.
-    
-    Args:
-        request_data: The request data dictionary
-        model_class: The Pydantic model class to validate against
-        
-    Returns:
-        The validated model instance
-        
-    Raises:
-        ValueError: If validation fails
-    """
-    try:
-        return model_class.parse_obj(request_data)
-    except Exception as e:
-        _logger.error(f"Request validation failed: {e}")
-        raise ValueError(f"Invalid request data: {e}")

@@ -185,7 +185,7 @@ class TestDeploymentEndpoints:
         response = test_client.get("/flask/deployment/service-mode")
         assert response.status_code == 200
         data = response.get_json()
-        assert data["service_mode"] == "production"
+        assert data["serviceMode"] == "production"
         
         # Test permissions
         response = test_client.get("/flask/deployment/permissions")
@@ -276,5 +276,5 @@ class TestDeploymentEndpoints:
         assert response.status_code == 200
         
         data = response.get_json()
-        assert "deployment_mode" in data
-        assert data["deployment_mode"] == "CUSTOM_DEPLOYMENT"
+        assert "deploymentMode" in data
+        assert data["deploymentMode"] == "CUSTOM_DEPLOYMENT"

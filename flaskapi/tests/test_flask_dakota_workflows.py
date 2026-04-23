@@ -66,16 +66,16 @@ class TestSumoCrossValidation:
         assert isinstance(data, dict)
         # Should contain observations and prediction outputs in original names.
         assert OUTPUT in data
-        assert f"{OUTPUT}_hat" in data
-        assert f"{OUTPUT}_std_hat" in data
+        assert f"{OUTPUT}Hat" in data
+        assert f"{OUTPUT}StdHat" in data
         assert isinstance(data[OUTPUT], list)
-        assert isinstance(data[f"{OUTPUT}_hat"], list)
-        assert isinstance(data[f"{OUTPUT}_std_hat"], list)
+        assert isinstance(data[f"{OUTPUT}Hat"], list)
+        assert isinstance(data[f"{OUTPUT}StdHat"], list)
         for v in data[OUTPUT]:
             assert isinstance(v, (int, float))
-        for v in data[f"{OUTPUT}_hat"]:
+        for v in data[f"{OUTPUT}Hat"]:
             assert isinstance(v, (int, float))
-        for v in data[f"{OUTPUT}_std_hat"]:
+        for v in data[f"{OUTPUT}StdHat"]:
             assert isinstance(v, (int, float))
 
     def test_sumo_cross_validation_accepts_snake_case_payload(self, test_client: Flask):
@@ -234,8 +234,11 @@ class TestSnakeCaseDakotaRequestCompatibility:
         # Should mention missing outputs structure
         assert any(keyword in data["error"].lower() for keyword in ["output", "missing", "structure"])
 
-    @pytest.mark.parametrize("missing_field", ["output", "inputVars", "FunctionJobs"])
-    def test_missing_required_field(self, test_client: Flask, missing_field):
+    @pytest.mark.parametrize(
+        ("missing_field", "expected_error"),
+        [("output", "output"), ("inputVars", "input_vars"), ("FunctionJobs", "function_jobs")],
+    )
+    def test_missing_required_field(self, test_client: Flask, missing_field, expected_error):
         """Missing required field returns 400 with error message."""
         payload = {
             "output": "y",
@@ -247,7 +250,7 @@ class TestSnakeCaseDakotaRequestCompatibility:
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
-        assert missing_field in data["error"]
+        assert expected_error in data["error"]
 
     def test_inputvars_empty(self, test_client: Flask):
         """inputVars must have at least one element."""
@@ -259,7 +262,7 @@ class TestSnakeCaseDakotaRequestCompatibility:
         response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
-        assert "inputVars" in data["error"]
+        assert "input_vars" in data["error"]
 
     def test_functionjobs_too_few(self, test_client: Flask):
         """FunctionJobs with less than 5 jobs returns 400."""
@@ -271,7 +274,7 @@ class TestSnakeCaseDakotaRequestCompatibility:
         response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
-        assert "FunctionJobs" in data["error"] or "samples" in data["error"]
+        assert "function_jobs" in data["error"] or "samples" in data["error"]
 
     def test_invalid_output_type(self, test_client: Flask):
         """output must be a string."""
@@ -295,7 +298,7 @@ class TestSnakeCaseDakotaRequestCompatibility:
         response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
-        assert "inputVars" in data["error"]
+        assert "input_vars" in data["error"]
 
     def test_invalid_functionjobs_type(self, test_client: Flask):
         """FunctionJobs must be a list."""
@@ -307,7 +310,7 @@ class TestSnakeCaseDakotaRequestCompatibility:
         response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 400
         data = response.get_json()
-        assert "FunctionJobs" in data["error"]
+        assert "function_jobs" in data["error"]
 
     def test_evaluate_failure_propagation(self, test_client: Flask, monkeypatch):
         """If evaluation fails, error is propagated with Dakota message."""
@@ -486,13 +489,13 @@ class TestSumoAlongAxes:
             # Check structure of each axis prediction
             axis_data = predictions[var]
             assert "x" in axis_data and isinstance(axis_data["x"], list)
-            assert "y_hat" in axis_data and isinstance(axis_data["y_hat"], list)
+            assert "yHat" in axis_data and isinstance(axis_data["yHat"], list)
             assert len(axis_data["x"]) > 0
-            assert len(axis_data["y_hat"]) > 0
-            assert len(axis_data["x"]) == len(axis_data["y_hat"])
+            assert len(axis_data["yHat"]) > 0
+            assert len(axis_data["x"]) == len(axis_data["yHat"])
             
             # Values should be numeric
-            for val in axis_data["x"] + axis_data["y_hat"]:
+            for val in axis_data["x"] + axis_data["yHat"]:
                 assert isinstance(val, (int, float))
 
     def test_sumo_along_axes_with_slider_values(self, test_client: Flask):
@@ -519,7 +522,7 @@ class TestSumoAlongAxes:
         # Should have predictions for all input variables
         for var in input_vars:
             assert var in predictions
-            assert "x" in predictions[var] and "y_hat" in predictions[var]
+            assert "x" in predictions[var] and "yHat" in predictions[var]
 
     def test_sumo_along_axes_single_input(self, test_client: Flask):
         """Test with single input variable."""
@@ -538,7 +541,7 @@ class TestSumoAlongAxes:
         data = response.get_json()
         assert "predictions" in data
         assert "x1" in data["predictions"]
-        assert "x" in data["predictions"]["x1"] and "y_hat" in data["predictions"]["x1"]
+        assert "x" in data["predictions"]["x1"] and "yHat" in data["predictions"]["x1"]
 
     def test_sumo_along_axes_many_inputs(self, test_client: Flask):
         """Test with many input variables."""
@@ -807,7 +810,7 @@ class TestSumoAlongAxes:
         data = response.get_json()
         assert "predictions" in data
         assert "x1" in data["predictions"]
-        assert "x" in data["predictions"]["x1"] and "y_hat" in data["predictions"]["x1"]
+        assert "x" in data["predictions"]["x1"] and "yHat" in data["predictions"]["x1"]
 
 
 class TestSumoGridEvaluation:
@@ -845,9 +848,9 @@ class TestSumoGridEvaluation:
         
         data = response.get_json()
         assert isinstance(data, dict)
-        assert "grid_data" in data
+        assert "gridData" in data
         
-        grid_data = data["grid_data"]
+        grid_data = data["gridData"]
         assert isinstance(grid_data, dict)
         
         # Should have grid variables and predictions
@@ -857,10 +860,10 @@ class TestSumoGridEvaluation:
             assert len(grid_data[var]) > 0
         
         # Should have prediction values
-        assert "y_hat" in grid_data or output in grid_data
-        if "y_hat" in grid_data:
-            assert isinstance(grid_data["y_hat"], list)
-            assert len(grid_data["y_hat"]) > 0
+        assert "yHat" in grid_data or output in grid_data
+        if "yHat" in grid_data:
+            assert isinstance(grid_data["yHat"], list)
+            assert len(grid_data["yHat"]) > 0
 
     def test_grid_evaluation_success_2d(self, test_client: Flask):
         """Valid 2D grid evaluation returns 200 and expected structure."""
@@ -880,9 +883,9 @@ class TestSumoGridEvaluation:
         
         data = response.get_json()
         assert isinstance(data, dict)
-        assert "grid_data" in data
+        assert "gridData" in data
         
-        grid_data = data["grid_data"]
+        grid_data = data["gridData"]
         # Should have both grid variables
         for var in grid_vars:
             assert var in grid_data
@@ -906,9 +909,9 @@ class TestSumoGridEvaluation:
         
         data = response.get_json()
         assert isinstance(data, dict)
-        assert "grid_data" in data
+        assert "gridData" in data
         
-        grid_data = data["grid_data"]
+        grid_data = data["gridData"]
         # Should have all three grid variables
         for var in grid_vars:
             assert var in grid_data
@@ -933,7 +936,7 @@ class TestSumoGridEvaluation:
         
         data = response.get_json()
         assert isinstance(data, dict)
-        assert "grid_data" in data
+        assert "gridData" in data
 
     def test_grid_evaluation_minimal_valid_configuration(self, test_client: Flask):
         """Test minimal valid configuration (5 jobs, 1 grid var)."""
@@ -952,8 +955,8 @@ class TestSumoGridEvaluation:
         assert response.status_code == 200
         
         data = response.get_json()
-        assert "grid_data" in data
-        assert "x1" in data["grid_data"]
+        assert "gridData" in data
+        assert "x1" in data["gridData"]
 
     # ------------------- Validation Error Cases -------------------
 
@@ -1209,7 +1212,7 @@ class TestSumoGridEvaluation:
         response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
         assert response.status_code == 200
         data = response.get_json()
-        assert "grid_data" in data
+        assert "gridData" in data
 
     # def test_mixed_job_statuses_sufficient_completed(self, test_client: Flask):
     #     """Test with mixed job statuses but sufficient completed jobs."""
@@ -1302,18 +1305,18 @@ class TestManualUQWithUncertainty:
         assert isinstance(data, dict)
         
         # Check histogram statistics
-        assert "bins_start" in data and isinstance(data["bins_start"], (int, float))
-        assert "bins_end" in data and isinstance(data["bins_end"], (int, float))
-        assert "bin_means" in data and isinstance(data["bin_means"], list)
-        assert "bin_stds" in data and isinstance(data["bin_stds"], list)
-        assert len(data["bin_means"]) == len(data["bin_stds"])
+        assert "binsStart" in data and isinstance(data["binsStart"], (int, float))
+        assert "binsEnd" in data and isinstance(data["binsEnd"], (int, float))
+        assert "binMeans" in data and isinstance(data["binMeans"], list)
+        assert "binStds" in data and isinstance(data["binStds"], list)
+        assert len(data["binMeans"]) == len(data["binStds"])
         
         # Check box plot statistics
         assert "q1" in data and isinstance(data["q1"], (int, float))
         assert "median" in data and isinstance(data["median"], (int, float))
         assert "q3" in data and isinstance(data["q3"], (int, float))
-        assert "whisker_min" in data and isinstance(data["whisker_min"], (int, float))
-        assert "whisker_max" in data and isinstance(data["whisker_max"], (int, float))
+        assert "whiskerMin" in data and isinstance(data["whiskerMin"], (int, float))
+        assert "whiskerMax" in data and isinstance(data["whiskerMax"], (int, float))
         assert "outliers" in data and isinstance(data["outliers"], list)
         
         # Check overall statistics
@@ -1324,7 +1327,7 @@ class TestManualUQWithUncertainty:
         
         # Validate statistical ordering
         assert data["q1"] <= data["median"] <= data["q3"]
-        assert data["whisker_min"] <= data["whisker_max"]
+        assert data["whiskerMin"] <= data["whiskerMax"]
         assert data["min"] <= data["max"]
         assert data["std"] >= 0
 
@@ -1346,8 +1349,8 @@ class TestManualUQWithUncertainty:
         response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 200
         data = response.get_json()
-        assert len(data["bin_means"]) > 0
-        assert len(data["bin_stds"]) > 0
+        assert len(data["binMeans"]) > 0
+        assert len(data["binStds"]) > 0
 
     # ------------------- Validation Error Cases -------------------
 
@@ -1561,7 +1564,7 @@ class TestManualUQWithUncertainty:
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, dict)
-        assert len(data["bin_means"]) > 0
+        assert len(data["binMeans"]) > 0
 
     def test_single_input_variable(self, test_client: Flask):
         """Test with single input variable."""
@@ -1581,7 +1584,7 @@ class TestManualUQWithUncertainty:
         response = test_client.post("/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload)
         assert response.status_code == 200
         data = response.get_json()
-        assert all(key in data for key in ["bins_start", "bins_end", "median", "mean"])
+        assert all(key in data for key in ["binsStart", "binsEnd", "median", "mean"])
 
     def test_jobs_with_extra_outputs(self, test_client: Flask):
         """Test that endpoint works when jobs have extra outputs not requested."""
@@ -1692,7 +1695,7 @@ class TestSumoCVAccuracyMetrics:
         output_metrics = data["metrics"][output]
         if isinstance(output_metrics, dict):
             # Check for expected metric keys
-            expected_metrics = ["root_mean_squared", "sum_abs", "mean_abs", "max_abs"]
+            expected_metrics = ["rootMeanSquared", "sumAbs", "meanAbs", "maxAbs"]
             for metric in expected_metrics:
                 if metric in output_metrics:
                     # Metric values can be float or string ('nan')
@@ -2066,7 +2069,7 @@ class TestMOGAOptimization:
 
         assert response.status_code == 200
         data = response.get_json()
-        results = data["optimization_results"]
+        results = data["optimizationResults"]
 
         assert captured_call["mapped_input_vars"] == ["x1"]
         assert set(captured_call["mapped_output_vars"]) == {"y1", "y2"}
@@ -2095,17 +2098,17 @@ class TestMOGAOptimization:
         data = response.get_json()
         
         # Validate response structure
-        assert "optimization_results" in data
-        assert isinstance(data["optimization_results"], dict)
+        assert "optimizationResults" in data
+        assert isinstance(data["optimizationResults"], dict)
         
         # Check that we have results for all variables (inputs + outputs)
         expected_vars = set(input_vars + output_vars)
-        actual_vars = set(data["optimization_results"].keys())
+        actual_vars = set(data["optimizationResults"].keys())
         assert expected_vars.issubset(actual_vars)
         
         # Check that all main variable result arrays have the same length (Pareto front)
         # Note: non_dominated_indices may have a different length as it's metadata
-        variable_results = {k: v for k, v in data["optimization_results"].items() 
+        variable_results = {k: v for k, v in data["optimizationResults"].items() 
                           if not k.startswith('non_dominated')}
         result_lengths = [len(values) for values in variable_results.values()]
         assert len(set(result_lengths)) == 1, "All main variable result arrays should have the same length"
@@ -2130,10 +2133,10 @@ class TestMOGAOptimization:
         assert response.status_code == 200
         data = response.get_json()
         
-        assert "optimization_results" in data
+        assert "optimizationResults" in data
         # Should have results for all variables
         expected_vars = set(input_vars + output_vars)
-        actual_vars = set(data["optimization_results"].keys())
+        actual_vars = set(data["optimizationResults"].keys())
         assert expected_vars.issubset(actual_vars)
 
     def test_successful_minimum_required_jobs(self, test_client: Flask):
@@ -2152,7 +2155,7 @@ class TestMOGAOptimization:
         response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 200
         data = response.get_json()
-        assert "optimization_results" in data
+        assert "optimizationResults" in data
 
     @pytest.mark.skip(reason="TODO Check real outputs values when not finished, and implement")
     def test_insufficient_objectives_single_output(self, test_client: Flask):
@@ -2306,7 +2309,7 @@ class TestMOGAOptimization:
         response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
         assert response.status_code == 200
         data = response.get_json()
-        assert "optimization_results" in data
+        assert "optimizationResults" in data
 
     @pytest.mark.parametrize("missing_field", ["inputVars", "distributions", "outputVarSelection", "FunctionJobs"])
     def test_missing_required_fields(self, test_client: Flask, missing_field: str):
@@ -2491,7 +2494,7 @@ class TestDakotaValidationEndpoints:
                     "output": "y",
                     "FunctionJobs": [valid_job] * 5
                 },
-                "expected_error": "inputvars"  # Pydantic shows 'inputVars' as lowercase
+                "expected_error": "input_vars"
             },
             # Missing FunctionJobs
             {
@@ -2499,7 +2502,7 @@ class TestDakotaValidationEndpoints:
                     "output": "y",
                     "inputVars": ["x1", "x2"]
                 },
-                "expected_error": "functionjobs"  # Pydantic shows 'FunctionJobs' as lowercase
+                "expected_error": "function_jobs"
             }
         ]
         
@@ -2640,7 +2643,7 @@ class TestDakotaValidationEndpoints:
                     "distributions": {"x1": {"distribution": "normal", "mean": 0, "std": 1}},
                     "FunctionJobs": [valid_job] * 5
                 },
-                "expected_error": "numsamples"  # Pydantic shows 'numSamples' as lowercase
+                "expected_error": "num_samples"
             }
         ]
         
