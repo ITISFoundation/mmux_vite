@@ -5,6 +5,7 @@ import getMinMax from "./minmax";
 
 // Mock MUI Box
 vi.mock("@mui/material", () => ({
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   Box: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 

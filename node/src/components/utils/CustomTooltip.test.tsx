@@ -23,7 +23,7 @@ describe("CustomTooltip", () => {
 
   it("renders 'Read more...' link when ExtendedTooltip is provided", async () => {
     render(
-      <CustomTooltip title="Tooltip text" ExtendedTooltip={<Typography>Extended content</Typography>}>
+      <CustomTooltip title="Tooltip text" extendedTooltip={<Typography>Extended content</Typography>}>
         <button type="button">Hover me</button>
       </CustomTooltip>,
     );
@@ -35,7 +35,7 @@ describe("CustomTooltip", () => {
     render(
       <CustomTooltip
         title="Tooltip text"
-        ExtendedTooltip={<Typography data-testid="extended-content">Extended content</Typography>}
+        extendedTooltip={<Typography data-testid="extended-content">Extended content</Typography>}
       >
         <button type="button">Hover me</button>
       </CustomTooltip>,
@@ -50,7 +50,7 @@ describe("CustomTooltip", () => {
     const { queryByTestId } = render(
       <CustomTooltip
         title="Tooltip text"
-        ExtendedTooltip={<Typography data-testid="extended-content">Extended content</Typography>}
+        extendedTooltip={<Typography data-testid="extended-content">Extended content</Typography>}
       >
         <button type="button">Hover me</button>
       </CustomTooltip>,

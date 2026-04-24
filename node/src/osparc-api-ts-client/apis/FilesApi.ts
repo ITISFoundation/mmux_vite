@@ -23,8 +23,8 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
      * Abort Multipart Upload
-     * @param fileId 
-     * @param bodyAbortMultipartUploadV0FilesFileIdAbortPost 
+     * @param fileId
+     * @param bodyAbortMultipartUploadV0FilesFileIdAbortPost
      */
     public async abortMultipartUpload(fileId: string, bodyAbortMultipartUploadV0FilesFileIdAbortPost: BodyAbortMultipartUploadV0FilesFileIdAbortPost, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -67,7 +67,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -78,8 +78,8 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
      * Complete Multipart Upload
-     * @param fileId 
-     * @param bodyCompleteMultipartUploadV0FilesFileIdCompletePost 
+     * @param fileId
+     * @param bodyCompleteMultipartUploadV0FilesFileIdCompletePost
      */
     public async completeMultipartUpload(fileId: string, bodyCompleteMultipartUploadV0FilesFileIdCompletePost: BodyCompleteMultipartUploadV0FilesFileIdCompletePost, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -122,7 +122,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -133,7 +133,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
      * Delete File
-     * @param fileId 
+     * @param fileId
      */
     public async deleteFile(fileId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -159,7 +159,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -170,7 +170,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
      * Download File
-     * @param fileId 
+     * @param fileId
      */
     public async downloadFile(fileId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -196,7 +196,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -208,7 +208,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Gets metadata for a given file resource
      * Get File
-     * @param fileId 
+     * @param fileId
      */
     public async getFile(fileId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -234,7 +234,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -277,7 +277,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -289,7 +289,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Get upload links for uploading a file to storage
      * Get Upload Links
-     * @param clientFile 
+     * @param clientFile
      */
     public async getUploadLinks(clientFile: ClientFile, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -325,7 +325,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -355,7 +355,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -367,8 +367,8 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Search files
      * Search Files Page
-     * @param sha256Checksum 
-     * @param fileId 
+     * @param sha256Checksum
+     * @param fileId
      * @param limit Page size limit
      * @param offset Page offset
      */
@@ -413,7 +413,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -425,8 +425,8 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Uploads a single file to the system
      * Upload File
-     * @param file 
-     * @param contentLength 
+     * @param file
+     * @param contentLength
      */
     public async uploadFile(file: HttpFile, contentLength?: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -482,7 +482,7 @@ export class FilesApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);

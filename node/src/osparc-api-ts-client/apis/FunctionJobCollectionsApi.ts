@@ -24,7 +24,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
     /**
      * Delete function job collection  New in *version 0.8.0*
      * Delete Function Job Collection
-     * @param functionJobCollectionId 
+     * @param functionJobCollectionId
      */
     public async deleteFunctionJobCollection(functionJobCollectionId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -44,7 +44,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
         requestContext.setHeaderParam("Accept", "application/json, */*;q=0.8")
 
 
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -56,7 +56,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
     /**
      * Get the function jobs in function job collection  New in *version 0.8.0*
      * Function Job Collection List Function Jobs
-     * @param functionJobCollectionId 
+     * @param functionJobCollectionId
      */
     public async functionJobCollectionListFunctionJobs(functionJobCollectionId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -76,7 +76,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
         requestContext.setHeaderParam("Accept", "application/json, */*;q=0.8")
 
 
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -88,7 +88,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
     /**
      * Get function job collection status  New in *version 0.8.0*
      * Function Job Collection Status
-     * @param functionJobCollectionId 
+     * @param functionJobCollectionId
      */
     public async functionJobCollectionStatus(functionJobCollectionId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -114,7 +114,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -126,7 +126,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
     /**
      * Get function job collection  New in *version 0.8.0*
      * Get Function Job Collection
-     * @param functionJobCollectionId 
+     * @param functionJobCollectionId
      */
     public async getFunctionJobCollection(functionJobCollectionId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -146,7 +146,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
         requestContext.setHeaderParam("Accept", "application/json, */*;q=0.8")
 
 
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -184,7 +184,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
         }
 
 
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -196,7 +196,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
     /**
      * Register function job collection  New in *version 0.8.0*
      * Register Function Job Collection
-     * @param functionJobCollection 
+     * @param functionJobCollection
      */
     public async registerFunctionJobCollection(functionJobCollection: FunctionJobCollection, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -226,7 +226,7 @@ export class FunctionJobCollectionsApiRequestFactory extends BaseAPIRequestFacto
         );
         requestContext.setBody(serializedBody);
 
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);

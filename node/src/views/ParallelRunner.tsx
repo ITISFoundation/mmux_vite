@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useCallback } from "react";
 import type { FunctionJob } from "../osparc-api-ts-client";
-import { getFunctionJobsFromFunctionJobCollection } from "../utils/function_utils";
+import { getFunctionJobsFromFunctionJobCollection } from "../utils/functionUtils";
 import { useSamplingContext } from "../context/SamplingContext";
 import { useJobContext } from "../context/JobContext";
 
@@ -241,8 +241,8 @@ export function Dashboard(props: JobDashboardProps) {
     return () => clearInterval(intervalId);
   }, [fetchJobs]);
 
-  const classifyJobStatus = (job_status: string) => {
-    switch (job_status) {
+  const classifyJobStatus = (jobStatus: string) => {
+    switch (jobStatus) {
       case "UNKNOWN":
         return undefined;
       case "PUBLISHED":

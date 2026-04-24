@@ -24,7 +24,7 @@ export default function OptionSelector<T>({
     <InputLabel sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
       <Typography variant="body1" component="p" fontWeight={400} sx={{ flex: 1 }}>
         {property || ""}
-        <CustomTooltip title={title} ExtendedTooltip={extendedTooltip} placement="right" arrow>
+        <CustomTooltip title={title} extendedTooltip={extendedTooltip} placement="right" arrow>
           <InfoOutline
             sx={{
               color: theme.palette.primary.light,

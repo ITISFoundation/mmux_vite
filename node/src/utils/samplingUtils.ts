@@ -1,7 +1,6 @@
 import { toast } from "react-toastify";
-import { PYTHON_DAKOTA_BACKEND } from "./api_objects";
 import { Function as OsparcFunction, FunctionJob as OsparcFunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
-import { createJobStudyCopy, openStudyUid } from "./function_utils";
+import { createJobStudyCopy, openStudyUid } from "./functionUtils";
 
 export async function runSingleJob(
   selectedFunction: OsparcFunction | undefined,
@@ -15,7 +14,7 @@ export async function runSingleJob(
   const fun = selectedFunction as OsparcFunction;
   // send config to Python backend to create LHS
   setLaunchingSampling(true);
-  const job = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sampling/test_job`, {
+  const job = await fetch(`/flask/sampling/test_job`, {
     method: "POST",
     body: JSON.stringify({
       funUid: fun.uid,

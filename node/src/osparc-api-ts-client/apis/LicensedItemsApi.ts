@@ -53,7 +53,7 @@ export class LicensedItemsApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -65,8 +65,8 @@ export class LicensedItemsApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Release previously checked out licensed item
      * Release Licensed Item
-     * @param licensedItemId 
-     * @param licensedItemCheckoutId 
+     * @param licensedItemId
+     * @param licensedItemCheckoutId
      */
     public async releaseLicensedItem(licensedItemId: string, licensedItemCheckoutId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -99,7 +99,7 @@ export class LicensedItemsApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);

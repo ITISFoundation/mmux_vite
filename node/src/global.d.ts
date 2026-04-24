@@ -25,15 +25,15 @@ type LHSamplingConfig = {
 type GridSamplingConfig = SamplingInputsState[];
 
 type DataUQHistogramType = {
-  bins_start: number;
-  bins_end: number;
-  bin_means: number[];
-  bin_stds: number[];
+  binsStart: number;
+  binsEnd: number;
+  binMeans: number[];
+  binStds: number[];
   q1: number;
   median: number;
   q3: number;
-  whisker_min: number;
-  whisker_max: number;
+  whiskerMin: number;
+  whiskerMax: number;
   outliers: number[];
   // new metrics to be displayed with Histogram (instead of whisker plot)
   mean: number;
@@ -64,7 +64,7 @@ type HeaderTypes = "title" | "titleNoMargin" | "bigTitle" | "subTitle";
 interface MetaModelingUXProps {
   tabTitle?: string;
   infoText?: string;
-  ExtendedInfoText?: ReactElement;
+  extendedInfoText?: ReactElement;
   helpContents?: ReactElement;
   headerType: HeaderTypes;
   children: React.ReactNode;
@@ -73,11 +73,11 @@ interface HeaderProps {
   headerType: HeaderTypes;
   tabTitle?: string;
   infoText?: string;
-  ExtendedInfoText?: ReactElement;
+  extendedInfoText?: ReactElement;
   helpContents?: ReactElement;
   fontWeight?: React.CSSProperties["fontWeight"];
   errorMessage?: string;
-  QOISelector?: React.ReactNode;
+  qoiSelector?: React.ReactNode;
 }
 
 interface SubJob {
@@ -155,15 +155,15 @@ interface InputVarSelection {
 }
 
 type CvMetricsType = {
-  mean_y: number;
-  std_y: number;
-  mean_y_hat: number;
-  std_y_hat: number;
+  meanY: number;
+  stdY: number;
+  meanYHat: number;
+  stdYHat: number;
   mae: number;
   rmse: number;
 };
 
-type MogaDataRowType = { [key: string]: number; Performance: number; NDI: number };
+type MogaDataRowType = { [key: string]: number; performance: number; ndi: number };
 
 interface MogaDataType {
   inputs: string[];
