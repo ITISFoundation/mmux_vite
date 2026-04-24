@@ -82,6 +82,42 @@ class TestSumoCrossValidation:
         for v in data[f"{OUTPUT}StdHat"]:
             assert isinstance(v, (int, float))
 
+    def test_sumo_cross_validation_preserves_prediction_suffixes_for_original_output_name(
+        self, test_client: Flask, monkeypatch
+    ):
+        """Mapped Dakota keys should come back under the original output name with preserved suffixes."""
+
+        def fake_eval(*args, **kwargs):
+            return {
+                "y1": [1.0, 2.0, 3.0],
+                "y1_hat": [1.1, 2.1, 3.1],
+                "y1_std_hat": [0.1, 0.2, 0.3],
+            }
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
+            fake_eval,
+        )
+
+        payload = {
+            "inputVars": ["x_force"],
+            "output": "drag_force",
+            "FunctionJobs": create_function_job_list(
+                50,
+                inputs=["x_force"],
+                outputs=["drag_force"],
+            ),
+        }
+
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data == {
+            "dragForce": [1.0, 2.0, 3.0],
+            "dragForceHat": [1.1, 2.1, 3.1],
+            "dragForceStdHat": [0.1, 0.2, 0.3],
+        }
+
     def test_sumo_cross_validation_accepts_snake_case_payload(self, test_client: Flask):
         payload = {
             "input_vars": ["x1"],
