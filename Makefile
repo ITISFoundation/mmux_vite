@@ -85,7 +85,7 @@ build-no-cache: compose-spec ## build docker images
 # DEVELOPMENT
 
 .PHONY: run-develop-sumo-read
-run-develop-sumo-read: ## runs for development SUMO/READ-ONLY
+run-develop-sumo-read: setup-mmux-python ## runs for development SUMO/READ-ONLY
 	export SERVICE_MODE=SUMO && \
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -93,7 +93,7 @@ run-develop-sumo-read: ## runs for development SUMO/READ-ONLY
 	docker compose --file docker-compose-development.yml up
 
 .PHONY: run-develop-sumo-write
-run-develop-sumo-write: ## runs for development SUMO/WRITE
+run-develop-sumo-write: setup-mmux-python ## runs for development SUMO/WRITE
 	export SERVICE_MODE=SUMO && \
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -101,7 +101,7 @@ run-develop-sumo-write: ## runs for development SUMO/WRITE
 	docker compose --file docker-compose-development.yml up
 
 .PHONY: run-develop-uq-read
-run-develop-uq-read: ## runs for development UQ/READ-ONLY
+run-develop-uq-read: setup-mmux-python ## runs for development UQ/READ-ONLY
 	export SERVICE_MODE=UQ && \
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -109,7 +109,7 @@ run-develop-uq-read: ## runs for development UQ/READ-ONLY
 	docker compose --file docker-compose-development.yml up
 
 .PHONY: run-develop-uq-write
-run-develop-uq-write: ## runs for development UQ/WRITE
+run-develop-uq-write: setup-mmux-python ## runs for development UQ/WRITE
 	export SERVICE_MODE=UQ && \
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -117,7 +117,7 @@ run-develop-uq-write: ## runs for development UQ/WRITE
 	docker compose --file docker-compose-development.yml up
 
 .PHONY: run-develop-moga-read
-run-develop-moga-read: ## runs for development MOGA/READ-ONLY
+run-develop-moga-read: setup-mmux-python ## runs for development MOGA/READ-ONLY
 	export SERVICE_MODE=MOGA && \
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -125,7 +125,7 @@ run-develop-moga-read: ## runs for development MOGA/READ-ONLY
 	docker compose --file docker-compose-development.yml up
 
 .PHONY: run-develop-moga-write
-run-develop-moga-write: ## runs for development MOGA/WRITE
+run-develop-moga-write: setup-mmux-python ## runs for development MOGA/WRITE
 	export SERVICE_MODE=MOGA && \
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
