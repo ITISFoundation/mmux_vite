@@ -28,6 +28,5 @@ repos:
       - id: eslint-node
         name: ESLint (node/)
         language: system
-        entry: bash -c 'cd node && npx eslint src/ --fix --max-warnings=0'
+        entry: bash node/scripts/run-eslint-hook.sh
         files: ^node/src/.*\.(ts|tsx|js|jsx)$
-        pass_filenames: false
