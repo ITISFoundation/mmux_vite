@@ -124,7 +124,8 @@ def flask_get_function_job_collections():
 @api_endpoint
 def flask_list_function_jobs_for_functionid():
     osparc_api = get_osparc_api()
-    function_uid = request.args["functionUid"]
+    request_args = dict_keys_camel_to_snake(request.args.to_dict())
+    function_uid = request_args["function_uid"]
     if is_local_function_uid(function_uid):
         collections = list_local_job_collections(function_uid)
         local_jobs: list[dict[str, Any]] = []
@@ -146,7 +147,8 @@ def flask_list_function_jobs_for_functionid():
 @osparc_bp.route("/list_function_jobs_for_jobcollectionid", methods=["GET"])
 @api_endpoint
 def flask_list_function_jobs_for_jobcollectionid():
-    jc_uid = request.args["JobCollectionUid"]
+    request_args = dict_keys_camel_to_snake(request.args.to_dict())
+    jc_uid = request_args["job_collection_uid"]
     _logger.debug(f"jc ID: {jc_uid}")
     if is_local_job_collection_uid(jc_uid):
         local_jobs = list_local_jobs_for_collection(jc_uid)
@@ -164,7 +166,8 @@ def flask_list_function_jobs_for_jobcollectionid():
 @api_endpoint
 def flask_get_function_job_collections_for_functionid():
     _logger.debug(f"Request args: {request.args}")
-    function_uid = request.args["functionUid"]
+    request_args = dict_keys_camel_to_snake(request.args.to_dict())
+    function_uid = request_args["function_uid"]
     _logger.debug(f"Function ID: {function_uid}")
 
     local_collections = list_local_job_collections(function_uid)

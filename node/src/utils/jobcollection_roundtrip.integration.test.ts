@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { getFunctionJobCollections, getFunctionJobsFromFunctionUid, listFunctions } from "./function_utils_mockups";
-import { uploadJobCollectionCsv } from "./function_utils";
+import { getFunctionJobCollections, getFunctionJobsFromFunctionUid, listFunctions } from "./functionUtilsMockups";
+import { uploadJobCollectionCsv } from "./functionUtils";
 
 function buildCsvFromMockupData(args: {
   functionUid: string;
