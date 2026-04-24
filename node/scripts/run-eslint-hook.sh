@@ -12,7 +12,7 @@ fi
 cd "$node_dir"
 
 if [[ "$#" -eq 0 ]]; then
-  exec npx eslint src/ --fix --max-warnings=0
+  exec npx eslint src/ --fix --max-warnings=0 --no-warn-ignored
 fi
 
 files=()
@@ -24,4 +24,4 @@ for file in "$@"; do
   fi
 done
 
-exec npx eslint --fix --max-warnings=0 "${files[@]}"
+exec npx eslint --fix --max-warnings=0 --no-warn-ignored "${files[@]}"
