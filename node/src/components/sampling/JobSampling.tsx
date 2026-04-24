@@ -7,6 +7,7 @@ import JobSelector from "../data/JobSelector";
 import PlusButton from "./PlusButton";
 import { Sampling } from "./Sampling";
 import { Function as OsparcFunction } from "../../osparc-api-ts-client";
+import { useServiceContext } from "../../context/ServiceContext";
 
 interface JobSamplingProps {
   loading: boolean;
@@ -18,12 +19,14 @@ interface JobSamplingProps {
 
 export function JobSampling(props: JobSamplingProps) {
   const { loading, setLoading, setJobProgress, selectedFunction, disabled } = props;
+  const { permissions } = useServiceContext();
   const theme = useTheme();
   const [jobPanelOpen, setJobPanelOpen] = useState<boolean>(false);
+  const samplingDisabled = loading || disabled || permissions === "READ-ONLY";
 
   return (
     <Accordion
-      expanded={jobPanelOpen && !loading && !disabled}
+      expanded={jobPanelOpen && !samplingDisabled}
       disableGutters
       variant="outlined"
       sx={{
@@ -36,9 +39,9 @@ export function JobSampling(props: JobSamplingProps) {
       <Button
         variant="contained"
         color="primary"
-        disabled={loading || disabled}
+        disabled={samplingDisabled}
         mmux-testid="extend-sampling-btn"
-        onClick={() => setJobPanelOpen(loading || disabled ? false : !jobPanelOpen)}
+        onClick={() => setJobPanelOpen(samplingDisabled ? false : !jobPanelOpen)}
       >
         Adapt / Extend Sampling
         <CustomTooltip
@@ -49,8 +52,8 @@ export function JobSampling(props: JobSamplingProps) {
         >
           <InfoOutline
             sx={{
-              color: loading || disabled ? theme.palette.grey[400] : theme.palette.primary.light,
-              backgroundColor: loading || disabled ? theme.palette.grey[200] : theme.palette.background.default,
+              color: samplingDisabled ? theme.palette.grey[400] : theme.palette.primary.light,
+              backgroundColor: samplingDisabled ? theme.palette.grey[200] : theme.palette.background.default,
               borderRadius: "50%",
               padding: "2px",
               marginLeft: "8px",

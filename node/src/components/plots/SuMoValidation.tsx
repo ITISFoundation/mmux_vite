@@ -84,6 +84,13 @@ function SuMoValidation() {
   const RunSuMoValidation = async (jobs: FunctionJob[]) => {
     console.info("Evaluating SuMo Validation for jobs: ", jobs);
 
+    if (!jobs || jobs.length < 5) {
+      setCvMetrics(undefined);
+      setPlotData([]);
+      setPropagating(false);
+      return;
+    }
+
     setCvMetrics(undefined);
     setPlotData([]);
     setPropagating(true);
@@ -165,7 +172,15 @@ function SuMoValidation() {
   };
 
   return (
-    <Box display="flex" flex={1} flexDirection="column" width="100%" justifyContent="center" ref={boxRef}>
+    <Box
+      display="flex"
+      flex={1}
+      flexDirection="column"
+      width="100%"
+      justifyContent="center"
+      ref={boxRef}
+      mmux-testid="sumo-validation-view"
+    >
       {propagating && <CalculatingWarning height={plotStyle.height} dontShowText />}
       {!propagating && plotData.length === 0 && (
         <InsufficientDataWarning
