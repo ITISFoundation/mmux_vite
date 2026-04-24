@@ -195,12 +195,18 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     // fetchedJobCollections === undefined means the API call hasn't completed yet;
     // only clear loading once we have a definitive response ([] or non-empty).
     if (fetchedJobCollections === undefined) return;
-    if (jobCollections.length > 0 && loading === true) {
-      onToggleAll(true);
+    if (loading !== true) return;
+
+    // Wait until fetched job collections have been copied into local state before
+    // auto-selecting successful jobs and clearing the loading screen.
+    if (fetchedJobCollections.length === 0) {
       setLoading(false);
       setIsSuMoGenerated(true);
+      return;
     }
-    if (jobCollections.length === 0 && loading === true) {
+
+    if (jobCollections.length > 0) {
+      onToggleAll(true);
       setLoading(false);
       setIsSuMoGenerated(true);
     }
