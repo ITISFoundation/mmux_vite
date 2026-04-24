@@ -67,27 +67,25 @@ export async function listJobs(): Promise<FunctionJob[]> {
 }
 
 export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<FunctionJob[]> {
-  return fetch(`/flask/osparc/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(
-    async response => normalizePayloadToCamelCase<FunctionJob[]>(await response.json()),
+  return fetch(`/flask/osparc/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(async response =>
+    normalizePayloadToCamelCase<FunctionJob[]>(await response.json()),
   );
 }
 
 export async function getFunctionJobCollections(functionUid: string): Promise<FunctionJobCollection[]> {
-  return fetchWithRetry(
-    `/flask/osparc/list_function_job_collections_for_functionid?functionUid=${functionUid}`,
-  ).then(async response => normalizePayloadToCamelCase<FunctionJobCollection[]>(await response.json()));
+  return fetchWithRetry(`/flask/osparc/list_function_job_collections_for_functionid?functionUid=${functionUid}`).then(
+    async response => normalizePayloadToCamelCase<FunctionJobCollection[]>(await response.json()),
+  );
 }
 
 export async function getFunctionJobsFromFunctionJobCollection(jobCollectionUid: string): Promise<FunctionJob[]> {
-  return fetchWithRetry(
-    `/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=${jobCollectionUid}`,
-  ).then(async response => normalizePayloadToCamelCase<FunctionJob[]>(await response.json()));
+  return fetchWithRetry(`/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=${jobCollectionUid}`).then(
+    async response => normalizePayloadToCamelCase<FunctionJob[]>(await response.json()),
+  );
 }
 
 export async function downloadJobCollectionCsv(jobCollectionUid: string): Promise<string> {
-  const response = await fetchWithRetry(
-    `/flask/osparc/download_job_collection_csv?JobCollectionUid=${jobCollectionUid}`,
-  );
+  const response = await fetchWithRetry(`/flask/osparc/download_job_collection_csv?JobCollectionUid=${jobCollectionUid}`);
   return response.text();
 }
 

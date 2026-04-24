@@ -25,8 +25,8 @@ type MogaResults = Record<string, number[]> & {
 };
 
 function normalizeMogaResults(payload: unknown): MogaResults {
-  const rawResults = payload as Record<string, number[] | undefined> & { non_dominated_indices?: number[] };
-  const { non_dominated_indices: nonDominatedIndices = [], ...results } = rawResults;
+  const rawResults = payload as Record<string, number[] | undefined> & { nonDominatedIndices?: number[] };
+  const { nonDominatedIndices = [], ...results } = rawResults;
   return {
     ...results,
     nonDominatedIndices,

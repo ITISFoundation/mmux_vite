@@ -34,7 +34,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionsApi(configuration);
 
 const request: FunctionsApiDeleteFunctionRequest = {
-  
+
   functionId: "function_id_example",
 };
 
@@ -89,7 +89,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionsApi(configuration);
 
 const request: FunctionsApiGetFunctionRequest = {
-  
+
   functionId: "function_id_example",
 };
 
@@ -144,7 +144,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionsApi(configuration);
 
 const request: FunctionsApiGetFunctionInputschemaRequest = {
-  
+
   functionId: "function_id_example",
 };
 
@@ -199,7 +199,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionsApi(configuration);
 
 const request: FunctionsApiGetFunctionOutputschemaRequest = {
-  
+
   functionId: "function_id_example",
 };
 
@@ -254,7 +254,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionsApi(configuration);
 
 const request: FunctionsApiListFunctionJobsForFunctionidRequest = {
-  
+
   functionId: "function_id_example",
     // Page size limit (optional)
   limit: 20,
@@ -371,9 +371,9 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionsApi(configuration);
 
 const request: FunctionsApiMapFunctionRequest = {
-  
+
   functionId: "function_id_example",
-  
+
   requestBody: [
     {},
   ],
@@ -431,7 +431,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionsApi(configuration);
 
 const request: FunctionsApiRegisterFunctionRequest = {
-  
+
   _function: null,
 };
 
@@ -486,9 +486,9 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionsApi(configuration);
 
 const request: FunctionsApiRunFunctionRequest = {
-  
+
   functionId: "function_id_example",
-  
+
   body: {},
 };
 
@@ -544,9 +544,9 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionsApi(configuration);
 
 const request: FunctionsApiUpdateFunctionDescriptionRequest = {
-  
+
   functionId: "function_id_example",
-  
+
   description: "description_example",
 };
 
@@ -602,9 +602,9 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionsApi(configuration);
 
 const request: FunctionsApiUpdateFunctionTitleRequest = {
-  
+
   functionId: "function_id_example",
-  
+
   title: "title_example",
 };
 
@@ -660,9 +660,9 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionsApi(configuration);
 
 const request: FunctionsApiValidateFunctionInputsRequest = {
-  
+
   functionId: "function_id_example",
-  
+
   body: {},
 };
 
@@ -702,5 +702,3 @@ No authorization required
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
-
-

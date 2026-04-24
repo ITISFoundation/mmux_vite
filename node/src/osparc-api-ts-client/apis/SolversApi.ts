@@ -32,12 +32,12 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Creates a job in a specific release with given inputs. This operation does not start the job.  New in *version 0.5*
      * Create Solver Job
-     * @param solverKey 
-     * @param version 
-     * @param jobInputs 
-     * @param hidden 
-     * @param xSimcoreParentProjectUuid 
-     * @param xSimcoreParentNodeId 
+     * @param solverKey
+     * @param version
+     * @param jobInputs
+     * @param hidden
+     * @param xSimcoreParentProjectUuid
+     * @param xSimcoreParentNodeId
      */
     public async createSolverJob(solverKey: string, version: string, jobInputs: JobInputs, hidden?: boolean, xSimcoreParentProjectUuid?: string, xSimcoreParentNodeId?: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -101,7 +101,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -113,9 +113,9 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Deletes an existing solver job  New in *version 0.7*
      * Delete Job
-     * @param solverKey 
-     * @param version 
-     * @param jobId 
+     * @param solverKey
+     * @param version
+     * @param jobId
      */
     public async deleteJob(solverKey: string, version: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -155,7 +155,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -167,9 +167,9 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Gets job of a given solver
      * Get Job
-     * @param solverKey 
-     * @param version 
-     * @param jobId 
+     * @param solverKey
+     * @param version
+     * @param jobId
      */
     public async getJob(solverKey: string, version: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -209,7 +209,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -221,9 +221,9 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Gets custom metadata from a job  New in *version 0.7*
      * Get Job Custom Metadata
-     * @param solverKey 
-     * @param version 
-     * @param jobId 
+     * @param solverKey
+     * @param version
+     * @param jobId
      */
     public async getJobCustomMetadata(solverKey: string, version: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -263,7 +263,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -275,9 +275,9 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Special extra output with persistent logs file for the solver run.  **NOTE**: this is not a log stream but a predefined output that is only available after the job is done  New in *version 0.4*
      * Get Job Output Logfile
-     * @param solverKey 
-     * @param version 
-     * @param jobId 
+     * @param solverKey
+     * @param version
+     * @param jobId
      */
     public async getJobOutputLogfile(solverKey: string, version: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -317,7 +317,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -328,9 +328,9 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
      * Get Job Outputs
-     * @param solverKey 
-     * @param version 
-     * @param jobId 
+     * @param solverKey
+     * @param version
+     * @param jobId
      */
     public async getJobOutputs(solverKey: string, version: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -370,7 +370,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -382,9 +382,9 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Get job pricing unit  New in *version 0.7*
      * Get Job Pricing Unit
-     * @param solverKey 
-     * @param version 
-     * @param jobId 
+     * @param solverKey
+     * @param version
+     * @param jobId
      */
     public async getJobPricingUnit(solverKey: string, version: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -424,7 +424,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -436,9 +436,9 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Get job wallet  New in *version 0.7*
      * Get Job Wallet
-     * @param solverKey 
-     * @param version 
-     * @param jobId 
+     * @param solverKey
+     * @param version
+     * @param jobId
      */
     public async getJobWallet(solverKey: string, version: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -478,7 +478,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -489,9 +489,9 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
      * Get Log Stream
-     * @param solverKey 
-     * @param version 
-     * @param jobId 
+     * @param solverKey
+     * @param version
+     * @param jobId
      */
     public async getLogStream(solverKey: string, version: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -531,7 +531,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -543,7 +543,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Gets latest release of a solver  Added in *version 0.7.1*: `version_display` field in the response
      * Get Solver
-     * @param solverKey 
+     * @param solverKey
      */
     public async getSolver(solverKey: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -569,7 +569,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -581,8 +581,8 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Gets solver pricing plan  New in *version 0.7*  Added in *version 0.7.1*: `version_display` field in the response
      * Get Solver Pricing Plan
-     * @param solverKey 
-     * @param version 
+     * @param solverKey
+     * @param version
      */
     public async getSolverPricingPlan(solverKey: string, version: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -615,7 +615,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -627,8 +627,8 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Gets a specific release of a solver  Added in *version 0.7.1*: `version_display` field in the response
      * Get Solver Release
-     * @param solverKey 
-     * @param version 
+     * @param solverKey
+     * @param version
      */
     public async getSolverRelease(solverKey: string, version: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -661,7 +661,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -673,9 +673,9 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Inspects the current status of a job  New in *version 0.5*
      * Inspect Job
-     * @param solverKey 
-     * @param version 
-     * @param jobId 
+     * @param solverKey
+     * @param version
+     * @param jobId
      */
     public async inspectJob(solverKey: string, version: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -715,7 +715,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -727,8 +727,8 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * 🚨 **Deprecated**: This endpoint is deprecated and will be removed in a future release. Please use `GET /{solver_key}/releases/{version}/jobs/page` instead.    List of jobs in a specific released solver (limited to 20 jobs)  New in *version 0.5*  Removed in *version 0.7*: This endpoint is deprecated and will be removed in a future version
      * List Jobs
-     * @param solverKey 
-     * @param version 
+     * @param solverKey
+     * @param version
      */
     public async listJobs(solverKey: string, version: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -761,7 +761,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -773,8 +773,8 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * List of jobs on a specific released solver (includes pagination)  New in *version 0.7*
      * List Jobs Paginated
-     * @param solverKey 
-     * @param version 
+     * @param solverKey
+     * @param version
      * @param limit Page size limit
      * @param offset Page offset
      */
@@ -821,7 +821,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -833,8 +833,8 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Lists inputs and outputs of a given solver  New in *version 0.5*  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Ports
-     * @param solverKey 
-     * @param version 
+     * @param solverKey
+     * @param version
      */
     public async listSolverPorts(solverKey: string, version: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -867,7 +867,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -879,7 +879,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Lists all releases of a given (one) solver  Added in *version 0.7.1*: `version_display` field in the response
      * List Solver Releases
-     * @param solverKey 
+     * @param solverKey
      */
     public async listSolverReleases(solverKey: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -905,7 +905,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -935,7 +935,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -965,7 +965,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -977,10 +977,10 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Updates custom metadata from a job  New in *version 0.7*
      * Replace Job Custom Metadata
-     * @param solverKey 
-     * @param version 
-     * @param jobId 
-     * @param jobMetadataUpdate 
+     * @param solverKey
+     * @param version
+     * @param jobId
+     * @param jobMetadataUpdate
      */
     public async replaceJobCustomMetadata(solverKey: string, version: string, jobId: string, jobMetadataUpdate: JobMetadataUpdate, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -1037,7 +1037,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -1049,10 +1049,10 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Starts job job_id created with the solver solver_key:version  Added in *version 0.4.3*: query parameter `cluster_id`  Added in *version 0.6*: responds with a 202 when successfully starting a computation  Changed in *version 0.7*: query parameter `cluster_id` deprecated
      * Start Job
-     * @param solverKey 
-     * @param version 
-     * @param jobId 
-     * @param clusterId 
+     * @param solverKey
+     * @param version
+     * @param jobId
+     * @param clusterId
      */
     public async startJob(solverKey: string, version: string, jobId: string, clusterId?: number, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -1098,7 +1098,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -1110,9 +1110,9 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
     /**
      * Stops a running job  New in *version 0.5*
      * Stop Job
-     * @param solverKey 
-     * @param version 
-     * @param jobId 
+     * @param solverKey
+     * @param version
+     * @param jobId
      */
     public async stopJob(solverKey: string, version: string, jobId: string, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -1152,7 +1152,7 @@ export class SolversApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);

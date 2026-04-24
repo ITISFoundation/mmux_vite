@@ -129,9 +129,9 @@ For operations that would be too expensive or time-consuming during tests:
 def test_long_running_workflow(mocker):
     """Test a workflow that normally takes a long time to run"""
     # Mock the expensive computation
-    mocker.patch('mmux_flaskapi.compute.run_simulation', 
+    mocker.patch('mmux_flaskapi.compute.run_simulation',
                  return_value={'status': 'completed', 'result': expected_data})
-    
+
     result = client.post('/workflows/run', json={'type': 'expensive_simulation'})
     assert result.status_code == 200
     assert result.json['status'] == 'completed'
@@ -156,7 +156,7 @@ Group related tests in classes where it makes sense:
 class TestDakotaWorkflows:
     def test_moga_workflow(self, client):
         # Test implementation
-    
+
     def test_evaluate_workflow(self, client):
         # Test implementation
 ```
@@ -177,10 +177,10 @@ def test_dakota_file_output(tmp_path):
     # Setup input file in temporary directory
     input_file = tmp_path / "input.dat"
     input_file.write_text("parameter_data")
-    
+
     # Run workflow
     result = run_workflow(input_file)
-    
+
     # Check output files
     output_file = tmp_path / "output.dat"
     assert output_file.exists()
@@ -206,7 +206,7 @@ def test_workflow_logging(caplog):
     """Test that workflows log appropriate information"""
     caplog.set_level(logging.INFO)
     run_workflow(test_config)
-    
+
     # Check that expected log messages were produced
     assert "Workflow started" in caplog.text
     assert "Processing step 1" in caplog.text

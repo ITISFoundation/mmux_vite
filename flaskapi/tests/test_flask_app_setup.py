@@ -1,14 +1,17 @@
 import os
+from unittest.mock import MagicMock, patch
+
+from conftest import assert_route_exists
 from flask import Flask
-from unittest.mock import patch, MagicMock
+from osparc import ApiClient
+
 #
 from osparc import Configuration as OsparcConfiguration
-from osparc import ApiClient
+
 #
 from mmux_flaskapi.app import MMUXFlask
 from mmux_flaskapi.utils.helpers import is_test_environment
 from mmux_flaskapi.utils.webserver_config import OsparcApi
-from conftest import assert_route_exists
 
 
 class TestFlaskAppSetup:
@@ -30,6 +33,7 @@ class TestFlaskAppSetup:
         os.environ["OSPARC_API_BASE_URL"] = "https://production.example.com"
         assert is_test_environment() is False
 
+
 class TestRouteExistence:
     def test_deployment_routes(self, test_app: Flask):
         """Test that the deployment-related routes exist in the Flask app."""
@@ -49,7 +53,7 @@ class TestRouteExistence:
         assert_route_exists(test_app, "osparc", "get_function_job")
         assert_route_exists(test_app, "osparc", "get_function_job_status")
         assert_route_exists(test_app, "osparc", "get_function_job_outputs")
-    
+
     def test_textfile_routes(self, test_app: Flask):
         """Test that the textfile-related routes exist in the Flask app."""
         assert_route_exists(test_app, "text-file", "")

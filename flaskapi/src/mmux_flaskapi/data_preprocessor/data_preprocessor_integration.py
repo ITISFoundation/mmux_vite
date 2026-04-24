@@ -6,38 +6,39 @@ with the existing _create_training_file_from_jobs function and other workflow co
 """
 
 import logging
-import pandas as pd
+from collections.abc import Callable
 from pathlib import Path
-from typing import List, Union, Dict, Any, Optional, Callable
+from typing import Any
 
+import pandas as pd
 from pydantic import ValidationError
 
 from mmux_flaskapi.blueprints.dakota_models import JobVariableSelection
-from mmux_flaskapi.data_preprocessor.data_preprocessor import DataPreprocessor
+from mmux_flaskapi.data_preprocessor import DataPreprocessor
 
 _logger = logging.getLogger(__name__)
 
 
 def create_training_file_with_preprocessor(
-    jobs: List[Dict[str, Any]],
-    input_vars: List[str],
-    output_response: List[str],
+    jobs: list[dict[str, Any]],
+    input_vars: list[str],
+    output_response: list[str],
     preprocessor: DataPreprocessor,
     run_dir: Path,
 ) -> tuple[Path, DataPreprocessor]:
     """
     Create a training file from jobs using the DataPreprocessor for transformation.
-    
+
     This function extends the existing _create_training_file_from_jobs functionality
     by applying data preprocessing transformations.
-    
+
     Args:
         jobs: List of job dictionaries with 'inputs', 'outputs', and 'status' keys
         input_vars: List of input variable names
         output_response: Output variable name(s)
         preprocessor: Fitted DataPreprocessor instance
         folder_name: Name of the folder to create for output files
-        
+
     Returns:
         Tuple of (training_file_path, fitted_preprocessor)
     """
@@ -59,52 +60,52 @@ def create_training_file_with_preprocessor(
     run_dir.mkdir(parents=True, exist_ok=True)
     df_jobs = pd.DataFrame(validated_selection.to_records())
     _logger.info(f"Created DataFrame with shape: {df_jobs.shape}")
-    
+
     # Apply preprocessing
     df_transformed = preprocessor.fit_transform(df_jobs)
     _logger.info(f"Transformed DataFrame with shape: {df_transformed.shape}")
     _logger.info(f"Transformed columns: {list(df_transformed.columns)}")
-    
+
     # Save original data
     original_file = run_dir / "df_jobs_original.csv"
     df_jobs.to_csv(original_file, index=False)
-    
+
     # Save transformed data
     training_file = run_dir / "df_jobs_transformed.csv"
     df_transformed.to_csv(training_file, index=False)
-    
+
     # Save preprocessor configuration
     config_file = run_dir / "preprocessor_config.json"
     preprocessor.save_config(config_file)
-    
+
     _logger.info(f"Training files created in: {run_dir}")
     _logger.info(f"Original data: {original_file}")
     _logger.info(f"Transformed data: {training_file}")
     _logger.info(f"Preprocessor config: {config_file}")
-    
+
     return training_file, preprocessor
 
 
 def setup_preprocessor_from_config(
-    input_vars: List[str],
-    output_response: List[str],
-    input_normalizations: Optional[Dict[str, str]] = None,
-    output_normalizations: Optional[Dict[str, str]] = None,
-    input_sign_switches: Optional[List[str]] = None,
-    output_sign_switches: Optional[List[str]] = None,
+    input_vars: list[str],
+    output_response: list[str],
+    input_normalizations: dict[str, str] | None = None,
+    output_normalizations: dict[str, str] | None = None,
+    input_sign_switches: list[str] | None = None,
+    output_sign_switches: list[str] | None = None,
     # Variable filtering parameters
-    include_inputs: Optional[List[str]] = None,
-    exclude_inputs: Optional[List[str]] = None,
-    include_outputs: Optional[List[str]] = None,
-    exclude_outputs: Optional[List[str]] = None,
-    input_patterns: Optional[List[str]] = None,
-    output_patterns: Optional[List[str]] = None,
-    input_predicate: Optional[Callable[[str, Any], bool]] = None,
-    output_predicate: Optional[Callable[[str, Any], bool]] = None
+    include_inputs: list[str] | None = None,
+    exclude_inputs: list[str] | None = None,
+    include_outputs: list[str] | None = None,
+    exclude_outputs: list[str] | None = None,
+    input_patterns: list[str] | None = None,
+    output_patterns: list[str] | None = None,
+    input_predicate: Callable[[str, Any], bool] | None = None,
+    output_predicate: Callable[[str, Any], bool] | None = None,
 ) -> DataPreprocessor:
     """
     Create and configure a DataPreprocessor instance using the new separated workflow.
-    
+
     Args:
         input_vars: List of input variable names
         output_response: Output variable name(s)
@@ -120,35 +121,42 @@ def setup_preprocessor_from_config(
         output_patterns: List of regex patterns for output variable names to include
         input_predicate: Custom function to filter input variables (name, config) -> bool
         output_predicate: Custom function to filter output variables (name, config) -> bool
-        
+
     Returns:
         Configured DataPreprocessor instance
     """
     preprocessor = DataPreprocessor()
-    
+
     # Step 1: Set up basic variable mappings
-    preprocessor.setup_variables(
-        input_vars=input_vars,
-        output_vars=output_response
-    )
-    
+    preprocessor.setup_variables(input_vars=input_vars, output_vars=output_response)
+
     # Step 2: Configure normalization (optional)
     if input_normalizations or output_normalizations:
         preprocessor.setup_normalization(
             input_normalizations=input_normalizations,
-            output_normalizations=output_normalizations
+            output_normalizations=output_normalizations,
         )
-    
+
     # Step 3: Configure sign switching (optional)
     if input_sign_switches or output_sign_switches:
         preprocessor.setup_sign_switching(
             input_sign_switches=input_sign_switches,
-            output_sign_switches=output_sign_switches
+            output_sign_switches=output_sign_switches,
         )
-    
+
     # Step 4: Apply variable filtering (optional)
-    if any([include_inputs, exclude_inputs, include_outputs, exclude_outputs, 
-            input_patterns, output_patterns, input_predicate, output_predicate]):
+    if any(
+        [
+            include_inputs,
+            exclude_inputs,
+            include_outputs,
+            exclude_outputs,
+            input_patterns,
+            output_patterns,
+            input_predicate,
+            output_predicate,
+        ]
+    ):
         preprocessor.filter_variables(
             include_inputs=include_inputs,
             exclude_inputs=exclude_inputs,
@@ -157,16 +165,21 @@ def setup_preprocessor_from_config(
             input_patterns=input_patterns,
             output_patterns=output_patterns,
             input_predicate=input_predicate,
-            output_predicate=output_predicate
+            output_predicate=output_predicate,
         )
-    
+
     return preprocessor
 
 
 def load_and_inverse_transform_results(
-    results: Union[Dict[str, List[float]], pd.DataFrame, List[Dict[str, float]]],
-    config_file_path: Union[str, Path]
-) -> Union[Dict[str, float], List[Dict[str, float]], Dict[str, List[float]], List[Dict[str, List[float]]]]:
+    results: dict[str, list[float]] | pd.DataFrame | list[dict[str, float]],
+    config_file_path: str | Path,
+) -> (
+    dict[str, float]
+    | list[dict[str, float]]
+    | dict[str, list[float]]
+    | list[dict[str, list[float]]]
+):
     """
     Load a preprocessor configuration and inverse transform algorithm results.
 
@@ -180,28 +193,28 @@ def load_and_inverse_transform_results(
     # Load preprocessor
     preprocessor = DataPreprocessor()
     preprocessor.load_config(config_file_path)
-    
+
     # Handle different input formats
     if isinstance(results, dict):
         return preprocessor.inverse_transform(results)
     elif isinstance(results, pd.DataFrame):
         inverse_results = []
         for _, row in results.iterrows():
-            inverse_results.append(preprocessor.inverse_transform(row.to_dict())) # type: ignore
+            inverse_results.append(preprocessor.inverse_transform(row.to_dict()))  # type: ignore
         return inverse_results
     elif isinstance(results, list):
-        return [preprocessor.inverse_transform(result) for result in results] # type: ignore
+        return [preprocessor.inverse_transform(result) for result in results]  # type: ignore
     else:
         raise ValueError(f"Unsupported results format: {type(results)}")
 
 
-def get_preprocessing_summary(config_file_path: Union[str, Path]) -> Dict[str, Any]:
+def get_preprocessing_summary(config_file_path: str | Path) -> dict[str, Any]:
     """
     Get a summary of preprocessing configuration from a saved config file.
-    
+
     Args:
         config_file_path: Path to the preprocessor configuration file
-        
+
     Returns:
         Summary dictionary
     """
@@ -212,19 +225,19 @@ def get_preprocessing_summary(config_file_path: Union[str, Path]) -> Dict[str, A
 
 def create_filtered_preprocessor(
     base_preprocessor: DataPreprocessor,
-    include_inputs: Optional[List[str]] = None,
-    exclude_inputs: Optional[List[str]] = None,
-    include_outputs: Optional[List[str]] = None,
-    exclude_outputs: Optional[List[str]] = None,
-    input_patterns: Optional[List[str]] = None,
-    output_patterns: Optional[List[str]] = None,
-    input_predicate: Optional[Callable[[str, Any], bool]] = None,
-    output_predicate: Optional[Callable[[str, Any], bool]] = None
+    include_inputs: list[str] | None = None,
+    exclude_inputs: list[str] | None = None,
+    include_outputs: list[str] | None = None,
+    exclude_outputs: list[str] | None = None,
+    input_patterns: list[str] | None = None,
+    output_patterns: list[str] | None = None,
+    input_predicate: Callable[[str, Any], bool] | None = None,
+    output_predicate: Callable[[str, Any], bool] | None = None,
 ) -> DataPreprocessor:
     """
     Create a new preprocessor with filtered variables from an existing one.
     This preserves the original preprocessor while creating a filtered copy.
-    
+
     Args:
         base_preprocessor: The original preprocessor to filter from
         include_inputs: List of input variable names to include (exact matches)
@@ -235,18 +248,18 @@ def create_filtered_preprocessor(
         output_patterns: List of regex patterns for output variable names to include
         input_predicate: Custom function to filter input variables (name, config) -> bool
         output_predicate: Custom function to filter output variables (name, config) -> bool
-        
+
     Returns:
         New DataPreprocessor instance with filtered variables
     """
     import copy
-    
+
     # Create a deep copy of the base preprocessor
     filtered_preprocessor = DataPreprocessor()
     filtered_preprocessor.input_variables = copy.deepcopy(base_preprocessor.input_variables)
     filtered_preprocessor.output_variables = copy.deepcopy(base_preprocessor.output_variables)
     filtered_preprocessor._is_fitted = base_preprocessor._is_fitted
-    
+
     # Apply filtering
     filtered_preprocessor.filter_variables(
         include_inputs=include_inputs,
@@ -256,52 +269,49 @@ def create_filtered_preprocessor(
         input_patterns=input_patterns,
         output_patterns=output_patterns,
         input_predicate=input_predicate,
-        output_predicate=output_predicate
+        output_predicate=output_predicate,
     )
-    
+
     return filtered_preprocessor
 
 
 def get_variable_statistics(
-    jobs: List[Dict[str, Any]],
-    variable_names: List[str],
-    variable_type: str = "input"
-) -> Dict[str, Dict[str, float]]:
+    jobs: list[dict[str, Any]], variable_names: list[str], variable_type: str = "input"
+) -> dict[str, dict[str, float]]:
     """
     Get basic statistics for variables from job data.
     Useful for deciding which variables to filter based on their characteristics.
-    
+
     Args:
         jobs: List of job dictionaries
         variable_names: List of variable names to analyze
         variable_type: Type of variables ("input" or "output")
-        
+
     Returns:
         Dictionary mapping variable names to their statistics
     """
     import numpy as np
-    
+
     completed_jobs = [
-        job for job in jobs 
-        if job.get("status", "").lower() in ["completed", "success"]
+        job for job in jobs if job.get("status", "").lower() in ["completed", "success"]
     ]
-    
+
     if len(completed_jobs) == 0:
         raise ValueError("No completed jobs found for statistics calculation")
-    
+
     stats = {}
-    
+
     for var_name in variable_names:
         values = []
         data_key = "inputs" if variable_type == "input" else "outputs"
-        
+
         for job in completed_jobs:
             if data_key in job and var_name in job[data_key]:
                 try:
                     values.append(float(job[data_key][var_name]))
                 except (ValueError, TypeError):
                     continue
-        
+
         if values:
             values = np.array(values)
             stats[var_name] = {
@@ -312,7 +322,9 @@ def get_variable_statistics(
                 "max": float(np.max(values)),
                 "median": float(np.median(values)),
                 "range": float(np.max(values) - np.min(values)),
-                "cv": float(np.std(values) / np.mean(values)) if np.mean(values) != 0 else float('inf')
+                "cv": float(np.std(values) / np.mean(values))
+                if np.mean(values) != 0
+                else float("inf"),
             }
         else:
             stats[var_name] = {
@@ -323,25 +335,25 @@ def get_variable_statistics(
                 "max": None,
                 "median": None,
                 "range": None,
-                "cv": None
+                "cv": None,
             }
-    
+
     return stats
 
 
 def filter_variables_by_statistics(
-    jobs: List[Dict[str, Any]],
-    input_vars: List[str],
-    output_vars: List[str],
-    min_cv: Optional[float] = None,
-    max_cv: Optional[float] = None,
-    min_range: Optional[float] = None,
-    max_range: Optional[float] = None,
-    require_complete_data: bool = True
-) -> Dict[str, List[str]]:
+    jobs: list[dict[str, Any]],
+    input_vars: list[str],
+    output_vars: list[str],
+    min_cv: float | None = None,
+    max_cv: float | None = None,
+    min_range: float | None = None,
+    max_range: float | None = None,
+    require_complete_data: bool = True,
+) -> dict[str, list[str]]:
     """
     Filter variables based on their statistical properties.
-    
+
     Args:
         jobs: List of job dictionaries
         input_vars: List of input variable names to consider
@@ -351,43 +363,41 @@ def filter_variables_by_statistics(
         min_range: Minimum range (max-min) to include
         max_range: Maximum range to include
         require_complete_data: If True, only include variables with data in all jobs
-        
+
     Returns:
         Dictionary with 'inputs' and 'outputs' keys containing filtered variable lists
     """
     input_stats = get_variable_statistics(jobs, input_vars, "input")
     output_stats = get_variable_statistics(jobs, output_vars, "output")
-    
-    def passes_filter(stats: Dict[str, float]) -> bool:
+
+    def passes_filter(stats: dict[str, float]) -> bool:
         if stats["count"] == 0:
             return False
-            
-        if require_complete_data and stats["count"] < len([
-            job for job in jobs 
-            if job.get("status", "").lower() in ["completed", "success"]
-        ]):
+
+        if require_complete_data and stats["count"] < len(
+            [job for job in jobs if job.get("status", "").lower() in ["completed", "success"]]
+        ):
             return False
-            
+
         if min_cv is not None and (stats["cv"] is None or stats["cv"] < min_cv):
             return False
-            
+
         if max_cv is not None and (stats["cv"] is None or stats["cv"] > max_cv):
             return False
-            
+
         if min_range is not None and (stats["range"] is None or stats["range"] < min_range):
             return False
-            
+
         if max_range is not None and (stats["range"] is None or stats["range"] > max_range):
             return False
-            
+
         return True
-    
+
     filtered_inputs = [var for var, stats in input_stats.items() if passes_filter(stats)]
     filtered_outputs = [var for var, stats in output_stats.items() if passes_filter(stats)]
-    
-    _logger.info(f"Statistical filtering: {len(filtered_inputs)}/{len(input_vars)} inputs, {len(filtered_outputs)}/{len(output_vars)} outputs")
-    
-    return {
-        "inputs": filtered_inputs,
-        "outputs": filtered_outputs
-    }
+
+    _logger.info(
+        f"Statistical filtering: {len(filtered_inputs)}/{len(input_vars)} inputs, {len(filtered_outputs)}/{len(output_vars)} outputs"
+    )
+
+    return {"inputs": filtered_inputs, "outputs": filtered_outputs}

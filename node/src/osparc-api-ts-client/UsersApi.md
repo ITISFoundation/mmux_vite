@@ -74,7 +74,7 @@ const configuration = createConfiguration();
 const apiInstance = new UsersApi(configuration);
 
 const request: UsersApiUpdateMyProfileRequest = {
-  
+
   profileUpdate: {
     firstName: "firstName_example",
     lastName: "lastName_example",
@@ -120,5 +120,3 @@ Name | Type | Description  | Notes
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
-
-

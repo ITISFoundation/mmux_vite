@@ -31,9 +31,9 @@ const configuration = createConfiguration();
 const apiInstance = new FilesApi(configuration);
 
 const request: FilesApiAbortMultipartUploadRequest = {
-  
+
   fileId: "file_id_example",
-  
+
   bodyAbortMultipartUploadV0FilesFileIdAbortPost: {
     clientFile: null,
   },
@@ -94,9 +94,9 @@ const configuration = createConfiguration();
 const apiInstance = new FilesApi(configuration);
 
 const request: FilesApiCompleteMultipartUploadRequest = {
-  
+
   fileId: "file_id_example",
-  
+
   bodyCompleteMultipartUploadV0FilesFileIdCompletePost: {
     clientFile: null,
     uploadedParts: {
@@ -166,7 +166,7 @@ const configuration = createConfiguration();
 const apiInstance = new FilesApi(configuration);
 
 const request: FilesApiDeleteFileRequest = {
-  
+
   fileId: "file_id_example",
 };
 
@@ -225,7 +225,7 @@ const configuration = createConfiguration();
 const apiInstance = new FilesApi(configuration);
 
 const request: FilesApiDownloadFileRequest = {
-  
+
   fileId: "file_id_example",
 };
 
@@ -286,7 +286,7 @@ const configuration = createConfiguration();
 const apiInstance = new FilesApi(configuration);
 
 const request: FilesApiGetFileRequest = {
-  
+
   fileId: "file_id_example",
 };
 
@@ -402,7 +402,7 @@ const configuration = createConfiguration();
 const apiInstance = new FilesApi(configuration);
 
 const request: FilesApiGetUploadLinksRequest = {
-  
+
   clientFile: null,
 };
 
@@ -514,9 +514,9 @@ const configuration = createConfiguration();
 const apiInstance = new FilesApi(configuration);
 
 const request: FilesApiSearchFilesPageRequest = {
-  
+
   sha256Checksum: "62ECB020842930cc01FFCCfeEe150AC32DcAEc8a83DDD7dBF7567C88195ffcea",
-  
+
   fileId: "file_id_example",
     // Page size limit (optional)
   limit: 20,
@@ -583,9 +583,9 @@ const configuration = createConfiguration();
 const apiInstance = new FilesApi(configuration);
 
 const request: FilesApiUploadFileRequest = {
-  
+
   file: { data: Buffer.from(fs.readFileSync('/path/to/file', 'utf-8')), name: '/path/to/file' },
-  
+
   contentLength: "content-length_example",
 };
 
@@ -629,5 +629,3 @@ Name | Type | Description  | Notes
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
-
-

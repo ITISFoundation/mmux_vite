@@ -1,11 +1,11 @@
-import os
-from pathlib import Path
 import logging
+import os
 import time
+from pathlib import Path
 from typing import NamedTuple
 
 #
-from flask import jsonify, make_response, Blueprint
+from flask import Blueprint, jsonify, make_response
 
 #
 from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import (
@@ -15,13 +15,13 @@ from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import
 #
 from mmux_flaskapi.blueprints.osparc import _get_function_job_from_uid
 from mmux_flaskapi.blueprints.sampling_models import (
-    LHSSamplingRequest,
-    GridSamplingRequest,
-    TestJobRequest,
     CloneJobRequest,
     ErrorResponse,
+    GridSamplingRequest,
+    LHSSamplingRequest,
+    TestJobRequest,
 )
-from mmux_flaskapi.utils.helpers import dict_keys_snake_to_camel, create_run_dir
+from mmux_flaskapi.utils.helpers import create_run_dir, dict_keys_snake_to_camel
 from mmux_flaskapi.utils.json_serializer import parse_request_model
 from mmux_flaskapi.utils.webserver_config import get_osparc_api
 
@@ -55,9 +55,7 @@ def _get_parent_ids() -> ParentInfo:
             _logger.error(
                 "OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set. Cannot create a sampling campaign through map function."
             )
-            raise ValueError(
-                "OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set."
-            )
+            raise ValueError("OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set.")
     else:
         _logger.error(
             f"Unknown value of DEPLOYMENT_MODE env variable ({deployment_mode}). Thus not able to fetch parent node and project IDs."
@@ -65,9 +63,7 @@ def _get_parent_ids() -> ParentInfo:
         raise ValueError(
             f"DEPLOYMENT_MODE env variable could not be recognized ({deployment_mode}) - can not run new pipelines as there would be no billing information."
         )
-    return ParentInfo(
-        parent_node_id=parent_node_id, parent_project_id=parent_project_id
-    )
+    return ParentInfo(parent_node_id=parent_node_id, parent_project_id=parent_project_id)
 
 
 def _get_functions_api():
@@ -83,9 +79,7 @@ def _get_studies_api():
 
 
 def _run_sampling_map(function_uid, samples):
-    _logger.debug(
-        f"Running sampling map for function {function_uid} with {len(samples)} samples"
-    )
+    _logger.debug(f"Running sampling map for function {function_uid} with {len(samples)} samples")
 
     assert len(samples) > 0, "No samples provided for sampling map"
 
@@ -136,8 +130,7 @@ def flask_lhs():
             for i in range(k):
                 variable_config = config[i]
                 scaled_value = float(
-                    H[i, j] * (variable_config.end - variable_config.start)
-                    + variable_config.start
+                    H[i, j] * (variable_config.end - variable_config.start) + variable_config.start
                 )
                 sample[variable_config.variable] = scaled_value
             samples.append(sample)
@@ -176,8 +169,8 @@ def flask_grid_sampling():
         _logger.debug(f"Validated config: {[c.dict() for c in config]}")
         _logger.debug(f"Input variables: {input_vars}, function_uid: {function_uid}")
 
-        from mmux_python.funs_evaluate import create_grid_samples
         from mmux_python.funs_data_processing import load_data
+        from mmux_python.funs_evaluate import create_grid_samples
 
         # Convert config to the format expected by create_grid_samples
         config_dict = {var_config.variable: var_config.dict() for var_config in config}
@@ -188,8 +181,7 @@ def flask_grid_sampling():
             input_vars=input_vars,
             mins=[config_dict[var]["start"] for var in input_vars],
             cut_values=[
-                (config_dict[var]["end"] + config_dict[var]["start"]) / 2
-                for var in input_vars
+                (config_dict[var]["end"] + config_dict[var]["start"]) / 2 for var in input_vars
             ],
             maxs=[config_dict[var]["end"] for var in input_vars],
             n_points_per_dimension=[config_dict[var]["steps"] for var in input_vars],
@@ -255,7 +247,7 @@ def flask_test_job():
         _logger.debug(f"Job UID: {uid}")
         while (
             "JOB_TASK_" in (job := _get_function_job_from_uid(uid))["status"]
-            and not "FAILURE" in job
+            and "FAILURE" not in job
         ):
             time.sleep(1)
         _logger.debug(f"Created job: {job}")
