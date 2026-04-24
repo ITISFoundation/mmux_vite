@@ -548,6 +548,26 @@ class TestSumoAlongAxes:
             assert var in predictions
             assert "x" in predictions[var] and "yHat" in predictions[var]
 
+    def test_sumo_along_axes_preserves_camel_case_variable_names(self, test_client: Flask):
+        """Backend variable names must not be rewritten during request or response conversion."""
+        input_vars = ["angleWidth", "interElectrodeSpacing"]
+        output = "peakAveragedField"
+        slider_values = {"angleWidth": 0.5, "interElectrodeSpacing": -1.0}
+
+        payload = {
+            "inputs": input_vars,
+            "output": output,
+            "sliderValues": slider_values,
+            "FunctionJobs": self.create_sumo_jobs(20, input_vars, output),
+        }
+
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert "predictions" in data
+        assert set(data["predictions"].keys()) == set(input_vars)
+
     def test_sumo_along_axes_single_input(self, test_client: Flask):
         """Test with single input variable."""
         input_vars = ["x1"]

@@ -92,9 +92,7 @@ def _schema_from_vars(vars_set: set[str]) -> dict[str, Any]:
     return {
         "schema_content": {
             "type": "object",
-            "properties": {
-                sanitize_varnames(var): {"type": "number"} for var in sorted(vars_set)
-            },
+            "properties": {sanitize_varnames(var): {"type": "number"} for var in sorted(vars_set)},
             "required": sorted(sanitize_varnames(var) for var in vars_set),
         }
     }

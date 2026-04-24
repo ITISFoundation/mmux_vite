@@ -33,6 +33,15 @@ get-access-write-on-mmux-python:
 	else \
 		chown -R "$$(id -u):$$(id -g)" ${FLASKAPI_DIR}/mmux_python/; \
 	fi
+	@if [ ! -e ${FLASKAPI_DIR}/.venv ]; then \
+		echo "${FLASKAPI_DIR}/.venv does not exist; skipping permission fix"; \
+	elif [ -w ${FLASKAPI_DIR}/.venv ]; then \
+		echo "${FLASKAPI_DIR}/.venv is already writable; skipping permission fix"; \
+	elif command -v sudo >/dev/null 2>&1; then \
+		sudo chown -R "$$(id -u):$$(id -g)" ${FLASKAPI_DIR}/.venv/; \
+	else \
+		chown -R "$$(id -u):$$(id -g)" ${FLASKAPI_DIR}/.venv/; \
+	fi
 
 .PHONY: install-flaskapi-deps ## install Flask API Python dependencies
 install-flaskapi-deps: setup-mmux-python get-access-write-on-mmux-python
@@ -222,7 +231,7 @@ pre-commit: prek ## backward-compatible alias for prek
 test-node: clean
 	cd ${NODE_DIR} && \
 		npm ci && \
-		npm test
+		npm test -- --run
 
 .PHONY: test-flaskapi
 test-flaskapi: install-flaskapi-deps ## run Flask backend tests

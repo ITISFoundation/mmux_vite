@@ -256,6 +256,47 @@ class TestRecursiveDictConversion:
         result = recursive_dict_keys_camel_to_snake(input_dict)
         assert result == expected
 
+    def test_recursive_dict_keys_camel_to_snake_preserves_variable_keyspaces(self):
+        """Variable-name dictionaries should keep backend-provided keys unchanged."""
+        input_dict = {
+            "sliderValues": {"angleWidth": 30.0},
+            "distributions": {"angleWidth": {"distribution": "uniform", "min": 0.0, "max": 1.0}},
+            "FunctionJobs": [
+                {
+                    "inputs": {"angleWidth": 30.0},
+                    "outputs": {"peakAveragedField": 1.0},
+                }
+            ],
+        }
+
+        result = recursive_dict_keys_camel_to_snake(input_dict)
+
+        assert result["slider_values"] == {"angleWidth": 30.0}
+        assert result["distributions"]["angleWidth"] == {
+            "distribution": "uniform",
+            "min": 0.0,
+            "max": 1.0,
+        }
+        assert result["function_jobs"][0]["inputs"] == {"angleWidth": 30.0}
+        assert result["function_jobs"][0]["outputs"] == {"peakAveragedField": 1.0}
+
+    def test_recursive_dict_keys_snake_to_camel_preserves_variable_keyspaces(self):
+        """Response conversion should preserve variable names while still camelizing field names."""
+        input_dict = {
+            "predictions": {"angleWidth": {"x": [1.0], "y_hat": [2.0], "std_hat": [0.1]}},
+            "outputs": {"peakAveragedField": 1.0},
+        }
+
+        result = recursive_dict_keys_snake_to_camel(input_dict)
+
+        assert "angleWidth" in result["predictions"]
+        assert result["predictions"]["angleWidth"] == {
+            "x": [1.0],
+            "yHat": [2.0],
+            "stdHat": [0.1],
+        }
+        assert result["outputs"] == {"peakAveragedField": 1.0}
+
 
 class TestPaginationHelpers:
     """Test pagination helper functions."""
