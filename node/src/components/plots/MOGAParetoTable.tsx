@@ -6,7 +6,7 @@ import { useMOGATableContext } from "../../context/MOGATableContext";
 import PerformanceModal from "./PerformanceModal";
 import Header from "../navigation/Header";
 import { RunSamplingButton } from "../sampling/RunSamplingButton";
-import { runSingleJob } from "../../utils/sampling_utils";
+import { runSingleJob } from "../../utils/samplingUtils";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useSamplingContext } from "../../context/SamplingContext";
 
@@ -17,7 +17,7 @@ interface MogaParetoTableProps {
 }
 
 function getRowId(value: MogaDataRowType) {
-  return value.NDI;
+  return value.ndi;
 }
 
 const defaultSortModel: GridSortModel = [
@@ -72,7 +72,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
             performance += weights[key] * row[key];
           }
         });
-        return { ...row, Performance: performance };
+        return { ...row, performance };
       });
       setData({ ...data, rows: updatedRows });
     }
@@ -155,8 +155,8 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
           </Typography>
         </Box>
       ),
-      renderCell: params => (Number.isNaN(params.row.Performance) ? "-" : params.row.Performance.toPrecision(2)),
-      valueGetter: (_value, row) => row.Performance,
+      renderCell: params => (Number.isNaN(params.row.performance) ? "-" : params.row.performance.toPrecision(2)),
+      valueGetter: (_value, row) => row.performance,
     },
     {
       ...columnProps,

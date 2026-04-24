@@ -38,7 +38,7 @@ import {
   getJobCollectionStatus,
   listFunctions,
   uploadJobCollectionCsv,
-} from "../../utils/function_utils";
+} from "../../utils/functionUtils";
 import getMinMax from "../minmax";
 import CustomTooltip from "../utils/CustomTooltip";
 import JobRow from "./JobRow";

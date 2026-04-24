@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast, Id } from "react-toastify";
-import { getSimplifiedHost } from "../../utils/function_utils";
+import { getSimplifiedHost } from "../../utils/functionUtils";
 import StyledHyperLink from "../utils/HyperLink";
 
 type HostType = "sim4life" | "osparc" | "unknown";

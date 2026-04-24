@@ -35,7 +35,7 @@ get-access-write-on-mmux-python:
 	fi
 
 .PHONY: install-flaskapi-deps ## install Flask API Python dependencies
-install-flaskapi-deps: setup-mmux-python get-access-write-on-mmux-python 
+install-flaskapi-deps: setup-mmux-python get-access-write-on-mmux-python
 	cd ${FLASKAPI_DIR} && make install-flaskapi-deps
 
 
@@ -67,7 +67,7 @@ build: compose-spec ## build docker images
 	docker compose build
 
 .PHONY: build-no-cache
-build-no-cache: compose-spec ## build docker images	
+build-no-cache: compose-spec ## build docker images
 	docker compose build --no-cache --pull --parallel
 
 ## NB: VSCode might keep old credentials cached, even if changed in .env
@@ -209,7 +209,14 @@ clean: ## clean build artifacts and dependencies
 	rm -rf flaskapi/mmux_python
 
 
-	
+.PHONY: prek pre-commit
+prek: install-node install-flaskapi-deps ## run repository prek hooks
+	uvx prek run --all-files
+
+pre-commit: prek ## backward-compatible alias for prek
+
+
+
 # TESTING
 .PHONY: test-node
 test-node: clean

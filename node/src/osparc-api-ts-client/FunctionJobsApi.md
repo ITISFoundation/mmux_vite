@@ -28,7 +28,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionJobsApi(configuration);
 
 const request: FunctionJobsApiDeleteFunctionJobRequest = {
-  
+
   functionJobId: "function_job_id_example",
 };
 
@@ -83,7 +83,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionJobsApi(configuration);
 
 const request: FunctionJobsApiFunctionJobOutputsRequest = {
-  
+
   functionJobId: "function_job_id_example",
 };
 
@@ -138,7 +138,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionJobsApi(configuration);
 
 const request: FunctionJobsApiFunctionJobStatusRequest = {
-  
+
   functionJobId: "function_job_id_example",
 };
 
@@ -193,7 +193,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionJobsApi(configuration);
 
 const request: FunctionJobsApiGetFunctionJobRequest = {
-  
+
   functionJobId: "function_job_id_example",
 };
 
@@ -305,7 +305,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionJobsApi(configuration);
 
 const request: FunctionJobsApiRegisterFunctionJobRequest = {
-  
+
   functionJob: null,
 };
 
@@ -342,5 +342,3 @@ No authorization required
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
-
-

@@ -8,17 +8,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from osparc_client.exceptions import ApiException as OsparcApiException
 
-
-@pytest.fixture(autouse=True)
-def patch_users_profile_success():
-    """Avoid real network calls when OsparcApi tests connection via UsersApi.get_my_profile."""
-    with patch(
-        "osparc.UsersApi.get_my_profile",
-        return_value=MagicMock(model_dump_json=lambda **kwargs: "{}"),
-    ):
-        yield
-
-
 #####################################################################################
 ## Listing endpoints for Functions, Jobs, Job Collections
 #####################################################################################
@@ -63,9 +52,7 @@ def mock_list_functions_empty(*args, **kwargs):
 
 def mock_list_functions_422(*args, **kwargs):
     """Simulate a 422 Validation Error from the API client."""
-    raise OsparcApiException(
-        status=422, body="422 Unprocessable Entity: Validation Error"
-    )
+    raise OsparcApiException(status=422, body="422 Unprocessable Entity: Validation Error")
 
 
 # --- Fixtures for patching ---
@@ -143,9 +130,7 @@ def mock_list_function_jobs_empty(*args, **kwargs):
 
 def mock_list_function_jobs_422(*args, **kwargs):
     """Simulate a 422 Validation Error from the API client."""
-    raise OsparcApiException(
-        status=422, body="422 Unprocessable Entity: Validation Error"
-    )
+    raise OsparcApiException(status=422, body="422 Unprocessable Entity: Validation Error")
 
 
 # --- Fixtures for patching ---
@@ -186,19 +171,9 @@ def mock_list_function_job_collections_success(*args, **kwargs):
     """Return a paginated object with two job collections."""
     collections = [
         MagicMock(
-            to_dict=lambda: {
-                "uid": "jc-1",
-                "job_ids": ["job-1", "job-2"],
-                "name": "Collection One",
-            }
+            to_dict=lambda: {"uid": "jc-1", "job_ids": ["job-1", "job-2"], "name": "Collection One"}
         ),
-        MagicMock(
-            to_dict=lambda: {
-                "uid": "jc-2",
-                "job_ids": ["job-3"],
-                "name": "Collection Two",
-            }
-        ),
+        MagicMock(to_dict=lambda: {"uid": "jc-2", "job_ids": ["job-3"], "name": "Collection Two"}),
     ]
     return MagicMock(items=collections, total=len(collections))
 
@@ -208,9 +183,7 @@ def mock_list_function_job_collections_empty(*args, **kwargs):
 
 
 def mock_list_function_job_collections_422(*args, **kwargs):
-    raise OsparcApiException(
-        status=422, body="422 Unprocessable Entity: Validation Error"
-    )
+    raise OsparcApiException(status=422, body="422 Unprocessable Entity: Validation Error")
 
 
 # --- Fixtures for patching FunctionJobCollectionsApi.list_function_job_collections ---
@@ -278,9 +251,7 @@ def mock_list_function_jobs_for_functionid_empty(function_uid: str, **kwargs):
 
 
 def mock_list_function_jobs_for_functionid_422(function_uid: str, **kwargs):
-    raise OsparcApiException(
-        status=422, body="422 Unprocessable Entity: Validation Error"
-    )
+    raise OsparcApiException(status=422, body="422 Unprocessable Entity: Validation Error")
 
 
 def mock_list_function_jobs_for_functionid_404(function_uid: str, **kwargs):
@@ -347,9 +318,7 @@ def mock_get_function_job_collection_empty(jc_uid):
 
 
 def mock_get_function_job_collection_422(jc_uid):
-    raise OsparcApiException(
-        status=422, body="422 Unprocessable Entity: Validation Error"
-    )
+    raise OsparcApiException(status=422, body="422 Unprocessable Entity: Validation Error")
 
 
 def mock_get_function_job_collection_404(jc_uid):
@@ -446,15 +415,11 @@ def mock_get_function_job_success(job_uid):
 
 
 def mock_get_function_job_404(job_uid):
-    raise OsparcApiException(
-        status=404, body=f"404 Not Found: Job UID {job_uid} does not exist"
-    )
+    raise OsparcApiException(status=404, body=f"404 Not Found: Job UID {job_uid} does not exist")
 
 
 def mock_get_function_job_422(job_uid):
-    raise OsparcApiException(
-        status=422, body="422 Unprocessable Entity: Validation Error"
-    )
+    raise OsparcApiException(status=422, body="422 Unprocessable Entity: Validation Error")
 
 
 ## --- Fixtures for patching FunctionJobApi.function_job() ---
@@ -503,15 +468,11 @@ def mock_get_function_job_status_success(job_uid):
 
 
 def mock_get_function_job_status_422(job_uid):
-    raise OsparcApiException(
-        status=422, body="422 Unprocessable Entity: Validation Error"
-    )
+    raise OsparcApiException(status=422, body="422 Unprocessable Entity: Validation Error")
 
 
 def mock_get_function_job_status_404(job_uid):
-    raise OsparcApiException(
-        status=404, body=f"404 Not Found: Job UID {job_uid} does not exist"
-    )
+    raise OsparcApiException(status=404, body=f"404 Not Found: Job UID {job_uid} does not exist")
 
 
 ## --- Fixtures for patching FunctionJobApi.function_job_status() ---
@@ -550,15 +511,11 @@ def mock_function_job_outputs_success(job_uid):
 
 
 def mock_function_job_outputs_422(job_uid):
-    raise OsparcApiException(
-        status=422, body="422 Unprocessable Entity: Validation Error"
-    )
+    raise OsparcApiException(status=422, body="422 Unprocessable Entity: Validation Error")
 
 
 def mock_function_job_outputs_404(job_uid):
-    raise OsparcApiException(
-        status=404, body=f"404 Not Found: Job UID {job_uid} does not exist"
-    )
+    raise OsparcApiException(status=404, body=f"404 Not Found: Job UID {job_uid} does not exist")
 
 
 # --- Fixtures for patching FunctionJobApi.function_job_outputs() ---
@@ -607,8 +564,7 @@ def mock_random_error(*args, **kwargs):
 @pytest.fixture
 def patch_list_functions_random_error():
     with patch(
-        "osparc_client.api.functions_api.FunctionsApi.list_functions",
-        side_effect=mock_random_error,
+        "osparc_client.api.functions_api.FunctionsApi.list_functions", side_effect=mock_random_error
     ):
         yield
 
@@ -702,9 +658,7 @@ def mock_map_function_success(*args, **kwargs):
             "status": "submitted",
             "samples_count": len(samples),
             "created_at": "2025-10-20T17:50:00Z",
-            "inputs": samples[:3]
-            if samples
-            else [],  # Include first 3 samples for validation
+            "inputs": samples[:3] if samples else [],  # Include first 3 samples for validation
             "result": {
                 "status": "success",
                 "message": f"Successfully submitted {len(samples)} samples for processing",
@@ -715,9 +669,7 @@ def mock_map_function_success(*args, **kwargs):
 
 def mock_map_function_invalid_function_id(*args, **kwargs):
     """Map function fails with invalid function ID."""
-    raise OsparcApiException(
-        status=404, body="404 Not Found: Function with given ID not found"
-    )
+    raise OsparcApiException(status=404, body="404 Not Found: Function with given ID not found")
 
 
 def mock_map_function_validation_error(*args, **kwargs):
@@ -730,8 +682,7 @@ def mock_map_function_validation_error(*args, **kwargs):
 def mock_map_function_server_error(*args, **kwargs):
     """Map function fails with server error."""
     raise OsparcApiException(
-        status=500,
-        body="500 Internal Server Error: OSPARC service temporarily unavailable",
+        status=500, body="500 Internal Server Error: OSPARC service temporarily unavailable"
     )
 
 

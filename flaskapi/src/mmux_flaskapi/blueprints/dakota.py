@@ -1,53 +1,53 @@
-import os
-import json
+from __future__ import annotations
+
 import logging
+import os
 import traceback
-import pandas as pd
-import numpy as np
 from pathlib import Path
-from pydantic import ValidationError
-from typing import Dict, List, Optional, Tuple
+from typing import NoReturn, cast
+
+import numpy as np
+import pandas as pd
 
 #
-from flask import Blueprint, current_app, jsonify
-from flask import request, abort, make_response
-
-#
-
-from mmux_flaskapi.blueprints.dakota_models import (
-    FunctionJob,
-    ManualUQWithUncertaintyRequest,
-    SumoCrossValidationRequest,
-    UQWithUncertaintyResponse,
-    SumoAlongAxesRequest,
-    SumoAlongAxesResponse,
-    SumoGridEvaluationRequest,
-    SumoGridEvaluationResponse,
-    SumoCVAccuracyMetricsRequest,
-    SumoCVAccuracyMetricsResponse,
-    CVAccuracyMetrics,
-    MOGAOptimizationRequest,
-    MOGAOptimizationResponse,
+from flask import Blueprint, abort, jsonify, make_response
+from mmux_python.funs_data_processing import (
+    create_manual_uq_samples,
+    process_input_file,
+    sanitize_varnames,
 )
-
-#
-from mmux_flaskapi.utils.helpers import create_run_dir
-from mmux_flaskapi.data_preprocessor import DataPreprocessor
-
 from mmux_python.funs_evaluate import (
-    evaluate_sumo_along_axes,
     evaluate_sumo,
+    evaluate_sumo_along_axes,
     evaluate_sumo_crossvalidation,
     evaluate_sumo_manual_crossvalidation,
     evaluate_sumo_on_grid,
     perform_moga_optimization,
 )
-from mmux_python.funs_data_processing import (
-    process_input_file,
-    create_manual_uq_samples,
-    sanitize_varnames,
-)
+from pydantic import ValidationError
 
+#
+from mmux_flaskapi.blueprints.dakota_models import (
+    CVAccuracyMetrics,
+    FunctionJob,
+    JobVariableSelection,
+    ManualUQWithUncertaintyRequest,
+    MOGAOptimizationRequest,
+    MOGAOptimizationResponse,
+    SumoAlongAxesRequest,
+    SumoAlongAxesResponse,
+    SumoCrossValidationRequest,
+    SumoCVAccuracyMetricsRequest,
+    SumoCVAccuracyMetricsResponse,
+    SumoGridEvaluationRequest,
+    SumoGridEvaluationResponse,
+    UQWithUncertaintyResponse,
+)
+from mmux_flaskapi.data_preprocessor import DataPreprocessor
+
+#
+from mmux_flaskapi.utils.helpers import create_run_dir
+from mmux_flaskapi.utils.json_serializer import parse_request_model
 
 _logger = logging.getLogger(__name__)
 dakota_bp = Blueprint("dakota", __name__)
@@ -57,81 +57,6 @@ _logger.info(f"Saving runs in {DAKOTA_RUNS_DIR}")
 DAKOTA_RUNS_DIR.mkdir(exist_ok=True)
 assert DAKOTA_RUNS_DIR.is_dir(), "Dakota Runs Dir does not exist!!"
 
-"""
-def _check_jobs(jobs: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
-    completed_jobs = [job for job in jobs if job["status"].lower() == "completed" or job["status"].lower() == "success"]  # type: ignore
-
-    for job in completed_jobs:
-        assert "outputs" in job, f"No outputs key found for completed job: {job} with status: {job['status']}"  # type: ignore
-
-    _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
-
-    if len(completed_jobs) == 0:
-        raise ValueError("No completed jobs found. Cannot create training file.")
-    elif len(completed_jobs) < 5:
-        raise ValueError(
-            "At least 5 samples are necessary to build a surrogate model in Dakota - a crash would occur otherwise."
-        )
-
-    return completed_jobs
-
-
-def _jobs_to_df(jobs: list[Dict[str, Any]]) -> pd.DataFrame:
-    assert jobs[0]["inputs"] is not None, f"No inputs found for job: {jobs[0]}"
-    assert jobs[0]["outputs"] is not None, f"No outputs found for job: {jobs[0]}"
-    input_vars = list(jobs[0]["inputs"].keys())
-    output_vars = list(jobs[0]["outputs"].keys())
-
-    list_of_dicts = []
-    for job in jobs:
-        d = {}
-        for key in input_vars:
-            assert job["inputs"] is not None, f"No inputs found for job: {job}"
-            assert key in job["inputs"].keys(), f"Input {key} not in job: {job}"
-            d[key] = job["inputs"][key]
-        for res in output_vars:
-            assert job["outputs"] is not None, f"No outputs found for job: {job}"
-            assert res in job["outputs"].keys(), f"Output {res} not in job: {job}"
-            d[res] = job["outputs"][res]
-        list_of_dicts.append(d)
-    return pd.DataFrame(list_of_dicts)
-
-def _get_job_dict(job: Dict[str, Any], output_response_sanitized: str | list[str]) -> Dict[str, Any]:
-    assert job["inputs"] is not None, f"No inputs found for job: {job}"
-    assert job["outputs"] is not None, f"No outputs found for job: {job}"
-    d = {key: job["inputs"][key] for key in job["inputs"].keys()}
-    output_response_sanitized_list = (
-        [output_response_sanitized]
-        if isinstance(output_response_sanitized, str)
-        else output_response_sanitized
-    )
-    for res in output_response_sanitized_list:
-        assert res in job["outputs"].keys(), f"Output {res} not in job: {job}"
-        d[res] = job["outputs"][res]  # type: ignore
-    return d
-
-### DEPRECATED
-def _create_training_file_from_jobs(
-    jobs: list[Dict[str, Any]],
-    input_vars: list[str],
-    output_response: str | list[str],
-    folder_name: str = "evaluate",
-) -> Path:
-    print(
-        "_create_training_file_from_jobs is deprecated. Use create_training_file_from_preprocessed_jobs instead."
-    )
-    completed_jobs = _check_jobs(jobs)
-    output_response_sanitized = sanitize_varnames(output_response)
-
-    df_jobs = pd.DataFrame([_get_job_dict(job, output_response_sanitized) for job in completed_jobs])
-
-    run_dir = create_run_dir(RUNS_DIR, folder_name)
-    TRAINING_FILE = run_dir / "df_jobs.csv"
-    df_jobs.to_csv(TRAINING_FILE, index=False)
-    return TRAINING_FILE
-########################################################
-"""
-
 
 ########################################################
 def _create_training_file_from_jobs(
@@ -140,37 +65,11 @@ def _create_training_file_from_jobs(
     output_response: str | list[str],
     folder_name: str = "evaluate",
 ) -> Path:
-    output_response_sanitized = sanitize_varnames(output_response)
-    completed_jobs = [
-        job
-        for job in jobs
-        if job.status.lower() == "completed" or job.status.lower() == "success"
-    ]
-    _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
-
-    if len(completed_jobs) == 0:
-        raise ValueError("No completed jobs found. Cannot create training file.")
-    elif len(completed_jobs) < 5:
-        raise ValueError(
-            "At least 5 samples are necessary to build a surrogate model in Dakota - a crash would occur otherwise."
-        )
-
-    def get_job_dict(job):
-        d = {sanitize_varnames(key): job.inputs[key] for key in input_vars}
-        if not hasattr(job, "outputs") or not job.outputs:
-            raise ValueError(f"Missing outputs in job: {job}")
-        output_response_sanitized_list = (
-            [output_response_sanitized]
-            if isinstance(output_response_sanitized, str)
-            else output_response_sanitized
-        )
-        for res in output_response_sanitized_list:
-            if res not in job.outputs.keys():
-                raise ValueError(f"Missing required output variable '{res}' in job")
-            d[res] = job.outputs[res]
-        return d
-
-    df_jobs = pd.DataFrame([get_job_dict(job) for job in completed_jobs])
+    output_vars = [output_response] if isinstance(output_response, str) else output_response
+    df_jobs = _jobs_to_df(jobs, input_vars, output_vars)
+    df_jobs = df_jobs.rename(
+        columns={column: sanitize_varnames(column) for column in df_jobs.columns}
+    )
     run_dir = create_run_dir(DAKOTA_RUNS_DIR, folder_name)
     TRAINING_FILE = run_dir / "df_jobs.csv"
     df_jobs.to_csv(TRAINING_FILE, index=False)
@@ -182,90 +81,51 @@ def _create_training_file_from_jobs(
 ########################################################
 
 
-def _check_jobs(jobs: list[FunctionJob]) -> list[FunctionJob]:
-    """
-    Check and validate jobs, returning only completed ones.
-    
-    Args:
-        jobs: List of FunctionJob objects
-        
-    Returns:
-        List of completed jobs
-        
-    Raises:
-        ValueError: If no completed jobs found or not enough samples
-    """
-    completed_jobs = [
-        job
-        for job in jobs
-        if job.status.lower() == "completed" or job.status.lower() == "success"
-    ]
-    _logger.debug(f"N Completed jobs: {len(completed_jobs)}")
-
-    if len(completed_jobs) == 0:
-        raise ValueError("No completed jobs found. Cannot create training file.")
-    elif len(completed_jobs) < 5:
-        raise ValueError(
-            "At least 5 samples are necessary to build a surrogate model in Dakota - a crash would occur otherwise."
-        )
-
-    return completed_jobs
-
-
 def _jobs_to_df(
-    jobs: list[FunctionJob], input_vars: List[str], output_vars: List[str]
+    jobs: list[FunctionJob], input_vars: list[str], output_vars: list[str]
 ) -> pd.DataFrame:
     """
     Convert list of FunctionJob objects to DataFrame.
-    
+
     Args:
         jobs: List of FunctionJob objects
         input_vars: Requested input variable names
         output_vars: Requested output variable names
-        
+
     Returns:
         DataFrame with the requested inputs and outputs
 
     Raises:
         ValueError: If a job is missing requested inputs or outputs
     """
-    if len(jobs) == 0:
-        raise ValueError("No jobs found. Cannot create DataFrame.")
+    try:
+        validated_selection = JobVariableSelection.model_validate(
+            {
+                "jobs": jobs,
+                "input_vars": input_vars,
+                "output_vars": output_vars,
+            }
+        )
+    except ValidationError as exc:
+        raise ValueError(str(exc)) from exc
 
-    list_of_dicts = []
-    for job in jobs:
-        d = {}
-        if job.inputs is None:
-            raise ValueError(f"No inputs found for job: {job}")
-        for key in input_vars:
-            if key not in job.inputs:
-                raise ValueError(f"Missing requested input variable '{key}' in job: {job}")
-            d[key] = job.inputs[key]
-        if job.outputs is None:
-            raise ValueError(f"No outputs found for job: {job}")
-        for res in output_vars:
-            if res not in job.outputs:
-                raise ValueError(
-                    f"Missing requested output variable '{res}' in job: {job}"
-                )
-            d[res] = job.outputs[res]
-        list_of_dicts.append(d)
-    return pd.DataFrame(list_of_dicts)
+    _logger.debug("N Completed jobs: %s", len(validated_selection.completed_jobs))
+    return pd.DataFrame(validated_selection.to_records())
 
 
 def setup_preprocessor_for_workflow(
-    jobs: List[FunctionJob],
-    input_vars: List[str],
-    output_vars: List[str],
+    jobs: list[FunctionJob],
+    input_vars: list[str],
+    output_vars: list[str],
     run_dir: Path,
-    input_normalizations: Optional[Dict[str, str]] = None,
-    output_normalizations: Optional[Dict[str, str]] = None,
-    input_sign_switches: Optional[List[str]] = None,
-    output_sign_switches: Optional[List[str]] = None,
-) -> Tuple[Path, DataPreprocessor]:
+    input_normalizations: dict[str, str] | None = None,
+    output_normalizations: dict[str, str] | None = None,
+    input_sign_switches: list[str] | None = None,
+    output_sign_switches: list[str] | None = None,
+) -> tuple[Path, DataPreprocessor]:
     """
     Standardized preprocessor setup for Dakota workflows.
-    
+
     Args:
         jobs: List of completed FunctionJob objects
         input_vars: List of input variable names
@@ -275,62 +135,55 @@ def setup_preprocessor_for_workflow(
         output_normalizations: Optional dict mapping output vars to normalization methods
         input_sign_switches: Optional list of input vars to switch signs
         output_sign_switches: Optional list of output vars to switch signs
-        
+
     Returns:
         Tuple of (processed_training_file_path, fitted_preprocessor)
     """
     # Ensure output_vars is a list
     if isinstance(output_vars, str):
         output_vars = [output_vars]
-    
-    # Validate and filter jobs
-    completed_jobs = _check_jobs(jobs)
-    df_completed_jobs = _jobs_to_df(completed_jobs, input_vars, output_vars)
-    
+
+    df_completed_jobs = _jobs_to_df(jobs, input_vars, output_vars)
+
     # Save original training file
     training_file = run_dir / "df_jobs.csv"
     df_completed_jobs.to_csv(training_file, index=False)
-    
+
     # Setup preprocessor
     preprocessor = DataPreprocessor()
-    preprocessor.setup_variables(
-        input_vars=input_vars,
-        output_vars=output_vars
-    )
-    
+    preprocessor.setup_variables(input_vars=input_vars, output_vars=output_vars)
+
     # Configure normalizations if provided
     if input_normalizations or output_normalizations:
         preprocessor.setup_normalization(
-            input_normalizations=input_normalizations,
-            output_normalizations=output_normalizations
+            input_normalizations=input_normalizations, output_normalizations=output_normalizations
         )
-    
+
     # Configure sign switching if provided
     if input_sign_switches or output_sign_switches:
         preprocessor.setup_sign_switching(
-            input_sign_switches=input_sign_switches,
-            output_sign_switches=output_sign_switches
+            input_sign_switches=input_sign_switches, output_sign_switches=output_sign_switches
         )
-    
+
     # Fit and transform
     df_preprocessed = preprocessor.fit_transform(df_completed_jobs)
-    
+
     # Save configuration
     preprocessor.save_config(run_dir / "preprocessor_config.json")
-    
+
     # Save processed file (Dakota format - space separated)
     processed_file = run_dir / "df_processed_jobs.dat"
     df_preprocessed.to_csv(processed_file, sep=" ", index=False)
-    
+
     _logger.info(f"Preprocessor fitted and saved to {run_dir}")
-    
+
     return processed_file, preprocessor
 
 
-def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 500):
+def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 500) -> NoReturn:
     """
     Standardized error handling for Dakota workflows.
-    
+
     Args:
         e: The exception
         workflow_name: Name of the workflow for logging
@@ -344,21 +197,16 @@ def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 5
         "error": str(e),
         "workflow": workflow_name,
     }
-    if current_app.config.get("MMUX_INCLUDE_TRACEBACKS", False):
-        response_payload["traceback"] = traceback_str
 
-    abort(make_response(
-        jsonify(response_payload),
-        status_code
-    ))
+    abort(make_response(jsonify(response_payload), status_code))
 
 
 def _inverse_transform_output_results(
     preprocessor: DataPreprocessor,
-    results: Dict[str, List[float]],
-) -> Dict[str, List[float]]:
+    results: dict[str, list[float]],
+) -> dict[str, list[float]]:
     """Inverse transform output values while preserving Dakota suffixes."""
-    transformed: Dict[str, List[float]] = {}
+    transformed: dict[str, list[float]] = {}
 
     for original_name, config in preprocessor.output_variables.items():
         mapped_name = config.mapped_name
@@ -379,6 +227,26 @@ def _inverse_transform_output_results(
     return transformed
 
 
+def _mapped_to_original(preprocessor: DataPreprocessor) -> dict[str, str]:
+    """Return the original variable name for each mapped variable name."""
+    return preprocessor.get_inverse_mapping()
+
+
+def _inverse_transform_values(
+    preprocessor: DataPreprocessor,
+    mapped_key: str,
+    values: list[float],
+    mapped_to_original: dict[str, str],
+) -> list[float]:
+    """Inverse transform mapped values when they correspond to known variables."""
+    original_key = mapped_to_original.get(mapped_key)
+    if original_key is None:
+        return values
+
+    inverse = preprocessor.inverse_transform({mapped_key: values})
+    return inverse.get(original_key, values)
+
+
 ########################################################
 # Flask Endpoints
 ########################################################
@@ -388,49 +256,33 @@ def _inverse_transform_output_results(
 def flask_sumo_cross_validation():
     """
     Perform SUMO cross-validation to assess surrogate model accuracy.
-    
+
     Uses DataPreprocessor for variable mapping and normalization.
     Returns cross-validation predictions with uncertainty estimates in original variable names.
     """
     os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_sumo_cross_validation")
     _logger.debug("Cwd: " + str(Path.cwd()))
-    request_model = SumoCrossValidationRequest
-
-    # Parse request data
-    try:
-        request_data: dict = json.loads(request.data.decode("utf-8"))
-    except json.JSONDecodeError as e:
-        return jsonify({"error": f"Invalid JSON: {str(e)}"}), 400
-
-    # Validate request using Pydantic model
-    try:
-        validated_request = request_model.model_validate(request_data)
-    except Exception as e:
-        _logger.warning(f"Validation failed for {request_model.__name__}: {str(e)}")
-        return jsonify({"error": str(e)}), 400
+    validated_request = parse_request_model(SumoCrossValidationRequest)
 
     # At this point, all validation is complete and we have a validated request object
     try:
-        jobs: list[FunctionJob] = validated_request.FunctionJobs
-        input_vars: list[str] = validated_request.inputVars
+        jobs: list[FunctionJob] = validated_request.function_jobs
+        input_vars: list[str] = validated_request.input_vars
         output_var: str = validated_request.output
 
         # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "cross_validation")
-        
+
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs,
-            input_vars=input_vars,
-            output_vars=[output_var],
-            run_dir=run_dir
+            jobs=jobs, input_vars=input_vars, output_vars=[output_var], run_dir=run_dir
         )
-        
+
         # Get mapped variable names for Dakota
         mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
         mapped_output_var = preprocessor.output_variables[output_var].mapped_name
-        
+
         # Evaluate cross-validation with mapped variable names
         results = evaluate_sumo_manual_crossvalidation(
             run_dir,
@@ -452,7 +304,7 @@ def flask_sumo_cross_validation():
         # Inverse transform results to return original variable names while
         # preserving prediction suffixes expected by the client.
         results_transformed = _inverse_transform_output_results(preprocessor, results)
-        
+
         _logger.debug("Cross-validation completed successfully!")
         return jsonify(results_transformed)
     except ValidationError as e:
@@ -461,7 +313,6 @@ def flask_sumo_cross_validation():
         handle_workflow_error(e, "flask_sumo_cross_validation", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_sumo_cross_validation", 500)
-
 
 
 @dakota_bp.route("/manual_uq_propagation_with_uncertainty", methods=["POST"])
@@ -475,41 +326,33 @@ def flask_manual_uq_propagation_with_uncertainty():
     Returns results in original variable space.
     """
     os.chdir(Path(__file__).parent)
-    _logger.debug(
-        "Starting flask function: flask_manual_uq_propagation_with_uncertainty"
-    )
+    _logger.debug("Starting flask function: flask_manual_uq_propagation_with_uncertainty")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    try:
-        # Parse and validate request using Pydantic
-        request_data: dict = json.loads(request.data.decode("utf-8"))
-        _logger.debug(f"Request data received with keys: {list(request_data.keys())}")
+    validated_request = parse_request_model(ManualUQWithUncertaintyRequest)
 
-        validated_request = ManualUQWithUncertaintyRequest(**request_data)
+    try:
         _logger.debug(
-            f"Request validation successful. Processing {len(validated_request.FunctionJobs)} jobs"
+            f"Request validation successful. Processing {len(validated_request.function_jobs)} jobs"
         )
 
         # Extract validated parameters
         output_response = validated_request.output
-        input_vars = validated_request.inputVars
+        input_vars = validated_request.input_vars
         distributions = validated_request.distributions
-        num_samples = validated_request.numSamples
-        jobs = validated_request.FunctionJobs
-        n_histograms = validated_request.nHistograms
+        num_samples = validated_request.num_samples
+        jobs = validated_request.function_jobs
+        n_histograms = validated_request.n_histograms
         seed = validated_request.seed
 
         # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "uq_with_uncertainty")
-        
+
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs,
-            input_vars=input_vars,
-            output_vars=[output_response],
-            run_dir=run_dir
+            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
         )
-        
+
         # Get mapped variable names
         mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
         mapped_output_var = preprocessor.output_variables[output_response].mapped_name
@@ -517,18 +360,13 @@ def flask_manual_uq_propagation_with_uncertainty():
         # Generate UQ samples using provided distributions
         _logger.debug(f"Generating {num_samples} UQ samples with seed {seed}")
         # Convert Pydantic models to dict format expected by create_manual_uq_samples
-        distributions_dict = {
-            var: dist.model_dump() for var, dist in distributions.items()
-        }
-        samples = create_manual_uq_samples(
-            input_vars, distributions_dict, num_samples, seed
-        )
+        distributions_dict = {var: dist.model_dump() for var, dist in distributions.items()}
+        samples = create_manual_uq_samples(input_vars, distributions_dict, num_samples, seed)
         df_samples = pd.DataFrame(samples)
         UQ_SAMPLES_FILE = run_dir / "manual_uq_samples.csv"
         df_samples.to_csv(UQ_SAMPLES_FILE, index=False)
         _logger.debug(f"Generated manual UQ samples saved to {UQ_SAMPLES_FILE}")
 
-        # Transform UQ samples using preprocessor
         df_samples_transformed = preprocessor.transform(df_samples)
         PROCESSED_UQ_SAMPLES_FILE = run_dir / "manual_uq_samples_processed.csv"
         df_samples_transformed.to_csv(PROCESSED_UQ_SAMPLES_FILE, sep=" ", index=False)
@@ -562,9 +400,7 @@ def flask_manual_uq_propagation_with_uncertainty():
                 f"Available result keys: {available_keys}."
             )
 
-        _logger.debug(
-            f"Found required predictions: {prediction_key} and {uncertainty_key}"
-        )
+        _logger.debug(f"Found required predictions: {prediction_key} and {uncertainty_key}")
 
         # Perform uncertainty propagation using error function inverse
         _logger.debug(
@@ -586,26 +422,22 @@ def flask_manual_uq_propagation_with_uncertainty():
 
         # Inverse transform results to original space for histogram calculation
         # Create a results dict with all samples for inverse transform
-        all_samples_dict = {mapped_output_var: all_results_transformed.flatten()}
+        all_samples_dict = {mapped_output_var: all_results_transformed.flatten().tolist()}
         all_samples_original = preprocessor.inverse_transform(all_samples_dict)
         all_values = np.array(all_samples_original[output_response])
-        
+
         # Reshape back to (n_histograms, num_samples)
         all_values_reshaped = all_values.reshape(n_histograms, num_samples)
 
         # Compute histogram statistics in original space
         _logger.debug("Computing histogram and statistical summaries in original space")
         all_values_flat = all_values.flatten()
-        num_bins = min(
-            50, max(10, num_samples // 10)
-        )  # Ensure reasonable number of bins
+        num_bins = min(50, max(10, num_samples // 10))  # Ensure reasonable number of bins
         hist_min, hist_max = np.percentile(all_values_flat, 1), np.percentile(all_values_flat, 99)
 
         # Handle edge case where hist_min == hist_max
         if hist_min == hist_max:
-            hist_range = max(
-                1e-10, abs(hist_min) * 1e-6
-            )  # Small range around the value
+            hist_range = max(1e-10, abs(hist_min) * 1e-6)  # Small range around the value
             hist_min -= hist_range
             hist_max += hist_range
 
@@ -634,7 +466,9 @@ def flask_manual_uq_propagation_with_uncertainty():
         whisker_max = min(hist_max, q3 + 1.5 * iqr)
 
         # Identify outliers
-        outliers = all_values_flat[(all_values_flat < whisker_min) | (all_values_flat > whisker_max)]
+        outliers = all_values_flat[
+            (all_values_flat < whisker_min) | (all_values_flat > whisker_max)
+        ]
 
         # Create response object
         response_data = {
@@ -668,7 +502,6 @@ def flask_manual_uq_propagation_with_uncertainty():
         handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 500)
 
 
-
 @dakota_bp.route("/sumo_along_axes", methods=["POST"])
 def flask_evaluate_sumo_along_axes():
     """
@@ -682,41 +515,37 @@ def flask_evaluate_sumo_along_axes():
     _logger.debug("Starting flask function: flask_evaluate_sumo_along_axes")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    try:
-        # Parse and validate request using Pydantic
-        request_data = SumoAlongAxesRequest.model_validate(request.get_json())
+    request_data = parse_request_model(SumoAlongAxesRequest)
 
+    try:
         # Extract validated data
         output_response = request_data.output
         input_vars = request_data.inputs
-        jobs = request_data.FunctionJobs
-        slider_values = request_data.sliderValues
+        jobs = request_data.function_jobs
+        slider_values = request_data.slider_values
 
         _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(jobs)} jobs")
         _logger.debug(f"Slider values: {slider_values}")
 
         # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "along_axes")
-        
+
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs,
-            input_vars=input_vars,
-            output_vars=[output_response],
-            run_dir=run_dir
+            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
         )
-        
+
         # Get mapped variable names
         mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
         mapped_output_var = preprocessor.output_variables[output_response].mapped_name
-        
+
         # Transform slider values to mapped space if provided
         mapped_slider_values = None
         if slider_values:
             # Transform the slider values using the preprocessor
             slider_df = pd.DataFrame([slider_values])
             slider_df_transformed = preprocessor.transform(slider_df)
-            mapped_slider_values = slider_df_transformed.iloc[0].to_dict()
+            mapped_slider_values = cast(dict[str, float], slider_df_transformed.iloc[0].to_dict())
             _logger.debug(f"Mapped slider values: {mapped_slider_values}")
 
         # Evaluate SUMO along axes with mapped variables
@@ -730,12 +559,18 @@ def flask_evaluate_sumo_along_axes():
 
         # Inverse transform results to return original variable names
         # Map results from mapped input names back to original names
-        mapped_to_orig_input = {cfg.mapped_name: orig for orig, cfg in preprocessor.input_variables.items()}
+        mapped_to_orig_input = {
+            cfg.mapped_name: orig for orig, cfg in preprocessor.input_variables.items()
+        }
         predictions_original = {}
         for m_var, axis_data in results.items():
             orig_var = mapped_to_orig_input.get(m_var, m_var)
-            x_inv = preprocessor.inverse_transform({m_var: list(axis_data["x"])}).get(orig_var, list(axis_data["x"]))
-            y_inv = preprocessor.inverse_transform({mapped_output_var: list(axis_data["y_hat"])}).get(output_response, list(axis_data["y_hat"]))
+            x_inv = preprocessor.inverse_transform({m_var: list(axis_data["x"])}).get(
+                orig_var, list(axis_data["x"])
+            )
+            y_inv = preprocessor.inverse_transform(
+                {mapped_output_var: list(axis_data["y_hat"])}
+            ).get(output_response, list(axis_data["y_hat"]))
             axis_orig: dict = {"x": x_inv, "y_hat": y_inv}
             if "std_hat" in axis_data:
                 axis_orig["std_hat"] = list(axis_data["std_hat"])
@@ -752,19 +587,16 @@ def flask_evaluate_sumo_along_axes():
         _logger.error(f"Validation error in SUMO along axes: {e}")
         error_details = []
         for error in e.errors():
-            location = (
-                " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
-            )
+            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
             error_details.append(f"{location}: {error['msg']}")
         handle_workflow_error(
             Exception(f"Validation failed: {', '.join(error_details)}"),
             "flask_evaluate_sumo_along_axes",
-            400
+            400,
         )
 
     except Exception as e:
         handle_workflow_error(e, "flask_evaluate_sumo_along_axes", 500)
-
 
 
 ## This method could probably be generic for N-D (thus not needing the 1D version above)
@@ -781,16 +613,15 @@ def flask_sumo_grid_evaluation():
     _logger.debug("Starting flask function: flask_sumo_grid_evaluation")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    try:
-        # Parse and validate request using Pydantic
-        request_data = SumoGridEvaluationRequest.model_validate(request.get_json())
+    request_data = parse_request_model(SumoGridEvaluationRequest)
 
+    try:
         # Extract validated data
         output_response = request_data.output
-        grid_vars = request_data.gridVars
-        input_vars = request_data.inputVars
-        jobs = request_data.FunctionJobs
-        slider_values = request_data.sliderValues
+        grid_vars = request_data.grid_vars
+        input_vars = request_data.input_vars
+        jobs = request_data.function_jobs
+        slider_values = request_data.slider_values
 
         _logger.debug(
             f"Validated request: {len(input_vars)} inputs, {len(grid_vars)} grid vars, {len(jobs)} jobs"
@@ -800,27 +631,24 @@ def flask_sumo_grid_evaluation():
 
         # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "grid_evaluation")
-        
+
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs,
-            input_vars=input_vars,
-            output_vars=[output_response],
-            run_dir=run_dir
+            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
         )
-        
+
         # Get mapped variable names
         mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
         mapped_grid_vars = [preprocessor.input_variables[var].mapped_name for var in grid_vars]
         mapped_output_var = preprocessor.output_variables[output_response].mapped_name
-        
+
         # Transform slider values to mapped space if provided
         mapped_slider_values = None
         if slider_values:
             # Transform the slider values using the preprocessor
             slider_df = pd.DataFrame([slider_values])
             slider_df_transformed = preprocessor.transform(slider_df)
-            mapped_slider_values = slider_df_transformed.iloc[0].to_dict()
+            mapped_slider_values = cast(dict[str, float], slider_df_transformed.iloc[0].to_dict())
             _logger.debug(f"Mapped slider values: {mapped_slider_values}")
 
         # Evaluate SUMO on grid with mapped variables
@@ -833,24 +661,24 @@ def flask_sumo_grid_evaluation():
             cut_values=mapped_slider_values,
         )
 
-        # Inverse transform results to return original variable names
-        # Map results from mapped names back to original names, handling nested arrays
-        mapped_to_orig = {
-            cfg.mapped_name: orig
-            for d in (preprocessor.input_variables, preprocessor.output_variables)
-            for orig, cfg in d.items()
-        }
+        # Inverse transform results to return original variable names.
+        mapped_to_orig = _mapped_to_original(preprocessor)
         grid_data_original = {}
         for key, values in results.items():
             orig_key = mapped_to_orig.get(key, key)
             if values and isinstance(values[0], list):
                 # 2D array (reshaped grid output) - flatten, inverse transform, reshape back
-                flat = [item for row in values for item in row]
-                flat_inv = preprocessor.inverse_transform({key: flat}).get(orig_key, flat)
-                inner = len(values[0])
-                grid_data_original[orig_key] = [flat_inv[i:i + inner] for i in range(0, len(flat_inv), inner)]
+                nested_values = cast(list[list[float]], values)
+                flat = [item for row in nested_values for item in row]
+                flat_inv = _inverse_transform_values(preprocessor, key, flat, mapped_to_orig)
+                inner = len(nested_values[0])
+                grid_data_original[orig_key] = [
+                    flat_inv[i : i + inner] for i in range(0, len(flat_inv), inner)
+                ]
             else:
-                grid_data_original[orig_key] = preprocessor.inverse_transform({key: list(values)}).get(orig_key, list(values))
+                grid_data_original[orig_key] = _inverse_transform_values(
+                    preprocessor, key, list(values), mapped_to_orig
+                )
 
         # Validate and structure response
         response_data = {"grid_data": grid_data_original}
@@ -863,19 +691,16 @@ def flask_sumo_grid_evaluation():
         _logger.error(f"Validation error in SUMO grid evaluation: {e}")
         error_details = []
         for error in e.errors():
-            location = (
-                " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
-            )
+            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
             error_details.append(f"{location}: {error['msg']}")
         handle_workflow_error(
             Exception(f"Validation failed: {', '.join(error_details)}"),
             "flask_sumo_grid_evaluation",
-            400
+            400,
         )
 
     except Exception as e:
         handle_workflow_error(e, "flask_sumo_grid_evaluation", 500)
-
 
 
 @dakota_bp.route("/get_sumo_cv_accuracy_metrics", methods=["POST"])
@@ -890,30 +715,18 @@ def flask_get_sumo_cv_accuracy_metrics():
     _logger.debug("Starting flask function: flask_get_sumo_cv_accuracy_metrics")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
+    request_data = parse_request_model(SumoCVAccuracyMetricsRequest)
+
     try:
-        # Parse and validate request using Pydantic
-        request_json = request.get_json()
-        if request_json is None:
-            abort(
-                make_response(
-                    jsonify({"error": "Invalid JSON or missing content-type header"}),
-                    400,
-                )
-            )
-
-        request_data = SumoCVAccuracyMetricsRequest.model_validate(request_json)
-
         # Extract validated data
         output_response = request_data.output
         input_vars = request_data.inputs
-        jobs = request_data.FunctionJobs
+        jobs = request_data.function_jobs
 
         _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(jobs)} jobs")
 
         # Create training file from validated jobs
-        TRAINING_FILE = _create_training_file_from_jobs(
-            jobs, input_vars, output_response
-        )
+        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
         run_dir = TRAINING_FILE.parent
 
         # Process the training file
@@ -955,37 +768,9 @@ def flask_get_sumo_cv_accuracy_metrics():
         _logger.debug("SUMO CV accuracy metrics completed successfully")
         return jsonify(validated_response.model_dump())
 
-    except ValidationError as e:
-        _logger.error(f"Validation error in SUMO CV accuracy metrics: {e}")
-        error_details = []
-        for error in e.errors():
-            location = (
-                " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
-            )
-            error_details.append(f"{location}: {error['msg']}")
-        abort(
-            make_response(
-                jsonify({"error": "Validation failed", "details": error_details}), 400
-            )
-        )
     except Exception as e:
-        error_message = str(e)
-        # Check if it's a JSON parsing error (400 Bad Request from Flask)
-        if "400 Bad Request" in error_message and (
-            "JSON" in error_message or "browser" in error_message
-        ):
-            _logger.error(f"Invalid JSON request: {e}")
-            abort(
-                make_response(
-                    jsonify({"error": "Invalid JSON or malformed request"}), 400
-                )
-            )
-        else:
-            _logger.error(f"Error while getting SUMO CV accuracy metrics: {e}")
-            abort(make_response(jsonify({"error": str(e)}), 500))
-
-
-_logger.info("Flask workflows module loaded successfully!")
+        _logger.error(f"Error while getting SUMO CV accuracy metrics: {e}")
+        abort(make_response(jsonify({"error": str(e)}), 500))
 
 
 @dakota_bp.route("/perform_moga_optimization", methods=["POST"])
@@ -1000,24 +785,14 @@ def flask_perform_moga_optimization():
     _logger.debug("Starting flask function: flask_perform_moga_optimization")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
+    request_data = parse_request_model(MOGAOptimizationRequest)
+
     try:
-        # Parse and validate request using Pydantic
-        request_json = request.get_json()
-        if request_json is None:
-            abort(
-                make_response(
-                    jsonify({"error": "Invalid JSON or missing content-type header"}),
-                    400,
-                )
-            )
-
-        request_data = MOGAOptimizationRequest.model_validate(request_json)
-
         # Extract validated data
-        input_vars = request_data.inputVars
+        input_vars = request_data.input_vars
         input_distributions_raw = request_data.distributions
-        output_var_selection = request_data.outputVarSelection
-        jobs = request_data.FunctionJobs
+        output_var_selection = request_data.output_var_selection
+        jobs = request_data.function_jobs
 
         # Convert Pydantic distribution models to dict format expected by the optimization function
         input_distributions = {
@@ -1031,34 +806,44 @@ def flask_perform_moga_optimization():
         _logger.debug(f"Output responses: {output_responses}")
         _logger.debug(f"Output var selection: {output_var_selection}")
 
-        # Create mapping for converting results back to original names
+        run_dir = create_run_dir(DAKOTA_RUNS_DIR, "moga")
+        maximize_outputs = [
+            variable
+            for variable, direction in output_var_selection.items()
+            if direction == "maximize"
+        ]
 
-        # Create training file from validated jobs
-        TRAINING_FILE = _create_training_file_from_jobs(
-            jobs, input_vars, output_responses, folder_name="moga"
+        processed_training_file, preprocessor = setup_preprocessor_for_workflow(
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=output_responses,
+            run_dir=run_dir,
+            output_sign_switches=maximize_outputs,
         )
-        run_dir = TRAINING_FILE.parent
 
-        # Process the training file
-        PROCESSED_TRAINING_FILE = process_input_file(
-            TRAINING_FILE,
-            columns_to_keep=input_vars + output_responses,
-        )
+        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
+        mapped_output_vars = [
+            preprocessor.output_variables[var].mapped_name for var in output_responses
+        ]
+        mapped_input_distributions = {
+            preprocessor.input_variables[var].mapped_name: distribution
+            for var, distribution in input_distributions.items()
+        }
 
         # Perform MOGA optimization
         results = perform_moga_optimization(
             run_dir,
-            PROCESSED_TRAINING_FILE,
-            input_vars,
-            input_distributions,
-            list(output_var_selection.keys()),
+            processed_training_file,
+            mapped_input_vars,
+            mapped_input_distributions,
+            mapped_output_vars,
             moga_kwargs={"max_function_evaluations": 1000},
         )
 
+        results = preprocessor.inverse_transform(results)
+
         _logger.debug(f"Final MOGA results before validation: {results}")
-        _logger.debug(
-            f"Result array lengths: {[(k, len(v)) for k, v in results.items()]}"
-        )
+        _logger.debug(f"Result array lengths: {[(k, len(v)) for k, v in results.items()]}")
 
         # Validate and structure response
         response_data = {"optimization_results": results}
@@ -1067,140 +852,13 @@ def flask_perform_moga_optimization():
         _logger.debug("MOGA optimization completed successfully")
         return jsonify(validated_response.model_dump())
 
-        """
-        ### This is the new structure of the request:
-        input_distributions: Dict[str, Dict[str, float]] = request_data[
-            "inputDistributions"
-        ]  # this is a dict of input_vars to distributions, e.g. {"input1": "normal", "input2": "uniform"}
-        input_vars: list[str] = [k for k in input_distributions.keys()]
-        output_var_selection: Dict[str, Literal["minimize", "maximize"]] = request_data[
-            "outputVarSelection"
-        ]
-
-        ## before the function
-        completed_jobs = _check_jobs(jobs)
-        df_completed_jobs = _jobs_to_df(completed_jobs)
-        TRAINING_FILE = run_dir / "df_jobs.csv"
-        df_completed_jobs.to_csv(TRAINING_FILE, index=False)
-
-        preprocessor = DataPreprocessor()
-        preprocessor.setup_variables(input_vars=list(jobs[0]["inputs"].keys()), output_vars=list(jobs[0]["outputs"].keys()))  # type: ignore
-        preprocessor.setup_sign_switching(
-            output_sign_switches=[
-                k for k, v in output_var_selection.items() if v == "maximize"
-            ]
-        )
-        preprocessor.filter_variables(
-            include_inputs=input_vars, include_outputs=output_responses
-        )
-
-        df_preprocessed_jobs = preprocessor.fit_transform(df_completed_jobs)
-        preprocessor.save_config(run_dir / "preprocessor_config.json")
-        PROCESSED_TRAINING_FILE = run_dir / "df_processed_jobs.dat"
-        df_preprocessed_jobs.to_csv(
-            PROCESSED_TRAINING_FILE, sep=" ", index=False
-        )  # Dakota expects a space-separated file
-
-        ##### TODO abstract this as a function
-        seed = moga_kwargs.get("seed", None)
-        assert (
-            seed is not None
-        ), "MOGA settings must include a seed for the random number generator"
-        numberSeeds = moga_kwargs.get("numberSeeds", None)
-        _logger.debug(f"MOGA seed: {seed}, numberSeeds: {numberSeeds}")
-        if numberSeeds is not None:
-            assert isinstance(
-                numberSeeds, int
-            ), "MOGA settings must include an integer numberSeeds"
-            seeds = [seed + i for i in range(numberSeeds)]
-            moga_kwargs.pop("numberSeeds")  # remove it from the kwargs to avoid issues
-        else:
-            seeds = [seed]
-        _logger.debug(f"MOGA seeds: {seeds}")
-
-        all_results = []
-        for seed in seeds:
-            assert isinstance(
-                seed, int
-            ), "MOGA settings must include a list of integer seeds"
-            moga_kwargs["seed"] = seed
-            _logger.debug(
-                f"Running MOGA optimization with seed {seed} and settings: {moga_kwargs}"
-            )
-            results: Dict[str, list[float | int]] = perform_moga_optimization(
-                run_dir,
-                PROCESSED_TRAINING_FILE,
-                [preprocessor.get_variable_mapping()[k] for k in input_vars],
-                {
-                    preprocessor.get_variable_mapping()[k]: v
-                    for k, v in input_distributions.items()
-                },
-                [preprocessor.get_variable_mapping()[k] for k in output_responses],
-                moga_kwargs=moga_kwargs,
-            )
-            all_results.append(results)
-            _logger.debug(f"Results for seed {seed}: {results}")
-        assert len(all_results) == len(
-            seeds
-        ), "MOGA settings must include a result for each seed"
-        if not all_results:
-            _logger.error(
-                "No results were produced by MOGA optimization (all_results is empty)."
-            )
-            abort(
-                make_response(
-                    jsonify(
-                        {"error": "No results were produced by MOGA optimization."}
-                    ),
-                    500,
-                )
-            )
-
-        results = { k: [item for resdict in all_results for item in resdict[k]]
-            for k in all_results[0].keys()
-        }
-        _logger.debug(f"All results: {results}")
-        ###################################################
-
-        results_df = pd.DataFrame(results)
-        _logger.debug("Results df: ")
-        _logger.debug(results_df)
-        _logger.debug("\n\nLen of results df: ", len(results_df))
-        non_dominated_indices = get_non_dominated_indices(
-            results_df,
-            optimized_vars=[
-                preprocessor.get_variable_mapping()[k] for k in output_responses
-            ],
-            sort_by_column=preprocessor.get_variable_mapping()[output_responses[0]],
-        )
-        postprocessed_results = preprocessor.inverse_transform(results)
-        postprocessed_results["non_dominated_indices"] = (
-            np.array(non_dominated_indices).astype(float).tolist()
-        )  ## int64 is not JSON serializable
-        _logger.debug(postprocessed_results)
-
-        return jsonify(postprocessed_results)
-
-
-        ### NB this pre-processing && post-processing is to be tested bfr release
-        ## Then, it is to be integrated in the new package and all operations should be done there
-        ## e.g. we pass input_vars, output_vars, etc and evth gets done internally
-        ## Do not put effort into modifying previous workflows -- they will be fully reworked
-        """
-
     except ValidationError as e:
         _logger.error(f"Validation error in MOGA optimization: {e}")
         error_details = []
         for error in e.errors():
-            location = (
-                " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
-            )
+            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
             error_details.append(f"{location}: {error['msg']}")
-        abort(
-            make_response(
-                jsonify({"error": "Validation failed", "details": error_details}), 400
-            )
-        )
+        abort(make_response(jsonify({"error": "Validation failed", "details": error_details}), 400))
     except Exception as e:
         error_message = str(e)
 
@@ -1209,15 +867,8 @@ def flask_perform_moga_optimization():
             "Missing outputs" in error_message and "job" in error_message
         ):
             _logger.error(f"Missing output variable validation error: {e}")
-            abort(
-                make_response(
-                    jsonify({"error": f"Validation failed: {error_message}"}), 400
-                )
-            )
-        elif (
-            "Distribution for variable" in error_message
-            and "is not defined" in error_message
-        ):
+            abort(make_response(jsonify({"error": f"Validation failed: {error_message}"}), 400))
+        elif "Distribution for variable" in error_message and "is not defined" in error_message:
             _logger.error(f"Missing distribution validation error: {e}")
             # Extract variable name for better error message
             import re
@@ -1241,9 +892,7 @@ def flask_perform_moga_optimization():
                 abort(
                     make_response(
                         jsonify(
-                            {
-                                "error": f"Validation failed: Missing distribution - {error_message}"
-                            }
+                            {"error": f"Validation failed: Missing distribution - {error_message}"}
                         ),
                         400,
                     )
@@ -1287,13 +936,30 @@ def flask_perform_moga_optimization():
                         400,
                     )
                 )
-        elif "400 Bad Request" in error_message and (
-            "JSON" in error_message or "browser" in error_message
-        ):
-            _logger.error(f"Invalid JSON request: {e}")
+        elif error_message.startswith("Input ") and " not in job:" in error_message:
+            field_name = error_message[len("Input ") :].split(" not in job:", 1)[0]
+            _logger.error(f"Missing required input variable validation error: {e}")
             abort(
                 make_response(
-                    jsonify({"error": "Invalid JSON or malformed request"}), 400
+                    jsonify(
+                        {
+                            "error": f"Validation failed: Missing required input variable '{field_name}'"
+                        }
+                    ),
+                    400,
+                )
+            )
+        elif error_message.startswith("Output ") and " not in job:" in error_message:
+            field_name = error_message[len("Output ") :].split(" not in job:", 1)[0]
+            _logger.error(f"Missing required output variable validation error: {e}")
+            abort(
+                make_response(
+                    jsonify(
+                        {
+                            "error": f"Validation failed: Missing required output variable '{field_name}'"
+                        }
+                    ),
+                    400,
                 )
             )
         else:

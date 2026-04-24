@@ -1,6 +1,5 @@
 import csv
 import io
-import json
 import logging
 import os
 import time
@@ -8,7 +7,7 @@ from pathlib import Path
 from typing import Any, NamedTuple
 
 #
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, jsonify, make_response
 
 #
 from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import (
@@ -25,13 +24,13 @@ from mmux_flaskapi.blueprints.sampling_models import (
     JobCollectionCsvUploadRequest,
     LHSSamplingRequest,
     TestJobRequest,
-    validate_request_json,
 )
 from mmux_flaskapi.utils.helpers import (
     create_run_dir,
     dict_keys_camel_to_snake,
     dict_keys_snake_to_camel,
 )
+from mmux_flaskapi.utils.json_serializer import parse_request_model
 from mmux_flaskapi.utils.local_job_store import (
     create_local_function,
     create_local_job_collection,
@@ -59,20 +58,6 @@ def _error_response(message: str, status_code: int):
     return make_response(jsonify(payload), status_code)
 
 
-def _parse_request_data() -> dict[str, Any]:
-    request_body = request.get_data(as_text=True)
-    if not request_body:
-        return {}
-    parsed_request = json.loads(request_body)
-    if not isinstance(parsed_request, dict):
-        raise ValueError("Request payload must be a JSON object.")
-    return parsed_request
-
-
-def _validate_request(model_class):
-    return validate_request_json(_parse_request_data(), model_class)
-
-
 def _serialize_models(models: list[Any]) -> list[dict[str, Any]]:
     return [model.model_dump() for model in models]
 
@@ -86,7 +71,9 @@ def _get_deployment_mode_value() -> str:
 
 
 def _get_parent_ids() -> ParentInfo:
-    deployment_mode = _get_deployment_mode_value()
+    from mmux_flaskapi.blueprints.deployment import get_deployment_mode_value
+
+    deployment_mode = get_deployment_mode_value()
     if deployment_mode == "LOCAL":
         return ParentInfo(parent_node_id="null", parent_project_id="null")
 
@@ -98,13 +85,8 @@ def _get_parent_ids() -> ParentInfo:
                 "OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set. "
                 "Cannot create a sampling campaign through map function."
             )
-            raise ValueError(
-                "OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set."
-            )
-        return ParentInfo(
-            parent_node_id=parent_node_id,
-            parent_project_id=parent_project_id,
-        )
+            raise ValueError("OSPARC_NODE_ID or OSPARC_STUDY_ID environment variables are not set.")
+        return ParentInfo(parent_node_id=parent_node_id, parent_project_id=parent_project_id)
 
     _logger.error(
         "Unknown value of DEPLOYMENT_MODE env variable (%s). "
@@ -130,11 +112,7 @@ def _get_studies_api():
 
 
 def _run_sampling_map(function_uid, samples):
-    _logger.debug(
-        "Running sampling map for function %s with %s samples",
-        function_uid,
-        len(samples),
-    )
+    _logger.debug(f"Running sampling map for function {function_uid} with {len(samples)} samples")
 
     assert len(samples) > 0, "No samples provided for sampling map"
 
@@ -171,9 +149,7 @@ def _build_grid_samples(config, run_dir):
     from mmux_python.funs_evaluate import create_grid_samples
 
     input_vars = [var_config.variable for var_config in config]
-    config_by_variable = {
-        var_config.variable: var_config.model_dump() for var_config in config
-    }
+    config_by_variable = {var_config.variable: var_config.model_dump() for var_config in config}
     processed_gridpoints_input_file = create_grid_samples(
         run_dir=run_dir,
         grid_vars=input_vars,
@@ -189,8 +165,7 @@ def _build_grid_samples(config, run_dir):
 
     data_frame = load_data(processed_gridpoints_input_file)
     return [
-        {var: float(data_frame.loc[index, var]) for var in input_vars}
-        for index in data_frame.index
+        {var: float(data_frame.loc[index, var]) for var in input_vars} for index in data_frame.index
     ]
 
 
@@ -251,10 +226,7 @@ def _create_local_function_from_source(
         source_output_vars = _extract_schema_props(source_function, "output_schema")
         source_description = str(source_function.get("description", ""))
 
-    if (
-        source_input_vars != incoming_input_vars
-        or source_output_vars != incoming_output_vars
-    ):
+    if source_input_vars != incoming_input_vars or source_output_vars != incoming_output_vars:
         raise ValueError(
             "CSV schema is incompatible with the selected source function. "
             "Expected "
@@ -277,12 +249,8 @@ def _create_local_function_from_source(
 
 def _parse_uploaded_job_collection_csv(csv_content: str) -> dict[str, Any]:
     reader = csv.DictReader(io.StringIO(csv_content))
-    input_columns = [
-        name for name in (reader.fieldnames or []) if name.startswith("input__")
-    ]
-    output_columns = [
-        name for name in (reader.fieldnames or []) if name.startswith("output__")
-    ]
+    input_columns = [name for name in (reader.fieldnames or []) if name.startswith("input__")]
+    output_columns = [name for name in (reader.fieldnames or []) if name.startswith("output__")]
 
     if not input_columns or not output_columns:
         raise ValueError("CSV must contain both input__* and output__* columns")
@@ -341,14 +309,14 @@ def flask_lhs():
     _logger.debug("Starting flask function: flask/lhs_sampling")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    try:
-        validated_request = _validate_request(LHSSamplingRequest)
+    validated_request = parse_request_model(LHSSamplingRequest)
 
+    try:
         config = validated_request.config
         k = len(config)  # number of variables i.e. dimensions
         seed = validated_request.seed
-        n = validated_request.N
-        function_uid = validated_request.funUid
+        n = validated_request.n
+        function_uid = validated_request.fun_uid
 
         _logger.debug(f"Validated config: {_serialize_models(config)}")
         _logger.debug(f"n: {n}, k: {k}, seed: {seed}, function_uid: {function_uid}")
@@ -391,19 +359,16 @@ def flask_grid_sampling():
     _logger.debug("Starting flask function: flask/grid_sampling")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    try:
-        validated_request = _validate_request(GridSamplingRequest)
+    validated_request = parse_request_model(GridSamplingRequest)
 
-        function_uid = validated_request.funUid
+    try:
+        function_uid = validated_request.fun_uid
         config = validated_request.config
+        input_vars = [var_config.variable for var_config in config]
         run_dir = create_run_dir(SAMPLING_RUNS_DIR, "grid_sampling")
 
         _logger.debug(f"Validated config: {_serialize_models(config)}")
-        _logger.debug(
-            "Input variables: %s, function_uid: %s",
-            [var_config.variable for var_config in config],
-            function_uid,
-        )
+        _logger.debug(f"Input variables: {input_vars}, function_uid: {function_uid}")
 
         samples = _build_grid_samples(config, run_dir)
 
@@ -436,11 +401,11 @@ def flask_test_job():
     _logger.debug("Starting flask function: flask/test_job")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    try:
-        validated_request = _validate_request(TestJobRequest)
+    validated_request = parse_request_model(TestJobRequest)
 
+    try:
         config = validated_request.config
-        function_uid = validated_request.funUid
+        function_uid = validated_request.fun_uid
         functions_api = _get_functions_api()
 
         _logger.debug(f"Function UID: {function_uid}")
@@ -480,9 +445,10 @@ def flask_test_job():
         _logger.error(error_msg)
         return _error_response(error_msg, 400)
     except ValueError as e:
-        error_msg = f"Invalid request data: {e}"
+        error_msg = str(e)
         _logger.error(error_msg)
-        return _error_response(error_msg, 400)
+        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 400)
+
     except Exception as e:
         error_msg = f"Error while testing job: {e}"
         _logger.error(error_msg)
@@ -500,12 +466,12 @@ def flask_clone_job():
     _logger.debug("Starting flask function: flask/clone_job")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    try:
-        validated_request = _validate_request(CloneJobRequest)
+    validated_request = parse_request_model(CloneJobRequest)
 
-        project_job_id = validated_request.projectJobId
-        function_name = validated_request.functionName
-        inputs = validated_request.projectInputs
+    try:
+        project_job_id = validated_request.project_job_id
+        function_name = validated_request.function_name
+        inputs = validated_request.project_inputs
         studies_api = _get_studies_api()
 
         _logger.debug(f"Cloning job {project_job_id} for function {function_name}")
@@ -553,12 +519,12 @@ def flask_upload_job_collection_csv():
     """Upload JobCollection CSV to a local function/job-collection store."""
     _logger.debug("Starting flask function: flask/upload_job_collection_csv")
     try:
-        payload = _validate_request(JobCollectionCsvUploadRequest)
-        parsed = _parse_uploaded_job_collection_csv(payload.csvContent)
+        payload = parse_request_model(JobCollectionCsvUploadRequest)
+        parsed = _parse_uploaded_job_collection_csv(payload.csv_content)
 
-        source_function_uid = payload.sourceFunctionUid or parsed["source_function_uid"]
-        if payload.targetMode == "existing":
-            target_function_uid = payload.targetFunctionUid or ""
+        source_function_uid = payload.source_function_uid or parsed["source_function_uid"]
+        if payload.target_mode == "existing":
+            target_function_uid = payload.target_function_uid or ""
         else:
             if not source_function_uid:
                 raise ValueError(
@@ -567,7 +533,7 @@ def flask_upload_job_collection_csv():
                 )
             target_function_uid = _create_local_function_from_source(
                 source_function_uid,
-                payload.newFunctionTitle,
+                payload.new_function_title,
                 parsed["input_vars"],
                 parsed["output_vars"],
             )
@@ -591,12 +557,9 @@ def flask_upload_job_collection_csv():
                 422,
             )
 
-        collection_title = (
-            parsed["source_job_collection_title"] or "Uploaded JobCollection"
-        )
+        collection_title = parsed["source_job_collection_title"] or "Uploaded JobCollection"
         collection_description = (
-            "Uploaded CSV data from collection "
-            f"{parsed['source_job_collection_uid'] or 'unknown'}"
+            f"Uploaded CSV data from collection {parsed['source_job_collection_uid'] or 'unknown'}"
         )
         local_collection = create_local_job_collection(
             function_uid=target_function_uid,
@@ -607,11 +570,11 @@ def flask_upload_job_collection_csv():
 
         return jsonify(
             {
-                "targetMode": payload.targetMode,
-                "targetFunctionUid": target_function_uid,
-                "sourceFunctionUid": source_function_uid,
-                "importedSamples": len(parsed["job_rows"]),
-                "jobCollection": local_collection,
+                "target_mode": payload.target_mode,
+                "target_function_uid": target_function_uid,
+                "source_function_uid": source_function_uid,
+                "imported_samples": len(parsed["job_rows"]),
+                "job_collection": local_collection,
             }
         )
 

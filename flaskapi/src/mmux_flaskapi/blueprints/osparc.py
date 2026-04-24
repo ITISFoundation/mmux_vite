@@ -58,9 +58,7 @@ def api_endpoint(func: Callable) -> Callable:
             return jsonify(result)
         except KeyError as e:
             _logger.error(f"Missing required parameter: {e}")
-            return make_response(
-                jsonify({"error": f"Missing required parameter: {e}"}), 400
-            )
+            return make_response(jsonify({"error": f"Missing required parameter: {e}"}), 400)
         except ValueError as e:
             _logger.error(f"Invalid value: {e}")
             return make_response(jsonify({"error": str(e)}), 422)
@@ -140,9 +138,7 @@ def flask_list_function_jobs_for_functionid():
     )
     _logger.debug(f"N Jobs for function {function_uid}: {len(jobs)}")
     for j in jobs:
-        status: FunctionJobStatus = osparc_api.get_job_api().function_job_status(
-            j["uid"]
-        )
+        status: FunctionJobStatus = osparc_api.get_job_api().function_job_status(j["uid"])
         j["status"] = status.status
     return jobs, 200
 
@@ -195,9 +191,7 @@ def flask_get_function_job_collections_for_functionid():
     )
     job_collections = [dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
     job_collections += normalized_local_collections
-    _logger.debug(
-        f"N Job collections for function {function_uid}: {len(job_collections)}"
-    )
+    _logger.debug(f"N Job collections for function {function_uid}: {len(job_collections)}")
     return job_collections, 200
 
 
@@ -254,12 +248,7 @@ def _job_collection_jobs_to_csv(
     jobs: list[dict[str, Any]],
 ) -> str:
     input_keys = sorted(
-        {
-            key
-            for job in jobs
-            if isinstance(job.get("inputs"), dict)
-            for key in job["inputs"].keys()
-        }
+        {key for job in jobs if isinstance(job.get("inputs"), dict) for key in job["inputs"].keys()}
     )
     output_keys = sorted(
         {
@@ -281,8 +270,10 @@ def _job_collection_jobs_to_csv(
             "status": _serialize_csv_value(job.get("status", "")),
         }
 
-        inputs = job.get("inputs") if isinstance(job.get("inputs"), dict) else {}
-        outputs = job.get("outputs") if isinstance(job.get("outputs"), dict) else {}
+        inputs = job.get("inputs")
+        inputs = inputs if isinstance(inputs, dict) else {}
+        outputs = job.get("outputs")
+        outputs = outputs if isinstance(outputs, dict) else {}
 
         for key in input_keys:
             row[f"input__{key}"] = _serialize_csv_value(inputs.get(key))
@@ -299,9 +290,7 @@ def _job_collection_jobs_to_csv(
         "status",
     ]
     fieldnames = (
-        base_fields
-        + [f"input__{k}" for k in input_keys]
-        + [f"output__{k}" for k in output_keys]
+        base_fields + [f"input__{k}" for k in input_keys] + [f"output__{k}" for k in output_keys]
     )
     csv_buffer = io.StringIO()
     writer = csv.DictWriter(csv_buffer, fieldnames=fieldnames)

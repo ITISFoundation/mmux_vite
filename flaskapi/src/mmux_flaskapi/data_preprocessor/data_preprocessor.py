@@ -14,9 +14,10 @@ and maintain compatibility with the ML workflow pipeline.
 import json
 import logging
 import re
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -32,10 +33,10 @@ class VariableConfig:
     mapped_name: str
     normalize: bool = False
     switch_sign: bool = False
-    mean: Optional[float] = None
-    std: Optional[float] = None
-    min_val: Optional[float] = None
-    max_val: Optional[float] = None
+    mean: float | None = None
+    std: float | None = None
+    min_val: float | None = None
+    max_val: float | None = None
     normalization_method: str = "z_score"
 
 
@@ -43,8 +44,8 @@ class VariableConfig:
 class PreprocessorConfig:
     """Complete configuration for the data preprocessor."""
 
-    input_variables: Dict[str, VariableConfig]
-    output_variables: Dict[str, VariableConfig]
+    input_variables: dict[str, VariableConfig]
+    output_variables: dict[str, VariableConfig]
     created_timestamp: str
     version: str = "1.0"
 
@@ -58,11 +59,11 @@ class DataPreprocessor:
     """
 
     def __init__(self):
-        self.input_variables: Dict[str, VariableConfig] = {}
-        self.output_variables: Dict[str, VariableConfig] = {}
+        self.input_variables: dict[str, VariableConfig] = {}
+        self.output_variables: dict[str, VariableConfig] = {}
         self._is_fitted = False
 
-    def setup_variables(self, input_vars: List[str], output_vars: List[str]) -> None:
+    def setup_variables(self, input_vars: list[str], output_vars: list[str]) -> None:
         """
         Set up the basic variable mappings to avoid issues with variable names.
 
@@ -80,8 +81,8 @@ class DataPreprocessor:
 
     def setup_normalization(
         self,
-        input_normalizations: Optional[Dict[str, str]] = None,
-        output_normalizations: Optional[Dict[str, str]] = None,
+        input_normalizations: dict[str, str] | None = None,
+        output_normalizations: dict[str, str] | None = None,
     ) -> None:
         """
         Configure normalization for variables.
@@ -91,17 +92,13 @@ class DataPreprocessor:
             output_normalizations: Dict mapping output var names to normalization methods
         """
         if input_normalizations:
-            self._configure_normalizations(
-                self.input_variables, input_normalizations, "input"
-            )
+            self._configure_normalizations(self.input_variables, input_normalizations, "input")
             _logger.info(
                 f"Configured normalization for {len(input_normalizations)} input variables"
             )
 
         if output_normalizations:
-            self._configure_normalizations(
-                self.output_variables, output_normalizations, "output"
-            )
+            self._configure_normalizations(self.output_variables, output_normalizations, "output")
             _logger.info(
                 f"Configured normalization for {len(output_normalizations)} output variables"
             )
@@ -110,8 +107,8 @@ class DataPreprocessor:
 
     def setup_sign_switching(
         self,
-        input_sign_switches: Optional[List[str]] = None,
-        output_sign_switches: Optional[List[str]] = None,
+        input_sign_switches: list[str] | None = None,
+        output_sign_switches: list[str] | None = None,
     ) -> None:
         """
         Configure sign switching for variables.
@@ -123,20 +120,14 @@ class DataPreprocessor:
         input_sign_switches = input_sign_switches or []
         output_sign_switches = output_sign_switches or []
 
-        self._configure_sign_switches(
-            self.input_variables, input_sign_switches, "input"
-        )
-        self._configure_sign_switches(
-            self.output_variables, output_sign_switches, "output"
-        )
+        self._configure_sign_switches(self.input_variables, input_sign_switches, "input")
+        self._configure_sign_switches(self.output_variables, output_sign_switches, "output")
 
         _logger.info(
             f"Configured sign switching for {len(input_sign_switches)} input and {len(output_sign_switches)} output variables"
         )
 
-    def _setup_variable_group(
-        self, var_names: List[str], prefix: str
-    ) -> Dict[str, VariableConfig]:
+    def _setup_variable_group(self, var_names: list[str], prefix: str) -> dict[str, VariableConfig]:
         """
         Helper function to set up a group of variables (inputs or outputs).
         """
@@ -154,8 +145,8 @@ class DataPreprocessor:
 
     def _configure_normalizations(
         self,
-        variables: Dict[str, VariableConfig],
-        normalizations: Dict[str, str],
+        variables: dict[str, VariableConfig],
+        normalizations: dict[str, str],
         var_type: str,
     ) -> None:
         for var_name, norm_method in normalizations.items():
@@ -169,8 +160,8 @@ class DataPreprocessor:
 
     def _configure_sign_switches(
         self,
-        variables: Dict[str, VariableConfig],
-        sign_switches: List[str],
+        variables: dict[str, VariableConfig],
+        sign_switches: list[str],
         var_type: str,
     ) -> None:
         for var_name in sign_switches:
@@ -184,14 +175,12 @@ class DataPreprocessor:
     def _fit_variable_group(
         self,
         data: pd.DataFrame,
-        variables: Dict[str, VariableConfig],
+        variables: dict[str, VariableConfig],
         var_type: str,
     ) -> None:
         for var_name, config in variables.items():
             if var_name not in data.columns:
-                _logger.warning(
-                    f"{var_type.capitalize()} variable {var_name} not found in data"
-                )
+                _logger.warning(f"{var_type.capitalize()} variable {var_name} not found in data")
                 continue
 
             values = np.array(data[var_name].values, dtype=float)
@@ -209,10 +198,10 @@ class DataPreprocessor:
     def _transform_variable_group(
         self,
         data: pd.DataFrame,
-        variables: Dict[str, VariableConfig],
-        transformed_data: Dict[str, np.ndarray],
+        variables: dict[str, VariableConfig],
+        transformed_data: dict[str, np.ndarray],
         var_type: str,
-    ) -> Dict[str, np.ndarray]:
+    ) -> dict[str, np.ndarray]:
         for var_name, config in variables.items():
             if var_name not in data.columns:
                 _logger.warning(
@@ -232,7 +221,7 @@ class DataPreprocessor:
 
         return transformed_data
 
-    def fit(self, data: Union[pd.DataFrame, List[Dict[str, Any]]]) -> "DataPreprocessor":
+    def fit(self, data: pd.DataFrame | list[dict[str, Any]]) -> "DataPreprocessor":
         """
         Fit the preprocessor to the data to compute normalization parameters.
         """
@@ -246,7 +235,7 @@ class DataPreprocessor:
         _logger.info("Preprocessor fitted to data")
         return self
 
-    def transform(self, data: Union[pd.DataFrame, List[Dict[str, Any]]]) -> pd.DataFrame:
+    def transform(self, data: pd.DataFrame | list[dict[str, Any]]) -> pd.DataFrame:
         """
         Transform the data using the fitted preprocessor.
         """
@@ -256,7 +245,7 @@ class DataPreprocessor:
         if isinstance(data, list):
             data = pd.DataFrame(data)
 
-        transformed_data: Dict[str, np.ndarray] = {}
+        transformed_data: dict[str, np.ndarray] = {}
         transformed_data = self._transform_variable_group(
             data, self.input_variables, transformed_data, "input"
         )
@@ -267,20 +256,16 @@ class DataPreprocessor:
         return pd.DataFrame(transformed_data)
 
     def inverse_transform(
-        self, data: Union[pd.DataFrame, Dict[str, List[float]], np.ndarray]
-    ) -> Dict[str, List[float]]:
+        self, data: pd.DataFrame | dict[str, list[float]] | np.ndarray
+    ) -> dict[str, list[float]]:
         """
         Inverse transform the data back to original scale and variable names.
         """
         if not self._is_fitted:
-            raise ValueError(
-                "Preprocessor must be fitted before inverse transforming data"
-            )
+            raise ValueError("Preprocessor must be fitted before inverse transforming data")
 
         if isinstance(data, np.ndarray):
-            all_vars = list(self.input_variables.values()) + list(
-                self.output_variables.values()
-            )
+            all_vars = list(self.input_variables.values()) + list(self.output_variables.values())
             if data.ndim == 1:
                 data_dict = {
                     var.mapped_name: [float(data[i])]
@@ -295,7 +280,7 @@ class DataPreprocessor:
                 }
             data = data_dict
         elif isinstance(data, pd.DataFrame):
-            data_dict: Dict[str, List[float]] = {}
+            data_dict: dict[str, list[float]] = {}
             for col in data.columns:
                 col_data = data[col].values
                 if len(col_data) == 1 and not isinstance(col_data[0], (list, np.ndarray)):
@@ -305,9 +290,7 @@ class DataPreprocessor:
                         float(val)
                         for sublist in col_data
                         for val in (
-                            sublist
-                            if isinstance(sublist, (list, np.ndarray))
-                            else [sublist]
+                            sublist if isinstance(sublist, (list, np.ndarray)) else [sublist]
                         )
                     ]
                 else:
@@ -372,11 +355,7 @@ class DataPreprocessor:
             normalized_values = (values - config.mean) / config.std
             return normalized_values
         if config.normalization_method == "min_max":
-            if (
-                config.max_val is None
-                or config.min_val is None
-                or config.max_val == config.min_val
-            ):
+            if config.max_val is None or config.min_val is None or config.max_val == config.min_val:
                 _logger.warning(
                     f"Invalid parameters min = {config.min_val} and max = {config.max_val} for min_max normalization of {config.original_name}, skipping normalization"
                 )
@@ -386,8 +365,8 @@ class DataPreprocessor:
         return values
 
     def _denormalize_value(
-        self, value: Union[float, List[float], np.ndarray], config: VariableConfig
-    ) -> Union[float, List[float]]:
+        self, value: float | list[float] | np.ndarray, config: VariableConfig
+    ) -> float | list[float]:
         if isinstance(value, list):
             values_array = np.array(value, dtype=float)
         elif isinstance(value, np.ndarray):
@@ -428,7 +407,7 @@ class DataPreprocessor:
 
         return denormalized.tolist()
 
-    def get_variable_mapping(self) -> Dict[str, str]:
+    def get_variable_mapping(self) -> dict[str, str]:
         mapping = {}
         for var_name, config in self.input_variables.items():
             mapping[var_name] = config.mapped_name
@@ -436,7 +415,7 @@ class DataPreprocessor:
             mapping[var_name] = config.mapped_name
         return mapping
 
-    def get_inverse_mapping(self) -> Dict[str, str]:
+    def get_inverse_mapping(self) -> dict[str, str]:
         mapping = {}
         for var_name, config in self.input_variables.items():
             mapping[config.mapped_name] = var_name
@@ -444,7 +423,7 @@ class DataPreprocessor:
             mapping[config.mapped_name] = var_name
         return mapping
 
-    def save_config(self, file_path: Union[str, Path]) -> None:
+    def save_config(self, file_path: str | Path) -> None:
         if not self._is_fitted:
             raise ValueError("Preprocessor must be fitted before saving config")
 
@@ -478,8 +457,8 @@ class DataPreprocessor:
 
         _logger.info(f"Configuration saved to {file_path}")
 
-    def load_config(self, file_path: Union[str, Path]) -> "DataPreprocessor":
-        with open(file_path, "r") as f:
+    def load_config(self, file_path: str | Path) -> "DataPreprocessor":
+        with open(file_path) as f:
             config_dict = json.load(f)
 
         self.input_variables = {}
@@ -494,21 +473,19 @@ class DataPreprocessor:
         _logger.info(f"Configuration loaded from {file_path}")
         return self
 
-    def fit_transform(
-        self, data: Union[pd.DataFrame, List[Dict[str, Any]]]
-    ) -> pd.DataFrame:
+    def fit_transform(self, data: pd.DataFrame | list[dict[str, Any]]) -> pd.DataFrame:
         return self.fit(data).transform(data)
 
     def filter_variables(
         self,
-        include_inputs: Optional[List[str]] = None,
-        exclude_inputs: Optional[List[str]] = None,
-        include_outputs: Optional[List[str]] = None,
-        exclude_outputs: Optional[List[str]] = None,
-        input_patterns: Optional[List[str]] = None,
-        output_patterns: Optional[List[str]] = None,
-        input_predicate: Optional[Callable[[str, VariableConfig], bool]] = None,
-        output_predicate: Optional[Callable[[str, VariableConfig], bool]] = None,
+        include_inputs: list[str] | None = None,
+        exclude_inputs: list[str] | None = None,
+        include_outputs: list[str] | None = None,
+        exclude_outputs: list[str] | None = None,
+        input_patterns: list[str] | None = None,
+        output_patterns: list[str] | None = None,
+        input_predicate: Callable[[str, VariableConfig], bool] | None = None,
+        output_predicate: Callable[[str, VariableConfig], bool] | None = None,
     ) -> "DataPreprocessor":
         filtered_inputs = self._filter_variable_group(
             self.input_variables,
@@ -540,13 +517,13 @@ class DataPreprocessor:
 
     def _filter_variable_group(
         self,
-        variables: Dict[str, VariableConfig],
-        include_list: Optional[List[str]] = None,
-        exclude_list: Optional[List[str]] = None,
-        patterns: Optional[List[str]] = None,
-        predicate: Optional[Callable[[str, VariableConfig], bool]] = None,
+        variables: dict[str, VariableConfig],
+        include_list: list[str] | None = None,
+        exclude_list: list[str] | None = None,
+        patterns: list[str] | None = None,
+        predicate: Callable[[str, VariableConfig], bool] | None = None,
         var_type: str = "variable",
-    ) -> Dict[str, VariableConfig]:
+    ) -> dict[str, VariableConfig]:
         filtered_vars = {}
 
         for var_name, config in variables.items():
@@ -580,26 +557,20 @@ class DataPreprocessor:
 
     def filter_by_names(
         self,
-        input_names: Optional[List[str]] = None,
-        output_names: Optional[List[str]] = None,
+        input_names: list[str] | None = None,
+        output_names: list[str] | None = None,
         exclude: bool = False,
     ) -> "DataPreprocessor":
         if exclude:
-            return self.filter_variables(
-                exclude_inputs=input_names, exclude_outputs=output_names
-            )
-        return self.filter_variables(
-            include_inputs=input_names, include_outputs=output_names
-        )
+            return self.filter_variables(exclude_inputs=input_names, exclude_outputs=output_names)
+        return self.filter_variables(include_inputs=input_names, include_outputs=output_names)
 
     def filter_by_patterns(
         self,
-        input_patterns: Optional[List[str]] = None,
-        output_patterns: Optional[List[str]] = None,
+        input_patterns: list[str] | None = None,
+        output_patterns: list[str] | None = None,
     ) -> "DataPreprocessor":
-        return self.filter_variables(
-            input_patterns=input_patterns, output_patterns=output_patterns
-        )
+        return self.filter_variables(input_patterns=input_patterns, output_patterns=output_patterns)
 
     def filter_normalized_only(self) -> "DataPreprocessor":
         return self.filter_variables(
@@ -613,13 +584,13 @@ class DataPreprocessor:
             output_predicate=lambda name, config: not config.normalize,
         )
 
-    def get_filtered_variable_names(self) -> Dict[str, List[str]]:
+    def get_filtered_variable_names(self) -> dict[str, list[str]]:
         return {
             "inputs": list(self.input_variables.keys()),
             "outputs": list(self.output_variables.keys()),
         }
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         summary = {
             "fitted": self._is_fitted,
             "n_input_variables": len(self.input_variables),

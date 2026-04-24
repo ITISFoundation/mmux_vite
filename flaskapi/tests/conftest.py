@@ -1,12 +1,13 @@
+import logging
 import os
 from datetime import datetime
-import logging
 from pathlib import Path
+from unittest.mock import patch
 
 #
 import pytest
-from unittest.mock import patch
 from flask import Flask
+
 from mmux_flaskapi.app import create_flask_app
 from mmux_flaskapi.utils.local_job_store import LOCAL_STORE_FILE
 
@@ -66,9 +67,9 @@ def mock_test_env_vars():
 def mock_osparc_connection_check(request):
     """Prevent real network calls in endpoint tests while allowing config tests to validate connection logic."""
 
-    if request.module.__name__.endswith(
-        "test_flask_app_setup"
-    ) or request.module.__name__.endswith("test_webserver_config"):
+    if request.module.__name__.endswith("test_flask_app_setup") or request.module.__name__.endswith(
+        "test_webserver_config"
+    ):
         yield
         return
 
@@ -116,4 +117,4 @@ def assert_route_exists(app: Flask, prefix: str, route: str):
     assert full_route in routes, f"The route '{full_route}' should be registered."
 
 
-from osparc_api_mocks import *
+from osparc_api_mocks import *  # noqa: E402, F401, F403

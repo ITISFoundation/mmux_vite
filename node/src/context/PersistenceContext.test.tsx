@@ -4,10 +4,10 @@ import { render, waitFor, act, cleanup } from "@testing-library/react";
 import { PersistenceContextProvider, usePersistenceContext } from "./PersistenceContext";
 import type { PersistenceType } from "./types";
 import samplePersistence from "./samplePersistence.test.json";
-import { fetchWithRetry } from "../utils/fetch_retry";
+import { fetchWithRetry } from "../utils/fetchRetry";
 
 // Mock fetch and fetchWithRetry
-vi.mock("../utils/fetch_retry", () => ({
+vi.mock("../utils/fetchRetry", () => ({
   fetchWithRetry: vi.fn(),
 }));
 

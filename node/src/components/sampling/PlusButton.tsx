@@ -9,13 +9,14 @@ import { useSamplingContext } from "../../context/SamplingContext";
 // - TODO allows to remove the element (or at least to hide it) -- this is not implemented yet
 type PlusButtonProps = {
   onClickFun: CallableFunction; // This defines whether something has to be done in the backend prior to adding the element
-  PlotFunComponent: (props: unknown) => JSX.Element;
+  plotFunComponent: (props: unknown) => JSX.Element;
   text: string;
   enabled: boolean;
   mmmuxTestid?: string;
 };
 function PlusButton(props: PlusButtonProps) {
-  const { enabled, text, onClickFun, PlotFunComponent, mmmuxTestid } = props;
+  const { enabled, text, onClickFun, plotFunComponent, mmmuxTestid } = props;
+  const PlotFunComponent = plotFunComponent;
   const { launchingSampling } = useSamplingContext();
   const [showElement, setShowElement] = useState(false);
 

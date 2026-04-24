@@ -1,7 +1,28 @@
 import { toast } from "react-toastify";
 import { Function as OsparcFunction, ProjectFunctionJob, FunctionJob, FunctionJobCollection } from "../osparc-api-ts-client";
-import { PYTHON_DAKOTA_BACKEND } from "./api_objects";
-import { fetchWithRetry } from "./fetch_retry";
+import { fetchWithRetry } from "./fetchRetry";
+
+function snakeToCamelCase(value: string): string {
+  return value.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase());
+}
+
+function normalizePayloadToCamelCase<T>(payload: unknown): T {
+  if (Array.isArray(payload)) {
+    return payload.map(item => normalizePayloadToCamelCase(item)) as T;
+  }
+
+  if (payload && typeof payload === "object") {
+    return Object.entries(payload as Record<string, unknown>).reduce(
+      (normalized, [key, value]) => ({
+        ...normalized,
+        [snakeToCamelCase(key)]: normalizePayloadToCamelCase(value),
+      }),
+      {} as Record<string, unknown>,
+    ) as T;
+  }
+
+  return payload as T;
+}
 
 export function createInputOutputSchema(vars: string[]) {
   return {
@@ -18,53 +39,53 @@ export function createInputOutputSchema(vars: string[]) {
 }
 
 export async function getHealth(): Promise<number> {
-  const result = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/deployment/health`);
+  const result = await fetch(`/flask/deployment/health`);
   return result.status;
 }
 
 export async function getPermissions(): Promise<string> {
-  const result = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/deployment/permissions`);
-  const permissionsJson = await result.json();
-  return permissionsJson.permissions;
+  const result = await fetch(`/flask/deployment/permissions`);
+  const permissionsPayload = (await result.json()) as { permissions: string };
+  return permissionsPayload.permissions;
 }
 
 export async function getServiceMode(): Promise<string> {
-  const result = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/deployment/service-mode`);
-  const ServiceModeJson = await result.json();
-  return ServiceModeJson.service_mode;
+  const result = await fetch(`/flask/deployment/service-mode`);
+  const serviceModePayload = normalizePayloadToCamelCase<{ serviceMode?: string }>(await result.json());
+  return serviceModePayload.serviceMode ?? "";
 }
 
 export async function listFunctions(): Promise<OsparcFunction[]> {
-  const result = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/osparc/list_functions`);
-  return result.json();
+  const result = await fetchWithRetry(`/flask/osparc/list_functions`);
+  return normalizePayloadToCamelCase<OsparcFunction[]>(await result.json());
 }
 
 export async function listJobs(): Promise<FunctionJob[]> {
-  return fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/osparc/list_jobs`).then(response => response.json());
+  return fetchWithRetry(`/flask/osparc/list_jobs`).then(async response =>
+    normalizePayloadToCamelCase<FunctionJob[]>(await response.json()),
+  );
 }
 
 export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<FunctionJob[]> {
-  return fetch(`${PYTHON_DAKOTA_BACKEND}/flask/osparc/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(response =>
-    response.json(),
+  return fetch(`/flask/osparc/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(async response =>
+    normalizePayloadToCamelCase<FunctionJob[]>(await response.json()),
   );
 }
 
 export async function getFunctionJobCollections(functionUid: string): Promise<FunctionJobCollection[]> {
-  return fetchWithRetry(
-    `${PYTHON_DAKOTA_BACKEND}/flask/osparc/list_function_job_collections_for_functionid?functionUid=${functionUid}`,
-  ).then(response => response.json());
-}
-
-export async function getFunctionJobsFromFunctionJobCollection(JobCollectionUid: string): Promise<FunctionJob[]> {
-  return fetchWithRetry(
-    `${PYTHON_DAKOTA_BACKEND}/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=${JobCollectionUid}`,
-  ).then(response => response.json());
-}
-
-export async function downloadJobCollectionCsv(JobCollectionUid: string): Promise<string> {
-  const response = await fetchWithRetry(
-    `${PYTHON_DAKOTA_BACKEND}/flask/osparc/download_job_collection_csv?JobCollectionUid=${JobCollectionUid}`,
+  return fetchWithRetry(`/flask/osparc/list_function_job_collections_for_functionid?functionUid=${functionUid}`).then(
+    async response => normalizePayloadToCamelCase<FunctionJobCollection[]>(await response.json()),
   );
+}
+
+export async function getFunctionJobsFromFunctionJobCollection(jobCollectionUid: string): Promise<FunctionJob[]> {
+  return fetchWithRetry(`/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=${jobCollectionUid}`).then(
+    async response => normalizePayloadToCamelCase<FunctionJob[]>(await response.json()),
+  );
+}
+
+export async function downloadJobCollectionCsv(jobCollectionUid: string): Promise<string> {
+  const response = await fetchWithRetry(`/flask/osparc/download_job_collection_csv?JobCollectionUid=${jobCollectionUid}`);
   return response.text();
 }
 
@@ -75,7 +96,7 @@ export async function uploadJobCollectionCsv(params: {
   newFunctionTitle?: string;
   sourceFunctionUid?: string;
 }) {
-  const response = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sampling/upload_job_collection_csv`, {
+  const response = await fetch(`/flask/sampling/upload_job_collection_csv`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
@@ -123,9 +144,10 @@ interface StudyType {
 export const createJobStudyCopy = async (functionName: string, job: ProjectFunctionJob) => {
   let error: Error = new Error();
   try {
-    const { projectJobId } = job;
-    const { inputs } = job;
-    const response = await fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sampling/clone_job`, {
+    const normalizedJob = normalizePayloadToCamelCase<ProjectFunctionJob>(job);
+    const { projectJobId } = normalizedJob;
+    const { inputs } = normalizedJob;
+    const response = await fetch(`/flask/sampling/clone_job`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

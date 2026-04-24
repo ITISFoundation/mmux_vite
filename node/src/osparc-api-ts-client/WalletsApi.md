@@ -26,11 +26,11 @@ const configuration = createConfiguration();
 const apiInstance = new WalletsApi(configuration);
 
 const request: WalletsApiCheckoutLicensedItemRequest = {
-  
+
   walletId: 1,
-  
+
   licensedItemId: "licensed_item_id_example",
-  
+
   licensedItemCheckoutData: {
     numberOfSeats: 0,
     serviceRunId: "serviceRunId_example",
@@ -96,7 +96,7 @@ const configuration = createConfiguration();
 const apiInstance = new WalletsApi(configuration);
 
 const request: WalletsApiGetAvailableLicensedItemsForWalletRequest = {
-  
+
   walletId: 1,
     // Page size limit (optional)
   limit: 20,
@@ -216,7 +216,7 @@ const configuration = createConfiguration();
 const apiInstance = new WalletsApi(configuration);
 
 const request: WalletsApiGetWalletRequest = {
-  
+
   walletId: 1,
 };
 
@@ -260,5 +260,3 @@ Name | Type | Description  | Notes
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
-
-

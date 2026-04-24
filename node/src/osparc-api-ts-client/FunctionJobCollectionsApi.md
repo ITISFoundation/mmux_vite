@@ -28,7 +28,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionJobCollectionsApi(configuration);
 
 const request: FunctionJobCollectionsApiDeleteFunctionJobCollectionRequest = {
-  
+
   functionJobCollectionId: "function_job_collection_id_example",
 };
 
@@ -83,7 +83,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionJobCollectionsApi(configuration);
 
 const request: FunctionJobCollectionsApiFunctionJobCollectionListFunctionJobsRequest = {
-  
+
   functionJobCollectionId: "function_job_collection_id_example",
 };
 
@@ -138,7 +138,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionJobCollectionsApi(configuration);
 
 const request: FunctionJobCollectionsApiFunctionJobCollectionStatusRequest = {
-  
+
   functionJobCollectionId: "function_job_collection_id_example",
 };
 
@@ -193,7 +193,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionJobCollectionsApi(configuration);
 
 const request: FunctionJobCollectionsApiGetFunctionJobCollectionRequest = {
-  
+
   functionJobCollectionId: "function_job_collection_id_example",
 };
 
@@ -305,7 +305,7 @@ const configuration = createConfiguration();
 const apiInstance = new FunctionJobCollectionsApi(configuration);
 
 const request: FunctionJobCollectionsApiRegisterFunctionJobCollectionRequest = {
-  
+
   functionJobCollection: {
     title: "",
     description: "",
@@ -346,5 +346,3 @@ No authorization required
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
-
-

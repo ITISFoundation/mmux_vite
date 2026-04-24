@@ -31,8 +31,10 @@ dist-ssr
 docker-compose.yml
 *.env
 *.ignore.*
+*.conf.json
 
 validation/
 .coverage
 coverage.xml
 htmlcov/
+.codex

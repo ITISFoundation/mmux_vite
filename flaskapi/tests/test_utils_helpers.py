@@ -6,31 +6,27 @@ pagination helpers, variable sanitization, and other utility functions.
 """
 
 import os
+from unittest.mock import Mock, patch
+
 import pandas as pd
-import numpy as np
-from pathlib import Path
-from typing import List, Dict
-from unittest.mock import Mock, patch, MagicMock
 import pytest
-import uuid
-import datetime
 
 from mmux_flaskapi.utils.helpers import (
-    is_test_environment,
-    create_run_dir,
-    camel_to_snake,
-    snake_to_camel,
-    dict_keys_camel_to_snake,
-    dict_keys_snake_to_camel,
-    recursive_dict_keys_camel_to_snake,
-    recursive_dict_keys_snake_to_camel,
     _get_all_items,
     _get_first_N_items,
     _get_last_N_items,
-    sanitize_varnames,
+    camel_to_snake,
+    create_run_dir,
+    dict_keys_camel_to_snake,
+    dict_keys_snake_to_camel,
+    is_test_environment,
+    recursive_dict_keys_camel_to_snake,
+    recursive_dict_keys_snake_to_camel,
     sanitize_varname,
+    sanitize_varnames,
+    sanitize_varnames_df,
     sanitize_varnames_dict,
-    sanitize_varnames_df
+    snake_to_camel,
 )
 
 
@@ -69,18 +65,19 @@ class TestRunDirectoryCreation:
     def test_create_run_dir_default_name(self, tmp_path):
         """Test create_run_dir with default sampling directory name."""
         script_dir = tmp_path
-        
-        with patch('mmux_flaskapi.utils.helpers.datetime') as mock_datetime, \
-             patch('mmux_flaskapi.utils.helpers.uuid') as mock_uuid:
-            
+
+        with (
+            patch("mmux_flaskapi.utils.helpers.datetime") as mock_datetime,
+            patch("mmux_flaskapi.utils.helpers.uuid") as mock_uuid,
+        ):
             mock_datetime.datetime.now.return_value.strftime.return_value = "20231020.143000"
             mock_uuid.uuid4.return_value.hex = "test123456"
-            
+
             result_dir = create_run_dir(script_dir)
-            
+
             expected_name = "dakota_20231020.143000_test123456_sampling"
             expected_path = script_dir / "runs" / expected_name
-            
+
             assert result_dir == expected_path
             assert result_dir.exists()
 
@@ -88,43 +85,45 @@ class TestRunDirectoryCreation:
         """Test create_run_dir with custom directory name."""
         script_dir = tmp_path
         custom_name = "evaluation"
-        
-        with patch('mmux_flaskapi.utils.helpers.datetime') as mock_datetime, \
-             patch('mmux_flaskapi.utils.helpers.uuid') as mock_uuid:
-            
+
+        with (
+            patch("mmux_flaskapi.utils.helpers.datetime") as mock_datetime,
+            patch("mmux_flaskapi.utils.helpers.uuid") as mock_uuid,
+        ):
             mock_datetime.datetime.now.return_value.strftime.return_value = "20231020.143000"
             mock_uuid.uuid4.return_value.hex = "test123456"
-            
+
             result_dir = create_run_dir(script_dir, custom_name)
-            
+
             expected_name = "dakota_20231020.143000_test123456_evaluation"
             expected_path = script_dir / "runs" / expected_name
-            
+
             assert result_dir == expected_path
             assert result_dir.exists()
 
     def test_create_run_dir_existing_directory(self, tmp_path):
         """Test create_run_dir when directory already exists."""
         script_dir = tmp_path
-        
+
         # Create the runs directory first
         runs_dir = script_dir / "runs"
         runs_dir.mkdir()
-        
-        with patch('mmux_flaskapi.utils.helpers.datetime') as mock_datetime, \
-             patch('mmux_flaskapi.utils.helpers.uuid') as mock_uuid:
-            
+
+        with (
+            patch("mmux_flaskapi.utils.helpers.datetime") as mock_datetime,
+            patch("mmux_flaskapi.utils.helpers.uuid") as mock_uuid,
+        ):
             mock_datetime.datetime.now.return_value.strftime.return_value = "20231020.143000"
             mock_uuid.uuid4.return_value.hex = "test123456"
-            
+
             # Create the directory first
             expected_name = "dakota_20231020.143000_test123456_sampling"
             expected_path = script_dir / "runs" / expected_name
             expected_path.mkdir(parents=True)
-            
+
             # Should not raise error when directory exists
             result_dir = create_run_dir(script_dir)
-            
+
             assert result_dir == expected_path
             assert result_dir.exists()
 
@@ -161,30 +160,14 @@ class TestCaseConversion:
 
     def test_dict_keys_camel_to_snake(self):
         """Test dictionary key conversion from camelCase to snake_case."""
-        input_dict = {
-            "firstName": "John",
-            "lastName": "Doe",
-            "emailAddress": "john@example.com"
-        }
-        expected = {
-            "first_name": "John",
-            "last_name": "Doe",
-            "email_address": "john@example.com"
-        }
+        input_dict = {"firstName": "John", "lastName": "Doe", "emailAddress": "john@example.com"}
+        expected = {"first_name": "John", "last_name": "Doe", "email_address": "john@example.com"}
         assert dict_keys_camel_to_snake(input_dict) == expected
 
     def test_dict_keys_snake_to_camel(self):
         """Test dictionary key conversion from snake_case to camelCase."""
-        input_dict = {
-            "first_name": "John",
-            "last_name": "Doe",
-            "email_address": "john@example.com"
-        }
-        expected = {
-            "firstName": "John",
-            "lastName": "Doe",
-            "emailAddress": "john@example.com"
-        }
+        input_dict = {"first_name": "John", "last_name": "Doe", "email_address": "john@example.com"}
+        expected = {"firstName": "John", "lastName": "Doe", "emailAddress": "john@example.com"}
         assert dict_keys_snake_to_camel(input_dict) == expected
 
 
@@ -195,17 +178,11 @@ class TestRecursiveDictConversion:
         """Test basic recursive conversion from camelCase to snake_case."""
         input_dict = {
             "firstName": "John",
-            "userInfo": {
-                "emailAddress": "john@example.com",
-                "phoneNumber": "123-456-7890"
-            }
+            "userInfo": {"emailAddress": "john@example.com", "phoneNumber": "123-456-7890"},
         }
         expected = {
             "first_name": "John",
-            "user_info": {
-                "email_address": "john@example.com",
-                "phone_number": "123-456-7890"
-            }
+            "user_info": {"email_address": "john@example.com", "phone_number": "123-456-7890"},
         }
         result = recursive_dict_keys_camel_to_snake(input_dict)
         assert result == expected
@@ -215,13 +192,13 @@ class TestRecursiveDictConversion:
         input_dict = {
             "userList": [
                 {"firstName": "John", "lastName": "Doe"},
-                {"firstName": "Jane", "lastName": "Smith"}
+                {"firstName": "Jane", "lastName": "Smith"},
             ]
         }
         expected = {
             "user_list": [
                 {"first_name": "John", "last_name": "Doe"},
-                {"first_name": "Jane", "last_name": "Smith"}
+                {"first_name": "Jane", "last_name": "Smith"},
             ]
         }
         result = recursive_dict_keys_camel_to_snake(input_dict)
@@ -229,13 +206,7 @@ class TestRecursiveDictConversion:
 
     def test_recursive_dict_keys_camel_to_snake_max_depth(self):
         """Test recursive conversion with max depth limit."""
-        input_dict = {
-            "levelOne": {
-                "levelTwo": {
-                    "levelThree": "should_not_convert"
-                }
-            }
-        }
+        input_dict = {"levelOne": {"levelTwo": {"levelThree": "should_not_convert"}}}
         expected = {
             "level_one": {
                 "level_two": {
@@ -250,17 +221,11 @@ class TestRecursiveDictConversion:
         """Test basic recursive conversion from snake_case to camelCase."""
         input_dict = {
             "first_name": "John",
-            "user_info": {
-                "email_address": "john@example.com",
-                "phone_number": "123-456-7890"
-            }
+            "user_info": {"email_address": "john@example.com", "phone_number": "123-456-7890"},
         }
         expected = {
             "firstName": "John",
-            "userInfo": {
-                "emailAddress": "john@example.com",
-                "phoneNumber": "123-456-7890"
-            }
+            "userInfo": {"emailAddress": "john@example.com", "phoneNumber": "123-456-7890"},
         }
         result = recursive_dict_keys_snake_to_camel(input_dict)
         assert result == expected
@@ -270,13 +235,13 @@ class TestRecursiveDictConversion:
         input_dict = {
             "user_list": [
                 {"first_name": "John", "last_name": "Doe"},
-                {"first_name": "Jane", "last_name": "Smith"}
+                {"first_name": "Jane", "last_name": "Smith"},
             ]
         }
         expected = {
             "userList": [
                 {"firstName": "John", "lastName": "Doe"},
-                {"firstName": "Jane", "lastName": "Smith"}
+                {"firstName": "Jane", "lastName": "Smith"},
             ]
         }
         result = recursive_dict_keys_snake_to_camel(input_dict)
@@ -284,21 +249,9 @@ class TestRecursiveDictConversion:
 
     def test_recursive_conversion_lists_with_non_dict_items(self):
         """Test recursive conversion with lists containing non-dictionary items."""
-        input_dict = {
-            "mixedList": [
-                {"firstName": "John"},
-                "string_item",
-                123,
-                {"lastName": "Doe"}
-            ]
-        }
+        input_dict = {"mixedList": [{"firstName": "John"}, "string_item", 123, {"lastName": "Doe"}]}
         expected = {
-            "mixed_list": [
-                {"first_name": "John"},
-                "string_item",
-                123,
-                {"last_name": "Doe"}
-            ]
+            "mixed_list": [{"first_name": "John"}, "string_item", 123, {"last_name": "Doe"}]
         }
         result = recursive_dict_keys_camel_to_snake(input_dict)
         assert result == expected
@@ -314,48 +267,42 @@ class TestPaginationHelpers:
         mock_item1.to_dict.return_value = {"firstName": "John", "id": 1}
         mock_item2 = Mock()
         mock_item2.to_dict.return_value = {"firstName": "Jane", "id": 2}
-        
+
         mock_response1 = Mock()
         mock_response1.total = 2
         mock_response1.items = [mock_item1]
-        
+
         mock_response2 = Mock()
         mock_response2.total = 2
         mock_response2.items = [mock_item2]
-        
+
         # Mock API call
         mock_api_call = Mock()
         mock_api_call.side_effect = [
             Mock(total=2),  # First call with limit=1 to get total
             mock_response1,  # Second call with actual data
-            mock_response2   # Third call with remaining data
+            mock_response2,  # Third call with remaining data
         ]
-        
+
         result = _get_all_items(mock_api_call)
-        
-        expected = [
-            {"first_name": "John", "id": 1},
-            {"first_name": "Jane", "id": 2}
-        ]
+
+        expected = [{"first_name": "John", "id": 1}, {"first_name": "Jane", "id": 2}]
         assert result == expected
 
     def test_get_all_items_with_custom_limit(self):
         """Test _get_all_items with custom limit parameter."""
         mock_item = Mock()
         mock_item.to_dict.return_value = {"firstName": "John", "id": 1}
-        
+
         mock_response = Mock()
         mock_response.total = 1
         mock_response.items = [mock_item]
-        
+
         mock_api_call = Mock()
-        mock_api_call.side_effect = [
-            Mock(total=1),
-            mock_response
-        ]
-        
+        mock_api_call.side_effect = [Mock(total=1), mock_response]
+
         result = _get_all_items(mock_api_call, some_arg="value")
-        
+
         expected = [{"first_name": "John", "id": 1}]
         assert result == expected
 
@@ -365,43 +312,37 @@ class TestPaginationHelpers:
         mock_item1.to_dict.return_value = {"firstName": "John", "id": 1}
         mock_item2 = Mock()
         mock_item2.to_dict.return_value = {"firstName": "Jane", "id": 2}
-        
+
         mock_response = Mock()
         mock_response.total = 5
         mock_response.items = [mock_item1, mock_item2]
-        
+
         mock_api_call = Mock()
         mock_api_call.side_effect = [
             Mock(total=5),  # First call to get total
-            mock_response   # Second call to get items
+            mock_response,  # Second call to get items
         ]
-        
+
         result = _get_first_N_items(mock_api_call, 2)
-        
-        expected = [
-            {"first_name": "John", "id": 1},
-            {"first_name": "Jane", "id": 2}
-        ]
+
+        expected = [{"first_name": "John", "id": 1}, {"first_name": "Jane", "id": 2}]
         assert result == expected
 
     def test_get_first_n_items_n_greater_than_available(self):
         """Test _get_first_N_items when N is greater than available items."""
         mock_item = Mock()
         mock_item.to_dict.return_value = {"firstName": "John", "id": 1}
-        
+
         mock_response = Mock()
         mock_response.total = 1
         mock_response.items = [mock_item]
-        
+
         mock_api_call = Mock()
-        mock_api_call.side_effect = [
-            Mock(total=1),
-            mock_response
-        ]
-        
+        mock_api_call.side_effect = [Mock(total=1), mock_response]
+
         # Request 5 items but only 1 available
         result = _get_first_N_items(mock_api_call, 5)
-        
+
         expected = [{"first_name": "John", "id": 1}]
         assert result == expected
 
@@ -411,25 +352,22 @@ class TestPaginationHelpers:
         mock_item1.to_dict.return_value = {"firstName": "John", "id": 4}
         mock_item2 = Mock()
         mock_item2.to_dict.return_value = {"firstName": "Jane", "id": 5}
-        
+
         mock_response = Mock()
         mock_response.total = 5
         mock_response.items = [mock_item1, mock_item2]
-        
+
         mock_api_call = Mock()
         mock_api_call.side_effect = [
             Mock(total=5),  # First call to get total
-            mock_response   # Second call to get items
+            mock_response,  # Second call to get items
         ]
-        
+
         result = _get_last_N_items(mock_api_call, 2)
-        
-        expected = [
-            {"first_name": "John", "id": 4},
-            {"first_name": "Jane", "id": 5}
-        ]
+
+        expected = [{"first_name": "John", "id": 4}, {"first_name": "Jane", "id": 5}]
         assert result == expected
-        
+
         # Verify offset calculation: total(5) - N(2) = 3
         mock_api_call.assert_called_with(offset=3, limit=2)
 
@@ -437,23 +375,20 @@ class TestPaginationHelpers:
         """Test _get_last_N_items when N is greater than available items."""
         mock_item = Mock()
         mock_item.to_dict.return_value = {"firstName": "John", "id": 1}
-        
+
         mock_response = Mock()
         mock_response.total = 1
         mock_response.items = [mock_item]
-        
+
         mock_api_call = Mock()
-        mock_api_call.side_effect = [
-            Mock(total=1),
-            mock_response
-        ]
-        
+        mock_api_call.side_effect = [Mock(total=1), mock_response]
+
         # Request 5 items but only 1 available
         result = _get_last_N_items(mock_api_call, 5)
-        
+
         expected = [{"first_name": "John", "id": 1}]
         assert result == expected
-        
+
         # Verify offset calculation: total(1) - N(1) = 0
         mock_api_call.assert_called_with(offset=0, limit=1)
 
@@ -478,53 +413,37 @@ class TestVariableSanitization:
 
     def test_sanitize_varnames_dict_simple(self):
         """Test sanitize_varnames with simple dictionary input."""
-        input_dict = {
-            "my variable": "value1",
-            "test@email": "value2",
-            "normal_var": "value3"
-        }
-        expected = {
-            "my_variable": "value1",
-            "test_email": "value2",
-            "normal_var": "value3"
-        }
+        input_dict = {"my variable": "value1", "test@email": "value2", "normal_var": "value3"}
+        expected = {"my_variable": "value1", "test_email": "value2", "normal_var": "value3"}
         assert sanitize_varnames(input_dict) == expected
 
     def test_sanitize_varnames_dict_nested(self):
         """Test sanitize_varnames with nested dictionary input."""
         input_dict = {
-            "my variable": {
-                "nested@key": "value1",
-                "normal_key": "value2"
-            },
-            "outer key": "value3"
+            "my variable": {"nested@key": "value1", "normal_key": "value2"},
+            "outer key": "value3",
         }
         expected = {
-            "my_variable": {
-                "nested_key": "value1",
-                "normal_key": "value2"
-            },
-            "outer_key": "value3"
+            "my_variable": {"nested_key": "value1", "normal_key": "value2"},
+            "outer_key": "value3",
         }
         assert sanitize_varnames(input_dict) == expected
 
     def test_sanitize_varnames_dataframe(self):
         """Test sanitize_varnames with DataFrame input."""
-        df = pd.DataFrame({
-            "my variable": [1, 2, 3],
-            "test@email": [4, 5, 6],
-            "normal_var": [7, 8, 9]
-        })
-        
+        df = pd.DataFrame(
+            {"my variable": [1, 2, 3], "test@email": [4, 5, 6], "normal_var": [7, 8, 9]}
+        )
+
         result = sanitize_varnames(df)
         expected_columns = ["my_variable", "test_email", "normal_var"]
-        
+
         assert list(result.columns) == expected_columns
-        assert result.equals(pd.DataFrame({
-            "my_variable": [1, 2, 3],
-            "test_email": [4, 5, 6],
-            "normal_var": [7, 8, 9]
-        }))
+        assert result.equals(
+            pd.DataFrame(
+                {"my_variable": [1, 2, 3], "test_email": [4, 5, 6], "normal_var": [7, 8, 9]}
+            )
+        )
 
     def test_sanitize_varnames_unsupported_type(self):
         """Test sanitize_varnames with unsupported input type."""
@@ -550,14 +469,14 @@ class TestVariableSanitization:
             ("var,with,comma", "var_with_comma"),
             ("var.with.dot", "var_with_dot"),
             ("var<with>angles", "var_with_angles"),
-            ("var\"with\"quotes", "var_with_quotes"),
+            ('var"with"quotes', "var_with_quotes"),
             ("var'with'apostrophe", "var_with_apostrophe"),
             ("var|with|pipe", "var_with_pipe"),
             ("var\\with\\backslash", "var_with_backslash"),
             ("var~with~tilde", "var_with_tilde"),
-            ("var`with`backtick", "var_with_backtick")
+            ("var`with`backtick", "var_with_backtick"),
         ]
-        
+
         for input_var, expected in test_cases:
             assert sanitize_varnames(input_var) == expected
 
@@ -570,9 +489,9 @@ class TestVariableSanitization:
             ("var+with+plus", "var+with+plus"),
             ("var/with/slash", "var/with/slash"),
             ("123numeric456", "123numeric456"),
-            ("mixedCASE", "mixedCASE")
+            ("mixedCASE", "mixedCASE"),
         ]
-        
+
         for input_var, expected in test_cases:
             assert sanitize_varnames(input_var) == expected
 
@@ -597,13 +516,13 @@ class TestVariableSanitization:
         """Test sanitize_varnames with empty inputs."""
         # Empty string
         assert sanitize_varnames("") == ""
-        
+
         # Empty list
         assert sanitize_varnames([]) == []
-        
+
         # Empty dict
         assert sanitize_varnames({}) == {}
-        
+
         # Empty DataFrame
         empty_df = pd.DataFrame()
         result = sanitize_varnames(empty_df)

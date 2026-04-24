@@ -4,7 +4,6 @@ import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow } from "./PlotTools";
 import Header from "../navigation/Header";
 import InsufficientDataWarning from "./InsufficientDataWarning";
@@ -83,7 +82,7 @@ function Surface2DPlot() {
       console.info("Evaluating SuMo for 2D surface...");
       console.info("Jobs to build SuMo: ", jobs);
       setPropagating(true);
-      fetch(`${PYTHON_DAKOTA_BACKEND}/flask/dakota/sumo_grid_evaluation`, {
+      fetch(`/flask/dakota/sumo_grid_evaluation`, {
         method: "POST",
         body: JSON.stringify({
           gridVars: [key1, key2],

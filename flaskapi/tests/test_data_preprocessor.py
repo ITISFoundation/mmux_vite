@@ -38,9 +38,7 @@ class TestDataPreprocessor:
 
         transformed = preprocessor.transform(dataframe)
         restored_from_dataframe = preprocessor.inverse_transform(transformed)
-        restored_from_dict = preprocessor.inverse_transform(
-            {"x1": [1.0, 2.0], "y1": [5.0, 7.0]}
-        )
+        restored_from_dict = preprocessor.inverse_transform({"x1": [1.0, 2.0], "y1": [5.0, 7.0]})
         restored_from_array = preprocessor.inverse_transform(transformed.to_numpy())
 
         expected = {"input": [1.0, 2.0], "output": [5.0, 7.0]}
@@ -52,13 +50,9 @@ class TestDataPreprocessor:
         preprocessor = DataPreprocessor()
         preprocessor.setup_variables(["a", "b", "c"], ["out_1", "out_2"])
         preprocessor.setup_normalization(input_normalizations={"b": "z_score"})
-        preprocessor.fit(
-            pd.DataFrame({"a": [1], "b": [2], "c": [3], "out_1": [4], "out_2": [5]})
-        )
+        preprocessor.fit(pd.DataFrame({"a": [1], "b": [2], "c": [3], "out_1": [4], "out_2": [5]}))
 
-        preprocessor.filter_variables(
-            include_inputs=["b", "c"], include_outputs=["out_2"]
-        )
+        preprocessor.filter_variables(include_inputs=["b", "c"], include_outputs=["out_2"])
         summary = preprocessor.get_summary()
 
         assert preprocessor.get_variable_mapping() == {
@@ -82,85 +76,3 @@ class TestDataPreprocessor:
 
         assert loaded.get_variable_mapping() == {"alpha": "x1", "beta": "y1"}
         assert loaded.output_variables["beta"].mean == 5.0
-
-    def test_filter_by_names_include_and_exclude(self):
-        preprocessor = DataPreprocessor()
-        preprocessor.setup_variables(
-            ["Temperature_C", "Pressure_Bar", "Voltage_V"],
-            ["Efficiency_Percent", "HeatGenerated_W"],
-        )
-
-        preprocessor.filter_by_names(
-            input_names=["Temperature_C", "Pressure_Bar"],
-            output_names=["Efficiency_Percent"],
-        )
-        assert preprocessor.get_filtered_variable_names() == {
-            "inputs": ["Temperature_C", "Pressure_Bar"],
-            "outputs": ["Efficiency_Percent"],
-        }
-
-        preprocessor.filter_by_names(
-            input_names=["Pressure_Bar"],
-            output_names=["Efficiency_Percent"],
-            exclude=True,
-        )
-        assert preprocessor.get_filtered_variable_names() == {
-            "inputs": ["Temperature_C"],
-            "outputs": [],
-        }
-
-    def test_filter_by_patterns_and_normalization_predicates(self):
-        preprocessor = DataPreprocessor()
-        preprocessor.setup_variables(
-            ["Temperature_C", "FlowRate_LperMin", "Pressure_Bar"],
-            ["Efficiency_Percent", "PowerConsumption_W"],
-        )
-        preprocessor.setup_normalization(
-            input_normalizations={"Temperature_C": "z_score"},
-            output_normalizations={"PowerConsumption_W": "min_max"},
-        )
-
-        preprocessor.filter_by_patterns(
-            input_patterns=[r".*_C$", r"Flow.*"],
-            output_patterns=[r".*_W$"],
-        )
-        assert preprocessor.get_filtered_variable_names() == {
-            "inputs": ["Temperature_C", "FlowRate_LperMin"],
-            "outputs": ["PowerConsumption_W"],
-        }
-
-        preprocessor.filter_normalized_only()
-        assert preprocessor.get_filtered_variable_names() == {
-            "inputs": ["Temperature_C"],
-            "outputs": ["PowerConsumption_W"],
-        }
-
-        preprocessor.filter_non_normalized_only()
-        assert preprocessor.get_filtered_variable_names() == {
-            "inputs": [],
-            "outputs": [],
-        }
-
-    def test_setup_order_for_normalization_and_sign_switching_is_equivalent(self):
-        dataframe = pd.DataFrame(
-            {
-                "flow": [0.5, 1.0, 1.5, 2.0],
-                "temperature": [20.0, 30.0, 40.0, 50.0],
-                "efficiency": [0.7, 0.75, 0.8, 0.85],
-            }
-        )
-
-        first = DataPreprocessor()
-        first.setup_variables(["flow", "temperature"], ["efficiency"])
-        first.setup_normalization(input_normalizations={"temperature": "z_score"})
-        first.setup_sign_switching(input_sign_switches=["temperature"])
-
-        second = DataPreprocessor()
-        second.setup_variables(["flow", "temperature"], ["efficiency"])
-        second.setup_sign_switching(input_sign_switches=["temperature"])
-        second.setup_normalization(input_normalizations={"temperature": "z_score"})
-
-        transformed_first = first.fit_transform(dataframe)
-        transformed_second = second.fit_transform(dataframe)
-
-        assert transformed_first.equals(transformed_second)

@@ -86,9 +86,9 @@ const configuration = createConfiguration();
 const apiInstance = new LicensedItemsApi(configuration);
 
 const request: LicensedItemsApiReleaseLicensedItemRequest = {
-  
+
   licensedItemId: "licensed_item_id_example",
-  
+
   licensedItemCheckoutId: "licensed_item_checkout_id_example",
 };
 
@@ -131,5 +131,3 @@ Name | Type | Description  | Notes
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](README.md#documentation-for-api-endpoints) [[Back to Model list]](README.md#documentation-for-models) [[Back to README]](README.md)
-
-

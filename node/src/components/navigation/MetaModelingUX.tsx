@@ -3,14 +3,14 @@ import Header from "./Header";
 import { HelpContents } from "./TutorialManualLinks";
 
 export default function MetaModelingUX(props: MetaModelingUXProps) {
-  const { children, tabTitle, infoText, ExtendedInfoText, headerType } = props;
+  const { children, tabTitle, infoText, extendedInfoText, headerType } = props;
 
   return (
     <Card variant="outlined">
       <Header
         tabTitle={tabTitle}
         infoText={infoText}
-        ExtendedInfoText={ExtendedInfoText}
+        extendedInfoText={extendedInfoText}
         headerType={headerType}
         helpContents={<HelpContents type="MMHeaderHelp" />}
       />

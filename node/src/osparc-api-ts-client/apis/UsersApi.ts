@@ -38,7 +38,7 @@ export class UsersApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);
@@ -49,7 +49,7 @@ export class UsersApiRequestFactory extends BaseAPIRequestFactory {
 
     /**
      * Update My Profile
-     * @param profileUpdate 
+     * @param profileUpdate
      */
     public async updateMyProfile(profileUpdate: ProfileUpdate, _options?: Configuration): Promise<RequestContext> {
         let _config = _options || this.configuration;
@@ -85,7 +85,7 @@ export class UsersApiRequestFactory extends BaseAPIRequestFactory {
         if (authMethod?.applySecurityAuthentication) {
             await authMethod?.applySecurityAuthentication(requestContext);
         }
-        
+
         const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
         if (defaultAuth?.applySecurityAuthentication) {
             await defaultAuth?.applySecurityAuthentication(requestContext);

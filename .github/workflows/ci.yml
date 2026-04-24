@@ -14,6 +14,24 @@ on:
       - reopened
 
 jobs:
+  prek:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo content
+      uses: actions/checkout@v5
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+    - name: Use Node.js 24
+      uses: actions/setup-node@v4
+      with:
+        node-version: 24.x
+        cache: 'npm'
+        cache-dependency-path: '**/package-lock.json'
+    - name: Install node dependencies
+      run: cd node && npm ci
+    - name: Run prek
+      run: uvx prek run --all-files
+
   node-tests:
     runs-on: ubuntu-latest
     steps:
@@ -47,7 +65,8 @@ jobs:
         name: flaskapi-coverage
 
   verify-image-build:
-    needs: 
+    needs:
+      - prek
       - node-tests
       - flaskapi-tests
     runs-on: ubuntu-latest
