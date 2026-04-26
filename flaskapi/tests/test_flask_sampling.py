@@ -1219,6 +1219,37 @@ class TestCloneJobWithMocks:
             )
             assert "#### Inputs:" in study_data.description
 
+    def test_clone_job_preserves_osparc_input_key_casing(self, test_client):
+        """projectInputs variable names from oSPARC should not be snake-cased."""
+        payload = {
+            "projectJobId": "test-study-uuid-12345",
+            "functionName": "TestFunction",
+            "projectInputs": {
+                "angleWidth": 10.5,
+                "peakAveragedField": 20.0,
+            },
+        }
+
+        mock_cloned_study = Mock()
+        mock_cloned_study.to_dict.return_value = {"study_id": "cloned-study-uuid-67890"}
+
+        with patch("mmux_flaskapi.blueprints.sampling._get_studies_api") as mock_get_api:
+            mock_studies_api = Mock()
+            mock_studies_api.clone_study.return_value = mock_cloned_study
+            mock_get_api.return_value = mock_studies_api
+
+            response = test_client.post("/flask/sampling/clone_job", json=payload)
+
+            assert response.status_code == 200
+
+            study_data = mock_studies_api.clone_study.call_args[1][
+                "body_clone_study_v0_studies_study_id_clone_post"
+            ]
+            assert "*angleWidth*: 10.5" in study_data.description
+            assert "*peakAveragedField*: 20" in study_data.description
+            assert "angle_width" not in study_data.description
+            assert "peak_averaged_field" not in study_data.description
+
     def test_clone_job_validation_error_missing_project_job_id(self, test_client):
         """Test clone_job with missing projectJobId field."""
         payload = {"functionName": "TestFunction", "projectInputs": {"param1": 10.5}}

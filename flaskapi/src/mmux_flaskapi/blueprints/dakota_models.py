@@ -8,6 +8,8 @@ from typing import Literal
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from mmux_flaskapi.utils.case_preserving import FunctionVariable, FunctionVariablesMapping
+
 _logger = logging.getLogger(__name__)
 
 
@@ -17,12 +19,17 @@ class FunctionJob(BaseModel):
     model_config = ConfigDict(
         extra="allow"
     )  # Allow additional fields like job_id, timestamps, etc.
+    __preserve_extra_case__ = True
 
     status: str = Field(
         ..., description="Status of the job (e.g., 'completed', 'success', 'failed')"
     )
-    inputs: dict[str, float | int] = Field(..., description="Input parameters (key-number pairs)")
-    outputs: dict[str, float | int] = Field(..., description="Output results (key-number pairs)")
+    inputs: FunctionVariablesMapping[float | int] = Field(
+        ..., description="Input parameters (key-number pairs)"
+    )
+    outputs: FunctionVariablesMapping[float | int] = Field(
+        ..., description="Output results (key-number pairs)"
+    )
 
     @field_validator("status")
     @classmethod
@@ -54,8 +61,8 @@ class JobVariableSelection(BaseModel):
     """Validated selection of jobs and variables for workflow helpers."""
 
     jobs: list[FunctionJob] = Field(..., min_length=1)
-    input_vars: list[str] = Field(..., min_length=1)
-    output_vars: list[str] = Field(..., min_length=1)
+    input_vars: list[FunctionVariable] = Field(..., min_length=1)
+    output_vars: list[FunctionVariable] = Field(..., min_length=1)
     minimum_completed_jobs: int = Field(5, ge=1)
 
     @field_validator("input_vars", "output_vars")
@@ -131,8 +138,10 @@ class SumoCrossValidationRequest(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    output: str = Field(..., min_length=1, description="Name of the output variable to validate")
-    input_vars: list[str] = Field(
+    output: FunctionVariable = Field(
+        ..., min_length=1, description="Name of the output variable to validate"
+    )
+    input_vars: list[FunctionVariable] = Field(
         ...,
         min_length=1,
         description="List of input variable names",
@@ -241,9 +250,9 @@ class DistributionParams(BaseModel):
 class ManualUQPropagationRequest(BaseModel):
     """Request model for manual UQ propagation endpoint."""
 
-    output: str = Field(..., min_length=1)
-    input_vars: list[str] = Field(..., min_length=1)
-    distributions: dict[str, DistributionParams]
+    output: FunctionVariable = Field(..., min_length=1)
+    input_vars: list[FunctionVariable] = Field(..., min_length=1)
+    distributions: FunctionVariablesMapping[DistributionParams]
     num_samples: int = Field(..., gt=0, description="Number of samples to generate")
     function_jobs: list[FunctionJob] = Field(..., min_length=5)
 
@@ -339,14 +348,18 @@ class ManualUQWithUncertaintyRequest(ManualUQPropagationRequest):
 class SumoAlongAxesRequest(BaseModel):
     """Request model for SUMO along axes evaluation."""
 
-    output: str = Field(..., min_length=1, description="Name of the output variable to evaluate")
-    inputs: list[str] = Field(..., min_length=1, description="List of input variable names")
+    output: FunctionVariable = Field(
+        ..., min_length=1, description="Name of the output variable to evaluate"
+    )
+    inputs: list[FunctionVariable] = Field(
+        ..., min_length=1, description="List of input variable names"
+    )
     function_jobs: list[FunctionJob] = Field(
         ...,
         min_length=5,
         description="List of function jobs (minimum 5 required)",
     )
-    slider_values: dict[str, float] | None = Field(
+    slider_values: FunctionVariablesMapping[float] | None = Field(
         default=None, description="Cut values for input variables"
     )
 
@@ -477,7 +490,7 @@ class SumoAlongAxesResponse(BaseModel):
     model_config = ConfigDict(frozen=True)  # Make response immutable
 
     # Dictionary mapping input variable names to their axis predictions
-    predictions: dict[str, AxisPrediction] = Field(
+    predictions: FunctionVariablesMapping[AxisPrediction] = Field(
         ..., description="Predictions for each input variable axis"
     )
 
@@ -515,17 +528,21 @@ class SumoAlongAxesResponse(BaseModel):
 class SumoGridEvaluationRequest(BaseModel):
     """Request model for SUMO grid evaluation."""
 
-    output: str = Field(..., min_length=1, description="Name of the output variable to evaluate")
-    grid_vars: list[str] = Field(
+    output: FunctionVariable = Field(
+        ..., min_length=1, description="Name of the output variable to evaluate"
+    )
+    grid_vars: list[FunctionVariable] = Field(
         ..., min_length=1, max_length=3, description="Variables for grid (1-3 dimensions)"
     )
-    input_vars: list[str] = Field(..., min_length=1, description="List of all input variable names")
+    input_vars: list[FunctionVariable] = Field(
+        ..., min_length=1, description="List of all input variable names"
+    )
     function_jobs: list[FunctionJob] = Field(
         ...,
         min_length=5,
         description="List of function jobs (minimum 5 required)",
     )
-    slider_values: dict[str, float] | None = Field(
+    slider_values: FunctionVariablesMapping[float] | None = Field(
         default=None, description="Fixed values for non-grid input variables"
     )
 
@@ -634,7 +651,7 @@ class SumoGridEvaluationResponse(BaseModel):
     # For 1D grids: Lists of floats
     # For 2D/3D grids: Lists of lists (arrays)
     # Keys include grid variables (input coordinates) and prediction variables
-    grid_data: dict[str, list[float] | list[list[float]]] = Field(
+    grid_data: FunctionVariablesMapping[list[float] | list[list[float]]] = Field(
         ..., description="Grid evaluation results with input coordinates and predictions"
     )
 
@@ -684,11 +701,13 @@ class SumoGridEvaluationResponse(BaseModel):
 class MOGAOptimizationRequest(BaseModel):
     """Request model for MOGA optimization."""
 
-    input_vars: list[str] = Field(..., min_length=1, description="List of input variable names")
-    distributions: dict[str, DistributionParams] = Field(
+    input_vars: list[FunctionVariable] = Field(
+        ..., min_length=1, description="List of input variable names"
+    )
+    distributions: FunctionVariablesMapping[DistributionParams] = Field(
         ..., description="Distribution parameters for each input variable"
     )
-    output_var_selection: dict[str, Literal["minimize", "maximize"]] = Field(
+    output_var_selection: FunctionVariablesMapping[Literal["minimize", "maximize"]] = Field(
         ...,
         min_length=1,
         description="Objective selection for output variables",
@@ -751,7 +770,7 @@ class MOGAOptimizationResponse(BaseModel):
 
     model_config = ConfigDict(frozen=True)  # Make response immutable
 
-    optimization_results: dict[str, list[float]] = Field(
+    optimization_results: FunctionVariablesMapping[list[float]] = Field(
         ...,
         description="Dictionary mapping variable names to their optimized values across the Pareto front",
     )
@@ -882,8 +901,12 @@ class UQWithUncertaintyResponse(BaseModel):
 class SumoCVAccuracyMetricsRequest(BaseModel):
     """Request model for SUMO cross-validation accuracy metrics endpoint."""
 
-    output: str = Field(..., min_length=1, description="Name of the output variable to validate")
-    inputs: list[str] = Field(..., min_length=1, description="List of input variable names")
+    output: FunctionVariable = Field(
+        ..., min_length=1, description="Name of the output variable to validate"
+    )
+    inputs: list[FunctionVariable] = Field(
+        ..., min_length=1, description="List of input variable names"
+    )
     log: bool | None = Field(False, description="Whether to apply log transformation to data")
     function_jobs: list[FunctionJob] = Field(
         ...,
@@ -962,7 +985,7 @@ class CVAccuracyMetrics(BaseModel):
 class SumoCVAccuracyMetricsResponse(BaseModel):
     """Response model for SUMO cross-validation accuracy metrics."""
 
-    metrics: dict[str, CVAccuracyMetrics | str] = Field(
+    metrics: FunctionVariablesMapping[CVAccuracyMetrics | str] = Field(
         ..., description="Dictionary mapping output variable names to their accuracy metrics"
     )
 

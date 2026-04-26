@@ -11,6 +11,12 @@ from unittest.mock import Mock, patch
 import pandas as pd
 import pytest
 
+from mmux_flaskapi.blueprints.dakota_models import (
+    ManualUQPropagationRequest,
+    SumoCrossValidationRequest,
+    SumoGridEvaluationRequest,
+)
+from mmux_flaskapi.utils.case_preserving import FunctionVariablesDict, FunctionVariableStr
 from mmux_flaskapi.utils.helpers import (
     _get_all_items,
     _get_first_N_items,
@@ -28,6 +34,7 @@ from mmux_flaskapi.utils.helpers import (
     sanitize_varnames_dict,
     snake_to_camel,
 )
+from mmux_flaskapi.utils.json_serializer import to_snake_case_request
 
 
 class TestEnvironmentDetection:
@@ -296,6 +303,134 @@ class TestRecursiveDictConversion:
             "stdHat": [0.1],
         }
         assert result["outputs"] == {"peakAveragedField": 1.0}
+
+    def test_recursive_conversion_ignores_function_variables_dict(self):
+        """Wrapped variable-name mappings should bypass recursive key conversion."""
+        input_dict = {
+            "projectInputs": FunctionVariablesDict(
+                {
+                    "angleWidth": 30.0,
+                    "jobMetadata": {"createdAt": "2026-04-24T00:00:00Z"},
+                }
+            )
+        }
+
+        result = recursive_dict_keys_camel_to_snake(input_dict)
+
+        assert result["project_inputs"] == {
+            "angleWidth": 30.0,
+            "jobMetadata": {"createdAt": "2026-04-24T00:00:00Z"},
+        }
+
+    def test_to_snake_case_request_preserves_osparc_job_extras_for_model(self):
+        """Model-aware normalization should preserve extra oSPARC job fields."""
+        payload = {
+            "inputVars": ["angleWidth"],
+            "output": "peakAveragedField",
+            "FunctionJobs": [
+                {
+                    "status": "SUCCESS",
+                    "inputs": {"angleWidth": 30.0},
+                    "outputs": {"peakAveragedField": 1.0},
+                    "projectJobId": "job-1",
+                    "jobMetadata": {"createdAt": "2026-04-24T00:00:00Z"},
+                }
+            ],
+        }
+
+        result = to_snake_case_request(payload, model_class=SumoCrossValidationRequest)
+        normalized_job = result["function_jobs"][0]
+
+        assert normalized_job["inputs"] == {"angleWidth": 30.0}
+        assert normalized_job["outputs"] == {"peakAveragedField": 1.0}
+        assert normalized_job["projectJobId"] == "job-1"
+        assert normalized_job["jobMetadata"] == {"createdAt": "2026-04-24T00:00:00Z"}
+
+    def test_to_snake_case_request_wraps_function_variable_strings_for_model(self):
+        """Standalone variable-name strings should be wrapped and left unchanged."""
+        payload = {
+            "inputVars": ["angleWidth", "interElectrodeSpacing"],
+            "output": "peakAveragedField",
+            "FunctionJobs": [
+                {
+                    "status": "SUCCESS",
+                    "inputs": {
+                        "angleWidth": 30.0,
+                        "interElectrodeSpacing": 5.0,
+                    },
+                    "outputs": {"peakAveragedField": 1.0},
+                }
+            ]
+            * 5,
+        }
+
+        result = to_snake_case_request(payload, model_class=SumoCrossValidationRequest)
+
+        assert result["output"] == "peakAveragedField"
+        assert isinstance(result["output"], FunctionVariableStr)
+        assert result["input_vars"] == ["angleWidth", "interElectrodeSpacing"]
+        assert all(isinstance(item, FunctionVariableStr) for item in result["input_vars"])
+
+    def test_to_snake_case_request_preserves_slider_value_keys_for_model(self):
+        """Model-aware normalization should not rewrite variable-name slider maps."""
+        payload = {
+            "inputVars": ["angleWidth", "interElectrodeSpacing"],
+            "gridVars": ["angleWidth"],
+            "output": "peakAveragedField",
+            "sliderValues": {
+                "angleWidth": 0.5,
+                "interElectrodeSpacing": -1.0,
+            },
+            "FunctionJobs": [
+                {
+                    "status": "SUCCESS",
+                    "inputs": {
+                        "angleWidth": 30.0,
+                        "interElectrodeSpacing": 5.0,
+                    },
+                    "outputs": {"peakAveragedField": 1.0},
+                }
+            ]
+            * 5,
+        }
+
+        result = to_snake_case_request(payload, model_class=SumoGridEvaluationRequest)
+
+        assert result["slider_values"] == {
+            "angleWidth": 0.5,
+            "interElectrodeSpacing": -1.0,
+        }
+
+    def test_to_snake_case_request_preserves_distribution_keys_for_model(self):
+        """Variable-name distribution maps should survive model-aware normalization unchanged."""
+        payload = {
+            "inputVars": ["angleWidth"],
+            "output": "peakAveragedField",
+            "numSamples": 10,
+            "distributions": {
+                "angleWidth": {
+                    "distribution": "uniform",
+                    "min": 0.0,
+                    "max": 1.0,
+                }
+            },
+            "FunctionJobs": [
+                {
+                    "status": "SUCCESS",
+                    "inputs": {"angleWidth": 30.0},
+                    "outputs": {"peakAveragedField": 1.0},
+                }
+            ]
+            * 5,
+        }
+
+        result = to_snake_case_request(payload, model_class=ManualUQPropagationRequest)
+
+        assert result["distributions"]["angleWidth"] == {
+            "distribution": "uniform",
+            "min": 0.0,
+            "max": 1.0,
+        }
 
 
 class TestPaginationHelpers:

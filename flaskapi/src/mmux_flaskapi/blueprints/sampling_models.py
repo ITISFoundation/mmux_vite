@@ -10,13 +10,15 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, validator
 
+from mmux_flaskapi.utils.case_preserving import FunctionVariable, FunctionVariablesMapping
+
 _logger = logging.getLogger(__name__)
 
 
 class VariableConfig(BaseModel):
     """Configuration for a single variable in sampling."""
 
-    variable: str = Field(..., description="Name of the variable")
+    variable: FunctionVariable = Field(..., description="Name of the variable")
     start: float = Field(..., description="Start value of the variable range")
     end: float = Field(..., description="End value of the variable range")
 
@@ -30,7 +32,7 @@ class VariableConfig(BaseModel):
 class TestJobVariableConfig(BaseModel):
     """Configuration for a single variable in test job."""
 
-    variable: str = Field(..., description="Name of the variable")
+    variable: FunctionVariable = Field(..., description="Name of the variable")
     value: Any = Field(..., description="Value for the variable")
 
 
@@ -90,7 +92,7 @@ class CloneJobRequest(BaseModel):
 
     project_job_id: str = Field(..., min_length=1, description="ID of the project job to clone")
     function_name: str = Field(..., min_length=1, description="Name of the function")
-    project_inputs: dict[str, Any] = Field(..., description="Inputs for the project")
+    project_inputs: FunctionVariablesMapping[Any] = Field(..., description="Inputs for the project")
 
 
 class JobCollectionCsvUploadRequest(BaseModel):

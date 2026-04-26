@@ -9,14 +9,21 @@ exchange between backend and frontend.
 
 import json
 import logging
-from typing import Any, TypeVar
+from types import UnionType
+from typing import Annotated, Any, TypeVar, Union, get_args, get_origin
 
 from flask import Flask, jsonify, request
 from pydantic import BaseModel, ValidationError
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response
 
+from mmux_flaskapi.utils.case_preserving import (
+    has_preserve_case_metadata,
+    wrap_function_variable_str,
+    wrap_function_variables_dict,
+)
 from mmux_flaskapi.utils.helpers import (
+    camel_to_snake,
     recursive_dict_keys_camel_to_snake,
     recursive_dict_keys_snake_to_camel,
 )
@@ -55,10 +62,113 @@ def _format_validation_error(exc: ValidationError) -> tuple[str, list[str]]:
     return f"Validation failed: {', '.join(details)}", details
 
 
+def _unwrap_union_annotations(annotation: Any) -> tuple[Any, ...]:
+    origin = get_origin(annotation)
+    if origin in (Union, UnionType):
+        return tuple(arg for arg in get_args(annotation) if arg is not type(None))
+    return (annotation,)
+
+
+def _is_base_model_type(annotation: Any) -> bool:
+    return isinstance(annotation, type) and issubclass(annotation, BaseModel)
+
+
+def _unwrap_annotated(annotation: Any) -> tuple[Any, list[Any]]:
+    origin = get_origin(annotation)
+    if origin is Annotated:
+        args = get_args(annotation)
+        if args:
+            return args[0], list(args[1:])
+    return annotation, []
+
+
+def _match_model_field(model_class: type[BaseModel], raw_key: str):
+    normalized_key = camel_to_snake(raw_key)
+    field = model_class.model_fields.get(normalized_key)
+    return normalized_key, field
+
+
+def _normalize_request_value_for_annotation(
+    value: Any, annotation: Any, metadata: list[Any]
+) -> Any:
+    base_annotation, annotated_metadata = _unwrap_annotated(annotation)
+    combined_metadata = [*metadata, *annotated_metadata]
+
+    if has_preserve_case_metadata(combined_metadata) and isinstance(value, dict):
+        return wrap_function_variables_dict(value)
+    if has_preserve_case_metadata(combined_metadata) and isinstance(value, str):
+        return wrap_function_variable_str(value)
+
+    for candidate in _unwrap_union_annotations(base_annotation):
+        candidate_annotation, candidate_metadata = _unwrap_annotated(candidate)
+        candidate_combined_metadata = [*combined_metadata, *candidate_metadata]
+        origin = get_origin(candidate_annotation)
+
+        if has_preserve_case_metadata(candidate_combined_metadata) and isinstance(value, dict):
+            return wrap_function_variables_dict(value)
+        if has_preserve_case_metadata(candidate_combined_metadata) and isinstance(value, str):
+            return wrap_function_variable_str(value)
+
+        if _is_base_model_type(candidate_annotation) and isinstance(value, dict):
+            return _normalize_request_dict_for_model(value, candidate_annotation)
+
+        if origin is list and isinstance(value, list):
+            item_annotation = (
+                get_args(candidate_annotation)[0] if get_args(candidate_annotation) else Any
+            )
+            return [
+                _normalize_request_value_for_annotation(item, item_annotation, []) for item in value
+            ]
+
+        if origin is dict and isinstance(value, dict):
+            value_annotation = (
+                get_args(candidate_annotation)[1]
+                if len(get_args(candidate_annotation)) > 1
+                else Any
+            )
+            if _is_base_model_type(value_annotation):
+                return {
+                    camel_to_snake(key): _normalize_request_dict_for_model(item, value_annotation)  # type: ignore
+                    if isinstance(item, dict)
+                    else item
+                    for key, item in value.items()
+                }
+            return recursive_dict_keys_camel_to_snake(value)
+
+    if isinstance(value, dict):
+        return recursive_dict_keys_camel_to_snake(value)
+    if isinstance(value, list):
+        return [to_snake_case_request(item) for item in value]
+    return value
+
+
+def _normalize_request_dict_for_model(
+    data: dict[str, Any], model_class: type[BaseModel]
+) -> dict[str, Any]:
+    normalized: dict[str, Any] = {}
+    preserve_extra_case = bool(getattr(model_class, "__preserve_extra_case__", False))
+
+    for raw_key, value in data.items():
+        field_name, field = _match_model_field(model_class, raw_key)
+        if field is None:
+            normalized[raw_key if preserve_extra_case else field_name] = (
+                value if preserve_extra_case else to_snake_case_request(value)
+            )
+            continue
+
+        normalized[field_name] = _normalize_request_value_for_annotation(
+            value,
+            field.annotation,
+            field.metadata,
+        )
+
+    return normalized
+
+
 def parse_request_model(model_class: type[RequestModelT]) -> RequestModelT:
     """Parse request JSON, normalize it to snake_case, and validate it."""
     try:
-        request_json = get_request()
+        request_json = get_request(model_class=model_class)
     except ValueError as exc:
         raise RequestParsingError(
             _with_invalid_request_prefix(str(exc)),
@@ -82,7 +192,7 @@ def parse_request_model(model_class: type[RequestModelT]) -> RequestModelT:
         ) from exc
 
 
-def get_request(*, silent: bool = False) -> Any:
+def get_request(*, silent: bool = False, model_class: type[BaseModel] | None = None) -> Any:
     """
     Return request JSON. Imposes snake_case keys.
 
@@ -100,7 +210,7 @@ def get_request(*, silent: bool = False) -> Any:
     if json_data is None:
         return None
 
-    converted_data = to_snake_case_request(json_data)
+    converted_data = to_snake_case_request(json_data, model_class=model_class)
     return converted_data
 
 
@@ -121,7 +231,7 @@ def to_camel_case_response(data: Any) -> Any:
     return data
 
 
-def to_snake_case_request(data: Any) -> Any:
+def to_snake_case_request(data: Any, model_class: type[BaseModel] | None = None) -> Any:
     """
     Convert incoming JSON data (dict/list) from camelCase to snake_case.
 
@@ -131,10 +241,12 @@ def to_snake_case_request(data: Any) -> Any:
     Returns:
         Object with all dictionary keys converted from camelCase to snake_case
     """
+    if model_class is not None and isinstance(data, dict):
+        return _normalize_request_dict_for_model(data, model_class)
     if isinstance(data, dict):
         return recursive_dict_keys_camel_to_snake(data)
     if isinstance(data, list):
-        return [to_snake_case_request(item) for item in data]
+        return [to_snake_case_request(item, model_class=model_class) for item in data]
     return data
 
 

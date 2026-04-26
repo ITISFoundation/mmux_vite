@@ -987,6 +987,34 @@ class TestSumoGridEvaluation:
         assert isinstance(data, dict)
         assert "gridData" in data
 
+    def test_grid_evaluation_preserves_camel_case_variable_names(self, test_client: Flask):
+        """Grid evaluation must not rewrite camelCase variable names during normalization."""
+        input_vars = ["angleWidth", "interElectrodeSpacing", "leadOffset"]
+        grid_vars = ["angleWidth", "interElectrodeSpacing"]
+        output = "peakAveragedField"
+        slider_values = {
+            "angleWidth": np.nan,
+            "interElectrodeSpacing": 0.5,
+            "leadOffset": -1.0,
+        }
+
+        payload = {
+            "inputVars": input_vars,
+            "gridVars": grid_vars,
+            "output": output,
+            "sliderValues": slider_values,
+            "FunctionJobs": self.create_grid_jobs(20, input_vars, output),
+        }
+
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert "gridData" in data
+        assert output in data["gridData"]
+        for var in grid_vars:
+            assert var in data["gridData"]
+
     def test_grid_evaluation_minimal_valid_configuration(self, test_client: Flask):
         """Test minimal valid configuration (5 jobs, 1 grid var)."""
         input_vars = ["x1"]

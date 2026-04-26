@@ -9,6 +9,8 @@ from typing import TypeVar, overload
 import numpy as np
 import pandas as pd
 
+from mmux_flaskapi.utils.case_preserving import FunctionVariablesDict, FunctionVariableStr
+
 _PRESERVE_SUBTREE_KEYS = frozenset(
     {
         "distribution",
@@ -56,11 +58,15 @@ def snake_to_camel(s: str) -> str:
 
 
 def dict_keys_camel_to_snake(d: dict) -> dict:
+    if isinstance(d, FunctionVariablesDict):
+        return d
     return {camel_to_snake(k): v for k, v in d.items()}
 
 
 def dict_keys_snake_to_camel(d: dict) -> dict:
     """Convert dictionary keys from snake_case to camelCase."""
+    if isinstance(d, FunctionVariablesDict):
+        return d
     return {snake_to_camel(k): v for k, v in d.items()}
 
 
@@ -72,6 +78,12 @@ def _process_nested_value(
     current_depth: int,
     preserve_all_keys: bool,
 ) -> object:
+    if isinstance(value, FunctionVariableStr):
+        return value
+
+    if isinstance(value, FunctionVariablesDict):
+        return value
+
     if isinstance(value, dict) and (max_depth == -1 or current_depth < max_depth):
         return _recursive_transform_dict_keys(
             value,
@@ -123,6 +135,9 @@ def _recursive_transform_dict_keys(
     current_depth: int = 0,
     preserve_all_keys: bool = False,
 ) -> dict:
+    if isinstance(d, FunctionVariablesDict):
+        return d
+
     transformed = {}
 
     for key, value in d.items():
