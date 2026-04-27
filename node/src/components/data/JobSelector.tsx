@@ -1,4 +1,4 @@
-import { InfoOutline, KeyboardArrowDown, KeyboardArrowUp, Refresh } from "@mui/icons-material";
+import { Download, InfoOutline, KeyboardArrowDown, KeyboardArrowUp, Refresh } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -6,20 +6,10 @@ import {
   Checkbox,
   Chip,
   ClickAwayListener,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
   IconButton,
-  InputLabel,
-  MenuItem,
   Popper,
-  Select,
   TableContainer,
   TablePagination,
-  TextField,
-  Typography,
 } from "@mui/material";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -33,15 +23,12 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { useSamplingContext } from "../../context/SamplingContext";
-import {
-  downloadJobCollectionCsv,
-  getJobCollectionStatus,
-  listFunctions,
-  uploadJobCollectionCsv,
-} from "../../utils/functionUtils";
+import { downloadJobCollectionCsv, getJobCollectionStatus } from "../../utils/functionUtils";
+import { triggerCsvDownload } from "../../utils/jobCollectionCsv";
 import getMinMax from "../minmax";
 import CustomTooltip from "../utils/CustomTooltip";
 import JobRow from "./JobRow";
+import UploadJobCollectionButton from "./UploadJobCollectionButton";
 
 type JobSelectorPropsType = {
   loading: boolean;
@@ -65,14 +52,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   const poperOpen = useRef(false);
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [page, setPage] = React.useState(0);
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [uploadCsvContent, setUploadCsvContent] = useState("");
-  const [uploadFileName, setUploadFileName] = useState("");
-  const [uploadMode, setUploadMode] = useState<"existing" | "new">("existing");
-  const [targetFunctionUid, setTargetFunctionUid] = useState("");
-  const [sourceFunctionUid, setSourceFunctionUid] = useState("");
-  const [newFunctionTitle, setNewFunctionTitle] = useState("Uploaded JobCollection Function");
-  const [availableFunctions, setAvailableFunctions] = useState<Array<{ uid: string; title: string }>>([]);
 
   const updateJobContext = useCallback(
     (jobs: SelectedJobCollection[]) => {
@@ -215,18 +194,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     console.info("Updated JobCollections");
   }, [requestForceFetch, selectedFunction, setJobProgress]);
 
-  const triggerCsvDownload = (csvContent: string, fileName: string) => {
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   const handleDownloadSelectedCollections = async () => {
     const selectedCollections = jobCollections.filter(jc => jc.selected);
     if (selectedCollections.length === 0) {
@@ -246,86 +213,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       toast.error("Failed to download JobCollection CSV.");
     }
   };
-
-  const pickSingleCsvFile = (): Promise<File> =>
-    new Promise((resolve, reject) => {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".csv,text/csv";
-      input.onchange = () => {
-        const file = input.files?.[0];
-        if (!file) {
-          reject(new Error("No file selected"));
-          return;
-        }
-        resolve(file);
-      };
-      input.click();
-    });
-
-  const openUploadDialog = async () => {
-    try {
-      const file = await pickSingleCsvFile();
-      const csvContent = await file.text();
-      setUploadCsvContent(csvContent);
-      setUploadFileName(file.name);
-      setUploadMode("existing");
-      setTargetFunctionUid(selectedFunction?.uid || "");
-      setSourceFunctionUid(selectedFunction?.uid || "");
-      setNewFunctionTitle("Uploaded JobCollection Function");
-      setUploadDialogOpen(true);
-    } catch (err) {
-      if ((err as Error).message !== "No file selected") {
-        console.error(err);
-        toast.error("Failed to read selected CSV file.");
-      }
-    }
-  };
-
-  const handleUploadCollectionCsv = async () => {
-    try {
-      if (uploadMode === "existing") {
-        if (!targetFunctionUid) {
-          toast.warning("Please choose a target compatible function.");
-          return;
-        }
-        await uploadJobCollectionCsv({
-          csvContent: uploadCsvContent,
-          targetMode: uploadMode,
-          targetFunctionUid,
-        });
-      } else {
-        await uploadJobCollectionCsv({
-          csvContent: uploadCsvContent,
-          targetMode: uploadMode,
-          newFunctionTitle: newFunctionTitle || undefined,
-          sourceFunctionUid: sourceFunctionUid || undefined,
-        });
-      }
-
-      if (selectedFunction?.uid) {
-        await requestForceFetch(selectedFunction.uid, setJobProgress);
-      }
-      setUploadDialogOpen(false);
-      toast.success("JobCollection CSV uploaded successfully.");
-    } catch (err) {
-      console.error(err);
-      toast.error((err as Error).message || "Failed to upload JobCollection CSV.");
-    }
-  };
-
-  useEffect(() => {
-    if (!uploadDialogOpen) return;
-    (async () => {
-      try {
-        const functions = await listFunctions();
-        setAvailableFunctions(functions.map(fun => ({ uid: fun.uid, title: fun.title || fun.uid })));
-      } catch (err) {
-        console.error(err);
-        toast.error("Could not load functions for upload target selection.");
-      }
-    })();
-  }, [uploadDialogOpen]);
 
   useEffect(() => {
     // fetchedJobCollections === undefined means the API call hasn't completed yet;
@@ -465,6 +352,36 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                 </CustomTooltip>
                 <span>{params.row.jobCollection.title}</span>
               </Box>
+            ),
+          },
+          {
+            field: "download",
+            headerName: "",
+            sortable: false,
+            align: "center",
+            headerAlign: "center",
+            minWidth: 70,
+            maxWidth: 70,
+            renderCell: params => (
+              <CustomTooltip title="Download CSV" placement="top">
+                <IconButton
+                  size="small"
+                  onClick={async event => {
+                    event.stopPropagation();
+                    try {
+                      const jcUid = params.row.jobCollection.uid;
+                      const csvContent = await downloadJobCollectionCsv(jcUid);
+                      triggerCsvDownload(csvContent, `job_collection_${jcUid}.csv`);
+                    } catch (error) {
+                      console.error(error);
+                      toast.error("Failed to download JobCollection CSV.");
+                    }
+                  }}
+                  sx={theme => ({ color: theme.palette.primary.contrastText })}
+                >
+                  <Download fontSize="small" />
+                </IconButton>
+              </CustomTooltip>
             ),
           },
           {
@@ -665,79 +582,25 @@ export default function JobsSelector(props: JobSelectorPropsType) {
         >
           Download JobCollection CSV
         </Button>
-        <Button variant="contained" size="medium" sx={{ marginTop: "8px", marginBottom: "8px" }} onClick={openUploadDialog}>
-          Upload JobCollection CSV
-        </Button>
+        <UploadJobCollectionButton
+          buttonLabel="Upload JobCollection CSV"
+          buttonTestId="job-selector-upload-btn"
+          confirmTestId="job-selector-confirm-upload-btn"
+          variant="contained"
+          size="medium"
+          sx={{ marginTop: "8px", marginBottom: "8px" }}
+          allowExistingTarget
+          defaultMode="existing"
+          initialTargetFunctionUid={selectedFunction?.uid || ""}
+          initialSourceFunctionUid={selectedFunction?.uid || ""}
+          initialNewFunctionTitle="Uploaded JobCollection Function"
+          onUploadSuccess={async () => {
+            if (selectedFunction?.uid) {
+              await requestForceFetch(selectedFunction.uid, setJobProgress);
+            }
+          }}
+        />
       </Box>
-      <Dialog open={uploadDialogOpen} onClose={() => setUploadDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Upload JobCollection CSV</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            File: {uploadFileName}
-          </Typography>
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel id="upload-mode-label">Upload Mode</InputLabel>
-            <Select
-              labelId="upload-mode-label"
-              label="Upload Mode"
-              value={uploadMode}
-              onChange={event => setUploadMode(event.target.value as "existing" | "new")}
-            >
-              <MenuItem value="existing">Attach to Existing Compatible Function</MenuItem>
-              <MenuItem value="new">Create Local Function from CSV</MenuItem>
-            </Select>
-          </FormControl>
-
-          {uploadMode === "existing" ? (
-            <FormControl fullWidth sx={{ mb: 1 }}>
-              <InputLabel id="target-function-label">Target Function</InputLabel>
-              <Select
-                labelId="target-function-label"
-                label="Target Function"
-                value={targetFunctionUid}
-                onChange={event => setTargetFunctionUid(String(event.target.value))}
-              >
-                {availableFunctions.map(fun => (
-                  <MenuItem key={fun.uid} value={fun.uid}>
-                    {fun.title} ({fun.uid})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          ) : (
-            <>
-              <TextField
-                fullWidth
-                label="New Local Function Title"
-                value={newFunctionTitle}
-                onChange={event => setNewFunctionTitle(event.target.value)}
-                sx={{ mb: 2 }}
-              />
-              <FormControl fullWidth>
-                <InputLabel id="source-function-label">Source Function (Compatibility)</InputLabel>
-                <Select
-                  labelId="source-function-label"
-                  label="Source Function (Compatibility)"
-                  value={sourceFunctionUid}
-                  onChange={event => setSourceFunctionUid(String(event.target.value))}
-                >
-                  {availableFunctions.map(fun => (
-                    <MenuItem key={fun.uid} value={fun.uid}>
-                      {fun.title} ({fun.uid})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setUploadDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleUploadCollectionCsv}>
-            Upload
-          </Button>
-        </DialogActions>
-      </Dialog>
     </>
   );
 }

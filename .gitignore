@@ -27,6 +27,7 @@ dist-ssr
 *.sln
 *.sw?
 */.venv*/
+__pycache__
 
 docker-compose.yml
 *.env
@@ -38,3 +39,4 @@ validation/
 coverage.xml
 htmlcov/
 .codex
+lhs_loguniform_real_50_high/seed42_*.json

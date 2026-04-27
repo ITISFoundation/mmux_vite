@@ -9,6 +9,7 @@ import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
 import InsufficientDataWarning from "./InsufficientDataWarning";
+import { getUQHistogramData } from "./sumoResponse";
 
 export default function UncertainUQ(props: LoadingPropsType) {
   const { loading, jobProgress } = props;
@@ -50,7 +51,10 @@ export default function UncertainUQ(props: LoadingPropsType) {
         if (!response.ok) {
           throw new Error(`Error in UQ response: ${response.status}, ${response.statusText}`);
         }
-        const data: DataUQHistogramType = await response.json();
+        const data = getUQHistogramData(await response.json());
+        if (!data) {
+          throw new Error("Unexpected UQ histogram payload shape");
+        }
         const newPlotData: Plotly.Data[] = [
           {
             x: Array.from(

@@ -9,12 +9,7 @@ import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-
-type GPPrediction = {
-  x: number[];
-  yHat: number[];
-  stdHat: number[];
-};
+import { getAlongAxesPredictions, type SumoAxisPrediction } from "./sumoResponse";
 
 function Curves1DPlots() {
   const theme = useTheme();
@@ -44,7 +39,7 @@ function Curves1DPlots() {
   const plotColor = "rgb(127, 199, 255)";
   const fillColor = "rgba(127, 199, 255, 0.3)";
 
-  const createPlotData = (data: Record<string, GPPrediction>) => {
+  const createPlotData = (data: Record<string, SumoAxisPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
       // warn if no data available
       console.warn("No data available for plotting.");
@@ -112,11 +107,16 @@ function Curves1DPlots() {
       }),
     })
       .then(response => response.json())
-      .then(data => {
-        createPlotData(data);
+      .then(payload => {
+        const predictions = getAlongAxesPredictions(payload);
+        if (!predictions) {
+          throw new Error("Unexpected SUMO along-axes payload shape");
+        }
+        createPlotData(predictions);
         setPropagating(false);
       })
-      .catch(_error => {
+      .catch(error => {
+        console.warn("Error:", error);
         setPlotData([]);
         setPropagating(false);
       });

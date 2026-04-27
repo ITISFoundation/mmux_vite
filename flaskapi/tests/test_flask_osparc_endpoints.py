@@ -358,10 +358,11 @@ class TestOsparcDownloadJobCollectionCsv:
         )
         assert response.status_code == 200
         body = response.get_data(as_text=True)
-        assert "schema_version" in body
-        assert "source_job_collection_uid" in body
-        assert "input__x" in body
-        assert "output__result" in body
+        assert "# schema_version,2" in body
+        assert "# source_job_collection_uid,jc-1" in body
+        assert "source_job_uid,status" in body
+        assert "input__x" in body or "input__angle_width" in body
+        assert "output__result" in body or "output__peak_averaged_field" in body
 
     def test_download_job_collection_csv_404(
         self, test_client, patch_list_function_jobs_for_jobcollectionid_404

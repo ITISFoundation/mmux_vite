@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
 import {
   createInputOutputSchema,
@@ -37,22 +37,26 @@ const mockJobs: FunctionJob[] = [
 const mockFunctions = [{ uid: "func1" }, { uid: "func2" }];
 const sampleJobs = [{ uid: "job1" }, { uid: "job2" }];
 const mockCollections = [{ uid: "collection1" }, { uid: "collection2" }];
+let fetchRetryListFunctionsResponse: unknown = mockFunctions;
+let fetchRetryListJobsResponse: unknown = mockJobs;
+let fetchRetryCollectionJobsResponse: unknown = sampleJobs;
+let fetchRetryCollectionsResponse: unknown = mockCollections;
 
 vi.mock("./fetchRetry.ts", () => ({
   fetchWithRetry: (path: string) => {
     let response: unknown;
     if (path.includes("list_jobs")) {
-      response = mockJobs;
+      response = fetchRetryListJobsResponse;
     } else if (path.includes("get_function_job")) {
       [response] = mockJobs;
     } else if (path.includes("list_functions")) {
-      response = [{ uid: "func1" }, { uid: "func2" }];
+      response = fetchRetryListFunctionsResponse;
     } else if (path.includes("list_function_jobs_for_jobcollectionid")) {
-      response = sampleJobs;
+      response = fetchRetryCollectionJobsResponse;
     } else if (path.includes("list_function_job_collections")) {
-      response = mockCollections;
+      response = fetchRetryCollectionsResponse;
     } else if (path.includes("download_job_collection_csv")) {
-      response = "schema_version,source_job_uid\n1,job-1\n";
+      response = "# schema_version,2\nsource_job_uid,status\njob-1,SUCCESS\n";
     } else {
       response = "not mocked";
     }
@@ -65,6 +69,13 @@ vi.mock("./fetchRetry.ts", () => ({
 }));
 
 describe("Function Utils", () => {
+  afterEach(() => {
+    fetchRetryListFunctionsResponse = mockFunctions;
+    fetchRetryListJobsResponse = mockJobs;
+    fetchRetryCollectionJobsResponse = sampleJobs;
+    fetchRetryCollectionsResponse = mockCollections;
+  });
+
   it("should create an input-output schema", () => {
     const vars = ["x", "y"];
     const schema = createInputOutputSchema(vars);
@@ -175,6 +186,26 @@ describe("Function Utils", () => {
     expect(functions).toEqual(mockFunctions);
   });
 
+  it("should preserve variable-name keyspaces inside normalized function payloads", async () => {
+    fetchRetryListFunctionsResponse = [
+      {
+        uid: "func-local",
+        default_inputs: { pair_1_current: 0.1 },
+        input_schema: {
+          schema_content: {
+            properties: {
+              pair_1_current: { type: "number" },
+            },
+          },
+        },
+      },
+    ];
+
+    const functions = await listFunctions();
+    expect(functions[0].defaultInputs).toEqual({ pair_1_current: 0.1 });
+    expect(Object.keys(functions[0].inputSchema?.schemaContent?.properties || {})).toEqual(["pair_1_current"]);
+  });
+
   it("should list all jobs", async () => {
     const jobs = await listJobs();
     expect(jobs).toEqual(mockJobs);
@@ -193,6 +224,28 @@ describe("Function Utils", () => {
 
     const jobs = await getFunctionJobsFromFunctionUid("func1");
     expect(jobs).toEqual(mockJobData);
+  });
+
+  it("should preserve variable-name keyspaces inside normalized job payloads", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          json: () =>
+            Promise.resolve([
+              {
+                uid: "job-local-1",
+                inputs: { pair_1_current: 0.1, pair_2_current: 0.2 },
+                outputs: { selectivity_mean: 1.5 },
+              },
+            ]),
+        }),
+      ),
+    );
+
+    const jobs = await getFunctionJobsFromFunctionUid("func-local");
+    expect(jobs[0].inputs).toEqual({ pair_1_current: 0.1, pair_2_current: 0.2 });
+    expect(jobs[0].outputs).toEqual({ selectivity_mean: 1.5 });
   });
 
   it("should get function job collections", async () => {

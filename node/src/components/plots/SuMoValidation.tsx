@@ -11,6 +11,7 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { getValidationSeries } from "./sumoResponse";
 
 function SuMoValidation() {
   const theme = useTheme();
@@ -46,8 +47,17 @@ function SuMoValidation() {
 
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
     if (data && selectedQoI) {
-      const y = data[selectedQoI];
-      const yHat = data[`${selectedQoI}_hat`];
+      const series = getValidationSeries(data, selectedQoI);
+      if (!series) {
+        console.warn("Unexpected SuMo validation payload:", {
+          selectedQoI,
+          availableKeys: Object.keys(data),
+        });
+        setPlotData([]);
+        setCvMetrics(undefined);
+        return;
+      }
+      const { y, yHat } = series;
 
       // For violin plots, y should be the data and x should be the label
       const createViolinPlot = (

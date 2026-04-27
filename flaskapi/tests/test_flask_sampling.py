@@ -21,6 +21,20 @@ from osparc_client.exceptions import ApiException as OsparcApiException
 def _roundtrip_csv() -> str:
     return "\n".join(
         [
+            "# schema_version,2",
+            "# source_job_collection_uid,jc-1",
+            "# source_job_collection_title,Uploaded Campaign",
+            "# source_function_uid,func1",
+            "source_job_uid,status,input__x,input__y,output__result",
+            "job-1,SUCCESS,1,2,3",
+            "job-2,SUCCESS,4,5,9",
+        ]
+    )
+
+
+def _legacy_roundtrip_csv() -> str:
+    return "\n".join(
+        [
             "schema_version,source_job_collection_uid,source_function_uid,source_job_uid,status,input__x,input__y,output__result",
             "1,jc-1,func1,job-1,SUCCESS,1,2,3",
             "1,jc-1,func1,job-2,SUCCESS,4,5,9",
@@ -120,6 +134,50 @@ class TestUploadJobCollectionCsv:
         jobs = jobs_response.get_json()
         assert len(jobs) == 2
         assert jobs[0]["uid"].startswith("local-job-")
+
+    def test_upload_legacy_csv_format_still_supported(
+        self,
+        test_client,
+        patch_get_function_success,
+    ):
+        response = test_client.post(
+            "/flask/sampling/upload_job_collection_csv",
+            json={
+                "csvContent": _legacy_roundtrip_csv(),
+                "targetMode": "existing",
+                "targetFunctionUid": "func1",
+            },
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["importedSamples"] == 2
+
+    def test_upload_csv_to_new_local_function_without_source_function_uid(
+        self,
+        test_client,
+    ):
+        response = test_client.post(
+            "/flask/sampling/upload_job_collection_csv",
+            json={
+                "csvContent": "\n".join(
+                    [
+                        "# schema_version,2",
+                        "# source_job_collection_uid,lhs-loguniform-real-50-high",
+                        "# source_job_collection_title,Local Imported LHS Campaign",
+                        "source_job_uid,status,input__pair_1_current,input__pair_2_current,output__strength",
+                        "seed42_sample02,SUCCESS,0.1,0.2,0.3",
+                        "seed42_sample03,SUCCESS,0.4,0.5,0.6",
+                    ]
+                ),
+                "targetMode": "new",
+                "newFunctionTitle": "Imported Local Function",
+            },
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["targetMode"] == "new"
+        assert data["targetFunctionUid"].startswith("local-func-")
+        assert data["importedSamples"] == 2
 
 
 # Define the mocks directly in this file for simplicity

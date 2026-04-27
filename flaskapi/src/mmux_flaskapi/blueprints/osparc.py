@@ -245,11 +245,18 @@ def _serialize_csv_value(value: Any) -> str:
     return str(value)
 
 
+def _write_csv_metadata_line(csv_buffer: io.StringIO, key: str, value: Any) -> None:
+    row_buffer = io.StringIO()
+    csv.writer(row_buffer).writerow([key, _serialize_csv_value(value)])
+    csv_buffer.write(f"# {row_buffer.getvalue()}")
+
+
 def _job_collection_jobs_to_csv(
     jc_uid: str,
     jc_title: str,
     jobs: list[dict[str, Any]],
 ) -> str:
+    source_function_uid = _serialize_csv_value(jobs[0].get("function_uid", "")) if jobs else ""
     input_keys = sorted(
         {key for job in jobs if isinstance(job.get("inputs"), dict) for key in job["inputs"].keys()}
     )
@@ -265,10 +272,6 @@ def _job_collection_jobs_to_csv(
     rows: list[dict[str, str]] = []
     for job in jobs:
         row: dict[str, str] = {
-            "schema_version": "1",
-            "source_job_collection_uid": jc_uid,
-            "source_job_collection_title": jc_title,
-            "source_function_uid": _serialize_csv_value(job.get("function_uid", "")),
             "source_job_uid": _serialize_csv_value(job.get("uid", "")),
             "status": _serialize_csv_value(job.get("status", "")),
         }
@@ -284,18 +287,16 @@ def _job_collection_jobs_to_csv(
             row[f"output__{key}"] = _serialize_csv_value(outputs.get(key))
         rows.append(row)
 
-    base_fields = [
-        "schema_version",
-        "source_job_collection_uid",
-        "source_job_collection_title",
-        "source_function_uid",
-        "source_job_uid",
-        "status",
-    ]
     fieldnames = (
-        base_fields + [f"input__{k}" for k in input_keys] + [f"output__{k}" for k in output_keys]
+        ["source_job_uid", "status"]
+        + [f"input__{k}" for k in input_keys]
+        + [f"output__{k}" for k in output_keys]
     )
     csv_buffer = io.StringIO()
+    _write_csv_metadata_line(csv_buffer, "schema_version", 2)
+    _write_csv_metadata_line(csv_buffer, "source_job_collection_uid", jc_uid)
+    _write_csv_metadata_line(csv_buffer, "source_job_collection_title", jc_title)
+    _write_csv_metadata_line(csv_buffer, "source_function_uid", source_function_uid)
     writer = csv.DictWriter(csv_buffer, fieldnames=fieldnames)
     writer.writeheader()
     for row in rows:

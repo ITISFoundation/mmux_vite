@@ -9,6 +9,7 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { getGridData, getGridOutputValues, type NumericSeries } from "./sumoResponse";
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
@@ -122,23 +123,35 @@ function IsoSurface3DPlot() {
     }
   };
 
-  interface IsoSurfaceData extends Plotly.PlotData {
-    surface: { show: boolean; count: number }; // Just to make TypeScript happy. Edit if necessary.
-  }
-  const reshapePlotData = (data: { [key: string]: number[] } | { [key: string]: number[][] } | { [key: string]: number }) => {
+  const reshapePlotData = (data: Record<string, NumericSeries>) => {
     if (data && selectedQoI) {
-      const newData: Partial<IsoSurfaceData>[] = [
+      const x = data[axis1];
+      const y = data[axis2];
+      const z = data[axis3];
+      const value = getGridOutputValues(data, selectedQoI);
+      if (!Array.isArray(x) || !Array.isArray(y) || !Array.isArray(z) || !Array.isArray(value) || Array.isArray(value[0])) {
+        setPlotData([]);
+        console.warn("Unexpected SUMO isosurface payload:", {
+          axis1,
+          axis2,
+          axis3,
+          selectedQoI,
+          availableKeys: Object.keys(data),
+        });
+        return;
+      }
+      const newData: Plotly.Data[] = [
         {
           type: "isosurface",
-          x: data[axis1] as number[],
-          y: data[axis2] as number[],
-          z: data[axis3] as number[],
-          value: data[selectedQoI] as number,
+          x: x as number[],
+          y: y as number[],
+          z: z as number[],
+          value: value as number[],
           colorscale: "Electric",
           showscale: true,
           opacity: 0.5,
           surface: { show: true, count: 10 },
-        },
+        } as unknown as Plotly.Data,
       ];
       setPlotData(newData);
     } else {
@@ -170,8 +183,12 @@ function IsoSurface3DPlot() {
         }
         return response.json();
       })
-      .then(d => {
-        reshapePlotData(d);
+      .then(payload => {
+        const gridData = getGridData(payload);
+        if (!gridData) {
+          throw new Error("Unexpected SUMO grid payload shape");
+        }
+        reshapePlotData(gridData);
         setPropagating(false);
       })
       .catch(error => {

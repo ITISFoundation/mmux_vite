@@ -9,6 +9,7 @@ import Header from "../navigation/Header";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { getGridData, getGridOutputValues, type NumericSeries } from "./sumoResponse";
 
 function Surface2DPlot() {
   const theme = useTheme();
@@ -51,17 +52,29 @@ function Surface2DPlot() {
   };
 
   const reshapePlotData = useCallback(
-    (data: { [key: string]: number[] } | { [key: string]: number[][] }) => {
+    (data: Record<string, NumericSeries>) => {
       if (data && selectedQoI) {
-        const uniqueX: Array<number> = Array.from(new Set(data[axis1] as number[]));
-        const uniqueY: Array<number> = Array.from(new Set(data[axis2] as number[]));
-        const z: Array<Array<number>> = data[selectedQoI] as number[][];
+        const x = data[axis1];
+        const y = data[axis2];
+        const z = getGridOutputValues(data, selectedQoI);
+        if (!Array.isArray(x) || !Array.isArray(y) || !Array.isArray(z) || !Array.isArray(z[0])) {
+          setPlotData([]);
+          console.warn("Unexpected SUMO surface payload:", {
+            axis1,
+            axis2,
+            selectedQoI,
+            availableKeys: Object.keys(data),
+          });
+          return;
+        }
+        const uniqueX: Array<number> = Array.from(new Set(x as number[]));
+        const uniqueY: Array<number> = Array.from(new Set(y as number[]));
 
         const newData: Data[] = [
           {
             x: uniqueX,
             y: uniqueY,
-            z,
+            z: z as number[][],
             type: "surface",
             colorscale: "Electric",
             showscale: true,
@@ -84,6 +97,7 @@ function Surface2DPlot() {
       setPropagating(true);
       fetch(`/flask/dakota/sumo_grid_evaluation`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gridVars: [key1, key2],
           inputVars,
@@ -96,12 +110,16 @@ function Surface2DPlot() {
         .then(response => {
           if (response && !response.ok) {
             console.warn("SuMo Surface plot error: ", response.body);
-            return new Error("SuMo Surface plot response not ok");
+            return Promise.reject(new Error("SuMo Surface plot response not ok"));
           }
           return response.json();
         })
-        .then(d => {
-          reshapePlotData(d);
+        .then(payload => {
+          const gridData = getGridData(payload);
+          if (!gridData) {
+            throw new Error("Unexpected SUMO grid payload shape");
+          }
+          reshapePlotData(gridData);
           setPropagating(false);
         })
         .catch(error => {

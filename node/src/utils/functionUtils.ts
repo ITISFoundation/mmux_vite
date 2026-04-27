@@ -6,22 +6,53 @@ function snakeToCamelCase(value: string): string {
   return value.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase());
 }
 
-function normalizePayloadToCamelCase<T>(payload: unknown): T {
+function camelToSnakeCase(value: string): string {
+  return value.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
+}
+
+const PRESERVE_SUBTREE_KEYS = new Set(["inputs", "outputs", "default_inputs", "defaultInputs", "properties"]);
+const PRESERVE_CURRENT_LEVEL_KEYS = new Set(["predictions", "grid_data", "gridData"]);
+
+function normalizePayloadToCamelCaseInternal(payload: unknown, preserveAllKeys = false): unknown {
   if (Array.isArray(payload)) {
-    return payload.map(item => normalizePayloadToCamelCase(item)) as T;
+    return payload.map(item => normalizePayloadToCamelCaseInternal(item, preserveAllKeys));
   }
 
-  if (payload && typeof payload === "object") {
-    return Object.entries(payload as Record<string, unknown>).reduce(
-      (normalized, [key, value]) => ({
-        ...normalized,
-        [snakeToCamelCase(key)]: normalizePayloadToCamelCase(value),
-      }),
-      {} as Record<string, unknown>,
-    ) as T;
+  if (!payload || typeof payload !== "object") {
+    return payload;
   }
 
-  return payload as T;
+  return Object.entries(payload as Record<string, unknown>).reduce(
+    (normalized, [rawKey, value]) => {
+      const canonicalKey = camelToSnakeCase(rawKey);
+      const transformedKey = preserveAllKeys ? rawKey : snakeToCamelCase(rawKey);
+
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        if (!preserveAllKeys && PRESERVE_CURRENT_LEVEL_KEYS.has(canonicalKey)) {
+          normalized[transformedKey] = Object.fromEntries(
+            Object.entries(value as Record<string, unknown>).map(([nestedKey, nestedValue]) => [
+              nestedKey,
+              normalizePayloadToCamelCaseInternal(nestedValue),
+            ]),
+          );
+        } else {
+          normalized[transformedKey] = normalizePayloadToCamelCaseInternal(
+            value,
+            preserveAllKeys || PRESERVE_SUBTREE_KEYS.has(canonicalKey),
+          );
+        }
+        return normalized;
+      }
+
+      normalized[transformedKey] = normalizePayloadToCamelCaseInternal(value, preserveAllKeys);
+      return normalized;
+    },
+    {} as Record<string, unknown>,
+  );
+}
+
+function normalizePayloadToCamelCase<T>(payload: unknown): T {
+  return normalizePayloadToCamelCaseInternal(payload) as T;
 }
 
 export function createInputOutputSchema(vars: string[]) {

@@ -207,11 +207,27 @@ def _function_schema_vars(function_uid: str) -> tuple[set[str], set[str]]:
 
 
 def _create_local_function_from_source(
-    source_function_uid: str,
+    source_function_uid: str | None,
     new_title: str | None,
     incoming_input_vars: set[str],
     incoming_output_vars: set[str],
+    source_collection_title: str | None = None,
+    source_description: str | None = None,
 ) -> str:
+    if not source_function_uid:
+        created_function = create_local_function(
+            title=new_title or source_collection_title or "Uploaded local function",
+            description=source_description
+            or (
+                "Local function created from uploaded CSV data"
+                + (f" ({source_collection_title})" if source_collection_title else "")
+            ),
+            input_vars=incoming_input_vars,
+            output_vars=incoming_output_vars,
+            source_function_uid=None,
+        )
+        return str(created_function["uid"])
+
     if is_local_function_uid(source_function_uid):
         source_function = get_local_function(source_function_uid)
         if source_function is None:
@@ -239,7 +255,7 @@ def _create_local_function_from_source(
 
     created_function = create_local_function(
         title=new_title or f"Uploaded data - {source_function_uid}",
-        description=source_description,
+        description=source_description or str(source_function.get("description", "")),
         input_vars=incoming_input_vars,
         output_vars=incoming_output_vars,
         source_function_uid=source_function_uid,
@@ -247,8 +263,30 @@ def _create_local_function_from_source(
     return str(created_function["uid"])
 
 
+def _split_csv_preamble_and_table(csv_content: str) -> tuple[dict[str, str], str]:
+    metadata: dict[str, str] = {}
+    table_lines: list[str] = []
+
+    for line in io.StringIO(csv_content):
+        stripped = line.strip()
+        if not table_lines and not stripped:
+            continue
+        if not table_lines and line.lstrip().startswith("#"):
+            metadata_row = next(csv.reader([line.lstrip()[1:].strip()]), [])
+            if metadata_row:
+                key = metadata_row[0].strip()
+                value = ",".join(metadata_row[1:]).strip() if len(metadata_row) > 1 else ""
+                if key:
+                    metadata[key] = value
+            continue
+        table_lines.append(line)
+
+    return metadata, "".join(table_lines)
+
+
 def _parse_uploaded_job_collection_csv(csv_content: str) -> dict[str, Any]:
-    reader = csv.DictReader(io.StringIO(csv_content))
+    metadata, table_content = _split_csv_preamble_and_table(csv_content)
+    reader = csv.DictReader(io.StringIO(table_content))
     input_columns = [name for name in (reader.fieldnames or []) if name.startswith("input__")]
     output_columns = [name for name in (reader.fieldnames or []) if name.startswith("output__")]
 
@@ -256,9 +294,11 @@ def _parse_uploaded_job_collection_csv(csv_content: str) -> dict[str, Any]:
         raise ValueError("CSV must contain both input__* and output__* columns")
 
     job_rows: list[dict[str, Any]] = []
-    source_function_uid = ""
-    source_collection_uid = ""
-    source_collection_title = ""
+    source_function_uid = metadata.get("source_function_uid", "")
+    source_collection_uid = metadata.get("source_job_collection_uid", "")
+    source_collection_title = metadata.get("source_job_collection_title", "")
+    source_function_title = metadata.get("source_function_title", "")
+    source_description = metadata.get("source_description", "")
     for row in reader:
         if not source_function_uid:
             source_function_uid = row.get("source_function_uid", "")
@@ -295,6 +335,9 @@ def _parse_uploaded_job_collection_csv(csv_content: str) -> dict[str, Any]:
         "source_function_uid": source_function_uid,
         "source_job_collection_uid": source_collection_uid,
         "source_job_collection_title": source_collection_title,
+        "source_function_title": source_function_title,
+        "source_description": source_description,
+        "metadata": metadata,
     }
 
 
@@ -526,16 +569,14 @@ def flask_upload_job_collection_csv():
         if payload.target_mode == "existing":
             target_function_uid = payload.target_function_uid or ""
         else:
-            if not source_function_uid:
-                raise ValueError(
-                    "sourceFunctionUid is required for targetMode='new' "
-                    "when CSV has no source_function_uid"
-                )
             target_function_uid = _create_local_function_from_source(
                 source_function_uid,
                 payload.new_function_title,
                 parsed["input_vars"],
                 parsed["output_vars"],
+                source_collection_title=parsed["source_job_collection_title"]
+                or parsed["source_function_title"],
+                source_description=parsed["source_description"],
             )
 
         if not target_function_uid:

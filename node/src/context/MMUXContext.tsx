@@ -42,7 +42,7 @@ export function MMUXContextProvider({ children }: Props) {
     if (loading === false && persistence && persistence.currentView !== undefined) {
       console.info("Loading MMUX context from persistence...");
       setNumSamples(persistence.numSamples);
-      setSelectedQoI(persistence.selectedQoI);
+      setSelectedQoI(persistence.selectedQoI ?? undefined);
       setIsSuMoGenerated(persistence.isSuMoGenerated);
       setLocalLoading(false);
     }

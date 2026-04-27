@@ -20,7 +20,7 @@ export function OutputSetup(props: UQSetupProps) {
   const { selectedFunction, outputVars } = useFunctionContext();
   const { filteredJobList } = useJobContext();
   const { selectedQoI, setSelectedQoI, numSamples, setNumSamples } = useMMUXContext();
-  const [localQoI, setLocalQoI] = useState<string | undefined>(selectedQoI);
+  const [localQoI, setLocalQoI] = useState<string>(selectedQoI ?? "");
   const [localNumSamples, setLocalNumSamples] = useState(numSamples[selectedFunction?.uid || ""] || 10000);
 
   const handlesetLocalQoI = (value: string) => {
