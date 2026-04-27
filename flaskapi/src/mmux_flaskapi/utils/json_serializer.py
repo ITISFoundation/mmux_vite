@@ -30,6 +30,7 @@ from mmux_flaskapi.utils.helpers import (
 
 _logger = logging.getLogger(__name__)
 RequestModelT = TypeVar("RequestModelT", bound=BaseModel)
+PRESERVE_RESPONSE_KEYS_HEADER = "X-MMUX-Preserve-Response-Keys"
 
 
 def _with_invalid_request_prefix(message: str) -> str:
@@ -292,6 +293,8 @@ def register_json_transformers(app: Flask, *, convert_responses: bool = True) ->
             """Convert outgoing JSON response from snake_case to camelCase."""
             # Only process JSON responses
             if response.content_type and "application/json" in response.content_type:
+                if response.headers.get(PRESERVE_RESPONSE_KEYS_HEADER) == "1":
+                    return response
                 try:
                     # Parse the response JSON
                     json_data = json.loads(response.get_data(as_text=True))

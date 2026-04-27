@@ -47,7 +47,10 @@ from mmux_flaskapi.data_preprocessor import DataPreprocessor
 
 #
 from mmux_flaskapi.utils.helpers import create_run_dir
-from mmux_flaskapi.utils.json_serializer import parse_request_model
+from mmux_flaskapi.utils.json_serializer import (
+    PRESERVE_RESPONSE_KEYS_HEADER,
+    parse_request_model,
+)
 
 _logger = logging.getLogger(__name__)
 dakota_bp = Blueprint("dakota", __name__)
@@ -205,7 +208,7 @@ def _inverse_transform_output_results(
     preprocessor: DataPreprocessor,
     results: dict[str, list[float]],
 ) -> dict[str, list[float]]:
-    """Inverse transform output values while preserving Dakota suffixes."""
+    """Inverse transform output values while preserving original variable names."""
     transformed: dict[str, list[float]] = {}
 
     for original_name, config in preprocessor.output_variables.items():
@@ -222,7 +225,10 @@ def _inverse_transform_output_results(
                 continue
             inverse = preprocessor.inverse_transform({mapped_name: results[suffixed_key]})
             if original_name in inverse:
-                transformed[original_name + suffix] = inverse[original_name]
+                response_key = (
+                    f"{original_name}Hat" if suffix == "_hat" else f"{original_name}StdHat"
+                )
+                transformed[response_key] = inverse[original_name]
 
     return transformed
 
@@ -306,7 +312,9 @@ def flask_sumo_cross_validation():
         results_transformed = _inverse_transform_output_results(preprocessor, results)
 
         _logger.debug("Cross-validation completed successfully!")
-        return jsonify(results_transformed)
+        response = jsonify(results_transformed)
+        response.headers[PRESERVE_RESPONSE_KEYS_HEADER] = "1"
+        return response
     except ValidationError as e:
         handle_workflow_error(e, "flask_sumo_cross_validation", 422)
     except ValueError as e:

@@ -85,7 +85,7 @@ class TestSumoCrossValidation:
     def test_sumo_cross_validation_preserves_prediction_suffixes_for_original_output_name(
         self, test_client: Flask, monkeypatch
     ):
-        """Mapped Dakota keys should come back under the original output name with preserved suffixes."""
+        """Mapped Dakota keys should keep the original output variable name in responses."""
 
         def fake_eval(*args, **kwargs):
             return {
@@ -113,9 +113,9 @@ class TestSumoCrossValidation:
         assert response.status_code == 200
         data = response.get_json()
         assert data == {
-            "dragForce": [1.0, 2.0, 3.0],
-            "dragForceHat": [1.1, 2.1, 3.1],
-            "dragForceStdHat": [0.1, 0.2, 0.3],
+            "drag_force": [1.0, 2.0, 3.0],
+            "drag_forceHat": [1.1, 2.1, 3.1],
+            "drag_forceStdHat": [0.1, 0.2, 0.3],
         }
 
     def test_sumo_cross_validation_accepts_snake_case_payload(self, test_client: Flask):
