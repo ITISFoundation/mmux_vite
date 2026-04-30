@@ -13,7 +13,7 @@ import {
   TextField,
   Link,
 } from "@mui/material";
-import { InfoOutline } from "@mui/icons-material";
+import InfoOutline from "@mui/icons-material/InfoOutline";
 import Header from "../components/navigation/Header";
 import OptionSelect from "../components/utils/OptionSelect";
 import {

@@ -188,9 +188,7 @@ export function buildWarnings(diag: VariableDiagnostics, ctx: DiagnosticsWarning
   // (log-space → "likely-normal") and log-uniform data (log-space → "unclear"
   // because kurtosis ≈ -1.2 but skewness ≈ 0, i.e. still better than raw).
   const logBetterThanRaw =
-    diag.logNormality !== "not-applicable" &&
-    diag.logNormality !== "not-normal" &&
-    diag.rawNormality === "not-normal";
+    diag.logNormality !== "not-applicable" && diag.logNormality !== "not-normal" && diag.rawNormality === "not-normal";
 
   if ((ctx.serviceMode === "SUMO" || ctx.serviceMode === "MOGA") && ctx.role === "input") {
     if (logBetterThanRaw && !ctx.logScale) {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Box, Button, Card, CardActions, CardContent, InputLabel, Modal, Typography, useTheme } from "@mui/material";
-import { ShowChart } from "@mui/icons-material";
+import ShowChart from "@mui/icons-material/ShowChart";
 import { FunctionJob } from "../../osparc-api-ts-client";
 import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import Header from "../navigation/Header";

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Box, IconButton, Typography, Button } from "@mui/material";
 import { toast } from "react-toastify";
-import { Refresh } from "@mui/icons-material";
+import Refresh from "@mui/icons-material/Refresh";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
 import {

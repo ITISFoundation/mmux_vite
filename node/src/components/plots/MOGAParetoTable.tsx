@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { EditAttributes } from "@mui/icons-material";
+import EditAttributes from "@mui/icons-material/EditAttributes";
 import { Typography, Box, IconButton } from "@mui/material";
 import { DataGrid, GridColDef, GridSortModel } from "@mui/x-data-grid";
 import { useMOGATableContext } from "../../context/MOGATableContext";
@@ -14,6 +14,13 @@ interface MogaParetoTableProps {
   tableData: MogaDataType | undefined;
   hovered: number | null;
   setHovered: (x: number | null) => void;
+}
+
+function sortModelsEqual(left: GridSortModel, right: GridSortModel) {
+  return (
+    left.length === right.length &&
+    left.every((item, index) => item.field === right[index]?.field && item.sort === right[index]?.sort)
+  );
 }
 
 function getRowId(value: MogaDataRowType) {
@@ -35,11 +42,12 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
   const [data, setData] = useState<MogaDataType | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [openPerformanceModal, setOpenPerformanceModal] = useState(false);
-  const [localSortModel, setLocalSortModel] = useState<GridSortModel>(sortModel || defaultSortModel);
+  const resolvedSortModel = sortModel.length > 0 ? sortModel : defaultSortModel;
 
   const handleSortModelChange = (model: GridSortModel) => {
-    setSortModel(model);
-    setLocalSortModel(model);
+    if (!sortModelsEqual(model, resolvedSortModel)) {
+      setSortModel(model);
+    }
   };
 
   useEffect(() => {
@@ -76,7 +84,9 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       });
       setData({ ...data, rows: updatedRows });
     }
-    handleSortModelChange(defaultSortModel); // reset sorting when changing weights
+    if (!sortModelsEqual(defaultSortModel, resolvedSortModel)) {
+      setSortModel(defaultSortModel);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weights]);
 
@@ -243,7 +253,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
             },
           },
         }}
-        sortModel={localSortModel}
+        sortModel={resolvedSortModel}
         onSortModelChange={handleSortModelChange}
         disableColumnMenu
         disableColumnSelector

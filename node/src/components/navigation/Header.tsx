@@ -1,4 +1,5 @@
-import { HelpOutline, InfoOutline } from "@mui/icons-material";
+import HelpOutline from "@mui/icons-material/HelpOutline";
+import InfoOutline from "@mui/icons-material/InfoOutline";
 import { Box, Typography, styled, useTheme } from "@mui/material";
 import CustomTooltip from "../utils/CustomTooltip";
 

@@ -1,6 +1,7 @@
 import { Box, Chip, IconButton, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
-import { Add, Cancel } from "@mui/icons-material";
+import AddIcon from "@mui/icons-material/Add";
+import CancelIcon from "@mui/icons-material/Cancel";
 // import { useServiceContext } from "../../context/ServiceContext";
 import Header from "../navigation/Header";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -137,7 +138,7 @@ export function OutputVariableDist() {
                   color: theme.palette.text.primary,
                 }}
               >
-                <Cancel sx={{ fontSize: "1.1em", lineHeight: "1.1em" }} />
+                <CancelIcon sx={{ fontSize: "1.1em", lineHeight: "1.1em" }} />
               </IconButton>
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -196,7 +197,7 @@ export function OutputVariableDist() {
               onClick={() => setOpenModal(!openModal)}
               mmux-testid="add-output-var-btn"
             >
-              <Add sx={{ fontSize: "2em" }} />
+              <AddIcon sx={{ fontSize: "2em" }} />
             </IconButton>
           </Box>
         )}

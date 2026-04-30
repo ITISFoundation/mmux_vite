@@ -1,4 +1,4 @@
-import { InfoOutline } from "@mui/icons-material";
+import InfoOutline from "@mui/icons-material/InfoOutline";
 import { InputLabel, Typography, Select, MenuItem, useTheme } from "@mui/material";
 import CustomTooltip from "./CustomTooltip";
 

@@ -59,6 +59,84 @@ interface NavigationProps {
   steps: Step[];
   activeStep: number;
 }
+
+type MuiIconComponent = React.ComponentType<import("@mui/material/SvgIcon").SvgIconProps>;
+
+declare module "@mui/icons-material/Add" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/AddBox" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/Cancel" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/Download" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/EditAttributes" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/HelpOutline" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/IndeterminateCheckBox" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/InfoOutline" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/InfoOutlined" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/KeyboardArrowDown" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/KeyboardArrowLeft" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/KeyboardArrowRight" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/KeyboardArrowUp" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/Refresh" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
+declare module "@mui/icons-material/ShowChart" {
+  const IconComponent: MuiIconComponent;
+  export default IconComponent;
+}
+
 type HeaderTypes = "title" | "titleNoMargin" | "bigTitle" | "subTitle";
 
 interface MetaModelingUXProps {
@@ -145,6 +223,7 @@ interface VarSelection {
   max?: number;
   location?: number;
   scale?: number;
+  logScale?: boolean;
 }
 
 interface OutputVarSelection {

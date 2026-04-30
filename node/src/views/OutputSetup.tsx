@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Box, InputLabel, Select, MenuItem, TextField, Button, Typography, useTheme } from "@mui/material";
-import { InfoOutline } from "@mui/icons-material";
+import InfoOutline from "@mui/icons-material/InfoOutline";
 import CustomTooltip from "../components/utils/CustomTooltip";
 import SelectQoIDocument from "../components/documents/SelectQoIDocument";
 import { useMMUXContext } from "../context/MMUXContext";

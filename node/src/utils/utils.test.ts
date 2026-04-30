@@ -156,6 +156,7 @@ describe("stepValidator", () => {
         },
       },
       outputTargets: {},
+      outputLogScales: {},
       setSelectedFunction: (_F: OsparcFunction | undefined): void => {
         throw new Error("Function not implemented.");
       },
@@ -171,6 +172,9 @@ describe("stepValidator", () => {
         throw new Error("Function not implemented.");
       },
       setOutputTargets(_d: { [key: string]: OutputVarSelection }): void {
+        throw new Error("Function not implemented.");
+      },
+      setOutputLogScales(_d: { [uid: string]: { [varName: string]: boolean } }): void {
         throw new Error("Function not implemented.");
       },
     };

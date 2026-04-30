@@ -11,7 +11,9 @@ import {
   Select,
   useTheme,
 } from "@mui/material";
-import { InfoOutline, KeyboardArrowLeft, KeyboardArrowRight } from "@mui/icons-material";
+import InfoOutline from "@mui/icons-material/InfoOutline";
+import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
+import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import IsoSurface3DPlot from "./IsoSurface3DPlot";
 import Curves1DPlots from "./Curves1DPlot";
 import SuMoValidation from "./SuMoValidation";

@@ -1,4 +1,8 @@
-import { Download, InfoOutline, KeyboardArrowDown, KeyboardArrowUp, Refresh } from "@mui/icons-material";
+import Download from "@mui/icons-material/Download";
+import InfoOutline from "@mui/icons-material/InfoOutline";
+import KeyboardArrowDown from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUp from "@mui/icons-material/KeyboardArrowUp";
+import Refresh from "@mui/icons-material/Refresh";
 import {
   Box,
   Button,

@@ -1,6 +1,7 @@
 import { JSX, useEffect, useState } from "react";
 import { Accordion, AccordionDetails, AccordionSummary, Box } from "@mui/material";
-import { AddBox, IndeterminateCheckBox } from "@mui/icons-material";
+import AddBox from "@mui/icons-material/AddBox";
+import IndeterminateCheckBox from "@mui/icons-material/IndeterminateCheckBox";
 import { useSamplingContext } from "../../context/SamplingContext";
 
 // This element is a generic + button with a few extra elements

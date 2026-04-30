@@ -1,4 +1,4 @@
-import { InfoOutline } from "@mui/icons-material";
+import InfoOutline from "@mui/icons-material/InfoOutline";
 import { Accordion, Button, AccordionDetails, useTheme } from "@mui/material";
 import React, { useState } from "react";
 import CustomTooltip from "../utils/CustomTooltip";
