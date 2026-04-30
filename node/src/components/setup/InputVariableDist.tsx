@@ -1,10 +1,13 @@
 import { Box, Chip, InputLabel, MenuItem, Select, Typography, useTheme } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServiceContext } from "../../context/ServiceContext";
 import InputVariableDistDocument from "../documents/InputVariableDistDocument";
 import { InputBlock } from "../utils/InputBlock";
+import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import Header from "../navigation/Header";
 import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
+import { buildWarnings, computeDiagnostics, extractValuesFromJobs } from "../../utils/distributionDiagnostics";
 
 interface InputDistProps {
   inputVar: string;
@@ -181,8 +184,26 @@ const LogNormalInputDistribution = ({ inputVar, distribution, handleSetValue }: 
 export function InputVariableDist() {
   const { selectedFunction, inputVars, distribution, setDistribution } = useFunctionContext();
   const { serviceMode } = useServiceContext();
+  const { filteredJobList } = useJobContext();
   const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
+
+  // Per-variable advisory warnings (distribution mismatch, Tukey outliers, etc).
+  // Recomputed when the visible job list, distribution config, or service mode changes.
+  const warningsByVar = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const v of inputVars) {
+      const values = extractValuesFromJobs(filteredJobList, v, "input");
+      const diag = computeDiagnostics(values);
+      result[v] = buildWarnings(diag, {
+        role: "input",
+        serviceMode,
+        logScale: localDistribution[v]?.logScale,
+        declaredDistribution: localDistribution[v]?.distribution,
+      });
+    }
+    return result;
+  }, [inputVars, filteredJobList, serviceMode, localDistribution]);
 
   const handleSetLocalDistribution = useCallback(
     (newInputVars: typeof localDistribution) => {
@@ -206,6 +227,17 @@ export function InputVariableDist() {
       };
     }
     newInputVars[inputVar][type as Variables] = value;
+    // log10 is undefined for non-positive bounds; clear the log toggle if min becomes invalid
+    if (type === "min" && newInputVars[inputVar].logScale && !(typeof value === "number" && value > 0)) {
+      newInputVars[inputVar] = { ...newInputVars[inputVar], logScale: false };
+    }
+    handleSetLocalDistribution(newInputVars);
+  };
+
+  const handleSetLogScale = (inputVar: string, logScale: boolean) => {
+    const newInputVars = { ...localDistribution };
+    if (!newInputVars[inputVar]) return;
+    newInputVars[inputVar] = { ...newInputVars[inputVar], logScale };
     handleSetLocalDistribution(newInputVars);
   };
 
@@ -410,11 +442,26 @@ export function InputVariableDist() {
                   <NormalInputDistribution inputVar={inputVar} distribution={localDistribution} handleSetValue={handleSetValue} />
                 )}
                 {localDistribution[inputVar]?.distribution === "uniform" && (
-                  <UniformInputDistribution
-                    inputVar={inputVar}
-                    distribution={localDistribution}
-                    handleSetValue={handleSetValue}
-                  />
+                  <>
+                    <UniformInputDistribution
+                      inputVar={inputVar}
+                      distribution={localDistribution}
+                      handleSetValue={handleSetValue}
+                    />
+                    {["SUMO", "MOGA"].includes(serviceMode) && (
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <Typography sx={{ fontSize: "0.75em", fontWeight: 300, color: theme.palette.text.secondary }}>
+                          Sampling scale
+                        </Typography>
+                        <CustomAnimatedToggle
+                          data={["linear", "log"]}
+                          value={localDistribution[inputVar]?.logScale ? 1 : 0}
+                          disabled={!(typeof localDistribution[inputVar].min === "number" && localDistribution[inputVar].min > 0)}
+                          onChange={value => handleSetLogScale(inputVar, value === 1)}
+                        />
+                      </Box>
+                    )}
+                  </>
                 )}
                 {!localDistribution[inputVar]?.distribution && "not found"}
                 {/* For v9 release, removed log-normal and exponential input distributions
@@ -424,6 +471,34 @@ export function InputVariableDist() {
                         <ExponentialInputDistribution inputVar={inputVar} />
                 */}
               </>
+              {warningsByVar[inputVar] && warningsByVar[inputVar].length > 0 && (
+                <Box
+                  sx={{
+                    marginTop: "4px",
+                    padding: "6px 8px",
+                    borderRadius: "6px",
+                    backgroundColor: `${theme.palette.warning.main}1A`,
+                    borderLeft: `3px solid ${theme.palette.warning.main}`,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "4px",
+                  }}
+                  mmux-testid={`input-var-${inputVar}-diagnostics`}
+                >
+                  {warningsByVar[inputVar].map(msg => (
+                    <Typography
+                      key={msg}
+                      sx={{
+                        fontSize: "0.7em",
+                        lineHeight: 1.3,
+                        color: theme.palette.text.secondary,
+                      }}
+                    >
+                      {msg}
+                    </Typography>
+                  ))}
+                </Box>
+              )}
             </Box>
           </Box>
         ))}

@@ -13,7 +13,7 @@ import { getAlongAxesPredictions, type SumoAxisPrediction } from "./sumoResponse
 
 function Curves1DPlots() {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
@@ -94,6 +94,10 @@ function Curves1DPlots() {
   const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[]) => {
     setPropagating(true);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
+    const localDistribution = distribution[selectedFunction?.uid || ""] || {};
+    const inputLogScales = Object.fromEntries(inputVars.map(v => [v, Boolean(localDistribution[v]?.logScale)]));
+    const localOutputLogScales = outputLogScales[selectedFunction?.uid || ""] || {};
+    const outputLogScalesBody = selectedQoI ? { [selectedQoI]: Boolean(localOutputLogScales[selectedQoI]) } : {};
     fetch(`/flask/dakota/sumo_along_axes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -104,6 +108,8 @@ function Curves1DPlots() {
         sliderValues: otherAxis,
         FunctionJobs: jobs,
         log: false,
+        inputLogScales,
+        outputLogScales: outputLogScalesBody,
       }),
     })
       .then(response => response.json())

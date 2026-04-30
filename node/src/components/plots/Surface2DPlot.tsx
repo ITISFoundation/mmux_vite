@@ -13,7 +13,7 @@ import { getGridData, getGridOutputValues, type NumericSeries } from "./sumoResp
 
 function Surface2DPlot() {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
@@ -95,6 +95,10 @@ function Surface2DPlot() {
       console.info("Evaluating SuMo for 2D surface...");
       console.info("Jobs to build SuMo: ", jobs);
       setPropagating(true);
+      const localDistribution = distribution[selectedFunction?.uid || ""] || {};
+      const inputLogScales = Object.fromEntries(inputVars.map(v => [v, Boolean(localDistribution[v]?.logScale)]));
+      const localOutputLogScales = outputLogScales[selectedFunction?.uid || ""] || {};
+      const outputLogScalesBody = selectedQoI ? { [selectedQoI]: Boolean(localOutputLogScales[selectedQoI]) } : {};
       fetch(`/flask/dakota/sumo_grid_evaluation`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -105,6 +109,8 @@ function Surface2DPlot() {
           sliderValues: otherAxis,
           FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
           log: false, // FIXME not used atm
+          inputLogScales,
+          outputLogScales: outputLogScalesBody,
         }),
       })
         .then(response => {
@@ -128,7 +134,7 @@ function Surface2DPlot() {
           setPlotData([]);
         });
     },
-    [inputVars, selectedQoI, otherAxis, reshapePlotData],
+    [inputVars, selectedQoI, otherAxis, reshapePlotData, distribution, selectedFunction?.uid, outputLogScales],
   );
 
   useEffect(() => {

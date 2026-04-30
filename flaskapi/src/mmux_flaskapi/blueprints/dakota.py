@@ -29,6 +29,7 @@ from pydantic import ValidationError
 #
 from mmux_flaskapi.blueprints.dakota_models import (
     CVAccuracyMetrics,
+    DistributionParams,
     FunctionJob,
     JobVariableSelection,
     ManualUQWithUncertaintyRequest,
@@ -116,6 +117,57 @@ def _jobs_to_df(
     return pd.DataFrame(validated_selection.to_records())
 
 
+def _log_scales_to_var_list(
+    log_scales: dict[str, bool] | None, restrict_to: list[str] | None = None
+) -> list[str] | None:
+    """
+    Convert a {var_name: bool} mapping to the list of var names with True.
+
+    Args:
+        log_scales: Mapping from variable name to whether it should be log-scaled
+        restrict_to: Optional whitelist of variable names; entries outside this set are dropped
+
+    Returns:
+        List of variable names that should be log-transformed, or None if the input was None.
+    """
+    if log_scales is None:
+        return None
+    allowed = set(restrict_to) if restrict_to is not None else None
+    return [var for var, flag in log_scales.items() if flag and (allowed is None or var in allowed)]
+
+
+def _log_scaled_inputs_from_distributions(
+    distributions: dict[str, DistributionParams],
+) -> list[str]:
+    """Extract the list of input variable names flagged with log_scale=True."""
+    return [var for var, dist in distributions.items() if getattr(dist, "log_scale", False)]
+
+
+def _apply_log10_to_uniform_bounds(
+    distributions: dict[str, dict[str, float]], log_scaled_vars: list[str]
+) -> dict[str, dict[str, float]]:
+    """
+    Return a copy of `distributions` where, for each var in `log_scaled_vars`, the
+    uniform 'min' and 'max' have been replaced by log10(min) and log10(max).
+
+    The Dakota MOGA solver searches in the same space the surrogate was trained
+    in; for log-scaled inputs that means the bounds must also be log-transformed.
+    """
+    result: dict[str, dict[str, float]] = {}
+    for var, dist in distributions.items():
+        if var in log_scaled_vars and dist.get("distribution") == "uniform":
+            lo = dist.get("min")
+            hi = dist.get("max")
+            if lo is None or hi is None or lo <= 0 or hi <= 0:
+                raise ValueError(
+                    f"Cannot log10-transform bounds for '{var}': min and max must be positive"
+                )
+            result[var] = {**dist, "min": float(np.log10(lo)), "max": float(np.log10(hi))}
+        else:
+            result[var] = dist
+    return result
+
+
 def setup_preprocessor_for_workflow(
     jobs: list[FunctionJob],
     input_vars: list[str],
@@ -125,6 +177,8 @@ def setup_preprocessor_for_workflow(
     output_normalizations: dict[str, str] | None = None,
     input_sign_switches: list[str] | None = None,
     output_sign_switches: list[str] | None = None,
+    input_log_scales: list[str] | None = None,
+    output_log_scales: list[str] | None = None,
 ) -> tuple[Path, DataPreprocessor]:
     """
     Standardized preprocessor setup for Dakota workflows.
@@ -138,6 +192,8 @@ def setup_preprocessor_for_workflow(
         output_normalizations: Optional dict mapping output vars to normalization methods
         input_sign_switches: Optional list of input vars to switch signs
         output_sign_switches: Optional list of output vars to switch signs
+        input_log_scales: Optional list of input vars to log10-transform
+        output_log_scales: Optional list of output vars to log10-transform
 
     Returns:
         Tuple of (processed_training_file_path, fitted_preprocessor)
@@ -160,6 +216,12 @@ def setup_preprocessor_for_workflow(
     if input_normalizations or output_normalizations:
         preprocessor.setup_normalization(
             input_normalizations=input_normalizations, output_normalizations=output_normalizations
+        )
+
+    # Configure log scaling if provided (applied BEFORE sign-switching during fit)
+    if input_log_scales or output_log_scales:
+        preprocessor.setup_log_scaling(
+            input_log_scales=input_log_scales, output_log_scales=output_log_scales
         )
 
     # Configure sign switching if provided
@@ -276,13 +338,24 @@ def flask_sumo_cross_validation():
         jobs: list[FunctionJob] = validated_request.function_jobs
         input_vars: list[str] = validated_request.input_vars
         output_var: str = validated_request.output
+        input_log_scales = _log_scales_to_var_list(
+            validated_request.input_log_scales, restrict_to=input_vars
+        )
+        output_log_scales = _log_scales_to_var_list(
+            validated_request.output_log_scales, restrict_to=[output_var]
+        )
 
         # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "cross_validation")
 
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_var], run_dir=run_dir
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_var],
+            run_dir=run_dir,
+            input_log_scales=input_log_scales,
+            output_log_scales=output_log_scales,
         )
 
         # Get mapped variable names for Dakota
@@ -352,13 +425,18 @@ def flask_manual_uq_propagation_with_uncertainty():
         jobs = validated_request.function_jobs
         n_histograms = validated_request.n_histograms
         seed = validated_request.seed
+        log_scaled_inputs = _log_scaled_inputs_from_distributions(distributions)
 
         # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "uq_with_uncertainty")
 
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_response],
+            run_dir=run_dir,
+            input_log_scales=log_scaled_inputs or None,
         )
 
         # Get mapped variable names
@@ -531,6 +609,12 @@ def flask_evaluate_sumo_along_axes():
         input_vars = request_data.inputs
         jobs = request_data.function_jobs
         slider_values = request_data.slider_values
+        input_log_scales = _log_scales_to_var_list(
+            request_data.input_log_scales, restrict_to=input_vars
+        )
+        output_log_scales = _log_scales_to_var_list(
+            request_data.output_log_scales, restrict_to=[output_response]
+        )
 
         _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(jobs)} jobs")
         _logger.debug(f"Slider values: {slider_values}")
@@ -540,7 +624,12 @@ def flask_evaluate_sumo_along_axes():
 
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_response],
+            run_dir=run_dir,
+            input_log_scales=input_log_scales,
+            output_log_scales=output_log_scales,
         )
 
         # Get mapped variable names
@@ -630,6 +719,12 @@ def flask_sumo_grid_evaluation():
         input_vars = request_data.input_vars
         jobs = request_data.function_jobs
         slider_values = request_data.slider_values
+        input_log_scales = _log_scales_to_var_list(
+            request_data.input_log_scales, restrict_to=input_vars
+        )
+        output_log_scales = _log_scales_to_var_list(
+            request_data.output_log_scales, restrict_to=[output_response]
+        )
 
         _logger.debug(
             f"Validated request: {len(input_vars)} inputs, {len(grid_vars)} grid vars, {len(jobs)} jobs"
@@ -642,7 +737,12 @@ def flask_sumo_grid_evaluation():
 
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_response],
+            run_dir=run_dir,
+            input_log_scales=input_log_scales,
+            output_log_scales=output_log_scales,
         )
 
         # Get mapped variable names
@@ -802,10 +902,16 @@ def flask_perform_moga_optimization():
         output_var_selection = request_data.output_var_selection
         jobs = request_data.function_jobs
 
+        # Pull log-scaled input list from the typed distribution objects before dumping
+        log_scaled_inputs = _log_scaled_inputs_from_distributions(input_distributions_raw)
+
         # Convert Pydantic distribution models to dict format expected by the optimization function
         input_distributions = {
             var: dist.model_dump() for var, dist in input_distributions_raw.items()
         }
+        # Dakota will search the log-transformed surrogate, so its uniform bounds must
+        # also be expressed in log10 space for any log-scaled input.
+        input_distributions = _apply_log10_to_uniform_bounds(input_distributions, log_scaled_inputs)
 
         output_responses = list(output_var_selection.keys())
         _logger.debug(
@@ -813,6 +919,7 @@ def flask_perform_moga_optimization():
         )
         _logger.debug(f"Output responses: {output_responses}")
         _logger.debug(f"Output var selection: {output_var_selection}")
+        _logger.debug(f"Log-scaled inputs: {log_scaled_inputs}")
 
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "moga")
         maximize_outputs = [
@@ -827,6 +934,7 @@ def flask_perform_moga_optimization():
             output_vars=output_responses,
             run_dir=run_dir,
             output_sign_switches=maximize_outputs,
+            input_log_scales=log_scaled_inputs or None,
         )
 
         mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]

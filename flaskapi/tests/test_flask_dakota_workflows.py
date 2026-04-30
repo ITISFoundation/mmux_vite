@@ -131,6 +131,53 @@ class TestSumoCrossValidation:
         assert "error" in data
         assert "field required" not in data["error"].lower()
 
+    def test_sumo_cross_validation_log_scaled_input_trains_in_log_space(
+        self, test_client: Flask, monkeypatch
+    ):
+        """When inputLogScales marks an input True, the surrogate must be trained on log10(x)."""
+        captured_call: dict = {}
+
+        def fake_eval(run_dir, processed_training_file, mapped_input_vars, mapped_output_var):
+            # Read the training file Dakota would consume and capture the input column
+            import pandas as pd
+
+            df = pd.read_csv(processed_training_file, sep=" ")
+            captured_call["x1_values"] = df["x1"].tolist()
+            n = len(df)
+            return {
+                mapped_output_var: df[mapped_output_var].tolist(),
+                mapped_output_var + "_hat": [0.0] * n,
+                mapped_output_var + "_std_hat": [0.0] * n,
+            }
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
+            fake_eval,
+        )
+
+        # Build jobs with controlled positive 'current' values so we can check log10()
+        currents = [1e-3, 1e-2, 1e-1, 1.0, 10.0]
+        jobs = [
+            {
+                "status": "completed",
+                "inputs": {"current": c},
+                "outputs": {"y": float(i)},
+            }
+            for i, c in enumerate(currents)
+        ]
+        payload = {
+            "inputVars": ["current"],
+            "output": "y",
+            "FunctionJobs": jobs,
+            "inputLogScales": {"current": True},
+        }
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 200, response.get_json()
+
+        np.testing.assert_array_almost_equal(
+            captured_call["x1_values"], np.log10(currents).tolist()
+        )
+
 
 class TestSnakeCaseDakotaRequestCompatibility:
     def test_perform_moga_optimization_accepts_snake_case_payload(self, test_client: Flask):
@@ -2141,6 +2188,93 @@ class TestMOGAOptimization:
         assert results["temperature"] == [0.25, 0.75]
         assert results["loss"] == [-2.0, -1.5]
         assert results["activation"] == [2.0, 1.5]
+
+    def test_moga_log_scaled_input_transforms_bounds_and_inverts_results(
+        self, test_client: Flask, monkeypatch
+    ):
+        """
+        With logScale=True on a uniform input:
+        - Dakota must receive log10(min)..log10(max) as the search bounds
+        - Inputs returned in the Pareto front must be inverse-transformed via 10**
+        """
+        input_vars = ["current"]
+        output_vars = ["loss"]
+        # Build jobs whose 'current' inputs are positive across the [1e-3, 1.0] range
+        jobs = create_function_job_list(
+            10, inputs=input_vars, outputs=output_vars, status="completed"
+        )
+
+        captured_call: dict = {}
+
+        def fake_perform_moga_optimization(
+            run_dir,
+            processed_training_file,
+            mapped_input_vars,
+            mapped_distributions,
+            mapped_output_vars,
+            moga_kwargs,
+        ):
+            captured_call["mapped_distributions"] = mapped_distributions
+            # Return Pareto-front inputs already in mapped/log space: -3, -1.5, 0
+            return {
+                mapped_input_vars[0]: [-3.0, -1.5, 0.0],
+                mapped_output_vars[0]: [0.1, 0.2, 0.3],
+            }
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.perform_moga_optimization",
+            fake_perform_moga_optimization,
+        )
+
+        payload = {
+            "inputVars": input_vars,
+            "distributions": {
+                "current": {
+                    "distribution": "uniform",
+                    "min": 1e-3,
+                    "max": 1.0,
+                    "logScale": True,
+                }
+            },
+            "outputVarSelection": {"loss": "minimize"},
+            "FunctionJobs": jobs,
+        }
+
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
+        assert response.status_code == 200, response.get_json()
+
+        # Bounds passed to Dakota should be log10-transformed
+        mapped_dist = captured_call["mapped_distributions"]
+        x1_dist = mapped_dist["x1"]
+        assert x1_dist["distribution"] == "uniform"
+        assert x1_dist["min"] == pytest.approx(-3.0)
+        assert x1_dist["max"] == pytest.approx(0.0)
+
+        # Pareto-front inputs should be returned in original (linear) space
+        results = response.get_json()["optimizationResults"]
+        np.testing.assert_array_almost_equal(results["current"], [1e-3, 10**-1.5, 1.0])
+
+    def test_moga_rejects_log_scale_with_non_positive_min(self, test_client: Flask):
+        """logScale=True with min<=0 must be rejected at validation time."""
+        input_vars = ["x"]
+        output_vars = ["y"]
+        jobs = create_function_job_list(5, inputs=input_vars, outputs=output_vars)
+        payload = {
+            "inputVars": input_vars,
+            "distributions": {
+                "x": {
+                    "distribution": "uniform",
+                    "min": 0.0,
+                    "max": 1.0,
+                    "logScale": True,
+                }
+            },
+            "outputVarSelection": {"y": "minimize"},
+            "FunctionJobs": jobs,
+        }
+
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
+        assert response.status_code == 400
 
     def test_successful_basic_moga_optimization(self, test_client: Flask):
         """Test successful MOGA optimization with basic configuration."""

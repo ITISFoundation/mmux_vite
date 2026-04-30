@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/ordonez/.claude/skills/webapp-testing/scripts/**)",
+      "Bash(python3 -c \"import playwright\")"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}

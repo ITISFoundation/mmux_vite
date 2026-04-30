@@ -13,7 +13,7 @@ import { getGridData, getGridOutputValues, type NumericSeries } from "./sumoResp
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
@@ -164,6 +164,10 @@ function IsoSurface3DPlot() {
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
     setPropagating(true);
+    const localDistribution = distribution[selectedFunction?.uid || ""] || {};
+    const inputLogScales = Object.fromEntries(inputVars.map(v => [v, Boolean(localDistribution[v]?.logScale)]));
+    const localOutputLogScales = outputLogScales[selectedFunction?.uid || ""] || {};
+    const outputLogScalesBody = selectedQoI ? { [selectedQoI]: Boolean(localOutputLogScales[selectedQoI]) } : {};
     fetch(`/flask/dakota/sumo_grid_evaluation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -174,6 +178,8 @@ function IsoSurface3DPlot() {
         sliderValues: otherAxis,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false,
+        inputLogScales,
+        outputLogScales: outputLogScalesBody,
       }),
     })
       .then(response => {

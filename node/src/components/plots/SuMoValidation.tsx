@@ -15,7 +15,7 @@ import { getValidationSeries } from "./sumoResponse";
 
 function SuMoValidation() {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
@@ -105,6 +105,10 @@ function SuMoValidation() {
     setPlotData([]);
     setPropagating(true);
 
+    const localDistribution = distribution[selectedFunction?.uid || ""] || {};
+    const inputLogScales = Object.fromEntries(inputVars.map(v => [v, Boolean(localDistribution[v]?.logScale)]));
+    const localOutputLogScales = outputLogScales[selectedFunction?.uid || ""] || {};
+    const outputLogScalesBody = selectedQoI ? { [selectedQoI]: Boolean(localOutputLogScales[selectedQoI]) } : {};
     fetch(`/flask/dakota/sumo_cross_validation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -113,6 +117,8 @@ function SuMoValidation() {
         output: selectedQoI,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false,
+        inputLogScales,
+        outputLogScales: outputLogScalesBody,
       }),
     })
       .then(response => response.json())

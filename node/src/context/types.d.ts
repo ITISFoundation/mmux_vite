@@ -7,6 +7,7 @@ interface PersistenceType {
   outputVars: string[];
   distribution: { [key: string]: InputVarSelection };
   outputTargets: { [key: string]: OutputVarSelection };
+  outputLogScales: { [uid: string]: { [varName: string]: boolean } };
   lhsSamplingConfig: LHSamplingConfig;
   gridSamplingConfig: GridSamplingConfig;
   singleJobConfig: SingleJobConfig[];

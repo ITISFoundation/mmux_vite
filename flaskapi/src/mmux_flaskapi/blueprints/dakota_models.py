@@ -151,6 +151,14 @@ class SumoCrossValidationRequest(BaseModel):
         min_length=5,
         description="List of function jobs (minimum 5 required)",
     )
+    input_log_scales: FunctionVariablesMapping[bool] | None = Field(
+        default=None,
+        description="Optional map of input variable name → True if the surrogate should be trained on log10 of that input",
+    )
+    output_log_scales: FunctionVariablesMapping[bool] | None = Field(
+        default=None,
+        description="Optional map of output variable name → True if the surrogate should be trained on log10 of that output",
+    )
 
     @field_validator("input_vars")
     @classmethod
@@ -220,7 +228,10 @@ class SumoCrossValidationRequest(BaseModel):
 class DistributionParams(BaseModel):
     """Model for distribution parameters."""
 
-    model_config = ConfigDict(extra="allow")  # Allow additional distribution parameters
+    # populate_by_name lets us accept either `log_scale` or the camelCase `logScale`
+    # from the frontend; FunctionVariablesMapping preserves outer key case and so
+    # does not auto-convert nested camelCase field names.
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     distribution: Literal["normal", "uniform"] = Field(
         ..., description="Type of distribution (normal or uniform)"
@@ -229,6 +240,15 @@ class DistributionParams(BaseModel):
     std: float | None = None
     min: float | None = None
     max: float | None = None
+    log_scale: bool = Field(
+        default=False,
+        alias="logScale",
+        description=(
+            "If True, the surrogate is trained on log10(value) for this variable "
+            "and Dakota searches in log-space. Only supported for uniform distributions "
+            "with strictly positive bounds."
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_distribution_params(self) -> "DistributionParams":
@@ -238,11 +258,20 @@ class DistributionParams(BaseModel):
                 raise ValueError("Normal distribution requires 'mean' and 'std' parameters")
             if self.std <= 0:
                 raise ValueError("Standard deviation must be positive for normal distribution")
+            if self.log_scale:
+                raise ValueError(
+                    "log_scale is only supported for uniform distributions; for normal "
+                    "distributions use a log-normal distribution form instead"
+                )
         elif self.distribution == "uniform":
             if self.min is None or self.max is None:
                 raise ValueError("Uniform distribution requires 'min' and 'max' parameters")
             if self.min >= self.max:
                 raise ValueError("Min must be less than max for uniform distribution")
+            if self.log_scale and self.min <= 0:
+                raise ValueError(
+                    "log_scale requires min > 0 for uniform distributions (log10 is undefined)"
+                )
 
         return self
 
@@ -361,6 +390,14 @@ class SumoAlongAxesRequest(BaseModel):
     )
     slider_values: FunctionVariablesMapping[float] | None = Field(
         default=None, description="Cut values for input variables"
+    )
+    input_log_scales: FunctionVariablesMapping[bool] | None = Field(
+        default=None,
+        description="Optional map of input variable name → True if the surrogate should be trained on log10 of that input",
+    )
+    output_log_scales: FunctionVariablesMapping[bool] | None = Field(
+        default=None,
+        description="Optional map of output variable name → True if the surrogate should be trained on log10 of that output",
     )
 
     @field_validator("inputs")
@@ -544,6 +581,14 @@ class SumoGridEvaluationRequest(BaseModel):
     )
     slider_values: FunctionVariablesMapping[float] | None = Field(
         default=None, description="Fixed values for non-grid input variables"
+    )
+    input_log_scales: FunctionVariablesMapping[bool] | None = Field(
+        default=None,
+        description="Optional map of input variable name → True if the surrogate should be trained on log10 of that input",
+    )
+    output_log_scales: FunctionVariablesMapping[bool] | None = Field(
+        default=None,
+        description="Optional map of output variable name → True if the surrogate should be trained on log10 of that output",
     )
 
     @field_validator("grid_vars")
@@ -912,6 +957,14 @@ class SumoCVAccuracyMetricsRequest(BaseModel):
         ...,
         min_length=5,
         description="List of function jobs (minimum 5 required)",
+    )
+    input_log_scales: FunctionVariablesMapping[bool] | None = Field(
+        default=None,
+        description="Optional map of input variable name → True if the surrogate should be trained on log10 of that input",
+    )
+    output_log_scales: FunctionVariablesMapping[bool] | None = Field(
+        default=None,
+        description="Optional map of output variable name → True if the surrogate should be trained on log10 of that output",
     )
 
     @field_validator("inputs")
