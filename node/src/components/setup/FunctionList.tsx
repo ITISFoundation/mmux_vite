@@ -42,6 +42,20 @@ function getRowId(row: OsparcFunction) {
   return row.uid ? row.uid : `${row.title}${row.description}`;
 }
 
+function selectionModelsEqual(left: GridRowSelectionModel, right: GridRowSelectionModel) {
+  if (left.type !== right.type || left.ids.size !== right.ids.size) {
+    return false;
+  }
+
+  for (const id of left.ids) {
+    if (!right.ids.has(id)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export function FunctionList() {
   const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } = useFunctionContext();
   const { setLhsSamplingConfig, setGridSamplingConfig, setSingleJobConfig, clearSampling } = useSamplingContext();
@@ -55,6 +69,7 @@ export function FunctionList() {
   const [jobCount, setJobCount] = useState<{ [key: string]: number }>({});
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
   const selectedFunctionUid = selectedFunction?.uid;
+  const selectedRowId = rowSelectionModel.ids.values().next().value;
   const functionRows: FunctionGridRow[] = functions.map(fun => ({
     ...fun,
     isSelected: selectedFunctionUid === fun.uid,
@@ -179,13 +194,19 @@ export function FunctionList() {
     const outputProperties = fun.outputSchema?.schemaContent?.properties || {};
 
     if (selectedFunction && selectedFunction.uid === fun.uid) {
-      setRowSelectionModel({ type: "include", ids: new Set() });
+      setRowSelectionModel(current => {
+        const next = { type: "include", ids: new Set() } satisfies GridRowSelectionModel;
+        return selectionModelsEqual(current, next) ? current : next;
+      });
       handleSelectedFunction(undefined);
       setInputVars([]);
       setOutputVars([]);
       return;
     }
-    setRowSelectionModel({ type: "include", ids: new Set([getRowId(fun)]) });
+    setRowSelectionModel(current => {
+      const next = { type: "include", ids: new Set([getRowId(fun)]) } satisfies GridRowSelectionModel;
+      return selectionModelsEqual(current, next) ? current : next;
+    });
     handleSelectedFunction(fun);
     setInputVars(Object.keys(inputProperties));
     console.log("inputVars registered:", Object.keys(inputProperties));
@@ -194,6 +215,10 @@ export function FunctionList() {
   }
 
   const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {
+    if (selectionModelsEqual(newRowSelectionModel, rowSelectionModel)) {
+      return;
+    }
+
     setRowSelectionModel(newRowSelectionModel);
     if (newRowSelectionModel.ids.size > 0) {
       const selectedRow = functions.find(row => getRowId(row) === newRowSelectionModel.ids.values().next().value);
@@ -216,16 +241,21 @@ export function FunctionList() {
   useEffect(() => {
     if (!selectedFunctionUid) {
       if (rowSelectionModel.ids.size > 0) {
-        setRowSelectionModel({ type: "include", ids: new Set() });
+        setRowSelectionModel(current => {
+          const next = { type: "include", ids: new Set() } satisfies GridRowSelectionModel;
+          return selectionModelsEqual(current, next) ? current : next;
+        });
       }
       return;
     }
 
-    const currentSelectedId = rowSelectionModel.ids.values().next().value;
-    if (rowSelectionModel.ids.size !== 1 || currentSelectedId !== selectedFunctionUid) {
-      setRowSelectionModel({ type: "include", ids: new Set([selectedFunctionUid]) });
+    if (rowSelectionModel.ids.size !== 1 || selectedRowId !== selectedFunctionUid) {
+      setRowSelectionModel(current => {
+        const next = { type: "include", ids: new Set([selectedFunctionUid]) } satisfies GridRowSelectionModel;
+        return selectionModelsEqual(current, next) ? current : next;
+      });
     }
-  }, [rowSelectionModel.ids, selectedFunctionUid]);
+  }, [rowSelectionModel.ids.size, selectedFunctionUid, selectedRowId]);
 
   if (error) {
     return (
