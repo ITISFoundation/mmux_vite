@@ -16,9 +16,18 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { listFunctions, uploadJobCollectionCsv } from "../../utils/functionUtils";
-import { pickSingleCsvFile } from "../../utils/jobCollectionCsv";
+import { analyzeUploadedJobCollectionCsv, pickSingleCsvFile, type UploadedInputPreset } from "../../utils/jobCollectionCsv";
 
 type UploadMode = "existing" | "new";
+
+export type UploadJobCollectionSuccessResult = {
+  targetFunctionUid: string;
+  importedSamples: number;
+  targetMode: UploadMode;
+  inputVars: string[];
+  outputVars: string[];
+  inputPresets: Record<string, UploadedInputPreset>;
+};
 
 type UploadJobCollectionButtonProps = {
   buttonLabel: string;
@@ -33,11 +42,7 @@ type UploadJobCollectionButtonProps = {
   initialTargetFunctionUid?: string;
   initialSourceFunctionUid?: string;
   initialNewFunctionTitle?: string;
-  onUploadSuccess?: (result: {
-    targetFunctionUid: string;
-    importedSamples: number;
-    targetMode: UploadMode;
-  }) => Promise<void> | void;
+  onUploadSuccess?: (result: UploadJobCollectionSuccessResult) => Promise<void> | void;
 };
 
 export default function UploadJobCollectionButton(props: UploadJobCollectionButtonProps) {
@@ -121,9 +126,15 @@ export default function UploadJobCollectionButton(props: UploadJobCollectionButt
               newFunctionTitle: newFunctionTitle || undefined,
               sourceFunctionUid: sourceFunctionUid || undefined,
             });
+      const analysis = analyzeUploadedJobCollectionCsv(uploadCsvContent);
 
       if (onUploadSuccess) {
-        await onUploadSuccess(result);
+        await onUploadSuccess({
+          ...result,
+          inputVars: analysis.inputVars,
+          outputVars: analysis.outputVars,
+          inputPresets: analysis.inputPresets,
+        });
       }
 
       setUploadDialogOpen(false);

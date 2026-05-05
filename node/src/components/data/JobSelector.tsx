@@ -45,7 +45,7 @@ function getRowId(value: SelectedJobCollection) {
 }
 
 export default function JobsSelector(props: JobSelectorPropsType) {
-  const { selectedFunction } = useFunctionContext();
+  const { selectedFunction, distribution, setDistribution } = useFunctionContext();
   const { launchingSampling, runningSampling } = useSamplingContext();
   const { setSelectedJobUids, fetchedJobCollections, requestForceFetch } = useJobContext();
   const { setIsSuMoGenerated } = useMMUXContext();
@@ -83,7 +83,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   };
 
   const onSelectJob = (index: number, selected: boolean, subJob: string) => {
-    console.info("Selecting subJob: ", subJob, " at index: ", index, " with selected: ", selected);
     const newJobCollections: SelectedJobCollection[] = jobCollections.map((jc, idx) => {
       const auxJob = jc;
       if (idx === index) {
@@ -131,7 +130,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   };
 
   const handleAnchor = (target: HTMLButtonElement, uid: string) => {
-    console.info("Opening job collection with uid: ", target, uid);
     setAnchorEl(target);
     openJobCollection(uid);
   };
@@ -142,7 +140,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       return;
     }
     if (poperID !== -1 && anchorEl && poperOpen.current) {
-      console.info("Closing job collection popper", poperID, anchorEl);
       setAnchorEl(null);
       setPopperID(-1);
       poperOpen.current = false;
@@ -177,25 +174,8 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     [jobCollections, updateJobContext],
   );
 
-  // const autoSelectJobs = useCallback(() => {
-  //   const newJobCollections: SelectedJobCollection[] = jobCollections.map(jc => {
-  //     const auxJob = jc;
-  //     auxJob.subJobs = jc.subJobs.map(subJob => ({
-  //       selected: subJob.job.status === "SUCCESS",
-  //       job: subJob.job,
-  //     }));
-  //     const auxJobState = auxJob.subJobs.map(j => j.selected);
-  //     auxJob.selected = !auxJobState.every(j => j === false);
-  //     return auxJob;
-  //   });
-
-  //   setJobCollections(newJobCollections);
-  //   updateJobContext(newJobCollections);
-  // }, [jobCollections, updateJobContext]);
-
   const handleJobsUpdate = useCallback(async () => {
     await requestForceFetch(selectedFunction?.uid as string, setJobProgress);
-    console.info("Updated JobCollections");
   }, [requestForceFetch, selectedFunction, setJobProgress]);
 
   const handleDownloadSelectedCollections = async () => {
@@ -247,11 +227,9 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   }, [fetchedJobCollections]);
 
   useEffect(() => {
-    console.info("useEffect in JobsSelector triggered", selectedFunction, jobCollections);
     if (selectedFunction === undefined || jobCollections.length > 0) {
       return;
     }
-    console.info("Function selected: ", selectedFunction.uid);
     handleJobsUpdate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFunction]);
@@ -260,7 +238,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     if (selectedFunction !== undefined && launchingSampling === false && runningSampling === true) {
       (async () => {
         await requestForceFetch(selectedFunction?.uid ? selectedFunction.uid : "", setJobProgress);
-        console.info("Updated JobCollections");
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -598,8 +575,12 @@ export default function JobsSelector(props: JobSelectorPropsType) {
           initialTargetFunctionUid={selectedFunction?.uid || ""}
           initialSourceFunctionUid={selectedFunction?.uid || ""}
           initialNewFunctionTitle="Uploaded JobCollection Function"
-          onUploadSuccess={async () => {
-            if (selectedFunction?.uid) {
+          onUploadSuccess={async result => {
+            setDistribution({
+              ...distribution,
+              [result.targetFunctionUid]: result.inputPresets,
+            });
+            if (selectedFunction?.uid && selectedFunction.uid === result.targetFunctionUid) {
               await requestForceFetch(selectedFunction.uid, setJobProgress);
             }
           }}

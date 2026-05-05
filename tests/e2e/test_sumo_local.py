@@ -64,7 +64,7 @@ def _snake_to_camel_case(value: str) -> str:
 
 def _reset_persistence(page: Page, app_url: str) -> None:
     response = page.request.post(
-        f"{app_url}/flask/text-file",
+        f"{app_url}/flask/text-file/",
         data=json.dumps(
             {
                 "filename": "persistence.json",

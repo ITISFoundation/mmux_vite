@@ -10,8 +10,8 @@ function camelToSnakeCase(value: string): string {
   return value.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
 }
 
-const PRESERVE_SUBTREE_KEYS = new Set(["inputs", "outputs", "default_inputs", "defaultInputs", "properties"]);
-const PRESERVE_CURRENT_LEVEL_KEYS = new Set(["predictions", "grid_data", "gridData"]);
+const preserveSubtreeKeys = new Set(["inputs", "outputs", "default_inputs", "defaultInputs", "properties"]);
+const preserveCurrentLevelKeys = new Set(["predictions", "grid_data", "gridData"]);
 
 function normalizePayloadToCamelCaseInternal(payload: unknown, preserveAllKeys = false): unknown {
   if (Array.isArray(payload)) {
@@ -28,24 +28,28 @@ function normalizePayloadToCamelCaseInternal(payload: unknown, preserveAllKeys =
       const transformedKey = preserveAllKeys ? rawKey : snakeToCamelCase(rawKey);
 
       if (value && typeof value === "object" && !Array.isArray(value)) {
-        if (!preserveAllKeys && PRESERVE_CURRENT_LEVEL_KEYS.has(canonicalKey)) {
-          normalized[transformedKey] = Object.fromEntries(
-            Object.entries(value as Record<string, unknown>).map(([nestedKey, nestedValue]) => [
-              nestedKey,
-              normalizePayloadToCamelCaseInternal(nestedValue),
-            ]),
-          );
-        } else {
-          normalized[transformedKey] = normalizePayloadToCamelCaseInternal(
-            value,
-            preserveAllKeys || PRESERVE_SUBTREE_KEYS.has(canonicalKey),
-          );
+        if (!preserveAllKeys && preserveCurrentLevelKeys.has(canonicalKey)) {
+          return {
+            ...normalized,
+            [transformedKey]: Object.fromEntries(
+              Object.entries(value as Record<string, unknown>).map(([nestedKey, nestedValue]) => [
+                nestedKey,
+                normalizePayloadToCamelCaseInternal(nestedValue),
+              ]),
+            ),
+          };
         }
-        return normalized;
+
+        return {
+          ...normalized,
+          [transformedKey]: normalizePayloadToCamelCaseInternal(value, preserveAllKeys || preserveSubtreeKeys.has(canonicalKey)),
+        };
       }
 
-      normalized[transformedKey] = normalizePayloadToCamelCaseInternal(value, preserveAllKeys);
-      return normalized;
+      return {
+        ...normalized,
+        [transformedKey]: normalizePayloadToCamelCaseInternal(value, preserveAllKeys),
+      };
     },
     {} as Record<string, unknown>,
   );
@@ -138,7 +142,13 @@ export async function uploadJobCollectionCsv(params: {
     throw new Error(errorData.error || "Failed to upload JobCollection CSV");
   }
 
-  return response.json();
+  return normalizePayloadToCamelCase<{
+    targetMode: "existing" | "new";
+    targetFunctionUid: string;
+    sourceFunctionUid?: string;
+    importedSamples: number;
+    jobCollection?: unknown;
+  }>(await response.json());
 }
 
 export function getSimplifiedHost(): string {

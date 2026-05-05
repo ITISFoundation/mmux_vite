@@ -1,5 +1,5 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Plot from "react-plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
@@ -17,6 +17,9 @@ function IsoSurface3DPlot() {
   const { selectedQoI } = useMMUXContext();
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
+  const selectedFunctionUid = selectedFunction?.uid;
+  const selectedDistribution = selectedFunctionUid ? distribution[selectedFunctionUid] : undefined;
+  const selectedOutputLogScales = selectedFunctionUid ? outputLogScales[selectedFunctionUid] || {} : {};
   const filteredInputVars = filterInputVars({
     ...context,
     selectedFunction,
@@ -24,20 +27,47 @@ function IsoSurface3DPlot() {
     distribution,
   });
   const [propagating, setPropagating] = useState(false);
-  const [axis1, setAxis1] = useState(filteredInputVars[0]);
-  const [axis2, setAxis2] = useState(filteredInputVars[1]);
-  const [axis3, setAxis3] = useState(filteredInputVars[2]);
+  const [axis1, setAxis1] = useState(filteredInputVars[0] || "");
+  const [axis2, setAxis2] = useState(filteredInputVars[1] || filteredInputVars[0] || "");
+  const [axis3, setAxis3] = useState(filteredInputVars[2] || filteredInputVars[1] || filteredInputVars[0] || "");
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
-  const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
-    inputVars.reduce((acc: { [key: string]: number }, key) => {
-      acc[key] =
-        distribution[selectedFunction?.uid || ""][key].value ||
-        distribution[selectedFunction?.uid || ""][key].mean ||
-        distribution[selectedFunction?.uid || ""][key].min ||
-        0;
+  const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>({});
+  const lastRequestKeyRef = useRef("");
+
+  useEffect(() => {
+    if (!selectedDistribution) {
+      setOtherAxis({});
+      return;
+    }
+
+    const nextOtherAxis = inputVars.reduce((acc: { [key: string]: number }, key) => {
+      acc[key] = selectedDistribution[key]?.value || selectedDistribution[key]?.mean || selectedDistribution[key]?.min || 0;
       return acc;
-    }, {}),
-  );
+    }, {});
+
+    setOtherAxis(current => {
+      const currentKeys = Object.keys(current);
+      const nextKeys = Object.keys(nextOtherAxis);
+      const sameValues = currentKeys.length === nextKeys.length && nextKeys.every(key => current[key] === nextOtherAxis[key]);
+      return sameValues ? current : nextOtherAxis;
+    });
+  }, [inputVars, selectedDistribution]);
+
+  useEffect(() => {
+    const nextAxis1 = filteredInputVars[0] || "";
+    const nextAxis2 = filteredInputVars.find(i => i !== nextAxis1) || filteredInputVars[1] || nextAxis1;
+    const nextAxis3 = filteredInputVars.find(i => i !== nextAxis1 && i !== nextAxis2) || filteredInputVars[2] || nextAxis2;
+
+    if (nextAxis1 !== axis1) {
+      setAxis1(nextAxis1);
+    }
+    if (nextAxis2 !== axis2) {
+      setAxis2(nextAxis2);
+    }
+    if (nextAxis3 !== axis3) {
+      setAxis3(nextAxis3);
+    }
+  }, [axis1, axis2, axis3, filteredInputVars]);
 
   const handleSetAxis1 = (newAxis: string) => {
     if (axis3 === newAxis || axis2 === newAxis) {
@@ -164,10 +194,14 @@ function IsoSurface3DPlot() {
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
     setPropagating(true);
-    const localDistribution = distribution[selectedFunction?.uid || ""] || {};
-    const inputLogScales = Object.fromEntries(inputVars.map(v => [v, Boolean(localDistribution[v]?.logScale)]));
-    const localOutputLogScales = outputLogScales[selectedFunction?.uid || ""] || {};
-    const outputLogScalesBody = selectedQoI ? { [selectedQoI]: Boolean(localOutputLogScales[selectedQoI]) } : {};
+    if (!selectedFunctionUid || !selectedDistribution) {
+      setPlotData([]);
+      setPropagating(false);
+      return;
+    }
+
+    const inputLogScales = Object.fromEntries(inputVars.map(v => [v, Boolean(selectedDistribution[v]?.logScale)]));
+    const outputLogScalesBody = selectedQoI ? { [selectedQoI]: Boolean(selectedOutputLogScales[selectedQoI]) } : {};
     fetch(`/flask/dakota/sumo_grid_evaluation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -207,11 +241,41 @@ function IsoSurface3DPlot() {
   useEffect(() => {
     const run = async () => {
       const jobs = filteredJobList;
-      return RunSuMo3DInterpolation(jobs, axis1, axis2);
+      const requestKey = JSON.stringify({
+        axis1,
+        axis2,
+        axis3,
+        inputVars,
+        selectedFunctionUid,
+        selectedQoI,
+        otherAxis,
+        selectedDistribution,
+        selectedOutputLogScales,
+        jobUids: jobs.map(job => job.uid),
+      });
+
+      if (requestKey === lastRequestKeyRef.current) {
+        return;
+      }
+
+      lastRequestKeyRef.current = requestKey;
+
+      await RunSuMo3DInterpolation(jobs, axis1, axis2);
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [axis1, axis2, axis3, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList]);
+  }, [
+    axis1,
+    axis2,
+    axis3,
+    filteredJobList,
+    inputVars,
+    otherAxis,
+    selectedDistribution,
+    selectedFunctionUid,
+    selectedOutputLogScales,
+    selectedQoI,
+  ]);
 
   const layout = {
     title: {
@@ -273,14 +337,21 @@ function IsoSurface3DPlot() {
           <CreateSelect idx={3} axis={axis3} setAxis={handleSetAxis3} />
         </Box>
         <Box display="flex" flexDirection="column" gap={2}>
-          {inputVars.length > 0 && distribution[selectedFunction?.uid || ""] !== undefined ? (
+          {inputVars.length > 0 && selectedDistribution ? (
             <>
               {inputVars.map(key => {
                 if (key === axis1 || key === axis2 || key === axis3) {
                   return null; // Skip the first variable as it is already selected
                 }
-                const dist = distribution[selectedFunction?.uid || ""];
-                return <CreateSlider input={key} dist={dist[key]} otherAxis={otherAxis} setOtherAxis={setOtherAxis} key={key} />;
+                return (
+                  <CreateSlider
+                    input={key}
+                    dist={selectedDistribution[key]}
+                    otherAxis={otherAxis}
+                    setOtherAxis={setOtherAxis}
+                    key={key}
+                  />
+                );
               })}
             </>
           ) : undefined}

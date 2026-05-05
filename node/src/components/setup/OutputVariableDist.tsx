@@ -13,37 +13,41 @@ export function OutputVariableDist() {
     useFunctionContext();
   // const { ServiceMode } = useServiceContext();
   const [openModal, setOpenModal] = useState(false);
-  const [configuredOutputs, setConfiguredOutputs] = useState(outputTargets[selectedFunction?.uid || ""] || {});
-  const [localOutputLogScales, setLocalOutputLogScales] = useState<{ [varName: string]: boolean }>(
-    outputLogScales[selectedFunction?.uid || ""] || {},
-  );
+  const selectedFunctionUid = selectedFunction?.uid;
+  const [configuredOutputs, setConfiguredOutputs] = useState<Record<string, OutputVarSelection[string]>>({});
+  const [localOutputLogScales, setLocalOutputLogScales] = useState<{ [varName: string]: boolean }>({});
   const theme = useTheme();
 
   const handlesetConfiguredOutputs = useCallback(
     (newOutputVars: typeof configuredOutputs) => {
       setConfiguredOutputs(newOutputVars);
-      if (selectedFunction) {
+      if (selectedFunctionUid) {
         const newDist = {
           ...outputTargets,
-          [selectedFunction.uid]: newOutputVars,
+          [selectedFunctionUid]: newOutputVars,
         };
         setOutputTargets(newDist);
       }
     },
-    [outputTargets, selectedFunction, setOutputTargets],
+    [outputTargets, selectedFunctionUid, setOutputTargets],
   );
 
   const handleSetOutputLogScale = (outputVar: string, value: boolean) => {
     const next = { ...localOutputLogScales, [outputVar]: value };
     setLocalOutputLogScales(next);
-    if (selectedFunction) {
-      setOutputLogScales({ ...outputLogScales, [selectedFunction.uid]: next });
+    if (selectedFunctionUid) {
+      setOutputLogScales({ ...outputLogScales, [selectedFunctionUid]: next });
     }
   };
 
   useEffect(() => {
-    if (outputTargets && selectedFunction && outputTargets[selectedFunction.uid]) {
-      setConfiguredOutputs(outputTargets[selectedFunction.uid]);
+    if (!selectedFunctionUid) {
+      setConfiguredOutputs({});
+      return;
+    }
+
+    if (outputTargets && outputTargets[selectedFunctionUid]) {
+      setConfiguredOutputs(outputTargets[selectedFunctionUid]);
     } else if (outputVars && outputVars.length > 0) {
       // handlesetConfiguredOutputs(Object.fromEntries(outputVars.map(v => [v, "minimize"])));
       handlesetConfiguredOutputs({});
@@ -51,14 +55,19 @@ export function OutputVariableDist() {
       handlesetConfiguredOutputs({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outputTargets, outputVars, selectedFunction]);
+  }, [handlesetConfiguredOutputs, outputTargets, outputVars, selectedFunctionUid]);
 
   useEffect(() => {
-    setLocalOutputLogScales(outputLogScales[selectedFunction?.uid || ""] || {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedFunction, outputLogScales]);
+    if (!selectedFunctionUid) {
+      setLocalOutputLogScales({});
+      return;
+    }
 
-  if (outputVars && outputVars.length === 0) {
+    setLocalOutputLogScales(outputLogScales[selectedFunctionUid] || {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outputLogScales, selectedFunctionUid]);
+
+  if (!selectedFunctionUid || (outputVars && outputVars.length === 0)) {
     return <></>;
   }
 

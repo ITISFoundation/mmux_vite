@@ -131,3 +131,14 @@ initial_prompt: ""
 # If the setting is undefined, the default_modes from the global configuration (serena_config.yml) apply.
 # Otherwise, this overrides the setting from the global configuration (serena_config.yml).
 # This setting can, in turn, be overridden by CLI parameters (--mode).
+
+# list of additional workspace folder paths for cross-package reference support (e.g. in monorepos).
+# Paths can be absolute or relative to the project root.
+# Each folder is registered as an LSP workspace folder, enabling language servers to discover
+# symbols and references across package boundaries.
+# Currently supported for: TypeScript.
+# Example:
+#   additional_workspace_folders:
+#     - ../sibling-package
+#     - ../shared-lib
+additional_workspace_folders: []

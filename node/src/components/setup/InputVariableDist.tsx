@@ -185,7 +185,8 @@ export function InputVariableDist() {
   const { selectedFunction, inputVars, distribution, setDistribution } = useFunctionContext();
   const { serviceMode } = useServiceContext();
   const { filteredJobList } = useJobContext();
-  const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
+  const selectedFunctionUid = selectedFunction?.uid;
+  const [localDistribution, setLocalDistribution] = useState<Record<string, VarSelection>>({});
   const theme = useTheme();
 
   // Per-variable advisory warnings (distribution mismatch, Tukey outliers, etc).
@@ -208,15 +209,15 @@ export function InputVariableDist() {
   const handleSetLocalDistribution = useCallback(
     (newInputVars: typeof localDistribution) => {
       setLocalDistribution(newInputVars);
-      if (selectedFunction) {
+      if (selectedFunctionUid) {
         const newDist = {
           ...distribution,
-          [selectedFunction.uid]: newInputVars,
+          [selectedFunctionUid]: newInputVars,
         };
         setDistribution(newDist);
       }
     },
-    [distribution, selectedFunction, setDistribution],
+    [distribution, selectedFunctionUid, setDistribution],
   );
 
   const handleSetValue = (inputVar: string, type: string, value: number) => {
@@ -320,8 +321,13 @@ export function InputVariableDist() {
   };
 
   useEffect(() => {
-    if (distribution && selectedFunction && distribution[selectedFunction.uid]) {
-      setLocalDistribution(distribution[selectedFunction.uid]);
+    if (!selectedFunctionUid) {
+      setLocalDistribution({});
+      return;
+    }
+
+    if (distribution && distribution[selectedFunctionUid]) {
+      setLocalDistribution(distribution[selectedFunctionUid]);
     } else if (inputVars && inputVars.length > 0) {
       const initialInputVars = inputVars.reduce(
         (acc, val) => {
@@ -333,9 +339,9 @@ export function InputVariableDist() {
       handleSetLocalDistribution(initialInputVars);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [distribution, inputVars, selectedFunction]);
+  }, [distribution, handleSetLocalDistribution, inputVars, selectedFunctionUid]);
 
-  if (inputVars && inputVars.length === 0) {
+  if (!selectedFunctionUid || (inputVars && inputVars.length === 0)) {
     return <></>;
   }
 

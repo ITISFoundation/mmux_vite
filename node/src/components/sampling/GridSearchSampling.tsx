@@ -46,11 +46,17 @@ function GridSearchSampling() {
   const context = useSamplingContext();
   const { setRunningJobCollection } = useJobContext();
   const { gridSamplingConfig, setGridSamplingConfig } = context;
+  const selectedFunctionUid = selectedFunction?.uid;
+  const selectedDistribution = selectedFunctionUid ? distribution[selectedFunctionUid] : undefined;
 
   const [gridSamplingInputs, setGridSamplingInputs] = useState<GridSamplingConfig>(gridSamplingConfig);
   const [loading, setLoading] = useState<boolean>(true);
 
   const handleRunSampling = async () => {
+    if (!selectedFunctionUid || gridSamplingInputs.length === 0) {
+      return;
+    }
+
     setGridSamplingConfig(gridSamplingInputs);
     await runGridSampling(selectedFunction, context, setRunningJobCollection, gridSamplingInputs);
   };
@@ -67,18 +73,23 @@ function GridSearchSampling() {
   };
 
   useEffect(() => {
+    if (!selectedFunctionUid || !selectedDistribution) {
+      setGridSamplingInputs([]);
+      setLoading(false);
+      return;
+    }
+
     let currentSampling: GridSamplingConfig = gridSamplingConfig;
     if (gridSamplingConfig.length === 0) {
       currentSampling = inputVars.map(inputVar => ({
         variable: inputVar,
-        start: getSamplingStartValue(inputVar, distribution[selectedFunction?.uid || ""]) as number,
-        end: getSamplingEndValue(inputVar, distribution[selectedFunction?.uid || ""]) as number,
+        start: getSamplingStartValue(inputVar, selectedDistribution) as number,
+        end: getSamplingEndValue(inputVar, selectedDistribution) as number,
       }));
     }
     setGridSamplingInputs(currentSampling);
     setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [gridSamplingConfig, inputVars, selectedDistribution, selectedFunctionUid]);
 
   return (
     <>
@@ -120,7 +131,10 @@ function GridSearchSampling() {
         )}
       </Box>
       <Box display="flex" flexDirection="row" justifyContent="space-between" marginTop={2}>
-        <RunSamplingButton disabled={loading} handleRunSampling={handleRunSampling} />
+        <RunSamplingButton
+          disabled={loading || !selectedFunctionUid || gridSamplingInputs.length === 0}
+          handleRunSampling={handleRunSampling}
+        />
       </Box>
     </>
   );

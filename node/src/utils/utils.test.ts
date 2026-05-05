@@ -9,6 +9,7 @@ import { pickCsv, readCsvData } from "./csvUtils";
 import { fetchWithRetry } from "./fetchRetry";
 import { getSamplingEndValue, getSamplingStartValue } from "./sampling";
 import { stepValidator } from "./stepValidator";
+import { filterInputVars } from "../components/plots/PlotTools";
 import { RegisteredFunctionJobCollection, FunctionJob } from "../osparc-api-ts-client";
 import type { Function as OsparcFunction } from "../osparc-api-ts-client";
 
@@ -177,6 +178,9 @@ describe("stepValidator", () => {
       setOutputLogScales(_d: { [uid: string]: { [varName: string]: boolean } }): void {
         throw new Error("Function not implemented.");
       },
+      reconcileFunctions(_functions: OsparcFunction[]): void {
+        throw new Error("Function not implemented.");
+      },
     };
 
     const jobContext: JobContextType = {
@@ -216,5 +220,105 @@ describe("stepValidator", () => {
     expect(stepValidator(undefined, jobContext, "MOGA", 0)).toBe(false);
     expect(stepValidator(functionContext, jobContext, "", 0)).toBe(false);
     expect(stepValidator(functionContext, jobContext, "", 1)).toBe(false);
+  });
+
+  it("returns false instead of throwing when the selected function was pruned", () => {
+    const functionContext: FunctionContextType = {
+      selectedFunction: {
+        uid: "stale-func",
+        inputSchema: {},
+        outputSchema: {},
+        defaultInputs: {},
+        solverKey: "mockSolverKey",
+        solverVersion: "1.0.0",
+      },
+      distribution: {},
+      outputTargets: {},
+      outputLogScales: {},
+      setSelectedFunction: (_F: OsparcFunction | undefined): void => {
+        throw new Error("Function not implemented.");
+      },
+      inputVars: ["x"],
+      setInputVars: (_vars: string[]): void => {
+        throw new Error("Function not implemented.");
+      },
+      outputVars: [],
+      setOutputVars: (_vars: string[]): void => {
+        throw new Error("Function not implemented.");
+      },
+      setDistribution: (_d: { [key: string]: InputVarSelection }): void => {
+        throw new Error("Function not implemented.");
+      },
+      setOutputTargets(_d: { [key: string]: OutputVarSelection }): void {
+        throw new Error("Function not implemented.");
+      },
+      setOutputLogScales(_d: { [uid: string]: { [varName: string]: boolean } }): void {
+        throw new Error("Function not implemented.");
+      },
+      reconcileFunctions(_functions: OsparcFunction[]): void {
+        throw new Error("Function not implemented.");
+      },
+    };
+
+    const jobContext: JobContextType = {
+      selectedJobUids: [],
+      runningJobCollection: undefined,
+      setRunningJobCollection: (_jc: RegisteredFunctionJobCollection | undefined): void => {
+        throw new Error("Function not implemented.");
+      },
+      fetchedJobCollections: [],
+      setFetchedJobCollections: (_jc: SelectedJobCollection[] | undefined): void => {
+        throw new Error("Function not implemented.");
+      },
+      setSelectedJobUids: (_selectedJobs: string[]): void => {
+        throw new Error("Function not implemented.");
+      },
+      allJobsList: (): FunctionJob[] => [],
+      filteredJobList: [],
+      requestForceFetch: (): void => {
+        throw new Error("Function not implemented.");
+      },
+      parseStatus: (_jobStatus: string, _outputArray: Record<string, unknown>): string | JSX.Element[] => {
+        throw new Error("Function not implemented.");
+      },
+    };
+
+    expect(stepValidator(functionContext, jobContext, "", 0)).toBe(false);
+  });
+});
+
+describe("filterInputVars", () => {
+  it("returns an empty list when no selected function distribution exists", () => {
+    const jobContext: JobContextType = {
+      selectedJobUids: [],
+      runningJobCollection: undefined,
+      setRunningJobCollection: (_jc: RegisteredFunctionJobCollection | undefined): void => {
+        throw new Error("Function not implemented.");
+      },
+      fetchedJobCollections: [],
+      setFetchedJobCollections: (_jc: SelectedJobCollection[] | undefined): void => {
+        throw new Error("Function not implemented.");
+      },
+      setSelectedJobUids: (_selectedJobs: string[]): void => {
+        throw new Error("Function not implemented.");
+      },
+      allJobsList: (): FunctionJob[] => [],
+      filteredJobList: [],
+      requestForceFetch: (): void => {
+        throw new Error("Function not implemented.");
+      },
+      parseStatus: (_jobStatus: string, _outputArray: Record<string, unknown>): string | JSX.Element[] => {
+        throw new Error("Function not implemented.");
+      },
+    };
+
+    expect(
+      filterInputVars({
+        ...jobContext,
+        selectedFunction: undefined,
+        inputVars: ["x", "y"],
+        distribution: {},
+      }),
+    ).toEqual([]);
   });
 });

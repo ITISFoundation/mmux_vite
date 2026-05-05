@@ -21,10 +21,11 @@ export function OutputSetup(props: UQSetupProps) {
   const { selectedFunction, outputVars, outputLogScales, setOutputLogScales } = useFunctionContext();
   const { filteredJobList } = useJobContext();
   const { selectedQoI, setSelectedQoI, numSamples, setNumSamples } = useMMUXContext();
+  const selectedFunctionUid = selectedFunction?.uid;
   const [localQoI, setLocalQoI] = useState<string>(selectedQoI ?? "");
-  const [localNumSamples, setLocalNumSamples] = useState(numSamples[selectedFunction?.uid || ""] || 10000);
+  const [localNumSamples, setLocalNumSamples] = useState(10000);
 
-  const currentQoILogScale = Boolean(outputLogScales[selectedFunction?.uid || ""]?.[localQoI]);
+  const currentQoILogScale = selectedFunctionUid ? Boolean(outputLogScales[selectedFunctionUid]?.[localQoI]) : false;
 
   const handlesetLocalQoI = (value: string) => {
     setLocalQoI(value);
@@ -32,27 +33,44 @@ export function OutputSetup(props: UQSetupProps) {
   };
 
   const handleSetQoILogScale = (value: boolean) => {
-    if (!localQoI) return;
-    const uid = selectedFunction?.uid || "";
-    const current = outputLogScales[uid] || {};
-    setOutputLogScales({ ...outputLogScales, [uid]: { ...current, [localQoI]: value } });
+    if (!localQoI || !selectedFunctionUid) return;
+    const current = outputLogScales[selectedFunctionUid] || {};
+    setOutputLogScales({ ...outputLogScales, [selectedFunctionUid]: { ...current, [localQoI]: value } });
   };
 
   const handlesetLocalNumSamples = (value: number) => {
     setLocalNumSamples(value);
+    if (!selectedFunctionUid) {
+      return;
+    }
     setNumSamples({
       ...numSamples,
-      [selectedFunction?.uid || ""]: value,
+      [selectedFunctionUid]: value,
     });
   };
 
   useEffect(() => {
+    if (!selectedFunctionUid) {
+      setLocalQoI("");
+      setSelectedQoI(undefined);
+      return;
+    }
+
     setLocalQoI(outputVars[0] || "");
     if (mode === "moga") {
       setSelectedQoI(outputVars[0] || "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outputVars]); // Update localQoI when selectedQoI changes due to selectedFunction change
+  }, [mode, outputVars, selectedFunctionUid]);
+
+  useEffect(() => {
+    if (!selectedFunctionUid) {
+      setLocalNumSamples(10000);
+      return;
+    }
+
+    setLocalNumSamples(numSamples[selectedFunctionUid] || 10000);
+  }, [numSamples, selectedFunctionUid]);
 
   if (mode === "moga" && setSumoModal && setMogaModal) {
     return (

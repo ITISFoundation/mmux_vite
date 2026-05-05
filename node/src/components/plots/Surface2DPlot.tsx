@@ -1,5 +1,5 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
@@ -17,21 +17,49 @@ function Surface2DPlot() {
   const { selectedQoI } = useMMUXContext();
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
+  const selectedFunctionUid = selectedFunction?.uid;
+  const selectedDistribution = selectedFunctionUid ? distribution[selectedFunctionUid] : undefined;
   const filteredInputVars = filterInputVars({ ...context, selectedFunction, inputVars, distribution });
-  const [axis1, setAxis1] = useState(filteredInputVars[0]);
-  const [axis2, setAxis2] = useState(filteredInputVars[1]);
+  const [axis1, setAxis1] = useState(filteredInputVars[0] || "");
+  const [axis2, setAxis2] = useState(filteredInputVars[1] || filteredInputVars[0] || "");
   const [propagating, setPropagating] = useState(false);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
-  const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
-    inputVars.reduce((acc: { [key: string]: number }, key) => {
-      acc[key] =
-        distribution[selectedFunction?.uid || ""][key].value ||
-        distribution[selectedFunction?.uid || ""][key].mean ||
-        distribution[selectedFunction?.uid || ""][key].min ||
-        0;
+  const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>({});
+  const lastRequestKeyRef = useRef("");
+
+  useEffect(() => {
+    if (!selectedDistribution) {
+      setOtherAxis({});
+      return;
+    }
+
+    const nextOtherAxis = inputVars.reduce((acc: { [key: string]: number }, key) => {
+      acc[key] = selectedDistribution[key]?.value || selectedDistribution[key]?.mean || selectedDistribution[key]?.min || 0;
       return acc;
-    }, {}),
-  );
+    }, {});
+
+    setOtherAxis(current => {
+      const currentKeys = Object.keys(current);
+      const nextKeys = Object.keys(nextOtherAxis);
+      const sameValues = currentKeys.length === nextKeys.length && nextKeys.every(key => current[key] === nextOtherAxis[key]);
+      return sameValues ? current : nextOtherAxis;
+    });
+  }, [inputVars, selectedDistribution]);
+
+  useEffect(() => {
+    const nextAxis1 = filteredInputVars.includes(axis1) ? axis1 : filteredInputVars[0] || "";
+    const nextAxis2 =
+      filteredInputVars.includes(axis2) && nextAxis1 !== axis2
+        ? axis2
+        : filteredInputVars.find(i => i !== nextAxis1) || filteredInputVars[1] || filteredInputVars[0] || "";
+
+    if (nextAxis1 !== axis1) {
+      setAxis1(nextAxis1);
+    }
+    if (nextAxis2 !== axis2) {
+      setAxis2(nextAxis2);
+    }
+  }, [axis1, axis2, filteredInputVars]);
 
   const handleSetAxis1 = (newAxis: string) => {
     if (axis2 === newAxis) {
@@ -95,10 +123,15 @@ function Surface2DPlot() {
       console.info("Evaluating SuMo for 2D surface...");
       console.info("Jobs to build SuMo: ", jobs);
       setPropagating(true);
-      const localDistribution = distribution[selectedFunction?.uid || ""] || {};
-      const inputLogScales = Object.fromEntries(inputVars.map(v => [v, Boolean(localDistribution[v]?.logScale)]));
-      const localOutputLogScales = outputLogScales[selectedFunction?.uid || ""] || {};
-      const outputLogScalesBody = selectedQoI ? { [selectedQoI]: Boolean(localOutputLogScales[selectedQoI]) } : {};
+      if (!selectedFunctionUid || !selectedDistribution) {
+        setPlotData([]);
+        setPropagating(false);
+        return;
+      }
+
+      const inputLogScales = Object.fromEntries(inputVars.map(v => [v, Boolean(selectedDistribution[v]?.logScale)]));
+      const selectedOutputLogScales = selectedFunctionUid ? outputLogScales[selectedFunctionUid] || {} : {};
+      const outputLogScalesBody = selectedQoI ? { [selectedQoI]: Boolean(selectedOutputLogScales[selectedQoI]) } : {};
       fetch(`/flask/dakota/sumo_grid_evaluation`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -134,16 +167,45 @@ function Surface2DPlot() {
           setPlotData([]);
         });
     },
-    [inputVars, selectedQoI, otherAxis, reshapePlotData, distribution, selectedFunction?.uid, outputLogScales],
+    [inputVars, outputLogScales, selectedDistribution, selectedFunctionUid, selectedQoI, otherAxis, reshapePlotData],
   );
 
   useEffect(() => {
     const run = async () => {
       const jobs = filteredJobList;
-      return RunSuMo2DInterpolation(jobs, axis1, axis2);
+      const requestKey = JSON.stringify({
+        axis1,
+        axis2,
+        inputVars,
+        selectedFunctionUid,
+        selectedQoI,
+        otherAxis,
+        selectedDistribution,
+        outputLogScales,
+        jobUids: jobs.map(job => job.uid),
+      });
+
+      if (requestKey === lastRequestKeyRef.current) {
+        return;
+      }
+
+      lastRequestKeyRef.current = requestKey;
+
+      await RunSuMo2DInterpolation(jobs, axis1, axis2);
     };
     run();
-  }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList, RunSuMo2DInterpolation]);
+  }, [
+    RunSuMo2DInterpolation,
+    axis1,
+    axis2,
+    filteredJobList,
+    inputVars,
+    otherAxis,
+    outputLogScales,
+    selectedDistribution,
+    selectedFunctionUid,
+    selectedQoI,
+  ]);
 
   const layout: Partial<Layout> = {
     title: {
@@ -205,14 +267,21 @@ function Surface2DPlot() {
           <CreateSelect axis={axis1} idx={1} setAxis={handleSetAxis1} />
           <CreateSelect axis={axis2} idx={2} setAxis={handleSetAxis2} />
         </Box>
-        {inputVars.length > 0 && distribution[selectedFunction?.uid || ""] !== undefined ? (
+        {inputVars.length > 0 && selectedDistribution ? (
           <>
             {inputVars.map(key => {
               if (key === axis1 || key === axis2) {
                 return null; // Skip the first variable as it is already selected
               }
-              const dist = distribution[selectedFunction?.uid || ""];
-              return <CreateSlider input={key} dist={dist[key]} otherAxis={otherAxis} setOtherAxis={setOtherAxis} key={key} />;
+              return (
+                <CreateSlider
+                  input={key}
+                  dist={selectedDistribution[key]}
+                  otherAxis={otherAxis}
+                  setOtherAxis={setOtherAxis}
+                  key={key}
+                />
+              );
             })}
           </>
         ) : undefined}

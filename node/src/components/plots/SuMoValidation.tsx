@@ -18,6 +18,9 @@ function SuMoValidation() {
   const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
+  const selectedFunctionUid = selectedFunction?.uid;
+  const selectedDistribution = selectedFunctionUid ? distribution[selectedFunctionUid] : undefined;
+  const selectedOutputLogScales = selectedFunctionUid ? outputLogScales[selectedFunctionUid] || {} : {};
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
   const [propagating, setPropagating] = useState(false);
@@ -105,10 +108,13 @@ function SuMoValidation() {
     setPlotData([]);
     setPropagating(true);
 
-    const localDistribution = distribution[selectedFunction?.uid || ""] || {};
-    const inputLogScales = Object.fromEntries(inputVars.map(v => [v, Boolean(localDistribution[v]?.logScale)]));
-    const localOutputLogScales = outputLogScales[selectedFunction?.uid || ""] || {};
-    const outputLogScalesBody = selectedQoI ? { [selectedQoI]: Boolean(localOutputLogScales[selectedQoI]) } : {};
+    if (!selectedFunctionUid || !selectedDistribution) {
+      setPropagating(false);
+      return;
+    }
+
+    const inputLogScales = Object.fromEntries(inputVars.map(v => [v, Boolean(selectedDistribution[v]?.logScale)]));
+    const outputLogScalesBody = selectedQoI ? { [selectedQoI]: Boolean(selectedOutputLogScales[selectedQoI]) } : {};
     fetch(`/flask/dakota/sumo_cross_validation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -147,7 +153,7 @@ function SuMoValidation() {
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
+  }, [selectedDistribution, selectedFunctionUid, selectedQoI, inputVars, filteredJobList]);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver(event => {

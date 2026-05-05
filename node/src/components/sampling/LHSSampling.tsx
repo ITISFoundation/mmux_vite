@@ -57,6 +57,8 @@ function LHSSampling() {
   const { setLhsSamplingConfig, lhsSamplingConfig } = SamplingContext;
   const { fetchedJobCollections, setFetchedJobCollections, setRunningJobCollection } = jobContext;
   const { permissions } = useServiceContext();
+  const selectedFunctionUid = selectedFunction?.uid;
+  const selectedDistribution = selectedFunctionUid ? distribution[selectedFunctionUid] : undefined;
 
   const [lhsInputs, setLhsInputs] = useState<LHSamplingConfig>(lhsSamplingConfig);
   const [localSamplingPoints, setLocalSamplingPoints] = useState<number>(lhsInputs.points);
@@ -87,6 +89,10 @@ function LHSSampling() {
   }, [fetchedJobCollections]);
 
   const handleRunSampling = async () => {
+    if (!selectedFunctionUid || lhsInputs.inputs.length === 0) {
+      return;
+    }
+
     setLhsSamplingConfig(lhsInputs);
     const recommendedSamples = recommendedLHSSamples();
     const existingUsableSamples = countUsableSamples();
@@ -163,21 +169,26 @@ function LHSSampling() {
   const generateInputsList = useCallback(
     (inputVar: string) => ({
       variable: inputVar,
-      start: getSamplingStartValue(inputVar, distribution[selectedFunction?.uid || ""]) as number,
-      end: getSamplingEndValue(inputVar, distribution[selectedFunction?.uid || ""]) as number,
+      start: getSamplingStartValue(inputVar, selectedDistribution || {}) as number,
+      end: getSamplingEndValue(inputVar, selectedDistribution || {}) as number,
     }),
-    [distribution, selectedFunction],
+    [selectedDistribution],
   );
 
   useEffect(() => {
+    if (!selectedFunctionUid || !selectedDistribution) {
+      setLhsInputs({ ...lhsSamplingConfig, inputs: [] });
+      setLoading(false);
+      return;
+    }
+
     const currentSampling: LHSamplingConfig = { ...lhsSamplingConfig };
     if (lhsSamplingConfig.inputs.length === 0) {
       currentSampling.inputs = inputVars.map(generateInputsList);
     }
     setLhsInputs(currentSampling);
     setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [generateInputsList, inputVars, lhsSamplingConfig, selectedDistribution, selectedFunctionUid]);
 
   useEffect(() => {
     if (lhsInputs.points >= 5 && lhsInputs.points <= 50) return;
@@ -267,7 +278,10 @@ function LHSSampling() {
         </form>
       )}
       <Box display="flex" flexDirection="row" justifyContent="space-between" marginTop={2}>
-        <RunSamplingButton disabled={loading} handleRunSampling={handleRunSampling} />
+        <RunSamplingButton
+          disabled={loading || !selectedFunctionUid || lhsInputs.inputs.length === 0}
+          handleRunSampling={handleRunSampling}
+        />
       </Box>
     </>
   );

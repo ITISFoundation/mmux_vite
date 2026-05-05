@@ -9,8 +9,9 @@ export function stepValidator(
 ): boolean {
   if (step === 0) {
     // Step 0: Check if a function is selected
-    const selectedDistribution = functionContext?.distribution[functionContext?.selectedFunction?.uid || ""];
-    if (!functionContext?.selectedFunction || !selectedDistribution) {
+    const selectedFunctionUid = functionContext?.selectedFunction?.uid;
+    const selectedDistribution = selectedFunctionUid ? functionContext?.distribution[selectedFunctionUid] : undefined;
+    if (!functionContext?.selectedFunction || !selectedFunctionUid || !selectedDistribution) {
       return false; // No function or distribution selected
     }
     if (ServiceMode === "MOGA") {

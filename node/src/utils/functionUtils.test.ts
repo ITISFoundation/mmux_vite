@@ -270,7 +270,7 @@ describe("Function Utils", () => {
       vi.fn(() =>
         Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ targetFunctionUid: "func1", importedSamples: 2 }),
+          json: () => Promise.resolve({ target_function_uid: "func1", imported_samples: 2, target_mode: "existing" }),
         }),
       ),
     );
@@ -282,6 +282,7 @@ describe("Function Utils", () => {
     });
     expect(response.targetFunctionUid).toBe("func1");
     expect(response.importedSamples).toBe(2);
+    expect(response.targetMode).toBe("existing");
   });
 
   it("should throw when upload job collection CSV fails", async () => {

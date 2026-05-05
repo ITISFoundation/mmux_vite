@@ -50,6 +50,30 @@ describe("InputBlock", () => {
     expect(input.value).toBe("");
   });
 
+  it("updates the rendered value when the prop changes", () => {
+    const { getByRole, rerender } = render(<InputBlock {...defaultProps} value={0.006563} />);
+    const input = getByRole("spinbutton") as HTMLInputElement;
+    expect(input.value).toBe("0.006563");
+
+    rerender(<InputBlock {...defaultProps} value={0.191365} />);
+    expect(input.value).toBe("0.191365");
+  });
+
+  it("allows decimal number entry with step any", () => {
+    const { getByRole } = render(<InputBlock {...defaultProps} value={0.006563} />);
+    const input = getByRole("spinbutton") as HTMLInputElement;
+
+    expect(input.getAttribute("step")).toBe("any");
+    expect(input.value).toBe("0.006563");
+  });
+
+  it("renders null-like numeric values as empty", () => {
+    const { getByRole } = render(<InputBlock {...defaultProps} value={null as unknown as number} />);
+    const input = getByRole("spinbutton") as HTMLInputElement;
+
+    expect(input.value).toBe("");
+  });
+
   it("uses type prop if provided", () => {
     const customProps: InputBlockProps = {
       name: "Test Input",

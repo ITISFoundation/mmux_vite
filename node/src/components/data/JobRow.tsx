@@ -21,6 +21,13 @@ function JobRow(props: JobRowProps) {
   const [creatingJobCopy, setCreatingJobCopy] = useState(false);
   const { parseStatus } = useJobContext();
   const job = jobList.find(j => j.job.uid === jobUid);
+  const ellipsisContentSx = {
+    display: "block",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    width: "100%",
+  };
 
   const handleSetJob = (selected: boolean) => {
     setSelected(selected, jobUid);
@@ -46,12 +53,14 @@ function JobRow(props: JobRowProps) {
           sx={{ minWidth: 100, maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
         >
           <CustomTooltip title={jobUid} placement="bottom-start">
-            <span>{jobUid ? `${jobUid.slice(0, 5)}...` : ""}</span>
+            <Box component="span" sx={ellipsisContentSx}>
+              {jobUid ? `${jobUid.slice(0, 5)}...` : ""}
+            </Box>
           </CustomTooltip>
         </TableCell>
         <TableCell sx={{ minWidth: 250, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           <CustomTooltip title="" placement="bottom-start">
-            <span />
+            <Box component="span" sx={ellipsisContentSx} />
           </CustomTooltip>
         </TableCell>
         <TableCell
@@ -65,7 +74,7 @@ function JobRow(props: JobRowProps) {
           }}
         >
           <CustomTooltip title="" placement="bottom-start">
-            <span />
+            <Box component="span" sx={ellipsisContentSx} />
           </CustomTooltip>
         </TableCell>
         <TableCell
@@ -73,7 +82,9 @@ function JobRow(props: JobRowProps) {
           sx={{ minWidth: 120, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
         >
           <CustomTooltip title="CREATING" placement="bottom-start">
-            <span>CREATING</span>
+            <Box component="span" sx={ellipsisContentSx}>
+              CREATING
+            </Box>
           </CustomTooltip>
         </TableCell>
 
@@ -132,19 +143,25 @@ function JobRow(props: JobRowProps) {
         sx={{ minWidth: 100, maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
       >
         <CustomTooltip border title={job.job.uid} placement="bottom-start">
-          <span>{job.job.uid ? `${job.job.uid.slice(0, 5)}...` : ""}</span>
+          <Box component="span" sx={ellipsisContentSx}>
+            {job.job.uid ? `${job.job.uid.slice(0, 5)}...` : ""}
+          </Box>
         </CustomTooltip>
       </TableCell>
       <TableCell sx={{ minWidth: 250, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         <CustomTooltip border title={inputs} placement="bottom-start">
-          <span>{inputs}</span>
+          <Box component="span" sx={ellipsisContentSx}>
+            {inputs}
+          </Box>
         </CustomTooltip>
       </TableCell>
       <TableCell
         sx={{ minWidth: 250, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "auto" }}
       >
         <CustomTooltip border title={outputs} placement="bottom-start">
-          <span>{outputs}</span>
+          <Box component="span" sx={ellipsisContentSx}>
+            {outputs}
+          </Box>
         </CustomTooltip>
       </TableCell>
       <TableCell
@@ -152,7 +169,9 @@ function JobRow(props: JobRowProps) {
         sx={{ minWidth: 120, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
       >
         <CustomTooltip border title={jobStatus} placement="bottom-start">
-          <span>{jobStatus}</span>
+          <Box component="span" sx={ellipsisContentSx}>
+            {jobStatus}
+          </Box>
         </CustomTooltip>
       </TableCell>
 

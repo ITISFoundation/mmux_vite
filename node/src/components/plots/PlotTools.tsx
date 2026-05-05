@@ -32,7 +32,13 @@ export const GetUniqueValues = (context: FullContext) => {
 
 export const filterOutConstantDataVars = (context: FullContext) => {
   const { distribution, selectedFunction } = context;
-  const selectedDist = distribution[selectedFunction?.uid || ""];
+  const selectedFunctionUid = selectedFunction?.uid;
+  const selectedDist = selectedFunctionUid ? distribution[selectedFunctionUid] : undefined;
+
+  if (!selectedDist) {
+    return [];
+  }
+
   // Filter out variables with only one unique value
   const uniqueValuesPerVar: { [varName: string]: Set<number> } = GetUniqueValues(context);
   const newFilteredInputVars = Object.entries(uniqueValuesPerVar)
@@ -43,7 +49,14 @@ export const filterOutConstantDataVars = (context: FullContext) => {
 };
 export const filterOutConstantDistributionVars = (context: FullContext) => {
   const { distribution, inputVars, selectedFunction } = context;
-  return inputVars.filter(i => (distribution[selectedFunction?.uid || ""][i].distribution as Distribution) !== "constant");
+  const selectedFunctionUid = selectedFunction?.uid;
+  const selectedDist = selectedFunctionUid ? distribution[selectedFunctionUid] : undefined;
+
+  if (!selectedDist) {
+    return [];
+  }
+
+  return inputVars.filter(i => selectedDist[i]?.distribution !== "constant");
 };
 export const filterInputVars = (context: FullContext) => {
   const { allJobsList } = context;
@@ -61,9 +74,15 @@ interface CreateSelectProps {
 export function CreateSelect({ axis, idx, setAxis }: CreateSelectProps) {
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const context = useJobContext();
+  const selectedFunctionUid = selectedFunction?.uid;
   // NB: could have other filtering (based on distribution === "constant")
   const filteredInputVars = filterInputVars({ ...context, selectedFunction, inputVars, distribution });
-  console.log("filteredInputVars constant checks", filteredInputVars, inputVars, distribution[selectedFunction?.uid || ""]);
+  console.log(
+    "filteredInputVars constant checks",
+    filteredInputVars,
+    inputVars,
+    selectedFunctionUid ? distribution[selectedFunctionUid] : undefined,
+  );
 
   return (
     <InputLabel sx={{ display: "flex", gap: 2, alignItems: "center" }}>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { PersistenceType } from "./types";
 import { fetchWithRetry } from "../utils/fetchRetry";
@@ -44,11 +44,21 @@ const defaultPersistence: PersistenceType = {
   sortModel: [],
 };
 
+const saveDebounceMs = 300;
+
 export function PersistenceContextProvider({ children }: Props) {
   const [loading, setLoading] = useState(true);
   const [healthOK, setHealthOK] = useState<boolean>(false);
   const [persistence, setPersistence] = useState<PersistenceType | undefined>(undefined);
   const [avoidPersisting, setAvoidPersisting] = useState<boolean>(false);
+  const persistenceRef = useRef<PersistenceType | undefined>(persistence);
+  const avoidPersistingRef = useRef(avoidPersisting);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queuedStateRef = useRef<PersistenceType | null>(null);
+  const queuedContentRef = useRef<string | null>(null);
+  const inFlightContentRef = useRef<string | null>(null);
+  const lastSavedContentRef = useRef<string | null>(null);
+  const isFlushingRef = useRef(false);
 
   // Validate persistence structure
   const isValidPersistenceFile = (value: unknown): value is PersistenceType => {
@@ -75,8 +85,25 @@ export function PersistenceContextProvider({ children }: Props) {
 
   const getHeaders = (contentType = true): HeadersInit => (contentType ? { "Content-Type": "application/json" } : {});
 
-  const setFile = async (filename: string, content: string) => {
-    const response = await fetch("/flask/text-file", {
+  useEffect(() => {
+    persistenceRef.current = persistence;
+  }, [persistence]);
+
+  useEffect(() => {
+    avoidPersistingRef.current = avoidPersisting;
+  }, [avoidPersisting]);
+
+  useEffect(
+    () => () => {
+      if (saveTimeoutRef.current !== null) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  const setFile = useCallback(async (filename: string, content: string) => {
+    const response = await fetch("/flask/text-file/", {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({ filename, content }),
@@ -84,9 +111,10 @@ export function PersistenceContextProvider({ children }: Props) {
     });
 
     if (!response.ok) {
-      console.warn(`⚠️ Server error when setting the persistency file, with status (${response.status}): ${response.statusText}`);
+      const message = `⚠️ Server error when setting the persistency file, with status (${response.status}): ${response.statusText}`;
+      console.warn(message);
       setAvoidPersisting(true);
-      return;
+      throw new Error(message);
     }
 
     const data = (await response.json()) as {
@@ -98,7 +126,67 @@ export function PersistenceContextProvider({ children }: Props) {
     }
 
     console.info(`File ${data.filename} saved successfully.`);
-  };
+  }, []);
+
+  const flushQueuedSave = useCallback(async (): Promise<void> => {
+    if (isFlushingRef.current) {
+      return;
+    }
+
+    const nextState = queuedStateRef.current;
+    const nextContent = queuedContentRef.current;
+
+    if (nextState === null || nextContent === null) {
+      return;
+    }
+
+    if (avoidPersistingRef.current) {
+      console.warn("⚠️ Skipping persistence due to avoidPersisting flag.");
+      queuedStateRef.current = null;
+      queuedContentRef.current = null;
+      return;
+    }
+
+    if (nextContent === lastSavedContentRef.current) {
+      queuedStateRef.current = null;
+      queuedContentRef.current = null;
+      return;
+    }
+
+    queuedStateRef.current = null;
+    queuedContentRef.current = null;
+    isFlushingRef.current = true;
+    inFlightContentRef.current = nextContent;
+
+    try {
+      await setFile("persistence.json", nextContent);
+      lastSavedContentRef.current = nextContent;
+    } catch (error) {
+      console.error("Error saving state:", error);
+    } finally {
+      isFlushingRef.current = false;
+      inFlightContentRef.current = null;
+
+      if (queuedContentRef.current !== null && queuedContentRef.current !== lastSavedContentRef.current) {
+        flushQueuedSave().catch(error => {
+          console.error("Error flushing queued persistence save:", error);
+        });
+      }
+    }
+  }, [setFile]);
+
+  const scheduleQueuedSave = useCallback(() => {
+    if (saveTimeoutRef.current !== null) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      saveTimeoutRef.current = null;
+      flushQueuedSave().catch(error => {
+        console.error("Error flushing queued persistence save:", error);
+      });
+    }, saveDebounceMs);
+  }, [flushQueuedSave]);
 
   const getFile = async (filename: string): Promise<PersistenceType | undefined> => {
     const response = await fetchWithRetry(`/flask/text-file/${encodeURIComponent(filename)}`, {
@@ -130,21 +218,36 @@ export function PersistenceContextProvider({ children }: Props) {
     }
   };
 
-  const saveState = useCallback(async (state: PersistenceType) => {
-    const content = JSON.stringify(state, null, 2);
-    // console.debug("Saving state to persistence file:", state);
-    if (avoidPersisting) {
-      console.warn("⚠️ Skipping persistence due to avoidPersisting flag.");
-      return;
-    }
-    try {
-      await setFile("persistence.json", content);
+  const saveState = useCallback(
+    async (state: PersistenceType) => {
+      const content = JSON.stringify(state, null, 2);
+      const currentContent = persistenceRef.current ? JSON.stringify(persistenceRef.current, null, 2) : null;
+
+      if (content === currentContent) {
+        return;
+      }
+
       setPersistence(state);
-    } catch (error) {
-      console.error("Error saving state:", error);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+      if (avoidPersistingRef.current) {
+        console.warn("⚠️ Skipping persistence due to avoidPersisting flag.");
+        return;
+      }
+
+      if (
+        content === lastSavedContentRef.current ||
+        content === queuedContentRef.current ||
+        content === inFlightContentRef.current
+      ) {
+        return;
+      }
+
+      queuedStateRef.current = state;
+      queuedContentRef.current = content;
+      scheduleQueuedSave();
+    },
+    [scheduleQueuedSave],
+  );
 
   const getFunctionValues = useCallback((): Partial<PersistenceType> | undefined => {
     if (persistence !== undefined) {
@@ -162,10 +265,12 @@ export function PersistenceContextProvider({ children }: Props) {
 
   const setFunctionValues = useCallback(
     ({ selectedFunction, inputVars, outputVars, distribution, outputTargets, outputLogScales }: Partial<PersistenceType>) => {
-      if (persistence !== undefined) {
+      const currentPersistence = persistenceRef.current;
+
+      if (currentPersistence !== undefined) {
         console.info("Persisting Function context state...");
         const newPersistence: PersistenceType = {
-          ...persistence,
+          ...currentPersistence,
           selectedFunction,
           inputVars: inputVars || [],
           outputVars: outputVars || [],
@@ -176,8 +281,7 @@ export function PersistenceContextProvider({ children }: Props) {
         saveState(newPersistence);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [persistence],
+    [saveState],
   );
 
   useEffect(() => {
@@ -192,6 +296,7 @@ export function PersistenceContextProvider({ children }: Props) {
         const persistenceFile = await getFile("persistence.json");
         if (persistenceFile === undefined) {
           console.info("No persistence file found, initializing with empty state.");
+          lastSavedContentRef.current = JSON.stringify(defaultPersistence, null, 2);
           setPersistence(defaultPersistence);
         } else if (isValidPersistenceFile(persistenceFile) === false) {
           console.warn(
@@ -199,9 +304,11 @@ export function PersistenceContextProvider({ children }: Props) {
             Object.keys(persistenceFile).length,
             Object.keys(defaultPersistence).length,
           );
+          lastSavedContentRef.current = JSON.stringify(defaultPersistence, null, 2);
           setPersistence(defaultPersistence);
         } else {
           console.info("Persistence file loaded successfully.", persistenceFile);
+          lastSavedContentRef.current = JSON.stringify(persistenceFile, null, 2);
           setPersistence(persistenceFile);
         }
       } catch (error) {
