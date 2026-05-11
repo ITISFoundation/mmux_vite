@@ -14,7 +14,7 @@ from typing import Annotated, Any, TypeVar, Union, get_args, get_origin
 
 from flask import Flask, jsonify, request
 from pydantic import BaseModel, ValidationError
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, UnsupportedMediaType
 from werkzeug.wrappers import Response
 
 from mmux_flaskapi.utils.case_preserving import (
@@ -207,6 +207,10 @@ def get_request(*, silent: bool = False, model_class: type[BaseModel] | None = N
         if silent:
             return None
         raise ValueError("Invalid JSON or malformed request") from exc
+    except UnsupportedMediaType as exc:
+        if silent:
+            return None
+        raise ValueError("Invalid JSON or missing content-type header") from exc
 
     if json_data is None:
         return None

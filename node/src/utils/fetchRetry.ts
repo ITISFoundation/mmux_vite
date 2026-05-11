@@ -1,5 +1,8 @@
 import { delay } from "./delay";
 
+const isTerminalClientError = (response: Response): boolean =>
+  response.status >= 400 && response.status < 500 && response.status !== 429;
+
 export const fetchWithRetry = async (
   url: string,
   options: RequestInit = {},
@@ -19,7 +22,7 @@ export const fetchWithRetry = async (
         ErrorToRetry = error as Error; // Re-throw the error after all retries have failed
       }
     }
-    if ((response && response.ok) || (response && response.status === 404)) {
+    if (response && (response.ok || isTerminalClientError(response))) {
       return response; // If the response is successful or not found, return it immediately
     }
 

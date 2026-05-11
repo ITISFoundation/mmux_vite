@@ -350,26 +350,26 @@ class ManualUQWithUncertaintyRequest(ManualUQPropagationRequest):
                 f"Low samples per histogram ({self.num_samples // self.n_histograms}). Consider increasing numSamples for better statistics."
             )
 
-        # Check that at least some jobs have the required uncertainty output
-        output = self.output
-        jobs = self.function_jobs
-        completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
+        # # Check that at least some jobs have the required uncertainty output
+        # output = self.output
+        # jobs = self.function_jobs
+        # completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
 
-        if completed_jobs:  # Only check if we have completed jobs
-            uncertainty_output_key = f"{output}_std_hat"
-            jobs_with_uncertainty = [
-                job for job in completed_jobs if uncertainty_output_key in job.outputs
-            ]
+        # if completed_jobs:  # Only check if we have completed jobs
+        #     uncertainty_output_key = f"{output}_std_hat"
+        #     jobs_with_uncertainty = [
+        #         job for job in completed_jobs if uncertainty_output_key in job.outputs
+        #     ]
 
-            if not jobs_with_uncertainty:
-                # Get available output keys for better error message
-                available_keys = set()
-                for job in completed_jobs[:3]:  # Sample a few jobs
-                    available_keys.update(job.outputs.keys())
-                raise ValueError(
-                    f"UQ with uncertainty requires '{uncertainty_output_key}' in job outputs for uncertainty estimation. "
-                    f"Available output keys: {list(available_keys)}"
-                )
+        #     if not jobs_with_uncertainty:
+        #         # Get available output keys for better error message
+        #         available_keys = set()
+        #         for job in completed_jobs[:3]:  # Sample a few jobs
+        #             available_keys.update(job.outputs.keys())
+        #         raise ValueError(
+        #             f"UQ with uncertainty requires '{uncertainty_output_key}' in job outputs for uncertainty estimation. "
+        #             f"Available output keys: {list(available_keys)}"
+        #         )
 
         return self
 

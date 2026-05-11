@@ -52,6 +52,21 @@ describe("fetchWithRetry", () => {
     });
   });
 
+  it("should return terminal client errors without retrying", async () => {
+    const response = new Response(JSON.stringify({ error: "bad request" }), {
+      status: 400,
+      statusText: "Bad Request",
+      headers: { "Content-Type": "application/json" },
+    });
+    const fetchMock = vi.fn(() => Promise.resolve(response));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await fetchWithRetry("https://example.com/api", {}, 3, 100);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.status).toBe(400);
+  });
+
   it("should throw an error after all retries fail", async () => {
     const fetchMock = vi.fn(() => Promise.reject(new Error("Network error")));
     global.fetch = fetchMock as unknown as typeof fetch;

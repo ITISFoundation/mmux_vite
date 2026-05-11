@@ -11,6 +11,11 @@ import HistogramStats from "./HistogramStats";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { getUQHistogramData } from "./sumoResponse";
 
+type ErrorResponseBody = {
+  error?: string;
+  details?: string[];
+};
+
 export default function UncertainUQ(props: LoadingPropsType) {
   const { loading, jobProgress } = props;
   const theme = useTheme();
@@ -20,15 +25,22 @@ export default function UncertainUQ(props: LoadingPropsType) {
   const [dataUQHistogram, setDataUQHistogram] = useState<DataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
+  const [calculationError, setCalculationError] = useState<string>();
 
   useEffect(() => {
     (async () => {
       console.log("running job collections: ", filteredJobList);
       setDataUQHistogram(undefined);
       setPlotData([]);
+      setCalculationError(undefined);
       setPropagating(true);
       if (filteredJobList.length === 0) {
         console.warn("No jobs selected for UQ propagation.");
+        setPropagating(false);
+        return;
+      }
+      if (!selectedQoI) {
+        setCalculationError("Select a quantity of interest to run uncertainty-aware UQ.");
         setPropagating(false);
         return;
       }
@@ -37,6 +49,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
         console.info("SelectedQoI: ", selectedQoI);
         const response = await fetchWithRetry(`/flask/dakota/manual_uq_propagation_with_uncertainty`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             inputVars,
             output: selectedQoI,
@@ -49,7 +62,20 @@ export default function UncertainUQ(props: LoadingPropsType) {
           }),
         });
         if (!response.ok) {
-          throw new Error(`Error in UQ response: ${response.status}, ${response.statusText}`);
+          let errorMessage = `Error in UQ response: ${response.status}, ${response.statusText}`;
+          const contentType = response.headers.get("content-type") || "";
+
+          if (contentType.includes("application/json")) {
+            const errorPayload = (await response.json()) as ErrorResponseBody;
+            errorMessage = errorPayload.details?.[0] || errorPayload.error || errorMessage;
+          } else {
+            const errorText = await response.text();
+            if (errorText.trim()) {
+              errorMessage = errorText.trim();
+            }
+          }
+
+          throw new Error(errorMessage);
         }
         const data = getUQHistogramData(await response.json());
         if (!data) {
@@ -79,6 +105,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
         console.warn("Error:", error);
         setPropagating(false);
         setDataUQHistogram(undefined);
+        setCalculationError(error instanceof Error ? error.message : "Error during calculation, please contact support.");
       }
     })();
   }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction, theme.palette.primary.main]);
@@ -109,6 +136,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}
           height={plotStyle.height}
+          calculationError={calculationError}
         />
       )}
       {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}

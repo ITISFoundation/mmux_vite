@@ -5,15 +5,16 @@ type InsufficientDataWarningPropsType = {
   fetchedJobCollections: SelectedJobCollection[] | undefined;
   filteredJobList: FunctionJob[];
   height?: number;
+  calculationError?: string;
 };
 
 // insert if plotData has length 0
 function InsufficientDataWarning(props: InsufficientDataWarningPropsType) {
-  const { fetchedJobCollections, filteredJobList, height } = props;
+  const { fetchedJobCollections, filteredJobList, height, calculationError } = props;
   const hasEnoughSamples =
     filteredJobList.length === 0
       ? "Select at least 5 Samples to be used by the model."
-      : "Error during calculation, please contact support.";
+      : calculationError || "Error during calculation, please contact support.";
   return (
     <DisplayMessage
       mssg={
