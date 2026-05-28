@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
 import {
+  camelToSnakeCase,
   createInputOutputSchema,
   createJobStudyCopy,
   getFunctionJobCollections,
@@ -11,6 +12,8 @@ import {
   getServiceMode,
   listFunctions,
   listJobs,
+  normalizePayloadToCamelCase,
+  toBackendVarNames,
 } from "./functionUtils";
 
 const mockJobs: FunctionJob[] = [
@@ -198,5 +201,101 @@ describe("Function Utils", () => {
   it("should get function jobs from a job collection", async () => {
     const jobs = await getFunctionJobsFromFunctionJobCollection("collection1");
     expect(jobs).toEqual(sampleJobs);
+  });
+});
+
+describe("camelToSnakeCase", () => {
+  it("converts camelCase to snake_case", () => {
+    expect(camelToSnakeCase("angleWidth")).toBe("angle_width");
+    expect(camelToSnakeCase("peakAveragedField")).toBe("peak_averaged_field");
+    expect(camelToSnakeCase("tissueConduc")).toBe("tissue_conduc");
+  });
+
+  it("leaves already-snake_case strings unchanged", () => {
+    expect(camelToSnakeCase("angle_width")).toBe("angle_width");
+    expect(camelToSnakeCase("simple")).toBe("simple");
+  });
+
+  it("converts mixed-case variable names correctly", () => {
+    expect(camelToSnakeCase("someField")).toBe("some_field");
+    // Consecutive uppercase letters: only the transition from lower→upper inserts _
+    expect(camelToSnakeCase("myHTMLParser")).toBe("my_htmlparser");
+  });
+});
+
+describe("toBackendVarNames", () => {
+  it("converts an array of camelCase names to snake_case", () => {
+    expect(toBackendVarNames(["angleWidth", "peakField", "tissueConduc"])).toEqual([
+      "angle_width",
+      "peak_field",
+      "tissue_conduc",
+    ]);
+  });
+
+  it("returns an empty array for empty input", () => {
+    expect(toBackendVarNames([])).toEqual([]);
+  });
+});
+
+describe("normalizePayloadToCamelCase", () => {
+  it("converts top-level snake_case keys to camelCase", () => {
+    const payload = { some_field: 1, another_key: "hello" };
+    expect(normalizePayloadToCamelCase(payload)).toEqual({ someField: 1, anotherKey: "hello" });
+  });
+
+  it("converts nested regular keys to camelCase", () => {
+    const payload = { user_info: { email_address: "a@b.com" } };
+    expect(normalizePayloadToCamelCase(payload)).toEqual({ userInfo: { emailAddress: "a@b.com" } });
+  });
+
+  it("preserves variable-name keys under 'inputs' subtree (V13)", () => {
+    const payload = { inputs: { angleWidth: 1.0, peak_Averaged_Field: 2.0 } };
+    const result = normalizePayloadToCamelCase<{ inputs: Record<string, number> }>(payload);
+    // 'inputs' itself is converted to camelCase (it is already)
+    expect(result.inputs).toEqual({ angleWidth: 1.0, peak_Averaged_Field: 2.0 });
+  });
+
+  it("preserves variable-name keys under 'outputs' subtree (V13)", () => {
+    const payload = { outputs: { dragForce: 42.0, lift_coefficient: 3.14 } };
+    const result = normalizePayloadToCamelCase<{ outputs: Record<string, number> }>(payload);
+    expect(result.outputs).toEqual({ dragForce: 42.0, lift_coefficient: 3.14 });
+  });
+
+  it("preserves variable-name keys under 'properties' subtree (V13)", () => {
+    const payload = { properties: { myVar: 1, another_var: 2 } };
+    const result = normalizePayloadToCamelCase<{ properties: Record<string, number> }>(payload);
+    expect(result.properties).toEqual({ myVar: 1, another_var: 2 });
+  });
+
+  it("preserves variable-name keys under 'default_inputs' subtree (V13)", () => {
+    const payload = { default_inputs: { angleWidth: 0.5 } };
+    const result = normalizePayloadToCamelCase<{ defaultInputs: Record<string, number> }>(payload);
+    expect(result.defaultInputs).toEqual({ angleWidth: 0.5 });
+  });
+
+  it("preserves variable-name keys under predictions but converts their nested values (V13)", () => {
+    const payload = {
+      predictions: {
+        angleWidth: { some_field: [1.0, 2.0] },
+        peakField: { other_value: [3.0] },
+      },
+    };
+    const result = normalizePayloadToCamelCase<{ predictions: Record<string, Record<string, number[]>> }>(payload);
+    // Variable-name keys preserved
+    expect(Object.keys(result.predictions)).toEqual(["angleWidth", "peakField"]);
+    // Nested field-level keys still converted
+    expect(result.predictions.angleWidth).toHaveProperty("someField");
+    expect(result.predictions.peakField).toHaveProperty("otherValue");
+  });
+
+  it("converts array items recursively", () => {
+    const payload = [{ some_field: 1 }, { other_key: 2 }];
+    expect(normalizePayloadToCamelCase(payload)).toEqual([{ someField: 1 }, { otherKey: 2 }]);
+  });
+
+  it("returns primitives unchanged", () => {
+    expect(normalizePayloadToCamelCase(42)).toBe(42);
+    expect(normalizePayloadToCamelCase("hello")).toBe("hello");
+    expect(normalizePayloadToCamelCase(null)).toBeNull();
   });
 });

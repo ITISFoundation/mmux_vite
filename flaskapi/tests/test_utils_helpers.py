@@ -11,6 +11,14 @@ from unittest.mock import Mock, patch
 import pandas as pd
 import pytest
 
+from mmux_flaskapi.utils.case_preserving import (
+    FunctionVariablesDict,
+    FunctionVariableStr,
+    PreserveCaseTransform,
+    has_preserve_case_metadata,
+    wrap_function_variable_str,
+    wrap_function_variables_dict,
+)
 from mmux_flaskapi.utils.helpers import (
     _get_all_items,
     _get_first_N_items,
@@ -536,3 +544,135 @@ class TestVariableSanitization:
         result = sanitize_varnames(input_data)  # type: ignore
         expected = ["1", "2", "3"]
         assert result == expected
+
+
+class TestCasePreservingModule:
+    """Unit tests for utils/case_preserving.py."""
+
+    def test_has_preserve_case_metadata_true(self):
+        """has_preserve_case_metadata returns True when PreserveCaseTransform is present."""
+        assert has_preserve_case_metadata([PreserveCaseTransform()]) is True
+
+    def test_has_preserve_case_metadata_false_empty(self):
+        """has_preserve_case_metadata returns False for empty metadata."""
+        assert has_preserve_case_metadata([]) is False
+
+    def test_has_preserve_case_metadata_false_other_items(self):
+        """has_preserve_case_metadata returns False when no PreserveCaseTransform present."""
+        assert has_preserve_case_metadata(["string", 42, object()]) is False
+
+    def test_wrap_function_variables_dict_new(self):
+        """wrap_function_variables_dict wraps a plain dict."""
+        d = {"k": 1}
+        result = wrap_function_variables_dict(d)
+        assert isinstance(result, FunctionVariablesDict)
+        assert result == {"k": 1}
+
+    def test_wrap_function_variables_dict_idempotent(self):
+        """wrap_function_variables_dict is a no-op on an already-wrapped dict."""
+        d = FunctionVariablesDict({"k": 1})
+        assert wrap_function_variables_dict(d) is d
+
+    def test_wrap_function_variable_str_new(self):
+        """wrap_function_variable_str wraps a plain string."""
+        result = wrap_function_variable_str("angleWidth")
+        assert isinstance(result, FunctionVariableStr)
+        assert result == "angleWidth"
+
+    def test_wrap_function_variable_str_idempotent(self):
+        """wrap_function_variable_str is a no-op on an already-wrapped string."""
+        s = FunctionVariableStr("angleWidth")
+        assert wrap_function_variable_str(s) is s
+
+    def test_function_variables_dict_is_dict_subclass(self):
+        """FunctionVariablesDict must be a dict subclass for normal dict usage."""
+        d = FunctionVariablesDict(a=1, b=2)
+        assert isinstance(d, dict)
+        assert d["a"] == 1
+
+    def test_function_variable_str_is_str_subclass(self):
+        """FunctionVariableStr must be a str subclass for normal str usage."""
+        s = FunctionVariableStr("hello")
+        assert isinstance(s, str)
+        assert s.upper() == "HELLO"
+
+
+class TestPreserveCaseConversion:
+    """Test that preserve-case wrappers and subtree keys survive snake↔camel conversion."""
+
+    def test_function_variables_dict_not_converted_snake_to_camel(self):
+        """FunctionVariablesDict values are returned as-is."""
+        var_dict = FunctionVariablesDict({"angleWidth": 1.0, "peak_Averaged_Field": 2.0})
+        result = recursive_dict_keys_snake_to_camel({"inputs": var_dict})
+        assert result["inputs"] is var_dict
+
+    def test_function_variables_dict_not_converted_camel_to_snake(self):
+        """FunctionVariablesDict values are returned as-is during camel→snake."""
+        var_dict = FunctionVariablesDict({"angleWidth": 1.0, "peakField": 2.0})
+        result = recursive_dict_keys_camel_to_snake({"inputs": var_dict})
+        assert result["inputs"] is var_dict
+
+    def test_preserve_subtree_keys_inputs(self):
+        """Keys under 'inputs' subtree are NOT snake↔camel converted (V13)."""
+        payload = {"some_field": 1, "inputs": {"angleWidth": 1.0, "peak_Averaged_Field": 2.0}}
+        result = recursive_dict_keys_snake_to_camel(payload)
+        assert result["someField"] == 1
+        assert result["inputs"] == {"angleWidth": 1.0, "peak_Averaged_Field": 2.0}
+
+    def test_preserve_subtree_keys_outputs(self):
+        """Keys under 'outputs' subtree are NOT converted."""
+        payload = {"outputs": {"dragForce": 42.0, "lift_coefficient": 3.14}}
+        result = recursive_dict_keys_snake_to_camel(payload)
+        assert result["outputs"] == {"dragForce": 42.0, "lift_coefficient": 3.14}
+
+    def test_preserve_subtree_keys_properties(self):
+        """Keys under 'properties' subtree are NOT converted."""
+        payload = {"properties": {"myVar": 1, "another_var": 2}}
+        result = recursive_dict_keys_snake_to_camel(payload)
+        assert result["properties"] == {"myVar": 1, "another_var": 2}
+
+    def test_preserve_current_level_keys_predictions(self):
+        """Predictions: variable-name keys preserved, nested values still converted."""
+        payload = {
+            "predictions": {
+                "angleWidth": {"some_field": [1.0, 2.0]},
+                "peakField": {"other_value": [3.0]},
+            }
+        }
+        result = recursive_dict_keys_snake_to_camel(payload)
+        preds = result["predictions"]
+        # Variable-name keys preserved
+        assert "angleWidth" in preds
+        assert "peakField" in preds
+        # Nested field keys still converted
+        assert "someField" in preds["angleWidth"]
+        assert "otherValue" in preds["peakField"]
+
+    def test_dict_keys_camel_to_snake_skips_function_variables_dict(self):
+        """dict_keys_camel_to_snake returns FunctionVariablesDict unchanged."""
+        var_dict = FunctionVariablesDict({"camelKey": 1})
+        assert dict_keys_camel_to_snake(var_dict) is var_dict
+
+    def test_dict_keys_snake_to_camel_skips_function_variables_dict(self):
+        """dict_keys_snake_to_camel returns FunctionVariablesDict unchanged."""
+        var_dict = FunctionVariablesDict({"snake_key": 1})
+        assert dict_keys_snake_to_camel(var_dict) is var_dict
+
+    def test_function_variable_str_passthrough(self):
+        """FunctionVariableStr values survive round-trip conversion unchanged."""
+        var_str = FunctionVariableStr("angleWidth")
+        payload = {"some_key": var_str}
+        result = recursive_dict_keys_snake_to_camel(payload)
+        assert result["someKey"] is var_str
+
+    def test_non_preserve_fields_still_converted(self):
+        """Regular fields outside preserve-subtree keys are still converted."""
+        payload = {
+            "input_vars": ["x", "y"],
+            "num_samples": 100,
+            "inputs": {"myVar": 1.0},
+        }
+        result = recursive_dict_keys_snake_to_camel(payload)
+        assert "inputVars" in result
+        assert "numSamples" in result
+        assert result["inputs"] == {"myVar": 1.0}

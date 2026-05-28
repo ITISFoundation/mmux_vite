@@ -9,6 +9,25 @@ from typing import TypeVar, overload
 import numpy as np
 import pandas as pd
 
+from mmux_flaskapi.utils.case_preserving import FunctionVariablesDict, FunctionVariableStr
+
+# Keys whose *sub-dict values* are variable-name mappings — preserve the entire subtree.
+_PRESERVE_SUBTREE_KEYS = frozenset(
+    {
+        "distribution",
+        "distributions",
+        "inputs",
+        "output_var_selection",
+        "outputs",
+        "properties",
+        "slider_values",
+    }
+)
+
+# Keys whose immediate children's *keys* are variable names but whose *values* are data
+# structures that still need field-level case conversion (e.g. predictions per variable).
+_PRESERVE_CURRENT_LEVEL_KEYS = frozenset({"grid_data", "predictions"})
+
 
 def is_test_environment() -> bool:
     """Check if we're running in a test environment."""
@@ -43,47 +62,243 @@ def snake_to_camel(s: str) -> str:
 
 
 def dict_keys_camel_to_snake(d: dict) -> dict:
+    if isinstance(d, FunctionVariablesDict):
+        return d
     return {camel_to_snake(k): v for k, v in d.items()}
 
 
 def dict_keys_snake_to_camel(d: dict) -> dict:
     """Convert dictionary keys from snake_case to camelCase."""
+    if isinstance(d, FunctionVariablesDict):
+        return d
     return {snake_to_camel(k): v for k, v in d.items()}
+
+
+def _process_nested_value(
+    value: object,
+    *,
+    key_transform: Callable[[str], str],
+    max_depth: int,
+    current_depth: int,
+    preserve_all_keys: bool,
+) -> object:
+    """Recursively process a single value, preserving FunctionVariablesDict/Str as-is.
+
+    Parameters
+    ----------
+    value : object
+        The value to process.
+    key_transform : Callable[[str], str]
+        Key case-conversion function.
+    max_depth : int
+        Maximum recursion depth (-1 for unlimited).
+    current_depth : int
+        Current recursion depth.
+    preserve_all_keys : bool
+        When True, skip key transformation for this level and below.
+
+    Returns
+    -------
+    object
+        Processed value.
+    """
+    if isinstance(value, FunctionVariableStr):
+        return value
+
+    if isinstance(value, FunctionVariablesDict):
+        return value
+
+    if isinstance(value, dict) and (max_depth == -1 or current_depth < max_depth):
+        return _recursive_transform_dict_keys(
+            value,
+            key_transform=key_transform,
+            max_depth=max_depth,
+            current_depth=current_depth + 1,
+            preserve_all_keys=preserve_all_keys,
+        )
+
+    if isinstance(value, list) and (max_depth == -1 or current_depth < max_depth):
+        return [
+            _process_nested_value(
+                item,
+                key_transform=key_transform,
+                max_depth=max_depth,
+                current_depth=current_depth + 1,
+                preserve_all_keys=preserve_all_keys,
+            )
+            for item in value
+        ]
+
+    return value
+
+
+def _transform_mapping_values_only(
+    d: dict,
+    *,
+    key_transform: Callable[[str], str],
+    max_depth: int,
+    current_depth: int,
+) -> dict:
+    """Keep mapping keys as-is but recurse into each value for field-level conversion.
+
+    Parameters
+    ----------
+    d : dict
+        Mapping whose keys are variable names (preserved) and values may contain
+        nested API fields (converted).
+    key_transform : Callable[[str], str]
+        Key case-conversion function applied to values' nested keys.
+    max_depth : int
+        Maximum recursion depth.
+    current_depth : int
+        Current recursion depth.
+
+    Returns
+    -------
+    dict
+        Mapping with original keys and recursively converted values.
+    """
+    return {
+        k: _process_nested_value(
+            v,
+            key_transform=key_transform,
+            max_depth=max_depth,
+            current_depth=current_depth,
+            preserve_all_keys=False,
+        )
+        for k, v in d.items()
+    }
+
+
+def _recursive_transform_dict_keys(
+    d: dict,
+    *,
+    key_transform: Callable[[str], str],
+    max_depth: int = -1,
+    current_depth: int = 0,
+    preserve_all_keys: bool = False,
+) -> dict:
+    """Recursively convert dict keys using *key_transform*, respecting preserve-case markers.
+
+    Parameters
+    ----------
+    d : dict
+        Dictionary to transform.
+    key_transform : Callable[[str], str]
+        Key case-conversion function.
+    max_depth : int
+        Maximum recursion depth (-1 for unlimited).
+    current_depth : int
+        Current recursion depth.
+    preserve_all_keys : bool
+        When True, skip key transformation for this level and below.
+
+    Returns
+    -------
+    dict
+        New dictionary with transformed keys.
+    """
+    if isinstance(d, FunctionVariablesDict):
+        return d
+
+    transformed = {}
+
+    for key, value in d.items():
+        canonical_key = camel_to_snake(key)
+        transformed_key = key if preserve_all_keys else key_transform(key)
+
+        if isinstance(value, dict) and (max_depth == -1 or current_depth < max_depth):
+            if not preserve_all_keys and canonical_key in _PRESERVE_CURRENT_LEVEL_KEYS:
+                transformed_value = _transform_mapping_values_only(
+                    value,
+                    key_transform=key_transform,
+                    max_depth=max_depth,
+                    current_depth=current_depth + 1,
+                )
+            else:
+                transformed_value = _recursive_transform_dict_keys(
+                    value,
+                    key_transform=key_transform,
+                    max_depth=max_depth,
+                    current_depth=current_depth + 1,
+                    preserve_all_keys=preserve_all_keys or canonical_key in _PRESERVE_SUBTREE_KEYS,
+                )
+        elif isinstance(value, list) and (max_depth == -1 or current_depth < max_depth):
+            transformed_value = [
+                _process_nested_value(
+                    item,
+                    key_transform=key_transform,
+                    max_depth=max_depth,
+                    current_depth=current_depth + 1,
+                    preserve_all_keys=preserve_all_keys,
+                )
+                for item in value
+            ]
+        else:
+            transformed_value = value
+
+        transformed[transformed_key] = transformed_value
+
+    return transformed
 
 
 def recursive_dict_keys_camel_to_snake(
     d: dict, max_depth: int = -1, current_depth: int = 0
 ) -> dict:
-    # Process nested values
-    for k, v in d.items():
-        if isinstance(v, dict) and (max_depth == -1 or current_depth < max_depth):
-            d[k] = recursive_dict_keys_camel_to_snake(v, max_depth, current_depth + 1)
-        elif isinstance(v, list) and (max_depth == -1 or current_depth < max_depth):
-            d[k] = [
-                recursive_dict_keys_camel_to_snake(i, max_depth, current_depth + 1)
-                if isinstance(i, dict)
-                else i
-                for i in v
-            ]
+    """Recursively convert dict keys from camelCase to snake_case.
 
-    # Convert keys and return
-    return {camel_to_snake(k): v for k, v in d.items()}
+    Parameters
+    ----------
+    d : dict
+        Dictionary to transform.
+    max_depth : int
+        Maximum recursion depth (-1 for unlimited).
+    current_depth : int
+        Starting depth (used for recursive calls).
+
+    Returns
+    -------
+    dict
+        New dictionary with snake_case keys.
+    """
+    return _recursive_transform_dict_keys(
+        d,
+        key_transform=camel_to_snake,
+        max_depth=max_depth,
+        current_depth=current_depth,
+    )
 
 
 def recursive_dict_keys_snake_to_camel(
     d: dict, max_depth: int = -1, current_depth: int = 0
 ) -> dict:
-    for k, v in d.items():
-        if isinstance(v, dict) and (max_depth == -1 or current_depth < max_depth):
-            d[k] = recursive_dict_keys_snake_to_camel(v, max_depth, current_depth + 1)
-        elif isinstance(v, list) and (max_depth == -1 or current_depth < max_depth):
-            d[k] = [
-                recursive_dict_keys_snake_to_camel(i, max_depth, current_depth + 1)
-                if isinstance(i, dict)
-                else i
-                for i in v
-            ]
-    return {snake_to_camel(k): v for k, v in d.items()}
+    """Recursively convert dict keys from snake_case to camelCase.
+
+    Skips key conversion for sub-dicts under :data:`_PRESERVE_SUBTREE_KEYS`
+    (e.g. ``inputs``, ``outputs``, ``properties``) and preserves only the
+    *values'* field keys under :data:`_PRESERVE_CURRENT_LEVEL_KEYS`
+    (e.g. ``predictions``, ``grid_data``).
+
+    Parameters
+    ----------
+    d : dict
+        Dictionary to transform.
+    max_depth : int
+        Maximum recursion depth (-1 for unlimited).
+    current_depth : int
+        Starting depth (used for recursive calls).
+
+    Returns
+    -------
+    dict
+        New dictionary with camelCase keys, variable-name keys untouched.
+    """
+    return _recursive_transform_dict_keys(
+        d,
+        key_transform=snake_to_camel,
+        max_depth=max_depth,
+        current_depth=current_depth,
+    )
 
 
 def _get_all_items(api_call: Callable, *args, **kwargs):

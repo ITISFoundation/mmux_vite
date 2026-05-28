@@ -6,22 +6,78 @@ function snakeToCamelCase(value: string): string {
   return value.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase());
 }
 
-function normalizePayloadToCamelCase<T>(payload: unknown): T {
+/**
+ * Convert a camelCase string to snake_case.
+ * Used for FE → backend field name conversion (V14, T10).
+ */
+export function camelToSnakeCase(value: string): string {
+  return value.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
+}
+
+/**
+ * Convert an array of camelCase variable names to snake_case for backend payloads.
+ * Mirrors the backend's camel_to_snake conversion on incoming request fields (V14, T10).
+ */
+export function toBackendVarNames(vars: string[]): string[] {
+  return vars.map(camelToSnakeCase);
+}
+
+// Keys whose *sub-dict values* are variable-name mappings — preserve the entire subtree.
+const preserveSubtreeKeys = new Set(["inputs", "outputs", "default_inputs", "defaultInputs", "properties"]);
+// Keys whose immediate children's keys are variable names but whose values contain API fields.
+const preserveCurrentLevelKeys = new Set(["predictions", "grid_data", "gridData"]);
+
+function normalizePayloadToCamelCaseInternal(payload: unknown, preserveAllKeys = false): unknown {
   if (Array.isArray(payload)) {
-    return payload.map(item => normalizePayloadToCamelCase(item)) as T;
+    return payload.map(item => normalizePayloadToCamelCaseInternal(item, preserveAllKeys));
   }
 
-  if (payload && typeof payload === "object") {
-    return Object.entries(payload as Record<string, unknown>).reduce(
-      (normalized, [key, value]) => ({
+  if (!payload || typeof payload !== "object") {
+    return payload;
+  }
+
+  return Object.entries(payload as Record<string, unknown>).reduce(
+    (normalized, [rawKey, value]) => {
+      const canonicalKey = camelToSnakeCase(rawKey);
+      const transformedKey = preserveAllKeys ? rawKey : snakeToCamelCase(rawKey);
+
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        if (!preserveAllKeys && preserveCurrentLevelKeys.has(canonicalKey)) {
+          // Preserve variable-name keys at this level; still recurse into values.
+          return {
+            ...normalized,
+            [transformedKey]: Object.fromEntries(
+              Object.entries(value as Record<string, unknown>).map(([nestedKey, nestedValue]) => [
+                nestedKey,
+                normalizePayloadToCamelCaseInternal(nestedValue),
+              ]),
+            ),
+          };
+        }
+
+        return {
+          ...normalized,
+          [transformedKey]: normalizePayloadToCamelCaseInternal(value, preserveAllKeys || preserveSubtreeKeys.has(canonicalKey)),
+        };
+      }
+
+      return {
         ...normalized,
-        [snakeToCamelCase(key)]: normalizePayloadToCamelCase(value),
-      }),
-      {} as Record<string, unknown>,
-    ) as T;
-  }
+        [transformedKey]: normalizePayloadToCamelCaseInternal(value, preserveAllKeys),
+      };
+    },
+    {} as Record<string, unknown>,
+  );
+}
 
-  return payload as T;
+/**
+ * Normalize a backend snake_case payload to camelCase for frontend consumption.
+ *
+ * Keys inside value-keyed subtrees (`inputs`, `outputs`, `properties`, etc.) are
+ * NOT converted — they are variable names and must keep their original case (V13, V14).
+ */
+export function normalizePayloadToCamelCase<T>(payload: unknown): T {
+  return normalizePayloadToCamelCaseInternal(payload) as T;
 }
 
 export function createInputOutputSchema(vars: string[]) {

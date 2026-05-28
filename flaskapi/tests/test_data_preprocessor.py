@@ -1,6 +1,7 @@
 import pandas as pd
 
 from mmux_flaskapi.data_preprocessor import DataPreprocessor
+from mmux_flaskapi.utils.helpers import recursive_dict_keys_snake_to_camel
 
 
 class TestDataPreprocessor:
@@ -76,3 +77,46 @@ class TestDataPreprocessor:
 
         assert loaded.get_variable_mapping() == {"alpha": "x1", "beta": "y1"}
         assert loaded.output_variables["beta"].mean == 5.0
+
+    def test_original_variable_case_preserved_through_round_trip(self):
+        """V14: DataPreprocessor preserves original variable-name case (no lowercasing)."""
+        # Mixed-case variable names must survive the x1..xn round-trip.
+        input_vars = ["angleWidth", "peak_Averaged_Field", "TissueConduc"]
+        output_vars = ["E_Field_Max"]
+        dataframe = pd.DataFrame(
+            {
+                "angleWidth": [1.0, 2.0, 3.0],
+                "peak_Averaged_Field": [10.0, 20.0, 30.0],
+                "TissueConduc": [0.1, 0.2, 0.3],
+                "E_Field_Max": [5.0, 6.0, 7.0],
+            }
+        )
+        preprocessor = DataPreprocessor()
+        preprocessor.setup_variables(input_vars, output_vars)
+        transformed = preprocessor.fit_transform(dataframe)
+
+        # Mapped names use x1..xn, y1..yn — not lowercased originals.
+        assert list(transformed.columns) == ["x1", "x2", "x3", "y1"]
+
+        restored = preprocessor.inverse_transform(transformed)
+        # Original mixed-case names are restored exactly.
+        assert "angleWidth" in restored
+        assert "peak_Averaged_Field" in restored
+        assert "TissueConduc" in restored
+        assert "E_Field_Max" in restored
+
+    def test_inverse_transform_output_survives_snake_to_camel_serialization(self):
+        """V13+V14: inverse_transform keys placed under 'outputs' must not be case-converted."""
+        input_vars = ["angleWidth"]
+        output_vars = ["E_Field_Max"]
+        dataframe = pd.DataFrame({"angleWidth": [1.0], "E_Field_Max": [5.0]})
+        preprocessor = DataPreprocessor()
+        preprocessor.setup_variables(input_vars, output_vars)
+        preprocessor.fit(dataframe)
+
+        result = preprocessor.inverse_transform({"x1": [1.0], "y1": [5.0]})
+        # Wrap result as it would appear in an API response dict.
+        response = {"outputs": result}
+        serialized = recursive_dict_keys_snake_to_camel(response)
+        # Keys inside 'outputs' must not be snake→camel converted.
+        assert serialized["outputs"] == {"angleWidth": [1.0], "E_Field_Max": [5.0]}
