@@ -67,10 +67,11 @@ V9: image tag = `.bumpversion.cfg` current across all 6 proxy + backend + web sv
 ## §T
 id|status|task|cites
 T1|.|version drift: `flaskapi/pyproject.toml` & `flaskapi/mmux_python/pyproject.toml` = `1.5.14` but service = `1.5.18`; add pyproject files to `.bumpversion.cfg` or align manually|V5
-T2|.|frontend calls `/flask/osparc/download_job_collection_csv` & `/flask/sampling/upload_job_collection_csv` — no backend route; impl backend or remove frontend calls|node/SPEC.md T1, flaskapi/SPEC.md T1
+T2|.|frontend calls `/flask/osparc/download_job_collection_csv` & `/flask/sampling/upload_job_collection_csv` — backend routes IMPLEMENTED on feature/local-functions; resolved-by porting topic fullstack-csv|node/SPEC.md T6, flaskapi/SPEC.md T6
 T3|.|README lacks run matrix doc (modes×perms = 12 `run-*` targets); document|§I
 T4|.|verify `tests/e2e/` covers proxy routing `/flask/*` split & service-mode view switch|V1,V2
 T5|.|`concepts/` holds only UX `.pptx` (2025-01-13, 2025-02-17), not code — confirm intentional, link from README?|—
+T6|.|PORT-TRACKER: clean re-port of feature/local-functions + test/playwright-automation + jgo/preserve-case work (prior merge garbled React state). 6 topics, 1 worktree/branch each off this SPEC: (a) be-preserve-case → flaskapi T8; (b) be-local-functions → flaskapi T7 + node T7; (c) fullstack-csv → flaskapi T6 + node T6; (d) fe-state-mgmt → node T5; (e) fullstack-logscale → flaskapi T9 + node T8; (f) testing-e2e → node T9 + T4. ⊥ port branch artifacts `INVARIANTS.md`/`LIVE_DEBUGGING.md`/`.serena/memories/*`/`tmp_job_collection_import.csv` (intent already folded into §V)|node/SPEC.md T5-T9, flaskapi/SPEC.md T6-T9
 
 ## §B
 id|date|cause|fix

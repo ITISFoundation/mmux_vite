@@ -38,7 +38,13 @@ consumes: GET `/flask/osparc/list_functions` | `/flask/osparc/list_jobs` | `/fla
 consumes: POST `/flask/sampling/lhs` {funUid,config[],seed,n} | `/flask/sampling/grid` {funUid,config[]} | `/flask/sampling/test_job` {funUid,config[]} | `/flask/sampling/clone_job` {functionName,projectJobId,projectInputs}
 consumes: POST `/flask/dakota/sumo_along_axes` (Curves1DPlot) | `/flask/dakota/sumo_grid_evaluation` (Surface2D,IsoSurface3D) | `/flask/dakota/sumo_cross_validation` (SuMoValidation) | `/flask/dakota/manual_uq_propagation_with_uncertainty` (UncertainUQ) | `/flask/dakota/perform_moga_optimization` (MOGAPareto)
 consumes: POST `/flask/text-file` {filename,content} | GET `/flask/text-file/{filename}`
-consumes-MISSING: GET `/flask/osparc/download_job_collection_csv?JobCollectionUid=` (functionUtils.ts:88) & POST `/flask/sampling/upload_job_collection_csv` (functionUtils.ts:99) → ⊥ exist in backend (§T1)
+consumes: GET `/flask/osparc/download_job_collection_csv?JobCollectionUid=` & POST `/flask/sampling/upload_job_collection_csv` → backend routes IMPLEMENTED on feature/local-functions; resolves old consumes-MISSING via §T5,T6 + ../flaskapi/SPEC.md T6
+--- surface distilled from feature/local-functions (to port) ---
+util: `utils/jobCollectionCsv.ts` → parse/serialize job-collection CSV (metadata preamble + inputs/outputs table); round-trips backend CSV (§T6)
+comp: `components/data/UploadJobCollectionButton.tsx` → upload CSV → 1 authoritative parse drives 4 effects atomically {add fn entry, select fn, prefill param bounds, infer dist+log tags} (V13, §T6)
+util: `utils/distributionDiagnostics.ts` → infer/validate per-input distribution + log-scale tags from sample data (§T8)
+util: `utils/functionUtils.ts` add `camelToSnakeCase`/`toBackendVarNames` → FE var names → backend snake_case (paired w/ ../flaskapi V14) (§T9)
+flow: per-variable log-scale toggle `InputVariableDist`/`OutputVariableDist` → FunctionContext → request payload → backend (V12, §T9, ../flaskapi V16)
 
 ## §V
 V1: app usable ⟺ `GET /flask/deployment/health` → 200; `App.tsx` polls ≤300×@1s before render
@@ -51,13 +57,25 @@ V7: dev server port 8080 `strictPort` → fail if port taken (⊥ silent reassig
 V8: `src/osparc-api-ts-client/` generated → ∉ eslint, ⊥ manual edit
 V9: `npm run build` ! pass `tsc -b` (typecheck) before `vite build`
 V10: jobs polled until status ∈ complete set before analysis enabled (≥5 needed → InsufficientDataWarning)
+--- state-mgmt invariants distilled from prior porting (INVARIANTS.md) — caused garbled state, ! hold on reimpl ---
+V11: mutable shared/context state typed w/ explicit union (⊥ inferred from initial literal); later `undefined`/diff-shape assignment ! still typecheck. guard: `npm run build` (INV-001, §T5)
+V12: per-variable metadata (e.g. log-scale) ! flow end-to-end UI→context→payload→backend; UI-only toggle ⊥ done (INV-002, §T8 ../flaskapi V16)
+V13: CSV upload → 1 authoritative parsed result drives 4 effects atomically {add fn, select fn, prefill bounds, infer dist/log}; ⊥ partial update (INV-003, §T6)
+V14: FE↔BE payload field contracts changed together (⊥ opportunistic rename one side) (INV-004, ../flaskapi V13/V14)
+V15: context-derived setters guard w/ equality check before set; ⊥ object-recreation-only retrigger → duplicate Dakota/persistence fan-out (INV-005, §T5)
+V16: Dakota plot fetches (1D/2D/3D) deduped by stable logical request key {axes,sliderValues,QoI,fn,jobList,logScale}; same key → ⊥ new fetch (INV-006, §T5)
 
 ## §T
 id|status|task|cites
-T1|.|frontend calls `download_job_collection_csv` (osparc) & `upload_job_collection_csv` (sampling) — absent backend; impl backend or remove frontend|../flaskapi/SPEC.md T1
+T1|.|frontend calls `download_job_collection_csv`/`upload_job_collection_csv` — backend now IMPLEMENTED; resolved-by → §T6|T6, ../flaskapi/SPEC.md T6
 T2|.|`package.json` version `0.0.0` — never bumped; decide whether to track service version|../SPEC.md V5,T1
 T3|.|surface clear UX msg for backend "≥5 completed jobs" rule pre-call (component `InsufficientDataWarning` exists — confirm all analysis paths gated)|V10, ../flaskapi/SPEC.md V2
 T4|.|no `.env` / typed config for backend base URL — relies on dev proxy + same-origin `/flask` in prod (Caddy); document assumption|../SPEC.md V1
+T5|.|PORT [topic=fe-state-mgmt] clean reimpl of `JobSelector`/`FunctionContext`/`PersistenceContext` state honoring V11/V15/V16 (typed unions, equality-guarded setters, deduped plot fetch keys). prior port garbled this — start from invariants, ⊥ copy broken state code; cover w/ vitest|V11,V15,V16
+T6|.|PORT [topic=fullstack-csv] `utils/jobCollectionCsv.ts` + `UploadJobCollectionButton.tsx` atomic 4-effect upload flow (V13); wire to backend §T6; vitest|V13, ../flaskapi/SPEC.md T6
+T7|.|PORT [topic=be-local-functions] FE support for local (uid-prefixed) functions/collections in JobSelector/FunctionList (offline mode) — pairs ../flaskapi T7|../flaskapi/SPEC.md T7
+T8|.|PORT [topic=fullstack-logscale] `utils/distributionDiagnostics.ts` + per-variable log-scale UI (InputVariableDist/OutputVariableDist) + log-scale plot rendering (Curves1D/Surface2D/IsoSurface3D) end-to-end per V12|V12, ../flaskapi/SPEC.md V16,T9
+T9|.|PORT [topic=testing-e2e] vitest coverage for ported utils/contexts + Playwright local SUMO e2e (`test:browser`); pairs root §T4|../SPEC.md T4
 
 ## §B
 id|date|cause|fix

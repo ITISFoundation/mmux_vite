@@ -41,6 +41,7 @@ api: GET `/list_function_job_collections_for_functionid?functionUid=` → Collec
 api: GET `/get_function_job?jobUid=` → `{uid,status,outputs}`
 api: GET `/get_function_job_status?jobUid=` → `{status}`
 api: GET `/get_function_job_outputs?jobUid=` → outputs
+api: GET `/download_job_collection_csv?JobCollectionUid=` → text/csv (metadata preamble lines + jobs table; preamble = `# key,value`, table = inputs+outputs cols) — distilled from feature/local-functions, port (§T6)
 --- textfile_bp `/flask/text-file` ---
 api: POST `/` `{filename,content}` → `{status:"success",filename}`
 api: GET `/<filename>` → `{filename,content}` | 404
@@ -49,6 +50,7 @@ api: POST `/lhs` `{funUid,config[{variable,start,end}],seed,n}` → job collecti
 api: POST `/grid` `{funUid,config[{variable,start,end,steps}]}` → job collection
 api: POST `/test_job` `{funUid,config[{variable,value}]}` → job {status,inputs,outputs}
 api: POST `/clone_job` `{functionName,projectJobId,projectInputs}` → study
+api: POST `/upload_job_collection_csv` `{csvContent}` → parse preamble+table → reconstruct job collection; ? create local function from source if uid ∉ oSPARC (local_job_store) — distilled from feature/local-functions, port (§T6)
 --- dakota_bp `/flask/dakota` ---
 api: POST `/sumo_cross_validation` `{inputVars[],output,FunctionJobs[]}` → `{outputName,outputNameHat,outputNameStdHat}`
 api: POST `/manual_uq_propagation_with_uncertainty` `{output,inputVars[],distributions,numSamples,FunctionJobs[],nHistograms,seed}` → histogram+box stats
@@ -67,6 +69,10 @@ lib: `create_grid_samples()`,`create_manual_uq_samples()`,`create_samples_along_
 lib: `DakotaObject.run(conf,output_dir)` → subprocess `dakota.environment.study()`
 lib: `create_{sumo_evaluation|sumo_crossvalidation|sumo_manual_crossvalidation|moga_optimization|uq_propagation}_conffile()`
 lib: `evaluate_sumo()`,`evaluate_sumo_along_axes()`,`evaluate_sumo_on_grid()`,`evaluate_sumo_crossvalidation()`,`evaluate_sumo_manual_crossvalidation()`,`perform_moga_optimization()`,`propagate_uq()`
+--- util surface (distilled from feature/local-functions, to port) ---
+util: `utils/local_job_store.py` → JSON-backed store for synthetic local functions/collections/jobs (no live oSPARC). uid-prefix detect `is_local_function_uid`/`is_local_job_collection_uid`/`is_local_job_uid`; CRUD `create_local_function`/`create_local_job_collection`/`list_local_*`/`get_local_*`/`list_local_jobs_for_collection` (§T7)
+util: `utils/case_preserving.py` → `PreserveCaseTransform`, `FunctionVariablesDict`/`FunctionVariableStr` wrappers, `has_preserve_case_metadata(metadata)` → keep orig variable-name case through serialization (§T8)
+util: `json_serializer.recursive_dict_keys_snake_to_camel(d, preserve_nested_keys={"inputs","outputs","default_inputs","properties"})` → value-key dicts ∉ snake↔camel convert (§T8)
 
 ## §V
 V1: `create_flask_app()` registers exactly 5 bp {deployment,osparc,text-file,sampling,dakota} under `/flask/*`
@@ -81,14 +87,22 @@ V9: GET `/health` → 200 `{status:"healthy"}` (matches docker HEALTHCHECK & Cad
 V10: `OSPARC_API_{BASE_URL,KEY,SECRET}` ! set → `OsparcApi` init (BASE_URL `.rstrip("/")`)
 V11: error map (`@api_endpoint`): KeyError→400, ValueError→422, OsparcApiException→its status, else→500
 V12: sampling executes via oSPARC `functions_api.map_function(...)` (lhs/grid) / `run_function(...)` (test_job), inputs validated by `validate_function_inputs`
+V13: response serializer ⊥ snake↔camel-convert keys ∈ value dicts `{inputs,outputs,default_inputs,properties}` (these are data/variable names, not API fields) — distilled, to port (§T8)
+V14: orig variable-name case preserved through `DataPreprocessor` x1..xn round-trip + serialization (⊥ lowercase); preserve-case driven by function metadata (`has_preserve_case_metadata`) — distilled, to port (§T8)
+V15: `DEPLOYMENT_MODE=LOCAL` ⇒ functions/collections/jobs MAY resolve from `local_job_store` w/o live oSPARC; uid-prefix routes local-vs-oSPARC ∀ osparc/sampling/dakota lookup — distilled, to port (§T7)
+V16: log-scale per-variable flag (from request payload) reaches Dakota preprocessing → sample/train in log space, inverse on response (⊥ train linear when UI=log) — distilled, to port (§T9, node/SPEC.md V12)
 
 ## §T
 id|status|task|cites
-T1|.|frontend expects `/flask/osparc/download_job_collection_csv` & `/flask/sampling/upload_job_collection_csv` — ⊥ implemented; add routes or coordinate removal|../node/SPEC.md T1, I
+T1|.|frontend expects `/flask/osparc/download_job_collection_csv` & `/flask/sampling/upload_job_collection_csv` — IMPLEMENTED on feature/local-functions; resolved-by → port via §T6|T6, ../node/SPEC.md T1
 T2|.|`pyproject.toml` & `mmux_python/pyproject.toml` version `1.5.14` ≠ service `1.5.18`; add to `.bumpversion.cfg` or align|../SPEC.md V5,T1
 T3|.|`/get_sumo_cv_accuracy_metrics` not consumed by frontend — confirm used (tests?) or mark dead|I
 T4|.|`tests/implementation instructions/` + `tests/logs/` in tests tree — relocate to `docs/` or gitignore|—
 T5|.|add explicit test asserting all 5 blueprints + every route registered (guards V1)|V1
+T6|.|PORT [topic=fullstack-csv] job-collection CSV import/export: GET `/osparc/download_job_collection_csv` (preamble+table) + POST `/sampling/upload_job_collection_csv` (parse→reconstruct). reuse branch helpers `_split_csv_preamble_and_table`/`_parse_uploaded_job_collection_csv`/`_job_collection_jobs_to_csv`; add tests|I, V13, ../node/SPEC.md T7
+T7|.|PORT [topic=be-local-functions] `utils/local_job_store.py` + local resolution paths in osparc/sampling/dakota so DEPLOYMENT_MODE=LOCAL serves uploaded/synthetic functions offline; uid-prefix routing; tests|I, V15
+T8|.|PORT [topic=be-preserve-case] `utils/case_preserving.py` + `json_serializer` `preserve_nested_keys` + `DataPreprocessor` orig-case round-trip; tests `test_utils_helpers`/`test_data_preprocessor`|I, V13, V14
+T9|.|PORT [topic=fullstack-logscale] accept per-variable log-scale flag in dakota request models → preprocess sample/train in log space, inverse on response; tests|V16, ../node/SPEC.md V12
 
 ## §B
 id|date|cause|fix
