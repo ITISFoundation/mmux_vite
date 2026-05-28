@@ -43,7 +43,7 @@ consumes: GET `/flask/osparc/download_job_collection_csv?JobCollectionUid=` & PO
 util: `utils/jobCollectionCsv.ts` → parse/serialize job-collection CSV (metadata preamble + inputs/outputs table); round-trips backend CSV (§T6)
 comp: `components/data/UploadJobCollectionButton.tsx` → upload CSV → 1 authoritative parse drives 4 effects atomically {add fn entry, select fn, prefill param bounds, infer dist+log tags} (V13, §T6)
 util: `utils/distributionDiagnostics.ts` → infer/validate per-input distribution + log-scale tags from sample data (§T8)
-util: `utils/functionUtils.ts` add `camelToSnakeCase`/`toBackendVarNames` → FE var names → backend snake_case (paired w/ ../flaskapi V14) (§T9)
+util: `utils/functionUtils.ts` `camelToSnakeCase`/`toBackendVarNames` → FE var names → backend snake_case; `normalizePayloadToCamelCase` ! preserve nested value-key dicts {inputs,outputs,properties} (paired w/ ../flaskapi V13/V14) (§T10)
 flow: per-variable log-scale toggle `InputVariableDist`/`OutputVariableDist` → FunctionContext → request payload → backend (V12, §T9, ../flaskapi V16)
 
 ## §V
@@ -76,6 +76,7 @@ T6|.|PORT [topic=fullstack-csv] `utils/jobCollectionCsv.ts` + `UploadJobCollecti
 T7|.|PORT [topic=be-local-functions] FE support for local (uid-prefixed) functions/collections in JobSelector/FunctionList (offline mode) — pairs ../flaskapi T7|../flaskapi/SPEC.md T7
 T8|.|PORT [topic=fullstack-logscale] `utils/distributionDiagnostics.ts` + per-variable log-scale UI (InputVariableDist/OutputVariableDist) + log-scale plot rendering (Curves1D/Surface2D/IsoSurface3D) end-to-end per V12|V12, ../flaskapi/SPEC.md V16,T9
 T9|.|PORT [topic=testing-e2e] vitest coverage for ported utils/contexts + Playwright local SUMO e2e (`test:browser`); pairs root §T4|../SPEC.md T4
+T10|.|PORT [topic=be-preserve-case] homologous FE: `utils/functionUtils.ts` `camelToSnakeCase`/`toBackendVarNames` + `normalizePayloadToCamelCase` preserve nested value-key dicts {inputs,outputs,properties} (mirror of backend nested-key serialization); vitest `functionUtils.test.ts`. own worktree w/ flaskapi T8|V14, ../flaskapi/SPEC.md T8,V13
 
 ## §B
 id|date|cause|fix
