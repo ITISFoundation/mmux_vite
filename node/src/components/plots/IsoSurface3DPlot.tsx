@@ -1,5 +1,5 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Plot from "react-plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
@@ -9,6 +9,7 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
@@ -27,6 +28,7 @@ function IsoSurface3DPlot() {
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [axis3, setAxis3] = useState(filteredInputVars[2]);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
+  const lastFetchedKey = useRef<string | undefined>(undefined);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
       acc[key] =
@@ -184,6 +186,19 @@ function IsoSurface3DPlot() {
   useEffect(() => {
     const run = async () => {
       const jobs = filteredJobList;
+      // V16: dedup by stable logical request key; same key → no new fetch.
+      const requestKey = buildDakotaRequestKey({
+        axes: [axis1, axis2, axis3],
+        sliderValues: otherAxis,
+        qoi: selectedQoI,
+        fn: selectedFunction?.uid,
+        jobList: jobs.map(job => job.uid),
+        logScale: false,
+      });
+      if (requestKey === lastFetchedKey.current) {
+        return undefined;
+      }
+      lastFetchedKey.current = requestKey;
       return RunSuMo3DInterpolation(jobs, axis1, axis2);
     };
     run();
