@@ -33,6 +33,7 @@ class VariableConfig:
     mapped_name: str
     normalize: bool = False
     switch_sign: bool = False
+    log_transform: bool = False
     mean: float | None = None
     std: float | None = None
     min_val: float | None = None
@@ -127,6 +128,36 @@ class DataPreprocessor:
             f"Configured sign switching for {len(input_sign_switches)} input and {len(output_sign_switches)} output variables"
         )
 
+    def setup_log_scaling(
+        self,
+        input_log_scales: list[str] | None = None,
+        output_log_scales: list[str] | None = None,
+    ) -> None:
+        """
+        Configure log10 transformation for variables.
+
+        A log-transformed variable is replaced by log10(value) before any
+        sign-switching or normalization happens.  The inverse pipeline applies
+        ``10**value`` at the end.  Only valid for strictly positive data.
+
+        Parameters
+        ----------
+        input_log_scales:
+            List of input variable names to log10-transform.
+        output_log_scales:
+            List of output variable names to log10-transform.
+        """
+        input_log_scales = input_log_scales or []
+        output_log_scales = output_log_scales or []
+
+        self._configure_log_transforms(self.input_variables, input_log_scales, "input")
+        self._configure_log_transforms(self.output_variables, output_log_scales, "output")
+
+        _logger.info(
+            f"Configured log scaling for {len(input_log_scales)} input and "
+            f"{len(output_log_scales)} output variables"
+        )
+
     def _setup_variable_group(self, var_names: list[str], prefix: str) -> dict[str, VariableConfig]:
         """
         Helper function to set up a group of variables (inputs or outputs).
@@ -172,6 +203,20 @@ class DataPreprocessor:
                     f"{var_type.capitalize()} variable {var_name} not found in setup variables"
                 )
 
+    def _configure_log_transforms(
+        self,
+        variables: dict[str, VariableConfig],
+        log_transforms: list[str],
+        var_type: str,
+    ) -> None:
+        for var_name in log_transforms:
+            if var_name in variables:
+                variables[var_name].log_transform = True
+            else:
+                _logger.warning(
+                    f"{var_type.capitalize()} variable {var_name} not found in setup variables"
+                )
+
     def _fit_variable_group(
         self,
         data: pd.DataFrame,
@@ -184,6 +229,13 @@ class DataPreprocessor:
                 continue
 
             values = np.array(data[var_name].values, dtype=float)
+            if config.log_transform:
+                if np.any(values <= 0):
+                    raise ValueError(
+                        f"{var_type.capitalize()} variable '{var_name}' is configured for "
+                        f"log-scaling but contains non-positive values; log10 is undefined"
+                    )
+                values = np.log10(values)
             if config.switch_sign:
                 values = -values
 
@@ -210,6 +262,15 @@ class DataPreprocessor:
                 continue
 
             values = np.array(data[var_name].values, dtype=float).copy()
+
+            if config.log_transform:
+                if np.any(values <= 0):
+                    raise ValueError(
+                        f"{var_type.capitalize()} variable '{config.original_name}' is "
+                        f"configured for log-scaling but contains non-positive values; "
+                        f"log10 is undefined"
+                    )
+                values = np.log10(values)
 
             if config.switch_sign:
                 values = -values
@@ -320,6 +381,12 @@ class DataPreprocessor:
                     else:
                         value = -value
 
+                if config.log_transform:
+                    if isinstance(value, list):
+                        value = [10.0**v for v in value]
+                    else:
+                        value = 10.0**value
+
                 if not isinstance(value, list):
                     value = [value]
 
@@ -337,6 +404,12 @@ class DataPreprocessor:
                         value = [-v for v in value]
                     else:
                         value = -value
+
+                if config.log_transform:
+                    if isinstance(value, list):
+                        value = [10.0**v for v in value]
+                    else:
+                        value = 10.0**value
 
                 if not isinstance(value, list):
                     value = [value]

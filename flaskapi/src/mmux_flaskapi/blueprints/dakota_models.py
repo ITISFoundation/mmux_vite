@@ -142,6 +142,14 @@ class SumoCrossValidationRequest(BaseModel):
         min_length=5,
         description="List of function jobs (minimum 5 required)",
     )
+    input_log_scales: dict[str, bool] | None = Field(
+        default=None,
+        description="Map of input variable name → True to train surrogate on log10 of that input",
+    )
+    output_log_scales: dict[str, bool] | None = Field(
+        default=None,
+        description="Map of output variable name → True to train surrogate on log10 of that output",
+    )
 
     @field_validator("input_vars")
     @classmethod
@@ -211,7 +219,8 @@ class SumoCrossValidationRequest(BaseModel):
 class DistributionParams(BaseModel):
     """Model for distribution parameters."""
 
-    model_config = ConfigDict(extra="allow")  # Allow additional distribution parameters
+    # populate_by_name allows either snake_case or camelCase (logScale) from the frontend
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     distribution: Literal["normal", "uniform"] = Field(
         ..., description="Type of distribution (normal or uniform)"
@@ -220,6 +229,14 @@ class DistributionParams(BaseModel):
     std: float | None = None
     min: float | None = None
     max: float | None = None
+    log_scale: bool = Field(
+        default=False,
+        alias="logScale",
+        description=(
+            "If True the surrogate is trained on log10(value) for this variable. "
+            "Only supported for uniform distributions with strictly positive bounds."
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_distribution_params(self) -> "DistributionParams":
@@ -229,11 +246,20 @@ class DistributionParams(BaseModel):
                 raise ValueError("Normal distribution requires 'mean' and 'std' parameters")
             if self.std <= 0:
                 raise ValueError("Standard deviation must be positive for normal distribution")
+            if self.log_scale:
+                raise ValueError(
+                    "log_scale is only supported for uniform distributions; for normal "
+                    "distributions use a log-normal distribution form instead"
+                )
         elif self.distribution == "uniform":
             if self.min is None or self.max is None:
                 raise ValueError("Uniform distribution requires 'min' and 'max' parameters")
             if self.min >= self.max:
                 raise ValueError("Min must be less than max for uniform distribution")
+            if self.log_scale and self.min <= 0:
+                raise ValueError(
+                    "log_scale requires min > 0 for uniform distributions (log10 is undefined)"
+                )
 
         return self
 
@@ -348,6 +374,14 @@ class SumoAlongAxesRequest(BaseModel):
     )
     slider_values: dict[str, float] | None = Field(
         default=None, description="Cut values for input variables"
+    )
+    input_log_scales: dict[str, bool] | None = Field(
+        default=None,
+        description="Map of input variable name → True to train surrogate on log10 of that input",
+    )
+    output_log_scales: dict[str, bool] | None = Field(
+        default=None,
+        description="Map of output variable name → True to train surrogate on log10 of that output",
     )
 
     @field_validator("inputs")
@@ -528,6 +562,14 @@ class SumoGridEvaluationRequest(BaseModel):
     slider_values: dict[str, float] | None = Field(
         default=None, description="Fixed values for non-grid input variables"
     )
+    input_log_scales: dict[str, bool] | None = Field(
+        default=None,
+        description="Map of input variable name → True to train surrogate on log10 of that input",
+    )
+    output_log_scales: dict[str, bool] | None = Field(
+        default=None,
+        description="Map of output variable name → True to train surrogate on log10 of that output",
+    )
 
     @field_validator("grid_vars")
     @classmethod
@@ -697,6 +739,10 @@ class MOGAOptimizationRequest(BaseModel):
         ...,
         min_length=5,
         description="List of function jobs (minimum 5 required)",
+    )
+    output_log_scales: dict[str, bool] | None = Field(
+        default=None,
+        description="Map of output variable name → True to train surrogate on log10 of that output",
     )
 
     @field_validator("input_vars")

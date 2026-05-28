@@ -1,8 +1,10 @@
+import csv
+import io
 import logging
 import os
 import time
 from pathlib import Path
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 #
 from flask import Blueprint, jsonify, make_response
@@ -18,11 +20,22 @@ from mmux_flaskapi.blueprints.sampling_models import (
     CloneJobRequest,
     ErrorResponse,
     GridSamplingRequest,
+    JobCollectionCsvUploadRequest,
     LHSSamplingRequest,
     TestJobRequest,
 )
-from mmux_flaskapi.utils.helpers import create_run_dir, dict_keys_snake_to_camel
+from mmux_flaskapi.utils.helpers import (
+    create_run_dir,
+    dict_keys_camel_to_snake,
+    dict_keys_snake_to_camel,
+)
 from mmux_flaskapi.utils.json_serializer import parse_request_model
+from mmux_flaskapi.utils.local_job_store import (
+    create_local_function,
+    create_local_job_collection,
+    get_local_function,
+    is_local_function_uid,
+)
 from mmux_flaskapi.utils.webserver_config import get_osparc_api
 
 #
@@ -310,3 +323,335 @@ def flask_clone_job():
         error_msg = f"Error while cloning job: {e}"
         _logger.error(error_msg)
         return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
+
+
+#####################################################################################
+## CSV import helpers (T6)
+#####################################################################################
+
+
+def _parse_number(raw: str) -> float:
+    """Parse a CSV cell to float; return 0.0 for blank/unparseable cells."""
+    raw = raw.strip()
+    if not raw:
+        return 0.0
+    try:
+        return float(raw)
+    except ValueError:
+        return 0.0
+
+
+def _split_csv_preamble_and_table(csv_content: str) -> tuple[dict[str, str], str]:
+    """
+    Split a CSV string into a metadata dict and the remaining table content.
+
+    Parameters
+    ----------
+    csv_content:
+        Raw CSV text, possibly with leading ``# key,value`` metadata lines.
+
+    Returns
+    -------
+    tuple[dict[str, str], str]
+        Metadata key→value mapping and the non-preamble portion of the CSV.
+    """
+    metadata: dict[str, str] = {}
+    table_lines: list[str] = []
+
+    for line in io.StringIO(csv_content):
+        stripped = line.strip()
+        if not table_lines and not stripped:
+            continue
+        if not table_lines and line.lstrip().startswith("#"):
+            metadata_row = next(csv.reader([line.lstrip()[1:].strip()]), [])
+            if metadata_row:
+                key = metadata_row[0].strip()
+                value = ",".join(metadata_row[1:]).strip() if len(metadata_row) > 1 else ""
+                if key:
+                    metadata[key] = value
+            continue
+        table_lines.append(line)
+
+    return metadata, "".join(table_lines)
+
+
+def _parse_uploaded_job_collection_csv(csv_content: str) -> dict[str, Any]:
+    """
+    Parse an uploaded job-collection CSV into a structured dict.
+
+    Parameters
+    ----------
+    csv_content:
+        Raw CSV text with optional ``# key,value`` preamble and
+        ``input__*`` / ``output__*`` columns.
+
+    Returns
+    -------
+    dict
+        Keys: ``job_rows``, ``input_vars``, ``output_vars``,
+        ``source_function_uid``, ``source_job_collection_uid``,
+        ``source_job_collection_title``, ``source_function_title``,
+        ``source_description``, ``metadata``.
+
+    Raises
+    ------
+    ValueError
+        If the CSV has no input or output columns, or no data rows.
+    """
+    metadata, table_content = _split_csv_preamble_and_table(csv_content)
+    reader = csv.DictReader(io.StringIO(table_content))
+    input_columns = [name for name in (reader.fieldnames or []) if name.startswith("input__")]
+    output_columns = [name for name in (reader.fieldnames or []) if name.startswith("output__")]
+
+    if not input_columns or not output_columns:
+        raise ValueError("CSV must contain both input__* and output__* columns")
+
+    source_function_uid = metadata.get("source_function_uid", "")
+    source_collection_uid = metadata.get("source_job_collection_uid", "")
+    source_collection_title = metadata.get("source_job_collection_title", "")
+    source_function_title = metadata.get("source_function_title", "")
+    source_description = metadata.get("source_description", "")
+
+    job_rows: list[dict[str, Any]] = []
+    for row in reader:
+        inputs: dict[str, float] = {
+            col.replace("input__", "", 1): _parse_number(str(row.get(col, "")))
+            for col in input_columns
+        }
+        outputs: dict[str, float] = {
+            col.replace("output__", "", 1): _parse_number(str(row.get(col, "")))
+            for col in output_columns
+        }
+        status = str(row.get("status", "SUCCESS") or "SUCCESS")
+        job_rows.append(
+            {
+                "inputs": inputs,
+                "outputs": outputs,
+                "status": status,
+                "source_job_uid": row.get("source_job_uid"),
+            }
+        )
+
+    if not job_rows:
+        raise ValueError("CSV contains no data rows")
+
+    return {
+        "job_rows": job_rows,
+        "input_vars": {col.replace("input__", "", 1) for col in input_columns},
+        "output_vars": {col.replace("output__", "", 1) for col in output_columns},
+        "source_function_uid": source_function_uid,
+        "source_job_collection_uid": source_collection_uid,
+        "source_job_collection_title": source_collection_title,
+        "source_function_title": source_function_title,
+        "source_description": source_description,
+        "metadata": metadata,
+    }
+
+
+def _extract_schema_props(function_dict: dict[str, Any], schema_key: str) -> set[str]:
+    """Return the property names from an input/output schema dict."""
+    props = function_dict.get(schema_key, {}).get("schema_content", {}).get("properties", {})
+    return set(props.keys())
+
+
+def _function_schema_vars(function_uid: str) -> tuple[set[str], set[str]]:
+    """
+    Return (input_vars, output_vars) sets for a function uid.
+
+    Works for both local and oSPARC functions.
+    """
+    if is_local_function_uid(function_uid):
+        local_fn = get_local_function(function_uid)
+        if local_fn is None:
+            raise ValueError(f"Local function not found: {function_uid}")
+        return (
+            _extract_schema_props(local_fn, "input_schema"),
+            _extract_schema_props(local_fn, "output_schema"),
+        )
+    function_model = _get_functions_api().get_function(function_uid)
+    function_dict = dict_keys_camel_to_snake(function_model.to_dict())  # type: ignore[arg-type]
+    return (
+        _extract_schema_props(function_dict, "input_schema"),
+        _extract_schema_props(function_dict, "output_schema"),
+    )
+
+
+def _create_local_function_from_source(
+    source_function_uid: str | None,
+    new_title: str | None,
+    incoming_input_vars: set[str],
+    incoming_output_vars: set[str],
+    source_collection_title: str | None = None,
+    source_description: str | None = None,
+) -> str:
+    """
+    Create a local function matching the schema of an optional source function.
+
+    Parameters
+    ----------
+    source_function_uid:
+        Optional uid of the oSPARC or local function this data came from.
+        When ``None`` a brand-new local function is created.
+    new_title:
+        Optional override title for the created function.
+    incoming_input_vars:
+        Set of input variable names parsed from the CSV.
+    incoming_output_vars:
+        Set of output variable names parsed from the CSV.
+    source_collection_title:
+        Used as fallback title when no title is specified.
+    source_description:
+        Optional description.
+
+    Returns
+    -------
+    str
+        uid of the newly created local function.
+
+    Raises
+    ------
+    ValueError
+        If the CSV schema is incompatible with the source function.
+    """
+    if not source_function_uid:
+        created = create_local_function(
+            title=new_title or source_collection_title or "Uploaded local function",
+            description=source_description
+            or (
+                "Local function created from uploaded CSV data"
+                + (f" ({source_collection_title})" if source_collection_title else "")
+            ),
+            input_vars=incoming_input_vars,
+            output_vars=incoming_output_vars,
+            source_function_uid=None,
+        )
+        return str(created["uid"])
+
+    # Validate schema compatibility
+    if is_local_function_uid(source_function_uid):
+        source_fn = get_local_function(source_function_uid)
+        if source_fn is None:
+            raise ValueError(f"Local source function not found: {source_function_uid}")
+        source_input_vars = _extract_schema_props(source_fn, "input_schema")
+        source_output_vars = _extract_schema_props(source_fn, "output_schema")
+        src_description = str(source_fn.get("description", ""))
+    else:
+        function_model = _get_functions_api().get_function(source_function_uid)
+        source_fn = dict_keys_camel_to_snake(function_model.to_dict())  # type: ignore[arg-type]
+        source_input_vars = _extract_schema_props(source_fn, "input_schema")
+        source_output_vars = _extract_schema_props(source_fn, "output_schema")
+        src_description = str(source_fn.get("description", ""))
+
+    if source_description:
+        src_description = source_description
+
+    if source_input_vars != incoming_input_vars or source_output_vars != incoming_output_vars:
+        raise ValueError(
+            "CSV schema is incompatible with the selected source function. "
+            f"Expected inputs={sorted(source_input_vars)} outputs={sorted(source_output_vars)}, "
+            f"received inputs={sorted(incoming_input_vars)} outputs={sorted(incoming_output_vars)}"
+        )
+
+    created = create_local_function(
+        title=new_title or f"Uploaded data - {source_function_uid}",
+        description=src_description,
+        input_vars=incoming_input_vars,
+        output_vars=incoming_output_vars,
+        source_function_uid=source_function_uid,
+    )
+    return str(created["uid"])
+
+
+#####################################################################################
+## CSV upload endpoint (T6)
+#####################################################################################
+
+
+@sampling_bp.route("/upload_job_collection_csv", methods=["POST"])
+def flask_upload_job_collection_csv():
+    """
+    Import a job-collection CSV into the local store (T6).
+
+    Parses the ``# key,value`` preamble, validates column schema against the
+    target function, and persists a new local job collection.
+
+    Returns
+    -------
+    JSON
+        Summary with ``target_function_uid``, ``imported_samples``, and the
+        newly created ``job_collection`` record.
+    """
+    _logger.debug("Starting flask function: flask/upload_job_collection_csv")
+    # parse_request_model raises RequestParsingError (→ 400) on validation failure;
+    # it must be called OUTSIDE the except-Exception block.
+    payload = parse_request_model(JobCollectionCsvUploadRequest)
+    try:
+        parsed = _parse_uploaded_job_collection_csv(payload.csv_content)
+
+        source_function_uid = payload.source_function_uid or parsed["source_function_uid"]
+        if payload.target_mode == "existing":
+            target_function_uid = payload.target_function_uid or ""
+        else:
+            target_function_uid = _create_local_function_from_source(
+                source_function_uid,
+                payload.new_function_title,
+                parsed["input_vars"],
+                parsed["output_vars"],
+                source_collection_title=(
+                    parsed["source_job_collection_title"] or parsed["source_function_title"]
+                ),
+                source_description=parsed["source_description"],
+            )
+
+        if not target_function_uid:
+            raise ValueError("Could not determine target function UID")
+
+        target_inputs, target_outputs = _function_schema_vars(target_function_uid)
+        incoming_inputs: set[str] = parsed["input_vars"]
+        incoming_outputs: set[str] = parsed["output_vars"]
+
+        if target_inputs != incoming_inputs or target_outputs != incoming_outputs:
+            return make_response(
+                jsonify(
+                    {
+                        "error": (
+                            "Incompatible function schema. "
+                            f"Expected inputs={sorted(target_inputs)} "
+                            f"outputs={sorted(target_outputs)}, "
+                            f"received inputs={sorted(incoming_inputs)} "
+                            f"outputs={sorted(incoming_outputs)}"
+                        )
+                    }
+                ),
+                422,
+            )
+
+        collection_title = parsed["source_job_collection_title"] or "Uploaded JobCollection"
+        collection_description = (
+            f"Uploaded CSV data from collection {parsed['source_job_collection_uid'] or 'unknown'}"
+        )
+        local_collection = create_local_job_collection(
+            function_uid=target_function_uid,
+            job_rows=parsed["job_rows"],
+            title=collection_title,
+            description=collection_description,
+        )
+
+        return jsonify(
+            {
+                "target_mode": payload.target_mode,
+                "target_function_uid": target_function_uid,
+                "source_function_uid": source_function_uid,
+                "imported_samples": len(parsed["job_rows"]),
+                "job_collection": local_collection,
+            }
+        )
+
+    except ValueError as e:
+        error_msg = f"Invalid request data: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify({"error": error_msg}), 400)
+    except Exception as e:
+        error_msg = f"Error while uploading job collection CSV: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify({"error": error_msg}), 500)

@@ -6,7 +6,7 @@ providing proper validation and type safety.
 """
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, validator
 
@@ -100,6 +100,27 @@ class CloneJobRequest(BaseModel):
     project_job_id: str = Field(..., min_length=1, description="ID of the project job to clone")
     function_name: str = Field(..., min_length=1, description="Name of the function")
     project_inputs: dict[str, Any] = Field(..., description="Inputs for the project")
+
+
+class JobCollectionCsvUploadRequest(BaseModel):
+    """Request model for uploading a JobCollection CSV payload."""
+
+    csv_content: str = Field(..., min_length=1, description="CSV payload to import")
+    target_mode: Literal["existing", "new"] = Field(
+        ..., description="Import into an existing or a new local function"
+    )
+    target_function_uid: str | None = Field(
+        default=None,
+        description="Existing local function UID (required when target_mode='existing')",
+    )
+    new_function_title: str | None = Field(
+        default=None,
+        description="Title for newly created local function (used when target_mode='new')",
+    )
+    source_function_uid: str | None = Field(
+        default=None,
+        description="Optional source function UID when not embedded in the CSV",
+    )
 
 
 class SamplingResponse(BaseModel):
