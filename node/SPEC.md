@@ -12,7 +12,7 @@ Vite + React 19 + TS frontend: guided 2-step meta-modeling UX (Setup → Results
 ## §C
 - React `^19.0.0`, Vite `^6.3.1`, TS `^5.7.2` (strict), MUI `^7` + `@mui/x-data-grid ^8`, Plotly `plotly.js ^3` / `react-plotly.js ^2.6`, HTTP via `superagent ^10.2`
 - Node ≥24, ESM (`"type":"module"`)
-- dev server port 8080 `strictPort`, host `0.0.0.0`; dev proxy `"proxy":"http://localhost:5000"` → backend
+- dev server port 8080 `strictPort`, host `0.0.0.0`; standalone `vite` has no configured backend proxy; composed development + local validation serve same-origin `/flask/*` through Caddy `:8888`
 - `src/osparc-api-ts-client/` generated (oSPARC API client) → ⊥ hand-edit, ∉ eslint
 - global state in React contexts; persisted to backend via `/flask/text-file`
 - lint = eslint airbnb+TS+prettier; format = prettier (`.prettierrc`: tabWidth 2, printWidth 130, double quotes, trailingComma "all", semi, arrowParens "avoid")
@@ -26,7 +26,6 @@ cmd: `npm run dev` → `vite` :8080
 cmd: `npm run build` → `tsc -b && vite build`
 cmd: `npm run lint` → `eslint .`
 cmd: `npm test` → `npx vitest`
-cmd: `npm run test:browser` → `vitest --config vitest.browser.config.ts` (Playwright)
 cmd: `npm run preview` → `vite preview`
 cmd: `npm run pretty` → `prettier --write`
 entry: `src/index.tsx` → providers (Persistence,Navigation) → `App.tsx`
@@ -70,12 +69,12 @@ id|status|task|cites
 T1|.|frontend calls `download_job_collection_csv`/`upload_job_collection_csv` — backend now IMPLEMENTED; resolved-by → §T6|T6, ../flaskapi/SPEC.md T6
 T2|.|`package.json` version `0.0.0` — never bumped; decide whether to track service version|../SPEC.md V5,T1
 T3|.|surface clear UX msg for backend "≥5 completed jobs" rule pre-call (component `InsufficientDataWarning` exists — confirm all analysis paths gated)|V10, ../flaskapi/SPEC.md V2
-T4|.|no `.env` / typed config for backend base URL — relies on dev proxy + same-origin `/flask` in prod (Caddy); document assumption|../SPEC.md V1
+T4|.|no `.env` / typed config for backend base URL — standalone `npm run dev` has no configured Vite proxy; composed development + local validation rely on same-origin `/flask` via Caddy `:8888`; document assumption|../SPEC.md V1
 T5|.|PORT [topic=fe-state-mgmt] clean reimpl of `JobSelector`/`FunctionContext`/`PersistenceContext` state honoring V11/V15/V16 (typed unions, equality-guarded setters, deduped plot fetch keys). prior port garbled this — start from invariants, ⊥ copy broken state code; cover w/ vitest|V11,V15,V16
 T6|.|PORT [topic=fullstack-csv] `utils/jobCollectionCsv.ts` + `UploadJobCollectionButton.tsx` atomic 4-effect upload flow (V13); wire to backend §T6; vitest|V13, ../flaskapi/SPEC.md T6
 T7|.|PORT [topic=be-local-functions] FE support for local (uid-prefixed) functions/collections in JobSelector/FunctionList (offline mode) — pairs ../flaskapi T7|../flaskapi/SPEC.md T7
 T8|.|PORT [topic=fullstack-logscale] `utils/distributionDiagnostics.ts` + per-variable log-scale UI (InputVariableDist/OutputVariableDist) + log-scale plot rendering (Curves1D/Surface2D/IsoSurface3D) end-to-end per V12|V12, ../flaskapi/SPEC.md V16,T9
-T9|.|PORT [topic=testing-e2e] vitest coverage for ported utils/contexts + Playwright local SUMO e2e (`test:browser`); pairs root §T4|../SPEC.md T4
+T9|.|PORT [topic=testing-e2e] vitest coverage for ported utils/contexts + Playwright local SUMO e2e; port/add `vitest.browser.config.ts` before advertising `npm run test:browser` as supported. pairs root §T4|../SPEC.md T4
 T10|.|PORT [topic=be-preserve-case] homologous FE: `utils/functionUtils.ts` `camelToSnakeCase`/`toBackendVarNames` + `normalizePayloadToCamelCase` preserve nested value-key dicts {inputs,outputs,properties} (mirror of backend nested-key serialization); vitest `functionUtils.test.ts`. own worktree w/ flaskapi T8|V14, ../flaskapi/SPEC.md T8,V13
 
 ## §B

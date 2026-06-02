@@ -28,9 +28,9 @@ parent: [`../SPEC.md`](../SPEC.md) ; frontend consumer: [`../node/SPEC.md`](../n
 factory: `create_flask_app() -> MMUXFlask` registers 5 blueprints under `/flask`
 --- deployment_bp `/flask/deployment` ---
 api: GET `/health` → 200 `{status:"healthy"}` (docker healthcheck)
-api: GET `/service-mode` → `{service_mode:<env SERVICE_MODE>}`
+api: GET `/service-mode` → `{serviceMode:<env SERVICE_MODE>}`
 api: GET `/permissions` → `{permissions:<env PERMISSIONS>}`
-api: GET `/mode` → `{deployment_mode:<env DEPLOYMENT_MODE>}`
+api: GET `/mode` → `{deploymentMode:<env DEPLOYMENT_MODE>}`
 --- osparc_bp `/flask/osparc` ---
 api: GET `/list_functions` → Function[]
 api: GET `/list_jobs` → FunctionJob[]

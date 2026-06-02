@@ -44,7 +44,8 @@ cmd: `make .env` → clone `.env-devel` → `.env`
 cmd: `make build` → `compose-spec` (ooil) + build all images
 cmd: `make build-no-cache` → build `--no-cache --pull --parallel`
 cmd: `make run-develop-{mode}-{perm}` → `docker compose -f docker-compose-development.yml up` (live source mounts, LOG_LEVEL=DEBUG, DEVELOPMENT_MODE=true)
-cmd: `make run-prod-local-{mode}-{perm}` → `docker compose -f docker-compose-local.yml up` (prod build, validation mount only)
+cmd: `make run-prod-local-{sumo|uq}-{read|write}` → `docker compose -f docker-compose-local.yml up` (prod build, validation mount only)
+cmd: `make run-prod-moga-{read|write}` → `docker compose -f docker-compose-local.yml up` (prod build, validation mount only)
 cmd: `make prek` → `uvx prek run --all-files`
 cmd: `make test-node` → `npm ci && npm test` in `node/`
 cmd: `make test-flaskapi` → `uv run pytest tests/ -v --cov-report=html --cov-report=term-missing`
