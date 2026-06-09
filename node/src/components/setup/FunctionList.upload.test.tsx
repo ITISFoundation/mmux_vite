@@ -6,7 +6,7 @@
  *   - API calls (listFunctions, uploadJobCollectionCsv, getFunctionJobCollections)
  *   - File picker (pickSingleCsvFile) → returns a File backed by the real CSV on disk
  *   - Secondary contexts (SamplingContext, JobContext) and PersistenceContext
- *   - MUI DataGrid and react-toastify (side-effect-free stubs)
+ *   - react-toastify (side-effect-free stub)
  *
  * What runs for real:
  *   - FunctionContextProvider (state management under test)
@@ -24,7 +24,7 @@ import { FunctionContextProvider, useFunctionContext } from "../../context/Funct
 
 const fileName = fileURLToPath(import.meta.url);
 const dirName = dirname(fileName);
-const csvContent = readFileSync(resolve(dirName, "../../../tmp_job_collection_import.csv"), "utf-8");
+const csvContent = readFileSync(resolve(dirName, "./__fixtures__/jobCollectionImport.csv"), "utf-8");
 
 // The function the backend will return after the CSV is uploaded.
 // inputSchema matches the 6 input__ columns in the CSV.
@@ -95,11 +95,6 @@ vi.mock("react-toastify", () => ({
 
 vi.mock("../navigation/TutorialManualLinks", () => ({
   HelpContents: () => <></>,
-}));
-
-// Simple stub — we only care about state in FunctionContext, not DataGrid internals.
-vi.mock("@mui/x-data-grid", () => ({
-  DataGrid: () => <div data-testid="function-grid" />,
 }));
 
 // vi.hoisted ensures these are available inside vi.mock factories (which are hoisted to file top).
@@ -173,7 +168,6 @@ describe("FunctionList — CSV upload E2E flow", () => {
     );
 
     // Wait for the initial load to settle into the empty-state branch.
-    // The DataGrid is shown while loading=true; after load with no functions it disappears.
     await waitFor(() => {
       expect(screen.queryByTestId("function-grid")).toBeNull();
     });

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import React from "react";
 import { render, waitFor, cleanup } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FunctionList } from "./FunctionList";
@@ -73,33 +72,6 @@ vi.mock("../../context/JobContext", () => ({
 
 vi.mock("../data/UploadJobCollectionButton", () => ({
   default: () => <button type="button">Upload Data</button>,
-}));
-
-vi.mock("@mui/x-data-grid", () => ({
-  DataGrid: ({
-    rows,
-    rowSelectionModel,
-    onRowSelectionModelChange,
-  }: {
-    rows: Array<{ uid: string }>;
-    rowSelectionModel?: { ids: Set<string>; type: string };
-    onRowSelectionModelChange?: (model: { ids: Set<string>; type: string }) => void;
-  }) => {
-    React.useEffect(() => {
-      if (!rowSelectionModel || !onRowSelectionModelChange) {
-        return;
-      }
-
-      const selectedIds = [...rowSelectionModel.ids];
-      const rowIds = new Set(rows.map(row => row.uid));
-
-      if (selectedIds.length > 0 && selectedIds.some(id => !rowIds.has(id))) {
-        onRowSelectionModelChange({ type: "include", ids: new Set() });
-      }
-    }, [onRowSelectionModelChange, rowSelectionModel, rows]);
-
-    return <div data-testid="grid">{rows.length}</div>;
-  },
 }));
 
 describe("FunctionList", () => {

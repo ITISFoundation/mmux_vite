@@ -11,7 +11,7 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { getValidationSeries } from "./sumoResponse";
+import { getValidationSeries } from "../../utils/sumoResponse";
 
 function SuMoValidation() {
   const theme = useTheme();

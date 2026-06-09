@@ -9,7 +9,7 @@ import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
 import InsufficientDataWarning from "./InsufficientDataWarning";
-import { getUQHistogramData } from "./sumoResponse";
+import { getUQHistogramData } from "../../utils/sumoResponse";
 
 type ErrorResponseBody = {
   error?: string;

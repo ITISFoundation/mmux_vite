@@ -1,3 +1,5 @@
+import { snakeToCamelCase } from "./functionUtils";
+
 export type NumericSeries = number[] | number[][];
 
 export type SumoAxisPrediction = {
@@ -5,10 +7,6 @@ export type SumoAxisPrediction = {
   yHat: number[];
   stdHat?: number[];
 };
-
-function snakeToCamelCase(value: string): string {
-  return value.replace(/_([a-z0-9])/g, (_match, char: string) => char.toUpperCase());
-}
 
 function normalizeResponseKey(value: string): string {
   return value.replace(/_/g, "").toLowerCase();

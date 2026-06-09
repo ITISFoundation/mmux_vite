@@ -9,7 +9,7 @@ import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { getAlongAxesPredictions, type SumoAxisPrediction } from "./sumoResponse";
+import { getAlongAxesPredictions, type SumoAxisPrediction } from "../../utils/sumoResponse";
 
 function Curves1DPlots() {
   const theme = useTheme();

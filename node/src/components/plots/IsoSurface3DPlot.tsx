@@ -9,7 +9,7 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { getGridData, getGridOutputValues, type NumericSeries } from "./sumoResponse";
+import { getGridData, getGridOutputValues, type NumericSeries } from "../../utils/sumoResponse";
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
