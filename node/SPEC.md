@@ -19,8 +19,8 @@ Vite + React 19 + TS frontend: guided 2-step meta-modeling UX (Setup → Results
 - style: functional components + hooks only; ⊥ `any`; props typed via TS (⊥ PropTypes); destructure props in signature
 - naming: Components PascalCase | funcs/vars camelCase | util/hook files kebab|camel `.ts` | constants CONSTANT_CASE
 - errors: console.warn/error dev feedback + react-toastify user-facing
---- structural conventions (alexpargon review on #456 + fix commit 0811bcb) ---
-- pure utility modules (⊥ JSX/React) live `utils/` ∀ consumer count (⊥ co-locate in `components/`); e.g. `sumoResponse.ts` belongs `utils/` not `components/plots/`
+--- structural conventions (alexpargon review on #456 + fix commit `0811bcb`) ---
+- pure utility modules (⊥ JSX/React) live `utils/` ∀ consumer count (⊥ co-locate in `components/`); e.g. (see `0811bcb`) `sumoResponse.ts` belongs `utils/` not `components/plots/`
 - shared helpers single-sourced + exported (⊥ duplicate identical defs across files); e.g. one `snakeToCamelCase` exported from `utils/functionUtils.ts`
 - test fixtures/data → `__fixtures__/` (⊥ temp data files committed in `src/` tree or repo root, e.g. `tmp_job_collection_import.csv`)
 - component internal order: theme → context hooks → derived values → state → ref → handlers → effects → layout/style obj literals → JSX return
