@@ -91,6 +91,11 @@ V13: response serializer ⊥ snake↔camel-convert keys ∈ value dicts `{inputs
 V14: orig variable-name case preserved through `DataPreprocessor` x1..xn round-trip + serialization (⊥ lowercase); preserve-case driven by function metadata (`has_preserve_case_metadata`) — distilled, to port (§T8)
 V15: `DEPLOYMENT_MODE=LOCAL` ⇒ functions/collections/jobs MAY resolve from `local_job_store` w/o live oSPARC; uid-prefix routes local-vs-oSPARC ∀ osparc/sampling/dakota lookup — distilled, to port (§T7)
 V16: log-scale per-variable flag (from request payload) reaches Dakota preprocessing → sample/train in log space, inverse on response (⊥ train linear when UI=log) — distilled, to port (§T9, node/SPEC.md V12)
+--- review-backprop invariants (Copilot review on #467; bugs §B1-B5, fixes §T10-T14) ---
+V17: `local_job_store` dir anchored to explicit base (env `LOCAL_STORE_DIR` or `Path(__file__).resolve().parents[N]`), ⊥ `Path.cwd()`-derived; mkdir deferred to first write + `parents=True` (B1)
+V18: response ⊥ emit same datum under both snake+camel key when global serializer camel-converts (⊥ pre-add `jobIds` beside `job_ids`) → ⊥ key-collision overwrite (B2)
+V19: CSV cell parse ! raise ValueError w/ row+col ctx on unparseable non-blank cell; truly-blank → NaN sentinel, ⊥ silent `0.0` (⊥ feed accidental zeros to Dakota) (B4)
+V20: `local_job_store._load_store` catches only `(OSError, json.JSONDecodeError)`; on corrupt JSON ! backup offending file, ⊥ silent reset-then-overwrite (⊥ unrecoverable loss) (B5)
 
 ## §T
 id|status|task|cites
@@ -103,6 +108,16 @@ T6|.|PORT [topic=fullstack-csv] job-collection CSV import/export: GET `/osparc/d
 T7|.|PORT [topic=be-local-functions] `utils/local_job_store.py` + local resolution paths in osparc/sampling/dakota so DEPLOYMENT_MODE=LOCAL serves uploaded/synthetic functions offline; uid-prefix routing; tests|I, V15
 T8|.|PORT [topic=be-preserve-case] `utils/case_preserving.py` + `json_serializer` `preserve_nested_keys` + `DataPreprocessor` orig-case round-trip; tests `test_utils_helpers`/`test_data_preprocessor`|I, V13, V14
 T9|.|PORT [topic=fullstack-logscale] accept per-variable log-scale flag in dakota request models → preprocess sample/train in log space, inverse on response; tests|V16, ../node/SPEC.md V12
+T10|.|fix B1 (#467): anchor `LOCAL_STORE_DIR` to env/`__file__`, defer `mkdir(parents=True)` to first write; test cwd-independence|V17,B1
+T11|.|fix B2 (#467): drop manual `jobIds` (or the snake key), let global serializer convert `job_ids` once; test ⊥ double-key collision|V18,B2
+T12|.|fix B3 (#467): gate `list_local_*` merges + per-id local branches (`osparc.py` ~94,135,160,185,224,348) on `DEPLOYMENT_MODE=LOCAL`; test OSPARC mode ⊥ surface `runs_local` state|V15,B3
+T13|.|fix B4 (#467): `_parse_number` raise ValueError(row,col) on unparseable non-blank, blank→NaN; test rejects `"abc"`/swapped cols|V19,B4
+T14|.|fix B5 (#467): narrow `_load_store` except to `(OSError, json.JSONDecodeError)`, backup before reset; test corrupt-json ⊥ wipe store|V20,B5
 
 ## §B
 id|date|cause|fix
+B1|2026-06-16|#467 `local_job_store` `LOCAL_STORE_DIR=Path.cwd().parent.parent.parent` at import → cwd-dependent unpredictable path (pytest cwd ≠ container cwd), `mkdir` no `parents`|V17
+B2|2026-06-16|#467 `osparc.py` normalized collection emits both `jobIds`+`job_ids`; global camel serializer rewrites `job_ids`→`jobIds` → key collision, one silently overwrites (iteration-order dependent)|V18
+B3|2026-06-16|#467 `osparc.py` local fn/collection merges + per-id branches run unconditionally ∀ `DEPLOYMENT_MODE` → OSPARC deploy leaks leftover `runs_local` state, violates V15|V15
+B4|2026-06-16|#467 `sampling._parse_number` swallows unparseable cell → `0.0` → silent scientific-data corruption (job looks completed w/ zeros fed to Dakota)|V19
+B5|2026-06-16|#467 `local_job_store._load_store` bare `except Exception`→empty store; next `_save_store` overwrites corrupt file → unrecoverable loss of saved functions/collections/jobs|V20
