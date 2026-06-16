@@ -98,7 +98,7 @@ function Curves1DPlots() {
     }
   };
 
-  const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[]) => {
+  const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[], requestKey: string) => {
     setPropagating(true);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
     fetch(`/flask/dakota/sumo_along_axes`, {
@@ -116,9 +116,13 @@ function Curves1DPlots() {
       .then(response => response.json())
       .then(data => {
         createPlotData(data);
+        // V18: cache key ONLY on success, so transient failures don't block retry
+        lastFetchedKey.current = requestKey;
         setPropagating(false);
       })
       .catch(_error => {
+        // V18: clear cache on error so same inputs can be retried
+        lastFetchedKey.current = undefined;
         setPlotData([]);
         setPropagating(false);
       });
@@ -144,8 +148,7 @@ function Curves1DPlots() {
       if (requestKey === lastFetchedKey.current) {
         return undefined;
       }
-      lastFetchedKey.current = requestKey;
-      return RunCentralSuMoInterpolations(jobs);
+      return RunCentralSuMoInterpolations(jobs, requestKey);
     };
     run();
     // console.debug("axis: ", axis);

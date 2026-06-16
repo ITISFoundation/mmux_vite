@@ -148,7 +148,12 @@ function IsoSurface3DPlot() {
     }
   };
 
-  const RunSuMo3DInterpolation = async (jobs: OsparcFunctionJob[], localAxis1: string, localAxis2: string) => {
+  const RunSuMo3DInterpolation = async (
+    jobs: OsparcFunctionJob[],
+    localAxis1: string,
+    localAxis2: string,
+    requestKey: string,
+  ) => {
     // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
@@ -174,9 +179,13 @@ function IsoSurface3DPlot() {
       })
       .then(d => {
         reshapePlotData(d);
+        // V18: cache key ONLY on success, so transient failures don't block retry
+        lastFetchedKey.current = requestKey;
         setPropagating(false);
       })
       .catch(error => {
+        // V18: clear cache on error so same inputs can be retried
+        lastFetchedKey.current = undefined;
         console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
@@ -198,8 +207,7 @@ function IsoSurface3DPlot() {
       if (requestKey === lastFetchedKey.current) {
         return undefined;
       }
-      lastFetchedKey.current = requestKey;
-      return RunSuMo3DInterpolation(jobs, axis1, axis2);
+      return RunSuMo3DInterpolation(jobs, axis1, axis2, requestKey);
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps

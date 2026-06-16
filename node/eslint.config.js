@@ -123,7 +123,8 @@ export default [
           modifiers: ["requiresQuotes"],
           format: null,
         },
-        { // for job status-es
+        {
+          // for job status-es
           selector: "typeProperty",
           filter: {
             regex: "^(PENDING|RUNNING|COMPLETED|FAILED)$",

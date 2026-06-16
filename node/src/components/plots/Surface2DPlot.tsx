@@ -79,7 +79,7 @@ function Surface2DPlot() {
   );
 
   const RunSuMo2DInterpolation = useCallback(
-    async (jobs: FunctionJob[], key1: string, key2: string) => {
+    async (jobs: FunctionJob[], key1: string, key2: string, requestKey: string) => {
       // This should create the "data" state variable to be plotted
       console.info("Evaluating SuMo for 2D surface...");
       console.info("Jobs to build SuMo: ", jobs);
@@ -104,9 +104,13 @@ function Surface2DPlot() {
         })
         .then(d => {
           reshapePlotData(d);
+          // V18: cache key ONLY on success, so transient failures don't block retry
+          lastFetchedKey.current = requestKey;
           setPropagating(false);
         })
         .catch(error => {
+          // V18: clear cache on error so same inputs can be retried
+          lastFetchedKey.current = undefined;
           console.warn("Error:", error);
           setPropagating(false);
           setPlotData([]);
@@ -130,8 +134,7 @@ function Surface2DPlot() {
       if (requestKey === lastFetchedKey.current) {
         return undefined;
       }
-      lastFetchedKey.current = requestKey;
-      return RunSuMo2DInterpolation(jobs, axis1, axis2);
+      return RunSuMo2DInterpolation(jobs, axis1, axis2, requestKey);
     };
     run();
   }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList, RunSuMo2DInterpolation]);
