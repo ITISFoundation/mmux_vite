@@ -44,8 +44,7 @@ cmd: `make .env` → clone `.env-devel` → `.env`
 cmd: `make build` → `compose-spec` (ooil) + build all images
 cmd: `make build-no-cache` → build `--no-cache --pull --parallel`
 cmd: `make run-develop-{mode}-{perm}` → `docker compose -f docker-compose-development.yml up` (live source mounts, LOG_LEVEL=DEBUG, DEVELOPMENT_MODE=true)
-cmd: `make run-prod-local-{sumo|uq}-{read|write}` → `docker compose -f docker-compose-local.yml up` (prod build, validation mount only)
-cmd: `make run-prod-moga-{read|write}` → `docker compose -f docker-compose-local.yml up` (prod build, validation mount only)
+cmd: `make run-prod-local-{mode}-{perm}` → `docker compose -f docker-compose-local.yml up` (prod build, validation mount only)
 cmd: `make prek` → `uvx prek run --all-files`
 cmd: `make test-node` → `npm ci && npm test` in `node/`
 cmd: `make test-flaskapi` → `uv run pytest tests/ -v --cov-report=html --cov-report=term-missing`
@@ -73,6 +72,7 @@ T3|.|README lacks run matrix doc (modes×perms = 12 `run-*` targets); document|�
 T4|.|verify `tests/e2e/` covers proxy routing `/flask/*` split & service-mode view switch|V1,V2
 T5|.|`concepts/` holds only UX `.pptx` (2025-01-13, 2025-02-17), not code — confirm intentional, link from README?|—
 T6|.|PORT-TRACKER: clean re-port of feature/local-functions + test/playwright-automation + jgo/preserve-case work (prior merge garbled React state). 6 topics, 1 worktree/branch each off this SPEC: (a) be-preserve-case [full-stack, own worktree] → flaskapi T8 + node T10; (b) be-local-functions → flaskapi T7 + node T7; (c) fullstack-csv → flaskapi T6 + node T6; (d) fe-state-mgmt → node T5; (e) fullstack-logscale → flaskapi T9 + node T8; (f) testing-e2e → node T9 + T4. ⊥ port branch artifacts `INVARIANTS.md`/`LIVE_DEBUGGING.md`/`.serena/memories/*`/`tmp_job_collection_import.csv` (intent already folded into §V)|node/SPEC.md T5-T9, flaskapi/SPEC.md T6-T9
+T7|.|REVIEW-BACKPROP: re-port PRs #467(be)/#468(fe-state)/#469(preserve-case) rebased onto develop (single feature commit each, squashed SPEC base #466 dropped). Copilot review findings recorded as bugs+fix-tasks: flaskapi §B1-B5/§T10-T14, node §B6-B9/§T11-T13. alexpargon structural fixes (commit `0811bcb`) folded into node §C conventions + carry-over task node §T14. ⊥ merge before §T fixes addressed|flaskapi/SPEC.md T10-T14, node/SPEC.md T11-T14
 
 ## §B
 id|date|cause|fix

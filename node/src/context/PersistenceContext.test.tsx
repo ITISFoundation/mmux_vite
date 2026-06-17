@@ -182,6 +182,49 @@ describe("PersistenceContextProvider", () => {
     });
   });
 
+  it("V15: saveState skips redundant writes when content is unchanged", async () => {
+    mockFetchWithRetry.mockResolvedValueOnce(new Response(null, { status: 404, statusText: "Not Found" }));
+    const setFilePost = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ filename: "persistence.json", status: "success" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    global.fetch = setFilePost;
+
+    const { getByText, getByTestId } = render(
+      <PersistenceContextProvider>
+        <TestComponent />
+      </PersistenceContextProvider>,
+    );
+
+    act(() => {
+      getByText("Set Health OK").click();
+    });
+
+    await waitFor(() => {
+      expect(getByTestId("loading").textContent).toBe("loaded");
+    });
+
+    // First save persists once (content differs from the hydrated default).
+    act(() => {
+      getByText("Save State").click();
+    });
+    await waitFor(() => {
+      expect(setFilePost).toHaveBeenCalledTimes(1);
+    });
+
+    // Saving the SAME state again (recreated object reference) must NOT re-POST.
+    act(() => {
+      getByText("Save State").click();
+    });
+    await waitFor(() => {
+      const persistence = JSON.parse(getByTestId("persistence").textContent!);
+      expect(persistence.currentView).toBe(1);
+    });
+    expect(setFilePost).toHaveBeenCalledTimes(1);
+  });
+
   it("getFunctionValues and setFunctionValues work", async () => {
     mockFetchWithRetry.mockResolvedValueOnce(new Response(null, { status: 404, statusText: "Not Found" }));
 

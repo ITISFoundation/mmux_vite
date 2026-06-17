@@ -49,10 +49,19 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   const poperOpen = useRef(false);
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [page, setPage] = React.useState(0);
+  // V15 (INV-005): remember the last selection pushed to the JobContext so a
+  // logically-identical selection (rebuilt array) does not retrigger the setter
+  // and the persistence/Dakota fan-out it would cause.
+  const lastPushedUids = useRef<string>("");
 
   const updateJobContext = useCallback(
     (jobs: SelectedJobCollection[]) => {
       const newList = jobs.map(j => j.subJobs.filter(k => k.selected).map(l => l.job.uid)).flat();
+      const newListKey = JSON.stringify(newList);
+      if (newListKey === lastPushedUids.current) {
+        return;
+      }
+      lastPushedUids.current = newListKey;
       setSelectedJobUids(newList);
     },
     [setSelectedJobUids],
