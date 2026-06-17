@@ -71,6 +71,56 @@ describe("FunctionContextProvider", () => {
     expect(screen.getByTestId("inputVars").textContent).toBe("a,b");
   });
 
+  it("V11: setters accept the full union (undefined / empty / repopulated) and typecheck", async () => {
+    function UnionConsumer() {
+      const ctx = useFunctionContext();
+      return (
+        <div>
+          <button
+            type="button"
+            data-testid="clearFunction"
+            onClick={() => {
+              // Explicit-union typing: assigning `undefined` to selectedFunction must
+              // compile (it would not if the type were inferred from a non-undefined literal).
+              ctx.setSelectedFunction(undefined);
+              ctx.setInputVars([]);
+              ctx.setDistribution({});
+            }}
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            data-testid="repopulate"
+            onClick={() => {
+              // Reassigning a different-shape distribution must also compile.
+              ctx.setDistribution({ k: { v: { distribution: "normal", mean: 0, std: 1 } } });
+              ctx.setInputVars(["k"]);
+            }}
+          >
+            Repopulate
+          </button>
+          <span data-testid="selectedFunction">{ctx.selectedFunction?.title ?? "none"}</span>
+          <span data-testid="inputVars">{ctx.inputVars.join(",")}</span>
+          <span data-testid="distribution">{Object.keys(ctx.distribution).join(",")}</span>
+        </div>
+      );
+    }
+    render(
+      <FunctionContextProvider>
+        <UnionConsumer />
+      </FunctionContextProvider>,
+    );
+    await screen.getByTestId("clearFunction").click();
+    expect(screen.getByTestId("selectedFunction").textContent).toBe("none");
+    expect(screen.getByTestId("inputVars").textContent).toBe("");
+    expect(screen.getByTestId("distribution").textContent).toBe("");
+
+    await screen.getByTestId("repopulate").click();
+    expect(screen.getByTestId("inputVars").textContent).toBe("k");
+    expect(screen.getByTestId("distribution").textContent).toBe("k");
+  });
+
   it("throws error if used outside provider", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     function BrokenConsumer() {
