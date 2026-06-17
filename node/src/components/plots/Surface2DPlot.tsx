@@ -1,5 +1,5 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { useMMUXContext } from "../../context/MMUXContext";
@@ -9,6 +9,7 @@ import Header from "../navigation/Header";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 
 function Surface2DPlot() {
   const theme = useTheme();
@@ -21,6 +22,7 @@ function Surface2DPlot() {
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [propagating, setPropagating] = useState(false);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
+  const lastFetchedKey = useRef<string | undefined>(undefined);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
       acc[key] =
@@ -77,7 +79,7 @@ function Surface2DPlot() {
   );
 
   const RunSuMo2DInterpolation = useCallback(
-    async (jobs: FunctionJob[], key1: string, key2: string) => {
+    async (jobs: FunctionJob[], key1: string, key2: string, requestKey: string) => {
       // This should create the "data" state variable to be plotted
       console.info("Evaluating SuMo for 2D surface...");
       console.info("Jobs to build SuMo: ", jobs);
@@ -102,9 +104,13 @@ function Surface2DPlot() {
         })
         .then(d => {
           reshapePlotData(d);
+          // V18: cache key ONLY on success, so transient failures don't block retry
+          lastFetchedKey.current = requestKey;
           setPropagating(false);
         })
         .catch(error => {
+          // V18: clear cache on error so same inputs can be retried
+          lastFetchedKey.current = undefined;
           console.warn("Error:", error);
           setPropagating(false);
           setPlotData([]);
@@ -116,7 +122,19 @@ function Surface2DPlot() {
   useEffect(() => {
     const run = async () => {
       const jobs = filteredJobList;
-      return RunSuMo2DInterpolation(jobs, axis1, axis2);
+      // V16: dedup by stable logical request key; same key → no new fetch.
+      const requestKey = buildDakotaRequestKey({
+        axes: [axis1, axis2],
+        sliderValues: otherAxis,
+        qoi: selectedQoI,
+        fn: selectedFunction?.uid,
+        jobList: jobs.map(job => job.uid),
+        logScale: false,
+      });
+      if (requestKey === lastFetchedKey.current) {
+        return undefined;
+      }
+      return RunSuMo2DInterpolation(jobs, axis1, axis2, requestKey);
     };
     run();
   }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList, RunSuMo2DInterpolation]);

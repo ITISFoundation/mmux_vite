@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { PersistenceType } from "./types";
 import { fetchWithRetry } from "../utils/fetchRetry";
@@ -48,6 +48,10 @@ export function PersistenceContextProvider({ children }: Props) {
   const [healthOK, setHealthOK] = useState<boolean>(false);
   const [persistence, setPersistence] = useState<PersistenceType | undefined>(undefined);
   const [avoidPersisting, setAvoidPersisting] = useState<boolean>(false);
+  // V15 (INV-005): track the last serialized state actually persisted so that
+  // setters re-invoked with a recreated-but-equal object do not retrigger a save
+  // (avoids duplicate Dakota/persistence fan-out).
+  const lastSavedContent = useRef<string | undefined>(undefined);
 
   // Validate persistence structure
   const isValidPersistenceFile = (value: unknown): value is PersistenceType => {
@@ -136,8 +140,14 @@ export function PersistenceContextProvider({ children }: Props) {
       console.warn("⚠️ Skipping persistence due to avoidPersisting flag.");
       return;
     }
+    // V15: equality guard — skip identical writes so object-recreation alone never
+    // retriggers persistence (and the downstream Dakota fan-out it would cause).
+    if (content === lastSavedContent.current) {
+      return;
+    }
     try {
       await setFile("persistence.json", content);
+      lastSavedContent.current = content;
       setPersistence(state);
     } catch (error) {
       console.error("Error saving state:", error);
@@ -187,20 +197,25 @@ export function PersistenceContextProvider({ children }: Props) {
     const fetchFile = async () => {
       try {
         const persistenceFile = await getFile("persistence.json");
+        const loaded =
+          persistenceFile === undefined || isValidPersistenceFile(persistenceFile) === false
+            ? defaultPersistence
+            : persistenceFile;
         if (persistenceFile === undefined) {
           console.info("No persistence file found, initializing with empty state.");
-          setPersistence(defaultPersistence);
         } else if (isValidPersistenceFile(persistenceFile) === false) {
           console.warn(
             "Persistence file structure has changed, resetting to defaults.",
             Object.keys(persistenceFile).length,
             Object.keys(defaultPersistence).length,
           );
-          setPersistence(defaultPersistence);
         } else {
           console.info("Persistence file loaded successfully.", persistenceFile);
-          setPersistence(persistenceFile);
         }
+        // Seed the equality guard with the loaded state so hydration does not
+        // immediately re-persist identical content (V15).
+        lastSavedContent.current = JSON.stringify(loaded, null, 2);
+        setPersistence(loaded);
       } catch (error) {
         console.error("Error when fetching persistence file:", error);
         toast.warn("Failed to fetch user state, contact support.");

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
@@ -9,6 +9,7 @@ import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 
 type GPPrediction = {
   x: number[];
@@ -43,6 +44,7 @@ function Curves1DPlots() {
   );
   const plotColor = "rgb(127, 199, 255)";
   const fillColor = "rgba(127, 199, 255, 0.3)";
+  const lastFetchedKey = useRef<string | undefined>(undefined);
 
   const createPlotData = (data: Record<string, GPPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
@@ -96,7 +98,7 @@ function Curves1DPlots() {
     }
   };
 
-  const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[]) => {
+  const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[], requestKey: string) => {
     setPropagating(true);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
     fetch(`/flask/dakota/sumo_along_axes`, {
@@ -114,9 +116,13 @@ function Curves1DPlots() {
       .then(response => response.json())
       .then(data => {
         createPlotData(data);
+        // V18: cache key ONLY on success, so transient failures don't block retry
+        lastFetchedKey.current = requestKey;
         setPropagating(false);
       })
       .catch(_error => {
+        // V18: clear cache on error so same inputs can be retried
+        lastFetchedKey.current = undefined;
         setPlotData([]);
         setPropagating(false);
       });
@@ -125,11 +131,24 @@ function Curves1DPlots() {
   useEffect(() => {
     const run = async () => {
       const jobs = filteredJobList;
-      if (jobs.length !== 0) {
-        return RunCentralSuMoInterpolations(jobs);
+      if (jobs.length === 0) {
+        // Not enough jobs to build model - then returns empty list
+        lastFetchedKey.current = undefined;
+        return setPlotData([]);
       }
-      // Not enough jobs to build model - then returns empty list
-      return setPlotData([]);
+      // V16: dedup by stable logical request key; same key → no new fetch.
+      const requestKey = buildDakotaRequestKey({
+        axes: [axis],
+        sliderValues: otherAxis,
+        qoi: selectedQoI,
+        fn: selectedFunction?.uid,
+        jobList: jobs.map(job => job.uid),
+        logScale: false,
+      });
+      if (requestKey === lastFetchedKey.current) {
+        return undefined;
+      }
+      return RunCentralSuMoInterpolations(jobs, requestKey);
     };
     run();
     // console.debug("axis: ", axis);
