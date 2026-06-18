@@ -67,10 +67,6 @@ export default [
       },
       "import/resolver": {
         typescript: { project: "./tsconfig.json" },
-        alias: {
-          map: [["@", "./src"]],
-          extensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
-        },
       },
     },
 
