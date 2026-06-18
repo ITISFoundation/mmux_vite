@@ -160,13 +160,15 @@ export function MOGAPareto(props: MOGAParetoProps) {
       // console.log("weights: ", weights)
       // console.log("outputVarSelection: ", OVS)
       const bodyData = JSON.stringify({
+        inputVars,
         mogaSettings: localsettings,
-        inputDistributions: distribution[selectedFunction?.uid || ""],
+        distributions: distribution[selectedFunction?.uid || ""],
         outputVarSelection: OVS,
         FunctionJobs: jobs,
       });
       const response = await fetchWithRetry(`/flask/dakota/perform_moga_optimization`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: bodyData,
       });
 

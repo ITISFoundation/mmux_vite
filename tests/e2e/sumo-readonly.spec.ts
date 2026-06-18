@@ -1,4 +1,13 @@
-import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import {
+  FUNCTION_UID,
+  VIEW_TIMEOUT,
+  MODEL_READY_TIMEOUT,
+  fetchJson,
+  resetPersistence,
+  setDeployment,
+  fillUniformInputRanges,
+} from "./helpers";
 
 /**
  * SuMo READ-ONLY behavioral + pixel-snapshot suite (§T11 / §V10,§V13).
@@ -6,8 +15,12 @@ import { test, expect, type Page, type APIRequestContext } from "@playwright/tes
  * Exercises the deterministic local stack: the live Flask backend with the
  * in-backend oSPARC test-double (§T9, gated by MMUX_E2E_MOCK_OSPARC) behind the
  * vite /flask proxy (§T10). The mock exposes exactly one function
- * (`func-sumo-readonly-e2e`) with six SUCCESS jobs, so the flow is fully
- * deterministic and needs no grid pagination search.
+ * (`func-sumo-readonly-e2e`) with deterministic SUCCESS jobs, so the flow is
+ * fully deterministic and needs no grid pagination search.
+ *
+ * The whole suite (SuMo/UQ/MOGA) shares one backend boot whose SERVICE_MODE is
+ * switched per-spec via the test-only control endpoint (§T13), so each spec
+ * pins its own mode up front to stay order-independent.
  *
  * Pixel baselines are regenerated only in the pinned Playwright docker image
  * (§V12); host-generated baselines must not be committed. Screenshots capture
@@ -15,63 +28,6 @@ import { test, expect, type Page, type APIRequestContext } from "@playwright/tes
  * data and surrogate are fully deterministic, so the plot is reproducible in
  * the pinned image and a masked-out plot would defeat the pixel comparison.
  */
-
-const FUNCTION_UID = "func-sumo-readonly-e2e";
-
-const VIEW_TIMEOUT = 30_000;
-const MODEL_READY_TIMEOUT = 60_000;
-
-// Mirror of the frontend persistence shape so each run starts from a clean slate.
-const DEFAULT_PERSISTENCE = {
-  currentView: 0,
-  numSamples: {},
-  selectedQoI: null,
-  isSuMoGenerated: false,
-  selectedFunction: null,
-  inputVars: [],
-  outputVars: [],
-  distribution: {},
-  lhsSamplingConfig: { inputs: [], points: 0, seed: 0 },
-  gridSamplingConfig: [],
-  singleJobConfig: [],
-  runningJobCollection: null,
-  fetchedJobCollections: [],
-  selectedJobUids: [],
-  outputTargets: {},
-  mogaSettings: {},
-  weights: {},
-  sortModel: [],
-};
-
-async function fetchJson(request: APIRequestContext, url: string): Promise<Record<string, unknown>> {
-  const response = await request.get(url);
-  expect(response.ok(), `GET ${url} → ${response.status()}`).toBeTruthy();
-  return (await response.json()) as Record<string, unknown>;
-}
-
-async function resetPersistence(request: APIRequestContext, baseURL: string): Promise<void> {
-  const response = await request.post(`${baseURL}/flask/text-file`, {
-    data: { filename: "persistence.json", content: JSON.stringify(DEFAULT_PERSISTENCE) },
-  });
-  expect(response.ok(), `reset persistence → ${response.status()}`).toBeTruthy();
-}
-
-async function fillUniformInputRanges(page: Page): Promise<void> {
-  const minInputs = page.locator('[mmux-testid="input-block-Min"] input');
-  const maxInputs = page.locator('[mmux-testid="input-block-Max"] input');
-
-  const minCount = await minInputs.count();
-  const maxCount = await maxInputs.count();
-  expect(minCount, "expected at least one SuMo Min input after selecting a function").toBeGreaterThan(0);
-  expect(minCount, "expected matching Min/Max input pairs").toBe(maxCount);
-
-  for (let index = 0; index < minCount; index++) {
-    await minInputs.nth(index).fill(String(index + 1));
-    await minInputs.nth(index).press("Tab");
-    await maxInputs.nth(index).fill(String((index + 1) * 10));
-    await maxInputs.nth(index).press("Tab");
-  }
-}
 
 test("SuMo read-only response-surface flow renders validation view", async ({ page, baseURL }) => {
   const url = baseURL!;
@@ -81,6 +37,7 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   });
 
   // Backend contract: SuMo service in READ-ONLY mode, served by the test-double.
+  await setDeployment(page.request, url, "SUMO", "READ-ONLY");
   const health = await page.request.get(`${url}/flask/deployment/health`);
   expect(health.ok(), `health → ${health.status()}`).toBeTruthy();
   const serviceMode = await fetchJson(page.request, `${url}/flask/deployment/service-mode`);

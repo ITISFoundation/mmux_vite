@@ -42,4 +42,10 @@ def create_flask_app() -> MMUXFlask:
     app.register_blueprint(textfile_bp, url_prefix="/flask/text-file")
     app.register_blueprint(sampling_bp, url_prefix="/flask/sampling")
     app.register_blueprint(dakota_bp, url_prefix="/flask/dakota")
+    if os.environ.get("MMUX_E2E_MOCK_OSPARC"):
+        # Test-only runtime control endpoint (lets a single backend boot serve
+        # every service mode); never registered on the production path. §T9/§V11.
+        from mock_osparc.control import e2e_control_bp
+
+        app.register_blueprint(e2e_control_bp, url_prefix="/flask/e2e")
     return app

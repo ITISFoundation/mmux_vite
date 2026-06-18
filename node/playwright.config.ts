@@ -34,6 +34,9 @@ export default defineConfig({
       maxDiffPixelRatio: 0.01,
       animations: "disabled",
       caret: "hide",
+      // Plotly/DataGrid can take a few render frames to settle; the default 5s
+      // stabilization window is too tight when generating fresh baselines.
+      timeout: 30_000,
     },
   },
   use: {
@@ -74,7 +77,7 @@ export default defineConfig({
       cwd: `${repoRoot}node`,
       env: { E2E_BACKEND_PROXY: BACKEND_URL, E2E_WEB_PORT: WEB_PORT },
       reuseExistingServer,
-      timeout: 240_000,
+      timeout: 600_000,
       stdout: "pipe",
       stderr: "pipe",
     },
