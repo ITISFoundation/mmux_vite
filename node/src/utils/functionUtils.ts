@@ -1,5 +1,6 @@
 import { toast } from "react-toastify";
-import { Function as OsparcFunction, ProjectFunctionJob, FunctionJob, FunctionJobCollection } from "osparc-api-ts-client";
+import { ProjectFunctionJob, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
+import { RegisteredFunction, OsparcFunctionJob } from "../context/types";
 import { fetchWithRetry } from "./fetchRetry";
 
 function snakeToCamelCase(value: string): string {
@@ -55,32 +56,32 @@ export async function getServiceMode(): Promise<string> {
   return serviceModePayload.serviceMode ?? "";
 }
 
-export async function listFunctions(): Promise<OsparcFunction[]> {
+export async function listFunctions(): Promise<RegisteredFunction[]> {
   const result = await fetchWithRetry(`/flask/osparc/list_functions`);
-  return normalizePayloadToCamelCase<OsparcFunction[]>(await result.json());
+  return normalizePayloadToCamelCase<RegisteredFunction[]>(await result.json());
 }
 
-export async function listJobs(): Promise<FunctionJob[]> {
+export async function listJobs(): Promise<OsparcFunctionJob[]> {
   return fetchWithRetry(`/flask/osparc/list_jobs`).then(async response =>
-    normalizePayloadToCamelCase<FunctionJob[]>(await response.json()),
+    normalizePayloadToCamelCase<OsparcFunctionJob[]>(await response.json()),
   );
 }
 
-export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<FunctionJob[]> {
+export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<OsparcFunctionJob[]> {
   return fetch(`/flask/osparc/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(async response =>
-    normalizePayloadToCamelCase<FunctionJob[]>(await response.json()),
+    normalizePayloadToCamelCase<OsparcFunctionJob[]>(await response.json()),
   );
 }
 
-export async function getFunctionJobCollections(functionUid: string): Promise<FunctionJobCollection[]> {
+export async function getFunctionJobCollections(functionUid: string): Promise<RegisteredFunctionJobCollection[]> {
   return fetchWithRetry(`/flask/osparc/list_function_job_collections_for_functionid?functionUid=${functionUid}`).then(
-    async response => normalizePayloadToCamelCase<FunctionJobCollection[]>(await response.json()),
+    async response => normalizePayloadToCamelCase<RegisteredFunctionJobCollection[]>(await response.json()),
   );
 }
 
-export async function getFunctionJobsFromFunctionJobCollection(jobCollectionUid: string): Promise<FunctionJob[]> {
+export async function getFunctionJobsFromFunctionJobCollection(jobCollectionUid: string): Promise<OsparcFunctionJob[]> {
   return fetchWithRetry(`/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=${jobCollectionUid}`).then(
-    async response => normalizePayloadToCamelCase<FunctionJob[]>(await response.json()),
+    async response => normalizePayloadToCamelCase<OsparcFunctionJob[]>(await response.json()),
   );
 }
 
@@ -174,7 +175,7 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
   return error;
 };
 
-export function aggregateInputValues(jobs: FunctionJob[]): Record<string, number[]> {
+export function aggregateInputValues(jobs: OsparcFunctionJob[]): Record<string, number[]> {
   const inputValues: Record<string, number[]> = {};
 
   jobs.forEach(job => {
@@ -191,7 +192,7 @@ export function aggregateInputValues(jobs: FunctionJob[]): Record<string, number
   return inputValues;
 }
 
-export function aggregateOutputValues(jobs: FunctionJob[]): Record<string, number[]> {
+export function aggregateOutputValues(jobs: OsparcFunctionJob[]): Record<string, number[]> {
   const outputValues: Record<string, number[]> = {};
 
   jobs.forEach(job => {

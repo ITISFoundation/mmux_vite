@@ -4,7 +4,8 @@ import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { Function as OsparcFunction } from "osparc-api-ts-client";
+import { ProjectFunctionJob } from "osparc-api-ts-client";
+import { RegisteredFunction } from "../../context/types";
 import { createJobStudyCopy, openStudyUid } from "../../utils/functionUtils";
 import CustomTooltip from "../utils/CustomTooltip";
 import { useJobContext } from "../../context/JobContext";
@@ -13,7 +14,7 @@ interface JobRowProps {
   jobUid: string;
   setSelected: (selected: boolean, subJob: string) => void;
   jobList: SubJob[];
-  selectedFunction?: OsparcFunction;
+  selectedFunction?: RegisteredFunction;
 }
 
 function JobRow(props: JobRowProps) {
@@ -95,9 +96,9 @@ function JobRow(props: JobRowProps) {
   }
 
   const jobStatus = job.job.status;
-  const outputs = parseStatus(jobStatus, job.job.outputs);
+  const outputs = parseStatus(jobStatus, job.job.outputs ?? {});
 
-  const inputs = Object.entries(job.job.inputs).map(([key, value]) => (
+  const inputs = Object.entries(job.job.inputs ?? {}).map(([key, value]) => (
     <Box key={`job-row-input-${key}`} display="inline">
       {key} : {(value as number).toPrecision(3)}
       {", "}
@@ -166,7 +167,12 @@ function JobRow(props: JobRowProps) {
             }
             onClick={async () => {
               setCreatingJobCopy(true);
-              const copyUID = (await createJobStudyCopy(selectedFunction?.title as string, job.job)) as string;
+              // Only project jobs are clonable; the generated ProjectFunctionJob lacks the
+              // app-flattened status/uid, so cast through the normalized OsparcFunctionJob.
+              const copyUID = (await createJobStudyCopy(
+                selectedFunction?.title as string,
+                job.job as unknown as ProjectFunctionJob,
+              )) as string;
               setCreatingJobCopy(false);
               if (copyUID) openStudyUid(copyUID);
               else toast.warning("Could not open Job copy in new window!");

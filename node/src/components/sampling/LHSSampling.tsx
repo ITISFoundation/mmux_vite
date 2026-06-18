@@ -1,7 +1,8 @@
 import { Box, Input, Skeleton, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
+import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
+import { RegisteredFunction } from "../../context/types";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
@@ -13,12 +14,12 @@ import VariableConfig from "../setup/VariableConfig";
 import { RunSamplingButton } from "./RunSamplingButton";
 
 async function runLhsSampling(
-  selectedFunction: OsparcFunction | undefined,
+  selectedFunction: RegisteredFunction | undefined,
   context: SamplingContextType,
   setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void,
   config: LHSamplingConfig,
 ) {
-  const fun = selectedFunction as OsparcFunction;
+  const fun = selectedFunction as RegisteredFunction;
   // send config to Python backend to create LHS
   context.setLaunchingSampling(true);
   const jc = await fetch(`/flask/sampling/lhs`, {

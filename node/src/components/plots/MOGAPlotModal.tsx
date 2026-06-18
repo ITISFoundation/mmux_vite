@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Box, Button, Card, CardActions, CardContent, InputLabel, Modal, Typography, useTheme } from "@mui/material";
 import { ShowChart } from "@mui/icons-material";
-import { FunctionJob } from "osparc-api-ts-client";
+import { OsparcFunctionJob } from "../../context/types";
 import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import Header from "../navigation/Header";
 import { OutputSelect } from "./PlotTools";
@@ -10,12 +10,12 @@ interface MOGAPlotModalProps {
   plotType: PlotConfig | undefined;
   tableData: MogaDataType | undefined;
   updatePlot: (
-    jobs: FunctionJob[],
+    jobs: OsparcFunctionJob[],
     localTableData: MogaDataType,
     extPlotType?: PlotConfig,
     extSelectedOptVars?: string[],
   ) => void;
-  filteredJobList: FunctionJob[];
+  filteredJobList: OsparcFunctionJob[];
   optVars: string[];
   selectedOptVars: string[];
   setSelectedOptVars: (vars: string[]) => void;

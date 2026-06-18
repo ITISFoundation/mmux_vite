@@ -7,11 +7,11 @@ import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
 import {
   JSONFunctionInputSchema,
   JSONFunctionOutputSchema,
-  Function as OsparcFunction,
-  SolverFunction,
-  ProjectFunction,
-  PythonCodeFunction,
+  RegisteredSolverFunction,
+  RegisteredProjectFunction,
+  RegisteredPythonCodeFunction,
 } from "osparc-api-ts-client";
+import { RegisteredFunction } from "../../context/types";
 import { listFunctions, getFunctionJobCollections } from "../../utils/functionUtils";
 import { HelpContents } from "../navigation/TutorialManualLinks";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -19,7 +19,7 @@ import { useSamplingContext } from "../../context/SamplingContext";
 import { useJobContext } from "../../context/JobContext";
 
 function NFunctionJobCollections(props: {
-  fun: OsparcFunction;
+  fun: RegisteredFunction;
   jobCollectionCount: { [key: string]: number };
   jobCount: { [key: string]: number };
 }): React.ReactNode {
@@ -33,7 +33,7 @@ function NFunctionJobCollections(props: {
   );
 }
 
-function getRowId(row: OsparcFunction) {
+function getRowId(row: RegisteredFunction) {
   return row.uid ? row.uid : `${row.title}${row.description}`;
 }
 
@@ -43,14 +43,14 @@ export function FunctionList() {
   const { setSelectedJobUids, setFetchedJobCollections } = useJobContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
-  const [functions, setFunctions] = useState<OsparcFunction[]>([]);
+  const [functions, setFunctions] = useState<RegisteredFunction[]>([]);
   const [jobCollectionCount, setJobCollectionCount] = useState<{
     [key: string]: number;
   }>({});
   const [jobCount, setJobCount] = useState<{ [key: string]: number }>({});
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
-  const fetchJobJobCollectionCount = async (fun: OsparcFunction) => {
+  const fetchJobJobCollectionCount = async (fun: RegisteredFunction) => {
     try {
       const jcs = await getFunctionJobCollections(fun.uid);
       const jobColCount = jcs.length;
@@ -106,11 +106,11 @@ export function FunctionList() {
     return vars.join(", ");
   };
 
-  const getFunctionSolver = (fun: OsparcFunction) => {
-    if ((fun as SolverFunction).solverKey) {
-      return `${(fun as SolverFunction).solverKey.split("/").slice(-1)[0]}:${(fun as SolverFunction).solverVersion}`;
+  const getFunctionSolver = (fun: RegisteredFunction) => {
+    if ((fun as RegisteredSolverFunction).solverKey) {
+      return `${(fun as RegisteredSolverFunction).solverKey.split("/").slice(-1)[0]}:${(fun as RegisteredSolverFunction).solverVersion}`;
     }
-    if ((fun as ProjectFunction).projectId) {
+    if ((fun as RegisteredProjectFunction).projectId) {
       const handleInfoClick = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         e.stopPropagation();
@@ -119,8 +119,8 @@ export function FunctionList() {
           {
             type: "openFunction",
             message: {
-              functionId: (fun as ProjectFunction).projectId,
-              uuid: (fun as ProjectFunction).uid,
+              functionId: (fun as RegisteredProjectFunction).projectId,
+              uuid: (fun as RegisteredProjectFunction).uid,
             },
           },
           "*",
@@ -140,13 +140,13 @@ export function FunctionList() {
         </IconButton>
       );
     }
-    if ((fun as PythonCodeFunction).codeUrl) {
-      return (fun as PythonCodeFunction).codeUrl;
+    if ((fun as RegisteredPythonCodeFunction).codeUrl) {
+      return (fun as RegisteredPythonCodeFunction).codeUrl;
     }
     return "Unknown";
   };
 
-  const handleSelectedFunction = (F: OsparcFunction | undefined) => {
+  const handleSelectedFunction = (F: RegisteredFunction | undefined) => {
     setSelectedFunction(F);
     setSelectedJobUids([]);
     setFetchedJobCollections(undefined);
@@ -161,7 +161,7 @@ export function FunctionList() {
     clearSampling();
   };
 
-  function setRowSelection(fun: OsparcFunction) {
+  function setRowSelection(fun: RegisteredFunction) {
     if (selectedFunction && selectedFunction.uid === fun.uid) {
       handleSelectedFunction(undefined);
       setInputVars([]);
@@ -170,9 +170,9 @@ export function FunctionList() {
     }
     handleSelectedFunction(fun);
     setInputVars(fun.inputSchema?.schemaContent?.properties ? Object.keys(fun.inputSchema.schemaContent.properties) : []);
-    console.log("inputVars registered:", Object.keys(fun.inputSchema.schemaContent.properties));
+    console.log("inputVars registered:", Object.keys(fun.inputSchema.schemaContent?.properties ?? {}));
     setOutputVars(fun.outputSchema?.schemaContent?.properties ? Object.keys(fun.outputSchema.schemaContent.properties) : []);
-    console.log("outputVars registered:", Object.keys(fun.outputSchema.schemaContent.properties));
+    console.log("outputVars registered:", Object.keys(fun.outputSchema.schemaContent?.properties ?? {}));
   }
 
   const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {

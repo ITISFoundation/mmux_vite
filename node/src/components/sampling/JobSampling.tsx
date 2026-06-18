@@ -1,7 +1,7 @@
 import { InfoOutline } from "@mui/icons-material";
 import { Accordion, Button, AccordionDetails, useTheme } from "@mui/material";
 import React, { useState } from "react";
-import { Function as OsparcFunction } from "osparc-api-ts-client";
+import { RegisteredFunction } from "../../context/types";
 import CustomTooltip from "../utils/CustomTooltip";
 import AdaptExtedSamplingDocument from "../documents/AdaptExtendSamplingDocument";
 import JobSelector from "../data/JobSelector";
@@ -13,7 +13,7 @@ interface JobSamplingProps {
   setLoading: (value: boolean) => void;
   disabled?: boolean;
   setJobProgress: (value: number) => void;
-  selectedFunction: OsparcFunction | undefined;
+  selectedFunction: RegisteredFunction | undefined;
 }
 
 export function JobSampling(props: JobSamplingProps) {

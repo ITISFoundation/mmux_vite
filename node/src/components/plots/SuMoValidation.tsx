@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
 import { Layout } from "plotly.js";
-import { FunctionJob } from "osparc-api-ts-client";
+import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
 import Metric from "./Metric";
 import MetricRow from "./MetricRow";
@@ -81,7 +81,7 @@ function SuMoValidation() {
     }
   };
 
-  const RunSuMoValidation = async (jobs: FunctionJob[]) => {
+  const RunSuMoValidation = async (jobs: OsparcFunctionJob[]) => {
     console.info("Evaluating SuMo Validation for jobs: ", jobs);
 
     setCvMetrics(undefined);

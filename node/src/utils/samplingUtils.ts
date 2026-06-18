@@ -1,9 +1,10 @@
 import { toast } from "react-toastify";
-import { Function as OsparcFunction, FunctionJob as OsparcFunctionJob, ProjectFunctionJob } from "osparc-api-ts-client";
+import { ProjectFunctionJob } from "osparc-api-ts-client";
+import { RegisteredFunction, OsparcFunctionJob } from "../context/types";
 import { createJobStudyCopy, openStudyUid } from "./functionUtils";
 
 export async function runSingleJob(
-  selectedFunction: OsparcFunction | undefined,
+  selectedFunction: RegisteredFunction | undefined,
   jobInputs: SingleJobConfig[],
   setLaunchingSampling: (value: boolean) => void,
 ) {
@@ -11,7 +12,7 @@ export async function runSingleJob(
     toast.error("No function selected. Please select a function before running the job.");
     return;
   }
-  const fun = selectedFunction as OsparcFunction;
+  const fun = selectedFunction as RegisteredFunction;
   // send config to Python backend to create LHS
   setLaunchingSampling(true);
   const job = await fetch(`/flask/sampling/test_job`, {
@@ -40,7 +41,7 @@ export async function runSingleJob(
   // necessary to make a copy of the test job bcs as of now, the run-job always generates a hidden copy
   // thus, the copy allows the user to see their test run in their dashboard
   // WOuld be nice to be able to abort/delete the TestJob or simply update the run-job endpoint to accept a "hidden" boolean parameter
-  const copyUid = await createJobStudyCopy(selectedFunction?.title as string, job as ProjectFunctionJob);
+  const copyUid = await createJobStudyCopy(selectedFunction?.title as string, job as unknown as ProjectFunctionJob);
   if (copyUid instanceof Error) {
     toast.warning(`Not possible to open your Job! ${copyUid.message} Please contact support`);
   } else if (!copyUid) {

@@ -155,7 +155,10 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
   const visibleSubJobs = React.useMemo(() => {
     if (poperID > -1 && jobCollections[poperID] && jobCollections[poperID].subJobs) {
-      return [...jobCollections[poperID].jobCollection.jobIds].slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+      return [...(jobCollections[poperID].jobCollection.jobIds ?? [])].slice(
+        page * rowsPerPage,
+        page * rowsPerPage + rowsPerPage,
+      );
     }
     return [];
   }, [jobCollections, page, poperID, rowsPerPage]);
@@ -299,7 +302,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                 indeterminate={
                   jobCollections.some(jc => jc.selected === true) &&
                   !jobCollections.every(
-                    jc => jc.subJobs.map(j => j.job).filter(j => j.status === "SUCCESS" && j.selected === true).length > 0,
+                    jc => jc.subJobs.filter(sj => sj.job.status === "SUCCESS" && sj.selected === true).length > 0,
                   )
                 }
                 onChange={event => onToggleAll(event.target.checked)}
@@ -472,7 +475,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                   id="job-collection-pagination"
                   rowsPerPageOptions={[10, 20, 30]}
                   component="div"
-                  count={jobCollections[poperID].jobCollection.jobIds.length}
+                  count={(jobCollections[poperID].jobCollection.jobIds ?? []).length}
                   rowsPerPage={rowsPerPage}
                   page={page}
                   onPageChange={(_e, newPage) => setPage(newPage)}

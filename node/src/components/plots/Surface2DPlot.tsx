@@ -2,7 +2,7 @@ import { Box, useTheme } from "@mui/material";
 import { useState, useEffect, useCallback, useRef } from "react";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
-import { FunctionJob } from "osparc-api-ts-client";
+import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow } from "./PlotTools";
 import Header from "../navigation/Header";
@@ -79,7 +79,7 @@ function Surface2DPlot() {
   );
 
   const RunSuMo2DInterpolation = useCallback(
-    async (jobs: FunctionJob[], key1: string, key2: string, requestKey: string) => {
+    async (jobs: OsparcFunctionJob[], key1: string, key2: string, requestKey: string) => {
       // This should create the "data" state variable to be plotted
       console.info("Evaluating SuMo for 2D surface...");
       console.info("Jobs to build SuMo: ", jobs);

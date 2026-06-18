@@ -1,7 +1,7 @@
 import { Box, useTheme } from "@mui/material";
 import { useState, useEffect, useRef } from "react";
 import Plot from "react-plotly.js";
-import { FunctionJob as OsparcFunctionJob } from "osparc-api-ts-client";
+import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow } from "./PlotTools";
 import Header from "../navigation/Header";

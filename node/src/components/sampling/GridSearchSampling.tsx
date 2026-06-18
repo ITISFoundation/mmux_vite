@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Skeleton, Typography } from "@mui/material";
-import { Function as OsparcFunction, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
+import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
+import { RegisteredFunction } from "../../context/types";
 import { getSamplingStartValue, getSamplingEndValue } from "../../utils/sampling";
 import { RunSamplingButton } from "./RunSamplingButton";
 import VariableConfig from "../setup/VariableConfig";
@@ -10,12 +11,12 @@ import { useJobContext } from "../../context/JobContext";
 
 // TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
 async function runGridSampling(
-  selectedFunction: OsparcFunction | undefined,
+  selectedFunction: RegisteredFunction | undefined,
   context: SamplingContextType,
   setRunningJobCollection: (jc: RegisteredFunctionJobCollection | undefined) => void,
   config: GridSamplingConfig,
 ) {
-  const fun = selectedFunction as OsparcFunction;
+  const fun = selectedFunction as RegisteredFunction;
   // send config to Python backend to create LHS
   context.setLaunchingSampling(true);
   const jc = await fetch(`/flask/sampling/grid`, {
@@ -32,7 +33,7 @@ async function runGridSampling(
       }
       return response.json();
     })
-    .then((localJC: OsparcRegFunctionJobCollection) => {
+    .then((localJC: RegisteredFunctionJobCollection) => {
       context.setLaunchingSampling(false);
       context.setRunningSampling(true);
       setRunningJobCollection(localJC || undefined);

@@ -82,11 +82,15 @@ interface HeaderProps {
 
 interface SubJob {
   selected: boolean;
-  job: FunctionJob | undefined;
+  // Post-normalization job shape (status flattened to a string by JobContext). Inline
+  // import() keeps this file an ambient global script. See src/context/types.d.ts.
+  job: import("./context/types").OsparcFunctionJob;
 }
 
 interface SelectedJobCollection {
-  jobCollection: FunctionJobCollection;
+  // The API returns *registered* collections (carry uid/created_at); use the generated
+  // type directly rather than a hand-rolled local interface (title/jobIds are optional).
+  jobCollection: import("osparc-api-ts-client").RegisteredFunctionJobCollection;
   selected: boolean;
   subJobs: SubJob[];
 }
@@ -108,13 +112,6 @@ interface PersistentJSONStateOptions<T> {
   defaultState: T;
   filePath: string;
   onStateLoaded?: (state: T) => void;
-}
-
-interface FunctionJobCollection {
-  title: string;
-  description: string;
-  jobIds: Array<string>;
-  uid: string;
 }
 
 interface InputBlockProps {

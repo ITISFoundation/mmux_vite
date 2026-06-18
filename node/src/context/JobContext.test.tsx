@@ -1,7 +1,7 @@
 import React from "react";
 import { render, act, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { OsparcRegFunctionJobCollection } from "src/context/types";
+import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { JobContextProvider, useJobContext } from "./JobContext";
 // Mock dependencies
 vi.mock("./PersistenceContext", () => ({
@@ -44,7 +44,7 @@ function TestComponent() {
                 { selected: true, job: { id: "5" } },
               ],
             },
-          ] as SelectedJobCollection[])
+          ] as unknown as SelectedJobCollection[])
         }
         data-testid="set-fetched"
       >
@@ -55,7 +55,7 @@ function TestComponent() {
       </button>
       <button
         type="button"
-        onClick={() => setRunningJobCollection({} as OsparcRegFunctionJobCollection)}
+        onClick={() => setRunningJobCollection({} as RegisteredFunctionJobCollection)}
         data-testid="set-running"
       >
         Set Running
