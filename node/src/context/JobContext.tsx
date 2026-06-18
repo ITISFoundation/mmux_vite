@@ -1,9 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { createContext, JSX, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
-import { FunctionJob, RegisteredFunctionJobCollection } from "../osparc-api-ts-client";
+import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { usePersistenceContext } from "./PersistenceContext";
-import { PersistenceType } from "./types";
+import { PersistenceType, OsparcFunctionJob } from "./types";
 import {
   getFunctionJobCollections,
   getFunctionJobsFromFunctionJobCollection,
@@ -17,8 +17,8 @@ export interface JobContextType {
   setFetchedJobCollections: (jc: SelectedJobCollection[] | undefined) => void;
   selectedJobUids: string[];
   setSelectedJobUids: (selectedJobs: string[]) => void;
-  allJobsList: () => FunctionJob[];
-  filteredJobList: FunctionJob[];
+  allJobsList: () => OsparcFunctionJob[];
+  filteredJobList: OsparcFunctionJob[];
   requestForceFetch: (functionUID: string, progress: (progress: number) => void) => void;
   parseStatus: (jobStatus: string, outputArray: Record<string, unknown>) => string | JSX.Element[];
 }
@@ -33,11 +33,14 @@ export function JobContextProvider({ children }: Props) {
   const { persistence, saveState, loading } = usePersistenceContext();
   const [localLoading, setLocalLoading] = useState(true);
   const [selectedJobUids, setSelectedJobUids] = useState<Array<string>>([]);
-  const [filteredJobList, setFilteredJobList] = useState<Array<FunctionJob>>([]);
+  const [filteredJobList, setFilteredJobList] = useState<Array<OsparcFunctionJob>>([]);
   const [fetchedJobCollections, setFetchedJobCollections] = useState<SelectedJobCollection[] | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
 
-  // Filter out job status that are not strings
+  // Flatten the API's FunctionJobStatus into a plain status string. The generated job
+  // types either lack `status` entirely or expose it as a FunctionJobStatus OBJECT
+  // ({ status }); this is WHY the app uses the local `OsparcFunctionJob` type
+  // (status: string) instead of the generated job types. See node/SPEC.md §V20 / §B10.
   const jobStatusFilter = (status: unknown) => {
     if (typeof status === "string") {
       return status;
@@ -86,7 +89,7 @@ export function JobContextProvider({ children }: Props) {
     async (functionUid: string, progress: (progress: number) => void) => {
       console.info("Fetching jobCollections for function: ", functionUid);
 
-      const jobsC = (await getFunctionJobCollections(functionUid as string)) as FunctionJobCollection[];
+      const jobsC = await getFunctionJobCollections(functionUid as string);
 
       if (jobsC.length === 0) {
         console.info("No job collections found for function: ", functionUid);
@@ -101,8 +104,8 @@ export function JobContextProvider({ children }: Props) {
         const statusList = fetchedJC ? fetchedJC.subJobs.map(j => jobStatusFilter(j.job.status)) : [];
         return (
           fetchedJC !== undefined &&
-          fetchedJC.subJobs.map(j => j.job.uid).every(jcUID => jc.jobIds.includes(jcUID)) &&
-          fetchedJC.subJobs.length === jc.jobIds.length &&
+          fetchedJC.subJobs.map(j => j.job.uid).every(jcUID => (jc.jobIds ?? []).includes(jcUID)) &&
+          fetchedJC.subJobs.length === (jc.jobIds ?? []).length &&
           statusList.every(s => filterForFinalStatus(s))
         );
       });
@@ -113,7 +116,7 @@ export function JobContextProvider({ children }: Props) {
       }
 
       progress(0);
-      const totalSubs = jobsC.reduce((acc, jc) => acc + jc.jobIds.length, 0);
+      const totalSubs = jobsC.reduce((acc, jc) => acc + (jc.jobIds ?? []).length, 0);
       console.info("Going to update not equal JC: ", equalJC);
 
       const newJobCollections: SelectedJobCollection[] = [];
@@ -126,7 +129,7 @@ export function JobContextProvider({ children }: Props) {
           const oldSubJobs = fetchedJCMap.get(jc.uid)?.subJobs || [];
           const subJobs = [];
           for (let subJobIdx = 0; subJobIdx < functionJobs.length; subJobIdx += 1) {
-            const job: FunctionJob = functionJobs[subJobIdx];
+            const job: OsparcFunctionJob = functionJobs[subJobIdx];
             job.status = jobStatusFilter(job.status);
             jobsFetched += 1;
             const jobsProg = (jobsFetched / totalSubs) * 100;
@@ -163,7 +166,7 @@ export function JobContextProvider({ children }: Props) {
   // Update filteredJobList when selectedJobUids or fetchedJobCollections change
   useEffect(() => {
     if (fetchedJobCollections === undefined) return;
-    const response: FunctionJob[] = (fetchedJobCollections || [])
+    const response: OsparcFunctionJob[] = (fetchedJobCollections || [])
       .map(jobCollection =>
         jobCollection.subJobs.filter(subJob => selectedJobUids.includes(subJob.job.uid)).map(subJob => subJob.job),
       )
@@ -182,7 +185,7 @@ export function JobContextProvider({ children }: Props) {
 
   // Return all jobs from all fetchedJobCollections
   const allJobsList = useCallback(() => {
-    const response: FunctionJob[] = (fetchedJobCollections || []).flatMap(jobCollection =>
+    const response: OsparcFunctionJob[] = (fetchedJobCollections || []).flatMap(jobCollection =>
       jobCollection.subJobs.map(subJob => subJob.job),
     );
 

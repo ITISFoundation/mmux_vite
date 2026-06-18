@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
+import { ProjectFunctionJob } from "osparc-api-ts-client";
+import { OsparcFunctionJob } from "../context/types";
 import {
   createInputOutputSchema,
   createJobStudyCopy,
@@ -13,13 +14,12 @@ import {
   listJobs,
 } from "./functionUtils";
 
-const mockJobs: FunctionJob[] = [
+const mockJobs: OsparcFunctionJob[] = [
   {
     uid: "job1",
     functionUid: "func1",
     inputs: {},
     outputs: {},
-    solverJobId: "solver1",
     status: "COMPLETED",
   },
   {
@@ -27,7 +27,6 @@ const mockJobs: FunctionJob[] = [
     functionUid: "func2",
     inputs: {},
     outputs: {},
-    solverJobId: "solver2",
     status: "PENDING",
   },
 ];
@@ -74,7 +73,9 @@ describe("Function Utils", () => {
   });
 
   it("should create a job study copy", async () => {
-    const job: ProjectFunctionJob = {
+    // Cast: the fixture carries app-side fields (uid/status) that the raw generated
+    // ProjectFunctionJob type does not declare; this is test data, not API output.
+    const job = {
       uid: "job1",
       functionUid: "func1",
       inputs: { x: 1, y: 2 },
@@ -84,7 +85,7 @@ describe("Function Utils", () => {
       functionClass: undefined,
       projectJobId: "proj1",
       status: "COMPLETED",
-    };
+    } as unknown as ProjectFunctionJob;
     const response: Partial<Response> = {
       status: 200,
       ok: true,

@@ -2,12 +2,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
+import { OsparcFunctionJob } from "../../context/types";
 import { JobsLoading } from "../data/JobsLoading";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
-import { FunctionJob } from "../../osparc-api-ts-client";
 import MogaParetoTable from "./MOGAParetoTable";
 import { fetchWithRetry } from "../../utils/fetchRetry";
 import { aggregateOutputValues } from "../../utils/functionUtils";
@@ -153,7 +153,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
   }
 
   const runMOGA = useCallback(
-    async (jobs: FunctionJob[], OVS: OutputVarSelection) => {
+    async (jobs: OsparcFunctionJob[], OVS: OutputVarSelection) => {
       const localsettings = mogaSettings[selectedFunction?.uid as string] || defaultMogaValues;
       const localOptVars = Object.keys(OVS);
       // console.log("localOptVars: ", localOptVars)
@@ -206,7 +206,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
   );
 
   const updatePlot = useCallback(
-    (jobs: FunctionJob[], localTableData: MogaDataType, extPlotType?: PlotConfig, extSelectedOptVars?: string[]) => {
+    (jobs: OsparcFunctionJob[], localTableData: MogaDataType, extPlotType?: PlotConfig, extSelectedOptVars?: string[]) => {
       const localsettings = mogaSettings[selectedFunction?.uid as string] || defaultMogaValues;
       const localOptVars = extSelectedOptVars || selectedOptVars;
       const results = localTableData?.raw ? localTableData.raw : {};

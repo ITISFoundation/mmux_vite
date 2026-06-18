@@ -73,6 +73,7 @@ V16: Dakota plot fetches (1D/2D/3D) deduped by stable logical request key {axes,
 V17: persist success-marker (`lastSavedContent`) set ONLY after confirmed OK `setFile` response; failed/non-OK save ⊥ mark content saved (else V15 equality-guard suppresses retry of the failed write) (B6, refines V15)
 V18: Dakota plot dedup key (`lastFetchedKey`) cached ONLY on fetch success (or cleared on error); transient/rejected fetch ⊥ block retry of identical inputs (B7, refines V16)
 V19: FE preserve-subtree-key set ≡ backend `_PRESERVE_SUBTREE_KEYS` (single source / test asserts equality); membership tested against canonical snake form only, ⊥ dead camelCase entries (B8,B9, pairs ../flaskapi V13/V14)
+V20: app src (⊥ `src/osparc-api-ts-client/`) consumes oSPARC functions/jobs via REGISTERED types only (carry `uid`): `RegisteredFunction` union alias (`context/types.d.ts`) for functions; `RegisteredFunctionJobCollection` (generated) for collections; `OsparcFunctionJob` (`context/types.d.ts` — minimal post-normalization shape `{uid, status:string, inputs, outputs}`) for jobs. ⊥ import bare generated `Function`/`FunctionJob` unions (lack `uid`; job `status` is a `FunctionJobStatus` object pre-flatten, flattened to string by `JobContext.jobStatusFilter`). enforced by `tsc -b` (B10)
 
 ## §T
 id|status|task|cites
@@ -97,3 +98,4 @@ B6|2026-06-16|#468 `PersistenceContext` sets `lastSavedContent` even when `setFi
 B7|2026-06-16|#468 plots cache `lastFetchedKey` before fetch resolves → failed/rejected fetch blocks retry of same inputs (Curves1D/Surface2D/IsoSurface3D)|V18
 B8|2026-06-16|#469 FE `preserveSubtreeKeys` ≠ backend `_PRESERVE_SUBTREE_KEYS` (missing distribution(s)/output_var_selection/slider_values; extra default_inputs) → variable-name keys mangled, breaks V13/V14 one direction|V19
 B9|2026-06-16|#469 `functionUtils` preserve sets list camelCase `defaultInputs`/`gridData` but membership tested vs `camelToSnakeCase(rawKey)` (snake form) → unreachable dead entries|V19
+B10|2026-06-18|#264 generated client replaced old hand-patched client; bare `Function`/`FunctionJob` unions lack `uid` (only `Registered*` variants have it) and job `status` is an object (only on `*WithStatus`), but app imported bare generated unions directly + `context/types.d.ts` never exported app aliases → 53 `tsc -b` errors on docker image build|V20

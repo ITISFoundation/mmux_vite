@@ -9,19 +9,15 @@ vi.mock("@mui/material", () => ({
   Box: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-type SubJob = {
-  selected: boolean;
-  job: {
-    inputs: { [key: string]: number };
-    outputs: { [key: string]: number };
-  };
-};
-
 describe("getMinMax", () => {
+  // getMinMax consumes the global SubJob shape; build fixtures with uid/status so they
+  // satisfy SubJob.job (OsparcFunctionJob). getMinMax itself only reads inputs/outputs.
   const makeSubJobs = (inputsArr: Array<{ [key: string]: number }>, outputsArr: Array<{ [key: string]: number }>): SubJob[] =>
     inputsArr.map((inputs, idx) => ({
       selected: true,
       job: {
+        uid: `job-${idx}`,
+        status: "SUCCESS",
         inputs,
         outputs: outputsArr[idx],
       },

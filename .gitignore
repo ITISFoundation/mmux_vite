@@ -1,5 +1,10 @@
 ## Custom
-
+flaskapi/runs/*
+*__pycache__*
+src/assets/*Inputs*.json
+*.conf.json
+flaskapi/mmux_python
+node/src/osparc-api-ts-client/
 
 # Logs
 logs
@@ -18,9 +23,9 @@ dist-ssr
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json
 .idea
 .DS_Store
+.serena/
 *.suo
 *.ntvs*
 *.njsproj
@@ -38,3 +43,5 @@ validation/
 coverage.xml
 htmlcov/
 .codex
+ph_context.json
+flaskapi/docs/*.md

@@ -1,5 +1,6 @@
 # Build stage
 FROM node:24-alpine AS builder
+RUN apk --no-cache --update add openjdk21
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
