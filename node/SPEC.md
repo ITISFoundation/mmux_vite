@@ -31,7 +31,8 @@ cmd: `npm run dev` → `vite` :8080
 cmd: `npm run build` → `tsc -b && vite build`
 cmd: `npm run lint` → `eslint .`
 cmd: `npm test` → `npx vitest`
-cmd: `npm run test:browser` → `vitest --config vitest.browser.config.ts` (Playwright)
+cmd: `npm run test:browser` → `vitest --config vitest.browser.config.ts` (Playwright; component-level browser tests)
+cmd: `npm run test:e2e` → `playwright test` (TS `@playwright/test`, testDir `../tests/e2e/`) — SuMo read-only pixel-snapshot e2e ; ⊥ vitest browser mode for e2e ; pairs root §T4/§T8-T12
 cmd: `npm run preview` → `vite preview`
 cmd: `npm run pretty` → `prettier --write`
 entry: `src/index.tsx` → providers (Persistence,Navigation) → `App.tsx`
@@ -85,7 +86,7 @@ T5|.|PORT [topic=fe-state-mgmt] clean reimpl of `JobSelector`/`FunctionContext`/
 T6|.|PORT [topic=fullstack-csv] `utils/jobCollectionCsv.ts` + `UploadJobCollectionButton.tsx` atomic 4-effect upload flow (V13); wire to backend §T6; vitest|V13, ../flaskapi/SPEC.md T6
 T7|.|PORT [topic=be-local-functions] FE support for local (uid-prefixed) functions/collections in JobSelector/FunctionList (offline mode) — pairs ../flaskapi T7|../flaskapi/SPEC.md T7
 T8|.|PORT [topic=fullstack-logscale] `utils/distributionDiagnostics.ts` + per-variable log-scale UI (InputVariableDist/OutputVariableDist) + log-scale plot rendering (Curves1D/Surface2D/IsoSurface3D) end-to-end per V12|V12, ../flaskapi/SPEC.md V16,T9
-T9|.|PORT [topic=testing-e2e] vitest coverage for ported utils/contexts + Playwright local SUMO e2e (`test:browser`); pairs root §T4|../SPEC.md T4
+T9|.|PORT [topic=testing-e2e] vitest coverage for ported utils/contexts + TS `@playwright/test` SuMo read-only pixel-snapshot e2e (`npm run test:e2e`; ⊥ vitest browser mode for e2e; supersedes Python `test/playwright-automation`); pairs root §T4 + §T8-T12|../SPEC.md T4,T8-T12
 T10|.|PORT [topic=be-preserve-case] homologous FE: `utils/functionUtils.ts` `camelToSnakeCase`/`toBackendVarNames` + `normalizePayloadToCamelCase` preserve nested value-key dicts {inputs,outputs,properties} (mirror of backend nested-key serialization); vitest `functionUtils.test.ts`. own worktree w/ flaskapi T8|V14, ../flaskapi/SPEC.md T8,V13
 T11|.|fix B6 (#468): update `lastSavedContent` only after confirmed OK `setFile`; surface save success/failure so failed write retries; test failed-save ⊥ marked saved|V17,B6
 T12|.|fix B7 (#468): move `lastFetchedKey` update to success path (or clear on error) in Curves1DPlot/Surface2DPlot/IsoSurface3DPlot; test transient-failure retry w/ same inputs|V18,B7
