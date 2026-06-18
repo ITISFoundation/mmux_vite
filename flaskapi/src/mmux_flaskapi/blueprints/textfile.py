@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 from typing import Final
 
@@ -15,7 +16,9 @@ textfile_bp = Blueprint("text-file", __name__)
 _logger = logging.getLogger(__name__)
 
 
-FILES_STORAGE_DIR: Final[Path] = Path("/text-files")
+# Defaults to the container mount `/text-files`; overridable (e.g. local e2e runs
+# without docker) via TEXT_FILES_DIR. See root SPEC.md §T10.
+FILES_STORAGE_DIR: Final[Path] = Path(os.environ.get("TEXT_FILES_DIR", "/text-files"))
 
 
 @textfile_bp.route("/", methods=["POST"])
