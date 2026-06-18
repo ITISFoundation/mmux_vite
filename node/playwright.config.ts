@@ -66,7 +66,10 @@ export default defineConfig({
       // React strips dev-only controlled/uncontrolled warnings and the HMR overlay,
       // matching the deployed Caddy stack the behavioral reference targeted and
       // giving deterministic pixel snapshots (§T10 "vite preview/Caddy", §V12).
-      command: "npm run build && npm run preview",
+      // `build:e2e` skips the Java openapi-generator codegen step of `build`: the
+      // generated client is already committed, and the pinned Playwright image (§V12)
+      // has no JRE.
+      command: "npm run build:e2e && npm run preview",
       url: BASE_URL,
       cwd: `${repoRoot}node`,
       env: { E2E_BACKEND_PROXY: BACKEND_URL, E2E_WEB_PORT: WEB_PORT },

@@ -240,6 +240,14 @@ test-e2e: ## run the Playwright SuMo read-only pixel-snapshot e2e suite (boots b
 test-e2e-update: ## regenerate e2e pixel baselines (run only in the pinned Playwright docker image, see V12)
 	cd ${NODE_DIR} && npm run test:e2e:update
 
+.PHONY: test-e2e-update-docker
+PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.61.0-noble
+test-e2e-update-docker: ## regenerate e2e baselines INSIDE the pinned Playwright image (font-stable, see V12); keep tag == @playwright/test
+	docker run --rm --user root --network host \
+		-v "$(PWD)":/work -w /work -e HOME=/root \
+		$(PLAYWRIGHT_IMAGE) \
+		bash /work/tests/e2e/scripts/gen-baselines.sh
+
 .PHONY: ci
 ci: test-flaskapi test-node build-no-cache ## mimmicks the GitHub CI
 
