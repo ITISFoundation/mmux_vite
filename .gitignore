@@ -4,7 +4,7 @@ flaskapi/runs/*
 src/assets/*Inputs*.json
 *.conf.json
 flaskapi/mmux_python
-osparc-api-ts-client
+node/src/osparc-api-ts-client/
 
 # Logs
 logs
