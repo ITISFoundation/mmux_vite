@@ -32,7 +32,7 @@ async function runGridSampling(
       }
       return response.json();
     })
-    .then((localJC: RegisteredFunctionJobCollection) => {
+    .then((localJC: OsparcRegFunctionJobCollection) => {
       context.setLaunchingSampling(false);
       context.setRunningSampling(true);
       setRunningJobCollection(localJC || undefined);

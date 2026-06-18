@@ -1,4 +1,4 @@
-import { FunctionJob } from "../../osparc-api-ts-client";
+import { FunctionJob } from "osparc-api-ts-client";
 import { DisplayMessage } from "../utils/DisplayMessage";
 
 type InsufficientDataWarningPropsType = {
