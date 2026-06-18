@@ -10,8 +10,9 @@ import { defineConfig, devices } from "@playwright/test";
  * only in the pinned Playwright docker image (§V12).
  */
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:8080";
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:8090";
 const BACKEND_URL = process.env.PLAYWRIGHT_BACKEND_URL ?? "http://localhost:5000";
+const WEB_PORT = new URL(BASE_URL).port || "8090";
 const reuseExistingServer = !process.env.CI;
 
 // Repo root, used to put the test-double on PYTHONPATH and to serve files.
@@ -54,7 +55,7 @@ export default defineConfig({
   webServer: [
     {
       command: `bash ${repoRoot}tests/e2e/scripts/run-e2e-backend.sh`,
-      url: `${BACKEND_URL}/flask/deployment/`,
+      url: `${BACKEND_URL}/flask/deployment/health`,
       reuseExistingServer,
       timeout: 120_000,
       stdout: "pipe",
@@ -64,7 +65,7 @@ export default defineConfig({
       command: "npm run dev",
       url: BASE_URL,
       cwd: `${repoRoot}node`,
-      env: { E2E_BACKEND_PROXY: BACKEND_URL },
+      env: { E2E_BACKEND_PROXY: BACKEND_URL, E2E_WEB_PORT: WEB_PORT },
       reuseExistingServer,
       timeout: 120_000,
       stdout: "pipe",

@@ -10,20 +10,23 @@ const flaskProxy = e2eBackendProxy
   ? { "/flask": { target: e2eBackendProxy, changeOrigin: true } }
   : undefined;
 
+// Dedicated e2e web port (avoids clashing with a running docker stack on 8080).
+const webPort = process.env.E2E_WEB_PORT ? Number(process.env.E2E_WEB_PORT) : 8080;
+
 // https://vite.dev/config/
 export default defineConfig({
   base: "/",
   plugins: [react(), tailwindcss(), viteconfigtspaths()],
   preview: {
-    port: 8080,
+    port: webPort,
     strictPort: true,
     proxy: flaskProxy,
   },
   server: {
-    port: 8080,
+    port: webPort,
     strictPort: true,
     host: "0.0.0.0",
-    origin: "http://0.0.0.0:8080",
+    origin: `http://0.0.0.0:${webPort}`,
     allowedHosts: true,
     proxy: flaskProxy,
   },
