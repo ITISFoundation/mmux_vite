@@ -126,7 +126,8 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
 
   const validationView = page.locator('[mmux-testid="sumo-validation-view"]');
   await expect(validationView).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(page.locator('[mmux-testid="qoi-select"]')).toBeVisible({ timeout: VIEW_TIMEOUT });
+  const qoiSelect = page.locator('[mmux-testid="qoi-select"]');
+  await expect(qoiSelect).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expect(validationView.locator(".js-plotly-plot")).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(validationView.getByText("MAE:")).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expect(validationView.getByText("RMSE:")).toBeVisible({ timeout: VIEW_TIMEOUT });
@@ -139,6 +140,31 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   // Pixel baseline: the cross-validation view with the real Plotly render
   // (full 1920x1080 viewport, unmasked — deterministic in the pinned image).
   await expect(page).toHaveScreenshot("sumo-readonly-validation.png");
+
+  // Navigate through the first plot step (1D curves) and capture it.
+  // The SuMoPlotsSteps component has Next/Back buttons in a MobileStepper to navigate between steps.
+  // Find the plot stepper's Next button (not the main navigation one with testid="next-button").
+  const nextButtons = await page.locator("button:has-text('Next')").all();
+  let plotNextButton = null;
+  for (const btn of nextButtons) {
+    const testid = await btn.getAttribute("mmux-testid");
+    if (testid !== "next-button") {
+      plotNextButton = btn;
+      break;
+    }
+  }
+  expect(plotNextButton, "Could not find plot stepper Next button").toBeTruthy();
+  
+  // Click Next to navigate to 1D curves plot
+  await plotNextButton!.click({ noWaitAfter: true });
+  await page.waitForTimeout(1000); // Allow plot to render
+
+  // Wait for the Plotly plot to be visible and rendered
+  const plotArea = page.locator(".js-plotly-plot");
+  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+
+  // Capture the 1D plot view (unmasked for deterministic comparison)
+  await expect(page).toHaveScreenshot("sumo-readonly-plot-1d.png");
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
   expect(runtimeErrors, `JavaScript errors captured: ${runtimeErrors.join("\n")}`).toEqual([]);
