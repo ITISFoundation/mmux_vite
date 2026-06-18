@@ -72,6 +72,7 @@ export function OutputSetup(props: UQSetupProps) {
           disabled={loading || !selectedFunction || filteredJobList.length === 0}
           onClick={() => setSumoModal(true)}
           sx={{ padding: "8px 16px" }}
+          mmux-testid="inspect-model-button"
         >
           Inspect Model
         </Button>
