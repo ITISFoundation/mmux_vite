@@ -3,6 +3,10 @@ import {
   RegisteredPythonCodeFunction,
   RegisteredSolverFunction,
   RegisteredFunctionJobCollection,
+  RegisteredProjectFunctionJobWithStatus,
+  RegisteredPythonCodeFunctionJobWithStatus,
+  RegisteredSolverFunctionJobWithStatus,
+  FunctionJobStatus,
 } from "osparc-api-ts-client";
 
 // The oSPARC API hands the app *registered* functions/jobs (they carry `uid`). The
@@ -13,23 +17,24 @@ import {
 // `Function`) so that `.uid` is always available. See node/SPEC.md §V20 / §B10.
 export type RegisteredFunction = RegisteredProjectFunction | RegisteredPythonCodeFunction | RegisteredSolverFunction;
 
-// Runtime shape of a function job AFTER JobContext normalizes it. We deliberately do NOT
-// reuse the generated job types here:
-//   - bare `FunctionJob` / `Registered*FunctionJob` have NO `status` field at all;
-//   - the `*WithStatus` variants carry `status` as a FunctionJobStatus OBJECT
-//     ({ status: string }), but `JobContext.jobStatusFilter()` flattens it to a plain
-//     string at fetch time so the whole app can compare `job.status === "SUCCESS"`.
-// This minimal interface reflects that post-normalization truth (uid + status:string).
-// Compromise: it intentionally diverges from the raw generated job types (Option A —
-// the alternative, Option B, would refactor ~30 status call sites to read an object).
-export interface OsparcFunctionJob {
+// Utility type: transforms a *WithStatus variant by flattening `status` from a
+// FunctionJobStatus object → string. JobContext.jobStatusFilter() does this normalization
+// at fetch time so the whole app can compare `job.status === "SUCCESS"`. Keeps `uid` and
+// `status` required (always present post-normalization), but makes other API fields
+// optional to allow test fixtures to omit them.
+type FlattenStatus<T extends { status: FunctionJobStatus; uid: string }> = {
   uid: string;
   status: string;
-  functionUid?: string;
-  functionClass?: string;
-  inputs: { [key: string]: unknown } | null;
-  outputs: { [key: string]: unknown } | null;
-}
+} & Partial<Omit<T, "status" | "uid">>;
+
+// Runtime shape of a function job AFTER JobContext normalizes it. Inherits all fields
+// from the API's *WithStatus variants, but with `status` flattened from FunctionJobStatus
+// object to a plain string. This reflects post-normalization reality without duplicating
+// fields manually. See node/SPEC.md §V20 / §B10.
+export type OsparcFunctionJob =
+  | FlattenStatus<RegisteredProjectFunctionJobWithStatus>
+  | FlattenStatus<RegisteredPythonCodeFunctionJobWithStatus>
+  | FlattenStatus<RegisteredSolverFunctionJobWithStatus>;
 
 interface PersistenceType {
   currentView: number;
