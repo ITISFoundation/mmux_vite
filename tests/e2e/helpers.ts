@@ -78,8 +78,20 @@ export async function setDeployment(
 
 /**
  * Fill the uniform Min/Max parameter-range blocks (SuMo / MOGA setup).
- * Each input i gets Min=i+1, Max=(i+1)*10.
+ *
+ * Ranges mirror the mock data domain (mock_osparc/data.py): x1 ∈ [0.5, 3.0],
+ * x2 ∈ [0.5, 2.5], x3/x4 ∈ [1.0, 2.0]. Matching the training domain keeps the
+ * 1D/2D/3D surrogate evaluations (and their slider cut-values) inside the
+ * fitted region so the response-surface plots render real curves instead of
+ * far-extrapolation artifacts. Any extra inputs fall back to [i+1, (i+1)*10].
  */
+const DATA_DOMAIN_RANGES: ReadonlyArray<readonly [number, number]> = [
+  [0.5, 3.0], // x1
+  [0.5, 2.5], // x2
+  [1.0, 2.0], // x3
+  [1.0, 2.0], // x4
+];
+
 export async function fillUniformInputRanges(page: Page): Promise<void> {
   const minInputs = page.locator('[mmux-testid="input-block-Min"] input');
   const maxInputs = page.locator('[mmux-testid="input-block-Max"] input');
@@ -90,9 +102,10 @@ export async function fillUniformInputRanges(page: Page): Promise<void> {
   expect(minCount, "expected matching Min/Max input pairs").toBe(maxCount);
 
   for (let index = 0; index < minCount; index++) {
-    await minInputs.nth(index).fill(String(index + 1));
+    const [min, max] = DATA_DOMAIN_RANGES[index] ?? [index + 1, (index + 1) * 10];
+    await minInputs.nth(index).fill(String(min));
     await minInputs.nth(index).press("Tab");
-    await maxInputs.nth(index).fill(String((index + 1) * 10));
+    await maxInputs.nth(index).fill(String(max));
     await maxInputs.nth(index).press("Tab");
   }
 }

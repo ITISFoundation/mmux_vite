@@ -178,13 +178,21 @@ function SuMoPlotsSteps() {
               onClick={handleNext}
               disabled={activeStep === maxSteps - 1}
               sx={{ alignItems: "end" }}
+              mmux-testid="sumo-plot-next"
             >
               Next
               {theme.direction === "rtl" ? <KeyboardArrowLeft /> : <KeyboardArrowRight />}
             </Button>
           }
           backButton={
-            <Button size="small" variant="contained" onClick={handleBack} disabled={activeStep === 0} sx={{ alignItems: "end" }}>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={handleBack}
+              disabled={activeStep === 0}
+              sx={{ alignItems: "end" }}
+              mmux-testid="sumo-plot-back"
+            >
               {theme.direction === "rtl" ? <KeyboardArrowRight /> : <KeyboardArrowLeft />}
               Back
             </Button>

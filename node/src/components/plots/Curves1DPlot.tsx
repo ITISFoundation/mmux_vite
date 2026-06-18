@@ -115,7 +115,8 @@ function Curves1DPlots() {
     })
       .then(response => response.json())
       .then(data => {
-        createPlotData(data);
+        // Backend wraps the per-axis predictions under `predictions` (SumoAlongAxesResponse).
+        createPlotData(data?.predictions);
         // V18: cache key ONLY on success, so transient failures don't block retry
         lastFetchedKey.current = requestKey;
         setPropagating(false);
