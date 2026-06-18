@@ -4,6 +4,9 @@ These tests cover the /flask/osparc/*** endpoints in the Flask app.
 Different patches for osparc_client.api.functions_api.***Api.*** are provided, to ensure that they are handled correctly.
 """
 
+from unittest.mock import patch
+
+import pytest
 
 #####################################################################################
 ## Listing endpoints for Functions, Jobs, Job Collections
@@ -477,3 +480,57 @@ class TestOsparcGetFunctionJobOutputs:
         data = response.get_json()
         assert "error" in data
         assert "404" in data["error"]
+
+
+#####################################################################################
+## Graceful fallback when oSPARC is not connected
+#####################################################################################
+
+
+class TestOsparcDisconnectedFallback:
+    """Verify that endpoints with a local-function fallback return 200 (not 422/500)
+    when oSPARC credentials are invalid or the server is unreachable."""
+
+    @pytest.fixture(autouse=True)
+    def osparc_disconnected(self):
+        """Override the autouse connection mock to simulate a disconnected state."""
+        with patch(
+            "mmux_flaskapi.utils.webserver_config.OsparcApi._test_connection",
+            lambda self: setattr(self, "_is_connected", False),
+        ):
+            yield
+
+    def test_list_functions_returns_local_only_when_disconnected(
+        self, test_client, patch_list_local_functions
+    ):
+        """list_functions should return 200 with only local functions when oSPARC is down."""
+        response = test_client.get("/flask/osparc/list_functions")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["uid"].startswith("local-func-")
+
+    def test_list_function_job_collections_returns_local_only_when_disconnected(
+        self, test_client, patch_list_local_job_collections
+    ):
+        """list_function_job_collections should return 200 with local collections when oSPARC is down."""
+        response = test_client.get("/flask/osparc/list_function_job_collections")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["uid"].startswith("local-jc-")
+
+    def test_list_function_jobs_for_local_function_when_disconnected(
+        self, test_client, patch_list_local_jobs_for_collection
+    ):
+        """Jobs for a local function UID should be served from local store without oSPARC."""
+        response = test_client.get(
+            "/flask/osparc/list_function_jobs_for_functionid?functionUid=local-func-aabbccdd1122"
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["uid"].startswith("local-job-")

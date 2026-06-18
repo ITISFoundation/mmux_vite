@@ -264,30 +264,6 @@ export function FunctionList() {
     );
   }
 
-  if (!loading && functions.length === 0) {
-    return (
-      <Box display="flex" flexDirection="column" gap={2}>
-        <Box display="flex" justifyContent="flex-end">
-          <UploadJobCollectionButton
-            buttonLabel="Upload Data"
-            buttonTestId="setup-upload-data-btn"
-            confirmTestId="setup-confirm-upload-btn"
-            variant="contained"
-            size="medium"
-            allowExistingTarget={false}
-            defaultMode="new"
-            initialNewFunctionTitle=""
-            onUploadSuccess={handleUploadSuccess}
-          />
-        </Box>
-        <Box textAlign="center">
-          <Typography variant="body1" fontFamily="inherit" fontSize="1.2em" fontWeight={300} display="inline" mr={1}>
-            <HelpContents type="FunctionsHelp" />
-          </Typography>
-        </Box>
-      </Box>
-    );
-  }
   return (
     <Box display="flex" flexDirection="column" gap={2}>
       <Box display="flex" justifyContent="flex-end">
@@ -338,12 +314,26 @@ export function FunctionList() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {loading && functionRows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7}>Loading...</TableCell>
-              </TableRow>
-            ) : (
-              functionRows.map(fun => (
+            {(() => {
+              if (loading && functionRows.length === 0) {
+                return (
+                  <TableRow>
+                    <TableCell colSpan={7}>Loading...</TableCell>
+                  </TableRow>
+                );
+              }
+              if (!loading && functionRows.length === 0) {
+                return (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                      <Typography variant="body1" fontFamily="inherit" fontSize="1.2em" fontWeight={300}>
+                        <HelpContents type="FunctionsHelp" />
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                );
+              }
+              return functionRows.map(fun => (
                 <TableRow
                   key={fun.uid || `${fun.title}${fun.description}`}
                   hover
@@ -372,8 +362,8 @@ export function FunctionList() {
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
+              ));
+            })()}
           </TableBody>
         </Table>
       </TableContainer>

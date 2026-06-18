@@ -495,7 +495,7 @@ class TestGetOsparcApiHelper:
         # Create a mock Flask app
         mock_app = Mock(spec=MMUXFlask)
         mock_osparc_api = Mock()
-        mock_osparc_api.is_connected = True
+        mock_osparc_api.is_connected = Mock(return_value=True)
         mock_app.osparc_api = mock_osparc_api
 
         with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
@@ -530,7 +530,7 @@ class TestGetOsparcApiHelper:
 
         mock_app = Mock(spec=MMUXFlask)
         mock_osparc_api = Mock()
-        mock_osparc_api.is_connected = False
+        mock_osparc_api.is_connected = Mock(return_value=False)
         mock_app.osparc_api = mock_osparc_api
 
         with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):

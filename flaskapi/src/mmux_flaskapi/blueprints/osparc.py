@@ -24,7 +24,11 @@ from mmux_flaskapi.utils.local_job_store import (
     list_local_job_collections,
     list_local_jobs_for_collection,
 )
-from mmux_flaskapi.utils.webserver_config import OsparcApiException, get_osparc_api
+from mmux_flaskapi.utils.webserver_config import (
+    OsparcApiException,
+    get_osparc_api,
+    get_osparc_api_if_connected,
+)
 
 #####################################################################################
 # Initialize logger and OsparcApi
@@ -83,8 +87,12 @@ def api_endpoint(func: Callable) -> Callable:
 @osparc_bp.route("/list_functions", methods=["GET"])
 @api_endpoint
 def flask_list_functions():
-    osparc_api = get_osparc_api()
-    functions = _get_all_items(osparc_api.get_functions_api().list_functions)
+    osparc_api = get_osparc_api_if_connected()
+    if osparc_api is not None:
+        functions = _get_all_items(osparc_api.get_functions_api().list_functions)
+    else:
+        _logger.warning("oSPARC not connected — returning local functions only")
+        functions = []
     functions += list_local_functions()
     functions = functions[
         ::-1
@@ -105,11 +113,15 @@ def flask_list_jobs():
 @osparc_bp.route("/list_function_job_collections", methods=["GET"])
 @api_endpoint
 def flask_get_function_job_collections():
-    osparc_api = get_osparc_api()
-    # Deserialize the paginated response into plain JobCollection dictionaries.
-    job_collections = _get_all_items(
-        osparc_api.get_job_collection_api().list_function_job_collections
-    )
+    osparc_api = get_osparc_api_if_connected()
+    if osparc_api is not None:
+        # Deserialize the paginated response into plain JobCollection dictionaries.
+        job_collections = _get_all_items(
+            osparc_api.get_job_collection_api().list_function_job_collections
+        )
+    else:
+        _logger.warning("oSPARC not connected — returning local job collections only")
+        job_collections = []
     job_collections += list_local_job_collections()
     _logger.debug(f"N Job collections: {len(job_collections)}")
     return job_collections, 200
@@ -123,7 +135,6 @@ def flask_get_function_job_collections():
 @osparc_bp.route("/list_function_jobs_for_functionid", methods=["GET"])
 @api_endpoint
 def flask_list_function_jobs_for_functionid():
-    osparc_api = get_osparc_api()
     request_args = dict_keys_camel_to_snake(request.args.to_dict())
     function_uid = request_args["function_uid"]
     if is_local_function_uid(function_uid):
@@ -133,6 +144,7 @@ def flask_list_function_jobs_for_functionid():
             local_jobs += list_local_jobs_for_collection(collection["uid"])
         return local_jobs, 200
 
+    osparc_api = get_osparc_api()
     _logger.info(f"Function ID: {function_uid}")
     jobs = _get_all_items(
         osparc_api.get_functions_api().list_function_jobs_for_functionid, function_uid

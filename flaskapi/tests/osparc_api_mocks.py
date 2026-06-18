@@ -820,3 +820,64 @@ def patch_register_function_success():
         side_effect=mock_register_function_success,
     ):
         yield
+
+
+#####################################################################################
+## Local-store fallback fixtures (used by TestOsparcDisconnectedFallback)
+#####################################################################################
+
+LOCAL_FUNC_UID = "local-func-aabbccdd1122"
+LOCAL_JC_UID = "local-jc-aabbccdd1122"
+LOCAL_JOB_UID = "local-job-aabbccdd1122"
+
+
+@pytest.fixture
+def patch_list_local_functions():
+    local_func = {
+        "uid": LOCAL_FUNC_UID,
+        "title": "Local Test Function",
+        "description": "A locally stored test function",
+        "input_schema": {},
+        "output_schema": {},
+    }
+    with patch(
+        "mmux_flaskapi.blueprints.osparc.list_local_functions",
+        return_value=[local_func],
+    ):
+        yield
+
+
+@pytest.fixture
+def patch_list_local_job_collections():
+    local_jc = {
+        "uid": LOCAL_JC_UID,
+        "title": "Local Test Collection",
+        "function_uid": LOCAL_FUNC_UID,
+        "job_ids": [],
+    }
+    with patch(
+        "mmux_flaskapi.blueprints.osparc.list_local_job_collections",
+        return_value=[local_jc],
+    ):
+        yield
+
+
+@pytest.fixture
+def patch_list_local_jobs_for_collection():
+    local_job = {
+        "uid": LOCAL_JOB_UID,
+        "function_uid": LOCAL_FUNC_UID,
+        "job_collection_uid": LOCAL_JC_UID,
+        "status": "SUCCESS",
+        "inputs": {"a": 1.0},
+        "outputs": {"result": 2.0},
+    }
+    with patch(
+        "mmux_flaskapi.blueprints.osparc.list_local_job_collections",
+        return_value=[{"uid": LOCAL_JC_UID}],
+    ):
+        with patch(
+            "mmux_flaskapi.blueprints.osparc.list_local_jobs_for_collection",
+            return_value=[local_job],
+        ):
+            yield
