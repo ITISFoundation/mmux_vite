@@ -98,30 +98,34 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   // (full 1920x1080 viewport, unmasked — deterministic in the pinned image).
   await expect(page).toHaveScreenshot("sumo-readonly-validation.png");
 
-  // Navigate through the first plot step (1D curves) and capture it.
-  // The SuMoPlotsSteps component has Next/Back buttons in a MobileStepper to navigate between steps.
-  // Find the plot stepper's Next button (not the main navigation one with testid="next-button").
-  const nextButtons = await page.locator("button:has-text('Next')").all();
-  let plotNextButton = null;
-  for (const btn of nextButtons) {
-    const testid = await btn.getAttribute("mmux-testid");
-    if (testid !== "next-button") {
-      plotNextButton = btn;
-      break;
-    }
-  }
-  expect(plotNextButton, "Could not find plot stepper Next button").toBeTruthy();
-  
-  // Click Next to navigate to 1D curves plot
-  await plotNextButton!.click({ noWaitAfter: true });
-  await page.waitForTimeout(1000); // Allow plot to render
-
-  // Wait for the Plotly plot to be visible and rendered
+  // Walk the SuMo response-surface stepper (Validation → 1D → 2D → 3D), capturing
+  // each plot. The MobileStepper's Next button carries mmux-testid="sumo-plot-next".
+  // The mock exposes 4 inputs, so the 2D (≥2 inputs) and 3D (≥3 inputs) steps are
+  // both reachable, and the input ranges match the training domain so each surrogate
+  // renders a real (deterministic) Plotly figure rather than an extrapolation artifact.
+  const plotNext = page.locator('[mmux-testid="sumo-plot-next"]');
   const plotArea = page.locator(".js-plotly-plot");
-  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
 
-  // Capture the 1D plot view (unmasked for deterministic comparison)
+  // Step 1 — 1D Curves.
+  await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
+  await plotNext.click();
+  await expect(page.getByText("1D Curves", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("sumo-readonly-plot-1d.png");
+
+  // Step 2 — 2D Surface.
+  await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
+  await plotNext.click();
+  await expect(page.getByText("2D Surface", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(page).toHaveScreenshot("sumo-readonly-plot-2d.png");
+
+  // Step 3 — 3D IsoSurface.
+  await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
+  await plotNext.click();
+  await expect(page.getByText("3D IsoSurface", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(page).toHaveScreenshot("sumo-readonly-plot-3d.png");
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
   expect(runtimeErrors, `JavaScript errors captured: ${runtimeErrors.join("\n")}`).toEqual([]);

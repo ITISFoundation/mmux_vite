@@ -86,6 +86,7 @@ function Surface2DPlot() {
       setPropagating(true);
       fetch(`/flask/dakota/sumo_grid_evaluation`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gridVars: [key1, key2],
           inputVars,
@@ -103,7 +104,8 @@ function Surface2DPlot() {
           return response.json();
         })
         .then(d => {
-          reshapePlotData(d);
+          // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
+          reshapePlotData(d?.gridData);
           // V18: cache key ONLY on success, so transient failures don't block retry
           lastFetchedKey.current = requestKey;
           setPropagating(false);
