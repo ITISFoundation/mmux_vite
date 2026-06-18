@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { createContext, JSX, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
-import { FunctionJob, RegisteredFunctionJobCollection } from "../osparc-api-ts-client";
+import { FunctionJob, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
 import {

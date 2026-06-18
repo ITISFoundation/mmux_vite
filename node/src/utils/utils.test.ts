@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import fs from "fs";
 import { JSX } from "react/jsx-runtime";
+import { RegisteredFunctionJobCollection, FunctionJob } from "osparc-api-ts-client";
+import type { Function as OsparcFunction } from "osparc-api-ts-client";
 import { FunctionContextType } from "../context/FunctionContext";
 import { JobContextType } from "../context/JobContext";
 
@@ -9,8 +11,6 @@ import { pickCsv, readCsvData } from "./csvUtils";
 import { fetchWithRetry } from "./fetchRetry";
 import { getSamplingEndValue, getSamplingStartValue } from "./sampling";
 import { stepValidator } from "./stepValidator";
-import { RegisteredFunctionJobCollection, FunctionJob } from "../osparc-api-ts-client";
-import type { Function as OsparcFunction } from "../osparc-api-ts-client";
 
 // 1st test: get the file with a given path
 describe("CSV Functions", () => {

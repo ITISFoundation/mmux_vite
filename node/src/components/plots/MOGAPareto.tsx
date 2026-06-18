@@ -2,12 +2,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
+import { FunctionJob } from "osparc-api-ts-client";
 import { JobsLoading } from "../data/JobsLoading";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
-import { FunctionJob } from "../../osparc-api-ts-client";
 import MogaParetoTable from "./MOGAParetoTable";
 import { fetchWithRetry } from "../../utils/fetchRetry";
 import { aggregateOutputValues } from "../../utils/functionUtils";

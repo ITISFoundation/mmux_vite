@@ -11,7 +11,7 @@ import {
   SolverFunction,
   ProjectFunction,
   PythonCodeFunction,
-} from "../../osparc-api-ts-client";
+} from "osparc-api-ts-client";
 import { listFunctions, getFunctionJobCollections } from "../../utils/functionUtils";
 import { HelpContents } from "../navigation/TutorialManualLinks";
 import { useFunctionContext } from "../../context/FunctionContext";

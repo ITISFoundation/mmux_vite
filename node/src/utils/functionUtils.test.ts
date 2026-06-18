@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { FunctionJob, ProjectFunctionJob } from "../osparc-api-ts-client";
+import { FunctionJob, ProjectFunctionJob } from "osparc-api-ts-client";
 import {
   createInputOutputSchema,
   createJobStudyCopy,
