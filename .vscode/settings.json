@@ -21,5 +21,8 @@
   "python-envs.pythonProjects": [],
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "chat.tools.terminal.autoApprove": {
+    "gh": true
   }
 }
