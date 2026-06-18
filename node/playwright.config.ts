@@ -5,7 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
  * Root SPEC §T4,§T8-§T12 / §V10-§V13 ; node/SPEC §T9.
  *
  * Stack (wired in §T10 via webServer): live Flask backend with the in-backend
- * oSPARC test-double (§T9, gated by is_test_environment) + vite serving the
+ * oSPARC test-double (§T9, gated by MMUX_E2E_MOCK_OSPARC) + vite serving the
  * React app with a /flask proxy split. Baselines are committed and regenerated
  * only in the pinned Playwright docker image (§V12).
  */
@@ -62,12 +62,16 @@ export default defineConfig({
       stderr: "pipe",
     },
     {
-      command: "npm run dev",
+      // Serve a PRODUCTION build via `vite preview` (not `npm run dev`): production
+      // React strips dev-only controlled/uncontrolled warnings and the HMR overlay,
+      // matching the deployed Caddy stack the behavioral reference targeted and
+      // giving deterministic pixel snapshots (§T10 "vite preview/Caddy", §V12).
+      command: "npm run build && npm run preview",
       url: BASE_URL,
       cwd: `${repoRoot}node`,
       env: { E2E_BACKEND_PROXY: BACKEND_URL, E2E_WEB_PORT: WEB_PORT },
       reuseExistingServer,
-      timeout: 120_000,
+      timeout: 240_000,
       stdout: "pipe",
       stderr: "pipe",
     },
