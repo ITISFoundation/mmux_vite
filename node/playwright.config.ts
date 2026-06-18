@@ -38,7 +38,7 @@ export default defineConfig({
   },
   use: {
     baseURL: BASE_URL,
-    viewport: { width: 1600, height: 900 },
+    viewport: { width: 1920, height: 1080 },
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "off",
@@ -46,7 +46,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"], viewport: { width: 1600, height: 900 } },
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1920, height: 1080 } },
     },
   ],
   // webServer is wired in §T10. Boot scripts set the e2e env (SERVICE_MODE=SUMO,

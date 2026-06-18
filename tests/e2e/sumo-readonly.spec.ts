@@ -10,7 +10,10 @@ import { test, expect, type Page, type APIRequestContext } from "@playwright/tes
  * deterministic and needs no grid pagination search.
  *
  * Pixel baselines are regenerated only in the pinned Playwright docker image
- * (§V12); host-generated baselines must not be committed.
+ * (§V12); host-generated baselines must not be committed. Screenshots capture
+ * the full 1920x1080 viewport with the real (unmasked) Plotly render: the mock
+ * data and surrogate are fully deterministic, so the plot is reproducible in
+ * the pinned image and a masked-out plot would defeat the pixel comparison.
  */
 
 const FUNCTION_UID = "func-sumo-readonly-e2e";
@@ -92,16 +95,21 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   const functionGrid = page.locator('[role="grid"]').first();
   await functionGrid.waitFor({ state: "visible", timeout: VIEW_TIMEOUT });
 
-  // Pixel baseline: the function-selection setup grid.
-  await expect(page).toHaveScreenshot("sumo-readonly-setup.png", {
-    mask: [page.locator(".js-plotly-plot")],
-  });
+  // Pixel baseline: the function-selection setup grid (full 1920x1080 viewport).
+  await expect(page).toHaveScreenshot("sumo-readonly-setup.png");
 
   const selectButton = page.locator(`[mmux-testid="select-function-btn-${FUNCTION_UID}"]`);
   await expect(selectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
   await selectButton.click();
 
+  // The input-range configuration opens once a function is selected.
+  await expect(page.locator('[mmux-testid="input-block-Min"] input').first()).toBeVisible({
+    timeout: VIEW_TIMEOUT,
+  });
   await fillUniformInputRanges(page);
+
+  // Pixel baseline: function selected, input ranges configured and open.
+  await expect(page).toHaveScreenshot("sumo-readonly-inputs.png");
 
   const nextButton = page.locator('[mmux-testid="next-button"]');
   await expect(nextButton).toBeEnabled({ timeout: VIEW_TIMEOUT });
@@ -128,10 +136,9 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(extendSampling).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expect(extendSampling).toBeDisabled();
 
-  // Pixel baseline: the cross-validation view (Plotly canvas masked for determinism).
-  await expect(validationView).toHaveScreenshot("sumo-readonly-validation.png", {
-    mask: [validationView.locator(".js-plotly-plot")],
-  });
+  // Pixel baseline: the cross-validation view with the real Plotly render
+  // (full 1920x1080 viewport, unmasked — deterministic in the pinned image).
+  await expect(page).toHaveScreenshot("sumo-readonly-validation.png");
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
   expect(runtimeErrors, `JavaScript errors captured: ${runtimeErrors.join("\n")}`).toEqual([]);

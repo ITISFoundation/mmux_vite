@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Generates the SuMo read-only Playwright pixel baselines INSIDE the pinned
-# Playwright docker image (root SPEC §T12 / §V12). Run via:
+# Runs the SuMo read-only Playwright e2e suite INSIDE the pinned Playwright
+# docker image (root SPEC §T12 / §V12). Defaults to regenerating the pixel
+# baselines; set E2E_MAKE_TARGET=test-e2e to instead verify the committed
+# baselines (the same pixel diff CI enforces). Run via:
 #
 #   docker run --rm --user root --network host \
 #     -v "$PWD":/work -w /work -e HOME=/root \
@@ -11,6 +13,8 @@
 # host dev tree stays clean; generated files are chowned back to uid/gid 1000.
 set -euo pipefail
 trap 'chown -R 1000:1000 /work/tests /work/node 2>/dev/null || true' EXIT
+
+E2E_MAKE_TARGET="${E2E_MAKE_TARGET:-test-e2e-update}"
 
 apt-get update -qq
 apt-get install -y -qq --no-install-recommends make python3-pip >/dev/null
@@ -28,5 +32,5 @@ uv python install 3.11
 echo "=== installing flaskapi deps (uv sync) ==="
 make install-flaskapi-deps
 
-echo "=== node $(node --version) ; generating baselines (test:e2e:update) ==="
-cd node && npm run test:e2e:update
+echo "=== node $(node --version) ; running make ${E2E_MAKE_TARGET} ==="
+make "${E2E_MAKE_TARGET}"

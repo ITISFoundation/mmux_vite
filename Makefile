@@ -248,6 +248,13 @@ test-e2e-update-docker: ## regenerate e2e baselines INSIDE the pinned Playwright
 		$(PLAYWRIGHT_IMAGE) \
 		bash /work/tests/e2e/scripts/gen-baselines.sh
 
+.PHONY: test-e2e-docker
+test-e2e-docker: ## verify e2e pixel diff vs committed baselines INSIDE the pinned Playwright image (mirrors CI, see V12,§C)
+	docker run --rm --user root --network host \
+		-v "$(PWD)":/work -w /work -e HOME=/root -e E2E_MAKE_TARGET=test-e2e \
+		$(PLAYWRIGHT_IMAGE) \
+		bash /work/tests/e2e/scripts/gen-baselines.sh
+
 .PHONY: ci
 ci: test-flaskapi test-node build-no-cache ## mimmicks the GitHub CI
 
