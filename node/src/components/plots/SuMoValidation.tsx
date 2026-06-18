@@ -47,7 +47,10 @@ function SuMoValidation() {
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
     if (data && selectedQoI) {
       const y = data[selectedQoI];
-      const yHat = data[`${selectedQoI}_hat`];
+      // The backend builds the prediction key as `<output>_hat`, but the global
+      // after_request serializer camelCases every response key, so the client
+      // receives `<selectedQoI>Hat` (e.g. `yHat`). Read the camelCase key.
+      const yHat = data[`${selectedQoI}Hat`];
 
       // For violin plots, y should be the data and x should be the label
       const createViolinPlot = (
@@ -83,6 +86,13 @@ function SuMoValidation() {
 
   const RunSuMoValidation = async (jobs: OsparcFunctionJob[]) => {
     console.info("Evaluating SuMo Validation for jobs: ", jobs);
+
+    if (!jobs || jobs.length < 5) {
+      setCvMetrics(undefined);
+      setPlotData([]);
+      setPropagating(false);
+      return;
+    }
 
     setCvMetrics(undefined);
     setPlotData([]);
@@ -165,7 +175,15 @@ function SuMoValidation() {
   };
 
   return (
-    <Box display="flex" flex={1} flexDirection="column" width="100%" justifyContent="center" ref={boxRef}>
+    <Box
+      display="flex"
+      flex={1}
+      flexDirection="column"
+      width="100%"
+      justifyContent="center"
+      ref={boxRef}
+      mmux-testid="sumo-validation-view"
+    >
       {propagating && <CalculatingWarning height={plotStyle.height} dontShowText />}
       {!propagating && plotData.length === 0 && (
         <InsufficientDataWarning

@@ -19,6 +19,7 @@ export function JobsLoading(props: JobsLoadingProps) {
       justifyContent="center"
       bgcolor={theme.palette.background.default}
       borderRadius={theme.spacing(2)}
+      mmux-testid="jobs-loading"
     >
       <Typography variant="body1" fontFamily="inherit" fontWeight={100} textAlign="center" mb={1}>
         {message}
