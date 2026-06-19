@@ -100,6 +100,40 @@ class TestSamplingEndpoints:
         data = response.get_json()
         assert "error" in data
 
+    def test_flask_test_job_exits_on_failure_status(self, test_client):
+        """Test test_job exits when the polled job reaches a failure state."""
+        payload = {"config": [{"variable": "x", "value": 1.0}], "funUid": "test-func"}
+
+        mock_run_response = MagicMock()
+        mock_run_response.actual_instance = MagicMock(uid="job-1")
+
+        with patch("mmux_flaskapi.blueprints.sampling._get_functions_api") as mock_get_api:
+            with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
+                with patch(
+                    "mmux_flaskapi.blueprints.sampling._get_function_job_from_uid"
+                ) as mock_get_job:
+                    with patch("mmux_flaskapi.blueprints.sampling.time.sleep") as mock_sleep:
+                        mock_parent_ids.return_value.parent_node_id = "parent-node"
+                        mock_parent_ids.return_value.parent_project_id = "parent-project"
+
+                        mock_functions_api = Mock()
+                        mock_functions_api.validate_function_inputs.return_value = {"ok": True}
+                        mock_functions_api.run_function.return_value = mock_run_response
+                        mock_get_api.return_value = mock_functions_api
+
+                        mock_get_job.side_effect = [
+                            {"status": "JOB_TASK_RUNNING", "uid": "job-1"},
+                            {"status": "JOB_TASK_FAILURE", "uid": "job-1"},
+                        ]
+
+                        response = test_client.post("/flask/sampling/test_job", json=payload)
+
+                        assert response.status_code == 200
+                        data = response.get_json()
+                        assert data["status"] == "JOB_TASK_FAILURE"
+                        assert mock_get_job.call_count == 2
+                        mock_sleep.assert_called_once_with(1)
+
     def test_flask_clone_job_missing_required_fields(self, test_client):
         """Test clone_job endpoint with missing required fields."""
         payload = {}

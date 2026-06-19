@@ -256,6 +256,48 @@ class TestRecursiveDictConversion:
         result = recursive_dict_keys_camel_to_snake(input_dict)
         assert result == expected
 
+    def test_recursive_dict_keys_camel_to_snake_does_not_mutate_input(self):
+        input_dict = {
+            "firstName": "John",
+            "userInfo": {"emailAddress": "john@example.com"},
+            "items": [{"itemName": "A"}],
+        }
+        original = {
+            "firstName": "John",
+            "userInfo": {"emailAddress": "john@example.com"},
+            "items": [{"itemName": "A"}],
+        }
+
+        result = recursive_dict_keys_camel_to_snake(input_dict)
+
+        assert result == {
+            "first_name": "John",
+            "user_info": {"email_address": "john@example.com"},
+            "items": [{"item_name": "A"}],
+        }
+        assert input_dict == original
+
+    def test_recursive_dict_keys_snake_to_camel_does_not_mutate_input(self):
+        input_dict = {
+            "first_name": "John",
+            "user_info": {"email_address": "john@example.com"},
+            "items": [{"item_name": "A"}],
+        }
+        original = {
+            "first_name": "John",
+            "user_info": {"email_address": "john@example.com"},
+            "items": [{"item_name": "A"}],
+        }
+
+        result = recursive_dict_keys_snake_to_camel(input_dict)
+
+        assert result == {
+            "firstName": "John",
+            "userInfo": {"emailAddress": "john@example.com"},
+            "items": [{"itemName": "A"}],
+        }
+        assert input_dict == original
+
 
 class TestPaginationHelpers:
     """Test pagination helper functions."""
@@ -305,6 +347,19 @@ class TestPaginationHelpers:
 
         expected = [{"first_name": "John", "id": 1}]
         assert result == expected
+
+    def test_get_all_items_stops_on_empty_page(self):
+        """Test _get_all_items stops if the API returns an empty page."""
+        mock_response = Mock()
+        mock_response.total = 1
+        mock_response.items = []
+
+        mock_api_call = Mock()
+        mock_api_call.side_effect = [Mock(total=1), mock_response]
+
+        result = _get_all_items(mock_api_call)
+
+        assert result == []
 
     def test_get_first_n_items_basic(self):
         """Test _get_first_N_items with basic functionality."""

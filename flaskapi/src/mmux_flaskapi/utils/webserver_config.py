@@ -50,7 +50,10 @@ class OsparcApi:
         if not s:
             return ""
         if m is None:
-            m = len(s) - n
+            if len(s) <= 1:
+                return "*" * len(s)
+            prefix_len = min(n, len(s) - 1)
+            return s[:prefix_len] + "*" * (len(s) - prefix_len)
         return s[:n] + "*" * m
 
     def get_api_client(self) -> ApiClient:

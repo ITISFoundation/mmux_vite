@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import traceback
 from pathlib import Path
 from typing import NoReturn, cast
@@ -260,7 +259,6 @@ def flask_sumo_cross_validation():
     Uses DataPreprocessor for variable mapping and normalization.
     Returns cross-validation predictions with uncertainty estimates in original variable names.
     """
-    os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_sumo_cross_validation")
     _logger.debug("Cwd: " + str(Path.cwd()))
     validated_request = parse_request_model(SumoCrossValidationRequest)
@@ -325,7 +323,6 @@ def flask_manual_uq_propagation_with_uncertainty():
     from a trained surrogate model to quantify the uncertainty in the UQ results.
     Returns results in original variable space.
     """
-    os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_manual_uq_propagation_with_uncertainty")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
@@ -511,7 +508,6 @@ def flask_evaluate_sumo_along_axes():
     Uses Pydantic validation to ensure robust input validation and consistent error handling.
     Returns predictions along each specified input variable axis in original space.
     """
-    os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_evaluate_sumo_along_axes")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
@@ -609,7 +605,6 @@ def flask_sumo_grid_evaluation():
     Uses Pydantic validation to ensure robust input validation and consistent error handling.
     Returns grid data with input coordinates and predictions in original space.
     """
-    os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_sumo_grid_evaluation")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
@@ -711,7 +706,6 @@ def flask_get_sumo_cv_accuracy_metrics():
     Uses Pydantic validation to ensure robust input validation and consistent error handling.
     Returns cross-validation accuracy metrics including RMSE, MAE, and other error statistics.
     """
-    os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_get_sumo_cv_accuracy_metrics")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
@@ -781,7 +775,6 @@ def flask_perform_moga_optimization():
     Uses Pydantic validation to ensure robust input validation and consistent error handling.
     Returns Pareto front solutions with input and output variable values for multi-objective optimization.
     """
-    os.chdir(Path(__file__).parent)
     _logger.debug("Starting flask function: flask_perform_moga_optimization")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
