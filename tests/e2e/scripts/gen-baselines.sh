@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs the SuMo read-only Playwright e2e suite INSIDE the pinned Playwright
+# Runs the read-only Playwright e2e suite (SuMo/UQ/MOGA) INSIDE the pinned Playwright
 # docker image (root SPEC §T12 / §V12). Defaults to regenerating the pixel
 # baselines; set E2E_MAKE_TARGET=test-e2e to instead verify the committed
 # baselines (the same pixel diff CI enforces). Run via:

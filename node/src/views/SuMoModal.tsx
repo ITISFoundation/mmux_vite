@@ -4,12 +4,7 @@ import SuMoPlotsSteps from "../components/plots/SuMoPlotsSteps";
 
 function SuMoModal({ open, setOpen }: { open: boolean; setOpen: (value: boolean) => void }) {
   return (
-    <Modal
-      open={open}
-      onClose={() => setOpen(false)}
-      aria-labelledby="modal-modal-title"
-      aria-describedby="modal-modal-description"
-    >
+    <Modal open={open} onClose={() => setOpen(false)}>
       {/* MUI Modal injects a ref into its single child for focus management, so the
           child must be able to hold a ref. Box (a ref-forwarding component) wraps the
           plain SuMoPlotsSteps function component and centers it. */}

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Boots the Flask backend for the read-only SuMo e2e suite with the in-backend
+# Boots the Flask backend for the read-only e2e suite (SuMo/UQ/MOGA) with the in-backend
 # oSPARC test-double (MMUX_E2E_MOCK_OSPARC) and the e2e deployment env. Launched by
 # Playwright's webServer (node/playwright.config.ts). See root SPEC.md §T10 / §V11.
 set -euo pipefail

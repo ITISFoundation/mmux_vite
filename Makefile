@@ -233,11 +233,11 @@ test-flaskapi: install-flaskapi-deps ## run Flask backend tests
 tests-flaskapi: test-flaskapi ## alias for test-flaskapi
 
 .PHONY: test-e2e
-test-e2e: ## run the Playwright SuMo read-only pixel-snapshot e2e suite (boots backend+web via webServer)
+test-e2e: ## run the Playwright read-only pixel-snapshot e2e suite (SuMo/UQ/MOGA; boots backend+web via webServer)
 	cd ${NODE_DIR} && npm run test:e2e
 
 .PHONY: test-e2e-update
-test-e2e-update: ## regenerate e2e pixel baselines (run only in the pinned Playwright docker image, see V12)
+test-e2e-update: ## regenerate read-only e2e pixel baselines (SuMo/UQ/MOGA; run only in the pinned Playwright docker image, see V12)
 	cd ${NODE_DIR} && npm run test:e2e:update
 
 .PHONY: test-e2e-update-docker
