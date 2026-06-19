@@ -29,6 +29,7 @@ Vite + React 19 + TS frontend: guided 2-step meta-modeling UX (Setup → Results
 parent: [`../SPEC.md`](../SPEC.md) ; backend contract: [`../flaskapi/SPEC.md`](../flaskapi/SPEC.md) §I
 cmd: `npm run dev` → `vite` :8080
 cmd: `npm run build` → `tsc -b && vite build`
+cmd: `npm run build:e2e` → `npm run generate-osparc-cli && tsc -b && vite build` (Playwright webServer build; must resolve `osparc-api-ts-client` before startup)
 cmd: `npm run lint` → `eslint .`
 cmd: `npm test` → `npx vitest`
 cmd: `npm run test:browser` → `vitest --config vitest.browser.config.ts` (Playwright; component-level browser tests)
@@ -75,6 +76,7 @@ V17: persist success-marker (`lastSavedContent`) set ONLY after confirmed OK `se
 V18: Dakota plot dedup key (`lastFetchedKey`) cached ONLY on fetch success (or cleared on error); transient/rejected fetch ⊥ block retry of identical inputs (B7, refines V16)
 V19: FE preserve-subtree-key set ≡ backend `_PRESERVE_SUBTREE_KEYS` (single source / test asserts equality); membership tested against canonical snake form only, ⊥ dead camelCase entries (B8,B9, pairs ../flaskapi V13/V14)
 V20: app src (⊥ `src/osparc-api-ts-client/`) consumes oSPARC functions/jobs via REGISTERED types only (carry `uid`): `RegisteredFunction` union alias (`context/types.d.ts`) for functions; `RegisteredFunctionJobCollection` (generated) for collections; `OsparcFunctionJob` (`context/types.d.ts` — minimal post-normalization shape `{uid, status:string, inputs, outputs}`) for jobs. ⊥ import bare generated `Function`/`FunctionJob` unions (lack `uid`; job `status` is a `FunctionJobStatus` object pre-flatten, flattened to string by `JobContext.jobStatusFilter`). enforced by `tsc -b` (B10)
+V21: `npm run build:e2e` ! skip `npm run generate-osparc-cli`; Playwright webServer build must have `osparc-api-ts-client` generated before `tsc -b`/`vite build`, else e2e startup fails on unresolved imports (B14)
 
 ## §T
 id|status|task|cites
@@ -92,6 +94,7 @@ T11|.|fix B6 (#468): update `lastSavedContent` only after confirmed OK `setFile`
 T12|.|fix B7 (#468): move `lastFetchedKey` update to success path (or clear on error) in Curves1DPlot/Surface2DPlot/IsoSurface3DPlot; test transient-failure retry w/ same inputs|V18,B7
 T13|.|fix B8+B9 (#469): sync FE `preserveSubtreeKeys` with backend `_PRESERVE_SUBTREE_KEYS` (single source / equality test); drop unreachable camelCase entries (`defaultInputs`/`gridData`)|V19,B8,B9,../flaskapi/SPEC.md V13
 T14|.|0811bcb [wave-2 carry-over] when opening node csv(T6)/local-fn(T7)/logscale(T8) PRs, apply alexpargon fixes from commit `0811bcb`: (a) move `sumoResponse.ts` `components/plots/`→`utils/` + fix 5 plot imports; (b) export `snakeToCamelCase` from `functionUtils`, dedup in `sumoResponse`; (c) drop dead `@mui/x-data-grid` mocks in `FunctionList.test.tsx`+`FunctionList.upload.test.tsx`; (d) rename `jobcollection_roundtrip.integration.test.ts`→camelCase; (e) `tmp_job_collection_import.csv`→`__fixtures__/jobCollectionImport.csv`; (f) `stepValidator` param `ServiceMode`→`serviceMode` (closes #471)|§C,T6,T7,T8
+T15|x|fix e2e startup build: make `npm run build:e2e` generate `osparc-api-ts-client` before `tsc -b && vite build`, so Playwright webServer starts in CI without unresolved imports|V21,B14
 
 ## §B
 id|date|cause|fix
@@ -103,3 +106,5 @@ B10|2026-06-18|#264 generated client replaced old hand-patched client; bare `Fun
 B11|2026-06-18|SuMo e2e (T11) caught: `JobSelector` auto-select effect cleared `loading` using the stale local `jobCollections` copy (empty on first pass) → never `onToggleAll(true)`, so `selectedJobUids` stayed empty and the SuMo validation never ran. Gate the empty case on source-of-truth `fetchedJobCollections.length`|V10
 B12|2026-06-18|SuMo e2e (T11) caught: `SuMoValidation` read prediction key `${selectedQoI}_hat`, but the global after_request serializer camelCases every response key → client received `${selectedQoI}Hat`; CV predictions were `undefined`, plot/metrics never rendered|V10
 B13|2026-06-18|SuMo e2e (T11) caught: vite `/flask` proxy `changeOrigin:true` made Flask emit absolute backend-origin `Location` on its strict_slashes 308 (e.g. `/flask/text-file`→`:5000/flask/text-file/`), which the browser blocked via CORS; set `changeOrigin:false` so Host (and thus the redirect) stays same-origin like Caddy|V1,V10
+B14|2026-06-19|e2e webServer build skipped `generate-osparc-cli`, so `tsc -b` failed on unresolved `osparc-api-ts-client` imports before Playwright could start|V21
+B15|2026-06-19|prek ran end-of-file-fixer on `node/.gitignore` because the file lacked a trailing newline|—
