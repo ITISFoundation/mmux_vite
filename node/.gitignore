@@ -3,4 +3,3 @@ src/assets/*Inputs*.json
 # Playwright e2e run artifacts (baselines live under ../tests/e2e/__snapshots__)
 test-results/
 playwright-report/
-
