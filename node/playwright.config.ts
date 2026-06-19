@@ -1,19 +1,21 @@
+import { env } from "node:process";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * e2e config for the MMUX SuMo read-only pixel-snapshot suite.
+ * e2e config for the MMUX read-only pixel-snapshot suite (SuMo/UQ/MOGA).
  * Root SPEC §T4,§T8-§T12 / §V10-§V13 ; node/SPEC §T9.
  *
  * Stack (wired in §T10 via webServer): live Flask backend with the in-backend
  * oSPARC test-double (§T9, gated by MMUX_E2E_MOCK_OSPARC) + vite serving the
  * React app with a /flask proxy split. Baselines are committed and regenerated
- * only in the pinned Playwright docker image (§V12).
+ * only in the pinned Playwright docker image (§V12); the e2e job installs a
+ * JRE so `build:e2e` can regenerate the client before `tsc -b && vite build`.
  */
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:8090";
-const BACKEND_URL = process.env.PLAYWRIGHT_BACKEND_URL ?? "http://localhost:5000";
+const BASE_URL = env.PLAYWRIGHT_BASE_URL ?? "http://localhost:8090";
+const BACKEND_URL = env.PLAYWRIGHT_BACKEND_URL ?? "http://localhost:5000";
 const WEB_PORT = new URL(BASE_URL).port || "8090";
-const reuseExistingServer = !process.env.CI;
+const reuseExistingServer = !env.CI;
 
 // Repo root, used to put the test-double on PYTHONPATH and to serve files.
 const repoRoot = new URL("..", import.meta.url).pathname;
@@ -23,10 +25,10 @@ export default defineConfig({
   // Pixel baselines live next to the repo-level e2e tests, not under node/.
   snapshotPathTemplate: "../tests/e2e/__snapshots__/{testFilePath}/{arg}{ext}",
   fullyParallel: false,
-  forbidOnly: !!process.env.CI,
+  forbidOnly: !!env.CI,
   retries: 0,
   workers: 1,
-  reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
+  reporter: env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
   timeout: 120_000,
   expect: {
     // Deterministic-ish UI; small tolerance for AA/font rasterization differences.
@@ -36,7 +38,6 @@ export default defineConfig({
       caret: "hide",
       // Plotly/DataGrid can take a few render frames to settle; the default 5s
       // stabilization window is too tight when generating fresh baselines.
-      timeout: 30_000,
     },
   },
   use: {
@@ -69,9 +70,8 @@ export default defineConfig({
       // React strips dev-only controlled/uncontrolled warnings and the HMR overlay,
       // matching the deployed Caddy stack the behavioral reference targeted and
       // giving deterministic pixel snapshots (§T10 "vite preview/Caddy", §V12).
-      // `build:e2e` skips the Java openapi-generator codegen step of `build`: the
-      // generated client is already committed, and the pinned Playwright image (§V12)
-      // has no JRE.
+      // `build:e2e` regenerates the client when needed; the e2e job installs a
+      // JRE before this runs because the pinned Playwright image (§V12) does not.
       command: "npm run build:e2e && npm run preview",
       url: BASE_URL,
       cwd: `${repoRoot}node`,

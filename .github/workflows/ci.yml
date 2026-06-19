@@ -64,7 +64,7 @@ jobs:
         flags: flaskapi
         name: flaskapi-coverage
 
-  # SuMo read-only Playwright e2e suite (root SPEC §T11,§T12 / §V10-§V13).
+  # Read-only Playwright e2e suite (SuMo/UQ/MOGA; root SPEC §T11,§T12 / §V10-§V13).
   # Runs inside the PINNED Playwright docker image so chromium + its bundled
   # fonts match the image the committed pixel baselines were generated in (§V12):
   # any host/runner font drift would otherwise break the snapshot comparison.
@@ -83,6 +83,10 @@ jobs:
       # entry points need it).
       - name: Install make
         run: apt-get update && apt-get install -y --no-install-recommends make
+      # `build:e2e` regenerates the generated client through openapi-generator;
+      # the Playwright image does not ship a JRE, so install one here.
+      - name: Install Java runtime
+        run: apt-get update && apt-get install -y --no-install-recommends openjdk-21-jre-headless
       # uv drives the Flask backend the webServer boots (tests/e2e/scripts/run-e2e-backend.sh).
       - name: Set up uv
         uses: astral-sh/setup-uv@v3
