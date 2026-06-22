@@ -71,6 +71,8 @@ V10: e2e snapshot suite (TS `@playwright/test`) drives SuMo read-only common wor
 V11: backend-under-e2e ⊥ reach real oSPARC — `MMUX_E2E_MOCK_OSPARC` set → `create_flask_app` injects in-backend test-double as `app.osparc_api` (never constructs real `OsparcApi`); `OSPARC_API_BASE_URL`=test sentinel as backstop; ⊥ `api.osparc.io`/`api.sim4life.io` HTTP in e2e
 V12: snapshot baselines committed to git; regenerated ONLY via `--update-snapshots` in pinned Playwright docker image; ⊥ regen on dev host (font drift)
 V13: `mmux-testid` attrs ! preserved on workflow-critical elements (shared selector contract w/ osparc-simcore e2e + this suite); rename/remove → update both sides
+V14: `expect.toHaveScreenshot.timeout` set ≥ 30s (⊥ default 5s) so Plotly/DataGrid finish stabilizing before pixel capture on slow CI hosts; pairs V12 determinism (B1)
+V15: e2e/client POSTs to strict_slashes Flask routes use the canonical trailing-slash URL (e.g. `/flask/text-file/`) → ⊥ 308 redirect round-trip (B2, pairs node/SPEC.md B13)
 
 ## §T
 id|status|task|cites
@@ -86,6 +88,10 @@ T9|x|`mock-osparc` in-backend test-double: `create_flask_app()` injects `MockOsp
 T10|x|e2e stack launch (via playwright `webServer`): live Flask (`MMUX_E2E_MOCK_OSPARC=1`, `OSPARC_API_BASE_URL`=test sentinel, `SERVICE_MODE=SUMO`, `PERMISSIONS=READ-ONLY`, `DEPLOYMENT_MODE=LOCAL`, `TEXT_FILES_DIR` local, `PYTHONPATH`+=`tests/e2e`) via `tests/e2e/scripts/run-e2e-backend.sh` + web (vite dev, `E2E_WEB_PORT` 8090) w/ `/flask/*` proxy split → app origin (`PLAYWRIGHT_BASE_URL`; Caddy `:8888` path = CI/docker)|V1,V11
 T11|x|SuMo read-only e2e spec (port behavior from `test/playwright-automation:tests/e2e/test_sumo_local.py`): reset persistence (POST `/flask/text-file`) → assert deployment SUMO/READ-ONLY → `select-function-btn-{uid}` → fill `input-block-Min/Max` → `next-button` → wait `jobs-loading` + "Creating AI model…" hidden → assert `sumo-validation-view`/`qoi-select`/`.js-plotly-plot`/`MAE:`/`RMSE:`/`extend-sampling-btn` disabled; ADD `toHaveScreenshot` @Setup grid + validation view (mask/seed Plotly); console-error guard. add missing testids on current branch (`jobs-loading`,`sumo-validation-view`,`select-function-btn-{uid}`) per branch component diffs. e2e served by `vite preview` prod build (⊥ dev mode) for prod-fidelity + ⊥ dev-only React warnings. 3 full-viewport 1920×1080 baselines — setup grid, function-selected/inputs-open, validation view — UNmasked (deterministic mock+surrogate ⇒ reproducible Plotly in pinned image). CAUGHT+FIXED 3 regressions (node/SPEC §B11-B13)|V10,V13,node/SPEC.md B11,B12,B13
 T12|x|CI: run `make test-e2e` in pinned Playwright docker image (`mcr.microsoft.com/playwright:v1.61.0-noble`, tag==`@playwright/test`); baselines generated/committed via `make test-e2e-update-docker` + verifiable locally via `make test-e2e-docker`, both in the SAME image (font-stable, §V12); `e2e-tests` job gates merge on green pixel diff vs committed baselines|V12,§C
+T13|x|fix B1 (#475): set `expect.toHaveScreenshot.timeout = 30_000` in `node/playwright.config.ts` (config comment described the need but never set it)|V14,B1
+T14|x|fix B2 (#475): `resetPersistence` posts canonical `/flask/text-file/` (trailing slash) to skip the strict_slashes 308 redirect|V15,B2
 
 ## §B
 id|date|cause|fix
+B1|2026-06-22|#475 `node/playwright.config.ts` `toHaveScreenshot` comment said the default 5s stabilization window is too tight for Plotly/DataGrid but never set a `timeout` → snapshot gen/compare flaky on slow CI hosts|V14
+B2|2026-06-22|#475 e2e `resetPersistence` posts `/flask/text-file` (no trailing slash); route is registered as `/` under that prefix → 308 redirect round-trip (the strict_slashes class fixed at proxy level in node/SPEC.md B13)|V15

@@ -37,7 +37,9 @@ export default defineConfig({
       animations: "disabled",
       caret: "hide",
       // Plotly/DataGrid can take a few render frames to settle; the default 5s
-      // stabilization window is too tight when generating fresh baselines.
+      // stabilization window is too tight when generating fresh baselines on a
+      // slow CI host, so give snapshots a longer window to converge (root §V14).
+      timeout: 30_000,
     },
   },
   use: {
