@@ -77,6 +77,8 @@ V18: Dakota plot dedup key (`lastFetchedKey`) cached ONLY on fetch success (or c
 V19: FE preserve-subtree-key set ≡ backend `_PRESERVE_SUBTREE_KEYS` (single source / test asserts equality); membership tested against canonical snake form only, ⊥ dead camelCase entries (B8,B9, pairs ../flaskapi V13/V14)
 V20: app src (⊥ `src/osparc-api-ts-client/`) consumes oSPARC functions/jobs via REGISTERED types only (carry `uid`): `RegisteredFunction` union alias (`context/types.d.ts`) for functions; `RegisteredFunctionJobCollection` (generated) for collections; `OsparcFunctionJob` (`context/types.d.ts` — minimal post-normalization shape `{uid, status:string, inputs, outputs}`) for jobs. ⊥ import bare generated `Function`/`FunctionJob` unions (lack `uid`; job `status` is a `FunctionJobStatus` object pre-flatten, flattened to string by `JobContext.jobStatusFilter`). enforced by `tsc -b` (B10)
 V21: `npm run build:e2e` regenerates `osparc-api-ts-client/` via `npm run generate-osparc-cli` before `tsc -b && vite build`; e2e job must provide Java/JRE because the Playwright image does not ship one (B14)
+V22: every MUI `Modal` wrapper carries `aria-labelledby`+`aria-describedby` (screen-reader semantics; parity w/ Footer/PerformanceModal/MOGAModal/MOGAPlotModal/AddOutputModal); ⊥ drop on refactor (B17)
+V23: non-OK plot fetch (1D/2D/3D) ! reject the promise (`Promise.reject`/`throw`, ⊥ `return new Error`) so `.catch` runs → `lastFetchedKey` cleared; resolving a returned Error caches the key as success & blocks retry (B16, refines V18)
 
 ## §T
 id|status|task|cites
@@ -95,6 +97,8 @@ T12|.|fix B7 (#468): move `lastFetchedKey` update to success path (or clear on e
 T13|.|fix B8+B9 (#469): sync FE `preserveSubtreeKeys` with backend `_PRESERVE_SUBTREE_KEYS` (single source / equality test); drop unreachable camelCase entries (`defaultInputs`/`gridData`)|V19,B8,B9,../flaskapi/SPEC.md V13
 T14|.|0811bcb [wave-2 carry-over] when opening node csv(T6)/local-fn(T7)/logscale(T8) PRs, apply alexpargon fixes from commit `0811bcb`: (a) move `sumoResponse.ts` `components/plots/`→`utils/` + fix 5 plot imports; (b) export `snakeToCamelCase` from `functionUtils`, dedup in `sumoResponse`; (c) drop dead `@mui/x-data-grid` mocks in `FunctionList.test.tsx`+`FunctionList.upload.test.tsx`; (d) rename `jobcollection_roundtrip.integration.test.ts`→camelCase; (e) `tmp_job_collection_import.csv`→`__fixtures__/jobCollectionImport.csv`; (f) `stepValidator` param `ServiceMode`→`serviceMode` (closes #471)|§C,T6,T7,T8
 T15|x|fix e2e startup build: ensure the Playwright e2e job has Java/JRE so `npm run build:e2e` can regenerate `osparc-api-ts-client/` before `tsc -b && vite build`, allowing webServer startup in CI|V21,B14
+T16|x|fix B16 (#475): `Surface2DPlot` `return new Error` on non-OK resolved the chain & cached `lastFetchedKey` as success; `Curves1DPlot` had no `!response.ok` guard at all. Reject the promise in both (mirror `IsoSurface3DPlot`) so `.catch` clears the key → retry of identical inputs unblocked|V23,V18,B16
+T17|x|fix B17 (#475): restore `aria-labelledby`/`aria-describedby` on `SuMoModal`'s `Modal` (dropped on the inspect-model fix), matching the other codebase modals|V22,B17
 
 ## §B
 id|date|cause|fix
@@ -108,3 +112,5 @@ B12|2026-06-18|SuMo e2e (T11) caught: `SuMoValidation` read prediction key `${se
 B13|2026-06-18|SuMo e2e (T11) caught: vite `/flask` proxy `changeOrigin:true` made Flask emit absolute backend-origin `Location` on its strict_slashes 308 (e.g. `/flask/text-file`→`:5000/flask/text-file/`), which the browser blocked via CORS; set `changeOrigin:false` so Host (and thus the redirect) stays same-origin like Caddy|V1,V10
 B14|2026-06-19|e2e webServer build needed Java-based `generate-osparc-cli` but the Playwright container had no JRE, so startup failed before Playwright could start; install Java/JRE in the e2e job so `build:e2e` can regenerate the client|V21
 B15|2026-06-19|prek ran end-of-file-fixer on `node/.gitignore` because the file lacked a trailing newline|—
+B16|2026-06-22|#475 `Surface2DPlot` non-OK fetch path did `return new Error(...)` (⊥ reject) → chain resolved, next `.then` cached `lastFetchedKey` & cleared `propagating` as if successful → 4xx/5xx blocks retry of identical inputs (incomplete B7/T12 fix); `Curves1DPlot` had no `!response.ok` guard at all|V23,V18
+B17|2026-06-22|#475 inspect-model fix rewrote `SuMoModal` and dropped the `aria-labelledby`/`aria-describedby` on the `Modal` wrapper → screen-reader semantics lost, inconsistent w/ other codebase modals|V22

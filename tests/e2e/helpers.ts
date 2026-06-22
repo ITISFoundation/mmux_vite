@@ -48,7 +48,9 @@ export async function fetchJson(
 }
 
 export async function resetPersistence(request: APIRequestContext, baseURL: string): Promise<void> {
-  const response = await request.post(`${baseURL}/flask/text-file`, {
+  // Canonical trailing slash: the route is registered as `/` under the `/flask/text-file`
+  // prefix, so posting to `/flask/text-file` triggers a strict_slashes 308 redirect (node §B13).
+  const response = await request.post(`${baseURL}/flask/text-file/`, {
     data: { filename: "persistence.json", content: JSON.stringify(DEFAULT_PERSISTENCE) },
   });
   expect(response.ok(), `reset persistence → ${response.status()}`).toBeTruthy();

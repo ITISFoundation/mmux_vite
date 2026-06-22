@@ -99,7 +99,10 @@ function Surface2DPlot() {
         .then(response => {
           if (response && !response.ok) {
             console.warn("SuMo Surface plot error: ", response.body);
-            return new Error("SuMo Surface plot response not ok");
+            // V18: reject (⊥ return) so the .catch path clears lastFetchedKey and the
+            // identical inputs can be retried; a returned Error would resolve the chain
+            // and cache the key as if the fetch had succeeded.
+            return Promise.reject(new Error(`SuMo Surface plot response not ok: ${response.status}, ${response.statusText}`));
           }
           return response.json();
         })
