@@ -245,11 +245,10 @@ def flask_test_job():
 
         uid = response.actual_instance.uid
         _logger.debug(f"Job UID: {uid}")
-        while (
-            "JOB_TASK_" in (job := _get_function_job_from_uid(uid))["status"]
-            and "FAILURE" not in job
-        ):
+        job = _get_function_job_from_uid(uid)
+        while "JOB_TASK_" in job["status"] and "FAILURE" not in job["status"]:
             time.sleep(1)
+            job = _get_function_job_from_uid(uid)
         _logger.debug(f"Created job: {job}")
         return jsonify(job)
 

@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, make_response, request
 from osparc_client.models.function_job_status import FunctionJobStatus
 
 #
-from mmux_flaskapi.utils.helpers import _get_all_items, dict_keys_camel_to_snake
+from mmux_flaskapi.utils.helpers import _get_all_items
 from mmux_flaskapi.utils.webserver_config import OsparcApiException, get_osparc_api
 
 #####################################################################################
@@ -150,7 +150,7 @@ def flask_get_function_job_collections_for_functionid():
     response = osparc_api.get_job_collection_api().list_function_job_collections(
         has_function_id=function_uid
     )
-    job_collections = [dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
+    job_collections = [i.to_dict() for i in response.items]
     _logger.debug(f"N Job collections for function {function_uid}: {len(job_collections)}")
     return job_collections, 200
 
@@ -178,7 +178,7 @@ def _get_function_job_from_uid(job_uid: str) -> dict[str, Any]:
     _logger.debug(f"Job ID: {job_uid}")
     osparc_api = get_osparc_api()
     job = osparc_api.get_job_api().get_function_job(job_uid)
-    job_dict = dict_keys_camel_to_snake(job.to_dict())  # type: ignore
+    job_dict = job.to_dict()  # type: ignore
     _logger.debug(f"'Raw' Job: {job_dict}")
     job_dict["status"] = osparc_api.get_job_api().function_job_status(job_uid).status
     job_dict["outputs"] = osparc_api.get_job_api().function_job_outputs(job_uid)

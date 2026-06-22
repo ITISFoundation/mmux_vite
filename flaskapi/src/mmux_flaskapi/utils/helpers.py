@@ -54,36 +54,43 @@ def dict_keys_snake_to_camel(d: dict) -> dict:
 def recursive_dict_keys_camel_to_snake(
     d: dict, max_depth: int = -1, current_depth: int = 0
 ) -> dict:
-    # Process nested values
+    converted = {}
     for k, v in d.items():
         if isinstance(v, dict) and (max_depth == -1 or current_depth < max_depth):
-            d[k] = recursive_dict_keys_camel_to_snake(v, max_depth, current_depth + 1)
+            converted[camel_to_snake(k)] = recursive_dict_keys_camel_to_snake(
+                v, max_depth, current_depth + 1
+            )
         elif isinstance(v, list) and (max_depth == -1 or current_depth < max_depth):
-            d[k] = [
+            converted[camel_to_snake(k)] = [
                 recursive_dict_keys_camel_to_snake(i, max_depth, current_depth + 1)
                 if isinstance(i, dict)
                 else i
                 for i in v
             ]
-
-    # Convert keys and return
-    return {camel_to_snake(k): v for k, v in d.items()}
+        else:
+            converted[camel_to_snake(k)] = v
+    return converted
 
 
 def recursive_dict_keys_snake_to_camel(
     d: dict, max_depth: int = -1, current_depth: int = 0
 ) -> dict:
+    converted = {}
     for k, v in d.items():
         if isinstance(v, dict) and (max_depth == -1 or current_depth < max_depth):
-            d[k] = recursive_dict_keys_snake_to_camel(v, max_depth, current_depth + 1)
+            converted[snake_to_camel(k)] = recursive_dict_keys_snake_to_camel(
+                v, max_depth, current_depth + 1
+            )
         elif isinstance(v, list) and (max_depth == -1 or current_depth < max_depth):
-            d[k] = [
+            converted[snake_to_camel(k)] = [
                 recursive_dict_keys_snake_to_camel(i, max_depth, current_depth + 1)
                 if isinstance(i, dict)
                 else i
                 for i in v
             ]
-    return {snake_to_camel(k): v for k, v in d.items()}
+        else:
+            converted[snake_to_camel(k)] = v
+    return converted
 
 
 def _get_all_items(api_call: Callable, *args, **kwargs):
@@ -96,9 +103,12 @@ def _get_all_items(api_call: Callable, *args, **kwargs):
     items = []
     while retrieved < list_len:
         response = api_call(offset=retrieved, *args, **kwargs)
-        retrieved += len(response.items)  # type: ignore
+        response_items = response.items or []
+        if len(response_items) == 0:
+            break
+        retrieved += len(response_items)  # type: ignore
         items += [
-            recursive_dict_keys_camel_to_snake(i.to_dict(), max_depth=1) for i in response.items
+            recursive_dict_keys_camel_to_snake(i.to_dict(), max_depth=1) for i in response_items
         ]
 
     return items

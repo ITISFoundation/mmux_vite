@@ -96,6 +96,11 @@ V17: `local_job_store` dir anchored to explicit base (env `LOCAL_STORE_DIR` or `
 V18: response ⊥ emit same datum under both snake+camel key when global serializer camel-converts (⊥ pre-add `jobIds` beside `job_ids`) → ⊥ key-collision overwrite (B2)
 V19: CSV cell parse ! raise ValueError w/ row+col ctx on unparseable non-blank cell; truly-blank → NaN sentinel, ⊥ silent `0.0` (⊥ feed accidental zeros to Dakota) (B4)
 V20: `local_job_store._load_store` catches only `(OSError, json.JSONDecodeError)`; on corrupt JSON ! backup offending file, ⊥ silent reset-then-overwrite (⊥ unrecoverable loss) (B5)
+V21: `_get_all_items` ! loop forever on empty page; empty `response.items` → break after current page, return accumulated items
+V22: recursive dict key converters ! mutate input dict/list in-place; conversion returns new object, caller input preserved
+V23: `sampling.test_job` polling exit depends on `job["status"]` string, not dict keys; `FAILURE` in status → break
+V24: `_anonymize(s, n, m=None)` on non-empty `s` ! expose full string; omitted `m` always masks at least one char
+V25: Dakota endpoints ! call `os.chdir()`; run dirs use explicit paths only, request cwd stays process-global and unchanged
 
 ## §T
 id|status|task|cites
@@ -121,3 +126,8 @@ B2|2026-06-16|#467 `osparc.py` normalized collection emits both `jobIds`+`job_id
 B3|2026-06-16|#467 `osparc.py` local fn/collection merges + per-id branches run unconditionally ∀ `DEPLOYMENT_MODE` → OSPARC deploy leaks leftover `runs_local` state, violates V15|V15
 B4|2026-06-16|#467 `sampling._parse_number` swallows unparseable cell → `0.0` → silent scientific-data corruption (job looks completed w/ zeros fed to Dakota)|V19
 B5|2026-06-16|#467 `local_job_store._load_store` bare `except Exception`→empty store; next `_save_store` overwrites corrupt file → unrecoverable loss of saved functions/collections/jobs|V20
+B6|2026-06-19|old `_get_all_items` `while retrieved < list_len` had no empty-page guard → paginated oSPARC listing could spin forever on `items=[]`|V21
+B7|2026-06-19|recursive camel/snake key converters mutated caller dict while walking nested structures → hidden side effects on shared payloads|V22
+B8|2026-06-19|`sampling.test_job` loop checked `"FAILURE" not in job` (dict keys) instead of `job["status"]` → failed jobs could keep polling|V23
+B9|2026-06-19|`OsparcApi._anonymize` default `m=None` could fully expose short strings → logging leaked whole secret prefix|V24
+B10|2026-06-19|Dakota endpoints called `os.chdir()` per request → process-global cwd mutation and request cross-talk risk|V25

@@ -135,6 +135,20 @@ class TestOsparcApiConfiguration:
             result = api._anonymize("test_string", 4)
             assert result == "test*******"  # 4 chars + 7 stars (11 total - 4 = 7)
 
+    def test_anonymize_function_auto_length_short_string(self):
+        """Test anonymization function masks short strings when m is omitted."""
+        test_env = {
+            "OSPARC_API_BASE_URL": "https://api.osparc.io",
+            "OSPARC_API_KEY": "test_api_key",
+            "OSPARC_API_SECRET": "test_api_secret",
+        }
+
+        with patch.dict(os.environ, test_env):
+            api = OsparcApi()
+
+            result = api._anonymize("abc", 4)
+            assert result == "ab*"
+
     def test_anonymize_function_short_string(self):
         """Test anonymization function with string shorter than n."""
         test_env = {
