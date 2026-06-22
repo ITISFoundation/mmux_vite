@@ -64,6 +64,51 @@ jobs:
         flags: flaskapi
         name: flaskapi-coverage
 
+  # Read-only Playwright e2e suite (SuMo/UQ/MOGA; root SPEC §T11,§T12 / §V10-§V13).
+  # Runs inside the PINNED Playwright docker image so chromium + its bundled
+  # fonts match the image the committed pixel baselines were generated in (§V12):
+  # any host/runner font drift would otherwise break the snapshot comparison.
+  # The tag MUST stay in lock-step with @playwright/test in node/package.json.
+  e2e-tests:
+    needs:
+      - node-tests
+      - flaskapi-tests
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.0-noble
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v5
+      # The Playwright image ships node + browsers but not GNU make (the Makefile
+      # entry points need it).
+      - name: Install make
+        run: apt-get update && apt-get install -y --no-install-recommends make
+      # `build:e2e` regenerates the generated client through openapi-generator;
+      # the Playwright image does not ship a JRE, so install one here.
+      - name: Install Java runtime
+        run: apt-get update && apt-get install -y --no-install-recommends openjdk-21-jre-headless
+      # uv drives the Flask backend the webServer boots (tests/e2e/scripts/run-e2e-backend.sh).
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+      - name: Install node dependencies
+        run: cd node && npm ci
+      - name: Install Flask API dependencies
+        run: make install-flaskapi-deps
+      # Compares against the committed baselines under tests/e2e/__snapshots__.
+      # Baselines are regenerated ONLY via `make test-e2e-update` in THIS image (§V12);
+      # a non-green pixel diff fails the job and (via branch protection) gates merge (§C).
+      - name: Run Playwright e2e suite (pixel diff vs committed baselines)
+        run: make test-e2e
+      - name: Upload Playwright report + diffs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            node/playwright-report
+            node/test-results
+          retention-days: 14
+
   verify-image-build:
     needs:
       - prek

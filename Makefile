@@ -232,6 +232,29 @@ test-flaskapi: install-flaskapi-deps ## run Flask backend tests
 .PHONY: tests-flaskapi
 tests-flaskapi: test-flaskapi ## alias for test-flaskapi
 
+.PHONY: test-e2e
+test-e2e: ## run the Playwright read-only pixel-snapshot e2e suite (SuMo/UQ/MOGA; boots backend+web via webServer)
+	cd ${NODE_DIR} && npm run test:e2e
+
+.PHONY: test-e2e-update
+test-e2e-update: ## regenerate read-only e2e pixel baselines (SuMo/UQ/MOGA; run only in the pinned Playwright docker image, see V12)
+	cd ${NODE_DIR} && npm run test:e2e:update
+
+.PHONY: test-e2e-update-docker
+PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.61.0-noble
+test-e2e-update-docker: ## regenerate e2e baselines INSIDE the pinned Playwright image (font-stable, see V12); keep tag == @playwright/test
+	docker run --rm --user root --network host \
+		-v "$(PWD)":/work -w /work -e HOME=/root \
+		$(PLAYWRIGHT_IMAGE) \
+		bash /work/tests/e2e/scripts/gen-baselines.sh
+
+.PHONY: test-e2e-docker
+test-e2e-docker: ## verify e2e pixel diff vs committed baselines INSIDE the pinned Playwright image (mirrors CI, see V12,§C)
+	docker run --rm --user root --network host \
+		-v "$(PWD)":/work -w /work -e HOME=/root -e E2E_MAKE_TARGET=test-e2e \
+		$(PLAYWRIGHT_IMAGE) \
+		bash /work/tests/e2e/scripts/gen-baselines.sh
+
 .PHONY: ci
 ci: test-flaskapi test-node build-no-cache ## mimmicks the GitHub CI
 

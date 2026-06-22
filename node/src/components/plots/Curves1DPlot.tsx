@@ -113,9 +113,18 @@ function Curves1DPlots() {
         log: false,
       }),
     })
-      .then(response => response.json())
+      .then(response => {
+        if (response && !response.ok) {
+          console.warn("SuMo Curves plot error: ", response.body);
+          // V18: reject (⊥ return/resolve) so the .catch path clears lastFetchedKey and
+          // the identical inputs can be retried instead of caching a failed fetch.
+          return Promise.reject(new Error(`SuMo Curves plot response not ok: ${response.status}, ${response.statusText}`));
+        }
+        return response.json();
+      })
       .then(data => {
-        createPlotData(data);
+        // Backend wraps the per-axis predictions under `predictions` (SumoAlongAxesResponse).
+        createPlotData(data?.predictions);
         // V18: cache key ONLY on success, so transient failures don't block retry
         lastFetchedKey.current = requestKey;
         setPropagating(false);

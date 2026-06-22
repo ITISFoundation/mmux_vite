@@ -36,6 +36,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
         console.info("SelectedQoI: ", selectedQoI);
         const response = await fetchWithRetry(`/flask/dakota/manual_uq_propagation_with_uncertainty`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             inputVars,
             output: selectedQoI,

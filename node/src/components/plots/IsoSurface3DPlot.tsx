@@ -178,7 +178,8 @@ function IsoSurface3DPlot() {
         return response.json();
       })
       .then(d => {
-        reshapePlotData(d);
+        // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
+        reshapePlotData(d?.gridData);
         // V18: cache key ONLY on success, so transient failures don't block retry
         lastFetchedKey.current = requestKey;
         setPropagating(false);
