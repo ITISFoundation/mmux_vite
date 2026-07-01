@@ -7,17 +7,31 @@ function snakeToCamelCase(value: string): string {
   return value.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase());
 }
 
-function normalizePayloadToCamelCase<T>(payload: unknown): T {
+// Keys whose *own* nested keys are oSPARC/user-defined variable identifiers
+// (e.g. "sigma_blood"), not API field names — they must be preserved verbatim.
+// Case-converting them corrupts the identifiers oSPARC expects, which breaks
+// every downstream request built from them (400 on validation/plots/UQ
+// propagation). See node/SPEC.md V24, B18.
+const opaqueValueDictKeys = new Set(["properties", "defaultInputs", "inputs", "outputs"]);
+
+function normalizePayloadToCamelCase<T>(payload: unknown, parentKey?: string): T {
   if (Array.isArray(payload)) {
-    return payload.map(item => normalizePayloadToCamelCase(item)) as T;
+    return payload.map(item => normalizePayloadToCamelCase(item, parentKey)) as T;
   }
 
   if (payload && typeof payload === "object") {
+    if (parentKey && opaqueValueDictKeys.has(parentKey)) {
+      return payload as T;
+    }
+
     return Object.entries(payload as Record<string, unknown>).reduce(
-      (normalized, [key, value]) => ({
-        ...normalized,
-        [snakeToCamelCase(key)]: normalizePayloadToCamelCase(value),
-      }),
+      (normalized, [key, value]) => {
+        const camelKey = snakeToCamelCase(key);
+        return {
+          ...normalized,
+          [camelKey]: normalizePayloadToCamelCase(value, camelKey),
+        };
+      },
       {} as Record<string, unknown>,
     ) as T;
   }
