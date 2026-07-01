@@ -10,19 +10,6 @@ import pandas as pd
 
 #
 from flask import Blueprint, abort, jsonify, make_response
-from mmux_python.funs_data_processing import (
-    create_manual_uq_samples,
-    process_input_file,
-    sanitize_varnames,
-)
-from mmux_python.funs_evaluate import (
-    evaluate_sumo,
-    evaluate_sumo_along_axes,
-    evaluate_sumo_crossvalidation,
-    evaluate_sumo_manual_crossvalidation,
-    evaluate_sumo_on_grid,
-    perform_moga_optimization,
-)
 from pydantic import ValidationError
 
 #
@@ -41,6 +28,19 @@ from mmux_flaskapi.blueprints.dakota_models import (
     SumoGridEvaluationRequest,
     SumoGridEvaluationResponse,
     UQWithUncertaintyResponse,
+)
+from mmux_flaskapi.dakota.funs_data_processing import (
+    create_manual_uq_samples,
+    process_input_file,
+    sanitize_varnames,
+)
+from mmux_flaskapi.dakota.funs_evaluate import (
+    evaluate_sumo,
+    evaluate_sumo_along_axes,
+    evaluate_sumo_crossvalidation,
+    evaluate_sumo_manual_crossvalidation,
+    evaluate_sumo_on_grid,
+    perform_moga_optimization,
 )
 from mmux_flaskapi.data_preprocessor import DataPreprocessor
 
