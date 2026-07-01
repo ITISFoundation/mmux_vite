@@ -1519,7 +1519,7 @@ wheels = [
 
 [[package]]
 name = "mmux-flaskapi"
-version = "1.5.14"
+version = "1.5.18"
 source = { editable = "." }
 dependencies = [
     { name = "flask" },
@@ -1602,7 +1602,7 @@ test = [
 
 [[package]]
 name = "mmux-python"
-version = "1.5.14"
+version = "1.5.18"
 source = { editable = "mmux_python" }
 dependencies = [
     { name = "flask" },

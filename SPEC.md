@@ -73,10 +73,11 @@ V12: snapshot baselines committed to git; regenerated ONLY via `--update-snapsho
 V13: `mmux-testid` attrs ! preserved on workflow-critical elements (shared selector contract w/ osparc-simcore e2e + this suite); rename/remove → update both sides
 V14: `expect.toHaveScreenshot.timeout` set ≥ 30s (⊥ default 5s) so Plotly/DataGrid finish stabilizing before pixel capture on slow CI hosts; pairs V12 determinism (B1)
 V15: e2e/client POSTs to strict_slashes Flask routes use the canonical trailing-slash URL (e.g. `/flask/text-file/`) → ⊥ 308 redirect round-trip (B2, pairs node/SPEC.md B13)
+V16: ∀ oSPARC publish → all 5 CI jobs (prek+node-tests+flaskapi-tests+e2e-tests+verify-image-build) ! green on `main`; version single-sourced (V5,V9)
 
 ## §T
 id|status|task|cites
-T1|.|version drift: `flaskapi/pyproject.toml` & `flaskapi/mmux_python/pyproject.toml` = `1.5.14` but service = `1.5.18`; add pyproject files to `.bumpversion.cfg` or align manually|V5
+T1|x|version drift: `flaskapi/pyproject.toml` & `flaskapi/mmux_python/pyproject.toml` = `1.5.14` but service = `1.5.18`; add pyproject files to `.bumpversion.cfg` or align manually|V5
 T2|.|frontend calls `/flask/osparc/download_job_collection_csv` & `/flask/sampling/upload_job_collection_csv` — backend routes IMPLEMENTED on feature/local-functions; resolved-by porting topic fullstack-csv|node/SPEC.md T6, flaskapi/SPEC.md T6
 T3|.|README lacks run matrix doc (modes×perms = 12 `run-*` targets); document|§I
 T4|.|e2e snapshot suite umbrella: TS `@playwright/test` in `tests/e2e/`, SuMo read-only common workflow vs live backend w/ oSPARC mocked + pixel `toHaveScreenshot`; covers proxy `/flask/*` split (V1) & SUMO view (V2); → subtasks T8-T12; supersedes Python `test/playwright-automation` (behavioral reference only)|V1,V2,V10,V11,V12,V13,node/SPEC.md T9
@@ -90,6 +91,11 @@ T11|x|SuMo read-only e2e spec (port behavior from `test/playwright-automation:te
 T12|x|CI: run `make test-e2e` in pinned Playwright docker image (`mcr.microsoft.com/playwright:v1.61.0-noble`, tag==`@playwright/test`); baselines generated/committed via `make test-e2e-update-docker` + verifiable locally via `make test-e2e-docker`, both in the SAME image (font-stable, §V12); `e2e-tests` job gates merge on green pixel diff vs committed baselines|V12,§C
 T13|x|fix B1 (#475): set `expect.toHaveScreenshot.timeout = 30_000` in `node/playwright.config.ts` (config comment described the need but never set it)|V14,B1
 T14|x|fix B2 (#475): `resetPersistence` posts canonical `/flask/text-file/` (trailing slash) to skip the strict_slashes 308 redirect|V15,B2
+
+T17|.|RELEASE-1 stable baseline v1.5.19: prereq T1+CI green on develop → PR merge develop→main → `make version-patch` → verify V16 → oSPARC publish; ⊥ new features|V5,V9,V16
+T18|.|BUG-FIX #467 backend (PR `jgo/port-backend`): fix flaskapi §B1-§B5 — B1 LOCAL_STORE_DIR cwd-indep+`mkdir parents`; B2 rm duplicate `jobIds`/`job_ids` key; B3 gate local-store merge on `DEPLOYMENT_MODE=LOCAL` only; B4 `_parse_number` raise/reject unparseable cell (⊥ silent 0.0); B5 replace bare `except` w/ typed exception → merge #467→develop|flaskapi/SPEC.md B1,B2,B3,B4,B5
+T19|.|RELEASE-2 frontend CSV (new focused PR after T18): CSV upload UI→`POST /flask/sampling/upload_job_collection_csv` + download UI→`GET /flask/osparc/download_job_collection_csv`; ⊥ auto-boundary/log-inference/local-store UI (defer); ⊥ port #456 wholesale|flaskapi/SPEC.md T6,node/SPEC.md T6
+T20|.|RELEASE-2 collaborator preview v1.6.0: prereq T18+T19+CI green on develop; optionally include #469 if node §B8-§B9 fixed → PR merge develop→main → `make version-minor` → verify V16 → oSPARC publish; goal: CSV upload+log-scale live for collaborator testing|V5,V9,V16,node/SPEC.md B8,B9
 
 ## §B
 id|date|cause|fix
