@@ -2,10 +2,10 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { ServiceContextProvider, useServiceContext } from "./ServiceContext";
-import { getPermissions as getPermissionsImport, getServiceMode as getServiceModeImport } from "../utils/function_utils";
+import { getPermissions as getPermissionsImport, getServiceMode as getServiceModeImport } from "../utils/functionUtils";
 
 // Mock the utils
-vi.mock("../utils/function_utils", () => ({
+vi.mock("../utils/functionUtils", () => ({
   getPermissions: vi.fn(),
   getServiceMode: vi.fn(),
 }));
@@ -14,11 +14,11 @@ const getPermissions = getPermissionsImport as unknown as Mock;
 const getServiceMode = getServiceModeImport as unknown as Mock;
 
 function TestComponent() {
-  const { permissions, ServiceMode } = useServiceContext();
+  const { permissions, serviceMode } = useServiceContext();
   return (
     <div>
       <span data-testid="permissions">{permissions}</span>
-      <span data-testid="serviceMode">{ServiceMode}</span>
+      <span data-testid="serviceMode">{serviceMode}</span>
     </div>
   );
 }

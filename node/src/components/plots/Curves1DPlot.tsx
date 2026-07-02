@@ -1,20 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
-import { FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
+import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
 import Header from "../navigation/Header";
 import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 
 type GPPrediction = {
   x: number[];
-  y_hat: number[];
-  std_hat: number[];
+  yHat: number[];
+  stdHat: number[];
 };
 
 function Curves1DPlots() {
@@ -44,6 +44,7 @@ function Curves1DPlots() {
   );
   const plotColor = "rgb(127, 199, 255)";
   const fillColor = "rgba(127, 199, 255, 0.3)";
+  const lastFetchedKey = useRef<string | undefined>(undefined);
 
   const createPlotData = (data: Record<string, GPPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
@@ -53,8 +54,8 @@ function Curves1DPlots() {
     } else {
       const varName = axis;
       const x = data[varName]?.x || [];
-      const yHat = data[varName]?.y_hat || [];
-      const stdHat = data[varName]?.std_hat || [];
+      const yHat = data[varName]?.yHat || [];
+      const stdHat = data[varName]?.stdHat || [];
       const traces: Data[] = [
         {
           x,
@@ -97,10 +98,10 @@ function Curves1DPlots() {
     }
   };
 
-  const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[]) => {
+  const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[], requestKey: string) => {
     setPropagating(true);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
-    fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_along_axes`, {
+    fetch(`/flask/dakota/sumo_along_axes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -112,12 +113,25 @@ function Curves1DPlots() {
         log: false,
       }),
     })
-      .then(response => response.json())
+      .then(response => {
+        if (response && !response.ok) {
+          console.warn("SuMo Curves plot error: ", response.body);
+          // V18: reject (⊥ return/resolve) so the .catch path clears lastFetchedKey and
+          // the identical inputs can be retried instead of caching a failed fetch.
+          return Promise.reject(new Error(`SuMo Curves plot response not ok: ${response.status}, ${response.statusText}`));
+        }
+        return response.json();
+      })
       .then(data => {
-        createPlotData(data);
+        // Backend wraps the per-axis predictions under `predictions` (SumoAlongAxesResponse).
+        createPlotData(data?.predictions);
+        // V18: cache key ONLY on success, so transient failures don't block retry
+        lastFetchedKey.current = requestKey;
         setPropagating(false);
       })
       .catch(_error => {
+        // V18: clear cache on error so same inputs can be retried
+        lastFetchedKey.current = undefined;
         setPlotData([]);
         setPropagating(false);
       });
@@ -126,11 +140,24 @@ function Curves1DPlots() {
   useEffect(() => {
     const run = async () => {
       const jobs = filteredJobList;
-      if (jobs.length !== 0) {
-        return RunCentralSuMoInterpolations(jobs);
+      if (jobs.length === 0) {
+        // Not enough jobs to build model - then returns empty list
+        lastFetchedKey.current = undefined;
+        return setPlotData([]);
       }
-      // Not enough jobs to build model - then returns empty list
-      return setPlotData([]);
+      // V16: dedup by stable logical request key; same key → no new fetch.
+      const requestKey = buildDakotaRequestKey({
+        axes: [axis],
+        sliderValues: otherAxis,
+        qoi: selectedQoI,
+        fn: selectedFunction?.uid,
+        jobList: jobs.map(job => job.uid),
+        logScale: false,
+      });
+      if (requestKey === lastFetchedKey.current) {
+        return undefined;
+      }
+      return RunCentralSuMoInterpolations(jobs, requestKey);
     };
     run();
     // console.debug("axis: ", axis);

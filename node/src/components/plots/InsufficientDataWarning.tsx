@@ -1,9 +1,9 @@
-import { FunctionJob } from "../../osparc-api-ts-client";
+import { OsparcFunctionJob } from "../../context/types";
 import { DisplayMessage } from "../utils/DisplayMessage";
 
 type InsufficientDataWarningPropsType = {
   fetchedJobCollections: SelectedJobCollection[] | undefined;
-  filteredJobList: FunctionJob[];
+  filteredJobList: OsparcFunctionJob[];
   height?: number;
 };
 

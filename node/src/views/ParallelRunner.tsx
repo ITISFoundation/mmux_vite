@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useCallback } from "react";
-import type { FunctionJob } from "../osparc-api-ts-client";
-import { getFunctionJobsFromFunctionJobCollection } from "../utils/function_utils";
+import type { OsparcFunctionJob } from "../context/types";
+import { getFunctionJobsFromFunctionJobCollection } from "../utils/functionUtils";
 import { useSamplingContext } from "../context/SamplingContext";
 import { useJobContext } from "../context/JobContext";
 
@@ -18,10 +18,10 @@ type StatusIconProps = {
 // "RunningState": {
 // "type": "string", "enum": ["UNKNOWN", "PUBLISHED", "NOT_STARTED", "PENDING", "WAITING_FOR_RESOURCES", "STARTED", "SUCCESS", "FAILED", "ABORTED", "WAITING_FOR_CLUSTER"]
 type JobsByStatusType = {
-  PENDING: Record<string, FunctionJob>;
-  RUNNING: Record<string, FunctionJob>;
-  COMPLETED: Record<string, FunctionJob>;
-  FAILED: Record<string, FunctionJob>;
+  PENDING: Record<string, OsparcFunctionJob>;
+  RUNNING: Record<string, OsparcFunctionJob>;
+  COMPLETED: Record<string, OsparcFunctionJob>;
+  FAILED: Record<string, OsparcFunctionJob>;
 };
 
 type ProgressBarProps = {
@@ -132,7 +132,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ jobsByStatus, totalETA
 };
 
 type JobCardProps = {
-  job: FunctionJob;
+  job: OsparcFunctionJob;
 };
 function JobCard(props: JobCardProps) {
   const { job } = props;
@@ -187,7 +187,7 @@ function JobCard(props: JobCardProps) {
 
 type StatusColumnProps = {
   title: string;
-  jobs: Record<string, FunctionJob>;
+  jobs: Record<string, OsparcFunctionJob>;
 };
 function StatusColumn(props: StatusColumnProps) {
   const { title, jobs } = props;
@@ -211,7 +211,7 @@ export function Dashboard(props: JobDashboardProps) {
   const { runningJobCollection } = useJobContext();
   const { setRunningSampling } = useSamplingContext();
   const { progressBarOnly } = props;
-  const [jobs, setJobs] = useState<FunctionJob[]>([]);
+  const [jobs, setJobs] = useState<OsparcFunctionJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   // const [totalETA, setTotalETA] = useState(null);
@@ -241,8 +241,8 @@ export function Dashboard(props: JobDashboardProps) {
     return () => clearInterval(intervalId);
   }, [fetchJobs]);
 
-  const classifyJobStatus = (job_status: string) => {
-    switch (job_status) {
+  const classifyJobStatus = (jobStatus: string) => {
+    switch (jobStatus) {
       case "UNKNOWN":
         return undefined;
       case "PUBLISHED":

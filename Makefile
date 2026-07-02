@@ -16,8 +16,10 @@ install-node:
 start-frontend:
 	cd ${NODE_DIR} && npm run dev
 
-get-access-write-on-mmux-python:
-	sudo chown -R ordonez:ordonez ./flaskapi/mmux_python/
+.PHONY: install-flaskapi-deps ## install Flask API Python dependencies
+install-flaskapi-deps:
+	cd ${FLASKAPI_DIR} && make install-flaskapi-deps
+
 
 # Builds new service version ----------------------------------------------------------------------------
 define _bumpversion
@@ -47,7 +49,7 @@ build: compose-spec ## build docker images
 	docker compose build
 
 .PHONY: build-no-cache
-build-no-cache: compose-spec ## build docker images	
+build-no-cache: compose-spec ## build docker images
 	docker compose build --no-cache --pull --parallel
 
 ## NB: VSCode might keep old credentials cached, even if changed in .env
@@ -183,20 +185,60 @@ build-publish-local: build-no-cache publish-local
 	@echo "WARNING ##### $@ does not exist, cloning $< as $@ ############"; cp $< $@)
 
 .PHONY: clean
-clean:
+clean: ## clean build artifacts and dependencies
 	rm -rf node/node_modules
 	rm -rf flaskapi/.venv
-	rm -rf flaskapi/mmux_python
 
+
+.PHONY: prek pre-commit
+prek: install-node install-flaskapi-deps ## run repository prek hooks
+	uvx prek run --all-files
+
+pre-commit: prek ## backward-compatible alias for prek
+
+
+
+# TESTING
 .PHONY: test-node
 test-node: clean
-	cd node && \
+	cd ${NODE_DIR} && \
 		npm ci && \
 		npm test
 
-.PHONY: test
-test: test-node
-	
+.PHONY: test-flaskapi
+test-flaskapi: install-flaskapi-deps ## run Flask backend tests
+	cd ${FLASKAPI_DIR} && \
+	uv run pytest tests/ -v --cov-report=html --cov-report=term-missing
+
+.PHONY: tests-flaskapi
+tests-flaskapi: test-flaskapi ## alias for test-flaskapi
+
+.PHONY: test-e2e
+test-e2e: ## run the Playwright read-only pixel-snapshot e2e suite (SuMo/UQ/MOGA; boots backend+web via webServer)
+	cd ${NODE_DIR} && npm run test:e2e
+
+.PHONY: test-e2e-update
+test-e2e-update: ## regenerate read-only e2e pixel baselines (SuMo/UQ/MOGA; run only in the pinned Playwright docker image, see V12)
+	cd ${NODE_DIR} && npm run test:e2e:update
+
+.PHONY: test-e2e-update-docker
+PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.61.0-noble
+test-e2e-update-docker: ## regenerate e2e baselines INSIDE the pinned Playwright image (font-stable, see V12); keep tag == @playwright/test
+	docker run --rm --user root --network host \
+		-v "$(PWD)":/work -w /work -e HOME=/root \
+		$(PLAYWRIGHT_IMAGE) \
+		bash /work/tests/e2e/scripts/gen-baselines.sh
+
+.PHONY: test-e2e-docker
+test-e2e-docker: ## verify e2e pixel diff vs committed baselines INSIDE the pinned Playwright image (mirrors CI, see V12,§C)
+	docker run --rm --user root --network host \
+		-v "$(PWD)":/work -w /work -e HOME=/root -e E2E_MAKE_TARGET=test-e2e \
+		$(PLAYWRIGHT_IMAGE) \
+		bash /work/tests/e2e/scripts/gen-baselines.sh
+
+.PHONY: ci
+ci: test-flaskapi test-node build-no-cache ## mimmicks the GitHub CI
+
 .PHONY: help
 help: ## this colorful help
 	@echo "Recipes for '$(notdir $(CURDIR))':"

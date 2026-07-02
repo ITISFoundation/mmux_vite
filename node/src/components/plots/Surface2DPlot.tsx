@@ -1,15 +1,15 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
+import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { FunctionJob } from "../../osparc-api-ts-client/models/FunctionJob";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
 import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow } from "./PlotTools";
 import Header from "../navigation/Header";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 
 function Surface2DPlot() {
   const theme = useTheme();
@@ -22,6 +22,7 @@ function Surface2DPlot() {
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [propagating, setPropagating] = useState(false);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
+  const lastFetchedKey = useRef<string | undefined>(undefined);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
       acc[key] =
@@ -78,13 +79,14 @@ function Surface2DPlot() {
   );
 
   const RunSuMo2DInterpolation = useCallback(
-    async (jobs: FunctionJob[], key1: string, key2: string) => {
+    async (jobs: OsparcFunctionJob[], key1: string, key2: string, requestKey: string) => {
       // This should create the "data" state variable to be plotted
       console.info("Evaluating SuMo for 2D surface...");
       console.info("Jobs to build SuMo: ", jobs);
       setPropagating(true);
-      fetch(`${PYTHON_DAKOTA_BACKEND}/flask/sumo_grid_evaluation`, {
+      fetch(`/flask/dakota/sumo_grid_evaluation`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           gridVars: [key1, key2],
           inputVars,
@@ -97,15 +99,23 @@ function Surface2DPlot() {
         .then(response => {
           if (response && !response.ok) {
             console.warn("SuMo Surface plot error: ", response.body);
-            return new Error("SuMo Surface plot response not ok");
+            // V18: reject (⊥ return) so the .catch path clears lastFetchedKey and the
+            // identical inputs can be retried; a returned Error would resolve the chain
+            // and cache the key as if the fetch had succeeded.
+            return Promise.reject(new Error(`SuMo Surface plot response not ok: ${response.status}, ${response.statusText}`));
           }
           return response.json();
         })
         .then(d => {
-          reshapePlotData(d);
+          // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
+          reshapePlotData(d?.gridData);
+          // V18: cache key ONLY on success, so transient failures don't block retry
+          lastFetchedKey.current = requestKey;
           setPropagating(false);
         })
         .catch(error => {
+          // V18: clear cache on error so same inputs can be retried
+          lastFetchedKey.current = undefined;
           console.warn("Error:", error);
           setPropagating(false);
           setPlotData([]);
@@ -117,7 +127,19 @@ function Surface2DPlot() {
   useEffect(() => {
     const run = async () => {
       const jobs = filteredJobList;
-      return RunSuMo2DInterpolation(jobs, axis1, axis2);
+      // V16: dedup by stable logical request key; same key → no new fetch.
+      const requestKey = buildDakotaRequestKey({
+        axes: [axis1, axis2],
+        sliderValues: otherAxis,
+        qoi: selectedQoI,
+        fn: selectedFunction?.uid,
+        jobList: jobs.map(job => job.uid),
+        logScale: false,
+      });
+      if (requestKey === lastFetchedKey.current) {
+        return undefined;
+      }
+      return RunSuMo2DInterpolation(jobs, axis1, axis2, requestKey);
     };
     run();
   }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList, RunSuMo2DInterpolation]);

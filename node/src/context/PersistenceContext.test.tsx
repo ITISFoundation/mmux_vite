@@ -4,10 +4,10 @@ import { render, waitFor, act, cleanup } from "@testing-library/react";
 import { PersistenceContextProvider, usePersistenceContext } from "./PersistenceContext";
 import type { PersistenceType } from "./types";
 import samplePersistence from "./samplePersistence.test.json";
-import { fetchWithRetry } from "../utils/fetch_retry";
+import { fetchWithRetry } from "../utils/fetchRetry";
 
 // Mock fetch and fetchWithRetry
-vi.mock("../utils/fetch_retry", () => ({
+vi.mock("../utils/fetchRetry", () => ({
   fetchWithRetry: vi.fn(),
 }));
 
@@ -180,6 +180,49 @@ describe("PersistenceContextProvider", () => {
       expect(persistence.currentView).toBe(1);
       expect(persistence.numSamples).toEqual({});
     });
+  });
+
+  it("V15: saveState skips redundant writes when content is unchanged", async () => {
+    mockFetchWithRetry.mockResolvedValueOnce(new Response(null, { status: 404, statusText: "Not Found" }));
+    const setFilePost = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ filename: "persistence.json", status: "success" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    global.fetch = setFilePost;
+
+    const { getByText, getByTestId } = render(
+      <PersistenceContextProvider>
+        <TestComponent />
+      </PersistenceContextProvider>,
+    );
+
+    act(() => {
+      getByText("Set Health OK").click();
+    });
+
+    await waitFor(() => {
+      expect(getByTestId("loading").textContent).toBe("loaded");
+    });
+
+    // First save persists once (content differs from the hydrated default).
+    act(() => {
+      getByText("Save State").click();
+    });
+    await waitFor(() => {
+      expect(setFilePost).toHaveBeenCalledTimes(1);
+    });
+
+    // Saving the SAME state again (recreated object reference) must NOT re-POST.
+    act(() => {
+      getByText("Save State").click();
+    });
+    await waitFor(() => {
+      const persistence = JSON.parse(getByTestId("persistence").textContent!);
+      expect(persistence.currentView).toBe(1);
+    });
+    expect(setFilePost).toHaveBeenCalledTimes(1);
   });
 
   it("getFunctionValues and setFunctionValues work", async () => {

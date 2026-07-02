@@ -6,7 +6,6 @@ interface JobsLoadingProps {
 }
 
 export function JobsLoading(props: JobsLoadingProps) {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { jobProgress, message } = props;
   const theme = useTheme();
 
@@ -20,6 +19,7 @@ export function JobsLoading(props: JobsLoadingProps) {
       justifyContent="center"
       bgcolor={theme.palette.background.default}
       borderRadius={theme.spacing(2)}
+      mmux-testid="jobs-loading"
     >
       <Typography variant="body1" fontFamily="inherit" fontWeight={100} textAlign="center" mb={1}>
         {message}

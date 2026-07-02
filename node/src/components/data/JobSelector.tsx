@@ -22,7 +22,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { useSamplingContext } from "../../context/SamplingContext";
-import { getJobCollectionStatus } from "../../utils/function_utils";
+import { getJobCollectionStatus } from "../../utils/functionUtils";
 import getMinMax from "../minmax";
 import CustomTooltip from "../utils/CustomTooltip";
 import JobRow from "./JobRow";
@@ -49,10 +49,19 @@ export default function JobsSelector(props: JobSelectorPropsType) {
   const poperOpen = useRef(false);
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [page, setPage] = React.useState(0);
+  // V15 (INV-005): remember the last selection pushed to the JobContext so a
+  // logically-identical selection (rebuilt array) does not retrigger the setter
+  // and the persistence/Dakota fan-out it would cause.
+  const lastPushedUids = useRef<string>("");
 
   const updateJobContext = useCallback(
     (jobs: SelectedJobCollection[]) => {
       const newList = jobs.map(j => j.subJobs.filter(k => k.selected).map(l => l.job.uid)).flat();
+      const newListKey = JSON.stringify(newList);
+      if (newListKey === lastPushedUids.current) {
+        return;
+      }
+      lastPushedUids.current = newListKey;
       setSelectedJobUids(newList);
     },
     [setSelectedJobUids],
@@ -146,7 +155,10 @@ export default function JobsSelector(props: JobSelectorPropsType) {
 
   const visibleSubJobs = React.useMemo(() => {
     if (poperID > -1 && jobCollections[poperID] && jobCollections[poperID].subJobs) {
-      return [...jobCollections[poperID].jobCollection.jobIds].slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+      return [...(jobCollections[poperID].jobCollection.jobIds ?? [])].slice(
+        page * rowsPerPage,
+        page * rowsPerPage + rowsPerPage,
+      );
     }
     return [];
   }, [jobCollections, page, poperID, rowsPerPage]);
@@ -195,12 +207,21 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     // fetchedJobCollections === undefined means the API call hasn't completed yet;
     // only clear loading once we have a definitive response ([] or non-empty).
     if (fetchedJobCollections === undefined) return;
-    if (jobCollections.length > 0 && loading === true) {
-      onToggleAll(true);
+    if (loading !== true) return;
+
+    // Wait until fetched job collections have been copied into local state before
+    // auto-selecting successful jobs and clearing the loading screen. Gate the
+    // empty-case on fetchedJobCollections (source of truth) — gating on the stale
+    // local jobCollections copy clears loading before the copy lands and skips the
+    // auto-selection on the following render.
+    if (fetchedJobCollections.length === 0) {
       setLoading(false);
       setIsSuMoGenerated(true);
+      return;
     }
-    if (jobCollections.length === 0 && loading === true) {
+
+    if (jobCollections.length > 0) {
+      onToggleAll(true);
       setLoading(false);
       setIsSuMoGenerated(true);
     }
@@ -290,7 +311,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                 indeterminate={
                   jobCollections.some(jc => jc.selected === true) &&
                   !jobCollections.every(
-                    jc => jc.subJobs.map(j => j.job).filter(j => j.status === "SUCCESS" && j.selected === true).length > 0,
+                    jc => jc.subJobs.filter(sj => sj.job.status === "SUCCESS" && sj.selected === true).length > 0,
                   )
                 }
                 onChange={event => onToggleAll(event.target.checked)}
@@ -463,7 +484,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
                   id="job-collection-pagination"
                   rowsPerPageOptions={[10, 20, 30]}
                   component="div"
-                  count={jobCollections[poperID].jobCollection.jobIds.length}
+                  count={(jobCollections[poperID].jobCollection.jobIds ?? []).length}
                   rowsPerPage={rowsPerPage}
                   page={page}
                   onPageChange={(_e, newPage) => setPage(newPage)}

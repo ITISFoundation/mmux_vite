@@ -2,16 +2,15 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
+import { OsparcFunctionJob } from "../../context/types";
 import { JobsLoading } from "../data/JobsLoading";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
-import { FunctionJob } from "../../osparc-api-ts-client";
 import MogaParetoTable from "./MOGAParetoTable";
-import { PYTHON_DAKOTA_BACKEND } from "../../utils/api_objects";
-import { fetchWithRetry } from "../../utils/fetch_retry";
-import { aggregateOutputValues } from "../../utils/function_utils";
+import { fetchWithRetry } from "../../utils/fetchRetry";
+import { aggregateOutputValues } from "../../utils/functionUtils";
 import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
 import { MOGAPlotModal } from "./MOGAPlotModal";
@@ -19,6 +18,19 @@ import { plotMarginsNarrow, plotMarginsMedium } from "./PlotTools";
 
 interface MOGAParetoProps extends LoadingPropsType {
   setCalculating?: (value: boolean) => void;
+}
+
+type MogaResults = Record<string, number[]> & {
+  nonDominatedIndices: number[];
+};
+
+function normalizeMogaResults(payload: unknown): MogaResults {
+  const rawResults = payload as Record<string, number[] | undefined> & { nonDominatedIndices?: number[] };
+  const { nonDominatedIndices = [], ...results } = rawResults;
+  return {
+    ...results,
+    nonDominatedIndices,
+  } as MogaResults;
 }
 
 export function MOGAPareto(props: MOGAParetoProps) {
@@ -141,20 +153,22 @@ export function MOGAPareto(props: MOGAParetoProps) {
   }
 
   const runMOGA = useCallback(
-    async (jobs: FunctionJob[], OVS: OutputVarSelection) => {
+    async (jobs: OsparcFunctionJob[], OVS: OutputVarSelection) => {
       const localsettings = mogaSettings[selectedFunction?.uid as string] || defaultMogaValues;
       const localOptVars = Object.keys(OVS);
       // console.log("localOptVars: ", localOptVars)
       // console.log("weights: ", weights)
       // console.log("outputVarSelection: ", OVS)
       const bodyData = JSON.stringify({
+        inputVars,
         mogaSettings: localsettings,
-        inputDistributions: distribution[selectedFunction?.uid || ""],
+        distributions: distribution[selectedFunction?.uid || ""],
         outputVarSelection: OVS,
         FunctionJobs: jobs,
       });
-      const response = await fetchWithRetry(`${PYTHON_DAKOTA_BACKEND}/flask/perform_moga_optimization`, {
+      const response = await fetchWithRetry(`/flask/dakota/perform_moga_optimization`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: bodyData,
       });
 
@@ -162,7 +176,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
         throw new Error(`Error in MOGA response: ${response.status}, ${response.statusText}`);
       }
 
-      const results: { [key: string]: number[] } = await response.json();
+      const results = normalizeMogaResults(await response.json());
       const minMax = getMinMax(localOptVars, results);
       // console.info("MOGA results:", results);
       // console.log("localOptVars: ", localOptVars)
@@ -175,15 +189,15 @@ export function MOGAPareto(props: MOGAParetoProps) {
         inputs: inputVars,
         outputs: localOptVars,
         raw: results,
-        rows: results.non_dominated_indices.map((ndi: number) => ({
+        rows: results.nonDominatedIndices.map((ndi: number) => ({
           ...inputVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
           ...localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
-          Performance: calculatePerformance(
+          performance: calculatePerformance(
             localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
             OVS,
             minMax,
           ),
-          NDI: ndi,
+          ndi,
         })),
       };
       setSelectedOptVars(localOptVars);
@@ -194,7 +208,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
   );
 
   const updatePlot = useCallback(
-    (jobs: FunctionJob[], localTableData: MogaDataType, extPlotType?: PlotConfig, extSelectedOptVars?: string[]) => {
+    (jobs: OsparcFunctionJob[], localTableData: MogaDataType, extPlotType?: PlotConfig, extSelectedOptVars?: string[]) => {
       const localsettings = mogaSettings[selectedFunction?.uid as string] || defaultMogaValues;
       const localOptVars = extSelectedOptVars || selectedOptVars;
       const results = localTableData?.raw ? localTableData.raw : {};
@@ -298,8 +312,8 @@ export function MOGAPareto(props: MOGAParetoProps) {
           newPlotData[1].x = results[localOptVars[0]].slice(localsettings.populationSize * 3, results[localOptVars[0]].length);
           newPlotData[1].y = results[localOptVars[1]].slice(localsettings.populationSize * 3, results[localOptVars[1]].length);
           newPlotData[1].z = undefined;
-          newPlotData[2].x = results.non_dominated_indices.map(i => (results[localOptVars[0]] as Array<number>)[i]);
-          newPlotData[2].y = results.non_dominated_indices.map(i => (results[localOptVars[1]] as Array<number>)[i]);
+          newPlotData[2].x = results.nonDominatedIndices.map(i => (results[localOptVars[0]] as Array<number>)[i]);
+          newPlotData[2].y = results.nonDominatedIndices.map(i => (results[localOptVars[1]] as Array<number>)[i]);
           newPlotData[2].z = undefined;
           newPlotData[0].type = "scatter";
           newPlotData[1].type = "scatter";
@@ -315,9 +329,9 @@ export function MOGAPareto(props: MOGAParetoProps) {
           newPlotData[1].x = results[localOptVars[0]].slice(localsettings.populationSize * 3, results[localOptVars[0]].length);
           newPlotData[1].y = results[localOptVars[1]].slice(localsettings.populationSize * 3, results[localOptVars[1]].length);
           newPlotData[1].z = results[localOptVars[2]].slice(localsettings.populationSize * 3, results[localOptVars[2]].length);
-          newPlotData[2].x = results.non_dominated_indices.map(i => (results[localOptVars[0]] as Array<number>)[i]);
-          newPlotData[2].y = results.non_dominated_indices.map(i => (results[localOptVars[1]] as Array<number>)[i]);
-          newPlotData[2].z = results.non_dominated_indices.map(i => (results[localOptVars[2]] as Array<number>)[i]);
+          newPlotData[2].x = results.nonDominatedIndices.map(i => (results[localOptVars[0]] as Array<number>)[i]);
+          newPlotData[2].y = results.nonDominatedIndices.map(i => (results[localOptVars[1]] as Array<number>)[i]);
+          newPlotData[2].z = results.nonDominatedIndices.map(i => (results[localOptVars[2]] as Array<number>)[i]);
           newPlotData[0].type = "scatter3d";
           newPlotData[1].type = "scatter3d";
           newPlotData[2].type = "scatter3d";
@@ -392,7 +406,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
   useEffect(() => {
     if (tableData) {
       if (hovered !== null) {
-        const hoveredRow = tableData.rows.find(r => r.NDI === hovered);
+        const hoveredRow = tableData.rows.find(r => r.ndi === hovered);
         // console.log("hovered row:", hoveredRow, plotType);
         if (hoveredRow && plotType && (plotType.dimensionType === "2D" || plotType.dimensionType === "3D")) {
           const newPlotData = [...plotData];

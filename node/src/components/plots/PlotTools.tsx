@@ -1,11 +1,11 @@
 import { InputLabel, Typography, Select, MenuItem, TextField, styled, Slider } from "@mui/material";
 import { useState } from "react";
+import { RegisteredFunction, OsparcFunctionJob } from "src/context/types";
 import { useFunctionContext } from "../../context/FunctionContext";
-import { Function as OsparcFunction, FunctionJob as OsparcFunctionJob } from "../../osparc-api-ts-client";
 import { JobContextType, useJobContext } from "../../context/JobContext";
 
 interface FullContext extends JobContextType {
-  selectedFunction: OsparcFunction | undefined;
+  selectedFunction: RegisteredFunction | undefined;
   inputVars: string[];
   distribution: { [key: string]: InputVarSelection };
 }
@@ -18,9 +18,10 @@ export const GetUniqueValues = (context: FullContext) => {
     uniqueValuesPerVar[varName] = new Set<number>();
   });
   jobs.forEach((job: OsparcFunctionJob) => {
-    if (job.inputs) {
+    const { inputs } = job;
+    if (inputs) {
       inputVars.forEach(varName => {
-        const value = job.inputs[varName];
+        const value = inputs[varName];
         if (typeof value === "number") {
           uniqueValuesPerVar[varName].add(value);
         }

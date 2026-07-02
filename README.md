@@ -18,6 +18,13 @@ Make sure your images have been build (since they are used as a base for mountin
 make build
 ```
 
+Install and run the repository hooks before opening a PR:
+
+```shell
+uvx prek install
+make prek
+```
+
 Start for development mode with
 ```shell
 make run-develop

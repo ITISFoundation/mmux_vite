@@ -1,9 +1,8 @@
 import React from "react";
 import { render, act, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { JobContextProvider, useJobContext } from "./JobContext";
-import { RegisteredFunctionJobCollection } from "../osparc-api-ts-client";
-
 // Mock dependencies
 vi.mock("./PersistenceContext", () => ({
   usePersistenceContext: () => ({
@@ -45,7 +44,7 @@ function TestComponent() {
                 { selected: true, job: { id: "5" } },
               ],
             },
-          ] as SelectedJobCollection[])
+          ] as unknown as SelectedJobCollection[])
         }
         data-testid="set-fetched"
       >

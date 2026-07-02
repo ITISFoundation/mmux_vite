@@ -1,16 +1,16 @@
 import { describe, it, expect, vi } from "vitest";
 import fs from "fs";
 import { JSX } from "react/jsx-runtime";
+import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
+import { RegisteredFunction, OsparcFunctionJob } from "../context/types";
 import { FunctionContextType } from "../context/FunctionContext";
 import { JobContextType } from "../context/JobContext";
 
 // import the functions to be tested
-import { pickCsv, readCsvData } from "./csv_utils";
-import { fetchWithRetry } from "./fetch_retry";
+import { pickCsv, readCsvData } from "./csvUtils";
+import { fetchWithRetry } from "./fetchRetry";
 import { getSamplingEndValue, getSamplingStartValue } from "./sampling";
 import { stepValidator } from "./stepValidator";
-import { RegisteredFunctionJobCollection, FunctionJob } from "../osparc-api-ts-client";
-import type { Function as OsparcFunction } from "../osparc-api-ts-client";
 
 // 1st test: get the file with a given path
 describe("CSV Functions", () => {
@@ -141,6 +141,8 @@ describe("Sampling Functions", () => {
 describe("stepValidator", () => {
   it("should validate steps correctly", () => {
     const functionContext: FunctionContextType = {
+      // Partial fixture cast: a real RegisteredFunction also requires createdAt/modifiedAt
+      // and a typed input/output schema; the test only needs uid/solverKey here.
       selectedFunction: {
         uid: "func1",
         inputSchema: {},
@@ -148,7 +150,7 @@ describe("stepValidator", () => {
         defaultInputs: {},
         solverKey: "mockSolverKey",
         solverVersion: "1.0.0",
-      },
+      } as unknown as RegisteredFunction,
       distribution: {
         func1: {
           x: { distribution: "uniform", min: 0, max: 10 },
@@ -156,7 +158,7 @@ describe("stepValidator", () => {
         },
       },
       outputTargets: {},
-      setSelectedFunction: (_F: OsparcFunction | undefined): void => {
+      setSelectedFunction: (_F: RegisteredFunction | undefined): void => {
         throw new Error("Function not implemented.");
       },
       inputVars: [],
@@ -188,7 +190,7 @@ describe("stepValidator", () => {
       setSelectedJobUids: (_selectedJobs: string[]): void => {
         throw new Error("Function not implemented.");
       },
-      allJobsList: (): FunctionJob[] => {
+      allJobsList: (): OsparcFunctionJob[] => {
         throw new Error("Function not implemented.");
       },
       filteredJobList: [],

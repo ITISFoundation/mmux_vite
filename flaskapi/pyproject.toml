@@ -1,0 +1,92 @@
+[build-system]
+requires = ["uv_build>=0.8.5,<0.9.0"]
+build-backend = "uv_build"
+
+[project]
+name = "mmux_flaskapi"
+version = "1.5.18"
+description = "MMUX Flask API"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "flask==3.1.1",
+    "flask-cors==6.0.0",
+    "gevent==25.5.1",
+    "gunicorn==23.0.0",
+    "itis-dakota==1.5.9",
+    "numpy==2.2.6",
+    "osparc==0.8.3.post0.dev30",
+    "pandas==2.2.3",
+    "python-dotenv==1.1.0",
+    "scikit-learn==1.6.1",
+    "scipy==1.15.3",
+]
+
+[dependency-groups]
+dev = [
+  {include-group = "test"},
+  "prek>=0.3.9",
+  "ruff>=0.14.1",
+]
+test = [
+    "coverage>=7.0.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "pytest-xdist>=3.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+    "--cov=src/mmux_flaskapi",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["src/mmux_flaskapi"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]  # line length handled by formatter
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

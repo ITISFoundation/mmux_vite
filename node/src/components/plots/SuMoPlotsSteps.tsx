@@ -30,7 +30,7 @@ function SuMoPlotsSteps() {
   const theme = useTheme();
   const { inputVars, selectedFunction, distribution, outputVars } = useFunctionContext();
   const { selectedQoI, setSelectedQoI } = useMMUXContext();
-  const { ServiceMode } = useServiceContext();
+  const { serviceMode } = useServiceContext();
   const context = useJobContext();
   const { filteredJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);
@@ -89,9 +89,9 @@ function SuMoPlotsSteps() {
           headerType="titleNoMargin"
           tabTitle={stepTitles[activeStep]}
           infoText={stepInfoTexts[stepTitles[activeStep]]}
-          ExtendedInfoText={stepExtendedInfoTexts[stepTitles[activeStep]]}
-          QOISelector={
-            (ServiceMode === "MOGA" || ServiceMode === "UQ") && (
+          extendedInfoText={stepExtendedInfoTexts[stepTitles[activeStep]]}
+          qoiSelector={
+            (serviceMode === "MOGA" || serviceMode === "UQ") && (
               <InputLabel
                 size="small"
                 sx={{
@@ -109,7 +109,7 @@ function SuMoPlotsSteps() {
                   Select Quantity of Interest
                   <CustomTooltip
                     title="Choose the simulation output to analyze"
-                    ExtendedTooltip={SelectQoIDocument}
+                    extendedTooltip={SelectQoIDocument}
                     placement="right"
                     arrow
                   >
@@ -128,7 +128,7 @@ function SuMoPlotsSteps() {
                   size="small"
                   variant="outlined"
                   sx={{ flex: 1 }}
-                  value={selectedQoI}
+                  value={selectedQoI || ""}
                   onChange={e => {
                     setSelectedQoI(e.target.value);
                   }}
@@ -178,13 +178,21 @@ function SuMoPlotsSteps() {
               onClick={handleNext}
               disabled={activeStep === maxSteps - 1}
               sx={{ alignItems: "end" }}
+              mmux-testid="sumo-plot-next"
             >
               Next
               {theme.direction === "rtl" ? <KeyboardArrowLeft /> : <KeyboardArrowRight />}
             </Button>
           }
           backButton={
-            <Button size="small" variant="contained" onClick={handleBack} disabled={activeStep === 0} sx={{ alignItems: "end" }}>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={handleBack}
+              disabled={activeStep === 0}
+              sx={{ alignItems: "end" }}
+              mmux-testid="sumo-plot-back"
+            >
               {theme.direction === "rtl" ? <KeyboardArrowRight /> : <KeyboardArrowLeft />}
               Back
             </Button>
