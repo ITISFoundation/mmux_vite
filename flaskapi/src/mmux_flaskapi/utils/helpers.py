@@ -51,6 +51,20 @@ def dict_keys_snake_to_camel(d: dict) -> dict:
     return {snake_to_camel(k): v for k, v in d.items()}
 
 
+# KNOWN GAP (live bug on the request/write path, not yet fixed): neither
+# conversion below has a preserve-subtree exception for dicts whose keys are
+# oSPARC variable names (mirrors the read-path fix in node/SPEC.md V24/B18,
+# `functionUtils.ts` `opaqueValueDictKeys`). `max_depth` limits *how deep* to
+# recurse, but does not skip conversion of variable-name keys within that
+# depth. Any irregular-case variable name (e.g. "TissueConduc") gets mangled
+# when it round-trips through `to_snake_case_request` (see json_serializer.py).
+# Planned fix: add a canonical `_PRESERVE_SUBTREE_KEYS`-style parameter here,
+# kept in sync with the frontend's key-set via an equality test (not a shared
+# runtime file). Tracked as node/SPEC.md T13+T19. Do NOT resurrect the
+# `FunctionVariablesDict`/Pydantic-wrapper approach from the closed,
+# superseded PR #469 (JavierGOrdonnez/port-be-preserve-case) - it had its own
+# unresolved bugs (B8/B9) and didn't merge cleanly; extend this simpler
+# Set-based pattern instead.
 def recursive_dict_keys_camel_to_snake(
     d: dict, max_depth: int = -1, current_depth: int = 0
 ) -> dict:

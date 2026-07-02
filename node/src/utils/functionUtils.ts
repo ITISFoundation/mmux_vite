@@ -12,6 +12,27 @@ function snakeToCamelCase(value: string): string {
 // Case-converting them corrupts the identifiers oSPARC expects, which breaks
 // every downstream request built from them (400 on validation/plots/UQ
 // propagation). See node/SPEC.md V24, B18.
+// NOTE: these entries are camelCase (e.g. "defaultInputs", not "default_inputs")
+// because membership is checked against `camelKey` *after* conversion (see
+// `normalizePayloadToCamelCase` below) — keep them camelCase, do not "fix" to
+// snake_case.
+//
+// KNOWN GAP (live bug, not yet fixed, own follow-up branch/PR): this only
+// protects the read path (backend -> FE response). The write path (FE ->
+// backend request body) has no equivalent guard yet, and the backend's
+// `to_snake_case_request` (flaskapi/utils/json_serializer.py) blindly
+// case-converts every incoming key unconditionally — so any irregular-case
+// variable name (e.g. "TissueConduc", "peak_Averaged_Field", not just
+// "sigma_blood"-style all-lowercase) sent back in a job config / slider
+// values / distribution params body gets mangled on arrival today. Plan
+// (node/SPEC.md T13+T19, grilled 2026-07-02): audit every outgoing fetch()
+// body + Flask endpoint first to enumerate the real key-set, then extend
+// THIS Set+parentKey pattern (not the heavier `FunctionVariablesDict`
+// Pydantic-wrapper design from the closed/superseded PR #469, which had its
+// own unresolved B8/B9 bugs) to both the backend converter and a new FE
+// `camelToSnakeCase`/`toBackendVarNames` outgoing conversion, with a
+// cross-language equality test keeping the two lists in sync (no shared
+// runtime file). Test-first: red against today's code, then green.
 const opaqueValueDictKeys = new Set(["properties", "defaultInputs", "inputs", "outputs"]);
 
 function normalizePayloadToCamelCase<T>(payload: unknown, parentKey?: string): T {
