@@ -119,7 +119,7 @@ def flask_lhs():
         _logger.debug(f"Validated config: {[c.dict() for c in config]}")
         _logger.debug(f"n: {n}, k: {k}, seed: {seed}, function_uid: {function_uid}")
 
-        from mmux_python.lhs import lhs
+        from mmux_flaskapi.dakota.lhs import lhs
 
         H = lhs(n, k, seed=seed)
         _logger.debug(f"H: {H.shape}")
@@ -169,8 +169,8 @@ def flask_grid_sampling():
         _logger.debug(f"Validated config: {[c.dict() for c in config]}")
         _logger.debug(f"Input variables: {input_vars}, function_uid: {function_uid}")
 
-        from mmux_python.funs_data_processing import load_data
-        from mmux_python.funs_evaluate import create_grid_samples
+        from mmux_flaskapi.dakota.funs_data_processing import load_data
+        from mmux_flaskapi.dakota.funs_evaluate import create_grid_samples
 
         # Convert config to the format expected by create_grid_samples
         config_dict = {var_config.variable: var_config.dict() for var_config in config}

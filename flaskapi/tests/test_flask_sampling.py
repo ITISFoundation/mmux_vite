@@ -775,8 +775,8 @@ class TestGridSamplingWithMocks:
     @pytest.fixture
     def mock_grid_dependencies(self):
         """Mock the grid sampling dependencies."""
-        with patch("mmux_python.funs_evaluate.create_grid_samples") as mock_create_grid:
-            with patch("mmux_python.funs_data_processing.load_data") as mock_load_data:
+        with patch("mmux_flaskapi.dakota.funs_evaluate.create_grid_samples") as mock_create_grid:
+            with patch("mmux_flaskapi.dakota.funs_data_processing.load_data") as mock_load_data:
                 with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
                     # Mock create_grid_samples to return a file path
                     run_dir = TEST_RUNS_DIR / "test_run"
@@ -1030,8 +1030,8 @@ class TestSamplingIntegrationWithOsparcAPI:
                 }
             )
 
-        with patch("mmux_python.funs_evaluate.create_grid_samples") as mock_create_grid:
-            with patch("mmux_python.funs_data_processing.load_data") as mock_load_data:
+        with patch("mmux_flaskapi.dakota.funs_evaluate.create_grid_samples") as mock_create_grid:
+            with patch("mmux_flaskapi.dakota.funs_data_processing.load_data") as mock_load_data:
                 with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
                     with patch(
                         "osparc_client.api.functions_api.FunctionsApi.map_function",
@@ -1945,7 +1945,7 @@ class TestSamplingErrorHandlingMissingCoverage:
         }
 
         # Mock import error for create_grid_samples
-        with patch("mmux_python.funs_evaluate.create_grid_samples") as mock_create_grid:
+        with patch("mmux_flaskapi.dakota.funs_evaluate.create_grid_samples") as mock_create_grid:
             mock_create_grid.side_effect = ImportError("Cannot import create_grid_samples")
 
             response = test_client.post("/flask/sampling/grid", json=payload)
@@ -2088,8 +2088,8 @@ class TestSamplingErrorHandlingMissingCoverage:
         }
 
         # Mock grid dependencies
-        with patch("mmux_python.funs_evaluate.create_grid_samples") as mock_create_grid:
-            with patch("mmux_python.funs_data_processing.load_data") as mock_load_data:
+        with patch("mmux_flaskapi.dakota.funs_evaluate.create_grid_samples") as mock_create_grid:
+            with patch("mmux_flaskapi.dakota.funs_data_processing.load_data") as mock_load_data:
                 with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
                     run_dir = TEST_RUNS_DIR / "test_run"
                     mock_create_run_dir.return_value = run_dir

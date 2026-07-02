@@ -5,7 +5,6 @@ Caveman-encoded. Distilled from code 2026-05-28. Child of root spec.
 ## LINKS
 - parent → [`../SPEC.md`](../SPEC.md) — orchestration, services, version
 - sibling → [`../node/SPEC.md`](../node/SPEC.md) — frontend that consumes this `/flask/*` API
-- vendored lib → `mmux_python/` (own git repo; Dakota conf-gen + evaluate)
 
 ## §G
 Flask API: relay frontend ↔ oSPARC (functions, jobs, collections, studies), generate samples (LHS / grid / single), run Dakota meta-modeling (SUMO surrogate, UQ propagation, MOGA optimization), persist state text files. Serve under `/flask/*`, port 5000.
@@ -15,7 +14,7 @@ Flask API: relay frontend ↔ oSPARC (functions, jobs, collections, studies), ge
 - run: dev `uv run python -m flask run` (entrypoint.sh), prod `uvx gunicorn main:app` (`main:app = create_flask_app()`)
 - oSPARC client `osparc==0.8.3.post0.dev30`; Dakota `itis-dakota==1.5.9`
 - numerics: `numpy==2.2.6`, `pandas==2.2.3`, `scipy==1.15.3`, `scikit-learn==1.6.1`
-- workspace dep `mmux_python` (local pkg) → Dakota conf generation + result evaluation + `lhs()`
+- `mmux_flaskapi.dakota` subpackage (inlined, own module namespace) → Dakota conf generation + result evaluation + `lhs()` — was vendored `mmux_python` dep, ported in-repo (§T15)
 - requests accept camelCase|snake_case (pydantic `populate_by_name`); responses camelCase
 - `DataPreprocessor` maps orig var names → `x1..xn`,`y1..yn` for Dakota, inverse on response
 - ≥5 completed jobs required for any surrogate/UQ/MOGA endpoint
@@ -63,7 +62,7 @@ env: `OSPARC_API_BASE_URL`,`OSPARC_API_KEY`,`OSPARC_API_SECRET` ! set
 env: `SERVICE_MODE`,`PERMISSIONS`,`DEPLOYMENT_MODE` (surfaced by deployment_bp)
 env: `OSPARC_NODE_ID`,`OSPARC_STUDY_ID` ? (req when DEPLOYMENT_MODE=OSPARC, else "null")
 env: `LOG_LEVEL` ? default `DEBUG`
---- lib mmux_python public surface ---
+--- lib mmux_flaskapi.dakota public surface (inlined subpackage, `src/mmux_flaskapi/dakota/`) ---
 lib: `lhs(n,k,seed)` → normalized [0,1] sample matrix
 lib: `create_grid_samples()`,`create_manual_uq_samples()`,`create_samples_along_axes()`
 lib: `DakotaObject.run(conf,output_dir)` → subprocess `dakota.environment.study()`
@@ -105,7 +104,7 @@ V25: Dakota endpoints ! call `os.chdir()`; run dirs use explicit paths only, req
 ## §T
 id|status|task|cites
 T1|.|frontend expects `/flask/osparc/download_job_collection_csv` & `/flask/sampling/upload_job_collection_csv` — IMPLEMENTED on feature/local-functions; resolved-by → port via §T6|T6, ../node/SPEC.md T1
-T2|.|`pyproject.toml` & `mmux_python/pyproject.toml` version `1.5.14` ≠ service `1.5.18`; add to `.bumpversion.cfg` or align|../SPEC.md V5,T1
+T2|x|`pyproject.toml` & `mmux_python/pyproject.toml` version `1.5.14` ≠ service `1.5.18`; add to `.bumpversion.cfg` or align — superseded by T15 (mmux_python removed, no more separate versioned pkg to drift)|../SPEC.md V5,T1,T15
 T3|.|`/get_sumo_cv_accuracy_metrics` not consumed by frontend — confirm used (tests?) or mark dead|I
 T4|.|`tests/implementation instructions/` + `tests/logs/` in tests tree — relocate to `docs/` or gitignore|—
 T5|.|add explicit test asserting all 5 blueprints + every route registered (guards V1)|V1
@@ -118,6 +117,7 @@ T11|.|fix B2 (#467): drop manual `jobIds` (or the snake key), let global seriali
 T12|.|fix B3 (#467): gate `list_local_*` merges + per-id local branches (`osparc.py` ~94,135,160,185,224,348) on `DEPLOYMENT_MODE=LOCAL`; test OSPARC mode ⊥ surface `runs_local` state|V15,B3
 T13|.|fix B4 (#467): `_parse_number` raise ValueError(row,col) on unparseable non-blank, blank→NaN; test rejects `"abc"`/swapped cols|V19,B4
 T14|.|fix B5 (#467): narrow `_load_store` except to `(OSError, json.JSONDecodeError)`, backup before reset; test corrupt-json ⊥ wipe store|V20,B5
+T15|x|PORT: inline vendored `mmux_python` → `src/mmux_flaskapi/dakota/` (6 used modules kept verbatim filenames: `lhs`,`dakota_object`,`funs_create_dakota_conf`,`funs_data_processing`,`funs_evaluate`,`wiofiles`; dropped 3 unused: `dakota_object_map`,`funs_git`,`funs_plotting`); rewrote internal cross-imports + blueprint imports (`dakota.py`,`sampling.py`) to `mmux_flaskapi.dakota.*`; removed `mmux-python` dep + `[tool.uv.workspace]`/`[tool.uv.sources]` + 6 dead transitive deps (gitpython,httpx,ipykernel,matplotlib,seaborn,tqdm) + coverage omit line from `pyproject.toml`; `uv sync` verified; full pytest suite green (439 passed) before+after|../SPEC.md T21,T2
 
 ## §B
 id|date|cause|fix

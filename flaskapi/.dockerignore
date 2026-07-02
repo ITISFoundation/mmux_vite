@@ -1,7 +1,6 @@
 # Ignore Project files
 runs/*
 *__pycache__*
-mmux_python
 
 # Ignore Standard files
 Dockerfile

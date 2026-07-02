@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ProjectFunctionJob } from "osparc-api-ts-client";
 import { OsparcFunctionJob } from "../context/types";
+import { fetchWithRetry } from "./fetchRetry";
 import {
   createInputOutputSchema,
   createJobStudyCopy,
@@ -36,7 +37,7 @@ const sampleJobs = [{ uid: "job1" }, { uid: "job2" }];
 const mockCollections = [{ uid: "collection1" }, { uid: "collection2" }];
 
 vi.mock("./fetchRetry.ts", () => ({
-  fetchWithRetry: (path: string) => {
+  fetchWithRetry: vi.fn((path: string) => {
     let response: unknown;
     if (path.includes("list_jobs")) {
       response = mockJobs;
@@ -55,7 +56,7 @@ vi.mock("./fetchRetry.ts", () => ({
     return Promise.resolve({
       json: () => Promise.resolve(response),
     });
-  },
+  }),
 }));
 
 describe("Function Utils", () => {
@@ -199,5 +200,37 @@ describe("Function Utils", () => {
   it("should get function jobs from a job collection", async () => {
     const jobs = await getFunctionJobsFromFunctionJobCollection("collection1");
     expect(jobs).toEqual(sampleJobs);
+  });
+
+  it("preserves snake_case variable identifiers in schema properties/defaultInputs (B18, V24)", async () => {
+    // Regression for the "Tissue Conductivity Uncertainty" oSPARC function
+    // (UID ddfc5b42-...): variable names like "sigma_blood" were being
+    // camelCased to "sigmaBlood" inside `properties`/`defaultInputs`, while
+    // the sibling `required` string array (untouched by key-casing) kept
+    // "sigma_blood" — the mismatch that broke every downstream inference
+    // request (validation/1D-2D-3D plots/UQ propagation) with 400s.
+    const rawFunction = {
+      uid: "func-uq-nerve",
+      title: "Tissue Conductivity Uncertainty",
+      default_inputs: { sigma_blood: 0.7, sigma_conn: 0.35 },
+      input_schema: {
+        schema_content: {
+          type: "object",
+          properties: {
+            sigma_blood: { type: "number" },
+            sigma_conn: { type: "number" },
+          },
+          required: ["sigma_blood", "sigma_conn"],
+        },
+      },
+    };
+    vi.mocked(fetchWithRetry).mockResolvedValueOnce({
+      json: () => Promise.resolve([rawFunction]),
+    } as Response);
+
+    const [fun] = await listFunctions();
+
+    expect(Object.keys(fun.inputSchema.schemaContent!.properties)).toEqual(fun.inputSchema.schemaContent!.required);
+    expect(fun.defaultInputs).toEqual(rawFunction.default_inputs);
   });
 });

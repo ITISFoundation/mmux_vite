@@ -16,26 +16,8 @@ install-node:
 start-frontend:
 	cd ${NODE_DIR} && npm run dev
 
-## Expose make objectives from flaskapi/Makefile
-.PHONY: setup-mmux-python
-setup-mmux-python: ## clone and setup mmux_python dependency
-	cd ${FLASKAPI_DIR} && make setup-mmux-python
-
-## Fix issue of permissions on mmux_python folder
-.PHONY: get-access-write-on-mmux-python
-get-access-write-on-mmux-python:
-	@if [ ! -e ${FLASKAPI_DIR}/mmux_python ]; then \
-		echo "${FLASKAPI_DIR}/mmux_python does not exist; skipping permission fix"; \
-	elif [ -w ${FLASKAPI_DIR}/mmux_python ]; then \
-		echo "${FLASKAPI_DIR}/mmux_python is already writable; skipping permission fix"; \
-	elif command -v sudo >/dev/null 2>&1; then \
-		sudo chown -R "$$(id -u):$$(id -g)" ${FLASKAPI_DIR}/mmux_python/; \
-	else \
-		chown -R "$$(id -u):$$(id -g)" ${FLASKAPI_DIR}/mmux_python/; \
-	fi
-
 .PHONY: install-flaskapi-deps ## install Flask API Python dependencies
-install-flaskapi-deps: setup-mmux-python get-access-write-on-mmux-python
+install-flaskapi-deps:
 	cd ${FLASKAPI_DIR} && make install-flaskapi-deps
 
 
@@ -206,7 +188,6 @@ build-publish-local: build-no-cache publish-local
 clean: ## clean build artifacts and dependencies
 	rm -rf node/node_modules
 	rm -rf flaskapi/.venv
-	rm -rf flaskapi/mmux_python
 
 
 .PHONY: prek pre-commit
