@@ -51,59 +51,89 @@ def dict_keys_snake_to_camel(d: dict) -> dict:
     return {snake_to_camel(k): v for k, v in d.items()}
 
 
-# KNOWN GAP (live bug on the request/write path, not yet fixed): neither
-# conversion below has a preserve-subtree exception for dicts whose keys are
-# oSPARC variable names (mirrors the read-path fix in node/SPEC.md V24/B18,
-# `functionUtils.ts` `opaqueValueDictKeys`). `max_depth` limits *how deep* to
-# recurse, but does not skip conversion of variable-name keys within that
-# depth. Any irregular-case variable name (e.g. "TissueConduc") gets mangled
-# when it round-trips through `to_snake_case_request` (see json_serializer.py).
-# Planned fix: add a canonical `_PRESERVE_SUBTREE_KEYS`-style parameter here,
-# kept in sync with the frontend's key-set via an equality test (not a shared
-# runtime file). Tracked as node/SPEC.md T13+T19. Do NOT resurrect the
-# `FunctionVariablesDict`/Pydantic-wrapper approach from the closed,
-# superseded PR #469 (JavierGOrdonnez/port-be-preserve-case) - it had its own
-# unresolved bugs (B8/B9) and didn't merge cleanly; extend this simpler
-# Set-based pattern instead.
+# Keys whose *own* nested dict values are oSPARC/user-defined variable
+# identifiers (e.g. "sigma_blood", "TissueConduc"), not API field names - they
+# must survive camel<->snake conversion untouched. Mirrors the frontend's
+# `opaqueValueDictKeys` in node/src/utils/functionUtils.ts; kept in sync via
+# test_utils_helpers.py::test_preserve_nested_keys_matches_frontend_opaque_keys
+# (no shared runtime file - see node/SPEC.md T13/T19).
+# - read path (snake_to_camel, response serializer): "properties", "inputs",
+#   "outputs", "default_inputs" - flaskapi/SPEC.md V13.
+# - write path (camel_to_snake, request parser): "slider_values",
+#   "distributions", "output_var_selection", "project_inputs" - audited from
+#   every outgoing fetch() body in node/ (Curves1DPlot, Surface2DPlot,
+#   IsoSurface3DPlot, MOGAPareto, UncertainUQ, functionUtils.clone_job).
+_DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
+    {
+        "properties",
+        "inputs",
+        "outputs",
+        "default_inputs",
+        "slider_values",
+        "distributions",
+        "output_var_selection",
+        "project_inputs",
+    }
+)
+
+
 def recursive_dict_keys_camel_to_snake(
-    d: dict, max_depth: int = -1, current_depth: int = 0
+    d: dict,
+    max_depth: int = -1,
+    current_depth: int = 0,
+    preserve_nested_keys: frozenset[str] | set[str] = _DEFAULT_PRESERVE_NESTED_KEYS,
 ) -> dict:
     converted = {}
     for k, v in d.items():
+        snake_key = camel_to_snake(k)
+        if snake_key in preserve_nested_keys and isinstance(v, dict):
+            converted[snake_key] = v
+            continue
         if isinstance(v, dict) and (max_depth == -1 or current_depth < max_depth):
-            converted[camel_to_snake(k)] = recursive_dict_keys_camel_to_snake(
-                v, max_depth, current_depth + 1
+            converted[snake_key] = recursive_dict_keys_camel_to_snake(
+                v, max_depth, current_depth + 1, preserve_nested_keys
             )
         elif isinstance(v, list) and (max_depth == -1 or current_depth < max_depth):
-            converted[camel_to_snake(k)] = [
-                recursive_dict_keys_camel_to_snake(i, max_depth, current_depth + 1)
+            converted[snake_key] = [
+                recursive_dict_keys_camel_to_snake(
+                    i, max_depth, current_depth + 1, preserve_nested_keys
+                )
                 if isinstance(i, dict)
                 else i
                 for i in v
             ]
         else:
-            converted[camel_to_snake(k)] = v
+            converted[snake_key] = v
     return converted
 
 
 def recursive_dict_keys_snake_to_camel(
-    d: dict, max_depth: int = -1, current_depth: int = 0
+    d: dict,
+    max_depth: int = -1,
+    current_depth: int = 0,
+    preserve_nested_keys: frozenset[str] | set[str] = _DEFAULT_PRESERVE_NESTED_KEYS,
 ) -> dict:
     converted = {}
     for k, v in d.items():
+        camel_key = snake_to_camel(k)
+        if k in preserve_nested_keys and isinstance(v, dict):
+            converted[camel_key] = v
+            continue
         if isinstance(v, dict) and (max_depth == -1 or current_depth < max_depth):
-            converted[snake_to_camel(k)] = recursive_dict_keys_snake_to_camel(
-                v, max_depth, current_depth + 1
+            converted[camel_key] = recursive_dict_keys_snake_to_camel(
+                v, max_depth, current_depth + 1, preserve_nested_keys
             )
         elif isinstance(v, list) and (max_depth == -1 or current_depth < max_depth):
-            converted[snake_to_camel(k)] = [
-                recursive_dict_keys_snake_to_camel(i, max_depth, current_depth + 1)
+            converted[camel_key] = [
+                recursive_dict_keys_snake_to_camel(
+                    i, max_depth, current_depth + 1, preserve_nested_keys
+                )
                 if isinstance(i, dict)
                 else i
                 for i in v
             ]
         else:
-            converted[snake_to_camel(k)] = v
+            converted[camel_key] = v
     return converted
 
 
