@@ -57,6 +57,7 @@ api: POST `/sumo_along_axes` `{output,inputs[],FunctionJobs[],sliderValues?}` �
 api: POST `/sumo_grid_evaluation` `{output,gridVars[],inputVars[],FunctionJobs[],sliderValues?}` → `{gridData}`
 api: POST `/get_sumo_cv_accuracy_metrics` `{inputs[],output,FunctionJobs[]}` → `{metrics}`
 api: POST `/perform_moga_optimization` `{inputVars[],distributions,outputVarSelection{var:minimize|maximize},FunctionJobs[]}` → `{optimizationResults}`
+api: POST `/compute_correlation_indices` `{output,inputVars[],distributions,numSamples,FunctionJobs[],seed}` → `{correlations:{inputVar:{pearson,spearman}}}` (#470)
 --- env ---
 env: `OSPARC_API_BASE_URL`,`OSPARC_API_KEY`,`OSPARC_API_SECRET` ! set
 env: `SERVICE_MODE`,`PERMISSIONS`,`DEPLOYMENT_MODE` (surfaced by deployment_bp)
@@ -102,7 +103,7 @@ V24: `_anonymize(s, n, m=None)` on non-empty `s` ! expose full string; omitted `
 V25: Dakota endpoints ! call `os.chdir()`; run dirs use explicit paths only, request cwd stays process-global and unchanged
 V26: SuMo cross-validation accuracy response includes a paired t-test (statistic+p-value) on CV actual-vs-predicted residuals, surfacing systematic surrogate bias beyond scalar MAE/RMSE
 V27: SuMo CV accuracy metrics available as a convergence series `{n_samples:metric}` across increasing training-sample-count subsets, ⊥ single-N snapshot only
-V28: correlation-indices endpoint computes per-input↔output Pearson+Spearman coefficients from the existing UQ Monte Carlo sample set (#470); one response covers ∀ input vars (⊥ 3-var limit of 1D/2D/3D plot views)
+V28: `POST /flask/dakota/compute_correlation_indices` generates a Monte Carlo sample set from per-input distributions (same `create_manual_uq_samples()` used by UQ propagation), evaluates it via `evaluate_sumo()`, then `compute_correlation_indices()` (`dakota/funs_data_processing.py`) computes per-input↔output Pearson+Spearman coefficients (`scipy.stats.pearsonr`/`spearmanr`) between each input variable's samples and the predicted QoI values; response `{correlations:{inputVar:{pearson,spearman}}}` covers ∀ requested input vars in one call (⊥ 3-var limit of 1D/2D/3D plot views) (#470)
 
 ## §T
 id|status|task|cites
@@ -124,7 +125,7 @@ T15|x|PORT: inline vendored `mmux_python` → `src/mmux_flaskapi/dakota/` (6 use
 T16|.|[topic=dakota-cleanup] dakota/ code-quality pass: fix known lhsmu/log_output/sanitize_varnames bugs (flagged in #477 review) w/ regression tests; raise dakota/ subpackage test coverage; deliberately do NOT invest in `funs_create_dakota_conf.py` — input-file-generation logic likely superseded by Dakota's new JSON input format (T17)|—
 T17|.|RESEARCH: Dakota 6.24.0 introduced experimental JSON-format input files (`-json` CLI arg, Pydantic schema `python/dakota/spec/`; legacy NIDR parser deprecated but still available via `-parser legacy`) as the likely eventual replacement for `funs_create_dakota_conf.py`'s string-templated NIDR generation; evaluate migration once the JSON schema stabilizes (⊥ NIDR removed yet) — deferred, pairs T16|T16
 T18|.|SuMo validation statistical rigor: (a) paired t-test on CV actual-vs-predicted residuals → surface bias significance (statistic+p-value) alongside MAE/RMSE in `/get_sumo_cv_accuracy_metrics`; (b) convergence analysis: rerun CV metrics at increasing training-sample-count subsets, expose `{n_samples,metric}` series for accuracy-vs-N plotting; tests|V26,V27,../node/SPEC.md T20
-T19|.|correlation/sensitivity indices (#470): new endpoint computing per-input↔output Pearson+Spearman correlation from existing UQ Monte Carlo samples; single-plot multi-param sensitivity view (beyond current 3-param 1D/2D/3D limit); tests|V28,../node/SPEC.md T21
+T19|x|correlation/sensitivity indices (#470): new endpoint `/dakota/compute_correlation_indices` computing per-input↔output Pearson+Spearman correlation from a UQ-style Monte Carlo sample set; single-plot multi-param sensitivity view (beyond current 3-param 1D/2D/3D limit); tests|V28,../node/SPEC.md T21
 
 ## §B
 id|date|cause|fix

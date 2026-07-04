@@ -554,3 +554,58 @@ def get_bounds_uniform_distribution(var: str, dist: dict[str, float]) -> tuple[f
         raise ValueError(f"Invalid bounds for variable '{var}': min >= max.")
 
     return dist["min"], dist["max"]
+
+
+def compute_correlation_indices(
+    input_samples: pd.DataFrame | dict[str, list[float]],
+    output_samples: list[float] | np.ndarray,
+    input_vars: list[str],
+) -> dict[str, dict[str, float]]:
+    """
+    Compute per-input <-> output Pearson and Spearman correlation coefficients.
+
+    Intended to be run on the same Monte Carlo sample set used for UQ propagation
+    (one input sample matrix + the corresponding surrogate-predicted output values),
+    so that the sensitivity of a single QoI to *all* input variables can be
+    inspected in one response (#470).
+
+    Args:
+        input_samples: Per-input-variable Monte Carlo sample values, either as a
+            DataFrame (one column per variable) or a dict mapping variable name to
+            its sample list.
+        output_samples: Sample values of the output QoI, paired index-for-index with
+            each input variable's samples (i.e. same Monte Carlo run).
+        input_vars: Input variable names to compute correlations for.
+
+    Returns:
+        Dict mapping each input variable name to `{"pearson": float, "spearman": float}`.
+
+    Raises:
+        ValueError: If `input_vars` is empty, a variable is missing from
+            `input_samples`, or sample lengths are mismatched.
+    """
+    from scipy.stats import pearsonr, spearmanr  # type: ignore
+
+    if not input_vars:
+        raise ValueError("input_vars cannot be empty")
+
+    if isinstance(input_samples, pd.DataFrame):
+        input_samples = {col: input_samples[col].tolist() for col in input_samples.columns}
+
+    output_array = np.asarray(output_samples, dtype=float)
+
+    correlations: dict[str, dict[str, float]] = {}
+    for var in input_vars:
+        if var not in input_samples:
+            raise ValueError(f"Input variable '{var}' not found in input samples.")
+        input_array = np.asarray(input_samples[var], dtype=float)
+        if len(input_array) != len(output_array):
+            raise ValueError(
+                f"Sample length mismatch for variable '{var}': "
+                f"{len(input_array)} input samples vs {len(output_array)} output samples."
+            )
+        pearson_r, _ = pearsonr(input_array, output_array)
+        spearman_r, _ = spearmanr(input_array, output_array)
+        correlations[var] = {"pearson": float(pearson_r), "spearman": float(spearman_r)}
+
+    return correlations

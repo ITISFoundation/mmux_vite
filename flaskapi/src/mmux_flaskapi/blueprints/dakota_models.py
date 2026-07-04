@@ -988,3 +988,51 @@ class SumoCVAccuracyMetricsResponse(BaseModel):
             elif not isinstance(metrics, CVAccuracyMetrics):
                 raise ValueError(f"Metrics for {var_name} must be CVAccuracyMetrics or string")
         return self
+
+
+class CorrelationIndicesRequest(ManualUQPropagationRequest):
+    """Request model for the correlation-indices endpoint (#470).
+
+    Mirrors `ManualUQPropagationRequest` (same Monte Carlo sample generation from
+    per-input distributions), plus a `seed` for reproducibility, since no
+    uncertainty histogram is required here.
+    """
+
+    seed: int = Field(..., description="Random seed for reproducibility")
+
+
+class CorrelationCoefficients(BaseModel):
+    """Pearson and Spearman correlation coefficients for a single input variable."""
+
+    model_config = ConfigDict(frozen=True)
+
+    pearson: float = Field(..., description="Pearson correlation coefficient")
+    spearman: float = Field(..., description="Spearman rank correlation coefficient")
+
+    @field_validator("pearson", "spearman")
+    @classmethod
+    def validate_finite(cls, v: float) -> float:
+        """Ensure correlation coefficients are finite numbers (⊥ nan/inf)."""
+        if not np.isfinite(v):
+            raise ValueError("Correlation coefficient must be a finite number")
+        return v
+
+
+class CorrelationIndicesResponse(BaseModel):
+    """Response model for the correlation-indices endpoint (#470)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    correlations: dict[str, CorrelationCoefficients] = Field(
+        ..., description="Per-input-variable Pearson/Spearman correlation with the selected QoI"
+    )
+
+    @field_validator("correlations")
+    @classmethod
+    def validate_correlations_not_empty(
+        cls, v: dict[str, CorrelationCoefficients]
+    ) -> dict[str, CorrelationCoefficients]:
+        """Ensure correlations dictionary covers at least one input variable."""
+        if not v:
+            raise ValueError("Correlations dictionary cannot be empty")
+        return v

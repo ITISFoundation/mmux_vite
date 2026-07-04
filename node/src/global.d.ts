@@ -42,6 +42,17 @@ type DataUQHistogramType = {
   max: number;
 };
 
+// #470: per-input <-> output correlation strength ({pearson,spearman} coefficients),
+// one entry per requested input variable, from `/flask/dakota/compute_correlation_indices`.
+type CorrelationCoefficients = {
+  pearson: number;
+  spearman: number;
+};
+
+type CorrelationIndicesResponse = {
+  correlations: { [inputVar: string]: CorrelationCoefficients };
+};
+
 type PlotConfig = {
   dimensionType: "1D" | "2D" | "3D";
   scaleType: "linear" | "log";

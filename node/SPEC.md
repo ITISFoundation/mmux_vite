@@ -43,7 +43,7 @@ ctx: `NavigationContext` (currentView 0/1, steps) | `ServiceContext` (permission
 consumes: GET `/flask/deployment/health` | `/flask/deployment/permissions` | `/flask/deployment/service-mode`
 consumes: GET `/flask/osparc/list_functions` | `/flask/osparc/list_jobs` | `/flask/osparc/list_function_jobs_for_functionid?functionUid=` | `/flask/osparc/list_function_job_collections_for_functionid?functionUid=` | `/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=`
 consumes: POST `/flask/sampling/lhs` {funUid,config[],seed,n} | `/flask/sampling/grid` {funUid,config[]} | `/flask/sampling/test_job` {funUid,config[]} | `/flask/sampling/clone_job` {functionName,projectJobId,projectInputs}
-consumes: POST `/flask/dakota/sumo_along_axes` (Curves1DPlot) | `/flask/dakota/sumo_grid_evaluation` (Surface2D,IsoSurface3D) | `/flask/dakota/sumo_cross_validation` (SuMoValidation) | `/flask/dakota/manual_uq_propagation_with_uncertainty` (UncertainUQ) | `/flask/dakota/perform_moga_optimization` (MOGAPareto)
+consumes: POST `/flask/dakota/sumo_along_axes` (Curves1DPlot) | `/flask/dakota/sumo_grid_evaluation` (Surface2D,IsoSurface3D) | `/flask/dakota/sumo_cross_validation` (SuMoValidation) | `/flask/dakota/manual_uq_propagation_with_uncertainty` (UncertainUQ) | `/flask/dakota/perform_moga_optimization` (MOGAPareto) | `/flask/dakota/compute_correlation_indices` (CorrelationIndicesPlot, #470)
 consumes: POST `/flask/text-file` {filename,content} | GET `/flask/text-file/{filename}`
 consumes: GET `/flask/osparc/download_job_collection_csv?JobCollectionUid=` & POST `/flask/sampling/upload_job_collection_csv` → backend routes IMPLEMENTED on feature/local-functions; resolves old consumes-MISSING via §T5,T6 + ../flaskapi/SPEC.md T6
 --- surface distilled from feature/local-functions (to port) ---
@@ -81,7 +81,7 @@ V22: every MUI `Modal` wrapper carries `aria-labelledby`+`aria-describedby` (scr
 V23: non-OK plot fetch (1D/2D/3D) ! reject the promise (`Promise.reject`/`throw`, ⊥ `return new Error`) so `.catch` runs → `lastFetchedKey` cleared; resolving a returned Error caches the key as success & blocks retry (B16, refines V18)
 V24: `normalizePayloadToCamelCase` ⊥ case-convert keys nested *inside* identifier-keyed value dicts `{properties,defaultInputs,inputs,outputs}` — those keys are oSPARC/user variable names, not API field names; only the dict's own key (e.g. `default_inputs`→`defaultInputs`) converts, contents pass through verbatim (B18, closes T10, pairs ../flaskapi V13)
 V25: `SuMoValidation` view surfaces paired t-test bias-significance banner + convergence curve (metric vs n_samples) alongside existing MAE/RMSE/CV-scatter, sourced from ../flaskapi/SPEC.md V26/V27
-V26: sensitivity/correlation view renders 1 bar/tornado plot of ∀ input-var correlation strengths to the selected QoI in a single view (#470), sourced from ../flaskapi/SPEC.md V28
+V26: `CorrelationIndicesPlot` (rendered in `UQ.tsx` alongside `UncertainUQ`) fetches `POST /flask/dakota/compute_correlation_indices` and renders 1 grouped bar chart (Pearson + Spearman series) with one x-axis category per input variable in `inputVars`, showing correlation strength to the selected QoI for ∀ input vars in a single view (#470), sourced from ../flaskapi/SPEC.md V28
 
 ## §T
 id|status|task|cites
@@ -105,7 +105,7 @@ T17|x|fix B17 (#475): restore `aria-labelledby`/`aria-describedby` on `SuMoModal
 T18|x|add e2e regression coverage for underscore-bearing variable names (e.g. `sigma_blood`) so B18-class bugs would be caught; shared `tests/e2e/mock_osparc/data.py` fixture (`x1..x4`/`y..y4`, underscore-free) backs 3 pixel-snapshot specs (sumo/uq/moga-readonly) so it isn't mutated for this. New `tests/e2e/case-preservation.spec.ts` instead intercepts `list_functions` via `page.route()` with a fabricated underscore-named function and asserts on the UQ-mode `input-var-${name}-distribution-selector` testid (InputVariableDist.tsx) rendering with the literal snake_case name — no new pixel baseline, isolated from the other specs. Verified as a real regression test (fails when V24's fix is reverted, passes when restored)|V24,B18
 T19|.|PORT [topic=be-preserve-case] outgoing-request half of T10: `utils/functionUtils.ts` `camelToSnakeCase`/`toBackendVarNames` to convert FE var names → backend snake_case before building request payloads (mirrors backend nested-key serialization); vitest coverage. own worktree w/ flaskapi T8|V14, ../flaskapi/SPEC.md T8,V13
 T20|.|SuMoValidation view: render paired t-test result (statistic+p-value, bias banner) + convergence curve (metric vs n_samples) alongside existing MAE/RMSE + CV scatter plot; vitest|V25,../flaskapi/SPEC.md T18
-T21|.|sensitivity/correlation-indices view (#470): bar/tornado plot of per-input correlation strength to selected QoI, all params in one view; consumes new backend correlation endpoint|V26,../flaskapi/SPEC.md T19
+T21|x|sensitivity/correlation-indices view (#470): `CorrelationIndicesPlot.tsx` grouped bar/tornado plot of per-input Pearson+Spearman correlation strength to selected QoI, all params in one view; `utils/correlationIndices.ts` (`fetchCorrelationIndices`,`buildCorrelationBarData`) consumes new backend correlation endpoint; wired into `UQ.tsx`; vitest|V26,../flaskapi/SPEC.md T19
 
 ## §B
 id|date|cause|fix

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import UncertainUQ from "../components/plots/UncertainUQ";
+import CorrelationIndicesPlot from "../components/plots/CorrelationIndicesPlot";
 import SuMoModal from "./SuMoModal";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { OutputSetup } from "./OutputSetup";
@@ -26,6 +27,7 @@ export default function UQ() {
     <MetaModelingUX headerType="title" tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}>
       <OutputSetup loading={loading} setSumoModal={setSumoModal} mode="full" />
       <UncertainUQ colsFetched={colsFetched} jobProgress={jobProgress} jobsFetched={jobsFetched} loading={loading} />
+      {!loading && <CorrelationIndicesPlot />}
       <SuMoModal open={sumoModal} setOpen={setSumoModal} />
       <JobSampling
         loading={loading}
