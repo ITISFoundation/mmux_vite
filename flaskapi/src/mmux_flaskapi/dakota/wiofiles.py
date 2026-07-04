@@ -49,7 +49,7 @@ def capture_to_file(stdout="./stdout", stderr="./stderr"):
 
 
 # ======================================================================
-# example
+# example (manual smoke-test script, not part of the public API)
 
 # calls via PyDLL hold the GIL,
 # which blocks when using wurlitzer with pipes
@@ -57,7 +57,7 @@ def capture_to_file(stdout="./stdout", stderr="./stderr"):
 pylibc = ctypes.PyDLL(None)
 
 
-def main():
+def main():  # pragma: no cover
     sz = 64000
     # while sz < 100_000_000:
     while sz < 100_000:

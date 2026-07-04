@@ -219,8 +219,9 @@ def evaluate_sumo_crossvalidation(
     # run dakota
     dakobj = DakotaObject()
     dakobj.run(dakota_conf, run_dir)
-    ## TODO I was parsing from the stdout. How to do it now?
-    log_output = ""
+    # `dakobj.run` writes captured stdout to "dakota_stdout.txt" in run_dir (see DakotaObject.run)
+    stdout_file = run_dir / "dakota_stdout.txt"
+    log_output = stdout_file.read_text() if stdout_file.is_file() else ""
     parsed_error_metrics = _parse_crossvalidation_outputlogs(log_output, N_CROSS_VALIDATION)
 
     return parsed_error_metrics

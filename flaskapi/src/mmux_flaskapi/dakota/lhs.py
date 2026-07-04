@@ -89,7 +89,7 @@ def lhs(
             H = _lhsmaximin(n, k, iter, "centermaximin", seed)
         elif method.lower() in ("correlation", "corr"):
             H = _lhscorrelate(n, k, iter, seed)
-        elif method.lower() in ("lhsmu"):
+        elif method.lower() == "lhsmu":
             H = _lhsmu(n, k, corr_matrix, seed)
 
     return H

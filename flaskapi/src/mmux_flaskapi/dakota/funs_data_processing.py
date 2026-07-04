@@ -447,7 +447,10 @@ def sanitize_varnames(input_data):
     # Helper function for sanitizing a single string
     def _sanitize_single(varname: str) -> str:
         # Replace spaces with underscores and then replace any remaining non-alphanumeric chars (except _*-+/)
-        return re.sub(r"[^0-9a-zA-Z_*-+/]", "_", varname.replace(" ", "_"))
+        # NOTE: "-" is placed last in the character class so it is treated as a literal
+        # hyphen rather than a range operator (e.g. "*-+" previously matched the range
+        # of characters between "*" and "+", silently swallowing literal hyphens).
+        return re.sub(r"[^0-9a-zA-Z_*+/-]", "_", varname.replace(" ", "_"))
 
     # Handle different input types
     if isinstance(input_data, str):
