@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Box, useTheme } from "@mui/material";
+import { Alert, Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
 import { Layout } from "plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
@@ -11,6 +11,13 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
+import {
+  CvConvergencePoint,
+  formatBiasBanner,
+  PairedTTestResult,
+  SumoCvAccuracyMetricsResponse,
+} from "../../utils/sumoCvAccuracy";
 
 function SuMoValidation() {
   const theme = useTheme();
@@ -20,6 +27,9 @@ function SuMoValidation() {
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
   const [propagating, setPropagating] = useState(false);
+  const [tTest, setTTest] = useState<PairedTTestResult>();
+  const [convergence, setConvergence] = useState<CvConvergencePoint[]>([]);
+  const lastFetchedCvAccuracyKey = useRef<string | undefined>(undefined);
   const [width, setWidth] = useState(1080);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -136,6 +146,70 @@ function SuMoValidation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
 
+  // V25 (../flaskapi/SPEC.md V26/V27): paired t-test bias banner + convergence curve,
+  // fetched from the (now populated) `/get_sumo_cv_accuracy_metrics` endpoint alongside
+  // the existing MAE/RMSE + CV scatter above.
+  const RunCvAccuracyMetrics = async (jobs: OsparcFunctionJob[], requestKey: string) => {
+    fetch(`/flask/dakota/get_sumo_cv_accuracy_metrics`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        inputs: inputVars,
+        output: selectedQoI,
+        FunctionJobs: jobs,
+      }),
+    })
+      .then(response => {
+        if (response && !response.ok) {
+          // V18/V23-style: reject (⊥ resolve) so .catch clears lastFetchedCvAccuracyKey
+          // and identical inputs can be retried instead of caching a failed fetch.
+          return Promise.reject(
+            new Error(`SuMo CV accuracy metrics response not ok: ${response.status}, ${response.statusText}`),
+          );
+        }
+        return response.json();
+      })
+      .then((data: SumoCvAccuracyMetricsResponse) => {
+        if (!data || data.error) {
+          return Promise.reject(new Error(`Error fetching SuMo CV accuracy metrics: ${data?.error}`));
+        }
+        setTTest(data.tTest);
+        setConvergence(data.convergence || []);
+        lastFetchedCvAccuracyKey.current = requestKey;
+        return undefined;
+      })
+      .catch(error => {
+        console.warn("Error fetching SuMo CV accuracy metrics:", error);
+        lastFetchedCvAccuracyKey.current = undefined;
+        setTTest(undefined);
+        setConvergence([]);
+      });
+  };
+
+  useEffect(() => {
+    const jobs = filteredJobList;
+    if (!jobs || jobs.length < 5 || !selectedQoI) {
+      lastFetchedCvAccuracyKey.current = undefined;
+      setTTest(undefined);
+      setConvergence([]);
+      return;
+    }
+    // V16-style: dedup by stable logical request key; same key → no new fetch.
+    const requestKey = buildDakotaRequestKey({
+      axes: inputVars,
+      sliderValues: {},
+      qoi: selectedQoI,
+      fn: selectedFunction?.uid,
+      jobList: jobs.map(job => job.uid),
+      logScale: false,
+    });
+    if (requestKey === lastFetchedCvAccuracyKey.current) {
+      return;
+    }
+    RunCvAccuracyMetrics(jobs, requestKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
+
   useEffect(() => {
     const resizeObserver = new ResizeObserver(event => {
       // Depending on the layout, you may need to swap inlineSize with blockSize
@@ -173,6 +247,29 @@ function SuMoValidation() {
     margin: "0 auto", // Center the plot horizontally
     maxWidth: `${width}px`, // Match the width of the statistics box below
   };
+
+  const biasBanner = formatBiasBanner(tTest);
+
+  const convergenceLayout: Partial<Layout> = {
+    plot_bgcolor: `${theme.palette.background.default}`,
+    paper_bgcolor: `${theme.palette.background.default}`,
+    font: { color: `${theme.palette.text.primary}` },
+    title: { text: "CV Accuracy Convergence" },
+    margin: plotMarginsNarrow,
+    width,
+    xaxis: { title: { text: "Training samples (N)" } },
+    yaxis: { title: { text: "RMSE" } },
+  };
+
+  const convergencePlotData: Partial<Plotly.ScatterData>[] = [
+    {
+      x: convergence.map(point => point.nSamples),
+      y: convergence.map(point => point.metric),
+      type: "scatter",
+      mode: "lines+markers",
+      name: "RMSE vs N",
+    },
+  ];
 
   return (
     <Box
@@ -212,6 +309,18 @@ function SuMoValidation() {
         </Box>
       ) : (
         <div />
+      )}
+
+      {biasBanner && (
+        <Box mt={2} mmux-testid="sumo-cv-bias-banner">
+          <Alert severity={biasBanner.significant ? "warning" : "success"}>{biasBanner.text}</Alert>
+        </Box>
+      )}
+
+      {convergence.length > 0 && (
+        <Box mt={4} mmux-testid="sumo-cv-convergence-plot">
+          <Plot data={convergencePlotData} layout={convergenceLayout} style={plotStyle} />
+        </Box>
       )}
     </Box>
   );

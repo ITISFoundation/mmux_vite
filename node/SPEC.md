@@ -87,6 +87,7 @@ V28: job-collection CSV preamble read/write ! reuse the same CSV row parser/esca
 V29: blob-URL download trigger (`triggerCsvDownload`) ! defer `URL.revokeObjectURL` to next tick/timeout after `.click()`, ⊥ revoke synchronously (closes B21)
 V30: native file-picker helpers (`pickSingleCsvFile`) ! settle (resolve or reject) on user cancel via a window-focus fallback + settled-guard, ⊥ rely solely on `input.onchange` (closes B22)
 V31: icon-only action buttons (no visible text, e.g. download/upload/delete icons) ! carry an explicit `aria-label` (tooltip `title` alone ⊥ sufficient a11y label); parity w/ V22 modal-labelling convention (closes B23)
+V32: `SuMoValidation` view fetches `/flask/dakota/get_sumo_cv_accuracy_metrics` (dedup by `buildDakotaRequestKey`, V16/V18/V23-style reject-on-error) and renders an MUI `Alert` bias-significance banner ("Statistically significant bias detected"/"No significant bias detected", paired t-test p-value at threshold 0.05, via `formatBiasBanner`) + a Plotly RMSE-vs-`nSamples` convergence line plot, alongside existing MAE/RMSE/CV-scatter, sourced from ../flaskapi/SPEC.md V26/V27
 
 ## §T
 id|status|task|cites
@@ -122,7 +123,7 @@ T29|.|fix B20: parse+escape job-collection CSV preamble via the existing `parseC
 T30|.|fix B21: defer `URL.revokeObjectURL` in `triggerCsvDownload` to next tick after `link.click()`|V29,B21
 T31|.|fix B22: add cancel/focus-fallback settle path to `pickSingleCsvFile` so dismissing the picker rejects instead of hanging|V30,B22
 T32|.|fix B23: add `aria-label` to `JobSelector`'s download-CSV `IconButton`|V31,B23
-T33|.|SuMoValidation view: render paired t-test result (statistic+p-value, bias banner) + convergence curve (metric vs n_samples) alongside existing MAE/RMSE + CV scatter plot; vitest|../flaskapi/SPEC.md T18,../SPEC.md T22
+T33|x|SuMoValidation view: render paired t-test result (statistic+p-value, bias banner) + convergence curve (metric vs n_samples) alongside existing MAE/RMSE + CV scatter plot; vitest|V32,../flaskapi/SPEC.md T18
 T34|.|GRILLED (2026-07-13): stats modal (pairs ../flaskapi/SPEC.md T24, ../SPEC.md T32) — shared `StatsModal.tsx`/`StatCard.tsx` visual primitive (modal shell + label/value/optional-sparkline card, reusable across modes); (a) SuMo: new "Stats" step appended as 4th step of `SuMoPlotsSteps` (Validation→1D→2D→3D→Stats) showing MAE/RMSE/R² (moved out of `SuMoValidation.tsx`'s inline display, computed client-side from existing CV y/yHat); new "Stats" trigger button added to `OutputSetup` `mode="onlyQoI"` (SuMo view currently renders no button there) at the same slot `mode="full"`/`"moga"` render "Inspect Model"; UQ/MOGA's existing "Inspect Model" button reaches the same Stats step (⊥ modal-in-a-modal); (b) UQ: new "UQ Stats" button in `OutputSetup` `mode="full"`, positioned left of "Inspect Model", opens its OWN modal (reuses shared primitive, ⊥ nested) showing per-QoI `mean,std,p1,p5,q1,median,q3,p95,p99` from extended backend response; epistemic/aleatoric rows rendered as placeholder ("coming soon", no computation) pending a future port from branch `jgo/uq-uncertainty-propagation`; vitest for StatsModal/StatCard + both content variants|V25,../flaskapi/SPEC.md T24
 
 ## §B
