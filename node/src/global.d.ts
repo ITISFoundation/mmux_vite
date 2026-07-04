@@ -53,6 +53,18 @@ type CorrelationIndicesResponse = {
   correlations: { [inputVar: string]: CorrelationCoefficients };
 };
 
+// #470 follow-up: per-input first-order (main effect) and total-order Sobol'
+// sensitivity indices, one entry per requested input variable, from
+// `/flask/dakota/compute_sobol_indices` (Dakota's native variance_based_decomp).
+type SobolIndexPair = {
+  main: number;
+  total: number;
+};
+
+type SobolIndicesResponse = {
+  sobol: { [inputVar: string]: SobolIndexPair };
+};
+
 type PlotConfig = {
   dimensionType: "1D" | "2D" | "3D";
   scaleType: "linear" | "log";

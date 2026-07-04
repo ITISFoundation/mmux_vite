@@ -1036,3 +1036,51 @@ class CorrelationIndicesResponse(BaseModel):
         if not v:
             raise ValueError("Correlations dictionary cannot be empty")
         return v
+
+
+class SobolIndicesRequest(ManualUQPropagationRequest):
+    """Request model for the Sobol'-indices endpoint (#470).
+
+    Mirrors `CorrelationIndicesRequest`'s shape (same Monte Carlo/UQ setup contract:
+    output, inputVars, distributions, numSamples, FunctionJobs), plus a `seed` for
+    reproducibility, since variance-based decomposition is a different downstream
+    computation on the same UQ setup.
+    """
+
+    seed: int = Field(..., description="Random seed for reproducibility")
+
+
+class SobolIndexPair(BaseModel):
+    """First-order (main effect) and total-order Sobol' sensitivity indices for a single input variable."""
+
+    model_config = ConfigDict(frozen=True)
+
+    main: float = Field(..., description="First-order (main effect) Sobol' index")
+    total: float = Field(..., description="Total-order Sobol' index")
+
+    @field_validator("main", "total")
+    @classmethod
+    def validate_finite(cls, v: float) -> float:
+        """Ensure Sobol' indices are finite numbers (⊥ nan/inf)."""
+        if not np.isfinite(v):
+            raise ValueError("Sobol' index must be a finite number")
+        return v
+
+
+class SobolIndicesResponse(BaseModel):
+    """Response model for the Sobol'-indices endpoint (#470)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    sobol: dict[str, SobolIndexPair] = Field(
+        ...,
+        description="Per-input-variable first-order/total-order Sobol' indices for the selected QoI",
+    )
+
+    @field_validator("sobol")
+    @classmethod
+    def validate_sobol_not_empty(cls, v: dict[str, SobolIndexPair]) -> dict[str, SobolIndexPair]:
+        """Ensure sobol dictionary covers at least one input variable."""
+        if not v:
+            raise ValueError("Sobol dictionary cannot be empty")
+        return v

@@ -22,6 +22,8 @@ from mmux_flaskapi.blueprints.dakota_models import (
     ManualUQWithUncertaintyRequest,
     MOGAOptimizationRequest,
     MOGAOptimizationResponse,
+    SobolIndicesRequest,
+    SobolIndicesResponse,
     SumoAlongAxesRequest,
     SumoAlongAxesResponse,
     SumoCrossValidationRequest,
@@ -38,6 +40,7 @@ from mmux_flaskapi.dakota.funs_data_processing import (
     sanitize_varnames,
 )
 from mmux_flaskapi.dakota.funs_evaluate import (
+    evaluate_sobol_indices,
     evaluate_sumo,
     evaluate_sumo_along_axes,
     evaluate_sumo_crossvalidation,
@@ -247,6 +250,31 @@ def _inverse_transform_values(
 
     inverse = preprocessor.inverse_transform({mapped_key: values})
     return inverse.get(original_key, values)
+
+
+def _bounds_from_distributions(
+    input_vars: list[str],
+    distributions: dict,
+) -> tuple[list[float], list[float]]:
+    """Derive Sobol'/VBD sampling bounds per input variable from its distribution (#470).
+
+    Uses explicit min/max when provided (always the case for a "uniform" distribution,
+    enforced by `DistributionParams`); otherwise falls back to mean +/- 3*std for a
+    "normal" distribution (also always present, enforced by `DistributionParams`).
+    variance_based_decomp needs a bounded continuous_design domain, unlike the
+    correlation-indices endpoint which samples directly from the distribution.
+    """
+    lower_bounds: list[float] = []
+    upper_bounds: list[float] = []
+    for var in input_vars:
+        dist = distributions[var]
+        if dist.min is not None and dist.max is not None:
+            lower_bounds.append(dist.min)
+            upper_bounds.append(dist.max)
+        else:
+            lower_bounds.append(dist.mean - 3 * dist.std)
+            upper_bounds.append(dist.mean + 3 * dist.std)
+    return lower_bounds, upper_bounds
 
 
 ########################################################
@@ -588,6 +616,81 @@ def flask_compute_correlation_indices():
         handle_workflow_error(e, "flask_compute_correlation_indices", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_compute_correlation_indices", 500)
+
+
+@dakota_bp.route("/compute_sobol_indices", methods=["POST"])
+def flask_compute_sobol_indices():
+    """
+    Compute per-input first-order (main effect) and total-order Sobol' indices (#470).
+
+    Unlike `/compute_correlation_indices` (valid on any Monte Carlo sample set),
+    proper variance-based Sobol' indices require a dedicated Saltelli-style sampling
+    design (matrices A, B, and per-variable recombinations AB_i). Dakota's native
+    `variance_based_decomp` performs this resampling internally on top of an LHS
+    sampling method run directly against the surrogate model, auto-inflating the
+    requested `numSamples` to `numSamples * (nvars + 2)` surrogate evaluations.
+    """
+    _logger.debug("Starting flask function: flask_compute_sobol_indices")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+
+    validated_request = parse_request_model(SobolIndicesRequest)
+
+    try:
+        output_response = validated_request.output
+        input_vars = validated_request.input_vars
+        distributions = validated_request.distributions
+        num_samples = validated_request.num_samples
+        jobs = validated_request.function_jobs
+        seed = validated_request.seed
+
+        # Create run directory
+        run_dir = create_run_dir(DAKOTA_RUNS_DIR, "sobol_indices")
+
+        # Use DataPreprocessor for standardized data handling
+        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
+            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
+        )
+
+        # Get mapped variable names
+        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
+        mapped_output_var = preprocessor.output_variables[output_response].mapped_name
+
+        # Derive the sampling domain (bounds) for variance_based_decomp from the
+        # provided distributions
+        lower_bounds, upper_bounds = _bounds_from_distributions(input_vars, distributions)
+
+        # Compute Sobol' indices by building a surrogate and sampling it directly
+        # with Dakota's native variance_based_decomp
+        results = evaluate_sobol_indices(
+            run_dir,
+            PROCESSED_TRAINING_FILE,
+            mapped_input_vars,
+            mapped_output_var,
+            num_samples,
+            lower_bounds,
+            upper_bounds,
+            seed=seed,
+        )
+
+        # Map mapped variable names (x1, x2, ...) back to original input variable names
+        mapped_to_original = _mapped_to_original(preprocessor)
+        sobol = {
+            mapped_to_original.get(mapped_var, mapped_var): indices
+            for mapped_var, indices in results.items()
+        }
+
+        response_data = {"sobol": sobol}
+        validated_response = SobolIndicesResponse.model_validate(response_data)
+
+        _logger.debug("Sobol' indices computation completed successfully")
+        return jsonify(validated_response.model_dump())
+
+    except ValidationError as e:
+        handle_workflow_error(e, "flask_compute_sobol_indices", 400)
+    except ValueError as e:
+        handle_workflow_error(e, "flask_compute_sobol_indices", 400)
+    except Exception as e:
+        handle_workflow_error(e, "flask_compute_sobol_indices", 500)
 
 
 @dakota_bp.route("/sumo_along_axes", methods=["POST"])

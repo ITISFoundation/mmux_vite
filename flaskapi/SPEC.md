@@ -58,6 +58,7 @@ api: POST `/sumo_grid_evaluation` `{output,gridVars[],inputVars[],FunctionJobs[]
 api: POST `/get_sumo_cv_accuracy_metrics` `{inputs[],output,FunctionJobs[]}` → `{metrics}`
 api: POST `/perform_moga_optimization` `{inputVars[],distributions,outputVarSelection{var:minimize|maximize},FunctionJobs[]}` → `{optimizationResults}`
 api: POST `/compute_correlation_indices` `{output,inputVars[],distributions,numSamples,FunctionJobs[],seed}` → `{correlations:{inputVar:{pearson,spearman}}}` (#470)
+api: POST `/compute_sobol_indices` `{output,inputVars[],distributions,numSamples,FunctionJobs[],seed}` → `{sobol:{inputVar:{main,total}}}` (#470)
 --- env ---
 env: `OSPARC_API_BASE_URL`,`OSPARC_API_KEY`,`OSPARC_API_SECRET` ! set
 env: `SERVICE_MODE`,`PERMISSIONS`,`DEPLOYMENT_MODE` (surfaced by deployment_bp)
@@ -68,7 +69,7 @@ lib: `lhs(n,k,seed)` → normalized [0,1] sample matrix
 lib: `create_grid_samples()`,`create_manual_uq_samples()`,`create_samples_along_axes()`
 lib: `DakotaObject.run(conf,output_dir)` → subprocess `dakota.environment.study()`
 lib: `create_{sumo_evaluation|sumo_crossvalidation|sumo_manual_crossvalidation|moga_optimization|uq_propagation}_conffile()`
-lib: `evaluate_sumo()`,`evaluate_sumo_along_axes()`,`evaluate_sumo_on_grid()`,`evaluate_sumo_crossvalidation()`,`evaluate_sumo_manual_crossvalidation()`,`perform_moga_optimization()`,`propagate_uq()`
+lib: `evaluate_sumo()`,`evaluate_sumo_along_axes()`,`evaluate_sumo_on_grid()`,`evaluate_sumo_crossvalidation()`,`evaluate_sumo_manual_crossvalidation()`,`perform_moga_optimization()`,`propagate_uq()`,`evaluate_sobol_indices()`,`parse_sobol_indices_output()`,`create_sobol_indices_conffile()`
 --- util surface (distilled from feature/local-functions, to port) ---
 util: `utils/local_job_store.py` → JSON-backed store for synthetic local functions/collections/jobs (no live oSPARC). uid-prefix detect `is_local_function_uid`/`is_local_job_collection_uid`/`is_local_job_uid`; CRUD `create_local_function`/`create_local_job_collection`/`list_local_*`/`get_local_*`/`list_local_jobs_for_collection` (§T7)
 util: `utils/case_preserving.py` → `PreserveCaseTransform`, `FunctionVariablesDict`/`FunctionVariableStr` wrappers, `has_preserve_case_metadata(metadata)` → keep orig variable-name case through serialization (§T8)
@@ -104,6 +105,7 @@ V25: Dakota endpoints ! call `os.chdir()`; run dirs use explicit paths only, req
 V26: SuMo cross-validation accuracy response includes a paired t-test (statistic+p-value) on CV actual-vs-predicted residuals, surfacing systematic surrogate bias beyond scalar MAE/RMSE
 V27: SuMo CV accuracy metrics available as a convergence series `{n_samples:metric}` across increasing training-sample-count subsets, ⊥ single-N snapshot only
 V28: `POST /flask/dakota/compute_correlation_indices` generates a Monte Carlo sample set from per-input distributions (same `create_manual_uq_samples()` used by UQ propagation), evaluates it via `evaluate_sumo()`, then `compute_correlation_indices()` (`dakota/funs_data_processing.py`) computes per-input↔output Pearson+Spearman coefficients (`scipy.stats.pearsonr`/`spearmanr`) between each input variable's samples and the predicted QoI values; response `{correlations:{inputVar:{pearson,spearman}}}` covers ∀ requested input vars in one call (⊥ 3-var limit of 1D/2D/3D plot views) (#470)
+V29: `POST /flask/dakota/compute_sobol_indices` builds a surrogate from completed jobs, then samples it directly via Dakota's native `variance_based_decomp` (added to an LHS `sampling` method block, requires `sample_type lhs`) over a `continuous_design` domain whose bounds are derived from per-input distributions (`_bounds_from_distributions`: explicit min/max, else mean±3·std for normal); Dakota auto-inflates the requested `numSamples` to `numSamples*(nvars+2)` surrogate evaluations (Saltelli resampling) and prints a "Global sensitivity indices for each response function:" table, parsed by `parse_sobol_indices_output()`; response `{sobol:{inputVar:{main,total}}}` gives first-order (main effect) + total-order Sobol' indices ∀ requested input vars in one call; index values ⊥ validated non-negative/bounded (small-N Monte Carlo noise can yield small negative estimates, only `isfinite` enforced) (#470)
 
 ## §T
 id|status|task|cites
@@ -126,6 +128,7 @@ T16|.|[topic=dakota-cleanup] dakota/ code-quality pass: fix known lhsmu/log_outp
 T17|.|RESEARCH: Dakota 6.24.0 introduced experimental JSON-format input files (`-json` CLI arg, Pydantic schema `python/dakota/spec/`; legacy NIDR parser deprecated but still available via `-parser legacy`) as the likely eventual replacement for `funs_create_dakota_conf.py`'s string-templated NIDR generation; evaluate migration once the JSON schema stabilizes (⊥ NIDR removed yet) — deferred, pairs T16|T16
 T18|.|SuMo validation statistical rigor: (a) paired t-test on CV actual-vs-predicted residuals → surface bias significance (statistic+p-value) alongside MAE/RMSE in `/get_sumo_cv_accuracy_metrics`; (b) convergence analysis: rerun CV metrics at increasing training-sample-count subsets, expose `{n_samples,metric}` series for accuracy-vs-N plotting; tests|V26,V27,../node/SPEC.md T20
 T19|x|correlation/sensitivity indices (#470): new endpoint `/dakota/compute_correlation_indices` computing per-input↔output Pearson+Spearman correlation from a UQ-style Monte Carlo sample set; single-plot multi-param sensitivity view (beyond current 3-param 1D/2D/3D limit); tests|V28,../node/SPEC.md T21
+T20|x|Sobol' sensitivity indices (#470): new endpoint `/dakota/compute_sobol_indices` computing per-input first-order (main effect) + total-order Sobol' indices via Dakota's native `variance_based_decomp` on a surrogate model, bounds derived from per-input distributions; tests|V29,../node/SPEC.md T22
 
 ## §B
 id|date|cause|fix

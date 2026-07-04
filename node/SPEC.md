@@ -43,7 +43,7 @@ ctx: `NavigationContext` (currentView 0/1, steps) | `ServiceContext` (permission
 consumes: GET `/flask/deployment/health` | `/flask/deployment/permissions` | `/flask/deployment/service-mode`
 consumes: GET `/flask/osparc/list_functions` | `/flask/osparc/list_jobs` | `/flask/osparc/list_function_jobs_for_functionid?functionUid=` | `/flask/osparc/list_function_job_collections_for_functionid?functionUid=` | `/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=`
 consumes: POST `/flask/sampling/lhs` {funUid,config[],seed,n} | `/flask/sampling/grid` {funUid,config[]} | `/flask/sampling/test_job` {funUid,config[]} | `/flask/sampling/clone_job` {functionName,projectJobId,projectInputs}
-consumes: POST `/flask/dakota/sumo_along_axes` (Curves1DPlot) | `/flask/dakota/sumo_grid_evaluation` (Surface2D,IsoSurface3D) | `/flask/dakota/sumo_cross_validation` (SuMoValidation) | `/flask/dakota/manual_uq_propagation_with_uncertainty` (UncertainUQ) | `/flask/dakota/perform_moga_optimization` (MOGAPareto) | `/flask/dakota/compute_correlation_indices` (CorrelationIndicesPlot, #470)
+consumes: POST `/flask/dakota/sumo_along_axes` (Curves1DPlot) | `/flask/dakota/sumo_grid_evaluation` (Surface2D,IsoSurface3D) | `/flask/dakota/sumo_cross_validation` (SuMoValidation) | `/flask/dakota/manual_uq_propagation_with_uncertainty` (UncertainUQ) | `/flask/dakota/perform_moga_optimization` (MOGAPareto) | `/flask/dakota/compute_correlation_indices` (CorrelationIndicesPlot, #470) | `/flask/dakota/compute_sobol_indices` (SobolIndicesPlot, #470)
 consumes: POST `/flask/text-file` {filename,content} | GET `/flask/text-file/{filename}`
 consumes: GET `/flask/osparc/download_job_collection_csv?JobCollectionUid=` & POST `/flask/sampling/upload_job_collection_csv` → backend routes IMPLEMENTED on feature/local-functions; resolves old consumes-MISSING via §T5,T6 + ../flaskapi/SPEC.md T6
 --- surface distilled from feature/local-functions (to port) ---
@@ -82,6 +82,7 @@ V23: non-OK plot fetch (1D/2D/3D) ! reject the promise (`Promise.reject`/`throw`
 V24: `normalizePayloadToCamelCase` ⊥ case-convert keys nested *inside* identifier-keyed value dicts `{properties,defaultInputs,inputs,outputs}` — those keys are oSPARC/user variable names, not API field names; only the dict's own key (e.g. `default_inputs`→`defaultInputs`) converts, contents pass through verbatim (B18, closes T10, pairs ../flaskapi V13)
 V25: `SuMoValidation` view surfaces paired t-test bias-significance banner + convergence curve (metric vs n_samples) alongside existing MAE/RMSE/CV-scatter, sourced from ../flaskapi/SPEC.md V26/V27
 V26: `CorrelationIndicesPlot` (rendered in `UQ.tsx` alongside `UncertainUQ`) fetches `POST /flask/dakota/compute_correlation_indices` and renders 1 grouped bar chart (Pearson + Spearman series) with one x-axis category per input variable in `inputVars`, showing correlation strength to the selected QoI for ∀ input vars in a single view (#470), sourced from ../flaskapi/SPEC.md V28
+V27: `SobolIndicesPlot` (rendered in `UQ.tsx` alongside `CorrelationIndicesPlot`) fetches `POST /flask/dakota/compute_sobol_indices` and renders 1 grouped bar chart (Main effect + Total effect series) with one x-axis category per input variable in `inputVars`, showing Sobol' variance-based sensitivity to the selected QoI for ∀ input vars in a single view (#470), sourced from ../flaskapi/SPEC.md V29
 
 ## §T
 id|status|task|cites
@@ -106,6 +107,7 @@ T18|x|add e2e regression coverage for underscore-bearing variable names (e.g. `s
 T19|.|PORT [topic=be-preserve-case] outgoing-request half of T10: `utils/functionUtils.ts` `camelToSnakeCase`/`toBackendVarNames` to convert FE var names → backend snake_case before building request payloads (mirrors backend nested-key serialization); vitest coverage. own worktree w/ flaskapi T8|V14, ../flaskapi/SPEC.md T8,V13
 T20|.|SuMoValidation view: render paired t-test result (statistic+p-value, bias banner) + convergence curve (metric vs n_samples) alongside existing MAE/RMSE + CV scatter plot; vitest|V25,../flaskapi/SPEC.md T18
 T21|x|sensitivity/correlation-indices view (#470): `CorrelationIndicesPlot.tsx` grouped bar/tornado plot of per-input Pearson+Spearman correlation strength to selected QoI, all params in one view; `utils/correlationIndices.ts` (`fetchCorrelationIndices`,`buildCorrelationBarData`) consumes new backend correlation endpoint; wired into `UQ.tsx`; vitest|V26,../flaskapi/SPEC.md T19
+T22|x|Sobol' sensitivity indices view (#470): `SobolIndicesPlot.tsx` grouped bar chart of per-input Main+Total Sobol' effect to selected QoI, all params in one view; `utils/sobolIndices.ts` (`fetchSobolIndices`,`buildSobolBarData`) consumes new backend Sobol' endpoint; wired into `UQ.tsx`; vitest|V27,../flaskapi/SPEC.md T20
 
 ## §B
 id|date|cause|fix

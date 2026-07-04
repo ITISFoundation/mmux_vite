@@ -14,6 +14,7 @@ from sklearn.model_selection import KFold
 from mmux_flaskapi.dakota.dakota_object import DakotaObject
 from mmux_flaskapi.dakota.funs_create_dakota_conf import (
     create_moga_optimization_conffile,
+    create_sobol_indices_conffile,
     create_sumo_crossvalidation_conffile,
     create_sumo_evaluation_conffile,
     create_sumo_manual_crossvalidation_conffile,
@@ -444,6 +445,97 @@ def perform_moga_optimization(
         results[inv] = x.tolist()
 
     return results
+
+
+def parse_sobol_indices_output(
+    log_output: str, input_vars: list[str]
+) -> dict[str, dict[str, float]]:
+    """
+    Parse Dakota's "Global sensitivity indices" table produced by `variance_based_decomp`.
+
+    Expected format within `log_output` (captured stdout, see `dakota_object.py`'s
+    `DakotaObject.run()` -> `dakota_stdout.txt`), e.g.:
+
+        Global sensitivity indices for each response function:
+        y Sobol' indices:
+                                          Main             Total
+                              1.2709708306e+00  1.0834803986e+00 x1
+                             -8.9507032675e-03  1.1583617917e-02 x2
+                             -4.0785181539e-03  9.4132349628e-05 x3
+
+    Args:
+        log_output: Captured Dakota stdout text.
+        input_vars: Input variable names to extract indices for.
+
+    Returns:
+        Dict mapping each input variable name to `{"main": float, "total": float}`.
+
+    Raises:
+        ValueError: If `input_vars` is empty, the "Global sensitivity indices" section
+            is missing, or indices for a requested variable are not found.
+    """
+    if not input_vars:
+        raise ValueError("input_vars cannot be empty")
+
+    marker = "Global sensitivity indices for each response function:"
+    marker_idx = log_output.find(marker)
+    if marker_idx == -1:
+        raise ValueError(
+            "Could not find 'Global sensitivity indices' section in Dakota output. "
+            "Ensure variance_based_decomp was enabled for the sampling method."
+        )
+    section = log_output[marker_idx:]
+
+    row_pattern = r"([+-]?\d+\.\d+[eE][+-]?\d+)\s+([+-]?\d+\.\d+[eE][+-]?\d+)\s+(\w+)"
+    rows = re.findall(row_pattern, section)
+
+    parsed: dict[str, dict[str, float]] = {}
+    for main_str, total_str, var_name in rows:
+        if var_name in input_vars:
+            parsed[var_name] = {"main": float(main_str), "total": float(total_str)}
+
+    missing = [var for var in input_vars if var not in parsed]
+    if missing:
+        raise ValueError(
+            f"Could not find Sobol' indices for input variables: {missing} in Dakota output."
+        )
+
+    return parsed
+
+
+def evaluate_sobol_indices(
+    run_dir: Path,
+    PROCESSED_TRAINING_FILE: Path,
+    input_vars: list[str],
+    response_var: str,
+    num_samples: int,
+    lower_bounds: list[float],
+    upper_bounds: list[float],
+    seed: int | None = None,
+) -> dict[str, dict[str, float]]:
+    """
+    Build a surrogate from `PROCESSED_TRAINING_FILE`, then compute Sobol' first-order
+    (main effect) and total-order sensitivity indices via Dakota's native
+    `variance_based_decomp` (#470). Mirrors `evaluate_sumo`'s structure.
+    """
+    input_vars = sanitize_varnames(input_vars)
+    response_var = sanitize_varnames(response_var)
+
+    dakota_conf = create_sobol_indices_conffile(
+        build_file=PROCESSED_TRAINING_FILE,
+        input_variables=input_vars,
+        response=response_var,
+        n_samples=num_samples,
+        lower_bounds=lower_bounds,
+        upper_bounds=upper_bounds,
+        seed=seed,
+    )
+
+    dakobj = DakotaObject()
+    dakobj.run(dakota_conf, run_dir)
+
+    log_output = (run_dir / "dakota_stdout.txt").read_text()
+    return parse_sobol_indices_output(log_output, input_vars)
 
 
 if __name__ == "__main__":

@@ -99,6 +99,7 @@ T20|.|RELEASE-2 collaborator preview v1.6.0: prereq T18+T19+CI green on develop;
 T21|x|REMOVE vendored `mmux_python` dep: inlined 6 used modules (`lhs`,`dakota_object`,`funs_create_dakota_conf`,`funs_data_processing`,`funs_evaluate`,`wiofiles`; dropped 3 unused: `dakota_object_map`,`funs_git`,`funs_plotting`) into `flaskapi/src/mmux_flaskapi/dakota/`; rewired blueprint imports + test mocks; removed `mmux-python` workspace dep + 6 dead transitive deps (gitpython,httpx,ipykernel,matplotlib,seaborn,tqdm) + `[tool.uv.workspace]`/`[tool.uv.sources]`/coverage-omit from `flaskapi/pyproject.toml`; stripped `setup-mmux-python`/`get-access-write-on-mmux-python` Makefile targets + `MMUX_PYTHON_TAG` pin + gitignore entries; `rm -rf flaskapi/mmux_python/`; eliminates the T1 drift class entirely (no more separate versioned dep to go stale)|V5,flaskapi/SPEC.md T15
 T22|.|SuMo validation statistical rigor: paired t-test (prediction bias) + convergence analysis (accuracy vs sample size) in cross-validation flow|flaskapi/SPEC.md T18,node/SPEC.md T20
 T23|.|sensitivity/correlation indices from UQ Monte Carlo samples, single multi-param view (#470, beyond 3-param 1D/2D/3D limit)|flaskapi/SPEC.md T19,node/SPEC.md T21
+T24|.|Sobol' first-order + total-order sensitivity indices via Dakota's native `variance_based_decomp` on a surrogate model, single multi-param view (#470 follow-up)|flaskapi/SPEC.md T20,node/SPEC.md T22
 
 ## §B
 id|date|cause|fix

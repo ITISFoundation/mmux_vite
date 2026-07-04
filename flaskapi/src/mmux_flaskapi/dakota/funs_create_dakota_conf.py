@@ -220,6 +220,7 @@ def add_sampling_method(
     seed: int = 1234,
     refinement: bool = False,
     refinement_samples: int | None = None,
+    variance_based_decomp: bool = False,
 ) -> str:
     conf = f"""
         method
@@ -229,8 +230,12 @@ def add_sampling_method(
             sampling
                 samples = {num_samples}
                 {f"seed = {seed}" if seed is not None else ""}
+                {"variance_based_decomp" if variance_based_decomp else ""}
             {f'model_pointer = "{model_pointer}"' if model_pointer is not None else ""}
         """
+
+    if variance_based_decomp:
+        assert sampling_method == "lhs", "variance_based_decomp only available for LHS sampling"
 
     if refinement:
         assert sampling_method == "lhs", "Refinement only available for LHS"
@@ -456,6 +461,43 @@ def create_uq_propagation_conffile(
                 std_deviations {" ".join([str(input_stds[var]) for var in input_variables])}
         """
     dakota_conf += add_responses(output_responses)
+
+    if dakota_conf_file:
+        write_to_file(dakota_conf, dakota_conf_file)
+
+    return dakota_conf
+
+
+def create_sobol_indices_conffile(
+    build_file: Path,
+    input_variables: list[str],
+    response: str,
+    n_samples: int,
+    lower_bounds: list[float],
+    upper_bounds: list[float],
+    seed: int | None = None,
+    dakota_conf_file: str | Path | None = None,
+) -> str:
+    """Build a surrogate from `build_file`, then compute Sobol' first-order (main
+    effect) and total-order sensitivity indices via Dakota's native
+    `variance_based_decomp` on top of an LHS sampling method (#470).
+
+    Dakota's `variance_based_decomp` performs a Saltelli-style resampling scheme
+    internally, auto-inflating `n_samples` to `n_samples * (nvars + 2)` surrogate
+    evaluations to build the A, B and per-variable AB_i matrices.
+    """
+    dakota_conf = start_dakota_file()
+    dakota_conf += add_surrogate_model(training_samples_file=str(build_file.resolve()))
+    sampling_kwargs = {"num_samples": n_samples, "variance_based_decomp": True}
+    if seed is not None:
+        sampling_kwargs["seed"] = seed
+    dakota_conf += add_sampling_method(**sampling_kwargs)
+    dakota_conf += add_continuous_variables(
+        variables=input_variables,
+        lower_bounds=lower_bounds,
+        upper_bounds=upper_bounds,
+    )
+    dakota_conf += add_responses([response])
 
     if dakota_conf_file:
         write_to_file(dakota_conf, dakota_conf_file)
