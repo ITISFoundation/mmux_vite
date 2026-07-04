@@ -80,6 +80,8 @@ V21: `npm run build:e2e` regenerates `osparc-api-ts-client/` via `npm run genera
 V22: every MUI `Modal` wrapper carries `aria-labelledby`+`aria-describedby` (screen-reader semantics; parity w/ Footer/PerformanceModal/MOGAModal/MOGAPlotModal/AddOutputModal); ⊥ drop on refactor (B17)
 V23: non-OK plot fetch (1D/2D/3D) ! reject the promise (`Promise.reject`/`throw`, ⊥ `return new Error`) so `.catch` runs → `lastFetchedKey` cleared; resolving a returned Error caches the key as success & blocks retry (B16, refines V18)
 V24: `normalizePayloadToCamelCase` ⊥ case-convert keys nested *inside* identifier-keyed value dicts `{properties,defaultInputs,inputs,outputs}` — those keys are oSPARC/user variable names, not API field names; only the dict's own key (e.g. `default_inputs`→`defaultInputs`) converts, contents pass through verbatim (B18, closes T10, pairs ../flaskapi V13)
+V25: `SuMoValidation` view surfaces paired t-test bias-significance banner + convergence curve (metric vs n_samples) alongside existing MAE/RMSE/CV-scatter, sourced from ../flaskapi/SPEC.md V26/V27
+V26: sensitivity/correlation view renders 1 bar/tornado plot of ∀ input-var correlation strengths to the selected QoI in a single view (#470), sourced from ../flaskapi/SPEC.md V28
 
 ## §T
 id|status|task|cites
@@ -102,6 +104,8 @@ T16|x|fix B16 (#475): `Surface2DPlot` `return new Error` on non-OK resolved the 
 T17|x|fix B17 (#475): restore `aria-labelledby`/`aria-describedby` on `SuMoModal`'s `Modal` (dropped on the inspect-model fix), matching the other codebase modals|V22,B17
 T18|x|add e2e regression coverage for underscore-bearing variable names (e.g. `sigma_blood`) so B18-class bugs would be caught; shared `tests/e2e/mock_osparc/data.py` fixture (`x1..x4`/`y..y4`, underscore-free) backs 3 pixel-snapshot specs (sumo/uq/moga-readonly) so it isn't mutated for this. New `tests/e2e/case-preservation.spec.ts` instead intercepts `list_functions` via `page.route()` with a fabricated underscore-named function and asserts on the UQ-mode `input-var-${name}-distribution-selector` testid (InputVariableDist.tsx) rendering with the literal snake_case name — no new pixel baseline, isolated from the other specs. Verified as a real regression test (fails when V24's fix is reverted, passes when restored)|V24,B18
 T19|.|PORT [topic=be-preserve-case] outgoing-request half of T10: `utils/functionUtils.ts` `camelToSnakeCase`/`toBackendVarNames` to convert FE var names → backend snake_case before building request payloads (mirrors backend nested-key serialization); vitest coverage. own worktree w/ flaskapi T8|V14, ../flaskapi/SPEC.md T8,V13
+T20|.|SuMoValidation view: render paired t-test result (statistic+p-value, bias banner) + convergence curve (metric vs n_samples) alongside existing MAE/RMSE + CV scatter plot; vitest|V25,../flaskapi/SPEC.md T18
+T21|.|sensitivity/correlation-indices view (#470): bar/tornado plot of per-input correlation strength to selected QoI, all params in one view; consumes new backend correlation endpoint|V26,../flaskapi/SPEC.md T19
 
 ## §B
 id|date|cause|fix
