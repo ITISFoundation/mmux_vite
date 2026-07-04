@@ -123,13 +123,13 @@ export async function downloadJobCollectionCsv(jobCollectionUid: string): Promis
   return response.text();
 }
 
-export async function uploadJobCollectionCsv(params: {
-  csvContent: string;
-  targetMode: "existing" | "new";
-  targetFunctionUid?: string;
-  newFunctionTitle?: string;
-  sourceFunctionUid?: string;
-}) {
+export interface UploadJobCollectionCsvResponse {
+  targetFunctionUid: string;
+  importedSamples: number;
+  jobCollection: RegisteredFunctionJobCollection;
+}
+
+export async function uploadJobCollectionCsv(params: { csvContent: string }): Promise<UploadJobCollectionCsvResponse> {
   const response = await fetch(`/flask/sampling/upload_job_collection_csv`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -141,7 +141,7 @@ export async function uploadJobCollectionCsv(params: {
     throw new Error(errorData.error || "Failed to upload JobCollection CSV");
   }
 
-  return response.json();
+  return normalizePayloadToCamelCase<UploadJobCollectionCsvResponse>(await response.json());
 }
 
 export function getSimplifiedHost(): string {

@@ -5,6 +5,7 @@ import { fetchWithRetry } from "./fetchRetry";
 import {
   createInputOutputSchema,
   createJobStudyCopy,
+  downloadJobCollectionCsv,
   getFunctionJobCollections,
   getFunctionJobsFromFunctionJobCollection,
   getFunctionJobsFromFunctionUid,
@@ -13,6 +14,7 @@ import {
   getServiceMode,
   listFunctions,
   listJobs,
+  uploadJobCollectionCsv,
 } from "./functionUtils";
 
 const mockJobs: OsparcFunctionJob[] = [
@@ -200,6 +202,55 @@ describe("Function Utils", () => {
   it("should get function jobs from a job collection", async () => {
     const jobs = await getFunctionJobsFromFunctionJobCollection("collection1");
     expect(jobs).toEqual(sampleJobs);
+  });
+
+  it("should download a job-collection CSV as text (§T6)", async () => {
+    const csvContent = "# source_function_uid,func1\nsource_job_uid,status,input__x1,output__y\njob-1,SUCCESS,1.0,10.0\n";
+    vi.mocked(fetchWithRetry).mockResolvedValueOnce({
+      text: () => Promise.resolve(csvContent),
+    } as Response);
+
+    const result = await downloadJobCollectionCsv("collection1");
+    expect(result).toBe(csvContent);
+  });
+
+  it("should upload a job-collection CSV and normalize the response to camelCase (§T6)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              target_function_uid: "func-new",
+              imported_samples: 3,
+              job_collection: { uid: "jc-new" },
+            }),
+        }),
+      ),
+    );
+
+    const result = await uploadJobCollectionCsv({ csvContent: "csv-body" });
+    expect(result).toEqual({
+      targetFunctionUid: "func-new",
+      importedSamples: 3,
+      jobCollection: { uid: "jc-new" },
+    });
+  });
+
+  it("should throw with the server error message when upload fails (§T6)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          statusText: "Bad Request",
+          json: () => Promise.resolve({ error: "Incompatible function schema" }),
+        }),
+      ),
+    );
+
+    await expect(uploadJobCollectionCsv({ csvContent: "csv-body" })).rejects.toThrow("Incompatible function schema");
   });
 
   it("preserves snake_case variable identifiers in schema properties/defaultInputs (B18, V24)", async () => {
