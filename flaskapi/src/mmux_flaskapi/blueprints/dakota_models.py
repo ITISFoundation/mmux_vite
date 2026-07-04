@@ -945,11 +945,37 @@ class CVAccuracyMetrics(BaseModel):
         raise ValueError(f"Metric value must be a number, 'nan', or None, got {type(v)}")
 
 
+class PairedTTestResult(BaseModel):
+    """Paired t-test (`scipy.stats.ttest_rel`) on CV actual-vs-predicted residuals.
+
+    Tests H0: mean(actual - predicted) == 0. A low `p_value` (e.g. < 0.05) surfaces
+    systematic surrogate bias beyond what scalar MAE/RMSE reveal (V26).
+    """
+
+    statistic: float = Field(..., description="t-statistic of the paired t-test")
+    p_value: float = Field(..., description="Two-sided p-value of the paired t-test")
+
+
+class CVConvergencePoint(BaseModel):
+    """One point of the CV accuracy convergence series (training-sample-count -> RMSE)."""
+
+    n_samples: int = Field(..., ge=1, description="Training-sample-count subset size")
+    metric: float = Field(..., description="Root-mean-squared CV error at this subset size")
+
+
 class SumoCVAccuracyMetricsResponse(BaseModel):
     """Response model for SUMO cross-validation accuracy metrics."""
 
     metrics: dict[str, CVAccuracyMetrics | str] = Field(
         ..., description="Dictionary mapping output variable names to their accuracy metrics"
+    )
+    t_test: PairedTTestResult | None = Field(
+        None,
+        description="Paired t-test on CV actual-vs-predicted residuals (bias significance, V26)",
+    )
+    convergence: list[CVConvergencePoint] = Field(
+        default_factory=list,
+        description="CV accuracy metric vs training-sample-count subset size series (V27)",
     )
 
     @field_validator("metrics")

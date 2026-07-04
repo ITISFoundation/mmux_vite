@@ -17,11 +17,13 @@ from mmux_flaskapi.blueprints.dakota_models import (
     CorrelationIndicesRequest,
     CorrelationIndicesResponse,
     CVAccuracyMetrics,
+    CVConvergencePoint,
     FunctionJob,
     JobVariableSelection,
     ManualUQWithUncertaintyRequest,
     MOGAOptimizationRequest,
     MOGAOptimizationResponse,
+    PairedTTestResult,
     SobolIndicesRequest,
     SobolIndicesResponse,
     SumoAlongAxesRequest,
@@ -40,10 +42,12 @@ from mmux_flaskapi.dakota.funs_data_processing import (
     sanitize_varnames,
 )
 from mmux_flaskapi.dakota.funs_evaluate import (
+    compute_cv_accuracy_metrics,
+    compute_cv_convergence,
+    compute_paired_ttest,
     evaluate_sobol_indices,
     evaluate_sumo,
     evaluate_sumo_along_axes,
-    evaluate_sumo_crossvalidation,
     evaluate_sumo_manual_crossvalidation,
     evaluate_sumo_on_grid,
     perform_moga_optimization,
@@ -894,7 +898,9 @@ def flask_get_sumo_cv_accuracy_metrics():
     Get SUMO cross-validation accuracy metrics for model evaluation.
 
     Uses Pydantic validation to ensure robust input validation and consistent error handling.
-    Returns cross-validation accuracy metrics including RMSE, MAE, and other error statistics.
+    Returns cross-validation accuracy metrics (RMSE, MAE, and other error statistics), a paired
+    t-test on the CV actual-vs-predicted residuals (bias significance, V26), and a convergence
+    series of the accuracy metric across increasing training-sample-count subsets (V27).
     """
     _logger.debug("Starting flask function: flask_get_sumo_cv_accuracy_metrics")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -919,34 +925,35 @@ def flask_get_sumo_cv_accuracy_metrics():
             columns_to_keep=input_vars + [output_response],
         )
 
-        # Evaluate SUMO cross-validation
-        results = evaluate_sumo_crossvalidation(
+        # Run the manual (per-fold) CV evaluation once to get real actual/predicted pairs.
+        # NB: this replaces the previous `evaluate_sumo_crossvalidation` (Dakota stdout-log
+        # parsing) path, which always produced empty results because Dakota's CV log was
+        # never captured (see backprop B11) - metrics below are derived directly from the
+        # same actual/predicted arrays `/sumo_cross_validation` already computes.
+        cv_results = evaluate_sumo_manual_crossvalidation(
+            run_dir,
+            PROCESSED_TRAINING_FILE,
+            input_vars,
+            output_response,
+        )
+        actual = cv_results[output_response]
+        predicted = cv_results[output_response + "_hat"]
+
+        accuracy_metrics = compute_cv_accuracy_metrics(actual, predicted)
+        t_test = compute_paired_ttest(actual, predicted)
+        convergence = compute_cv_convergence(
             run_dir,
             PROCESSED_TRAINING_FILE,
             input_vars,
             output_response,
         )
 
-        _logger.debug(f"Raw CV results: {results}")
-
-        # Handle case where Dakota returns empty results
-        if not results:
-            # Return a default response indicating no metrics were found
-            results = {output_response: "No surrogate quality metrics found."}
-
-        # Transform results to match expected response format
-        response_metrics = {}
-        for var_name, metrics in results.items():
-            if isinstance(metrics, dict):
-                # Convert metrics dict to CVAccuracyMetrics model
-                cv_metrics = CVAccuracyMetrics(**metrics)
-                response_metrics[var_name] = cv_metrics
-            else:
-                # Handle string responses like "No surrogate quality metrics found."
-                response_metrics[var_name] = metrics
-
         # Validate and structure response
-        response_data = {"metrics": response_metrics}
+        response_data = {
+            "metrics": {output_response: CVAccuracyMetrics(**accuracy_metrics)},
+            "t_test": PairedTTestResult(**t_test),
+            "convergence": [CVConvergencePoint(**point) for point in convergence],
+        }
         validated_response = SumoCVAccuracyMetricsResponse.model_validate(response_data)
 
         _logger.debug("SUMO CV accuracy metrics completed successfully")
