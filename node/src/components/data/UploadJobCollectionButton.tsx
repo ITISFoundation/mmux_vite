@@ -17,6 +17,7 @@ import {
   type SxProps,
   type Theme,
 } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
 import { toast } from "react-toastify";
 import { uploadJobCollectionCsv } from "../../utils/functionUtils";
 import { parseJobCollectionCsv, pickSingleCsvFile, type ParsedJobCollectionCsv } from "../../utils/jobCollectionCsv";
@@ -44,9 +45,11 @@ type PendingUpload = {
   analysis: ParsedJobCollectionCsv;
 };
 
-function toSxArray(sx: SxProps<Theme> | undefined): readonly SxProps<Theme>[] {
+type SxArrayItem = boolean | SystemStyleObject<Theme> | ((theme: Theme) => SystemStyleObject<Theme>);
+
+function toSxArray(sx: SxProps<Theme> | undefined): SxArrayItem[] {
   if (!sx) return [];
-  return Array.isArray(sx) ? sx : [sx];
+  return Array.isArray(sx) ? [...sx] : [sx as SxArrayItem];
 }
 
 export default function UploadJobCollectionButton(props: UploadJobCollectionButtonProps) {

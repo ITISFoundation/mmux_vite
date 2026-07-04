@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
@@ -19,7 +19,7 @@ type GPPrediction = {
 
 function Curves1DPlots() {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
@@ -45,6 +45,22 @@ function Curves1DPlots() {
   const plotColor = "rgb(127, 199, 255)";
   const fillColor = "rgba(127, 199, 255, 0.3)";
   const lastFetchedKey = useRef<string | undefined>(undefined);
+
+  // Per-variable log-scale flags (§V12): input flags come from the distribution config,
+  // the output flag from the per-function outputLogScales map (only meaningful for the
+  // currently selected QoI).
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = Boolean(distribution[selectedFunction?.uid || ""]?.[key]?.logScale);
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
 
   const createPlotData = (data: Record<string, GPPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
@@ -111,6 +127,8 @@ function Curves1DPlots() {
         sliderValues: otherAxis,
         FunctionJobs: jobs,
         log: false,
+        inputLogScales,
+        outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
       }),
     })
       .then(response => {
@@ -152,7 +170,7 @@ function Curves1DPlots() {
         qoi: selectedQoI,
         fn: selectedFunction?.uid,
         jobList: jobs.map(job => job.uid),
-        logScale: false,
+        logScales: selectedQoI ? { ...inputLogScales, [selectedQoI]: outputLogScaleForQoi } : inputLogScales,
       });
       if (requestKey === lastFetchedKey.current) {
         return undefined;
@@ -183,10 +201,12 @@ function Curves1DPlots() {
     },
     xaxis: {
       title: { text: axis }, // FIXME axis is only showing for the first parameter in the list
+      type: inputLogScales[axis] ? "log" : undefined,
     },
     yaxis: {
       title: { text: selectedQoI },
       anchor: "x",
+      type: outputLogScaleForQoi ? "log" : undefined,
     },
     showlegend: true,
   };

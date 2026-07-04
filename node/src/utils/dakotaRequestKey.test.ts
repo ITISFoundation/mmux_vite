@@ -7,7 +7,7 @@ const base: DakotaRequestKeyInput = {
   qoi: "out",
   fn: "fn-uid",
   jobList: ["job-a", "job-b"],
-  logScale: false,
+  logScales: { x: false, y: false, out: false },
 };
 
 describe("buildDakotaRequestKey (V16 dedup)", () => {
@@ -20,7 +20,7 @@ describe("buildDakotaRequestKey (V16 dedup)", () => {
       qoi: "out",
       fn: "fn-uid",
       jobList: ["job-b", "job-a"],
-      logScale: false,
+      logScales: { y: false, x: false, out: false },
     });
     expect(key2).toBe(key1);
   });
@@ -41,8 +41,8 @@ describe("buildDakotaRequestKey (V16 dedup)", () => {
     expect(buildDakotaRequestKey({ ...base, jobList: ["job-a"] })).not.toBe(buildDakotaRequestKey(base));
   });
 
-  it("changes the key when the log-scale flag changes", () => {
-    expect(buildDakotaRequestKey({ ...base, logScale: true })).not.toBe(buildDakotaRequestKey(base));
+  it("changes the key when a log-scale flag changes", () => {
+    expect(buildDakotaRequestKey({ ...base, logScales: { ...base.logScales, x: true } })).not.toBe(buildDakotaRequestKey(base));
   });
 
   it("treats axes as positional (order matters)", () => {

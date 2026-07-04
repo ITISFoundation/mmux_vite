@@ -14,6 +14,8 @@ export interface FunctionContextType {
   setDistribution: (d: { [key: string]: InputVarSelection }) => void;
   outputTargets: { [key: string]: OutputVarSelection };
   setOutputTargets: (d: { [key: string]: OutputVarSelection }) => void;
+  outputLogScales: { [key: string]: { [varName: string]: boolean } };
+  setOutputLogScales: (d: { [key: string]: { [varName: string]: boolean } }) => void;
 }
 
 export const FunctionContext = createContext<FunctionContextType>(undefined!);
@@ -31,6 +33,7 @@ export function FunctionContextProvider({ children }: Props) {
     outputVars: iov,
     distribution: id,
     outputTargets: od,
+    outputLogScales: ols,
   } = functionValues as Partial<PersistenceType>;
   const [selectedFunction, setSelectedFunction] = useState<RegisteredFunction | undefined>(isf);
   const [distribution, setDistribution] = useState<{
@@ -41,6 +44,9 @@ export function FunctionContextProvider({ children }: Props) {
   const [outputTargets, setOutputTargets] = useState<{
     [key: string]: OutputVarSelection;
   }>(od || {});
+  const [outputLogScales, setOutputLogScales] = useState<{
+    [key: string]: { [varName: string]: boolean };
+  }>(ols || {});
 
   useEffect(() => {
     if (loading === false) {
@@ -50,9 +56,10 @@ export function FunctionContextProvider({ children }: Props) {
         outputVars,
         distribution,
         outputTargets,
+        outputLogScales,
       });
     }
-  }, [selectedFunction, inputVars, outputVars, distribution, outputTargets]);
+  }, [selectedFunction, inputVars, outputVars, distribution, outputTargets, outputLogScales]);
 
   const memo = React.useMemo(
     () => ({
@@ -66,6 +73,8 @@ export function FunctionContextProvider({ children }: Props) {
       setDistribution,
       outputTargets,
       setOutputTargets,
+      outputLogScales,
+      setOutputLogScales,
     }),
     [
       selectedFunction,
@@ -78,6 +87,8 @@ export function FunctionContextProvider({ children }: Props) {
       setDistribution,
       outputTargets,
       setOutputTargets,
+      outputLogScales,
+      setOutputLogScales,
     ],
   );
 

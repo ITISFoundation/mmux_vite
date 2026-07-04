@@ -142,8 +142,9 @@ interface VarSelection {
   max?: number;
   location?: number;
   scale?: number;
-  // Per-variable log-scale tag inferred/set alongside the distribution (V13);
-  // end-to-end plot/request wiring lands separately (§T8/T9, V12).
+  // Per-variable log-scale sampling/training toggle (SUMO/MOGA uniform inputs only).
+  // Flows FunctionContext -> request payload -> backend Dakota preprocessing, which
+  // samples/trains in log space and inverse-transforms on response. See §V12, §T8.
   logScale?: boolean;
 }
 

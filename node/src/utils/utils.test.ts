@@ -175,6 +175,10 @@ describe("stepValidator", () => {
       setOutputTargets(_d: { [key: string]: OutputVarSelection }): void {
         throw new Error("Function not implemented.");
       },
+      outputLogScales: {},
+      setOutputLogScales: (_d: { [key: string]: { [varName: string]: boolean } }): void => {
+        throw new Error("Function not implemented.");
+      },
     };
 
     const jobContext: JobContextType = {

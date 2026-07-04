@@ -1,5 +1,5 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
@@ -13,7 +13,7 @@ import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 
 function Surface2DPlot() {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
@@ -33,6 +33,22 @@ function Surface2DPlot() {
       return acc;
     }, {}),
   );
+
+  // Per-variable log-scale flags (§V12): input flags come from the distribution config,
+  // the output flag from the per-function outputLogScales map (only meaningful for the
+  // currently selected QoI).
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = Boolean(distribution[selectedFunction?.uid || ""]?.[key]?.logScale);
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
 
   const handleSetAxis1 = (newAxis: string) => {
     if (axis2 === newAxis) {
@@ -94,6 +110,8 @@ function Surface2DPlot() {
           sliderValues: otherAxis,
           FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
           log: false, // FIXME not used atm
+          inputLogScales,
+          outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
         }),
       })
         .then(response => {
@@ -121,7 +139,7 @@ function Surface2DPlot() {
           setPlotData([]);
         });
     },
-    [inputVars, selectedQoI, otherAxis, reshapePlotData],
+    [inputVars, selectedQoI, otherAxis, reshapePlotData, inputLogScales, outputLogScaleForQoi],
   );
 
   useEffect(() => {
@@ -134,7 +152,7 @@ function Surface2DPlot() {
         qoi: selectedQoI,
         fn: selectedFunction?.uid,
         jobList: jobs.map(job => job.uid),
-        logScale: false,
+        logScales: selectedQoI ? { ...inputLogScales, [selectedQoI]: outputLogScaleForQoi } : inputLogScales,
       });
       if (requestKey === lastFetchedKey.current) {
         return undefined;
@@ -142,16 +160,27 @@ function Surface2DPlot() {
       return RunSuMo2DInterpolation(jobs, axis1, axis2, requestKey);
     };
     run();
-  }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList, RunSuMo2DInterpolation]);
+  }, [
+    axis1,
+    axis2,
+    inputVars,
+    selectedQoI,
+    selectedFunction,
+    otherAxis,
+    filteredJobList,
+    RunSuMo2DInterpolation,
+    inputLogScales,
+    outputLogScaleForQoi,
+  ]);
 
   const layout: Partial<Layout> = {
     title: {
       text: `${selectedQoI} Surface 2D Plot`,
     },
     scene: {
-      xaxis: { title: { text: axis1 } },
-      yaxis: { title: { text: axis2 } },
-      zaxis: { title: { text: selectedQoI } },
+      xaxis: { title: { text: axis1 }, type: inputLogScales[axis1] ? "log" : undefined },
+      yaxis: { title: { text: axis2 }, type: inputLogScales[axis2] ? "log" : undefined },
+      zaxis: { title: { text: selectedQoI }, type: outputLogScaleForQoi ? "log" : undefined },
     },
     autosize: true,
     plot_bgcolor: `${theme.palette.background.default}`,
