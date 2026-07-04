@@ -44,7 +44,7 @@ export function stepValidator(
       }
       if (dist.distribution === "log-normal") {
         return (
-          dist.location !== undefined && !Number.isNaN(dist.location) && dist.scale !== undefined && !Number.isNaN(dist.scale)
+          dist.logMean !== undefined && !Number.isNaN(dist.logMean) && dist.logStd !== undefined && !Number.isNaN(dist.logStd)
         );
       }
       if (dist.distribution === "exponential") {

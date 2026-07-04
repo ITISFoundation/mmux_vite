@@ -17,12 +17,12 @@ export function getSamplingStartValue(inputVar: string, distribution: InputVarSe
     return distribution[inputVar].min;
   }
   if (distribution[inputVar].distribution === "log-normal") {
-    if (distribution && distribution[inputVar].location !== undefined && distribution[inputVar].scale !== undefined) {
-      // FIXME will log-normal be defined in terms of log-location, or location?
-      // For log-normal, lower limit is often exp(location - 2.5 * scale)
-      return Math.exp(distribution[inputVar].location - 2.5 * distribution[inputVar].scale);
+    if (distribution && distribution[inputVar].logMean !== undefined && distribution[inputVar].logStd !== undefined) {
+      // logMean/logStd are the mu/sigma of the underlying Normal in log-space
+      // (numpy.random.lognormal(mean, sigma) convention). Lower limit is exp(logMean - 2.5 * logStd).
+      return Math.exp(distribution[inputVar].logMean - 2.5 * distribution[inputVar].logStd);
     }
-    console.warn("Location or scale is undefined for", inputVar, ":", distribution[inputVar]);
+    console.warn("logMean or logStd is undefined for", inputVar, ":", distribution[inputVar]);
     return "Error. Please contact support";
   }
   if (distribution[inputVar].distribution === "exponential") {
@@ -53,11 +53,12 @@ export function getSamplingEndValue(inputVar: string, distribution: InputVarSele
     return distribution[inputVar].max;
   }
   if (distribution[inputVar].distribution === "log-normal") {
-    if (distribution && distribution[inputVar].location !== undefined && distribution[inputVar].scale !== undefined) {
-      // For log-normal, upper limit is often exp(location + 2.5 * scale)
-      return Math.exp(distribution[inputVar].location + 2.5 * distribution[inputVar].scale);
+    if (distribution && distribution[inputVar].logMean !== undefined && distribution[inputVar].logStd !== undefined) {
+      // logMean/logStd are the mu/sigma of the underlying Normal in log-space
+      // (numpy.random.lognormal(mean, sigma) convention). Upper limit is exp(logMean + 2.5 * logStd).
+      return Math.exp(distribution[inputVar].logMean + 2.5 * distribution[inputVar].logStd);
     }
-    console.warn("Location or scale is undefined for", inputVar, ":", distribution[inputVar]);
+    console.warn("logMean or logStd is undefined for", inputVar, ":", distribution[inputVar]);
     return "Error. Please contact support";
   }
   if (distribution[inputVar].distribution === "exponential") {

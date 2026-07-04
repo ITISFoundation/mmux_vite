@@ -400,10 +400,10 @@ def create_manual_uq_samples(
         elif dist_type == "constant":
             value = dist_info["value"]
             samples[var] = [float(value)] * num_samples
-        # elif dist_type == "lognormal":
-        #     mean = dist_info["mean"]
-        #     std = dist_info["std"]
-        #     samples[var] = float(rng.lognormal(mean, std, (num_samples,)))
+        elif dist_type == "log-normal":
+            log_mean = dist_info["log_mean"]
+            log_std = dist_info["log_std"]
+            samples[var] = rng.lognormal(mean=log_mean, sigma=log_std, size=num_samples).tolist()
         else:
             raise ValueError(f"Unsupported distribution type: {dist_type}")
     return samples

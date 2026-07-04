@@ -4,6 +4,15 @@
 // see node/SPEC.md §C structural conventions.
 
 import { UploadedInputPreset, ParsedJobCollectionRow, ParsedJobCollectionCsv } from "./types";
+import { computeDiagnostics } from "./distributionDiagnostics";
+
+export type { UploadedInputPreset };
+
+export interface UploadedJobCollectionAnalysis {
+  inputVars: string[];
+  outputVars: string[];
+  inputPresets: Record<string, UploadedInputPreset>;
+}
 
 const inputPrefix = "input__";
 const outputPrefix = "output__";
@@ -77,6 +86,43 @@ function minMax(values: number[]): { min: number; max: number } {
   });
 }
 
+function shapeScore(values: number[]): number {
+  const count = values.length;
+  if (count === 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  let mean = 0;
+  for (const value of values) {
+    mean += value;
+  }
+  mean /= count;
+
+  let secondMoment = 0;
+  let thirdMoment = 0;
+  let fourthMoment = 0;
+  for (const value of values) {
+    const delta = value - mean;
+    const deltaSquared = delta * delta;
+    secondMoment += deltaSquared;
+    thirdMoment += deltaSquared * delta;
+    fourthMoment += deltaSquared * deltaSquared;
+  }
+
+  secondMoment /= count;
+  thirdMoment /= count;
+  fourthMoment /= count;
+
+  if (secondMoment === 0) {
+    return 0;
+  }
+
+  const sigma = Math.sqrt(secondMoment);
+  const skewness = thirdMoment / (sigma * sigma * sigma);
+  const excessKurtosis = fourthMoment / (secondMoment * secondMoment) - 3;
+  return Math.abs(skewness) + Math.abs(excessKurtosis);
+}
+
 function shouldUseLogScale(values: number[]): boolean {
   if (values.length === 0 || values.some(value => value <= 0)) {
     return false;
@@ -85,8 +131,77 @@ function shouldUseLogScale(values: number[]): boolean {
   if (!(max > min)) {
     return false;
   }
-  // heuristic: values spanning >=2 orders of magnitude read better on a log axis
-  return Math.log10(max) - Math.log10(min) >= 2;
+
+  const diagnostics = computeDiagnostics(values);
+  if (!diagnostics.hasEnoughSamples) {
+    // heuristic: values spanning >=2 orders of magnitude read better on a log axis
+    return Math.log10(max) - Math.log10(min) >= 2;
+  }
+
+  const rawScore = shapeScore(values);
+  const logScore = shapeScore(values.map(value => Math.log10(value)));
+
+  return logScore <= rawScore - 0.06;
+}
+
+// Theoretical shapeScore (|skewness| + |excess kurtosis|) of a perfect uniform
+// distribution: skewness = 0, excess kurtosis = -1.2.
+const uniformReferenceShapeScore = 1.2;
+// Only prefer a richer/more-specific distribution (log-normal over normal/uniform,
+// normal over uniform) when its shape-fit is clearly better by this margin — mirrors
+// the margin already used by shouldUseLogScale above, avoiding needless flip-flopping.
+const distributionPreferenceMargin = 0.06;
+
+function roundToSignificantDigits(value: number, digits = 3): number {
+  return Number(value.toPrecision(digits));
+}
+
+/**
+ * Infer the best-fit distribution (constant, uniform, normal, or log-normal) for a
+ * variable's imported data, so newly-created functions start with sensible defaults
+ * instead of always defaulting to uniform. Falls back to uniform (+ the existing
+ * logScale heuristic) when there isn't enough data to trust a shape comparison.
+ *
+ * Values computed from data (mean/std/logMean/logStd) are rounded to 3 significant
+ * digits; literal min/max bounds are preserved exactly.
+ */
+function pickDistributionPreset(values: number[]): UploadedInputPreset {
+  const { min, max } = minMax(values);
+
+  if (min === max) {
+    return { distribution: "constant", value: roundToSignificantDigits(min) };
+  }
+
+  const diagnostics = computeDiagnostics(values);
+  if (!diagnostics.hasEnoughSamples) {
+    return { distribution: "uniform", min, max, logScale: shouldUseLogScale(values) };
+  }
+
+  const allPositive = values.every(value => value > 0);
+  const normalDistance = shapeScore(values);
+  const uniformDistance = Math.abs(normalDistance - uniformReferenceShapeScore);
+  const logNormalDistance = allPositive ? shapeScore(values.map(value => Math.log(value))) : undefined;
+
+  const bestLinearDistance = Math.min(normalDistance, uniformDistance);
+
+  if (logNormalDistance !== undefined && logNormalDistance + distributionPreferenceMargin < bestLinearDistance) {
+    const logStats = computeDiagnostics(values.map(value => Math.log(value)));
+    return {
+      distribution: "log-normal",
+      logMean: roundToSignificantDigits(logStats.mean),
+      logStd: roundToSignificantDigits(logStats.std),
+    };
+  }
+
+  if (normalDistance + distributionPreferenceMargin < uniformDistance) {
+    return {
+      distribution: "normal",
+      mean: roundToSignificantDigits(diagnostics.mean),
+      std: roundToSignificantDigits(diagnostics.std),
+    };
+  }
+
+  return { distribution: "uniform", min, max, logScale: shouldUseLogScale(values) };
 }
 
 export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCsv {
@@ -161,6 +276,63 @@ export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCs
   });
 
   return { ...base, inputVars, outputVars, inputPresets, rows };
+}
+
+export interface AnalyzeUploadedJobCollectionCsvOptions {
+  /**
+   * When true, infer the best-fit distribution (constant/uniform/normal/log-normal) per
+   * variable instead of always defaulting to uniform. Intended for the "create new
+   * function from CSV" flow only.
+   */
+  inferDistributionType?: boolean;
+}
+
+export function analyzeUploadedJobCollectionCsv(
+  csvContent: string,
+  options: AnalyzeUploadedJobCollectionCsvOptions = {},
+): UploadedJobCollectionAnalysis {
+  const { tableLines } = splitPreambleAndTable(csvContent);
+  const dataLines = tableLines.map(line => line.trimEnd()).filter(line => line.trim().length > 0);
+  const headerLine = dataLines[0];
+
+  if (!headerLine) {
+    return { inputVars: [], outputVars: [], inputPresets: {} };
+  }
+
+  const header = parseCsvRow(headerLine);
+  const inputColumns = header.filter(column => column.startsWith(inputPrefix));
+  const outputColumns = header.filter(column => column.startsWith(outputPrefix));
+  const inputVars = inputColumns.map(column => column.slice(inputPrefix.length));
+  const outputVars = outputColumns.map(column => column.slice(outputPrefix.length));
+  // B24: precompute column indices once, see parseJobCollectionCsv above.
+  const inputColumnIndices = inputColumns.map(column => header.indexOf(column));
+  const valueBuckets: Record<string, number[]> = Object.fromEntries(inputVars.map(variable => [variable, []]));
+
+  dataLines.slice(1).forEach(line => {
+    const cells = parseCsvRow(line);
+    inputColumnIndices.forEach((columnIndex, index) => {
+      const numericValue = parseNumericCell(cells[columnIndex]);
+      if (numericValue !== undefined) {
+        valueBuckets[inputVars[index]].push(numericValue);
+      }
+    });
+  });
+
+  const inputPresets: Record<string, UploadedInputPreset> = {};
+  inputVars.forEach(variable => {
+    const values = valueBuckets[variable];
+    if (values.length === 0) {
+      return;
+    }
+    if (options.inferDistributionType) {
+      inputPresets[variable] = pickDistributionPreset(values);
+      return;
+    }
+    const { min, max } = minMax(values);
+    inputPresets[variable] = { distribution: "uniform", min, max, logScale: shouldUseLogScale(values) };
+  });
+
+  return { inputVars, outputVars, inputPresets };
 }
 
 export function pickSingleCsvFile(): Promise<File> {

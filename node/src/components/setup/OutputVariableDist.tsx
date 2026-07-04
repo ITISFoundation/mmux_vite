@@ -8,10 +8,14 @@ import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import { AddOutputModal } from "./AddOutputModal";
 
 export function OutputVariableDist() {
-  const { selectedFunction, outputVars, outputTargets, setOutputTargets } = useFunctionContext();
+  const { selectedFunction, outputVars, outputTargets, setOutputTargets, outputLogScales, setOutputLogScales } =
+    useFunctionContext();
   // const { ServiceMode } = useServiceContext();
   const [openModal, setOpenModal] = useState(false);
   const [configuredOutputs, setConfiguredOutputs] = useState(outputTargets[selectedFunction?.uid || ""] || {});
+  const [localOutputLogScales, setLocalOutputLogScales] = useState<{ [varName: string]: boolean }>(
+    outputLogScales[selectedFunction?.uid || ""] || {},
+  );
   const theme = useTheme();
 
   const handlesetConfiguredOutputs = useCallback(
@@ -28,6 +32,14 @@ export function OutputVariableDist() {
     [outputTargets, selectedFunction, setOutputTargets],
   );
 
+  const handleSetOutputLogScale = (outputVar: string, value: boolean) => {
+    const next = { ...localOutputLogScales, [outputVar]: value };
+    setLocalOutputLogScales(next);
+    if (selectedFunction) {
+      setOutputLogScales({ ...outputLogScales, [selectedFunction.uid]: next });
+    }
+  };
+
   useEffect(() => {
     if (outputTargets && selectedFunction && outputTargets[selectedFunction.uid]) {
       setConfiguredOutputs(outputTargets[selectedFunction.uid]);
@@ -39,6 +51,11 @@ export function OutputVariableDist() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outputTargets, outputVars, selectedFunction]);
+
+  useEffect(() => {
+    setLocalOutputLogScales(outputLogScales[selectedFunction?.uid || ""] || {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outputLogScales, selectedFunction]);
 
   if (outputVars && outputVars.length === 0) {
     return <></>;
@@ -135,6 +152,17 @@ export function OutputVariableDist() {
                   });
                 }}
               />
+              <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <Typography sx={{ fontSize: "0.75em", fontWeight: 300, color: theme.palette.text.secondary }}>
+                  Surrogate scale
+                </Typography>
+                <CustomAnimatedToggle
+                  data={["linear", "log"]}
+                  value={localOutputLogScales[outputVar] ? 1 : 0}
+                  disabled={false}
+                  onChange={value => handleSetOutputLogScale(outputVar, value === 1)}
+                />
+              </Box>
             </Box>
           </Box>
         ))}

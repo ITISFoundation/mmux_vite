@@ -130,4 +130,31 @@ describe("FunctionContextProvider", () => {
     expect(() => render(<BrokenConsumer />)).toThrow(/useFunctionContext must be used within a FunctionContextProvider/);
     spy.mockRestore();
   });
+
+  it("provides outputLogScales state, scoped per function uid, and persists via setFunctionValues", async () => {
+    function LogScaleConsumer() {
+      const ctx = useFunctionContext();
+      const funcUid = ctx.selectedFunction?.uid || "func1";
+      return (
+        <div>
+          <button
+            type="button"
+            data-testid="enableLog"
+            onClick={() => ctx.setOutputLogScales({ ...ctx.outputLogScales, [funcUid]: { z: true } })}
+          >
+            Enable log
+          </button>
+          <span data-testid="outputLogScales">{JSON.stringify(ctx.outputLogScales)}</span>
+        </div>
+      );
+    }
+    render(
+      <FunctionContextProvider>
+        <LogScaleConsumer />
+      </FunctionContextProvider>,
+    );
+    expect(screen.getByTestId("outputLogScales").textContent).toBe("{}");
+    await screen.getByTestId("enableLog").click();
+    expect(screen.getByTestId("outputLogScales").textContent).toBe(JSON.stringify({ func1: { z: true } }));
+  });
 });

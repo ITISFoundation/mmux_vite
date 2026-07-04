@@ -43,6 +43,9 @@ interface PersistenceType {
   outputVars: string[];
   distribution: { [key: string]: InputVarSelection };
   outputTargets: { [key: string]: OutputVarSelection };
+  // Per-function, per-output-variable log-scale toggle (surrogate trained/inverted in
+  // log space for that output). Keyed by function uid, then output variable name. §V12.
+  outputLogScales: { [key: string]: { [varName: string]: boolean } };
   lhsSamplingConfig: LHSamplingConfig;
   gridSamplingConfig: GridSamplingConfig;
   singleJobConfig: SingleJobConfig[];

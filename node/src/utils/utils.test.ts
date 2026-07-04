@@ -94,6 +94,13 @@ describe("Sampling Functions", () => {
     expect(typeof startValue).toBe("string");
     expect(startValue).toBe("Error. Please contact support");
 
+    distribution.X.logMean = 0;
+    distribution.X.logStd = 0.5;
+    startValue = getSamplingStartValue(inputVar, distribution);
+    expect(startValue).toBeDefined();
+    expect(typeof startValue).toBe("number");
+    expect(startValue).toBeCloseTo(Math.exp(0 - 2.5 * 0.5));
+
     distribution.X.distribution = "exponential";
     startValue = getSamplingStartValue(inputVar, distribution);
     expect(startValue).toBeDefined();
@@ -130,6 +137,13 @@ describe("Sampling Functions", () => {
     expect(endValue).toBeDefined();
     expect(typeof endValue).toBe("string");
     expect(endValue).toBe("Error. Please contact support");
+
+    distribution.X.logMean = 0;
+    distribution.X.logStd = 0.5;
+    endValue = getSamplingEndValue(inputVar, distribution);
+    expect(endValue).toBeDefined();
+    expect(typeof endValue).toBe("number");
+    expect(endValue).toBeCloseTo(Math.exp(0 + 2.5 * 0.5));
 
     distribution.X.distribution = "exponential";
     endValue = getSamplingEndValue(inputVar, distribution);
@@ -174,6 +188,10 @@ describe("stepValidator", () => {
         throw new Error("Function not implemented.");
       },
       setOutputTargets(_d: { [key: string]: OutputVarSelection }): void {
+        throw new Error("Function not implemented.");
+      },
+      outputLogScales: {},
+      setOutputLogScales: (_d: { [key: string]: { [varName: string]: boolean } }): void => {
         throw new Error("Function not implemented.");
       },
     };

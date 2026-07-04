@@ -38,6 +38,7 @@ const defaultPersistence: PersistenceType = {
   fetchedJobCollections: [],
   selectedJobUids: [],
   outputTargets: {},
+  outputLogScales: {},
   mogaSettings: {},
   weights: {},
   sortModel: [],

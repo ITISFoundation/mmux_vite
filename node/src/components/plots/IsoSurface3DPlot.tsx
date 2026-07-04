@@ -1,5 +1,5 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Plot from "react-plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
@@ -13,7 +13,7 @@ import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
@@ -39,6 +39,23 @@ function IsoSurface3DPlot() {
       return acc;
     }, {}),
   );
+
+  // Per-variable log-scale flags (§V12): input flags come from the distribution config.
+  // IsoSurface3D has no dedicated output axis (the QoI is encoded as the isosurface
+  // value/color, not a spatial axis), so no axis-type rendering is needed for it; the
+  // output flag is still sent to the backend so it trains/inverts correctly.
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = Boolean(distribution[selectedFunction?.uid || ""]?.[key]?.logScale);
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
 
   const handleSetAxis1 = (newAxis: string) => {
     if (axis3 === newAxis || axis2 === newAxis) {
@@ -168,6 +185,8 @@ function IsoSurface3DPlot() {
         sliderValues: otherAxis,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false,
+        inputLogScales,
+        outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
       }),
     })
       .then(response => {
@@ -203,7 +222,7 @@ function IsoSurface3DPlot() {
         qoi: selectedQoI,
         fn: selectedFunction?.uid,
         jobList: jobs.map(job => job.uid),
-        logScale: false,
+        logScales: selectedQoI ? { ...inputLogScales, [selectedQoI]: outputLogScaleForQoi } : inputLogScales,
       });
       if (requestKey === lastFetchedKey.current) {
         return undefined;
@@ -212,7 +231,18 @@ function IsoSurface3DPlot() {
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [axis1, axis2, axis3, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList]);
+  }, [
+    axis1,
+    axis2,
+    axis3,
+    inputVars,
+    selectedQoI,
+    selectedFunction,
+    otherAxis,
+    filteredJobList,
+    inputLogScales,
+    outputLogScaleForQoi,
+  ]);
 
   const layout = {
     title: {
@@ -225,9 +255,9 @@ function IsoSurface3DPlot() {
     font: { color: `${theme.palette.text.primary}` },
     margin: plotMarginsNarrow,
     scene: {
-      xaxis: { title: { text: axis1 }, tickangle: -45 },
-      yaxis: { title: { text: axis2 }, tickangle: -45 },
-      zaxis: { title: { text: axis3 }, tickangle: -45 },
+      xaxis: { title: { text: axis1 }, tickangle: -45, type: inputLogScales[axis1] ? ("log" as const) : undefined },
+      yaxis: { title: { text: axis2 }, tickangle: -45, type: inputLogScales[axis2] ? ("log" as const) : undefined },
+      zaxis: { title: { text: axis3 }, tickangle: -45, type: inputLogScales[axis3] ? ("log" as const) : undefined },
       camera: {
         eye: {
           x: 1.88,
