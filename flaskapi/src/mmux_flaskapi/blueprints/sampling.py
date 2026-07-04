@@ -1,6 +1,7 @@
 import csv
 import io
 import logging
+import math
 import os
 import time
 from pathlib import Path
@@ -330,15 +331,23 @@ def flask_clone_job():
 #####################################################################################
 
 
-def _parse_number(raw: str) -> float:
-    """Parse a CSV cell to float; return 0.0 for blank/unparseable cells."""
-    raw = raw.strip()
-    if not raw:
-        return 0.0
+def _parse_number(raw: str, *, row: int | None = None, col: str | None = None) -> float:
+    """
+    Parse a CSV cell to float.
+
+    A truly-blank cell (empty/whitespace-only) parses to ``math.nan`` -- a sentinel
+    for missing data. A non-blank cell that cannot be parsed as a float raises
+    ``ValueError`` with row/column context instead of silently becoming ``0.0``,
+    which would feed accidental zeros into Dakota (B4, V19).
+    """
+    stripped = raw.strip()
+    if not stripped:
+        return math.nan
     try:
-        return float(raw)
-    except ValueError:
-        return 0.0
+        return float(stripped)
+    except ValueError as exc:
+        location = f" (row {row}, column {col!r})" if row is not None or col is not None else ""
+        raise ValueError(f"Could not parse numeric CSV value {raw!r}{location}") from exc
 
 
 def _split_csv_preamble_and_table(csv_content: str) -> tuple[dict[str, str], str]:
@@ -413,13 +422,17 @@ def _parse_uploaded_job_collection_csv(csv_content: str) -> dict[str, Any]:
     source_description = metadata.get("source_description", "")
 
     job_rows: list[dict[str, Any]] = []
-    for row in reader:
+    for row_idx, row in enumerate(reader, start=1):
         inputs: dict[str, float] = {
-            col.replace("input__", "", 1): _parse_number(str(row.get(col, "")))
+            col.replace("input__", "", 1): _parse_number(
+                str(row.get(col, "")), row=row_idx, col=col
+            )
             for col in input_columns
         }
         outputs: dict[str, float] = {
-            col.replace("output__", "", 1): _parse_number(str(row.get(col, "")))
+            col.replace("output__", "", 1): _parse_number(
+                str(row.get(col, "")), row=row_idx, col=col
+            )
             for col in output_columns
         }
         status = str(row.get("status", "SUCCESS") or "SUCCESS")

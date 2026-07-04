@@ -4,6 +4,7 @@ Tests for T6 (CSV import/export), T7 (local_job_store), and T9 (log-scale backen
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import pytest
@@ -52,14 +53,21 @@ class TestParseNumber:
     def test_float_string(self):
         assert abs(_parse_number("3.14") - 3.14) < 1e-9
 
-    def test_empty_returns_zero(self):
-        assert _parse_number("") == 0.0
+    def test_empty_returns_nan(self):
+        """B4: truly-blank cells are a missing-data sentinel (NaN), not 0.0."""
+        assert math.isnan(_parse_number(""))
 
-    def test_whitespace_returns_zero(self):
-        assert _parse_number("   ") == 0.0
+    def test_whitespace_returns_nan(self):
+        assert math.isnan(_parse_number("   "))
 
-    def test_unparseable_returns_zero(self):
-        assert _parse_number("NaN_string") == 0.0
+    def test_unparseable_raises_value_error(self):
+        """B4: an unparseable non-blank cell must raise, not silently become 0.0."""
+        with pytest.raises(ValueError, match="NaN_string"):
+            _parse_number("NaN_string")
+
+    def test_unparseable_raises_with_row_col_context(self):
+        with pytest.raises(ValueError, match="row 3.*column 'input__x'"):
+            _parse_number("abc", row=3, col="input__x")
 
 
 class TestParseUploadedJobCollectionCsv:
@@ -221,6 +229,7 @@ class TestFlaskUploadJobCollectionCsv:
 
 class TestFlaskDownloadJobCollectionCsv:
     def test_download_local_collection(self, test_client, tmp_path, monkeypatch):
+        monkeypatch.setenv("DEPLOYMENT_MODE", "LOCAL")
         import mmux_flaskapi.utils.local_job_store as store_mod
 
         store_file = tmp_path / "store.json"
@@ -260,6 +269,7 @@ class TestFlaskDownloadJobCollectionCsv:
         assert response.status_code == 400
 
     def test_download_unknown_local_uid_returns_404(self, test_client, tmp_path, monkeypatch):
+        monkeypatch.setenv("DEPLOYMENT_MODE", "LOCAL")
         import mmux_flaskapi.utils.local_job_store as store_mod
 
         monkeypatch.setattr(store_mod, "LOCAL_STORE_FILE", tmp_path / "store.json")

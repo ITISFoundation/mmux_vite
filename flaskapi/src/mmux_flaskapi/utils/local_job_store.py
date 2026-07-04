@@ -7,6 +7,7 @@ live oSPARC connection (V15).
 
 import json
 import logging
+import os
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -16,8 +17,20 @@ from mmux_flaskapi.utils.helpers import sanitize_varnames
 
 _logger = logging.getLogger(__name__)
 
-LOCAL_STORE_DIR = Path.cwd().parent.parent.parent / "runs_local"
-LOCAL_STORE_DIR.mkdir(exist_ok=True)
+
+def _default_local_store_dir() -> Path:
+    """Anchor the default store dir to this file's location, not the cwd (B1)."""
+    return Path(__file__).resolve().parents[3] / "runs_local"
+
+
+# B1 fix: anchor to env `LOCAL_STORE_DIR` or `__file__`-relative path, never `Path.cwd()`
+# (cwd is unpredictable across pytest/container invocations). `mkdir` is deferred to the
+# first write in `_save_store` instead of running unconditionally at import time (V17).
+LOCAL_STORE_DIR = (
+    Path(os.environ["LOCAL_STORE_DIR"])
+    if os.environ.get("LOCAL_STORE_DIR")
+    else _default_local_store_dir()
+)
 LOCAL_STORE_FILE = LOCAL_STORE_DIR / "uploaded_job_collections_store.json"
 
 
@@ -34,12 +47,22 @@ def _load_store() -> dict[str, Any]:
         return _empty_store()
     try:
         return json.loads(LOCAL_STORE_FILE.read_text(encoding="utf-8"))
-    except Exception as err:
-        _logger.error("Could not read local job store: %s", err)
+    except (OSError, json.JSONDecodeError) as err:
+        # B5 fix: narrow except (was bare `Exception`) and back up the corrupt file
+        # instead of silently returning an empty store, which would be persisted over
+        # the original (unrecoverable loss) on the next `_save_store` call (V20).
+        _logger.error("Could not read local job store, backing up corrupt file: %s", err)
+        timestamp = datetime.now(tz=UTC).strftime("%Y%m%dT%H%M%S%f")
+        backup_path = LOCAL_STORE_FILE.with_name(f"{LOCAL_STORE_FILE.name}.corrupt-{timestamp}.bak")
+        try:
+            LOCAL_STORE_FILE.replace(backup_path)
+        except OSError as backup_err:
+            _logger.error("Could not back up corrupt local job store file: %s", backup_err)
         return _empty_store()
 
 
 def _save_store(store: dict[str, Any]) -> None:
+    LOCAL_STORE_FILE.parent.mkdir(parents=True, exist_ok=True)  # B1: mkdir deferred to first write
     LOCAL_STORE_FILE.write_text(json.dumps(store, indent=2), encoding="utf-8")
 
 

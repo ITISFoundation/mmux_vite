@@ -108,11 +108,11 @@ T6|.|PORT [topic=fullstack-csv] job-collection CSV import/export: GET `/osparc/d
 T7|.|PORT [topic=be-local-functions] `utils/local_job_store.py` + local resolution paths in osparc/sampling/dakota so DEPLOYMENT_MODE=LOCAL serves uploaded/synthetic functions offline; uid-prefix routing; tests|I, V15
 T8|.|PORT [topic=be-preserve-case] `utils/case_preserving.py` + `json_serializer` `preserve_nested_keys` + `DataPreprocessor` orig-case round-trip; tests `test_utils_helpers`/`test_data_preprocessor`|I, V13, V14
 T9|.|PORT [topic=fullstack-logscale] accept per-variable log-scale flag in dakota request models → preprocess sample/train in log space, inverse on response; tests|V16, ../node/SPEC.md V12
-T10|.|fix B1 (#467): anchor `LOCAL_STORE_DIR` to env/`__file__`, defer `mkdir(parents=True)` to first write; test cwd-independence|V17,B1
-T11|.|fix B2 (#467): drop manual `jobIds` (or the snake key), let global serializer convert `job_ids` once; test ⊥ double-key collision|V18,B2
-T12|.|fix B3 (#467): gate `list_local_*` merges + per-id local branches (`osparc.py` ~94,135,160,185,224,348) on `DEPLOYMENT_MODE=LOCAL`; test OSPARC mode ⊥ surface `runs_local` state|V15,B3
-T13|.|fix B4 (#467): `_parse_number` raise ValueError(row,col) on unparseable non-blank, blank→NaN; test rejects `"abc"`/swapped cols|V19,B4
-T14|.|fix B5 (#467): narrow `_load_store` except to `(OSError, json.JSONDecodeError)`, backup before reset; test corrupt-json ⊥ wipe store|V20,B5
+T10|x|fix B1 (#467): anchor `LOCAL_STORE_DIR` to env/`__file__`, defer `mkdir(parents=True)` to first write; test cwd-independence|V17,B1
+T11|x|fix B2 (#467): drop manual `jobIds` (or the snake key), let global serializer convert `job_ids` once; test ⊥ double-key collision|V18,B2
+T12|x|fix B3 (#467): gate `list_local_*` merges + per-id local branches (`osparc.py` ~94,135,160,185,224,348) on `DEPLOYMENT_MODE=LOCAL`; test OSPARC mode ⊥ surface `runs_local` state|V15,B3
+T13|x|fix B4 (#467): `_parse_number` raise ValueError(row,col) on unparseable non-blank, blank→NaN; test rejects `"abc"`/swapped cols|V19,B4
+T14|x|fix B5 (#467): narrow `_load_store` except to `(OSError, json.JSONDecodeError)`, backup before reset; test corrupt-json ⊥ wipe store|V20,B5
 
 ## §B
 id|date|cause|fix

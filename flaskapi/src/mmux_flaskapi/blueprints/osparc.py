@@ -2,6 +2,7 @@
 import csv
 import io
 import logging
+import os
 from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
@@ -39,6 +40,17 @@ def _get_query_arg(*names: str) -> str:
         if name in request.args:
             return request.args[name]
     raise KeyError(names[0])
+
+
+def _local_mode_enabled() -> bool:
+    """
+    Return True only when `DEPLOYMENT_MODE=LOCAL`.
+
+    B3 fix: local function/collection/job merges and per-id local branches must never
+    run when the deployment is not LOCAL, else an OSPARC deployment leaks leftover
+    `runs_local` state (V15).
+    """
+    return os.environ.get("DEPLOYMENT_MODE") == "LOCAL"
 
 
 #####################################################################################
@@ -91,7 +103,8 @@ def api_endpoint(func: Callable) -> Callable:
 def flask_list_functions():
     osparc_api = get_osparc_api()
     functions = _get_all_items(osparc_api.get_functions_api().list_functions)
-    functions += list_local_functions()
+    if _local_mode_enabled():
+        functions += list_local_functions()
     functions = functions[
         ::-1
     ]  # put last-created first? FIXME still need to expose "created_at" in the response
@@ -116,7 +129,8 @@ def flask_get_function_job_collections():
     job_collections = _get_all_items(
         osparc_api.get_job_collection_api().list_function_job_collections
     )
-    job_collections += list_local_job_collections()
+    if _local_mode_enabled():
+        job_collections += list_local_job_collections()
     _logger.debug(f"N Job collections: {len(job_collections)}")
     return job_collections, 200
 
@@ -132,7 +146,7 @@ def flask_list_function_jobs_for_functionid():
     function_uid = _get_query_arg("functionUid", "function_uid")
     _logger.info(f"Function ID: {function_uid}")
 
-    if is_local_function_uid(function_uid):
+    if _local_mode_enabled() and is_local_function_uid(function_uid):
         collections = list_local_job_collections(function_uid)
         local_jobs: list[dict[str, Any]] = []
         for collection in collections:
@@ -157,7 +171,7 @@ def flask_list_function_jobs_for_jobcollectionid():
     jc_uid = _get_query_arg("JobCollectionUid", "job_collection_uid")
     _logger.debug(f"jc ID: {jc_uid}")
 
-    if is_local_job_collection_uid(jc_uid):
+    if _local_mode_enabled() and is_local_job_collection_uid(jc_uid):
         local_jobs = list_local_jobs_for_collection(jc_uid)
         _logger.debug(f"N local jobs for job collection {jc_uid}: {len(local_jobs)}")
         return local_jobs, 200
@@ -176,26 +190,27 @@ def flask_get_function_job_collections_for_functionid():
     function_uid = _get_query_arg("functionUid", "function_uid")
     _logger.debug(f"Function ID: {function_uid}")
 
-    local_collections = list_local_job_collections(function_uid)
-    normalized_local_collections = [
-        {**jc, "jobIds": jc.get("job_ids", []), "job_ids": jc.get("job_ids", [])}
-        for jc in local_collections
-    ]
+    # B3: local collections must never surface outside DEPLOYMENT_MODE=LOCAL
+    local_collections = list_local_job_collections(function_uid) if _local_mode_enabled() else []
+    # B2 fix: don't manually add a camelCase "jobIds" key alongside "job_ids" -- the
+    # global response serializer (`register_json_transformers`) already converts
+    # "job_ids" -> "jobIds" on every response; adding both caused a key collision that
+    # silently overwrote one of them depending on dict iteration order (V18).
 
-    if is_local_function_uid(function_uid):
+    if _local_mode_enabled() and is_local_function_uid(function_uid):
         _logger.debug(
             "N local Job collections for local function %s: %s",
             function_uid,
-            len(normalized_local_collections),
+            len(local_collections),
         )
-        return normalized_local_collections, 200
+        return local_collections, 200
 
     osparc_api = get_osparc_api()
     response = osparc_api.get_job_collection_api().list_function_job_collections(
         has_function_id=function_uid
     )
     job_collections = [dict_keys_camel_to_snake(i.to_dict()) for i in response.items]
-    job_collections += normalized_local_collections
+    job_collections += local_collections
     _logger.debug(f"N Job collections for function {function_uid}: {len(job_collections)}")
     return job_collections, 200
 
@@ -221,7 +236,7 @@ def _get_function_job_from_uid(job_uid: str) -> dict[str, Any]:
         _logger.error("Job UID is required.")
         raise ValueError("Job UID is required.")
 
-    if is_local_job_uid(job_uid):
+    if _local_mode_enabled() and is_local_job_uid(job_uid):
         local_job = get_local_job(job_uid)
         if local_job is None:
             raise ValueError(f"Local job UID not found: {job_uid}")
@@ -345,7 +360,7 @@ def flask_download_job_collection_csv():
     """
     try:
         jc_uid = request.args["JobCollectionUid"]
-        if is_local_job_collection_uid(jc_uid):
+        if _local_mode_enabled() and is_local_job_collection_uid(jc_uid):
             local_jc = get_local_job_collection(jc_uid)
             if local_jc is None:
                 return make_response(jsonify({"error": "Local JobCollection not found"}), 404)
