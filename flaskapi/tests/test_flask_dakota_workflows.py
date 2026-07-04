@@ -1822,6 +1822,92 @@ class TestSumoCVAccuracyMetrics:
         assert "metrics" in data
         assert output in data["metrics"]
 
+    def test_response_includes_paired_ttest_and_convergence(self, test_client: Flask, monkeypatch):
+        """Response now includes tTest (bias significance, V26) and convergence series (V27)."""
+        input_vars = ["x1"]
+        output = "y"
+        jobs = self.create_cv_accuracy_jobs(10, input_vars, output)
+
+        def fake_manual_cv(run_dir, subset_file, in_vars, out_response, N_CROSS_VALIDATION=5):
+            import pandas as pd
+
+            df = pd.read_csv(subset_file, sep=" ")
+            actual = df[out_response].astype(float).tolist()
+            # slight per-sample jitter keeps residual variance non-zero (⊥ scipy nan-statistic)
+            predicted = [v + 0.05 + i * 0.001 for i, v in enumerate(actual)]
+            return {
+                out_response: actual,
+                out_response + "_hat": predicted,
+                out_response + "_std_hat": [0.0] * len(actual),
+            }
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation", fake_manual_cv
+        )
+        monkeypatch.setattr(
+            "mmux_flaskapi.dakota.funs_evaluate.evaluate_sumo_manual_crossvalidation",
+            fake_manual_cv,
+        )
+
+        payload = {"inputs": input_vars, "output": output, "FunctionJobs": jobs}
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+
+        assert "metrics" in data
+        assert output in data["metrics"]
+        assert isinstance(data["metrics"][output], dict)
+        assert data["metrics"][output]["rootMeanSquared"] == pytest.approx(0.05, abs=0.01)
+
+        assert "tTest" in data
+        assert set(data["tTest"].keys()) == {"statistic", "pValue"}
+        assert isinstance(data["tTest"]["statistic"], (int, float))
+        assert isinstance(data["tTest"]["pValue"], (int, float))
+        assert 0.0 <= data["tTest"]["pValue"] <= 1.0
+
+        assert "convergence" in data
+        assert isinstance(data["convergence"], list)
+        assert len(data["convergence"]) >= 1
+        n_samples_seen = [point["nSamples"] for point in data["convergence"]]
+        for point in data["convergence"]:
+            assert set(point.keys()) == {"nSamples", "metric"}
+            assert point["nSamples"] >= 5
+            assert point["metric"] == pytest.approx(0.05, abs=0.02)
+        assert n_samples_seen == sorted(n_samples_seen)
+        assert n_samples_seen[-1] == 10
+
+    def test_significant_bias_detected_low_pvalue(self, test_client: Flask, monkeypatch):
+        """A strong systematic offset between actual/predicted -> low p-value (V26 banner)."""
+        input_vars = ["x1"]
+        output = "y"
+        jobs = self.create_cv_accuracy_jobs(10, input_vars, output)
+
+        def fake_manual_cv(run_dir, subset_file, in_vars, out_response, N_CROSS_VALIDATION=5):
+            import pandas as pd
+
+            df = pd.read_csv(subset_file, sep=" ")
+            actual = df[out_response].astype(float).tolist()
+            predicted = [v + 10.0 + i * 0.01 for i, v in enumerate(actual)]  # strong bias
+            return {
+                out_response: actual,
+                out_response + "_hat": predicted,
+                out_response + "_std_hat": [0.0] * len(actual),
+            }
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation", fake_manual_cv
+        )
+        monkeypatch.setattr(
+            "mmux_flaskapi.dakota.funs_evaluate.evaluate_sumo_manual_crossvalidation",
+            fake_manual_cv,
+        )
+
+        payload = {"inputs": input_vars, "output": output, "FunctionJobs": jobs}
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["tTest"]["pValue"] < 0.05
+
     def test_insufficient_completed_jobs(self, test_client: Flask):
         """Test validation failure when there are insufficient completed jobs."""
         input_vars = ["x1"]

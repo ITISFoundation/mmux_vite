@@ -9,6 +9,7 @@ from typing import Literal
 
 import numpy as np  # type: ignore
 import pandas as pd
+from scipy.stats import ttest_rel
 from sklearn.model_selection import KFold
 
 from mmux_flaskapi.dakota.dakota_object import DakotaObject
@@ -27,6 +28,7 @@ from mmux_flaskapi.dakota.funs_data_processing import (
     get_bounds_uniform_distributions,
     get_results,
     load_data,
+    process_input_file,
     sanitize_varnames,
 )
 
@@ -274,6 +276,117 @@ def evaluate_sumo_manual_crossvalidation(
         output_response + "_hat": all_predictions.tolist(),
         output_response + "_std_hat": all_stds.tolist(),
     }
+
+
+def compute_cv_accuracy_metrics(
+    actual: list[float] | np.ndarray, predicted: list[float] | np.ndarray
+) -> dict[str, float]:
+    """Compute RMSE/MAE/sum-abs/max-abs directly from paired CV actual/predicted values.
+
+    Unlike `_parse_crossvalidation_outputlogs`, this does not depend on parsing Dakota's
+    stdout (which `evaluate_sumo_crossvalidation` no longer captures) - it derives the
+    same metrics straight from the actual/predicted arrays already produced by
+    `evaluate_sumo_manual_crossvalidation`.
+    """
+    actual_arr = np.asarray(actual, dtype=float)
+    predicted_arr = np.asarray(predicted, dtype=float)
+    if actual_arr.shape != predicted_arr.shape:
+        raise ValueError(
+            f"actual (shape {actual_arr.shape}) and predicted (shape {predicted_arr.shape}) "
+            "must have the same shape"
+        )
+    residuals = actual_arr - predicted_arr
+    abs_residuals = np.abs(residuals)
+    return {
+        "root_mean_squared": float(np.sqrt(np.mean(residuals**2))),
+        "sum_abs": float(np.sum(abs_residuals)),
+        "mean_abs": float(np.mean(abs_residuals)),
+        "max_abs": float(np.max(abs_residuals)),
+    }
+
+
+def compute_paired_ttest(
+    actual: list[float] | np.ndarray, predicted: list[float] | np.ndarray
+) -> dict[str, float]:
+    """Paired t-test (`scipy.stats.ttest_rel`) on CV actual-vs-predicted residuals.
+
+    Tests H0: mean(actual - predicted) == 0, i.e. no systematic surrogate bias.
+    A low p-value (e.g. < 0.05) indicates the surrogate is systematically biased
+    beyond what scalar MAE/RMSE reveal.
+    """
+    actual_arr = np.asarray(actual, dtype=float)
+    predicted_arr = np.asarray(predicted, dtype=float)
+    if actual_arr.shape != predicted_arr.shape:
+        raise ValueError(
+            f"actual (shape {actual_arr.shape}) and predicted (shape {predicted_arr.shape}) "
+            "must have the same shape"
+        )
+    if actual_arr.size < 2:
+        raise ValueError("Paired t-test requires at least 2 CV samples")
+    result = ttest_rel(actual_arr, predicted_arr)
+    return {"statistic": float(result.statistic), "p_value": float(result.pvalue)}
+
+
+def _convergence_subset_sizes(n_total: int, min_samples: int, max_points: int) -> list[int]:
+    """Evenly-spaced, deduplicated subset sizes from `min_samples` up to `n_total`."""
+    if n_total < min_samples:
+        return []
+    n_points = min(max_points, n_total - min_samples + 1)
+    sizes = np.linspace(min_samples, n_total, num=n_points, dtype=int).tolist()
+    seen: set[int] = set()
+    unique_sizes = []
+    for size in sizes:
+        if size not in seen:
+            seen.add(size)
+            unique_sizes.append(size)
+    return unique_sizes
+
+
+def compute_cv_convergence(
+    run_dir: Path,
+    training_file: Path,
+    input_vars: list[str],
+    output_response: str,
+    N_CROSS_VALIDATION: int = 5,
+    min_samples: int = 5,
+    max_points: int = 5,
+) -> list[dict[str, float]]:
+    """Rerun manual K-fold CV at increasing training-sample-count subsets.
+
+    Reuses `evaluate_sumo_manual_crossvalidation` (the same compute path
+    `/sumo_cross_validation` already runs) on the first `n` rows of `training_file` for
+    each subset size, deriving RMSE via `compute_cv_accuracy_metrics` at each step.
+    Subset sizes are evenly spaced between `min_samples` and the full sample count,
+    capped at `max_points` to bound the number of extra Dakota reruns (⊥ single-N
+    snapshot only). Returns a `{n_samples, metric}` series for accuracy-vs-N plotting.
+    """
+    n_total = len(load_data(training_file))
+    subset_sizes = _convergence_subset_sizes(n_total, min_samples, max_points)
+
+    series = []
+    for n in subset_sizes:
+        subset_file = process_input_file(
+            training_file,
+            columns_to_keep=input_vars + [output_response],
+            filter_N_samples=n,
+            suffix=f"convergence_{n}",
+        )
+        subset_run_dir = run_dir / f"convergence_{n}"
+        os.makedirs(subset_run_dir, exist_ok=True)
+        n_folds = min(N_CROSS_VALIDATION, n)
+        result = evaluate_sumo_manual_crossvalidation(
+            subset_run_dir,
+            subset_file,
+            input_vars,
+            output_response,
+            N_CROSS_VALIDATION=n_folds,
+        )
+        metrics = compute_cv_accuracy_metrics(
+            result[output_response], result[output_response + "_hat"]
+        )
+        series.append({"n_samples": n, "metric": metrics["root_mean_squared"]})
+
+    return series
 
 
 def evaluate_sumo(

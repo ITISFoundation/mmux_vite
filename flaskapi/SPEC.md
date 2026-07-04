@@ -55,7 +55,7 @@ api: POST `/sumo_cross_validation` `{inputVars[],output,FunctionJobs[]}` → `{o
 api: POST `/manual_uq_propagation_with_uncertainty` `{output,inputVars[],distributions,numSamples,FunctionJobs[],nHistograms,seed}` → histogram+box stats
 api: POST `/sumo_along_axes` `{output,inputs[],FunctionJobs[],sliderValues?}` → `{predictions:{var:{x,yHat,stdHat}}}`
 api: POST `/sumo_grid_evaluation` `{output,gridVars[],inputVars[],FunctionJobs[],sliderValues?}` → `{gridData}`
-api: POST `/get_sumo_cv_accuracy_metrics` `{inputs[],output,FunctionJobs[]}` → `{metrics}`
+api: POST `/get_sumo_cv_accuracy_metrics` `{inputs[],output,FunctionJobs[]}` → `{metrics,tTest?:{statistic,pValue},convergence:[{nSamples,metric}]}` — computed from `evaluate_sumo_manual_crossvalidation`'s actual/predicted arrays (⊥ Dakota stdout log parsing, see B11)
 api: POST `/perform_moga_optimization` `{inputVars[],distributions,outputVarSelection{var:minimize|maximize},FunctionJobs[]}` → `{optimizationResults}`
 --- env ---
 env: `OSPARC_API_BASE_URL`,`OSPARC_API_KEY`,`OSPARC_API_SECRET` ! set
@@ -100,15 +100,15 @@ V22: recursive dict key converters ! mutate input dict/list in-place; conversion
 V23: `sampling.test_job` polling exit depends on `job["status"]` string, not dict keys; `FAILURE` in status → break
 V24: `_anonymize(s, n, m=None)` on non-empty `s` ! expose full string; omitted `m` always masks at least one char
 V25: Dakota endpoints ! call `os.chdir()`; run dirs use explicit paths only, request cwd stays process-global and unchanged
-V26: SuMo cross-validation accuracy response includes a paired t-test (statistic+p-value) on CV actual-vs-predicted residuals, surfacing systematic surrogate bias beyond scalar MAE/RMSE
-V27: SuMo CV accuracy metrics available as a convergence series `{n_samples:metric}` across increasing training-sample-count subsets, ⊥ single-N snapshot only
+V26: SuMo cross-validation accuracy response includes a paired t-test (`t_test.statistic`+`t_test.p_value`, camelCased `tTest.statistic`/`tTest.pValue`) via `scipy.stats.ttest_rel` on CV actual-vs-predicted residuals, surfacing systematic surrogate bias beyond scalar MAE/RMSE
+V27: SuMo CV accuracy metrics response includes `convergence: [{n_samples,metric}]` (camelCased `nSamples`) — RMSE recomputed via `evaluate_sumo_manual_crossvalidation` reruns at ≤5 evenly-spaced training-sample-count subsets (`compute_cv_convergence`, capped `max_points` to bound Dakota re-run cost), ⊥ single-N snapshot only
 V28: correlation-indices endpoint computes per-input↔output Pearson+Spearman coefficients from the existing UQ Monte Carlo sample set (#470); one response covers ∀ input vars (⊥ 3-var limit of 1D/2D/3D plot views)
 
 ## §T
 id|status|task|cites
 T1|.|frontend expects `/flask/osparc/download_job_collection_csv` & `/flask/sampling/upload_job_collection_csv` — IMPLEMENTED on feature/local-functions; resolved-by → port via §T6|T6, ../node/SPEC.md T1
 T2|x|`pyproject.toml` & `mmux_python/pyproject.toml` version `1.5.14` ≠ service `1.5.18`; add to `.bumpversion.cfg` or align — superseded by T15 (mmux_python removed, no more separate versioned pkg to drift)|../SPEC.md V5,T1,T15
-T3|.|`/get_sumo_cv_accuracy_metrics` not consumed by frontend — confirm used (tests?) or mark dead|I
+T3|x|`/get_sumo_cv_accuracy_metrics` now consumed by frontend `SuMoValidation` view (bias banner + convergence curve, T18/../node/SPEC.md T20) — resolved|I,T18,../node/SPEC.md T20
 T4|.|`tests/implementation instructions/` + `tests/logs/` in tests tree — relocate to `docs/` or gitignore|—
 T5|.|add explicit test asserting all 5 blueprints + every route registered (guards V1)|V1
 T6|.|PORT [topic=fullstack-csv] job-collection CSV import/export: GET `/osparc/download_job_collection_csv` (preamble+table) + POST `/sampling/upload_job_collection_csv` (parse→reconstruct). reuse branch helpers `_split_csv_preamble_and_table`/`_parse_uploaded_job_collection_csv`/`_job_collection_jobs_to_csv`; add tests|I, V13, ../node/SPEC.md T7
@@ -123,7 +123,7 @@ T14|.|fix B5 (#467): narrow `_load_store` except to `(OSError, json.JSONDecodeEr
 T15|x|PORT: inline vendored `mmux_python` → `src/mmux_flaskapi/dakota/` (6 used modules kept verbatim filenames: `lhs`,`dakota_object`,`funs_create_dakota_conf`,`funs_data_processing`,`funs_evaluate`,`wiofiles`; dropped 3 unused: `dakota_object_map`,`funs_git`,`funs_plotting`); rewrote internal cross-imports + blueprint imports (`dakota.py`,`sampling.py`) to `mmux_flaskapi.dakota.*`; removed `mmux-python` dep + `[tool.uv.workspace]`/`[tool.uv.sources]` + 6 dead transitive deps (gitpython,httpx,ipykernel,matplotlib,seaborn,tqdm) + coverage omit line from `pyproject.toml`; `uv sync` verified; full pytest suite green (439 passed) before+after|../SPEC.md T21,T2
 T16|.|[topic=dakota-cleanup] dakota/ code-quality pass: fix known lhsmu/log_output/sanitize_varnames bugs (flagged in #477 review) w/ regression tests; raise dakota/ subpackage test coverage; deliberately do NOT invest in `funs_create_dakota_conf.py` — input-file-generation logic likely superseded by Dakota's new JSON input format (T17)|—
 T17|.|RESEARCH: Dakota 6.24.0 introduced experimental JSON-format input files (`-json` CLI arg, Pydantic schema `python/dakota/spec/`; legacy NIDR parser deprecated but still available via `-parser legacy`) as the likely eventual replacement for `funs_create_dakota_conf.py`'s string-templated NIDR generation; evaluate migration once the JSON schema stabilizes (⊥ NIDR removed yet) — deferred, pairs T16|T16
-T18|.|SuMo validation statistical rigor: (a) paired t-test on CV actual-vs-predicted residuals → surface bias significance (statistic+p-value) alongside MAE/RMSE in `/get_sumo_cv_accuracy_metrics`; (b) convergence analysis: rerun CV metrics at increasing training-sample-count subsets, expose `{n_samples,metric}` series for accuracy-vs-N plotting; tests|V26,V27,../node/SPEC.md T20
+T18|x|SuMo validation statistical rigor: (a) paired t-test on CV actual-vs-predicted residuals → surface bias significance (statistic+p-value) alongside MAE/RMSE in `/get_sumo_cv_accuracy_metrics`; (b) convergence analysis: rerun CV metrics at increasing training-sample-count subsets, expose `{n_samples,metric}` series for accuracy-vs-N plotting; tests|V26,V27,../node/SPEC.md T20
 T19|.|correlation/sensitivity indices (#470): new endpoint computing per-input↔output Pearson+Spearman correlation from existing UQ Monte Carlo samples; single-plot multi-param sensitivity view (beyond current 3-param 1D/2D/3D limit); tests|V28,../node/SPEC.md T21
 
 ## §B
@@ -138,3 +138,4 @@ B7|2026-06-19|recursive camel/snake key converters mutated caller dict while wal
 B8|2026-06-19|`sampling.test_job` loop checked `"FAILURE" not in job` (dict keys) instead of `job["status"]` → failed jobs could keep polling|V23
 B9|2026-06-19|`OsparcApi._anonymize` default `m=None` could fully expose short strings → logging leaked whole secret prefix|V24
 B10|2026-06-19|Dakota endpoints called `os.chdir()` per request → process-global cwd mutation and request cross-talk risk|V25
+B11|2026-06-19|`evaluate_sumo_crossvalidation`'s `log_output` was hardcoded `""` → `_parse_crossvalidation_outputlogs` never had real Dakota stdout to parse → `/get_sumo_cv_accuracy_metrics` always fell through to "No surrogate quality metrics found.", never returned real metrics in production; fixed by switching the endpoint to reuse the already-working `evaluate_sumo_manual_crossvalidation` compute path (actual/predicted arrays) instead of Dakota log parsing|V26,V27
