@@ -1,4 +1,4 @@
-import { InfoOutline, KeyboardArrowDown, KeyboardArrowUp, Refresh } from "@mui/icons-material";
+import { Download, InfoOutline, KeyboardArrowDown, KeyboardArrowUp, Refresh } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -18,11 +18,13 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import { DataGrid } from "@mui/x-data-grid";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "react-toastify";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { useSamplingContext } from "../../context/SamplingContext";
-import { getJobCollectionStatus } from "../../utils/functionUtils";
+import { downloadJobCollectionCsv, getJobCollectionStatus } from "../../utils/functionUtils";
+import { triggerCsvDownload } from "../../utils/jobCollectionCsv";
 import getMinMax from "../minmax";
 import CustomTooltip from "../utils/CustomTooltip";
 import JobRow from "./JobRow";
@@ -202,6 +204,16 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     await requestForceFetch(selectedFunction?.uid as string, setJobProgress);
     console.info("Updated JobCollections");
   }, [requestForceFetch, selectedFunction, setJobProgress]);
+
+  const handleDownloadCsv = async (jobCollectionUid: string) => {
+    try {
+      const csvContent = await downloadJobCollectionCsv(jobCollectionUid);
+      triggerCsvDownload(csvContent, `job_collection_${jobCollectionUid}.csv`);
+    } catch (err) {
+      console.error("Error downloading JobCollection CSV:", err);
+      toast.error("Failed to download JobCollection CSV.");
+    }
+  };
 
   useEffect(() => {
     // fetchedJobCollections === undefined means the API call hasn't completed yet;
@@ -384,6 +396,21 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             type: "number",
             maxWidth: 120,
             renderCell: params => <span>{Object.keys(params.row.subJobs).length}</span>,
+          },
+          {
+            field: "downloadCsv",
+            headerName: "",
+            sortable: false,
+            align: "center",
+            headerAlign: "center",
+            maxWidth: 60,
+            renderCell: params => (
+              <CustomTooltip title="Download JobCollection CSV" placement="left">
+                <IconButton size="small" onClick={() => handleDownloadCsv(params.row.jobCollection.uid)}>
+                  <Download fontSize="small" color="primary" />
+                </IconButton>
+              </CustomTooltip>
+            ),
           },
           // {
           //   field: "createdAt",
