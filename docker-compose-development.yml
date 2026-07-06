@@ -30,5 +30,7 @@ services:
     ports:
       - "${APP_PORT:-8888}:8888"
     depends_on:
-      - mmux-vite-backend
-      - mmux-vite-web
+      mmux-vite-backend:
+        condition: service_healthy
+      mmux-vite-web:
+        condition: service_healthy
