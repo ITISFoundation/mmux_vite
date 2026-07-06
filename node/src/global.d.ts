@@ -130,7 +130,7 @@ interface InputTextBlockProps {
 }
 
 type Distribution = "constant" | "normal" | "uniform" | "log-normal" | "exponential";
-type Variables = "value" | "mean" | "std" | "min" | "max" | "location" | "scale";
+type Variables = "value" | "mean" | "std" | "min" | "max" | "logMean" | "logStd" | "scale";
 type OutputOptimization = "minimize" | "maximize";
 
 interface VarSelection {
@@ -140,7 +140,8 @@ interface VarSelection {
   std?: number;
   min?: number;
   max?: number;
-  location?: number;
+  logMean?: number;
+  logStd?: number;
   scale?: number;
   // Per-variable log-scale sampling/training toggle (SUMO/MOGA uniform inputs only).
   // Flows FunctionContext -> request payload -> backend Dakota preprocessing, which
