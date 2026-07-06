@@ -28,7 +28,7 @@ services:
       - WEB_SERVICE=mmux-vite-web:8080
       - BACKEND_SERVICE=mmux-vite-backend:5000
     ports:
-      - "8888:8888"
+      - "${APP_PORT:-8888}:8888"
     depends_on:
       - mmux-vite-backend
       - mmux-vite-web
