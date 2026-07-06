@@ -74,6 +74,7 @@ V13: `mmux-testid` attrs ! preserved on workflow-critical elements (shared selec
 V14: `expect.toHaveScreenshot.timeout` set ≥ 30s (⊥ default 5s) so Plotly/DataGrid finish stabilizing before pixel capture on slow CI hosts; pairs V12 determinism (B1)
 V15: e2e/client POSTs to strict_slashes Flask routes use the canonical trailing-slash URL (e.g. `/flask/text-file/`) → ⊥ 308 redirect round-trip (B2, pairs node/SPEC.md B13)
 V16: ∀ oSPARC publish → all 5 CI jobs (prek+node-tests+flaskapi-tests+e2e-tests+verify-image-build) ! green on `main`; version single-sourced (V5,V9)
+V17: e2e mock job/function fixtures (`tests/e2e/mock_osparc/`) representing "real job data" (`outputs`) ! mirror the actual shape production jobs have — ⊥ fabricate derived/computed keys (e.g. a surrogate-only `_std_hat`) that no real oSPARC/CSV-uploaded job ever carries, even just to make a flow render; doing so lets the double silently agree with a backend defect instead of catching it (closes B3, pairs flaskapi/SPEC.md B12/V32)
 
 ## §T
 id|status|task|cites
@@ -104,3 +105,4 @@ T23|.|sensitivity/correlation indices from UQ Monte Carlo samples, single multi-
 id|date|cause|fix
 B1|2026-06-22|#475 `node/playwright.config.ts` `toHaveScreenshot` comment said the default 5s stabilization window is too tight for Plotly/DataGrid but never set a `timeout` → snapshot gen/compare flaky on slow CI hosts|V14
 B2|2026-06-22|#475 e2e `resetPersistence` posts `/flask/text-file` (no trailing slash); route is registered as `/` under that prefix → 308 redirect round-trip (the strict_slashes class fixed at proxy level in node/SPEC.md B13)|V15
+B3|2026-07-06|UQ e2e read-only mock (`tests/e2e/mock_osparc/data.py::_std_hats`) fabricated a `<qoi>_std_hat` key directly on job `outputs` "so the UQ e2e flow renders a real histogram" — built around the same wrong assumption as flaskapi/SPEC.md B12's premature validator (that `_std_hat` is real-job-data, not surrogate-computed); the mock and the backend bug agreed with each other, so the hand-made e2e suite exercised a job shape no real job has and could never catch B12's regression, which shipped to `develop` undetected|V17

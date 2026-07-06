@@ -78,7 +78,7 @@ V1: `create_flask_app()` registers exactly 5 bp {deployment,osparc,text-file,sam
 V2: ∀ dakota endpoint → ≥5 completed jobs else 400; job complete ⟺ `status.lower() ∈ {"completed","success"}`
 V3: requests parse camelCase|snake_case (pydantic `populate_by_name=True`); JSON responses camelCase (e.g. `drag_force` → `dragForce`)
 V4: `DataPreprocessor` maps orig→`x1..`,`y1..` before Dakota, `inverse_transform` back on response; mapping persisted `preprocessor_config.json`
-V5: UQ-with-uncertainty needs `{output}_std_hat` in job outputs (surrogate uncertainty); uses `scipy.special.erfinv`
+V5: UQ-with-uncertainty needs `{output}_std_hat` in the surrogate's `evaluate_sumo()` results (variance is a property of the fitted model, computed from `variances.dat` when Dakota produces it — never a pre-existing key on raw `function_jobs[].outputs`, see V32/B12); uses `scipy.special.erfinv`
 V6: MOGA `maximize` objective → sign-switch to internal minimize, inverse on result
 V7: `DEPLOYMENT_MODE=LOCAL` → parent node/project ids = `"null"`; `=OSPARC` → read `OSPARC_NODE_ID`/`OSPARC_STUDY_ID`; other → ValueError
 V8: text-file `filename` rejects path separators (⊥ traversal); root `/text-files/`
@@ -104,6 +104,7 @@ V26: `recursive_dict_keys_{camel_to_snake,snake_to_camel}` ⊥ convert keys nest
 V29: SuMo cross-validation accuracy response includes a paired t-test (statistic+p-value) on CV actual-vs-predicted residuals, surfacing systematic surrogate bias beyond scalar MAE/RMSE
 V30: SuMo CV accuracy metrics available as a convergence series `{n_samples:metric}` across increasing training-sample-count subsets, ⊥ single-N snapshot only
 V31: correlation-indices endpoint computes per-input↔output Pearson+Spearman coefficients from the existing UQ Monte Carlo sample set (#470); one response covers ∀ input vars (⊥ 3-var limit of 1D/2D/3D plot views)
+V32: uncertainty-availability (`{output}_std_hat`) checks ∀ run against the surrogate's own computed `results` dict (post-`evaluate_sumo()`), never against raw `function_jobs[].outputs` — raw job outputs hold only real simulation values, `_std_hat` does not and never will exist there (closes B12)
 
 ## §T
 id|status|task|cites
@@ -141,3 +142,5 @@ B8|2026-06-19|`sampling.test_job` loop checked `"FAILURE" not in job` (dict keys
 B9|2026-06-19|`OsparcApi._anonymize` default `m=None` could fully expose short strings → logging leaked whole secret prefix|V24
 B10|2026-06-19|Dakota endpoints called `os.chdir()` per request → process-global cwd mutation and request cross-talk risk|V25
 B11|2026-07-02|`to_snake_case_request`/`recursive_dict_keys_camel_to_snake` had no preserve-subtree exception (unlike FE's V24/B18 read-path fix) → any irregular-case variable name (e.g. "TissueConduc", not just "sigma_blood"-style all-lowercase) sent in `distributions`/`sliderValues`/`outputVarSelection`/`projectInputs`/job `inputs`/`outputs` got silently mangled on arrival; same gap independently found in `_get_all_items` ingestion (`max_depth=1` still recurses one level into variable-name dicts) and the global `after_request` response hook — all three route through the same two shared functions, fixed once|V26
+B12|2026-07-06|`ManualUQWithUncertaintyRequest.validate_uncertainty_requirements` (pydantic, runs before Dakota ever executes) rejected every real request w/ 400 "UQ with uncertainty requires '{output}_std_hat' in job outputs" — it checked raw `function_jobs[].outputs` (actual simulation results, e.g. CSV-uploaded/oSPARC job data) for a pre-existing `_std_hat` key that is never present there; `_std_hat` is a derived quantity `evaluate_sumo()` computes from Dakota's `variances.dat` after fitting the surrogate, not part of training data. The endpoint's real (correct) check already existed downstream against `results` post-`evaluate_sumo()` (dakota.py ~L382); the premature pydantic check was redundant, wrong, and untested (0% coverage on its raise branch per htmlcov) — masked in tests only because the fixture artificially injected `_std_hat` into job outputs to make the (wrong) check pass|V32
+B13|2026-07-06|`create_manual_uq_samples` seed silently ignored (RNG created then discarded, scipy drew from global state) — fixed independently on branch `fix/uq-seed-not-forwarded` off `develop` (unrelated to this feature branch's scope); see that branch's own `flaskapi/SPEC.md` §B/§V entries for the fix detail|—

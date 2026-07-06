@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import { render, fireEvent, cleanup, waitFor, screen } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
 import { toast } from "react-toastify";
 import UploadJobCollectionButton from "./UploadJobCollectionButton";
 import { uploadJobCollectionCsv } from "../../utils/functionUtils";
@@ -29,7 +30,7 @@ describe("UploadJobCollectionButton", () => {
     vi.clearAllMocks();
   });
 
-  it("parses the CSV and drives onUploadSuccess with 1 authoritative result (V13)", async () => {
+  it("parses the CSV, opens the import dialog, and drives onUploadSuccess with 1 authoritative result (V13)", async () => {
     vi.mocked(pickSingleCsvFile).mockResolvedValueOnce(makeFakeCsvFile());
     vi.mocked(uploadJobCollectionCsv).mockResolvedValueOnce({
       targetFunctionUid: "func-new",
@@ -39,11 +40,20 @@ describe("UploadJobCollectionButton", () => {
     const onUploadSuccess = vi.fn();
     const toastSuccessSpy = vi.spyOn(toast, "success").mockImplementation(() => "" as never);
 
-    const { getByRole } = render(<UploadJobCollectionButton onUploadSuccess={onUploadSuccess} />);
-    fireEvent.click(getByRole("button"));
+    render(<UploadJobCollectionButton onUploadSuccess={onUploadSuccess} />);
+    fireEvent.click(screen.getByRole("button", { name: "Upload JobCollection CSV" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Import" }));
 
     await waitFor(() => expect(onUploadSuccess).toHaveBeenCalledTimes(1));
 
+    expect(uploadJobCollectionCsv).toHaveBeenCalledWith(
+      expect.objectContaining({
+        csvContent,
+        targetMode: "new",
+      }),
+    );
     expect(onUploadSuccess).toHaveBeenCalledWith({
       targetFunctionUid: "func-new",
       importedSamples: 2,
@@ -60,8 +70,11 @@ describe("UploadJobCollectionButton", () => {
     const onUploadSuccess = vi.fn();
     const toastErrorSpy = vi.spyOn(toast, "error").mockImplementation(() => "" as never);
 
-    const { getByRole } = render(<UploadJobCollectionButton onUploadSuccess={onUploadSuccess} />);
-    fireEvent.click(getByRole("button"));
+    render(<UploadJobCollectionButton onUploadSuccess={onUploadSuccess} />);
+    fireEvent.click(screen.getByRole("button", { name: "Upload JobCollection CSV" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Import" }));
 
     await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith("Incompatible function schema"));
     expect(onUploadSuccess).not.toHaveBeenCalled();
@@ -72,11 +85,48 @@ describe("UploadJobCollectionButton", () => {
     const onUploadSuccess = vi.fn();
     const toastErrorSpy = vi.spyOn(toast, "error").mockImplementation(() => "" as never);
 
-    const { getByRole } = render(<UploadJobCollectionButton onUploadSuccess={onUploadSuccess} />);
-    fireEvent.click(getByRole("button"));
+    render(<UploadJobCollectionButton onUploadSuccess={onUploadSuccess} />);
+    fireEvent.click(screen.getByRole("button", { name: "Upload JobCollection CSV" }));
 
     await waitFor(() => expect(pickSingleCsvFile).toHaveBeenCalledTimes(1));
     expect(onUploadSuccess).not.toHaveBeenCalled();
     expect(toastErrorSpy).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Import" })).not.toBeInTheDocument();
+  });
+
+  it("defaults to 'existing' mode and pre-selects the target when the CSV's source function is known", async () => {
+    vi.mocked(pickSingleCsvFile).mockResolvedValueOnce(makeFakeCsvFile());
+    vi.mocked(uploadJobCollectionCsv).mockResolvedValueOnce({
+      targetFunctionUid: "func-1",
+      importedSamples: 2,
+      jobCollection: { uid: "jc-new" } as never,
+    });
+    const csvWithSource = [
+      "# source_function_uid,func-1",
+      "source_job_uid,status,input__x1,output__y",
+      "job-1,SUCCESS,1.0,10.0",
+    ].join("\n");
+    vi.mocked(pickSingleCsvFile).mockReset();
+    vi.mocked(pickSingleCsvFile).mockResolvedValueOnce({
+      name: "job_collection.csv",
+      text: () => Promise.resolve(csvWithSource),
+    } as unknown as File);
+    const onUploadSuccess = vi.fn();
+
+    render(
+      <UploadJobCollectionButton
+        onUploadSuccess={onUploadSuccess}
+        existingFunctions={[{ uid: "func-1", title: "Existing Fn" } as never]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Upload JobCollection CSV" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Import" }));
+
+    await waitFor(() => expect(onUploadSuccess).toHaveBeenCalledTimes(1));
+    expect(uploadJobCollectionCsv).toHaveBeenCalledWith(
+      expect.objectContaining({ targetMode: "existing", targetFunctionUid: "func-1", sourceFunctionUid: "func-1" }),
+    );
   });
 });

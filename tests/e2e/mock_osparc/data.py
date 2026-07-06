@@ -54,22 +54,12 @@ def _outputs(x1: float, x2: float, x3: float, x4: float) -> tuple[float, float, 
     return y, y2, y3, y4
 
 
-def _std_hats(x1: float, x2: float, x3: float, x4: float) -> tuple[float, float, float, float]:
-    """Deterministic per-output uncertainty (``<output>_std_hat``).
-
-    The UQ propagation endpoint (``manual_uq_propagation_with_uncertainty``)
-    requires every selected job to expose a ``<qoi>_std_hat`` output, so the UQ
-    e2e flow renders a real histogram instead of the capability warning. Values
-    are smooth, strictly-positive, and hard-coded (no RNG) to keep pixel
-    snapshots reproducible. These live only on the job payloads, not on the
-    function ``output_schema``, so they never appear in the QoI dropdown and the
-    SuMo/MOGA flows are unaffected. See root SPEC.md §T9 / §V10-§V13.
-    """
-    s = round(0.1 + 0.05 * x1, 6)
-    s2 = round(0.1 + 0.05 * x2, 6)
-    s3 = round(0.1 + 0.05 * x3, 6)
-    s4 = round(0.1 + 0.05 * x4, 6)
-    return s, s2, s3, s4
+# B12/V32: `manual_uq_propagation_with_uncertainty` computes `{output}_std_hat`
+# itself from the trained surrogate's variance output (`evaluate_sumo()` /
+# Dakota `variances.dat`) — it is never a pre-existing key on real job outputs.
+# JOBS below intentionally does NOT fabricate a `_std_hat` output, so this e2e
+# suite exercises the same job shape a real oSPARC/CSV-uploaded job would have.
+# See root SPEC.md §T9 / §V10-§V13, flaskapi/SPEC.md B12/V32.
 
 
 JOBS: list[dict] = [
@@ -85,16 +75,11 @@ JOBS: list[dict] = [
             "y2": y2,
             "y3": y3,
             "y4": y4,
-            "y_std_hat": s,
-            "y2_std_hat": s2,
-            "y3_std_hat": s3,
-            "y4_std_hat": s4,
         },
         "status": "SUCCESS",
     }
     for i, (x1, x2, x3, x4) in enumerate(_INPUTS)
     for y, y2, y3, y4 in [_outputs(x1, x2, x3, x4)]
-    for s, s2, s3, s4 in [_std_hats(x1, x2, x3, x4)]
 ]
 
 JOBS_BY_UID: dict[str, dict] = {job["uid"]: job for job in JOBS}
