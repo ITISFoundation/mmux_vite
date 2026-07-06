@@ -20,6 +20,7 @@ COMPOSE_FILES = [
 ]
 
 VITE_CONFIG = REPO_ROOT / "node" / "vite.config.ts"
+MAKEFILE = REPO_ROOT / "Makefile"
 
 
 def test_app_service_depends_on_healthy_upstreams():
@@ -65,3 +66,37 @@ def test_development_compose_passes_app_port_to_vite():
         "so Vite can advertise the same browser-facing port printed by the "
         "Makefile fallback logic (V17/B5)"
     )
+
+
+def test_local_run_targets_preflight_required_osparc_env():
+    content = MAKEFILE.read_text()
+
+    assert "check-osparc-env:" in content, (
+        "Makefile must define a preflight that rejects missing/blank "
+        "OSPARC_API_BASE_URL, OSPARC_API_KEY, and OSPARC_API_SECRET before "
+        "local stacks start (V18/B6)"
+    )
+    assert "if [ -f .env ]; then . ./.env; fi" in content, (
+        "check-osparc-env must accept credentials from the same .env file that "
+        "docker compose uses for local stack interpolation (V18/B6)"
+    )
+
+    run_targets = [
+        "run-develop-sumo-read",
+        "run-develop-sumo-write",
+        "run-develop-uq-read",
+        "run-develop-uq-write",
+        "run-develop-moga-read",
+        "run-develop-moga-write",
+        "run-prod-local-sumo-read",
+        "run-prod-local-sumo-write",
+        "run-prod-local-uq-read",
+        "run-prod-local-uq-write",
+        "run-prod-moga-read",
+        "run-prod-moga-write",
+    ]
+    for target in run_targets:
+        assert f"{target}: check-osparc-env" in content, (
+            f"Makefile target {target} must fail before docker compose up when "
+            "required oSPARC credentials are missing or blank (V18/B6)"
+        )

@@ -55,10 +55,29 @@ build-no-cache: compose-spec ## build docker images
 ## NB: VSCode might keep old credentials cached, even if changed in .env
 ## run in a non-VSCode terminal to avoid this
 
+.PHONY: check-osparc-env
+check-osparc-env: ## fail before local docker runs if oSPARC credentials are missing
+	@set -a; \
+	if [ -f .env ]; then . ./.env; fi; \
+	missing=""; \
+	for key in OSPARC_API_BASE_URL OSPARC_API_KEY OSPARC_API_SECRET; do \
+		case "$${key}" in \
+			OSPARC_API_BASE_URL) value="$${OSPARC_API_BASE_URL}" ;; \
+			OSPARC_API_KEY) value="$${OSPARC_API_KEY}" ;; \
+			OSPARC_API_SECRET) value="$${OSPARC_API_SECRET}" ;; \
+		esac; \
+		if [ -z "$${value}" ]; then missing="$${missing} $${key}"; fi; \
+	done; \
+	if [ -n "$${missing}" ]; then \
+		echo "Missing required oSPARC environment values:$${missing}" >&2; \
+		echo "Create .env with 'make .env' and fill in your oSPARC API credentials, or export them before running local stacks." >&2; \
+		exit 1; \
+	fi
+
 # DEVELOPMENT
 
 .PHONY: run-develop-sumo-read
-run-develop-sumo-read: ## runs for development SUMO/READ-ONLY
+run-develop-sumo-read: check-osparc-env ## runs for development SUMO/READ-ONLY
 	export SERVICE_MODE=SUMO && \
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -68,7 +87,7 @@ run-develop-sumo-read: ## runs for development SUMO/READ-ONLY
 	docker compose --file docker-compose-development.yml up
 
 .PHONY: run-develop-sumo-write
-run-develop-sumo-write: ## runs for development SUMO/WRITE
+run-develop-sumo-write: check-osparc-env ## runs for development SUMO/WRITE
 	export SERVICE_MODE=SUMO && \
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -78,7 +97,7 @@ run-develop-sumo-write: ## runs for development SUMO/WRITE
 	docker compose --file docker-compose-development.yml up
 
 .PHONY: run-develop-uq-read
-run-develop-uq-read: ## runs for development UQ/READ-ONLY
+run-develop-uq-read: check-osparc-env ## runs for development UQ/READ-ONLY
 	export SERVICE_MODE=UQ && \
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -88,7 +107,7 @@ run-develop-uq-read: ## runs for development UQ/READ-ONLY
 	docker compose --file docker-compose-development.yml up
 
 .PHONY: run-develop-uq-write
-run-develop-uq-write: ## runs for development UQ/WRITE
+run-develop-uq-write: check-osparc-env ## runs for development UQ/WRITE
 	export SERVICE_MODE=UQ && \
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -98,7 +117,7 @@ run-develop-uq-write: ## runs for development UQ/WRITE
 	docker compose --file docker-compose-development.yml up
 
 .PHONY: run-develop-moga-read
-run-develop-moga-read: ## runs for development MOGA/READ-ONLY
+run-develop-moga-read: check-osparc-env ## runs for development MOGA/READ-ONLY
 	export SERVICE_MODE=MOGA && \
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -108,7 +127,7 @@ run-develop-moga-read: ## runs for development MOGA/READ-ONLY
 	docker compose --file docker-compose-development.yml up
 
 .PHONY: run-develop-moga-write
-run-develop-moga-write: ## runs for development MOGA/WRITE
+run-develop-moga-write: check-osparc-env ## runs for development MOGA/WRITE
 	export SERVICE_MODE=MOGA && \
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -120,7 +139,7 @@ run-develop-moga-write: ## runs for development MOGA/WRITE
 # VALIDATION VERSIONS
 
 .PHONY: run-prod-local-sumo-read
-run-prod-local-sumo-read: ## runs for validation as it would be in production SUMO/READ-ONLY
+run-prod-local-sumo-read: check-osparc-env ## runs for validation as it would be in production SUMO/READ-ONLY
 	export SERVICE_MODE=SUMO && \
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -130,7 +149,7 @@ run-prod-local-sumo-read: ## runs for validation as it would be in production SU
 	docker compose --file docker-compose-local.yml up
 
 .PHONY: run-prod-local-sumo-write
-run-prod-local-sumo-write: ## runs for validation as it would be in production SUMO/WRITE
+run-prod-local-sumo-write: check-osparc-env ## runs for validation as it would be in production SUMO/WRITE
 	export SERVICE_MODE=SUMO && \
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -140,7 +159,7 @@ run-prod-local-sumo-write: ## runs for validation as it would be in production S
 	docker compose --file docker-compose-local.yml up
 
 .PHONY: run-prod-local-uq-read
-run-prod-local-uq-read: ## runs for validation as it would be in production UQ/READ-ONLY
+run-prod-local-uq-read: check-osparc-env ## runs for validation as it would be in production UQ/READ-ONLY
 	export SERVICE_MODE=UQ && \
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -150,7 +169,7 @@ run-prod-local-uq-read: ## runs for validation as it would be in production UQ/R
 	docker compose --file docker-compose-local.yml up
 
 .PHONY: run-prod-local-uq-write
-run-prod-local-uq-write: ## runs for validation as it would be in production UQ/WRITE
+run-prod-local-uq-write: check-osparc-env ## runs for validation as it would be in production UQ/WRITE
 	export SERVICE_MODE=UQ && \
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -160,7 +179,7 @@ run-prod-local-uq-write: ## runs for validation as it would be in production UQ/
 	docker compose --file docker-compose-local.yml up
 
 .PHONY: run-prod-moga-read
-run-prod-moga-read: ## runs for validation as it would be in production MOGA/READ-ONLY
+run-prod-moga-read: check-osparc-env ## runs for validation as it would be in production MOGA/READ-ONLY
 	export SERVICE_MODE=MOGA && \
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -170,7 +189,7 @@ run-prod-moga-read: ## runs for validation as it would be in production MOGA/REA
 	docker compose --file docker-compose-local.yml up
 
 .PHONY: run-prod-moga-write
-run-prod-moga-write: ## runs for validation as it would be in production MOGA/WRITE
+run-prod-moga-write: check-osparc-env ## runs for validation as it would be in production MOGA/WRITE
 	export SERVICE_MODE=MOGA && \
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
