@@ -19,6 +19,8 @@ COMPOSE_FILES = [
     "docker-compose-local.yml",
 ]
 
+VITE_CONFIG = REPO_ROOT / "node" / "vite.config.ts"
+
 
 def test_app_service_depends_on_healthy_upstreams():
     for filename in COMPOSE_FILES:
@@ -39,3 +41,27 @@ def test_app_service_depends_on_healthy_upstreams():
             "mmux-vite-web (V3) — plain list-form depends_on only waits for "
             "container start, not health (B4)"
         )
+
+
+def test_vite_dev_server_does_not_force_internal_origin():
+    content = VITE_CONFIG.read_text()
+
+    assert "origin:" not in content, (
+        "node/vite.config.ts: Vite dev server must derive its browser origin "
+        "from the request host so docker-compose APP_PORT fallback ports keep "
+        "serving dev assets/HMR through Caddy (V17/B5)"
+    )
+    assert "clientPort: appPort" in content, (
+        "node/vite.config.ts: Vite HMR must use APP_PORT as the browser-facing "
+        "client port instead of the internal 8080 dev-server port (V17/B5)"
+    )
+
+
+def test_development_compose_passes_app_port_to_vite():
+    content = (REPO_ROOT / "docker-compose-development.yml").read_text()
+
+    assert "APP_PORT=${APP_PORT:-8888}" in content, (
+        "docker-compose-development.yml: mmux-vite-web must receive APP_PORT "
+        "so Vite can advertise the same browser-facing port printed by the "
+        "Makefile fallback logic (V17/B5)"
+    )
