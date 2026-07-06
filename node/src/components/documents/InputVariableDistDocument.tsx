@@ -14,6 +14,11 @@ const InputVariableDistDocument = (
           describes the range and likelihood of possible values.`}
       </Typography>
       <Typography variant="body1" fontFamily="inherit" flex={1} mb={1}>
+        {`For a Log-Normal distribution, "Log Mean" and "Log Std" are the mean and standard deviation of the underlying
+        Normal distribution in log-space (i.e. of ln(X), not of X itself). The parameter's own values are strictly positive
+        and typically range from exp(Log Mean - 2.5 x Log Std) to exp(Log Mean + 2.5 x Log Std).`}
+      </Typography>
+      <Typography variant="body1" fontFamily="inherit" flex={1} mb={1}>
         {`Input parameters are assumed to be stochastically independent, meaning the value of one parameter doesn't influence the
         probability distribution of another.`}
       </Typography>
