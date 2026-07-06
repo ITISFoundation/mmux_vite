@@ -7,6 +7,8 @@ upstream services, not just container start, or it serves traffic before
 "no upstreams available" 503s on every local stack (re)start.
 """
 
+import os
+import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -20,6 +22,7 @@ COMPOSE_FILES = [
 ]
 
 VITE_CONFIG = REPO_ROOT / "node" / "vite.config.ts"
+RESOLVE_APP_PORT = REPO_ROOT / "scripts" / "resolve-app-port.sh"
 
 
 def test_app_service_depends_on_healthy_upstreams():
@@ -65,3 +68,47 @@ def test_development_compose_passes_app_port_to_vite():
         "so Vite can advertise the same browser-facing port printed by the "
         "Makefile fallback logic (V17/B5)"
     )
+
+
+def test_make_targets_reuse_running_compose_app_port():
+    content = (REPO_ROOT / "Makefile").read_text()
+
+    assert "scripts/find-free-port.sh 8888" not in content, (
+        "Make run targets must not blindly recalculate a fresh free port while "
+        "the Compose app service may already be running on a different port (V19/B7)"
+    )
+    assert content.count("scripts/resolve-app-port.sh docker-compose-development.yml 8888") == 6
+    assert content.count("scripts/resolve-app-port.sh docker-compose-local.yml 8888") == 6
+    assert content.count("MMUX app URL (this WSL shell): http://localhost:%s") == 12
+    assert content.count("MMUX app URL (Windows browser via WSL IP): http://%s:%s") == 12
+    assert "hostname -I | awk '{print $$1}'" in content
+    assert content.count("============================================================") == 24
+
+
+def test_resolve_app_port_prefers_existing_compose_publication(tmp_path):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    docker = fake_bin / "docker"
+    docker.write_text(
+        "#!/usr/bin/env bash\n"
+        'if [[ "$*" == "compose --file docker-compose-development.yml port mmux-vite-app 8888" ]]; then\n'
+        "  echo '0.0.0.0:8891'\n"
+        "  exit 0\n"
+        "fi\n"
+        "exit 1\n"
+    )
+    docker.chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
+
+    result = subprocess.run(
+        ["bash", str(RESOLVE_APP_PORT), "docker-compose-development.yml", "8888"],
+        cwd=REPO_ROOT,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.stdout.strip() == "8891"

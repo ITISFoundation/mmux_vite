@@ -134,4 +134,13 @@ def get_osparc_api() -> OsparcApi:
     return osparc_api
 
 
-__all__ = ["OsparcApi", "get_osparc_api", "OsparcApiException"]
+def get_osparc_api_if_configured() -> OsparcApi | None:
+    """Return the OsparcApi instance only when local credentials are nonblank."""
+    osparc_api = get_osparc_api()
+    configuration = osparc_api._configuration
+    if not configuration.host or not configuration.username or not configuration.password:
+        return None
+    return osparc_api
+
+
+__all__ = ["OsparcApi", "get_osparc_api", "get_osparc_api_if_configured", "OsparcApiException"]
