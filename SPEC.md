@@ -74,6 +74,7 @@ V13: `mmux-testid` attrs ! preserved on workflow-critical elements (shared selec
 V14: `expect.toHaveScreenshot.timeout` set ≥ 30s (⊥ default 5s) so Plotly/DataGrid finish stabilizing before pixel capture on slow CI hosts; pairs V12 determinism (B1)
 V15: e2e/client POSTs to strict_slashes Flask routes use the canonical trailing-slash URL (e.g. `/flask/text-file/`) → ⊥ 308 redirect round-trip (B2, pairs node/SPEC.md B13)
 V16: ∀ oSPARC publish → all 5 CI jobs (prek+node-tests+flaskapi-tests+e2e-tests+verify-image-build) ! green on `main`; version single-sourced (V5,V9)
+V17: local dev Vite server behind Caddy ! derive browser origin from request host ∧ advertise HMR `clientPort` from `APP_PORT`; ⊥ fixed `server.origin`/browser-facing internal `:8080`, so fallback ports serve dev assets/HMR on printed origin (B5)
 
 ## §T
 id|status|task|cites
@@ -103,3 +104,4 @@ id|date|cause|fix
 B1|2026-06-22|#475 `node/playwright.config.ts` `toHaveScreenshot` comment said the default 5s stabilization window is too tight for Plotly/DataGrid but never set a `timeout` → snapshot gen/compare flaky on slow CI hosts|V14
 B2|2026-06-22|#475 e2e `resetPersistence` posts `/flask/text-file` (no trailing slash); route is registered as `/` under that prefix → 308 redirect round-trip (the strict_slashes class fixed at proxy level in node/SPEC.md B13)|V15
 B4|2026-07-06|`docker-compose-development.yml` & `docker-compose-local.yml` `mmux-vite-app.depends_on` used plain list form (`service_started` semantics) instead of `condition: service_healthy`, unlike the ooil-generated `docker-compose.yml` which already sets `condition: service_healthy` for both upstreams — violates already-stated V3; Caddy accepted traffic before `mmux-vite-backend`/`mmux-vite-web` passed their `HEALTHCHECK` (30s interval, 20s start-period), producing transient `"no upstreams available"` 503s on every local stack (re)start, misdiagnosed as a networking/port-forwarding fault before being traced here|V3
+B5|2026-07-06|`node/vite.config.ts` forced `server.origin` to `http://0.0.0.0:8080` and `docker-compose-development.yml` did not pass `APP_PORT` into `mmux-vite-web`; when Caddy published the app on fallback host ports like 8889/8890, Vite still emitted dev-client socket/internal-origin hints for `localhost:8080`, so the page HTML/API routes were reachable but browser dev assets/HMR did not consistently stay on the printed `APP_PORT` origin|V17
