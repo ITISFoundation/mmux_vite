@@ -1,44 +1,29 @@
-// Job-collection CSV import/export (§T6, V13). Parses/serializes the backend's
-// "# key,value" metadata preamble + inputs/outputs table format produced by
-// `GET /flask/osparc/download_job_collection_csv` and consumed by
-// `POST /flask/sampling/upload_job_collection_csv`. Pure utility (⊥ JSX/React),
-// see node/SPEC.md §C structural conventions.
+import { computeDiagnostics } from "./distributionDiagnostics";
 
-export interface UploadedInputPreset {
-  distribution: "uniform";
-  min: number;
-  max: number;
-  logScale: boolean;
-}
+export type UploadedInputPreset =
+  | (VarSelection & { distribution: "constant"; value: number })
+  | (VarSelection & { distribution: "uniform"; min: number; max: number; logScale: boolean })
+  | (VarSelection & { distribution: "normal"; mean: number; std: number })
+  | (VarSelection & { distribution: "log-normal"; logMean: number; logStd: number });
 
-export interface ParsedJobCollectionRow {
-  sourceJobUid?: string;
-  status?: string;
-  inputs: Record<string, number>;
-  outputs: Record<string, number>;
-}
-
-export interface ParsedJobCollectionCsv {
-  sourceFunctionUid?: string;
-  sourceJobCollectionUid?: string;
-  sourceJobCollectionTitle?: string;
+export interface UploadedJobCollectionAnalysis {
   inputVars: string[];
   outputVars: string[];
   inputPresets: Record<string, UploadedInputPreset>;
-  rows: ParsedJobCollectionRow[];
 }
 
-export interface JobCollectionCsvSource {
-  sourceFunctionUid?: string;
-  sourceJobCollectionUid?: string;
-  sourceJobCollectionTitle?: string;
-  inputVars: string[];
-  outputVars: string[];
-  rows: ParsedJobCollectionRow[];
-}
+function splitCsvPreambleAndTable(csvContent: string): { tableLines: string[] } {
+  const tableLines: string[] = [];
 
-const inputPrefix = "input__";
-const outputPrefix = "output__";
+  for (const line of csvContent.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if ((trimmed || tableLines.length > 0) && !(tableLines.length === 0 && trimmed.startsWith("#"))) {
+      tableLines.push(line);
+    }
+  }
+
+  return { tableLines };
+}
 
 function parseCsvRow(line: string): string[] {
   const values: string[] = [];
@@ -47,6 +32,7 @@ function parseCsvRow(line: string): string[] {
 
   for (let index = 0; index < line.length; index += 1) {
     const char = line[index];
+
     if (char === '"') {
       if (inQuotes && line[index + 1] === '"') {
         current += '"';
@@ -61,171 +47,191 @@ function parseCsvRow(line: string): string[] {
       current += char;
     }
   }
+
   values.push(current);
   return values;
 }
 
-function splitPreambleAndTable(csvContent: string): { preamble: Record<string, string>; tableLines: string[] } {
-  const preamble: Record<string, string> = {};
-  const tableLines: string[] = [];
-
-  csvContent.split(/\r?\n/).forEach(line => {
-    const trimmed = line.trim();
-    if (tableLines.length === 0 && trimmed.startsWith("#")) {
-      // B20: parse the "# key,value" preamble line via the CSV row parser (not a raw
-      // indexOf(",") split) so a quoted value can itself contain commas/quotes.
-      const [key, ...rest] = parseCsvRow(trimmed.slice(1).trim());
-      if (key !== undefined && rest.length > 0) {
-        preamble[key.trim()] = rest.join(",");
-      }
-      return;
-    }
-    if (tableLines.length === 0 && trimmed.length === 0) {
-      return; // skip blank lines before the table starts
-    }
-    tableLines.push(line);
-  });
-
-  return { preamble, tableLines };
-}
-
-function csvEscape(value: string): string {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
+function shapeScore(values: number[]): number {
+  const count = values.length;
+  if (count === 0) {
+    return Number.POSITIVE_INFINITY;
   }
-  return value;
-}
 
-// B19: a blank/whitespace-only cell means the value is missing, not 0 —
-// `Number("")===0` would otherwise silently record a real zero.
-function parseNumericCell(rawCell: string | undefined): number | undefined {
-  if (rawCell === undefined || rawCell.trim().length === 0) {
-    return undefined;
+  let mean = 0;
+  for (const value of values) {
+    mean += value;
   }
-  const numericValue = Number(rawCell);
-  return Number.isFinite(numericValue) ? numericValue : undefined;
+  mean /= count;
+
+  let secondMoment = 0;
+  let thirdMoment = 0;
+  let fourthMoment = 0;
+  for (const value of values) {
+    const delta = value - mean;
+    const deltaSquared = delta * delta;
+    secondMoment += deltaSquared;
+    thirdMoment += deltaSquared * delta;
+    fourthMoment += deltaSquared * deltaSquared;
+  }
+
+  secondMoment /= count;
+  thirdMoment /= count;
+  fourthMoment /= count;
+
+  if (secondMoment === 0) {
+    return 0;
+  }
+
+  const sigma = Math.sqrt(secondMoment);
+  const skewness = thirdMoment / (sigma * sigma * sigma);
+  const excessKurtosis = fourthMoment / (secondMoment * secondMoment) - 3;
+  return Math.abs(skewness) + Math.abs(excessKurtosis);
 }
 
 function shouldUseLogScale(values: number[]): boolean {
   if (values.length === 0 || values.some(value => value <= 0)) {
     return false;
   }
+
   const min = Math.min(...values);
   const max = Math.max(...values);
   if (!(max > min)) {
     return false;
   }
-  // heuristic: values spanning >=2 orders of magnitude read better on a log axis
-  return Math.log10(max) - Math.log10(min) >= 2;
+
+  const diagnostics = computeDiagnostics(values);
+  if (!diagnostics.hasEnoughSamples) {
+    return Math.log10(max) - Math.log10(min) >= 2;
+  }
+
+  const rawScore = shapeScore(values);
+  const logScore = shapeScore(values.map(value => Math.log10(value)));
+
+  return logScore <= rawScore - 0.06;
 }
 
-export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCsv {
-  const { preamble, tableLines } = splitPreambleAndTable(csvContent);
+// Theoretical shapeScore (|skewness| + |excess kurtosis|) of a perfect uniform
+// distribution: skewness = 0, excess kurtosis = -1.2.
+const uniformReferenceShapeScore = 1.2;
+// Only prefer a richer/more-specific distribution (log-normal over normal/uniform,
+// normal over uniform) when its shape-fit is clearly better by this margin — mirrors
+// the margin already used by shouldUseLogScale above, avoiding needless flip-flopping.
+const distributionPreferenceMargin = 0.06;
+
+function roundToSignificantDigits(value: number, digits = 3): number {
+  return Number(value.toPrecision(digits));
+}
+
+/**
+ * Infer the best-fit distribution (constant, uniform, normal, or log-normal) for a
+ * variable's imported data, so newly-created functions start with sensible defaults
+ * instead of always defaulting to uniform. Falls back to uniform (+ the existing
+ * logScale heuristic) when there isn't enough data to trust a shape comparison.
+ *
+ * Values computed from data (mean/std/logMean/logStd) are rounded to 3 significant
+ * digits; literal min/max bounds are preserved exactly.
+ */
+function pickDistributionPreset(values: number[]): UploadedInputPreset {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+
+  if (min === max) {
+    return { distribution: "constant", value: roundToSignificantDigits(min) };
+  }
+
+  const diagnostics = computeDiagnostics(values);
+  if (!diagnostics.hasEnoughSamples) {
+    return { distribution: "uniform", min, max, logScale: shouldUseLogScale(values) };
+  }
+
+  const allPositive = values.every(value => value > 0);
+  const normalDistance = shapeScore(values);
+  const uniformDistance = Math.abs(normalDistance - uniformReferenceShapeScore);
+  const logNormalDistance = allPositive ? shapeScore(values.map(value => Math.log(value))) : undefined;
+
+  const bestLinearDistance = Math.min(normalDistance, uniformDistance);
+
+  if (logNormalDistance !== undefined && logNormalDistance + distributionPreferenceMargin < bestLinearDistance) {
+    const logStats = computeDiagnostics(values.map(value => Math.log(value)));
+    return {
+      distribution: "log-normal",
+      logMean: roundToSignificantDigits(logStats.mean),
+      logStd: roundToSignificantDigits(logStats.std),
+    };
+  }
+
+  if (normalDistance + distributionPreferenceMargin < uniformDistance) {
+    return {
+      distribution: "normal",
+      mean: roundToSignificantDigits(diagnostics.mean),
+      std: roundToSignificantDigits(diagnostics.std),
+    };
+  }
+
+  return { distribution: "uniform", min, max, logScale: shouldUseLogScale(values) };
+}
+
+export interface AnalyzeUploadedJobCollectionCsvOptions {
+  /**
+   * When true, infer the best-fit distribution (constant/uniform/normal/log-normal) per
+   * variable instead of always defaulting to uniform. Intended for the "create new
+   * function from CSV" flow only.
+   */
+  inferDistributionType?: boolean;
+}
+
+export function analyzeUploadedJobCollectionCsv(
+  csvContent: string,
+  options: AnalyzeUploadedJobCollectionCsvOptions = {},
+): UploadedJobCollectionAnalysis {
+  const { tableLines } = splitCsvPreambleAndTable(csvContent);
   const dataLines = tableLines.map(line => line.trimEnd()).filter(line => line.trim().length > 0);
   const headerLine = dataLines[0];
 
-  const base = {
-    sourceFunctionUid: preamble.source_function_uid,
-    sourceJobCollectionUid: preamble.source_job_collection_uid,
-    sourceJobCollectionTitle: preamble.source_job_collection_title,
-  };
-
   if (!headerLine) {
-    return { ...base, inputVars: [], outputVars: [], inputPresets: {}, rows: [] };
+    return { inputVars: [], outputVars: [], inputPresets: {} };
   }
 
   const header = parseCsvRow(headerLine);
-  const inputColumns = header.filter(column => column.startsWith(inputPrefix));
-  const outputColumns = header.filter(column => column.startsWith(outputPrefix));
-  const inputVars = inputColumns.map(column => column.slice(inputPrefix.length));
-  const outputVars = outputColumns.map(column => column.slice(outputPrefix.length));
-  const sourceJobUidIndex = header.indexOf("source_job_uid");
-  const statusIndex = header.indexOf("status");
-  const valueBuckets: Record<string, number[]> = Object.fromEntries(inputVars.map(variable => [variable, []]));
-  const rows: ParsedJobCollectionRow[] = [];
+  const inputColumns = header.filter(column => column.startsWith("input__"));
+  const outputColumns = header.filter(column => column.startsWith("output__"));
+  const inputVars = inputColumns.map(column => column.replace("input__", ""));
+  const outputVars = outputColumns.map(column => column.replace("output__", ""));
+  const valueBuckets = Object.fromEntries(inputVars.map(variable => [variable, [] as number[]]));
 
-  dataLines.slice(1).forEach(line => {
-    const cells = parseCsvRow(line);
-    const inputs: Record<string, number> = {};
-    const outputs: Record<string, number> = {};
-
+  for (const line of dataLines.slice(1)) {
+    const row = parseCsvRow(line);
     inputColumns.forEach((column, index) => {
       const columnIndex = header.indexOf(column);
-      const numericValue = parseNumericCell(cells[columnIndex]);
-      if (numericValue !== undefined) {
-        inputs[inputVars[index]] = numericValue;
+      const rawValue = row[columnIndex] ?? "";
+      const numericValue = Number(rawValue);
+      if (Number.isFinite(numericValue)) {
         valueBuckets[inputVars[index]].push(numericValue);
       }
     });
-    outputColumns.forEach((column, index) => {
-      const columnIndex = header.indexOf(column);
-      const numericValue = parseNumericCell(cells[columnIndex]);
-      if (numericValue !== undefined) {
-        outputs[outputVars[index]] = numericValue;
-      }
-    });
+  }
 
-    rows.push({
-      sourceJobUid: sourceJobUidIndex !== -1 ? cells[sourceJobUidIndex] : undefined,
-      status: statusIndex !== -1 ? cells[statusIndex] : undefined,
-      inputs,
-      outputs,
-    });
-  });
+  const inputPresets = Object.fromEntries(
+    inputVars
+      .filter(variable => valueBuckets[variable].length > 0)
+      .map(variable => {
+        const values = valueBuckets[variable];
+        const preset: UploadedInputPreset = options.inferDistributionType
+          ? pickDistributionPreset(values)
+          : { distribution: "uniform", min: Math.min(...values), max: Math.max(...values), logScale: shouldUseLogScale(values) };
+        return [variable, preset];
+      }),
+  );
 
-  const inputPresets: Record<string, UploadedInputPreset> = {};
-  inputVars.forEach(variable => {
-    const values = valueBuckets[variable];
-    if (values.length === 0) {
-      return;
-    }
-    inputPresets[variable] = {
-      distribution: "uniform",
-      min: Math.min(...values),
-      max: Math.max(...values),
-      logScale: shouldUseLogScale(values),
-    };
-  });
-
-  return { ...base, inputVars, outputVars, inputPresets, rows };
+  return {
+    inputVars,
+    outputVars,
+    inputPresets,
+  };
 }
 
-export function serializeJobCollectionCsv(source: JobCollectionCsvSource): string {
-  const lines: string[] = [];
-  // B20: escape preamble values the same way table cells are escaped, so a
-  // title containing a comma/quote round-trips through parseJobCollectionCsv.
-  if (source.sourceFunctionUid !== undefined) {
-    lines.push(`# source_function_uid,${csvEscape(source.sourceFunctionUid)}`);
-  }
-  if (source.sourceJobCollectionUid !== undefined) {
-    lines.push(`# source_job_collection_uid,${csvEscape(source.sourceJobCollectionUid)}`);
-  }
-  if (source.sourceJobCollectionTitle !== undefined) {
-    lines.push(`# source_job_collection_title,${csvEscape(source.sourceJobCollectionTitle)}`);
-  }
-
-  const header = [
-    "source_job_uid",
-    "status",
-    ...source.inputVars.map(variable => `${inputPrefix}${variable}`),
-    ...source.outputVars.map(variable => `${outputPrefix}${variable}`),
-  ];
-  lines.push(header.join(","));
-
-  source.rows.forEach(row => {
-    const cells = [
-      row.sourceJobUid ?? "",
-      row.status ?? "",
-      ...source.inputVars.map(variable => (row.inputs[variable] !== undefined ? String(row.inputs[variable]) : "")),
-      ...source.outputVars.map(variable => (row.outputs[variable] !== undefined ? String(row.outputs[variable]) : "")),
-    ];
-    lines.push(cells.map(csvEscape).join(","));
-  });
-
-  return `${lines.join("\n")}\n`;
-}
-
-export function triggerCsvDownload(csvContent: string, fileName: string): void {
+export function triggerCsvDownload(csvContent: string, fileName: string) {
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -234,45 +240,21 @@ export function triggerCsvDownload(csvContent: string, fileName: string): void {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  // B21: defer the revoke to the next tick — revoking synchronously can race
-  // ahead of the browser starting to read the blob, producing flaky/empty downloads.
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+  URL.revokeObjectURL(url);
 }
 
-export function pickSingleCsvFile(): Promise<File> {
-  return new Promise((resolve, reject) => {
-    let settled = false;
+export const pickSingleCsvFile = (): Promise<File> =>
+  new Promise((resolve, reject) => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".csv,text/csv";
-
-    // B22: dismissing the native file picker does not fire `change` in most
-    // browsers, so `onchange` alone leaves this promise pending forever. Use the
-    // window regaining focus (which happens when the picker closes) as a
-    // fallback signal, deferred so the genuine `change` event gets a chance to
-    // fire first, and guard both paths with `settled` so only one ever resolves.
-    const onWindowFocus = () => {
-      window.setTimeout(() => {
-        if (!settled && !input.files?.length) {
-          settled = true;
-          window.removeEventListener("focus", onWindowFocus);
-          reject(new Error("No file selected"));
-        }
-      }, 300);
-    };
-
     input.onchange = () => {
-      if (settled) return;
       const file = input.files?.[0];
-      settled = true;
-      window.removeEventListener("focus", onWindowFocus);
       if (!file) {
         reject(new Error("No file selected"));
         return;
       }
       resolve(file);
     };
-    window.addEventListener("focus", onWindowFocus);
     input.click();
   });
-}
