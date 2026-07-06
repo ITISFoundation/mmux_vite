@@ -18,14 +18,14 @@ function snakeToCamelCase(value: string): string {
 // snake_case.
 //
 // Write path (FE -> backend request body): fixed on the backend side only
-// (flaskapi/utils/helpers.py `_DEFAULT_PRESERVE_NESTED_KEYS`, applied in
-// `to_snake_case_request`/`json_serializer.py`) — the backend now passes
-// `distributions`/`sliderValues`/`outputVarSelection`/`projectInputs`
+// (flaskapi/src/mmux_flaskapi/utils/helpers.py `_DEFAULT_PRESERVE_NESTED_KEYS`,
+// applied in `to_snake_case_request`/`json_serializer.py`) — the backend now
+// passes `distributions`/`sliderValues`/`outputVarSelection`/`projectInputs`
 // subtrees through untouched, so no FE-side outgoing camelToSnakeCase
 // conversion utility is needed (deliberately not built — would be dead code
 // with no caller; see node/SPEC.md T13/T19, grilled 2026-07-02). Covered by
 // flaskapi's `test_utils_helpers.py::TestPreserveNestedKeysForVariableNames`,
-// the cross-language equality test
+// the cross-language subset tripwire test
 // (`test_preserve_nested_keys_matches_frontend_opaque_keys`), and an
 // end-to-end regression test in `test_flask_dakota_workflows.py`. Do NOT
 // resurrect the `FunctionVariablesDict`/Pydantic-wrapper approach from the

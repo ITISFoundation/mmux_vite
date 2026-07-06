@@ -366,9 +366,11 @@ class TestPreserveNestedKeysForVariableNames:
             Path(__file__).resolve().parents[2] / "node" / "src" / "utils" / "functionUtils.ts"
         )
         ts_source = ts_path.read_text()
-        match = re.search(r"opaqueValueDictKeys\s*=\s*new Set\(\[(.*?)\]\)", ts_source)
+        match = re.search(
+            r"opaqueValueDictKeys\s*=\s*new Set\(\s*\[(.*?)\]\s*\)", ts_source, re.DOTALL
+        )
         assert match, "Could not find opaqueValueDictKeys Set(...) literal in functionUtils.ts"
-        fe_keys_camel = re.findall(r'"([^"]+)"', match.group(1))
+        fe_keys_camel = re.findall(r"['\"]([^'\"]+)['\"]", match.group(1))
         assert fe_keys_camel, "opaqueValueDictKeys Set appears empty - check the regex/file"
 
         def camel_to_snake_ts_style(s: str) -> str:
