@@ -24,3 +24,6 @@ dakota_*.txt
 stderr
 stdout
 fort.*
+
+# local_job_store runtime data (DEPLOYMENT_MODE=LOCAL)
+runs_local/
