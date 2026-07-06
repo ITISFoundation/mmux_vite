@@ -113,6 +113,12 @@ def to_camel_case_response(data: Any) -> Any:
 
     Returns:
         Object with all dictionary keys converted from snake_case to camelCase
+
+    Nested dicts under oSPARC variable-name keys (see
+    `helpers._DEFAULT_PRESERVE_NESTED_KEYS`) are preserved verbatim - this also
+    protects `_get_all_items`/`_get_first_N_items`/`_get_last_N_items`'s
+    ingestion conversion, which routes through the same underlying function.
+    node/SPEC.md V24/B18; flaskapi/SPEC.md V13.
     """
     if isinstance(data, dict):
         return recursive_dict_keys_snake_to_camel(data)
@@ -131,20 +137,16 @@ def to_snake_case_request(data: Any) -> Any:
     Returns:
         Object with all dictionary keys converted from camelCase to snake_case
 
-    KNOWN GAP (live bug, not yet fixed): this converts every key at every
-    nesting depth unconditionally. Unlike the response side (node/SPEC.md
-    V24, B18 fix in `functionUtils.ts`), there is no preserve-subtree
-    exception here for dicts whose keys are oSPARC variable names (e.g.
-    inside `inputs`/`outputs`/`properties`/`distribution(s)`/`slider_values`).
-    Any variable name that isn't a lossless camelCase<->snake_case round-trip
-    (e.g. "TissueConduc", "peak_Averaged_Field" - mixed case, not just
-    "sigma_blood"-style all-lowercase) gets silently mangled the moment the
-    frontend sends it back in a request body (job config, slider values,
-    distribution params). Fix: mirror the preserve-subtree check from
-    `recursive_dict_keys_camel_to_snake`/`opaqueValueDictKeys` here, using a
-    canonical key-set shared (via an equality test, not a shared runtime
-    file) with the frontend's list. Tracked as node/SPEC.md T13+T19 (see
-    `functionUtils.ts` for the frontend half of this fix).
+    Nested dicts under oSPARC variable-name keys (`distributions`,
+    `slider_values`, `output_var_selection`, `project_inputs`, `inputs`,
+    `outputs`, `default_inputs`, `properties` - see
+    `helpers._DEFAULT_PRESERVE_NESTED_KEYS`) are preserved verbatim, so a
+    variable name that isn't a lossless camelCase<->snake_case round-trip
+    (e.g. "TissueConduc", not just "sigma_blood"-style all-lowercase) is not
+    mangled when the frontend sends it back in a request body (job config,
+    slider values, distribution params). Fixed node/SPEC.md T13/T19; see
+    `test_utils_helpers.py::TestPreserveNestedKeysForVariableNames` and
+    `test_flask_dakota_workflows.py::test_moga_preserves_irregular_case_variable_name_end_to_end`.
     """
     if isinstance(data, dict):
         return recursive_dict_keys_camel_to_snake(data)

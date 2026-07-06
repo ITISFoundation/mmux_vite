@@ -6,12 +6,15 @@ pagination helpers, variable sanitization, and other utility functions.
 """
 
 import os
+import re
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
 
 from mmux_flaskapi.utils.helpers import (
+    _DEFAULT_PRESERVE_NESTED_KEYS,
     _get_all_items,
     _get_first_N_items,
     _get_last_N_items,
@@ -297,6 +300,86 @@ class TestRecursiveDictConversion:
             "items": [{"itemName": "A"}],
         }
         assert input_dict == original
+
+
+class TestPreserveNestedKeysForVariableNames:
+    """Test that dicts keyed by oSPARC/user variable names (not API field names)
+    survive case conversion untouched, on both the request (camel->snake) and
+    response (snake->camel) directions. See flaskapi/SPEC.md V13, node/SPEC.md V24/B18.
+    """
+
+    # Names that do NOT round-trip losslessly through camelCase<->snake_case,
+    # unlike all-lowercase-with-underscore names such as "sigma_blood".
+    IRREGULAR_NAMES = ["TissueConduc", "peak_Averaged_Field", "E_Field_Max"]
+
+    @pytest.mark.parametrize("key", IRREGULAR_NAMES)
+    def test_camel_to_snake_preserves_default_inputs_variable_names(self, key):
+        """Incoming request body: default_inputs/inputs/outputs/properties dict values
+        are variable names, not API fields - must not be mangled."""
+        input_dict = {"defaultInputs": {key: 1.0}}
+        result = recursive_dict_keys_camel_to_snake(input_dict)
+        assert result == {"default_inputs": {key: 1.0}}
+
+    @pytest.mark.parametrize("key", IRREGULAR_NAMES)
+    def test_camel_to_snake_preserves_write_path_variable_names(self, key):
+        """Write-path fields discovered in FE audit: sliderValues, distributions,
+        outputVarSelection, projectInputs - all keyed by variable names."""
+        for field in ["sliderValues", "distributions", "outputVarSelection", "projectInputs"]:
+            input_dict = {field: {key: 1.0}}
+            result = recursive_dict_keys_camel_to_snake(input_dict)
+            expected_field = camel_to_snake(field)
+            assert result == {expected_field: {key: 1.0}}, f"field={field}"
+
+    @pytest.mark.parametrize("key", IRREGULAR_NAMES)
+    def test_snake_to_camel_preserves_response_variable_names(self, key):
+        """Outgoing response: same value-dict keys must survive snake->camel too
+        (backend ingestion via _get_all_items + the global after_request hook both
+        route through this function)."""
+        input_dict = {"default_inputs": {key: 1.0}, "properties": {key: {"type": "number"}}}
+        result = recursive_dict_keys_snake_to_camel(input_dict)
+        assert result == {
+            "defaultInputs": {key: 1.0},
+            "properties": {key: {"type": "number"}},
+        }
+
+    def test_preserve_nested_keys_custom_override(self):
+        """preserve_nested_keys is overridable, not hardcoded module-global state."""
+        result = recursive_dict_keys_camel_to_snake(
+            {"myCustomKey": {"TissueConduc": 1.0}}, preserve_nested_keys={"my_custom_key"}
+        )
+        assert result == {"my_custom_key": {"TissueConduc": 1.0}}
+
+    def test_preserve_nested_keys_does_not_affect_ordinary_keys(self):
+        """Sanity check: ordinary (non-opaque) nested dicts still convert normally."""
+        result = recursive_dict_keys_camel_to_snake({"userInfo": {"firstName": "John"}})
+        assert result == {"user_info": {"first_name": "John"}}
+
+    def test_preserve_nested_keys_matches_frontend_opaque_keys(self):
+        """Cross-language tripwire (no shared runtime file, per node/SPEC.md T13/T19 grill
+        decision): the frontend's read-path `opaqueValueDictKeys` in functionUtils.ts must
+        stay a subset of the backend's canonical preserve-key set here. The backend set is
+        a superset because it also protects the write-path keys the FE has no reason to
+        track (T19's FE outgoing-conversion utility was deliberately not built - the
+        backend fix alone makes the payloads pass through untouched).
+        """
+        ts_path = (
+            Path(__file__).resolve().parents[2] / "node" / "src" / "utils" / "functionUtils.ts"
+        )
+        ts_source = ts_path.read_text()
+        match = re.search(r"opaqueValueDictKeys\s*=\s*new Set\(\[(.*?)\]\)", ts_source)
+        assert match, "Could not find opaqueValueDictKeys Set(...) literal in functionUtils.ts"
+        fe_keys_camel = re.findall(r'"([^"]+)"', match.group(1))
+        assert fe_keys_camel, "opaqueValueDictKeys Set appears empty - check the regex/file"
+
+        def camel_to_snake_ts_style(s: str) -> str:
+            return re.sub(r"([a-z])([A-Z])", r"\1_\2", s).lower()
+
+        fe_keys_snake = {camel_to_snake_ts_style(k) for k in fe_keys_camel}
+        assert fe_keys_snake <= _DEFAULT_PRESERVE_NESTED_KEYS, (
+            f"functionUtils.ts opaqueValueDictKeys {fe_keys_snake} is not a subset of "
+            f"backend's _DEFAULT_PRESERVE_NESTED_KEYS {_DEFAULT_PRESERVE_NESTED_KEYS} - "
+            "keep the two lists in sync (see comments on both sides)"
+        )
 
 
 class TestPaginationHelpers:
