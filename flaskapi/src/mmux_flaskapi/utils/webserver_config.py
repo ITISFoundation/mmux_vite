@@ -128,7 +128,7 @@ def get_osparc_api() -> OsparcApi:
     osparc_api = current_app.osparc_api
     if osparc_api is None:
         raise ValueError("OsparcApi instance is not initialized in the Flask app")
-    if not osparc_api.is_connected:
+    if not osparc_api.is_connected():
         raise ValueError("OsparcApi instance is not connected to the osparc backend")
 
     return osparc_api
@@ -136,11 +136,41 @@ def get_osparc_api() -> OsparcApi:
 
 def get_osparc_api_if_configured() -> OsparcApi | None:
     """Return the OsparcApi instance only when local credentials are nonblank."""
-    osparc_api = get_osparc_api()
+    from mmux_flaskapi.app import MMUXFlask
+
+    assert isinstance(current_app, MMUXFlask), "current_app is not an instance of MMUXFlask"
+    osparc_api = current_app.osparc_api
+    if osparc_api is None:
+        return None
     configuration = osparc_api._configuration
     if not configuration.host or not configuration.username or not configuration.password:
         return None
     return osparc_api
 
 
-__all__ = ["OsparcApi", "get_osparc_api", "get_osparc_api_if_configured", "OsparcApiException"]
+def get_osparc_api_if_connected() -> OsparcApi | None:
+    """
+    Like `get_osparc_api()`, but returns `None` instead of raising when no oSPARC
+    connection is available. Use this in endpoints that have a local-function
+    fallback (DEPLOYMENT_MODE=LOCAL), so a missing/unreachable oSPARC connection
+    degrades to "local only" instead of a hard error.
+    """
+    from mmux_flaskapi.app import MMUXFlask
+
+    assert isinstance(current_app, MMUXFlask), "current_app is not an instance of MMUXFlask"
+    osparc_api = current_app.osparc_api
+    if osparc_api is None:
+        return None
+    if not osparc_api.is_connected():
+        return None
+
+    return osparc_api
+
+
+__all__ = [
+    "OsparcApi",
+    "get_osparc_api",
+    "get_osparc_api_if_configured",
+    "get_osparc_api_if_connected",
+    "OsparcApiException",
+]
