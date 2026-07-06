@@ -1412,7 +1412,78 @@ class TestManualUQWithUncertainty:
         assert len(data["binMeans"]) > 0
         assert len(data["binStds"]) > 0
 
+    def test_uq_uncertainty_log_normal_distribution(self, test_client: Flask):
+        """Valid request with a log-normal distribution returns 200 and expected structure."""
+        input_vars = ["x1", "x2"]
+        output = "y"
+
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": {
+                var: {"distribution": "log-normal", "logMean": 0.0, "logStd": 0.5}
+                for var in input_vars
+            },
+            "numSamples": 100,
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output),
+        }
+
+        response = test_client.post(
+            "/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload
+        )
+        assert response.status_code == 200, response.get_json()
+
+        data = response.get_json()
+        assert "binMeans" in data and len(data["binMeans"]) > 0
+        assert data["std"] >= 0
+
     # ------------------- Validation Error Cases -------------------
+
+    def test_log_normal_missing_log_mean_and_log_std(self, test_client: Flask):
+        """Log-normal distribution without logMean/logStd must be rejected."""
+        input_vars = ["x1"]
+        output = "y"
+
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": {"x1": {"distribution": "log-normal"}},
+            "numSamples": 100,
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output),
+        }
+
+        response = test_client.post(
+            "/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_log_normal_non_positive_log_std(self, test_client: Flask):
+        """Log-normal distribution with logStd <= 0 must be rejected."""
+        input_vars = ["x1"]
+        output = "y"
+
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": {"x1": {"distribution": "log-normal", "logMean": 0.0, "logStd": 0.0}},
+            "numSamples": 100,
+            "nHistograms": 10,
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(50, input_vars, output),
+        }
+
+        response = test_client.post(
+            "/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
 
     def test_uq_uncertainty_succeeds_without_preexisting_std_hat_in_job_outputs(
         self, test_client: Flask
@@ -1422,6 +1493,9 @@ class TestManualUQWithUncertainty:
         model (`evaluate_sumo`), not present in the raw training data. The endpoint must
         succeed with such realistic jobs, not reject them for "missing" a key that is
         never supposed to be there in the first place."""
+
+    def test_missing_uncertainty_output(self, test_client: Flask):
+        """Test when jobs don't have required uncertainty output (_std_hat)."""
         input_vars = ["x1"]
         output = "y"
 
