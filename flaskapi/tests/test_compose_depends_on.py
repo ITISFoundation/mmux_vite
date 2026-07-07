@@ -79,6 +79,10 @@ def test_make_targets_reuse_running_compose_app_port():
     )
     assert content.count("scripts/resolve-app-port.sh docker-compose-development.yml 8888") == 6
     assert content.count("scripts/resolve-app-port.sh docker-compose-local.yml 8888") == 6
+    assert content.count("MMUX app URL (this shell): http://localhost:%s") == 12
+    assert content.count("MMUX app URL (browser/Windows): http://%s:%s") == 12
+    assert "hostname -I | awk '{print $$1}'" in content
+    assert content.count("============================================================") == 24
 
 
 def test_resolve_app_port_prefers_existing_compose_publication(tmp_path):
