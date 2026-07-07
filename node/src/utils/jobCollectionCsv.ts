@@ -40,29 +40,6 @@ export interface JobCollectionCsvSource {
 const inputPrefix = "input__";
 const outputPrefix = "output__";
 
-function splitPreambleAndTable(csvContent: string): { preamble: Record<string, string>; tableLines: string[] } {
-  const preamble: Record<string, string> = {};
-  const tableLines: string[] = [];
-
-  csvContent.split(/\r?\n/).forEach(line => {
-    const trimmed = line.trim();
-    if (tableLines.length === 0 && trimmed.startsWith("#")) {
-      const withoutHash = trimmed.slice(1).trim();
-      const commaIndex = withoutHash.indexOf(",");
-      if (commaIndex !== -1) {
-        preamble[withoutHash.slice(0, commaIndex).trim()] = withoutHash.slice(commaIndex + 1).trim();
-      }
-      return;
-    }
-    if (tableLines.length === 0 && trimmed.length === 0) {
-      return; // skip blank lines before the table starts
-    }
-    tableLines.push(line);
-  });
-
-  return { preamble, tableLines };
-}
-
 function parseCsvRow(line: string): string[] {
   const values: string[] = [];
   let current = "";
@@ -86,6 +63,30 @@ function parseCsvRow(line: string): string[] {
   }
   values.push(current);
   return values;
+}
+
+function splitPreambleAndTable(csvContent: string): { preamble: Record<string, string>; tableLines: string[] } {
+  const preamble: Record<string, string> = {};
+  const tableLines: string[] = [];
+
+  csvContent.split(/\r?\n/).forEach(line => {
+    const trimmed = line.trim();
+    if (tableLines.length === 0 && trimmed.startsWith("#")) {
+      // B20: parse the "# key,value" preamble line via the CSV row parser (not a raw
+      // indexOf(",") split) so a quoted value can itself contain commas/quotes.
+      const [key, ...rest] = parseCsvRow(trimmed.slice(1).trim());
+      if (key !== undefined && rest.length > 0) {
+        preamble[key.trim()] = rest.join(",");
+      }
+      return;
+    }
+    if (tableLines.length === 0 && trimmed.length === 0) {
+      return; // skip blank lines before the table starts
+    }
+    tableLines.push(line);
+  });
+
+  return { preamble, tableLines };
 }
 
 function csvEscape(value: string): string {
@@ -191,14 +192,16 @@ export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCs
 
 export function serializeJobCollectionCsv(source: JobCollectionCsvSource): string {
   const lines: string[] = [];
+  // B20: escape preamble values the same way table cells are escaped, so a
+  // title containing a comma/quote round-trips through parseJobCollectionCsv.
   if (source.sourceFunctionUid !== undefined) {
-    lines.push(`# source_function_uid,${source.sourceFunctionUid}`);
+    lines.push(`# source_function_uid,${csvEscape(source.sourceFunctionUid)}`);
   }
   if (source.sourceJobCollectionUid !== undefined) {
-    lines.push(`# source_job_collection_uid,${source.sourceJobCollectionUid}`);
+    lines.push(`# source_job_collection_uid,${csvEscape(source.sourceJobCollectionUid)}`);
   }
   if (source.sourceJobCollectionTitle !== undefined) {
-    lines.push(`# source_job_collection_title,${source.sourceJobCollectionTitle}`);
+    lines.push(`# source_job_collection_title,${csvEscape(source.sourceJobCollectionTitle)}`);
   }
 
   const header = [

@@ -93,6 +93,18 @@ describe("jobCollectionCsv", () => {
       expect(result.inputPresets.x1).toEqual({ distribution: "uniform", min: 2.0, max: 2.0, logScale: false });
     });
 
+    it("B20/V28: parses a quoted preamble value containing a comma", () => {
+      const csv = [
+        '# source_job_collection_title,"My, Campaign"',
+        "source_job_uid,status,input__x1,output__y",
+        "job-1,SUCCESS,1.0,10.0",
+      ].join("\n");
+
+      const result = parseJobCollectionCsv(csv);
+
+      expect(result.sourceJobCollectionTitle).toBe("My, Campaign");
+    });
+
     it("returns empty result for a header-only / empty CSV", () => {
       expect(parseJobCollectionCsv("")).toEqual({
         sourceFunctionUid: undefined,
@@ -129,6 +141,21 @@ describe("jobCollectionCsv", () => {
       expect(parsed.inputVars).toEqual(source.inputVars);
       expect(parsed.outputVars).toEqual(source.outputVars);
       expect(parsed.rows).toEqual(source.rows);
+    });
+
+    it("B20/V28: round-trips a title containing a comma and a double quote", () => {
+      const source = {
+        sourceFunctionUid: "func-123",
+        sourceJobCollectionTitle: 'My, "Special" Campaign',
+        inputVars: ["x1"],
+        outputVars: ["y"],
+        rows: [{ sourceJobUid: "job-1", status: "SUCCESS", inputs: { x1: 1.0 }, outputs: { y: 10.0 } }],
+      };
+
+      const csv = serializeJobCollectionCsv(source);
+      const parsed = parseJobCollectionCsv(csv);
+
+      expect(parsed.sourceJobCollectionTitle).toBe(source.sourceJobCollectionTitle);
     });
   });
 
