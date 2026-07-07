@@ -241,17 +241,38 @@ export function triggerCsvDownload(csvContent: string, fileName: string): void {
 
 export function pickSingleCsvFile(): Promise<File> {
   return new Promise((resolve, reject) => {
+    let settled = false;
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".csv,text/csv";
+
+    // B22: dismissing the native file picker does not fire `change` in most
+    // browsers, so `onchange` alone leaves this promise pending forever. Use the
+    // window regaining focus (which happens when the picker closes) as a
+    // fallback signal, deferred so the genuine `change` event gets a chance to
+    // fire first, and guard both paths with `settled` so only one ever resolves.
+    const onWindowFocus = () => {
+      window.setTimeout(() => {
+        if (!settled && !input.files?.length) {
+          settled = true;
+          window.removeEventListener("focus", onWindowFocus);
+          reject(new Error("No file selected"));
+        }
+      }, 300);
+    };
+
     input.onchange = () => {
+      if (settled) return;
       const file = input.files?.[0];
+      settled = true;
+      window.removeEventListener("focus", onWindowFocus);
       if (!file) {
         reject(new Error("No file selected"));
         return;
       }
       resolve(file);
     };
+    window.addEventListener("focus", onWindowFocus);
     input.click();
   });
 }
