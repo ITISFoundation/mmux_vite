@@ -78,6 +78,21 @@ describe("jobCollectionCsv", () => {
       expect(result.inputPresets.x1).toBeUndefined();
     });
 
+    it("B19/V27: treats blank/whitespace-only input+output cells as missing, not 0", () => {
+      const csv = [
+        "source_job_uid,status,input__x1,input__x2,output__y",
+        "job-1,SUCCESS,,   ,",
+        "job-2,SUCCESS,2.0,20.0,200.0",
+      ].join("\n");
+
+      const result = parseJobCollectionCsv(csv);
+
+      expect(result.rows[0].inputs).toEqual({});
+      expect(result.rows[0].outputs).toEqual({});
+      // bounds inference must also ignore the missing cell rather than folding in a 0
+      expect(result.inputPresets.x1).toEqual({ distribution: "uniform", min: 2.0, max: 2.0, logScale: false });
+    });
+
     it("returns empty result for a header-only / empty CSV", () => {
       expect(parseJobCollectionCsv("")).toEqual({
         sourceFunctionUid: undefined,

@@ -82,6 +82,8 @@ V23: non-OK plot fetch (1D/2D/3D) ! reject the promise (`Promise.reject`/`throw`
 V24: `normalizePayloadToCamelCase` ⊥ case-convert keys nested *inside* identifier-keyed value dicts `{properties,defaultInputs,inputs,outputs}` — those keys are oSPARC/user variable names, not API field names; only the dict's own key (e.g. `default_inputs`→`defaultInputs`) converts, contents pass through verbatim (B18, closes T10, pairs ../flaskapi V13)
 V25: `SuMoValidation` view surfaces paired t-test bias-significance banner + convergence curve (metric vs n_samples) alongside existing MAE/RMSE/CV-scatter, sourced from ../flaskapi/SPEC.md V26/V27
 V26: sensitivity/correlation view renders 1 bar/tornado plot of ∀ input-var correlation strengths to the selected QoI in a single view (#470), sourced from ../flaskapi/SPEC.md V28
+--- review-backprop invariants (Copilot review on #481; bugs §B19-B23, fixes §T27-T31) ---
+V27: CSV numeric cell conversion (`jobCollectionCsv.ts` `parseJobCollectionCsv`) ! treat empty/whitespace-only cells as missing (⊥ default to `0`); guard blank cells before `Number(cell)` (closes B19)
 
 ## §T
 id|status|task|cites
@@ -106,6 +108,7 @@ T18|x|add e2e regression coverage for underscore-bearing variable names (e.g. `s
 T19|x|DROPPED (2026-07-02): outgoing-request `camelToSnakeCase`/`toBackendVarNames` FE utility deemed unnecessary — backend's T13 fix makes the write-path subtrees pass through untouched regardless of FE-held casing, so this would have been dead code with no caller|V14, ../flaskapi/SPEC.md T8,V13
 T20|.|SuMoValidation view: render paired t-test result (statistic+p-value, bias banner) + convergence curve (metric vs n_samples) alongside existing MAE/RMSE + CV scatter plot; vitest|V25,../flaskapi/SPEC.md T18
 T21|.|sensitivity/correlation-indices view (#470): bar/tornado plot of per-input correlation strength to selected QoI, all params in one view; consumes new backend correlation endpoint|V26,../flaskapi/SPEC.md T19
+T27|.|fix B19: guard `parseJobCollectionCsv` input/output numeric conversion against empty/whitespace cells (⊥ `Number("")===0`)|V27,B19
 
 ## §B
 id|date|cause|fix
@@ -122,3 +125,4 @@ B15|2026-06-19|prek ran end-of-file-fixer on `node/.gitignore` because the file 
 B16|2026-06-22|#475 `Surface2DPlot` non-OK fetch path did `return new Error(...)` (⊥ reject) → chain resolved, next `.then` cached `lastFetchedKey` & cleared `propagating` as if successful → 4xx/5xx blocks retry of identical inputs (incomplete B7/T12 fix); `Curves1DPlot` had no `!response.ok` guard at all|V23,V18
 B17|2026-06-22|#475 inspect-model fix rewrote `SuMoModal` and dropped the `aria-labelledby`/`aria-describedby` on the `Modal` wrapper → screen-reader semantics lost, inconsistent w/ other codebase modals|V22
 B18|2026-07-01|prod oSPARC fn UID `ddfc5b42-...` ("Tissue Conductivity Uncertainty"): all inference calls (model validation, 1D/2D/3D plots, UQ propagation) 400'd. `normalizePayloadToCamelCase` blindly recursed key-casing into every nested object, corrupting `inputSchema.schemaContent.properties`/`defaultInputs` variable names (`sigma_blood`→`sigmaBlood`) while the sibling `required` string array stayed untouched (array items, not object keys) → visible mismatch in the raw schema dump; `FunctionList.tsx` then registered the corrupted names as `inputVars`, propagating them into every downstream request oSPARC rejects. Never caught because `tests/e2e/mock_osparc/data.py` fixture vars (`x1..x4`,`y..y4`) contain no underscores, so the conversion was a no-op there. This was already flagged as unimplemented work in T10/V14 (+ flaskapi T8/V13) but never landed|V24,T10,T18
+B19|2026-07-06|copilot review #481: `parseJobCollectionCsv` input/output numeric conversion (`Number(cells[columnIndex] ?? "")`) — `Number("")===0`/`Number("   ")===0`, so blank/whitespace CSV cells are silently treated as real `0`s, skewing `rows[].inputs`/`rows[].outputs` + downstream bounds/log-scale inference|V27
