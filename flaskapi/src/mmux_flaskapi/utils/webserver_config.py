@@ -135,12 +135,24 @@ def get_osparc_api() -> OsparcApi:
 
 
 def get_osparc_api_if_configured() -> OsparcApi | None:
-    """Return the OsparcApi instance only when local credentials are nonblank."""
-    osparc_api = get_osparc_api()
+    """Return the OsparcApi instance only when local credentials are nonblank.
+
+    Checks the configured host/username/password directly on the app's OsparcApi
+    instance before delegating to `get_osparc_api()`, so a blank/missing
+    credential set is treated as "not configured" (returns None) rather than
+    risking whatever exception `get_osparc_api()` raises for an uninitialized or
+    disconnected client.
+    """
+    from mmux_flaskapi.app import MMUXFlask
+
+    assert isinstance(current_app, MMUXFlask), "current_app is not an instance of MMUXFlask"
+    osparc_api = current_app.osparc_api
+    if osparc_api is None:
+        return None
     configuration = osparc_api._configuration
     if not configuration.host or not configuration.username or not configuration.password:
         return None
-    return osparc_api
+    return get_osparc_api()
 
 
 __all__ = ["OsparcApi", "get_osparc_api", "get_osparc_api_if_configured", "OsparcApiException"]

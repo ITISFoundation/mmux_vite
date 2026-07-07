@@ -554,6 +554,65 @@ class TestGetOsparcApiHelper:
                 get_osparc_api()
 
 
+class TestGetOsparcApiIfConfiguredHelper:
+    """Test the get_osparc_api_if_configured helper function.
+
+    Regression tests for SPEC.md B11/V24: the helper used to call
+    get_osparc_api() (which asserts the app is initialized and connected)
+    BEFORE checking whether the oSPARC credentials were blank. That order
+    risked surfacing get_osparc_api()'s exceptions for the "not configured"
+    case instead of honoring the documented "return None" contract.
+    """
+
+    def test_returns_none_for_blank_credentials_without_raising(self):
+        from mmux_flaskapi.app import MMUXFlask
+        from mmux_flaskapi.utils.webserver_config import get_osparc_api_if_configured
+
+        mock_app = Mock(spec=MMUXFlask)
+        mock_osparc_api = Mock()
+        mock_osparc_api._configuration.host = ""
+        mock_osparc_api._configuration.username = ""
+        mock_osparc_api._configuration.password = ""
+        mock_app.osparc_api = mock_osparc_api
+
+        with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
+            # get_osparc_api() would raise if reached before the blank-credential
+            # check short-circuits; force that to fail loudly if the ordering
+            # regresses.
+            with patch(
+                "mmux_flaskapi.utils.webserver_config.get_osparc_api",
+                side_effect=AssertionError(
+                    "get_osparc_api() must not be called before the config check"
+                ),
+            ):
+                assert get_osparc_api_if_configured() is None
+
+    def test_returns_none_when_osparc_api_not_initialized(self):
+        from mmux_flaskapi.app import MMUXFlask
+        from mmux_flaskapi.utils.webserver_config import get_osparc_api_if_configured
+
+        mock_app = Mock(spec=MMUXFlask)
+        mock_app.osparc_api = None
+
+        with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
+            assert get_osparc_api_if_configured() is None
+
+    def test_delegates_to_get_osparc_api_when_configured(self):
+        from mmux_flaskapi.app import MMUXFlask
+        from mmux_flaskapi.utils.webserver_config import get_osparc_api_if_configured
+
+        mock_app = Mock(spec=MMUXFlask)
+        mock_osparc_api = Mock()
+        mock_osparc_api._configuration.host = "https://api.osparc.io"
+        mock_osparc_api._configuration.username = "key"
+        mock_osparc_api._configuration.password = "secret"
+        mock_osparc_api.is_connected = True
+        mock_app.osparc_api = mock_osparc_api
+
+        with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
+            assert get_osparc_api_if_configured() == mock_osparc_api
+
+
 class TestOsparcApiLogging:
     """Test logging functionality in OSPARC API configuration."""
 
