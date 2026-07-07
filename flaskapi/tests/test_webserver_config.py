@@ -606,7 +606,7 @@ class TestGetOsparcApiIfConfiguredHelper:
         mock_osparc_api._configuration.host = "https://api.osparc.io"
         mock_osparc_api._configuration.username = "key"
         mock_osparc_api._configuration.password = "secret"
-        mock_osparc_api.is_connected = True
+        mock_osparc_api.is_connected.return_value = True
         mock_app.osparc_api = mock_osparc_api
 
         with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
