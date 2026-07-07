@@ -87,6 +87,7 @@ V27: CSV numeric cell conversion (`jobCollectionCsv.ts` `parseJobCollectionCsv`)
 V28: job-collection CSV preamble read/write ! reuse the same CSV row parser/escaper as the inputs/outputs table (⊥ hand-rolled `indexOf(",")`/raw concat) so quoted/comma-bearing preamble values (e.g. `sourceJobCollectionTitle`) round-trip losslessly (closes B20)
 V29: blob-URL download trigger (`triggerCsvDownload`) ! defer `URL.revokeObjectURL` to next tick/timeout after `.click()`, ⊥ revoke synchronously (closes B21)
 V30: native file-picker helpers (`pickSingleCsvFile`) ! settle (resolve or reject) on user cancel via a window-focus fallback + settled-guard, ⊥ rely solely on `input.onchange` (closes B22)
+V31: icon-only action buttons (no visible text, e.g. download/upload/delete icons) ! carry an explicit `aria-label` (tooltip `title` alone ⊥ sufficient a11y label); parity w/ V22 modal-labelling convention (closes B23)
 
 ## §T
 id|status|task|cites
@@ -115,6 +116,7 @@ T27|.|fix B19: guard `parseJobCollectionCsv` input/output numeric conversion aga
 T28|.|fix B20: parse+escape job-collection CSV preamble via the existing `parseCsvRow`/`csvEscape` helpers instead of raw `indexOf(",")`/concat|V28,B20
 T29|.|fix B21: defer `URL.revokeObjectURL` in `triggerCsvDownload` to next tick after `link.click()`|V29,B21
 T30|.|fix B22: add cancel/focus-fallback settle path to `pickSingleCsvFile` so dismissing the picker rejects instead of hanging|V30,B22
+T31|.|fix B23: add `aria-label` to `JobSelector`'s download-CSV `IconButton`|V31,B23
 
 ## §B
 id|date|cause|fix
@@ -131,7 +133,8 @@ B15|2026-06-19|prek ran end-of-file-fixer on `node/.gitignore` because the file 
 B16|2026-06-22|#475 `Surface2DPlot` non-OK fetch path did `return new Error(...)` (⊥ reject) → chain resolved, next `.then` cached `lastFetchedKey` & cleared `propagating` as if successful → 4xx/5xx blocks retry of identical inputs (incomplete B7/T12 fix); `Curves1DPlot` had no `!response.ok` guard at all|V23,V18
 B17|2026-06-22|#475 inspect-model fix rewrote `SuMoModal` and dropped the `aria-labelledby`/`aria-describedby` on the `Modal` wrapper → screen-reader semantics lost, inconsistent w/ other codebase modals|V22
 B18|2026-07-01|prod oSPARC fn UID `ddfc5b42-...` ("Tissue Conductivity Uncertainty"): all inference calls (model validation, 1D/2D/3D plots, UQ propagation) 400'd. `normalizePayloadToCamelCase` blindly recursed key-casing into every nested object, corrupting `inputSchema.schemaContent.properties`/`defaultInputs` variable names (`sigma_blood`→`sigmaBlood`) while the sibling `required` string array stayed untouched (array items, not object keys) → visible mismatch in the raw schema dump; `FunctionList.tsx` then registered the corrupted names as `inputVars`, propagating them into every downstream request oSPARC rejects. Never caught because `tests/e2e/mock_osparc/data.py` fixture vars (`x1..x4`,`y..y4`) contain no underscores, so the conversion was a no-op there. This was already flagged as unimplemented work in T10/V14 (+ flaskapi T8/V13) but never landed|V24,T10,T18
-B19|2026-07-06|copilot review #481: `parseJobCollectionCsv` input/output numeric conversion (`Number(cells[columnIndex] ?? "")`) — `Number("")===0`/`Number("   ")===0`, so blank/whitespace CSV cells are silently treated as real `0`s, skewing `rows[].inputs`/`rows[].outputs` + downstream bounds/log-scale inference|V27
+B19|2026-07-06|copilot review #481: `parseJobCollectionCsv` input/output numeric conversion (`Number(cells[columnIndex] ?? "")`) — `Number("")===0`/`Number("  ")===0`, so blank/whitespace CSV cells are silently treated as real `0`s, skewing `rows[].inputs`/`rows[].outputs` + downstream bounds/log-scale inference|V27
 B20|2026-07-06|copilot review #481: preamble parse (`splitPreambleAndTable`) splits on first raw `,` via `indexOf` — a quoted value like `# source_job_collection_title,"My, Campaign"` keeps its quotes verbatim + an unquoted embedded comma truncates the value; serializer (`serializeJobCollectionCsv`) writes preamble values unescaped, so comma/quote-bearing titles don't round-trip|V28
 B21|2026-07-06|copilot review #481: `triggerCsvDownload` calls `URL.revokeObjectURL(url)` synchronously right after `link.click()`; some browsers haven't started reading the blob yet → flaky/empty downloads|V29
 B22|2026-07-06|copilot review #481: `pickSingleCsvFile` only settles via `input.onchange`; dismissing the native file picker doesn't fire `change` in most browsers → returned promise never resolves/rejects on cancel|V30
+B23|2026-07-06|copilot review #481: new download-CSV `IconButton` (`JobSelector.tsx`) has no accessible name — `CustomTooltip title` alone ⊥ reliable a11y label — screen readers announce it unlabeled|V31
