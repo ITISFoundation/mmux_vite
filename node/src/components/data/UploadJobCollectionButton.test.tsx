@@ -41,7 +41,7 @@ describe("UploadJobCollectionButton", () => {
     const toastSuccessSpy = vi.spyOn(toast, "success").mockImplementation(() => "" as never);
 
     render(<UploadJobCollectionButton onUploadSuccess={onUploadSuccess} />);
-    fireEvent.click(screen.getByRole("button", { name: "Upload JobCollection CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Upload Data" }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Import" }));
@@ -71,7 +71,7 @@ describe("UploadJobCollectionButton", () => {
     const toastErrorSpy = vi.spyOn(toast, "error").mockImplementation(() => "" as never);
 
     render(<UploadJobCollectionButton onUploadSuccess={onUploadSuccess} />);
-    fireEvent.click(screen.getByRole("button", { name: "Upload JobCollection CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Upload Data" }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Import" }));
@@ -86,7 +86,7 @@ describe("UploadJobCollectionButton", () => {
     const toastErrorSpy = vi.spyOn(toast, "error").mockImplementation(() => "" as never);
 
     render(<UploadJobCollectionButton onUploadSuccess={onUploadSuccess} />);
-    fireEvent.click(screen.getByRole("button", { name: "Upload JobCollection CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Upload Data" }));
 
     await waitFor(() => expect(pickSingleCsvFile).toHaveBeenCalledTimes(1));
     expect(onUploadSuccess).not.toHaveBeenCalled();
@@ -119,7 +119,7 @@ describe("UploadJobCollectionButton", () => {
         existingFunctions={[{ uid: "func-1", title: "Existing Fn" } as never]}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Upload JobCollection CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "Upload Data" }));
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Import" })).toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "Import" }));
