@@ -234,7 +234,9 @@ export function triggerCsvDownload(csvContent: string, fileName: string): void {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // B21: defer the revoke to the next tick — revoking synchronously can race
+  // ahead of the browser starting to read the blob, producing flaky/empty downloads.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 export function pickSingleCsvFile(): Promise<File> {
