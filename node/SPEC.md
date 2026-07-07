@@ -86,6 +86,7 @@ V26: sensitivity/correlation view renders 1 bar/tornado plot of ∀ input-var co
 V27: CSV numeric cell conversion (`jobCollectionCsv.ts` `parseJobCollectionCsv`) ! treat empty/whitespace-only cells as missing (⊥ default to `0`); guard blank cells before `Number(cell)` (closes B19)
 V28: job-collection CSV preamble read/write ! reuse the same CSV row parser/escaper as the inputs/outputs table (⊥ hand-rolled `indexOf(",")`/raw concat) so quoted/comma-bearing preamble values (e.g. `sourceJobCollectionTitle`) round-trip losslessly (closes B20)
 V29: blob-URL download trigger (`triggerCsvDownload`) ! defer `URL.revokeObjectURL` to next tick/timeout after `.click()`, ⊥ revoke synchronously (closes B21)
+V30: native file-picker helpers (`pickSingleCsvFile`) ! settle (resolve or reject) on user cancel via a window-focus fallback + settled-guard, ⊥ rely solely on `input.onchange` (closes B22)
 
 ## §T
 id|status|task|cites
@@ -113,6 +114,7 @@ T21|.|sensitivity/correlation-indices view (#470): bar/tornado plot of per-input
 T27|.|fix B19: guard `parseJobCollectionCsv` input/output numeric conversion against empty/whitespace cells (⊥ `Number("")===0`)|V27,B19
 T28|.|fix B20: parse+escape job-collection CSV preamble via the existing `parseCsvRow`/`csvEscape` helpers instead of raw `indexOf(",")`/concat|V28,B20
 T29|.|fix B21: defer `URL.revokeObjectURL` in `triggerCsvDownload` to next tick after `link.click()`|V29,B21
+T30|.|fix B22: add cancel/focus-fallback settle path to `pickSingleCsvFile` so dismissing the picker rejects instead of hanging|V30,B22
 
 ## §B
 id|date|cause|fix
@@ -132,3 +134,4 @@ B18|2026-07-01|prod oSPARC fn UID `ddfc5b42-...` ("Tissue Conductivity Uncertain
 B19|2026-07-06|copilot review #481: `parseJobCollectionCsv` input/output numeric conversion (`Number(cells[columnIndex] ?? "")`) — `Number("")===0`/`Number("   ")===0`, so blank/whitespace CSV cells are silently treated as real `0`s, skewing `rows[].inputs`/`rows[].outputs` + downstream bounds/log-scale inference|V27
 B20|2026-07-06|copilot review #481: preamble parse (`splitPreambleAndTable`) splits on first raw `,` via `indexOf` — a quoted value like `# source_job_collection_title,"My, Campaign"` keeps its quotes verbatim + an unquoted embedded comma truncates the value; serializer (`serializeJobCollectionCsv`) writes preamble values unescaped, so comma/quote-bearing titles don't round-trip|V28
 B21|2026-07-06|copilot review #481: `triggerCsvDownload` calls `URL.revokeObjectURL(url)` synchronously right after `link.click()`; some browsers haven't started reading the blob yet → flaky/empty downloads|V29
+B22|2026-07-06|copilot review #481: `pickSingleCsvFile` only settles via `input.onchange`; dismissing the native file picker doesn't fire `change` in most browsers → returned promise never resolves/rejects on cancel|V30

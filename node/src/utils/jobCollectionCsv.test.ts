@@ -216,5 +216,21 @@ describe("jobCollectionCsv", () => {
       await expect(resultPromise).rejects.toThrow("No file selected");
       createElementSpy.mockRestore();
     });
+
+    it("B22/V30: rejects when the picker is dismissed without ever firing change (native cancel)", async () => {
+      vi.useFakeTimers();
+      const createElementSpy = vi.spyOn(document, "createElement");
+
+      const resultPromise = pickSingleCsvFile();
+      const assertion = expect(resultPromise).rejects.toThrow("No file selected");
+      // Simulate a native cancel: the window regains focus but `change` never fires
+      // because `input.files` stays empty.
+      window.dispatchEvent(new Event("focus"));
+      await vi.runAllTimersAsync();
+
+      await assertion;
+      createElementSpy.mockRestore();
+      vi.useRealTimers();
+    });
   });
 });
