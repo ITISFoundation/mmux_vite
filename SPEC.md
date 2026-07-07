@@ -84,6 +84,7 @@ V21: WSL2 collaborator setup docs/scripts ! include manual Windows `netsh portpr
 V22: `resolve-app-port.sh` ! invoke sibling scripts via its own script directory (`BASH_SOURCE`-derived absolute path), ⊥ cwd-relative path, so it works when invoked from anywhere (B9)
 V23: `find-free-port.sh` ! fail fast (nonzero exit + stderr) when the `timeout` command is unavailable; ⊥ let a missing dependency masquerade as "port is free" (B10)
 V24: `get_osparc_api_if_configured()` ! check oSPARC configuration (host/username/password) directly before delegating to `get_osparc_api()`; ⊥ risk `get_osparc_api()`'s init/connection exceptions for the documented "not configured → None" case (B11)
+V25: `get_osparc_api_if_configured()` ! tolerate `app.osparc_api` implementations without a `_configuration` attribute (duck-typed test doubles, e.g. e2e `MockOsparcApi`) by treating a missing attribute as "configured"; ⊥ assume every `app.osparc_api` exposes the concrete `OsparcApi._configuration` shape (B12)
 
 ## §T
 id|status|task|cites
@@ -121,3 +122,4 @@ B8|2026-07-07|Under WSL2, Docker published `mmux-vite-app` on WSL localhost (`cu
 B9|2026-07-07|PR #489 Copilot review: `scripts/resolve-app-port.sh` called its `find-free-port.sh` fallback via a cwd-relative path (`bash scripts/find-free-port.sh ...`); invoking `resolve-app-port.sh` from anywhere other than the repo root failed (or resolved the wrong file)|V22
 B10|2026-07-07|PR #489 Copilot review: `scripts/find-free-port.sh` assumed the `timeout` command exists; if `timeout` is missing, `if ! timeout ...` is always true so the script incorrectly reports the first probed port as free|V23
 B11|2026-07-07|PR #489 Copilot review: `get_osparc_api_if_configured()` called `get_osparc_api()` (asserts app initialized + connected) before checking whether oSPARC credentials were blank, risking an exception instead of the documented "not configured → None" contract|V24
+B12|2026-07-07|B6/B11's `get_osparc_api_if_configured()` unconditionally read `osparc_api._configuration`; the e2e in-backend test-double `MockOsparcApi` (tests/e2e/mock_osparc/api.py, predates this branch, PR #475) duck-types `OsparcApi` without a `_configuration` attribute, so every e2e `GET /flask/osparc/list_functions` raised `AttributeError` → 500, surfaced in the UI as "Error fetching functions from the server" and failing all 3 read-only e2e specs (moga/sumo/uq-readonly)|V25

@@ -142,6 +142,12 @@ def get_osparc_api_if_configured() -> OsparcApi | None:
     credential set is treated as "not configured" (returns None) rather than
     risking whatever exception `get_osparc_api()` raises for an uninitialized or
     disconnected client.
+
+    `app.osparc_api` may instead be a duck-typed test double (e.g. the e2e
+    in-backend `MockOsparcApi`, see tests/e2e/mock_osparc/api.py) that never
+    implements `_configuration` at all. Such a double is always "configured"
+    by construction, so a missing `_configuration` attribute is treated as
+    configured rather than raising `AttributeError` (SPEC.md B12/V25).
     """
     from mmux_flaskapi.app import MMUXFlask
 
@@ -149,8 +155,10 @@ def get_osparc_api_if_configured() -> OsparcApi | None:
     osparc_api = current_app.osparc_api
     if osparc_api is None:
         return None
-    configuration = osparc_api._configuration
-    if not configuration.host or not configuration.username or not configuration.password:
+    configuration = getattr(osparc_api, "_configuration", None)
+    if configuration is not None and (
+        not configuration.host or not configuration.username or not configuration.password
+    ):
         return None
     return get_osparc_api()
 

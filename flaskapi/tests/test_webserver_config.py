@@ -612,6 +612,33 @@ class TestGetOsparcApiIfConfiguredHelper:
         with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
             assert get_osparc_api_if_configured() == mock_osparc_api
 
+    def test_delegates_to_get_osparc_api_for_duck_typed_double_without_configuration(self):
+        """Regression test for SPEC.md B12/V25.
+
+        The e2e in-backend test-double (tests/e2e/mock_osparc/api.py
+        `MockOsparcApi`) duck-types `OsparcApi` without a `_configuration`
+        attribute. Unconditionally reading `osparc_api._configuration` raised
+        `AttributeError` for every e2e `/flask/osparc/list_functions` call,
+        which the blueprint's generic exception handler turned into a 500
+        surfaced in the UI as "Error fetching functions from the server" for
+        all 3 read-only e2e specs.
+        """
+        from mmux_flaskapi.app import MMUXFlask
+        from mmux_flaskapi.utils.webserver_config import get_osparc_api_if_configured
+
+        class DuckTypedOsparcApiDouble:
+            """Mirrors MockOsparcApi's shape: no `_configuration` attribute."""
+
+            def is_connected(self) -> bool:
+                return True
+
+        mock_app = Mock(spec=MMUXFlask)
+        duck_typed_api = DuckTypedOsparcApiDouble()
+        mock_app.osparc_api = duck_typed_api
+
+        with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
+            assert get_osparc_api_if_configured() is duck_typed_api
+
 
 class TestOsparcApiLogging:
     """Test logging functionality in OSPARC API configuration."""
