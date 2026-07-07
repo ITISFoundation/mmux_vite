@@ -17,7 +17,6 @@ import {
   type SxProps,
   type Theme,
 } from "@mui/material";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { toast } from "react-toastify";
 import { uploadJobCollectionCsv } from "../../utils/functionUtils";
 import { parseJobCollectionCsv, pickSingleCsvFile, type ParsedJobCollectionCsv } from "../../utils/jobCollectionCsv";
@@ -44,6 +43,11 @@ type PendingUpload = {
   csvContent: string;
   analysis: ParsedJobCollectionCsv;
 };
+
+function toSxArray(sx: SxProps<Theme> | undefined): readonly SxProps<Theme>[] {
+  if (!sx) return [];
+  return Array.isArray(sx) ? sx : [sx];
+}
 
 export default function UploadJobCollectionButton(props: UploadJobCollectionButtonProps) {
   const { buttonLabel = "Upload JobCollection CSV", disabled = false, sx, existingFunctions = [], onUploadSuccess } = props;
@@ -116,7 +120,7 @@ export default function UploadJobCollectionButton(props: UploadJobCollectionButt
 
   return (
     <>
-      <Button variant="outlined" size="small" startIcon={<UploadFileIcon />} onClick={handleClick} disabled={disabled} sx={sx}>
+      <Button variant="contained" size="medium" onClick={handleClick} disabled={disabled} sx={[{ px: 3 }, ...toSxArray(sx)]}>
         {buttonLabel}
       </Button>
 
