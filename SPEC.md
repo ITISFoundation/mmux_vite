@@ -22,6 +22,7 @@ Domain: scientific UQ & sensitivity analysis; documented use-case = TI (Temporal
 - runtime behavior env-driven: `SERVICE_MODE`, `PERMISSIONS`, `DEPLOYMENT_MODE`
 - version single-sourced `.bumpversion.cfg` current=`1.5.18`; bumped across 8 `.osparc/*/metadata.yml` + `Makefile` + `docker-compose-local.yml` + `docker-compose-development.yml` via `bump2version`
 - secrets via `.env` (`make .env` clones `.env-devel`); `.env` ∉ git
+- WSL2+Windows local dev: fallback app ports (e.g. 8889-8892) may require Windows admin `netsh interface portproxy` rules to reach WSL Docker publications from Windows browser; WSL IP may change after restart → refresh rules
 - CI green before merge: prek + node tests + flaskapi tests + image build (`ooil compose` then `docker compose build`)
 - e2e tests = TS `@playwright/test` runner in `tests/e2e/` (⊥ vitest browser mode for e2e); pixel-perfect `toHaveScreenshot` baselines committed to git; determinism via pinned Playwright docker image (fonts/render); oSPARC mocked at backend boundary (⊥ real oSPARC in e2e)
 - commits ! Conventional Commits `<type>(<scope>): <subject> (#PR)`; types {feat,fix,refactor,chore,docs,test}; feature branch → PR review → merge to `main`
@@ -47,6 +48,7 @@ cmd: `make build` → `compose-spec` (ooil) + build all images
 cmd: `make build-no-cache` → build `--no-cache --pull --parallel`
 cmd: `make run-develop-{mode}-{perm}` → `docker compose -f docker-compose-development.yml up` (live source mounts, LOG_LEVEL=DEBUG, DEVELOPMENT_MODE=true)
 cmd: `make run-prod-local-{mode}-{perm}` → `docker compose -f docker-compose-local.yml up` (prod build, validation mount only)
+cmd (Windows Admin, WSL2 fallback ports): `for /L %p in (8889,1,8892) do netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=%p connectaddress=<WSL_IP> connectport=%p`; inspect via `netsh interface portproxy show v4tov4`; refresh by deleting same listen ports before re-adding
 cmd: `make prek` → `uvx prek run --all-files`
 cmd: `make test-node` → `npm ci && npm test` in `node/`
 cmd: `make test-flaskapi` → `uv run pytest tests/ -v --cov-report=html --cov-report=term-missing`
@@ -78,6 +80,7 @@ V17: local dev Vite server behind Caddy ! derive browser origin from request hos
 V18: `GET /flask/osparc/list_functions` with blank `OSPARC_API_{BASE_URL,KEY,SECRET}` → 200 `[]`; initial app render ! survive missing remote oSPARC credentials (B6)
 V19: local run targets ! reuse existing Compose-published `mmux-vite-app` host port before scanning for new free port; printed URL must equal live container publication across repeated `make run-*` (B7)
 V20: WSL2 local run output ! distinguish shell-local `localhost:$APP_PORT` from Windows-browser URL via WSL IP for fallback ports; Windows `localhost:8888` may work when explicitly forwarded, but `localhost:$APP_PORT` for fallback ports ⊥ assumed unless Windows forwarding/portproxy includes that port (B8)
+V21: WSL2 collaborator setup docs/scripts ! include manual Windows `netsh portproxy` add/show/delete flow for fallback ports 8889-8892 using current WSL IP; warn stale rules after WSL IP change
 
 ## §T
 id|status|task|cites
@@ -104,6 +107,7 @@ T21|x|REMOVE vendored `mmux_python` dep: inlined 6 used modules (`lhs`,`dakota_o
 T22|.|SuMo validation statistical rigor: paired t-test (prediction bias) + convergence analysis (accuracy vs sample size) in cross-validation flow|flaskapi/SPEC.md T18,node/SPEC.md T20
 T23|.|sensitivity/correlation indices from UQ Monte Carlo samples, single multi-param view (#470, beyond 3-param 1D/2D/3D limit)|flaskapi/SPEC.md T19,node/SPEC.md T21
 T24|x|fix B4: `docker-compose-development.yml` & `docker-compose-local.yml` `mmux-vite-app.depends_on` → long form `condition: service_healthy` for both `mmux-vite-backend`/`mmux-vite-web` (mirrors ooil-generated `docker-compose.yml`), so local dev stacks satisfy V3 like production does|V3,B4
+T25|.|Document or script WSL2 Windows portproxy setup for local fallback app ports 8889-8892: discover WSL IP, delete stale rules, add rules, show rules, mention admin shell + firewall caveat|V20,V21
 
 ## §B
 id|date|cause|fix
