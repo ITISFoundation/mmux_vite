@@ -95,6 +95,16 @@ function csvEscape(value: string): string {
   return value;
 }
 
+// B19: a blank/whitespace-only cell means the value is missing, not 0 —
+// `Number("")===0` would otherwise silently record a real zero.
+function parseNumericCell(rawCell: string | undefined): number | undefined {
+  if (rawCell === undefined || rawCell.trim().length === 0) {
+    return undefined;
+  }
+  const numericValue = Number(rawCell);
+  return Number.isFinite(numericValue) ? numericValue : undefined;
+}
+
 function shouldUseLogScale(values: number[]): boolean {
   if (values.length === 0 || values.some(value => value <= 0)) {
     return false;
@@ -140,16 +150,16 @@ export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCs
 
     inputColumns.forEach((column, index) => {
       const columnIndex = header.indexOf(column);
-      const numericValue = Number(cells[columnIndex] ?? "");
-      if (Number.isFinite(numericValue)) {
+      const numericValue = parseNumericCell(cells[columnIndex]);
+      if (numericValue !== undefined) {
         inputs[inputVars[index]] = numericValue;
         valueBuckets[inputVars[index]].push(numericValue);
       }
     });
     outputColumns.forEach((column, index) => {
       const columnIndex = header.indexOf(column);
-      const numericValue = Number(cells[columnIndex] ?? "");
-      if (Number.isFinite(numericValue)) {
+      const numericValue = parseNumericCell(cells[columnIndex]);
+      if (numericValue !== undefined) {
         outputs[outputVars[index]] = numericValue;
       }
     });
