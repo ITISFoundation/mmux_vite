@@ -406,7 +406,11 @@ export default function JobsSelector(props: JobSelectorPropsType) {
             maxWidth: 60,
             renderCell: params => (
               <CustomTooltip title="Download JobCollection CSV" placement="left">
-                <IconButton size="small" onClick={() => handleDownloadCsv(params.row.jobCollection.uid)}>
+                <IconButton
+                  aria-label="Download JobCollection CSV"
+                  size="small"
+                  onClick={() => handleDownloadCsv(params.row.jobCollection.uid)}
+                >
                   <Download fontSize="small" color="primary" />
                 </IconButton>
               </CustomTooltip>
