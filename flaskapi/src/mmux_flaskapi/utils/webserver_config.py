@@ -128,8 +128,6 @@ def get_osparc_api() -> OsparcApi:
     osparc_api = current_app.osparc_api
     if osparc_api is None:
         raise ValueError("OsparcApi instance is not initialized in the Flask app")
-    if not osparc_api.is_connected():
-        raise ValueError("OsparcApi instance is not connected to the osparc backend")
 
     return osparc_api
 
