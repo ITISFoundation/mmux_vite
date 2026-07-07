@@ -160,7 +160,7 @@ describe("jobCollectionCsv", () => {
   });
 
   describe("triggerCsvDownload", () => {
-    it("creates and clicks a download link with the CSV content as a blob", () => {
+    it("creates and clicks a download link with the CSV content as a blob", async () => {
       const originalCreateObjectURL = URL.createObjectURL;
       const originalRevokeObjectURL = URL.revokeObjectURL;
       const createObjectURLMock = vi.fn().mockReturnValue("blob:mock-url");
@@ -170,6 +170,9 @@ describe("jobCollectionCsv", () => {
       const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 
       triggerCsvDownload("a,b,c\n1,2,3\n", "my_export.csv");
+      await new Promise<void>(resolve => {
+        setTimeout(resolve, 0);
+      });
 
       expect(createObjectURLMock).toHaveBeenCalledTimes(1);
       expect(clickSpy).toHaveBeenCalledTimes(1);
@@ -178,6 +181,27 @@ describe("jobCollectionCsv", () => {
       URL.createObjectURL = originalCreateObjectURL;
       URL.revokeObjectURL = originalRevokeObjectURL;
       clickSpy.mockRestore();
+    });
+
+    it("B21/V29: does not revoke the object URL synchronously (deferred to next tick)", () => {
+      vi.useFakeTimers();
+      const originalCreateObjectURL = URL.createObjectURL;
+      const originalRevokeObjectURL = URL.revokeObjectURL;
+      URL.createObjectURL = vi.fn().mockReturnValue("blob:mock-url");
+      const revokeObjectURLMock = vi.fn();
+      URL.revokeObjectURL = revokeObjectURLMock;
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+      triggerCsvDownload("a,b,c\n1,2,3\n", "my_export.csv");
+
+      expect(revokeObjectURLMock).not.toHaveBeenCalled();
+      vi.runAllTimers();
+      expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:mock-url");
+
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+      clickSpy.mockRestore();
+      vi.useRealTimers();
     });
   });
 
