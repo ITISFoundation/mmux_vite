@@ -50,7 +50,7 @@ function toSxArray(sx: SxProps<Theme> | undefined): readonly SxProps<Theme>[] {
 }
 
 export default function UploadJobCollectionButton(props: UploadJobCollectionButtonProps) {
-  const { buttonLabel = "Upload JobCollection CSV", disabled = false, sx, existingFunctions = [], onUploadSuccess } = props;
+  const { buttonLabel = "Upload Data", disabled = false, sx, existingFunctions = [], onUploadSuccess } = props;
 
   const [uploading, setUploading] = useState(false);
   const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null);
