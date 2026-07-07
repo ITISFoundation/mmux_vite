@@ -17,4 +17,4 @@ if [[ -n "$published" ]]; then
   fi
 fi
 
-scripts/find-free-port.sh "$base_port"
+bash scripts/find-free-port.sh "$base_port"

@@ -63,7 +63,7 @@ run-develop-sumo-read: ## runs for development SUMO/READ-ONLY
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-sumo-read && \
-	export APP_PORT=$$(scripts/resolve-app-port.sh docker-compose-development.yml 8888) && \
+	export APP_PORT=$$(bash scripts/resolve-app-port.sh docker-compose-development.yml 8888) && \
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-development.yml up
 
@@ -73,7 +73,7 @@ run-develop-sumo-write: ## runs for development SUMO/WRITE
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-sumo-write && \
-	export APP_PORT=$$(scripts/resolve-app-port.sh docker-compose-development.yml 8888) && \
+	export APP_PORT=$$(bash scripts/resolve-app-port.sh docker-compose-development.yml 8888) && \
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-development.yml up
 
@@ -83,7 +83,7 @@ run-develop-uq-read: ## runs for development UQ/READ-ONLY
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-uq-read && \
-	export APP_PORT=$$(scripts/resolve-app-port.sh docker-compose-development.yml 8888) && \
+	export APP_PORT=$$(bash scripts/resolve-app-port.sh docker-compose-development.yml 8888) && \
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-development.yml up
 
@@ -93,7 +93,7 @@ run-develop-uq-write: ## runs for development UQ/WRITE
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-uq-write && \
-	export APP_PORT=$$(scripts/resolve-app-port.sh docker-compose-development.yml 8888) && \
+	export APP_PORT=$$(bash scripts/resolve-app-port.sh docker-compose-development.yml 8888) && \
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-development.yml up
 
@@ -103,7 +103,7 @@ run-develop-moga-read: ## runs for development MOGA/READ-ONLY
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-moga-read && \
-	export APP_PORT=$$(scripts/resolve-app-port.sh docker-compose-development.yml 8888) && \
+	export APP_PORT=$$(bash scripts/resolve-app-port.sh docker-compose-development.yml 8888) && \
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-development.yml up
 
@@ -113,7 +113,7 @@ run-develop-moga-write: ## runs for development MOGA/WRITE
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-moga-write && \
-	export APP_PORT=$$(scripts/resolve-app-port.sh docker-compose-development.yml 8888) && \
+	export APP_PORT=$$(bash scripts/resolve-app-port.sh docker-compose-development.yml 8888) && \
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-development.yml up
 
@@ -125,7 +125,7 @@ run-prod-local-sumo-read: ## runs for validation as it would be in production SU
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-sumo-read && \
-	export APP_PORT=$$(scripts/resolve-app-port.sh docker-compose-local.yml 8888) && \
+	export APP_PORT=$$(bash scripts/resolve-app-port.sh docker-compose-local.yml 8888) && \
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-local.yml up
 
@@ -135,7 +135,7 @@ run-prod-local-sumo-write: ## runs for validation as it would be in production S
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-sumo-write && \
-	export APP_PORT=$$(scripts/resolve-app-port.sh docker-compose-local.yml 8888) && \
+	export APP_PORT=$$(bash scripts/resolve-app-port.sh docker-compose-local.yml 8888) && \
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-local.yml up
 
@@ -145,7 +145,7 @@ run-prod-local-uq-read: ## runs for validation as it would be in production UQ/R
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-uq-read && \
-	export APP_PORT=$$(scripts/resolve-app-port.sh docker-compose-local.yml 8888) && \
+	export APP_PORT=$$(bash scripts/resolve-app-port.sh docker-compose-local.yml 8888) && \
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-local.yml up
 
@@ -155,7 +155,7 @@ run-prod-local-uq-write: ## runs for validation as it would be in production UQ/
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-uq-write && \
-	export APP_PORT=$$(scripts/resolve-app-port.sh docker-compose-local.yml 8888) && \
+	export APP_PORT=$$(bash scripts/resolve-app-port.sh docker-compose-local.yml 8888) && \
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-local.yml up
 
@@ -165,7 +165,7 @@ run-prod-moga-read: ## runs for validation as it would be in production MOGA/REA
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-moga-read && \
-	export APP_PORT=$$(scripts/resolve-app-port.sh docker-compose-local.yml 8888) && \
+	export APP_PORT=$$(bash scripts/resolve-app-port.sh docker-compose-local.yml 8888) && \
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-local.yml up
 
@@ -175,7 +175,7 @@ run-prod-moga-write: ## runs for validation as it would be in production MOGA/WR
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
 	export APP_IMAGE=mmux-vite-app-moga-write && \
-	export APP_PORT=$$(scripts/resolve-app-port.sh docker-compose-local.yml 8888) && \
+	export APP_PORT=$$(bash scripts/resolve-app-port.sh docker-compose-local.yml 8888) && \
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-local.yml up
 
