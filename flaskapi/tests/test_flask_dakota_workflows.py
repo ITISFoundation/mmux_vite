@@ -1414,8 +1414,14 @@ class TestManualUQWithUncertainty:
 
     # ------------------- Validation Error Cases -------------------
 
-    def test_missing_uncertainty_output(self, test_client: Flask):
-        """Test when jobs don't have required uncertainty output (_std_hat)."""
+    def test_uq_uncertainty_succeeds_without_preexisting_std_hat_in_job_outputs(
+        self, test_client: Flask
+    ):
+        """V32/B12: real job outputs (from real simulations/CSV upload) never carry a
+        pre-existing `{output}_std_hat` key — that quantity is computed by the surrogate
+        model (`evaluate_sumo`), not present in the raw training data. The endpoint must
+        succeed with such realistic jobs, not reject them for "missing" a key that is
+        never supposed to be there in the first place."""
         input_vars = ["x1"]
         output = "y"
 
@@ -1434,10 +1440,11 @@ class TestManualUQWithUncertainty:
         response = test_client.post(
             "/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload
         )
-        assert response.status_code == 400
+        assert response.status_code == 200
         data = response.get_json()
-        assert "error" in data
-        assert "std_hat" in data["error"]
+        assert isinstance(data, dict)
+        assert "binMeans" in data and len(data["binMeans"]) > 0
+        assert "binStds" in data and len(data["binStds"]) > 0
 
     def test_invalid_n_histograms_zero(self, test_client: Flask):
         """Test with zero histograms (invalid)."""

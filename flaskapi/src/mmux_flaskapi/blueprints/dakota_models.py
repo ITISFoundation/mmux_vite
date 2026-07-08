@@ -312,26 +312,12 @@ class ManualUQWithUncertaintyRequest(ManualUQPropagationRequest):
                 f"Low samples per histogram ({self.num_samples // self.n_histograms}). Consider increasing numSamples for better statistics."
             )
 
-        # Check that at least some jobs have the required uncertainty output
-        output = self.output
-        jobs = self.function_jobs
-        completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
-
-        if completed_jobs:  # Only check if we have completed jobs
-            uncertainty_output_key = f"{output}_std_hat"
-            jobs_with_uncertainty = [
-                job for job in completed_jobs if uncertainty_output_key in job.outputs
-            ]
-
-            if not jobs_with_uncertainty:
-                # Get available output keys for better error message
-                available_keys = set()
-                for job in completed_jobs[:3]:  # Sample a few jobs
-                    available_keys.update(job.outputs.keys())
-                raise ValueError(
-                    f"UQ with uncertainty requires '{uncertainty_output_key}' in job outputs for uncertainty estimation. "
-                    f"Available output keys: {list(available_keys)}"
-                )
+        # NOTE (V32/B14): uncertainty availability (`{output}_std_hat`) is NOT checked here.
+        # Real job outputs never carry a pre-existing `_std_hat` key -- it's a surrogate-derived
+        # quantity computed by evaluate_sumo() after fitting, not something present in raw
+        # function_jobs[].outputs. The actual check happens post-evaluate_sumo() in
+        # flask_manual_uq_propagation_with_uncertainty (see V5). Checking here rejected every
+        # real (non-test-mocked) request before Dakota ever ran.
 
         return self
 

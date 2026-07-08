@@ -434,8 +434,8 @@ class TestOsparcApiConnectionTesting:
                     # Should still be called only once
                     assert mock_users_api.get_my_profile.call_count == 1
 
-    def test_is_connected_property_retests_after_failure(self):
-        """Test that is_connected property retests after a failure."""
+    def test_is_connected_property_short_circuits_after_failure(self):
+        """Test that is_connected caches a failed probe instead of retesting every call."""
         with patch.dict(os.environ, self.test_env):
             with patch("mmux_flaskapi.utils.webserver_config.UsersApi") as mock_users_api_class:
                 with patch("mmux_flaskapi.utils.webserver_config.ApiClient"):
@@ -449,11 +449,32 @@ class TestOsparcApiConnectionTesting:
                     result = api.is_connected()
                     assert result is False
 
-                    # Second call should test again (because connection failed)
+                    # Second call should reuse the cached failure, not re-probe
                     result2 = api.is_connected()
                     assert result2 is False
 
-                    # Should have been called twice
+                    # Should have been called only once
+                    assert mock_users_api.get_my_profile.call_count == 1
+
+    def test_is_connected_force_recheck_after_failure(self):
+        """Test that is_connected(force_recheck=True) explicitly re-runs the probe."""
+        with patch.dict(os.environ, self.test_env):
+            with patch("mmux_flaskapi.utils.webserver_config.UsersApi") as mock_users_api_class:
+                with patch("mmux_flaskapi.utils.webserver_config.ApiClient"):
+                    mock_users_api = Mock()
+                    mock_users_api.get_my_profile.side_effect = Exception("Connection failed")
+                    mock_users_api_class.return_value = mock_users_api
+
+                    api = OsparcApi()
+
+                    # First call should fail
+                    result = api.is_connected()
+                    assert result is False
+
+                    # Forcing a recheck should re-probe even though the last result was cached
+                    result2 = api.is_connected(force_recheck=True)
+                    assert result2 is False
+
                     assert mock_users_api.get_my_profile.call_count == 2
 
     def test_is_connected_initial_state(self):
@@ -535,21 +556,6 @@ class TestGetOsparcApiHelper:
         with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
             with pytest.raises(
                 ValueError, match="OsparcApi instance is not initialized in the Flask app"
-            ):
-                get_osparc_api()
-
-    def test_get_osparc_api_not_connected(self):
-        """Test get_osparc_api when API is not connected."""
-        from mmux_flaskapi.app import MMUXFlask
-
-        mock_app = Mock(spec=MMUXFlask)
-        mock_osparc_api = Mock()
-        mock_osparc_api.is_connected = False
-        mock_app.osparc_api = mock_osparc_api
-
-        with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
-            with pytest.raises(
-                ValueError, match="OsparcApi instance is not connected to the osparc backend"
             ):
                 get_osparc_api()
 
@@ -638,6 +644,42 @@ class TestGetOsparcApiIfConfiguredHelper:
 
         with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
             assert get_osparc_api_if_configured() is duck_typed_api
+
+
+class TestGetOsparcApiIfConnectedHelper:
+    def test_returns_none_when_osparc_api_not_initialized(self):
+        from mmux_flaskapi.app import MMUXFlask
+        from mmux_flaskapi.utils.webserver_config import get_osparc_api_if_connected
+
+        mock_app = Mock(spec=MMUXFlask)
+        mock_app.osparc_api = None
+
+        with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
+            assert get_osparc_api_if_connected() is None
+
+    def test_returns_none_when_connection_check_fails(self):
+        from mmux_flaskapi.app import MMUXFlask
+        from mmux_flaskapi.utils.webserver_config import get_osparc_api_if_connected
+
+        mock_app = Mock(spec=MMUXFlask)
+        mock_osparc_api = Mock()
+        mock_osparc_api.is_connected.return_value = False
+        mock_app.osparc_api = mock_osparc_api
+
+        with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
+            assert get_osparc_api_if_connected() is None
+
+    def test_returns_api_when_connection_check_succeeds(self):
+        from mmux_flaskapi.app import MMUXFlask
+        from mmux_flaskapi.utils.webserver_config import get_osparc_api_if_connected
+
+        mock_app = Mock(spec=MMUXFlask)
+        mock_osparc_api = Mock()
+        mock_osparc_api.is_connected.return_value = True
+        mock_app.osparc_api = mock_osparc_api
+
+        with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
+            assert get_osparc_api_if_connected() is mock_osparc_api
 
 
 class TestOsparcApiLogging:

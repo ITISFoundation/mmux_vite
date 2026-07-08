@@ -112,9 +112,17 @@ class OsparcApi:
             _logger.warning(f"API connection test failed: {e}")
             self._is_connected = False
 
-    def is_connected(self) -> bool:
-        """Check if API is connected."""
-        if not hasattr(self, "_is_connected") or not self._is_connected:
+    def is_connected(self, force_recheck: bool = False) -> bool:
+        """Check if API is connected.
+
+        The result of the first probe (success or failure) is cached and
+        reused on subsequent calls, so a persistently unreachable backend
+        does not incur a new network round-trip on every call (e.g. once per
+        incoming request in the LOCAL-mode graceful-degradation path). Pass
+        `force_recheck=True` to explicitly re-run the probe, e.g. to detect a
+        backend that has since come back online.
+        """
+        if force_recheck or not hasattr(self, "_is_connected"):
             self._test_connection()
 
         return self._is_connected
@@ -128,8 +136,6 @@ def get_osparc_api() -> OsparcApi:
     osparc_api = current_app.osparc_api
     if osparc_api is None:
         raise ValueError("OsparcApi instance is not initialized in the Flask app")
-    if not osparc_api.is_connected:
-        raise ValueError("OsparcApi instance is not connected to the osparc backend")
 
     return osparc_api
 
@@ -163,4 +169,24 @@ def get_osparc_api_if_configured() -> OsparcApi | None:
     return get_osparc_api()
 
 
-__all__ = ["OsparcApi", "get_osparc_api", "get_osparc_api_if_configured", "OsparcApiException"]
+def get_osparc_api_if_connected() -> OsparcApi | None:
+    """Return the OsparcApi instance only when the backend is reachable."""
+    from mmux_flaskapi.app import MMUXFlask
+
+    assert isinstance(current_app, MMUXFlask), "current_app is not an instance of MMUXFlask"
+    osparc_api = current_app.osparc_api
+    if osparc_api is None:
+        return None
+    if not osparc_api.is_connected():
+        return None
+
+    return osparc_api
+
+
+__all__ = [
+    "OsparcApi",
+    "get_osparc_api",
+    "get_osparc_api_if_configured",
+    "get_osparc_api_if_connected",
+    "OsparcApiException",
+]

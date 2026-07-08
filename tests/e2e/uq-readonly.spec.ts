@@ -16,9 +16,11 @@ import {
  * Shares the deterministic local stack and the single backend boot with the
  * SuMo/MOGA specs; SERVICE_MODE is switched to UQ up front via the test-only
  * control endpoint (§T13) so the spec is order-independent. UQ inputs use a
- * NORMAL distribution (Mean / Std), and the histogram is driven by the mock
- * jobs' `<qoi>_std_hat` outputs (present on the job payloads but absent from the
- * output schema, so the QoI dropdown stays unchanged).
+ * NORMAL distribution (Mean / Std), and the histogram is driven by the
+ * uncertainty (`<qoi>_std_hat`) the backend computes itself from the trained
+ * surrogate's variance output (`evaluate_sumo()`), not by a fabricated value
+ * on the mock job payloads (B12/V32, flaskapi/SPEC.md) — the mock jobs carry
+ * only real-looking outputs, same shape as a real oSPARC/CSV-uploaded job.
  *
  * Also exercises the "Inspect Model" SuMo modal, which previously failed to open
  * because the MUI Modal child was a non-ref-forwarding function component.
