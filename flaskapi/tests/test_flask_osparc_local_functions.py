@@ -174,3 +174,17 @@ class TestDownloadJobCollectionCsv:
     def test_download_missing_query_arg_returns_400(self, test_client):
         response = test_client.get("/flask/osparc/download_job_collection_csv")
         assert response.status_code == 400
+
+    def test_download_remote_job_collection_with_no_jobs_returns_422(self, test_client):
+        """B22: an empty remote job collection has no jobs to infer a function schema
+        from; the endpoint must reject it with a clear 422 instead of falling back to
+        an empty function_uid (which used to blow up inside `_function_schema_vars`)."""
+        with patch(
+            "osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.get_function_job_collection",
+            return_value=type("Jc", (), {"job_ids": [], "title": "Empty JC"})(),
+        ):
+            response = test_client.get(
+                "/flask/osparc/download_job_collection_csv?JobCollectionUid=remote-jc-empty"
+            )
+        assert response.status_code == 422
+        assert "no jobs" in response.get_json()["error"].lower()

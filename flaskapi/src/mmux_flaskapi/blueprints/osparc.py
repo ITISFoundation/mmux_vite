@@ -356,8 +356,12 @@ def flask_download_job_collection_csv():
             osparc_api = get_osparc_api()
             jc_obj = osparc_api.get_job_collection_api().get_function_job_collection(jc_uid)
             job_uids = jc_obj.job_ids  # type: ignore
+            if not job_uids:
+                raise ValueError(
+                    f"Job collection {jc_uid} has no jobs; cannot infer its function schema"
+                )
             jobs = [_get_function_job_from_uid(job_uid) for job_uid in job_uids]
-            function_uid = jobs[0]["function_uid"] if jobs else ""
+            function_uid = jobs[0]["function_uid"]
             title = getattr(jc_obj, "title", "") or ""
 
         csv_content = _job_collection_jobs_to_csv(
