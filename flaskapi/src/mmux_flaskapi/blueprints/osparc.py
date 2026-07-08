@@ -104,25 +104,24 @@ def api_endpoint(func: Callable) -> Callable:
 @osparc_bp.route("/list_functions", methods=["GET"])
 @api_endpoint
 def flask_list_functions():
-    if _is_local_deployment_mode():
-        osparc_api = get_osparc_api_if_connected()
-        real_functions = (
-            _get_all_items(osparc_api.get_functions_api().list_functions) if osparc_api else []
-        )
-        functions = real_functions[::-1] + list_local_functions()
-        _logger.debug(f"N Functions (real+local): {len(functions)}")
-        return functions, 200
-
-    osparc_api = get_osparc_api_if_configured()
-    if osparc_api is None:
-        _logger.warning("oSPARC credentials are not configured - returning no remote functions")
-        return [], 200
-
-    functions = _get_all_items(osparc_api.get_functions_api().list_functions)
-    functions = functions[
+    # In LOCAL mode an unreachable oSPARC backend is tolerated (graceful degradation);
+    # otherwise, missing/blank credentials are tolerated. Either way, a None osparc_api
+    # here means "no remote functions available", not an error.
+    is_local = _is_local_deployment_mode()
+    osparc_api = get_osparc_api_if_connected() if is_local else get_osparc_api_if_configured()
+    real_functions = (
+        _get_all_items(osparc_api.get_functions_api().list_functions) if osparc_api else []
+    )
+    real_functions = real_functions[
         ::-1
     ]  # put last-created first? FIXME still need to expose "created_at" in the response
-    _logger.debug(f"N Functions: {len(functions)}")
+
+    if is_local:
+        functions = real_functions + list_local_functions()
+        _logger.debug(f"N Functions (real+local): {len(functions)}")
+    else:
+        functions = real_functions
+        _logger.debug(f"N Functions: {len(functions)}")
     return functions, 200
 
 
