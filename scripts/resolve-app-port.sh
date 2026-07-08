@@ -3,6 +3,8 @@
 # it already exists; otherwise prints the first free TCP port from <base_port>.
 set -euo pipefail
 
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
 compose_file="${1:-docker-compose-development.yml}"
 base_port="${2:-8888}"
 service="${3:-mmux-vite-app}"
@@ -17,4 +19,4 @@ if [[ -n "$published" ]]; then
   fi
 fi
 
-bash scripts/find-free-port.sh "$base_port"
+bash "$script_dir/find-free-port.sh" "$base_port"

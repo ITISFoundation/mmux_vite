@@ -118,11 +118,6 @@ export async function getFunctionJobsFromFunctionJobCollection(jobCollectionUid:
   );
 }
 
-export async function downloadJobCollectionCsv(jobCollectionUid: string): Promise<string> {
-  const response = await fetchWithRetry(`/flask/osparc/download_job_collection_csv?JobCollectionUid=${jobCollectionUid}`);
-  return response.text();
-}
-
 export interface UploadJobCollectionCsvResponse {
   targetFunctionUid: string;
   importedSamples: number;

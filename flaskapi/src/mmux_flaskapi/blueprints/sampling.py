@@ -318,8 +318,7 @@ def flask_clone_job():
 
 
 #####################################################################################
-# Job-collection CSV import (flaskapi/SPEC.md §T6, pairs with osparc.py's
-# download_job_collection_csv / _job_collection_jobs_to_csv, node/SPEC.md V13)
+# Job-collection CSV import (flaskapi/SPEC.md §T6, node/SPEC.md V13)
 #####################################################################################
 
 INPUT_COLUMN_PREFIX = "input__"
@@ -422,9 +421,8 @@ def _parse_uploaded_job_collection_csv(csv_content: str) -> dict[str, Any]:
 @sampling_bp.route("/upload_job_collection_csv", methods=["POST"])
 def flask_upload_job_collection_csv():
     """
-    Import a job-collection CSV (as produced by GET /osparc/download_job_collection_csv)
-    and attach the samples to either a new local function or an existing function
-    (local or real oSPARC).
+    Import a job-collection CSV and attach the samples to either a new local
+    function or an existing function (local or real oSPARC).
 
     Always creates a LOCAL job collection for the imported rows: there is no oSPARC
     API to inject fabricated historical job results into a real function's job

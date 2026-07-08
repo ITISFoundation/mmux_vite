@@ -5,7 +5,6 @@ import { fetchWithRetry } from "./fetchRetry";
 import {
   createInputOutputSchema,
   createJobStudyCopy,
-  downloadJobCollectionCsv,
   getFunctionJobCollections,
   getFunctionJobsFromFunctionJobCollection,
   getFunctionJobsFromFunctionUid,
@@ -202,16 +201,6 @@ describe("Function Utils", () => {
   it("should get function jobs from a job collection", async () => {
     const jobs = await getFunctionJobsFromFunctionJobCollection("collection1");
     expect(jobs).toEqual(sampleJobs);
-  });
-
-  it("should download a job-collection CSV as text (§T6)", async () => {
-    const csvContent = "# source_function_uid,func1\nsource_job_uid,status,input__x1,output__y\njob-1,SUCCESS,1.0,10.0\n";
-    vi.mocked(fetchWithRetry).mockResolvedValueOnce({
-      text: () => Promise.resolve(csvContent),
-    } as Response);
-
-    const result = await downloadJobCollectionCsv("collection1");
-    expect(result).toBe(csvContent);
   });
 
   it("should upload a job-collection CSV and normalize the response to camelCase (§T6)", async () => {

@@ -129,23 +129,3 @@ class TestUploadJobCollectionCsvValidation:
     def test_missing_required_fields(self, test_client):
         response = test_client.post("/flask/sampling/upload_job_collection_csv", json={})
         assert response.status_code == 400
-
-
-class TestUploadDownloadRoundTrip:
-    def test_upload_then_download_round_trip(self, test_client):
-        payload = {"csvContent": VALID_CSV, "targetMode": "new", "newFunctionTitle": "RT Fn"}
-        upload_response = test_client.post(
-            "/flask/sampling/upload_job_collection_csv", json=payload
-        )
-        assert upload_response.status_code == 200
-        jc_uid = upload_response.get_json()["jobCollection"]["uid"]
-
-        download_response = test_client.get(
-            f"/flask/osparc/download_job_collection_csv?JobCollectionUid={jc_uid}"
-        )
-        assert download_response.status_code == 200
-        body = download_response.get_data(as_text=True)
-        assert "input__x" in body
-        assert "output__y" in body
-        assert "1.0" in body
-        assert "3.0" in body

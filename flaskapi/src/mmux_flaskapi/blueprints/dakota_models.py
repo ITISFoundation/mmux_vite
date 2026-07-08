@@ -312,12 +312,12 @@ class ManualUQWithUncertaintyRequest(ManualUQPropagationRequest):
                 f"Low samples per histogram ({self.num_samples // self.n_histograms}). Consider increasing numSamples for better statistics."
             )
 
-        # NOTE (B12/V32): uncertainty availability (`{output}_std_hat`) is a property of the
-        # trained surrogate, not of the raw training jobs — `function_jobs` carry real
-        # simulation outputs and never contain a pre-existing `_std_hat` key. The actual
-        # check happens after `evaluate_sumo()` runs, against its `results` dict (see
-        # `flask_manual_uq_propagation_with_uncertainty` in dakota.py). Do not re-add a
-        # pre-surrogate check against `function_jobs[].outputs` here.
+        # NOTE (V32/B14): uncertainty availability (`{output}_std_hat`) is NOT checked here.
+        # Real job outputs never carry a pre-existing `_std_hat` key -- it's a surrogate-derived
+        # quantity computed by evaluate_sumo() after fitting, not something present in raw
+        # function_jobs[].outputs. The actual check happens post-evaluate_sumo() in
+        # flask_manual_uq_propagation_with_uncertainty (see V5). Checking here rejected every
+        # real (non-test-mocked) request before Dakota ever ran.
 
         return self
 

@@ -15,7 +15,6 @@ from osparc_client.models.function_job_status import FunctionJobStatus
 from mmux_flaskapi.utils.helpers import _get_all_items
 from mmux_flaskapi.utils.local_job_store import (
     get_local_job,
-    get_local_job_collection,
     is_local_function_uid,
     is_local_job_collection_uid,
     is_local_job_uid,
@@ -105,25 +104,24 @@ def api_endpoint(func: Callable) -> Callable:
 @osparc_bp.route("/list_functions", methods=["GET"])
 @api_endpoint
 def flask_list_functions():
-    if _is_local_deployment_mode():
-        osparc_api = get_osparc_api_if_connected()
-        real_functions = (
-            _get_all_items(osparc_api.get_functions_api().list_functions) if osparc_api else []
-        )
-        functions = real_functions[::-1] + list_local_functions()
-        _logger.debug(f"N Functions (real+local): {len(functions)}")
-        return functions, 200
-
-    osparc_api = get_osparc_api_if_configured()
-    if osparc_api is None:
-        _logger.warning("oSPARC credentials are not configured - returning no remote functions")
-        return [], 200
-
-    functions = _get_all_items(osparc_api.get_functions_api().list_functions)
-    functions = functions[
+    # In LOCAL mode an unreachable oSPARC backend is tolerated (graceful degradation);
+    # otherwise, missing/blank credentials are tolerated. Either way, a None osparc_api
+    # here means "no remote functions available", not an error.
+    is_local = _is_local_deployment_mode()
+    osparc_api = get_osparc_api_if_connected() if is_local else get_osparc_api_if_configured()
+    real_functions = (
+        _get_all_items(osparc_api.get_functions_api().list_functions) if osparc_api else []
+    )
+    real_functions = real_functions[
         ::-1
     ]  # put last-created first? FIXME still need to expose "created_at" in the response
-    _logger.debug(f"N Functions: {len(functions)}")
+
+    if is_local:
+        functions = real_functions + list_local_functions()
+        _logger.debug(f"N Functions (real+local): {len(functions)}")
+    else:
+        functions = real_functions
+        _logger.debug(f"N Functions: {len(functions)}")
     return functions, 200
 
 
@@ -284,102 +282,6 @@ def _function_schema_vars(function_uid: str) -> tuple[list[str], list[str]]:
     input_vars = list(fun["input_schema"]["schema_content"]["properties"])
     output_vars = list(fun["output_schema"]["schema_content"]["properties"])
     return input_vars, output_vars
-
-
-def _csv_escape(value: str) -> str:
-    if any(c in value for c in (",", '"', "\n")):
-        return '"' + value.replace('"', '""') + '"'
-    return value
-
-
-def _serialize_csv_value(value: Any) -> str:
-    return "" if value is None else str(value)
-
-
-def _write_csv_metadata_line(key: str, value: str) -> str:
-    return f"# {key},{_csv_escape(value)}"
-
-
-def _job_collection_jobs_to_csv(
-    *,
-    function_uid: str,
-    job_collection_uid: str,
-    job_collection_title: str,
-    jobs: list[dict[str, Any]],
-) -> str:
-    """Serialize a job collection's jobs into the CSV format consumed by the frontend's
-    `parseJobCollectionCsv` (node/SPEC.md V13) and by `upload_job_collection_csv`."""
-    input_vars, output_vars = _function_schema_vars(function_uid)
-
-    lines = [
-        _write_csv_metadata_line("source_function_uid", function_uid),
-        _write_csv_metadata_line("source_job_collection_uid", job_collection_uid),
-        _write_csv_metadata_line("source_job_collection_title", job_collection_title or ""),
-    ]
-    header = (
-        ["source_job_uid", "status"]
-        + [f"input__{v}" for v in input_vars]
-        + [f"output__{v}" for v in output_vars]
-    )
-    lines.append(",".join(header))
-
-    for job in jobs:
-        inputs = job.get("inputs") or {}
-        outputs = job.get("outputs") or {}
-        row = [
-            _serialize_csv_value(job.get("uid")),
-            _serialize_csv_value(job.get("status")),
-        ]
-        row += [_serialize_csv_value(inputs.get(v)) for v in input_vars]
-        row += [_serialize_csv_value(outputs.get(v)) for v in output_vars]
-        lines.append(",".join(_csv_escape(cell) for cell in row))
-
-    return "\n".join(lines) + "\n"
-
-
-@osparc_bp.route("/download_job_collection_csv", methods=["GET"])
-def flask_download_job_collection_csv():
-    try:
-        jc_uid = _get_query_arg("JobCollectionUid", "job_collection_uid")
-    except KeyError as e:
-        return make_response(jsonify({"error": f"Missing required parameter: {e}"}), 400)
-
-    try:
-        if is_local_job_collection_uid(jc_uid):
-            jc = get_local_job_collection(jc_uid)
-            if jc is None:
-                raise ValueError(f"Local job collection {jc_uid} not found")
-            jobs = list_local_jobs_for_collection(jc_uid)
-            function_uid = jc["function_uid"]
-            title = jc.get("title", "")
-        else:
-            osparc_api = get_osparc_api()
-            jc_obj = osparc_api.get_job_collection_api().get_function_job_collection(jc_uid)
-            job_uids = jc_obj.job_ids  # type: ignore
-            jobs = [_get_function_job_from_uid(job_uid) for job_uid in job_uids]
-            function_uid = jobs[0]["function_uid"] if jobs else ""
-            title = getattr(jc_obj, "title", "") or ""
-
-        csv_content = _job_collection_jobs_to_csv(
-            function_uid=function_uid,
-            job_collection_uid=jc_uid,
-            job_collection_title=title,
-            jobs=jobs,
-        )
-        response = make_response(csv_content, 200)
-        response.headers["Content-Type"] = "text/csv; charset=utf-8"
-        return response
-    except ValueError as e:
-        _logger.error(f"Invalid value: {e}")
-        return make_response(jsonify({"error": str(e)}), 422)
-    except OsparcApiException as e:
-        status_code = getattr(e, "status", getattr(e, "status_code", 500))
-        error_msg = getattr(e, "body", str(e))
-        _logger.error(f"Downstream API error: {status_code} - {error_msg}")
-        return make_response(jsonify({"error": error_msg}), status_code)
-    except Exception as e:
-        _logger.error(f"Internal server error: {e}")
-        return make_response(jsonify({"error": str(e)}), 500)
 
 
 @osparc_bp.route("/get_function_job_status", methods=["GET"])

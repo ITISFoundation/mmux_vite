@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { parseJobCollectionCsv, pickSingleCsvFile, serializeJobCollectionCsv, triggerCsvDownload } from "./jobCollectionCsv";
+import { parseJobCollectionCsv, pickSingleCsvFile } from "./jobCollectionCsv";
 
 describe("jobCollectionCsv", () => {
   describe("parseJobCollectionCsv", () => {
@@ -115,93 +115,6 @@ describe("jobCollectionCsv", () => {
         inputPresets: {},
         rows: [],
       });
-    });
-  });
-
-  describe("serializeJobCollectionCsv / parseJobCollectionCsv round-trip", () => {
-    it("round-trips preamble + table data through serialize then parse", () => {
-      const source = {
-        sourceFunctionUid: "func-123",
-        sourceJobCollectionUid: "jc-456",
-        sourceJobCollectionTitle: "My Campaign",
-        inputVars: ["x1", "x2"],
-        outputVars: ["y"],
-        rows: [
-          { sourceJobUid: "job-1", status: "SUCCESS", inputs: { x1: 1.0, x2: 10.0 }, outputs: { y: 100.0 } },
-          { sourceJobUid: "job-2", status: "SUCCESS", inputs: { x1: 2.0, x2: 20.0 }, outputs: { y: 200.0 } },
-        ],
-      };
-
-      const csv = serializeJobCollectionCsv(source);
-      const parsed = parseJobCollectionCsv(csv);
-
-      expect(parsed.sourceFunctionUid).toBe(source.sourceFunctionUid);
-      expect(parsed.sourceJobCollectionUid).toBe(source.sourceJobCollectionUid);
-      expect(parsed.sourceJobCollectionTitle).toBe(source.sourceJobCollectionTitle);
-      expect(parsed.inputVars).toEqual(source.inputVars);
-      expect(parsed.outputVars).toEqual(source.outputVars);
-      expect(parsed.rows).toEqual(source.rows);
-    });
-
-    it("B20/V28: round-trips a title containing a comma and a double quote", () => {
-      const source = {
-        sourceFunctionUid: "func-123",
-        sourceJobCollectionTitle: 'My, "Special" Campaign',
-        inputVars: ["x1"],
-        outputVars: ["y"],
-        rows: [{ sourceJobUid: "job-1", status: "SUCCESS", inputs: { x1: 1.0 }, outputs: { y: 10.0 } }],
-      };
-
-      const csv = serializeJobCollectionCsv(source);
-      const parsed = parseJobCollectionCsv(csv);
-
-      expect(parsed.sourceJobCollectionTitle).toBe(source.sourceJobCollectionTitle);
-    });
-  });
-
-  describe("triggerCsvDownload", () => {
-    it("creates and clicks a download link with the CSV content as a blob", async () => {
-      const originalCreateObjectURL = URL.createObjectURL;
-      const originalRevokeObjectURL = URL.revokeObjectURL;
-      const createObjectURLMock = vi.fn().mockReturnValue("blob:mock-url");
-      const revokeObjectURLMock = vi.fn();
-      URL.createObjectURL = createObjectURLMock;
-      URL.revokeObjectURL = revokeObjectURLMock;
-      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-
-      triggerCsvDownload("a,b,c\n1,2,3\n", "my_export.csv");
-      await new Promise<void>(resolve => {
-        setTimeout(resolve, 0);
-      });
-
-      expect(createObjectURLMock).toHaveBeenCalledTimes(1);
-      expect(clickSpy).toHaveBeenCalledTimes(1);
-      expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:mock-url");
-
-      URL.createObjectURL = originalCreateObjectURL;
-      URL.revokeObjectURL = originalRevokeObjectURL;
-      clickSpy.mockRestore();
-    });
-
-    it("B21/V29: does not revoke the object URL synchronously (deferred to next tick)", () => {
-      vi.useFakeTimers();
-      const originalCreateObjectURL = URL.createObjectURL;
-      const originalRevokeObjectURL = URL.revokeObjectURL;
-      URL.createObjectURL = vi.fn().mockReturnValue("blob:mock-url");
-      const revokeObjectURLMock = vi.fn();
-      URL.revokeObjectURL = revokeObjectURLMock;
-      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-
-      triggerCsvDownload("a,b,c\n1,2,3\n", "my_export.csv");
-
-      expect(revokeObjectURLMock).not.toHaveBeenCalled();
-      vi.runAllTimers();
-      expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:mock-url");
-
-      URL.createObjectURL = originalCreateObjectURL;
-      URL.revokeObjectURL = originalRevokeObjectURL;
-      clickSpy.mockRestore();
-      vi.useRealTimers();
     });
   });
 

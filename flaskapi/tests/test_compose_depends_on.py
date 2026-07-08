@@ -10,6 +10,7 @@ upstream services, not just container start, or it serves traffic before
 import os
 import subprocess
 from pathlib import Path
+from shutil import which
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -112,3 +113,61 @@ def test_resolve_app_port_prefers_existing_compose_publication(tmp_path):
     )
 
     assert result.stdout.strip() == "8891"
+
+
+def test_resolve_app_port_finds_sibling_script_when_invoked_from_other_cwd(tmp_path):
+    """Regression test for SPEC.md B9/V22: resolve-app-port.sh called its
+    find-free-port.sh fallback via a cwd-relative path (`scripts/find-free-port.sh`),
+    so invoking it from anywhere other than the repo root failed instead of
+    falling back to a freshly-scanned free port.
+    """
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    docker = fake_bin / "docker"
+    # No existing Compose publication -> script must fall back to find-free-port.sh.
+    docker.write_text("#!/usr/bin/env bash\nexit 1\n")
+    docker.chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
+
+    other_cwd = tmp_path / "elsewhere"
+    other_cwd.mkdir()
+
+    result = subprocess.run(
+        ["bash", str(RESOLVE_APP_PORT), "docker-compose-development.yml", "8888"],
+        cwd=other_cwd,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip().isdigit()
+
+
+def test_find_free_port_fails_fast_without_timeout_command(tmp_path):
+    """Regression test for SPEC.md B10/V23: find-free-port.sh used
+    `if ! timeout ...` to probe a port; if the `timeout` command itself is
+    missing, that condition is always true, so the script incorrectly reports
+    the very first port scanned as free.
+    """
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    # Provide bash on PATH, but deliberately omit `timeout`.
+    real_bash = which("bash")
+    assert real_bash is not None, "bash must be available to run this test"
+    (fake_bin / "bash").symlink_to(real_bash)
+
+    env = os.environ.copy()
+    env["PATH"] = str(fake_bin)
+
+    result = subprocess.run(
+        ["bash", str(REPO_ROOT / "scripts" / "find-free-port.sh"), "8888"],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode != 0
+    assert "timeout" in result.stderr.lower()

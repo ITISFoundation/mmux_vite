@@ -44,7 +44,7 @@ type PendingUpload = {
   analysis: ParsedJobCollectionCsv;
 };
 
-function toSxArray(sx: SxProps<Theme> | undefined): readonly SxProps<Theme>[] {
+function toSxArray(sx: SxProps<Theme> | undefined): SxProps<Theme>[] {
   if (!sx) return [];
   return Array.isArray(sx) ? sx : [sx];
 }
@@ -117,10 +117,11 @@ export default function UploadJobCollectionButton(props: UploadJobCollectionButt
   };
 
   const confirmDisabled = uploading || (targetMode === "existing" && !targetFunctionUid);
+  const buttonSx = [{ px: 3 }, ...toSxArray(sx)] as SxProps<Theme>;
 
   return (
     <>
-      <Button variant="contained" size="medium" onClick={handleClick} disabled={disabled} sx={[{ px: 3 }, ...toSxArray(sx)]}>
+      <Button variant="contained" size="medium" onClick={handleClick} disabled={disabled} sx={buttonSx}>
         {buttonLabel}
       </Button>
 

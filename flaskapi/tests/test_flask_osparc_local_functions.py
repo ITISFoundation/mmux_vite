@@ -1,6 +1,4 @@
-"""
-Tests for local-uid routing + CSV download in osparc.py (flaskapi/SPEC.md §T6/§T7).
-"""
+"""Tests for local-uid routing + local-store merges in osparc.py (flaskapi/SPEC.md §T7)."""
 
 from unittest.mock import patch
 
@@ -145,32 +143,3 @@ class TestLocalUidRouting:
         data_with_local = response.get_json()
 
         assert len(data_with_local) == len(data_no_local) + 1
-
-
-class TestDownloadJobCollectionCsv:
-    def test_download_local_job_collection_csv(self, test_client, local_function_and_collection):
-        _, jc = local_function_and_collection
-        response = test_client.get(
-            f"/flask/osparc/download_job_collection_csv?JobCollectionUid={jc['uid']}"
-        )
-        assert response.status_code == 200
-        assert "text/csv" in response.content_type
-        body = response.get_data(as_text=True)
-        lines = body.splitlines()
-        assert lines[0] == f"# source_function_uid,{jc['function_uid']}"
-        assert lines[1] == f"# source_job_collection_uid,{jc['uid']}"
-        assert lines[2] == "# source_job_collection_title,Local JC"
-        assert lines[3] == "source_job_uid,status,input__x,output__y"
-        assert "1.0" in lines[4]
-        assert "2.0" in lines[4]
-
-    def test_download_missing_job_collection_returns_422(self, test_client):
-        response = test_client.get(
-            "/flask/osparc/download_job_collection_csv?JobCollectionUid=local-jc-doesnotexist"
-        )
-        assert response.status_code == 422
-        assert "not found" in response.get_json()["error"].lower()
-
-    def test_download_missing_query_arg_returns_400(self, test_client):
-        response = test_client.get("/flask/osparc/download_job_collection_csv")
-        assert response.status_code == 400

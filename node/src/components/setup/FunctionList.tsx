@@ -39,8 +39,7 @@ function getRowId(row: RegisteredFunction) {
 }
 
 export function FunctionList() {
-  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars, distribution, setDistribution } =
-    useFunctionContext();
+  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars, setDistribution } = useFunctionContext();
   const { setLhsSamplingConfig, setGridSamplingConfig, setSingleJobConfig, clearSampling } = useSamplingContext();
   const { setSelectedJobUids, setFetchedJobCollections } = useJobContext();
   const [loading, setLoading] = useState<boolean>(true);
@@ -191,12 +190,12 @@ export function FunctionList() {
     }
 
     setRowSelection(targetFunction); // select fn (+ registers inputVars/outputVars)
-    setDistribution({
-      ...distribution,
+    setDistribution(prev => ({
+      ...prev,
       [targetFunction.uid]: Object.fromEntries(
         Object.entries(result.inputPresets).map(([variable, preset]) => [variable, preset as VarSelection]),
       ),
-    }); // prefill bounds + infer dist/log
+    })); // prefill bounds + infer dist/log
   };
 
   const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {
