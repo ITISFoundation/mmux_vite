@@ -3,6 +3,8 @@
 # probing upward. Exits 1 if no free port is found within the search range.
 set -euo pipefail
 
+command -v timeout >/dev/null 2>&1 || { echo "find-free-port.sh: 'timeout' command is required" >&2; exit 1; }
+
 base_port="${1:?usage: find-free-port.sh <base_port> [max_tries]}"
 max_tries="${2:-50}"
 
