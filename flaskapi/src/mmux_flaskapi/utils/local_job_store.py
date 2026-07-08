@@ -12,11 +12,11 @@ following fixes baked in from the start (see flaskapi/SPEC.md §B1/§V17, §B5/�
   treated as "corrupt store", not a bare `except Exception`.
 """
 
+import datetime as dt
 import json
 import logging
 import os
 import uuid
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +25,7 @@ _logger = logging.getLogger(__name__)
 LOCAL_FUNCTION_PREFIX = "local-func-"
 LOCAL_JOB_COLLECTION_PREFIX = "local-jc-"
 LOCAL_JOB_PREFIX = "local-job-"
+UTC_TZ = getattr(dt, "timezone").utc
 
 
 def _default_store_dir() -> Path:
@@ -46,7 +47,7 @@ def _empty_store() -> dict[str, list]:
 def _backup_corrupt_store(reason: str) -> None:
     if not LOCAL_STORE_FILE.exists():
         return
-    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f")
+    timestamp = dt.datetime.now(UTC_TZ).strftime("%Y%m%dT%H%M%S%f")
     backup_path = LOCAL_STORE_FILE.with_suffix(f".corrupt-{timestamp}.json.bak")
     try:
         LOCAL_STORE_FILE.rename(backup_path)
