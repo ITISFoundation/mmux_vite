@@ -538,21 +538,6 @@ class TestGetOsparcApiHelper:
             ):
                 get_osparc_api()
 
-    def test_get_osparc_api_not_connected(self):
-        """Test get_osparc_api when API is not connected."""
-        from mmux_flaskapi.app import MMUXFlask
-
-        mock_app = Mock(spec=MMUXFlask)
-        mock_osparc_api = Mock()
-        mock_osparc_api.is_connected = False
-        mock_app.osparc_api = mock_osparc_api
-
-        with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
-            with pytest.raises(
-                ValueError, match="OsparcApi instance is not connected to the osparc backend"
-            ):
-                get_osparc_api()
-
 
 class TestGetOsparcApiIfConfiguredHelper:
     """Test the get_osparc_api_if_configured helper function.

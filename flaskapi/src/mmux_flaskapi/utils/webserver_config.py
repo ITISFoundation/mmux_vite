@@ -161,9 +161,29 @@ def get_osparc_api_if_configured() -> OsparcApi | None:
     return get_osparc_api()
 
 
+def get_osparc_api_if_connected() -> OsparcApi | None:
+    """
+    Like `get_osparc_api()`, but returns `None` instead of raising when no oSPARC
+    connection is available. Use this in endpoints that have a local-function
+    fallback (DEPLOYMENT_MODE=LOCAL), so a missing/unreachable oSPARC connection
+    degrades to "local only" instead of a hard error.
+    """
+    from mmux_flaskapi.app import MMUXFlask
+
+    assert isinstance(current_app, MMUXFlask), "current_app is not an instance of MMUXFlask"
+    osparc_api = current_app.osparc_api
+    if osparc_api is None:
+        return None
+    if not osparc_api.is_connected():
+        return None
+
+    return osparc_api
+
+
 __all__ = [
     "OsparcApi",
     "get_osparc_api",
     "get_osparc_api_if_configured",
+    "get_osparc_api_if_connected",
     "OsparcApiException",
 ]
