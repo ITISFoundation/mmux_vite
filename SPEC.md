@@ -20,7 +20,7 @@ Domain: scientific UQ & sensitivity analysis; documented use-case = TI (Temporal
 - ship as oSPARC dynamic svc keys `simcore/services/dynamic/mmux-vite-*`
 - Node ≥24 (frontend), Python 3.11 (backend)
 - runtime behavior env-driven: `SERVICE_MODE`, `PERMISSIONS`, `DEPLOYMENT_MODE`
-- version single-sourced `.bumpversion.cfg` current=`1.5.18`; bumped across 8 `.osparc/*/metadata.yml` + `Makefile` + `docker-compose-local.yml` + `docker-compose-development.yml` via `bump2version`
+- version single-sourced `.bumpversion.cfg`; bumped across 8 `.osparc/*/metadata.yml` + `Makefile` + `docker-compose-local.yml` + `docker-compose-development.yml` via `bump2version`
 - secrets via `.env` (`make .env` clones `.env-devel`); `.env` ∉ git
 - WSL2+Windows local dev: fallback app ports (e.g. 8889-8892) may require Windows admin `netsh interface portproxy` rules to reach WSL Docker publications from Windows browser; WSL IP may change after restart → refresh rules
 - CI green before merge: prek + node tests + flaskapi tests + image build (`ooil compose` then `docker compose build`)
