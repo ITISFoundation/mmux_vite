@@ -6,6 +6,24 @@ Different patches for osparc_client.api.functions_api.***Api.*** are provided, t
 
 from unittest.mock import patch
 
+import pytest
+
+from mmux_flaskapi.utils import local_job_store as ljs
+
+
+@pytest.fixture(autouse=True)
+def isolated_store(tmp_path, monkeypatch):
+    """Isolate the file-backed local job store from the real `flaskapi/runs_local`
+    directory (which may hold real functions from manual/dev-server testing) so
+    endpoint tests that exercise LOCAL-mode merging (e.g.
+    `test_local_mode_unreachable_osparc_returns_empty_list`) see a fresh, empty
+    store instead of leaking developer-machine state."""
+    store_dir = tmp_path / "runs_local"
+    monkeypatch.setattr(ljs, "LOCAL_STORE_DIR", store_dir)
+    monkeypatch.setattr(ljs, "LOCAL_STORE_FILE", store_dir / "uploaded_job_collections_store.json")
+    yield
+
+
 #####################################################################################
 ## Listing endpoints for Functions, Jobs, Job Collections
 #####################################################################################
