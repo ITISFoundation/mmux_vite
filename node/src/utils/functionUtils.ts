@@ -118,18 +118,21 @@ export async function getFunctionJobsFromFunctionJobCollection(jobCollectionUid:
   );
 }
 
-export async function downloadJobCollectionCsv(jobCollectionUid: string): Promise<string> {
-  const response = await fetchWithRetry(`/flask/osparc/download_job_collection_csv?JobCollectionUid=${jobCollectionUid}`);
-  return response.text();
+export interface UploadJobCollectionCsvResponse {
+  targetFunctionUid: string;
+  importedSamples: number;
+  jobCollection: RegisteredFunctionJobCollection;
 }
 
-export async function uploadJobCollectionCsv(params: {
+export interface UploadJobCollectionCsvParams {
   csvContent: string;
   targetMode: "existing" | "new";
   targetFunctionUid?: string;
   newFunctionTitle?: string;
   sourceFunctionUid?: string;
-}) {
+}
+
+export async function uploadJobCollectionCsv(params: UploadJobCollectionCsvParams): Promise<UploadJobCollectionCsvResponse> {
   const response = await fetch(`/flask/sampling/upload_job_collection_csv`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -141,7 +144,7 @@ export async function uploadJobCollectionCsv(params: {
     throw new Error(errorData.error || "Failed to upload JobCollection CSV");
   }
 
-  return response.json();
+  return normalizePayloadToCamelCase<UploadJobCollectionCsvResponse>(await response.json());
 }
 
 export function getSimplifiedHost(): string {
