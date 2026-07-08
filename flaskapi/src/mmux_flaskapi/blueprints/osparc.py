@@ -1,5 +1,6 @@
 # Ensure imports before Blueprint usage
 import logging
+import os
 from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
@@ -16,6 +17,7 @@ from mmux_flaskapi.utils.webserver_config import (
     OsparcApiException,
     get_osparc_api,
     get_osparc_api_if_configured,
+    get_osparc_api_if_connected,
 )
 
 #####################################################################################
@@ -23,6 +25,10 @@ from mmux_flaskapi.utils.webserver_config import (
 #####################################################################################
 _logger = logging.getLogger(__name__)
 osparc_bp = Blueprint("osparc", __name__)
+
+
+def _is_local_deployment_mode() -> bool:
+    return os.environ.get("DEPLOYMENT_MODE") == "LOCAL"
 
 
 def _get_query_arg(*names: str) -> str:
@@ -81,6 +87,19 @@ def api_endpoint(func: Callable) -> Callable:
 @osparc_bp.route("/list_functions", methods=["GET"])
 @api_endpoint
 def flask_list_functions():
+    if _is_local_deployment_mode():
+        osparc_api = get_osparc_api_if_connected()
+        if osparc_api is None:
+            _logger.warning(
+                "DEPLOYMENT_MODE=LOCAL and oSPARC is unreachable - returning no remote functions"
+            )
+            return [], 200
+
+        functions = _get_all_items(osparc_api.get_functions_api().list_functions)
+        functions = functions[::-1]
+        _logger.debug(f"N Functions: {len(functions)}")
+        return functions, 200
+
     osparc_api = get_osparc_api_if_configured()
     if osparc_api is None:
         _logger.warning("oSPARC credentials are not configured - returning no remote functions")
