@@ -2121,6 +2121,54 @@ class TestMOGAOptimization:
         assert results["loss"] == [-2.0, -1.5]
         assert results["activation"] == [2.0, 1.5]
 
+    def test_moga_preserves_irregular_case_variable_name_end_to_end(
+        self, test_client: Flask, monkeypatch
+    ):
+        """Regression test for the write-path case-mangling bug (node/SPEC.md T13/T19):
+        a variable name that does NOT round-trip losslessly through camelCase<->snake_case
+        (e.g. "TissueConduc") must survive as-is through `distributions` and
+        `FunctionJobs[].inputs` (both `to_snake_case_request`-parsed) all the way to the
+        DataPreprocessor's x1..xn mapping and back into the final response - not get
+        silently lowercased to "tissue_conduc" along the way.
+        """
+        input_var = "TissueConduc"
+        output_vars = ["loss"]
+        jobs = self.create_moga_jobs(10, [input_var], output_vars)
+
+        def fake_perform_moga_optimization(
+            run_dir,
+            processed_training_file,
+            mapped_input_vars,
+            mapped_distributions,
+            mapped_output_vars,
+            moga_kwargs,
+        ):
+            return {
+                mapped_input_vars[0]: [0.25, 0.75],
+                mapped_output_vars[0]: [-2.0, -1.5],
+            }
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.perform_moga_optimization",
+            fake_perform_moga_optimization,
+        )
+
+        payload = {
+            "inputVars": [input_var],
+            "distributions": self.create_distribution_dict([input_var]),
+            "outputVarSelection": {"loss": "minimize"},
+            "FunctionJobs": jobs,
+        }
+
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
+
+        assert response.status_code == 200
+        results = response.get_json()["optimizationResults"]
+        assert input_var in results, (
+            f"Expected original variable name {input_var!r} preserved in response keys "
+            f"{list(results.keys())!r} - got case-mangled instead"
+        )
+
     def test_successful_basic_moga_optimization(self, test_client: Flask):
         """Test successful MOGA optimization with basic configuration."""
         input_vars = ["x1", "x2"]

@@ -380,7 +380,7 @@ def create_manual_uq_samples(
 
     from scipy.stats import norm, uniform  # type: ignore
 
-    np.random.default_rng(seed=seed)
+    rng = np.random.default_rng(seed=seed)
     samples = {}
     for var in input_vars:
         dist_info = distributions[var]
@@ -388,12 +388,14 @@ def create_manual_uq_samples(
         if dist_type == "normal":
             mean = dist_info["mean"]
             std = dist_info["std"]
-            samples[var] = norm.rvs(size=num_samples, loc=mean, scale=std).tolist()  # type: ignore
+            samples[var] = norm.rvs(
+                size=num_samples, loc=mean, scale=std, random_state=rng
+            ).tolist()  # type: ignore
         elif dist_type == "uniform":
             min_val = dist_info["min"]
             max_val = dist_info["max"]
             samples[var] = uniform.rvs(
-                size=num_samples, loc=min_val, scale=max_val - min_val
+                size=num_samples, loc=min_val, scale=max_val - min_val, random_state=rng
             ).tolist()  # type: ignore
         elif dist_type == "constant":
             value = dist_info["value"]

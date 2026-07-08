@@ -12,7 +12,11 @@ from osparc_client.models.function_job_status import FunctionJobStatus
 
 #
 from mmux_flaskapi.utils.helpers import _get_all_items
-from mmux_flaskapi.utils.webserver_config import OsparcApiException, get_osparc_api
+from mmux_flaskapi.utils.webserver_config import (
+    OsparcApiException,
+    get_osparc_api,
+    get_osparc_api_if_configured,
+)
 
 #####################################################################################
 # Initialize logger and OsparcApi
@@ -77,7 +81,11 @@ def api_endpoint(func: Callable) -> Callable:
 @osparc_bp.route("/list_functions", methods=["GET"])
 @api_endpoint
 def flask_list_functions():
-    osparc_api = get_osparc_api()
+    osparc_api = get_osparc_api_if_configured()
+    if osparc_api is None:
+        _logger.warning("oSPARC credentials are not configured - returning no remote functions")
+        return [], 200
+
     functions = _get_all_items(osparc_api.get_functions_api().list_functions)
     functions = functions[
         ::-1
