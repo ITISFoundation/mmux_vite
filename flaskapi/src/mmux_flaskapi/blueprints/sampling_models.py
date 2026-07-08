@@ -6,7 +6,7 @@ providing proper validation and type safety.
 """
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, validator
 
@@ -100,6 +100,30 @@ class CloneJobRequest(BaseModel):
     project_job_id: str = Field(..., min_length=1, description="ID of the project job to clone")
     function_name: str = Field(..., min_length=1, description="Name of the function")
     project_inputs: dict[str, Any] = Field(..., description="Inputs for the project")
+
+
+class JobCollectionCsvUploadRequest(BaseModel):
+    """Request model for uploading a job-collection CSV (flaskapi/SPEC.md §T6)."""
+
+    csv_content: str = Field(..., min_length=1, description="Raw CSV file content")
+    target_mode: Literal["existing", "new"] = Field(
+        ..., description="Whether to attach imported samples to an existing function or a new one"
+    )
+    target_function_uid: str | None = Field(
+        None, description="Function UID to attach to when target_mode='existing'"
+    )
+    new_function_title: str | None = Field(
+        None, description="Title for the newly-created function when target_mode='new'"
+    )
+    source_function_uid: str | None = Field(
+        None, description="Function UID the CSV was originally exported from, if known"
+    )
+
+    @validator("target_function_uid", always=True)
+    def target_function_uid_required_for_existing(cls, v, values):
+        if values.get("target_mode") == "existing" and not v:
+            raise ValueError("target_function_uid is required when target_mode is 'existing'")
+        return v
 
 
 class SamplingResponse(BaseModel):

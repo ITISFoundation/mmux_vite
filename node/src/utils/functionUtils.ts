@@ -129,7 +129,15 @@ export interface UploadJobCollectionCsvResponse {
   jobCollection: RegisteredFunctionJobCollection;
 }
 
-export async function uploadJobCollectionCsv(params: { csvContent: string }): Promise<UploadJobCollectionCsvResponse> {
+export interface UploadJobCollectionCsvParams {
+  csvContent: string;
+  targetMode: "existing" | "new";
+  targetFunctionUid?: string;
+  newFunctionTitle?: string;
+  sourceFunctionUid?: string;
+}
+
+export async function uploadJobCollectionCsv(params: UploadJobCollectionCsvParams): Promise<UploadJobCollectionCsvResponse> {
   const response = await fetch(`/flask/sampling/upload_job_collection_csv`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

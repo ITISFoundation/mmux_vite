@@ -236,7 +236,7 @@ export function FunctionList() {
           <Refresh color="primary" />
         </IconButton>
         <Box mt={1}>
-          <UploadJobCollectionButton onUploadSuccess={handleCsvUploadSuccess} />
+          <UploadJobCollectionButton onUploadSuccess={handleCsvUploadSuccess} existingFunctions={functions} />
         </Box>
       </Box>
     );
@@ -249,7 +249,7 @@ export function FunctionList() {
           <HelpContents type="FunctionsHelp" />
         </Typography>
         <Box mt={1}>
-          <UploadJobCollectionButton onUploadSuccess={handleCsvUploadSuccess} />
+          <UploadJobCollectionButton onUploadSuccess={handleCsvUploadSuccess} existingFunctions={functions} />
         </Box>
       </Box>
     );
@@ -257,7 +257,7 @@ export function FunctionList() {
   return (
     <Box>
       <Box display="flex" justifyContent="flex-end" mb={1}>
-        <UploadJobCollectionButton onUploadSuccess={handleCsvUploadSuccess} />
+        <UploadJobCollectionButton onUploadSuccess={handleCsvUploadSuccess} existingFunctions={functions} />
       </Box>
       <DataGrid
         onRowSelectionModelChange={newRowSelectionModel => {

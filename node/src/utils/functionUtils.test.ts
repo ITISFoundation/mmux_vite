@@ -230,7 +230,7 @@ describe("Function Utils", () => {
       ),
     );
 
-    const result = await uploadJobCollectionCsv({ csvContent: "csv-body" });
+    const result = await uploadJobCollectionCsv({ csvContent: "csv-body", targetMode: "new" });
     expect(result).toEqual({
       targetFunctionUid: "func-new",
       importedSamples: 3,
@@ -250,7 +250,9 @@ describe("Function Utils", () => {
       ),
     );
 
-    await expect(uploadJobCollectionCsv({ csvContent: "csv-body" })).rejects.toThrow("Incompatible function schema");
+    await expect(uploadJobCollectionCsv({ csvContent: "csv-body", targetMode: "new" })).rejects.toThrow(
+      "Incompatible function schema",
+    );
   });
 
   it("preserves snake_case variable identifiers in schema properties/defaultInputs (B18, V24)", async () => {

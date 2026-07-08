@@ -22,6 +22,7 @@ Domain: scientific UQ & sensitivity analysis; documented use-case = TI (Temporal
 - runtime behavior env-driven: `SERVICE_MODE`, `PERMISSIONS`, `DEPLOYMENT_MODE`
 - version single-sourced `.bumpversion.cfg` current=`1.5.18`; bumped across 8 `.osparc/*/metadata.yml` + `Makefile` + `docker-compose-local.yml` + `docker-compose-development.yml` via `bump2version`
 - secrets via `.env` (`make .env` clones `.env-devel`); `.env` ∉ git
+- WSL2+Windows local dev: fallback app ports (e.g. 8889-8892) may require Windows admin `netsh interface portproxy` rules to reach WSL Docker publications from Windows browser; WSL IP may change after restart → refresh rules
 - CI green before merge: prek + node tests + flaskapi tests + image build (`ooil compose` then `docker compose build`)
 - e2e tests = TS `@playwright/test` runner in `tests/e2e/` (⊥ vitest browser mode for e2e); pixel-perfect `toHaveScreenshot` baselines committed to git; determinism via pinned Playwright docker image (fonts/render); oSPARC mocked at backend boundary (⊥ real oSPARC in e2e)
 - commits ! Conventional Commits `<type>(<scope>): <subject> (#PR)`; types {feat,fix,refactor,chore,docs,test}; feature branch → PR review → merge to `main`
@@ -47,6 +48,7 @@ cmd: `make build` → `compose-spec` (ooil) + build all images
 cmd: `make build-no-cache` → build `--no-cache --pull --parallel`
 cmd: `make run-develop-{mode}-{perm}` → `docker compose -f docker-compose-development.yml up` (live source mounts, LOG_LEVEL=DEBUG, DEVELOPMENT_MODE=true)
 cmd: `make run-prod-local-{mode}-{perm}` → `docker compose -f docker-compose-local.yml up` (prod build, validation mount only)
+cmd (Windows Admin, WSL2 fallback ports): `for /L %p in (8889,1,8892) do netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=%p connectaddress=<WSL_IP> connectport=%p`; inspect via `netsh interface portproxy show v4tov4`; refresh by deleting same listen ports before re-adding
 cmd: `make prek` → `uvx prek run --all-files`
 cmd: `make test-node` → `npm ci && npm test` in `node/`
 cmd: `make test-flaskapi` → `uv run pytest tests/ -v --cov-report=html --cov-report=term-missing`
@@ -78,6 +80,8 @@ V17: local dev Vite server behind Caddy ! derive browser origin from request hos
 V18: `GET /flask/osparc/list_functions` with blank `OSPARC_API_{BASE_URL,KEY,SECRET}` → 200 `[]`; initial app render ! survive missing remote oSPARC credentials (B6)
 V19: local run targets ! reuse existing Compose-published `mmux-vite-app` host port before scanning for new free port; printed URL must equal live container publication across repeated `make run-*` (B7)
 V20: WSL2 local run output ! distinguish shell-local `localhost:$APP_PORT` from Windows-browser URL via WSL IP for fallback ports; Windows `localhost:8888` may work when explicitly forwarded, but `localhost:$APP_PORT` for fallback ports ⊥ assumed unless Windows forwarding/portproxy includes that port (B8)
+V21: WSL2 collaborator setup docs/scripts ! include manual Windows `netsh portproxy` add/show/delete flow for fallback ports 8889-8892 using current WSL IP; warn stale rules after WSL IP change
+V22: e2e mock job/function fixtures (`tests/e2e/mock_osparc/`) representing "real job data" (`outputs`) ! mirror the actual shape production jobs have — ⊥ fabricate derived/computed keys (e.g. a surrogate-only `_std_hat`) that no real oSPARC/CSV-uploaded job ever carries, even just to make a flow render; doing so lets the double silently agree with a backend defect instead of catching it (closes B3, pairs flaskapi/SPEC.md B12/V30)
 
 ## §T
 id|status|task|cites
@@ -101,11 +105,16 @@ T18|.|BUG-FIX #467 backend (PR `jgo/port-backend`): fix flaskapi §B1-§B5 — B
 T19|.|RELEASE-2 frontend CSV (new focused PR after T18): CSV upload UI→`POST /flask/sampling/upload_job_collection_csv` + download UI→`GET /flask/osparc/download_job_collection_csv`; ⊥ auto-boundary/log-inference/local-store UI (defer); ⊥ port #456 wholesale|flaskapi/SPEC.md T6,node/SPEC.md T6
 T20|.|RELEASE-2 collaborator preview v1.6.0: prereq T18+T19+CI green on develop; optionally include #469 if node §B8-§B9 fixed → PR merge develop→main → `make version-minor` → verify V16 → oSPARC publish; goal: CSV upload+log-scale live for collaborator testing|V5,V9,V16,node/SPEC.md B8,B9
 T21|x|REMOVE vendored `mmux_python` dep: inlined 6 used modules (`lhs`,`dakota_object`,`funs_create_dakota_conf`,`funs_data_processing`,`funs_evaluate`,`wiofiles`; dropped 3 unused: `dakota_object_map`,`funs_git`,`funs_plotting`) into `flaskapi/src/mmux_flaskapi/dakota/`; rewired blueprint imports + test mocks; removed `mmux-python` workspace dep + 6 dead transitive deps (gitpython,httpx,ipykernel,matplotlib,seaborn,tqdm) + `[tool.uv.workspace]`/`[tool.uv.sources]`/coverage-omit from `flaskapi/pyproject.toml`; stripped `setup-mmux-python`/`get-access-write-on-mmux-python` Makefile targets + `MMUX_PYTHON_TAG` pin + gitignore entries; `rm -rf flaskapi/mmux_python/`; eliminates the T1 drift class entirely (no more separate versioned dep to go stale)|V5,flaskapi/SPEC.md T15
+T22|.|SuMo validation statistical rigor: paired t-test (prediction bias) + convergence analysis (accuracy vs sample size) in cross-validation flow|flaskapi/SPEC.md T18,node/SPEC.md T20
+T23|.|sensitivity/correlation indices from UQ Monte Carlo samples, single multi-param view (#470, beyond 3-param 1D/2D/3D limit)|flaskapi/SPEC.md T19,node/SPEC.md T21
+T24|x|fix B4: `docker-compose-development.yml` & `docker-compose-local.yml` `mmux-vite-app.depends_on` → long form `condition: service_healthy` for both `mmux-vite-backend`/`mmux-vite-web` (mirrors ooil-generated `docker-compose.yml`), so local dev stacks satisfy V3 like production does|V3,B4
+T25|.|Document or script WSL2 Windows portproxy setup for local fallback app ports 8889-8892: discover WSL IP, delete stale rules, add rules, show rules, mention admin shell + firewall caveat|V20,V21
 
 ## §B
 id|date|cause|fix
 B1|2026-06-22|#475 `node/playwright.config.ts` `toHaveScreenshot` comment said the default 5s stabilization window is too tight for Plotly/DataGrid but never set a `timeout` → snapshot gen/compare flaky on slow CI hosts|V14
 B2|2026-06-22|#475 e2e `resetPersistence` posts `/flask/text-file` (no trailing slash); route is registered as `/` under that prefix → 308 redirect round-trip (the strict_slashes class fixed at proxy level in node/SPEC.md B13)|V15
+B3|2026-07-06|UQ e2e read-only mock (`tests/e2e/mock_osparc/data.py::_std_hats`) fabricated a `<qoi>_std_hat` key directly on job `outputs` "so the UQ e2e flow renders a real histogram" — built around the same wrong assumption as flaskapi/SPEC.md B12's premature validator (that `_std_hat` is real-job-data, not surrogate-computed); the mock and the backend bug agreed with each other, so the hand-made e2e suite exercised a job shape no real job has and could never catch B12's regression, which shipped to `develop` undetected|V22
 B4|2026-07-06|`docker-compose-development.yml` & `docker-compose-local.yml` `mmux-vite-app.depends_on` used plain list form (`service_started` semantics) instead of `condition: service_healthy`, unlike the ooil-generated `docker-compose.yml` which already sets `condition: service_healthy` for both upstreams — violates already-stated V3; Caddy accepted traffic before `mmux-vite-backend`/`mmux-vite-web` passed their `HEALTHCHECK` (30s interval, 20s start-period), producing transient `"no upstreams available"` 503s on every local stack (re)start, misdiagnosed as a networking/port-forwarding fault before being traced here|V3
 B5|2026-07-06|`node/vite.config.ts` forced `server.origin` to `http://0.0.0.0:8080` and `docker-compose-development.yml` did not pass `APP_PORT` into `mmux-vite-web`; when Caddy published the app on fallback host ports like 8889/8890, Vite still emitted dev-client socket/internal-origin hints for `localhost:8080`, so the page HTML/API routes were reachable but browser dev assets/HMR did not consistently stay on the printed `APP_PORT` origin|V17
 B6|2026-07-06|Current branch lacked the local-functions fallback from `DO-NOT-MERGE-feature/local-functions`; with blank oSPARC credentials, `/flask/osparc/list_functions` called the remote client and returned 422, so `localhost:8890` loaded but the app showed "Error fetching functions" instead of rendering an empty local setup state|V18
