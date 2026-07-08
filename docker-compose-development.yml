@@ -22,13 +22,16 @@ services:
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 8080"
     environment:
       - NODE_ENV=development
+      - APP_PORT=${APP_PORT:-8888}
   mmux-vite-app:
     image: simcore/services/dynamic/${APP_IMAGE}:1.5.18
     environment:
       - WEB_SERVICE=mmux-vite-web:8080
       - BACKEND_SERVICE=mmux-vite-backend:5000
     ports:
-      - "8888:8888"
+      - "${APP_PORT:-8888}:8888"
     depends_on:
-      - mmux-vite-backend
-      - mmux-vite-web
+      mmux-vite-backend:
+        condition: service_healthy
+      mmux-vite-web:
+        condition: service_healthy

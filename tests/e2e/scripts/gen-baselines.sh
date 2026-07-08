@@ -17,7 +17,10 @@ trap 'chown -R 1000:1000 /work/tests /work/node 2>/dev/null || true' EXIT
 E2E_MAKE_TARGET="${E2E_MAKE_TARGET:-test-e2e-update}"
 
 apt-get update -qq
-apt-get install -y -qq --no-install-recommends make python3-pip >/dev/null
+# openjdk-21-jre-headless: the Playwright image ships no JRE, but `build:e2e`
+# regenerates the generated client through openapi-generator, which requires
+# `java` (mirrors the CI e2e-tests job's "Install Java runtime" step).
+apt-get install -y -qq --no-install-recommends make python3-pip openjdk-21-jre-headless >/dev/null
 
 # uv drives the Flask backend (uv sync / uv run). Install without piping a remote
 # script into a shell.

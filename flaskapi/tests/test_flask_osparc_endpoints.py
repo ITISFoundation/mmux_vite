@@ -11,6 +11,17 @@ Different patches for osparc_client.api.functions_api.***Api.*** are provided, t
 
 
 class TestOsparcListFunctions:
+    def test_list_functions_without_osparc_credentials_returns_empty_list(self, test_client):
+        osparc_api = test_client.application.osparc_api
+        osparc_api._configuration.host = ""
+        osparc_api._configuration.username = ""
+        osparc_api._configuration.password = ""
+
+        response = test_client.get("/flask/osparc/list_functions")
+
+        assert response.status_code == 200
+        assert response.get_json() == []
+
     def test_list_functions_random_error(self, test_client, patch_list_functions_random_error):
         response = test_client.get("/flask/osparc/list_functions")
         assert response.status_code in {418, 429, 431, 499}
