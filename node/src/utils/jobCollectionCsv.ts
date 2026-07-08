@@ -139,6 +139,10 @@ export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCs
   const outputColumns = header.filter(column => column.startsWith(outputPrefix));
   const inputVars = inputColumns.map(column => column.slice(inputPrefix.length));
   const outputVars = outputColumns.map(column => column.slice(outputPrefix.length));
+  // B24: precompute column indices once (not `header.indexOf(column)` per row/column
+  // inside the loop below), keeping parsing O(rows x columns) instead of O(rows x columns x headerLength).
+  const inputColumnIndices = inputColumns.map(column => header.indexOf(column));
+  const outputColumnIndices = outputColumns.map(column => header.indexOf(column));
   const sourceJobUidIndex = header.indexOf("source_job_uid");
   const statusIndex = header.indexOf("status");
   const valueBuckets: Record<string, number[]> = Object.fromEntries(inputVars.map(variable => [variable, []]));
@@ -149,16 +153,14 @@ export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCs
     const inputs: Record<string, number> = {};
     const outputs: Record<string, number> = {};
 
-    inputColumns.forEach((column, index) => {
-      const columnIndex = header.indexOf(column);
+    inputColumnIndices.forEach((columnIndex, index) => {
       const numericValue = parseNumericCell(cells[columnIndex]);
       if (numericValue !== undefined) {
         inputs[inputVars[index]] = numericValue;
         valueBuckets[inputVars[index]].push(numericValue);
       }
     });
-    outputColumns.forEach((column, index) => {
-      const columnIndex = header.indexOf(column);
+    outputColumnIndices.forEach((columnIndex, index) => {
       const numericValue = parseNumericCell(cells[columnIndex]);
       if (numericValue !== undefined) {
         outputs[outputVars[index]] = numericValue;

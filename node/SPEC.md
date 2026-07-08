@@ -88,6 +88,7 @@ V28: job-collection CSV preamble read/write ! reuse the same CSV row parser/esca
 V29: blob-URL download trigger (`triggerCsvDownload`) ! defer `URL.revokeObjectURL` to next tick/timeout after `.click()`, ⊥ revoke synchronously (closes B21)
 V30: native file-picker helpers (`pickSingleCsvFile`) ! settle (resolve or reject) on user cancel via a window-focus fallback + settled-guard, ⊥ rely solely on `input.onchange` (closes B22)
 V31: icon-only action buttons (no visible text, e.g. download/upload/delete icons) ! carry an explicit `aria-label` (tooltip `title` alone ⊥ sufficient a11y label); parity w/ V22 modal-labelling convention (closes B23)
+V32: `parseJobCollectionCsv` column-index lookups precompute once outside the per-row loop (⊥ `header.indexOf(column)` inside nested forEach) — keeps parsing O(rows x columns) (closes B24)
 V33: `FunctionContextType.setDistribution` typed as `React.Dispatch<SetStateAction<...>>` (⊥ plain setter); handlers that update distribution after an `await` (e.g. CSV-upload success) use the functional form `prev => ({...prev, ...})`, ⊥ spread a stale closed-over snapshot (closes B25)
 
 ## §T
@@ -139,4 +140,5 @@ B20|2026-07-06|copilot review #481: preamble parse (`splitPreambleAndTable`) spl
 B21|2026-07-06|copilot review #481: `triggerCsvDownload` calls `URL.revokeObjectURL(url)` synchronously right after `link.click()`; some browsers haven't started reading the blob yet → flaky/empty downloads|V29
 B22|2026-07-06|copilot review #481: `pickSingleCsvFile` only settles via `input.onchange`; dismissing the native file picker doesn't fire `change` in most browsers → returned promise never resolves/rejects on cancel|V30
 B23|2026-07-06|copilot review #481: new download-CSV `IconButton` (`JobSelector.tsx`) has no accessible name — `CustomTooltip title` alone ⊥ reliable a11y label — screen readers announce it unlabeled|V31
+B24|2026-07-08|copilot review #490: `parseJobCollectionCsv` called `header.indexOf(column)` once per row per column, making CSV parsing O(rows x columns x headerLength); large job collections could visibly slow the UI|V32
 B25|2026-07-08|copilot review #490: `FunctionList.tsx`'s CSV-upload success handler did `setDistribution({...distribution, ...})` after `await fetchFunctions()` — closes over a stale `distribution` snapshot from render time, so a concurrent distribution update made during the await window could be silently lost|V33
