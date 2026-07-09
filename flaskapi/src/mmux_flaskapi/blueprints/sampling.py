@@ -429,12 +429,10 @@ def flask_upload_job_collection_csv():
     history, so "existing" mode still stores the jobs locally, merely tagged with
     the real target function's UID (flaskapi/SPEC.md §T6/§T7 architecture note).
     """
-    try:
-        validated_request = parse_request_model(JobCollectionCsvUploadRequest)
-    except Exception as e:
-        error_msg = f"Invalid request: {e}"
-        _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 400)
+    # Let parse_request_model raise; the registered RequestParsingError handler will
+    # normalize the response and ensure consistency with other sampling endpoints
+    # (flaskapi/SPEC.md V22, B10 fix).
+    validated_request = parse_request_model(JobCollectionCsvUploadRequest)
 
     try:
         parsed = _parse_uploaded_job_collection_csv(validated_request.csv_content)
@@ -443,7 +441,10 @@ def flask_upload_job_collection_csv():
 
         if validated_request.target_mode == "existing":
             target_function_uid = validated_request.target_function_uid
-            assert target_function_uid  # enforced by JobCollectionCsvUploadRequest validator
+            # Explicit check instead of assert; asserts can be optimized away with python -O
+            # (flaskapi/SPEC.md V23, B11 fix).
+            if not target_function_uid:
+                raise ValueError("target_function_uid is required when target_mode is 'existing'")
             existing_input_vars, existing_output_vars = _function_schema_vars(target_function_uid)
             if set(existing_input_vars) != set(input_vars) or set(existing_output_vars) != set(
                 output_vars

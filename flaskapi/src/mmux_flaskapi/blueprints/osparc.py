@@ -220,12 +220,22 @@ def flask_get_function_job_collections_for_functionid():
         )
         return job_collections, 200
 
-    osparc_api = get_osparc_api()
-    response = osparc_api.get_job_collection_api().list_function_job_collections(
-        has_function_id=function_uid
+    # In LOCAL mode an unreachable oSPARC backend is tolerated (graceful degradation);
+    # otherwise, missing/blank credentials are tolerated. Either way, a None osparc_api
+    # here means "no remote job collections available", not an error.
+    is_local = _is_local_deployment_mode()
+    osparc_api = get_osparc_api_if_connected() if is_local else get_osparc_api_if_configured()
+    job_collections = (
+        [
+            i.to_dict()
+            for i in osparc_api.get_job_collection_api()
+            .list_function_job_collections(has_function_id=function_uid)
+            .items
+        ]
+        if osparc_api
+        else []
     )
-    job_collections = [i.to_dict() for i in response.items]
-    if _is_local_deployment_mode():
+    if is_local:
         job_collections = job_collections + list_local_job_collections_for_function(function_uid)
     _logger.debug(f"N Job collections for function {function_uid}: {len(job_collections)}")
     return job_collections, 200
@@ -270,7 +280,11 @@ def _get_function_job_from_uid(job_uid: str) -> dict[str, Any]:
 
 
 def _function_schema_vars(function_uid: str) -> tuple[list[str], list[str]]:
-    """Return (input_vars, output_vars) for a function, local or real oSPARC."""
+    """Return (input_vars, output_vars) for a function, local or real oSPARC.
+
+    In LOCAL mode when the backend is unreachable, raises ValueError with a 422-friendly
+    message instead of a 500 (flaskapi/SPEC.md V15, B6 fix).
+    """
     if is_local_function_uid(function_uid):
         from mmux_flaskapi.utils.local_job_store import get_local_function
 
@@ -278,7 +292,13 @@ def _function_schema_vars(function_uid: str) -> tuple[list[str], list[str]]:
         if fun is None:
             raise ValueError(f"Local function {function_uid} not found")
     else:
-        osparc_api = get_osparc_api()
+        # In LOCAL mode, gracefully degrade if backend is unreachable (flaskapi/SPEC.md V15).
+        is_local = _is_local_deployment_mode()
+        osparc_api = get_osparc_api_if_connected() if is_local else get_osparc_api_if_configured()
+        if osparc_api is None:
+            raise ValueError(
+                f"Cannot fetch schema for function {function_uid}: oSPARC backend is not available"
+            )
         fun = osparc_api.get_functions_api().get_function(function_uid).to_dict()
 
     input_vars = list(fun["input_schema"]["schema_content"]["properties"])
