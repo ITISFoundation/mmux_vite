@@ -1031,9 +1031,20 @@ class SobolIndicesRequest(ManualUQPropagationRequest):
     output, inputVars, distributions, numSamples, FunctionJobs), plus a `seed` for
     reproducibility, since variance-based decomposition is a different downstream
     computation on the same UQ setup.
+
+    Unlike `CorrelationIndicesRequest`/`ManualUQWithUncertaintyRequest` (whose `seed`
+    only feeds `numpy.random.seed`, where 0 is valid), this `seed` is written verbatim
+    into a Dakota NIDR input file's `sampling` block (see `add_sampling_method`) for
+    the `variance_based_decomp` LHS sampling method. Dakota's own NIDR parser rejects
+    `seed = 0` ("seed must be > 0"), aborting with an opaque top-level error
+    (flaskapi/SPEC.md B17). Require `seed >= 1` here so that's a clear 400 instead.
     """
 
-    seed: int = Field(..., description="Random seed for reproducibility")
+    seed: int = Field(
+        ...,
+        ge=1,
+        description="Random seed for reproducibility (must be >= 1; Dakota requires seed > 0)",
+    )
 
 
 class SobolIndexPair(BaseModel):
