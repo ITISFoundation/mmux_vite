@@ -81,9 +81,22 @@ def _load_store() -> dict[str, list]:
 
 
 def _save_store(store: dict[str, list]) -> None:
+    """Write the store to a sibling temp file, then atomically replace the target.
+
+    Writing directly to `LOCAL_STORE_FILE` risks leaving a partially-written (and
+    later "corrupt") file if the process is interrupted mid-write or multiple
+    workers write concurrently; `os.replace` is atomic on both POSIX and Windows
+    (flaskapi/SPEC.md V31, B18 fix).
+    """
     LOCAL_STORE_DIR.mkdir(parents=True, exist_ok=True)
-    with LOCAL_STORE_FILE.open("w", encoding="utf-8") as f:
-        json.dump(store, f, indent=2)
+    tmp_file = LOCAL_STORE_FILE.with_name(f"{LOCAL_STORE_FILE.name}.tmp-{uuid.uuid4().hex[:8]}")
+    try:
+        with tmp_file.open("w", encoding="utf-8") as f:
+            json.dump(store, f, indent=2)
+        os.replace(tmp_file, LOCAL_STORE_FILE)
+    except BaseException:
+        tmp_file.unlink(missing_ok=True)
+        raise
 
 
 def is_local_function_uid(uid: str | None) -> bool:

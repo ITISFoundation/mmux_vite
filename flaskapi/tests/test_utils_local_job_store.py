@@ -1,6 +1,7 @@
 """Tests for `mmux_flaskapi.utils.local_job_store` (flaskapi/SPEC.md §T7, §B1/§V17, §B5/§V20)."""
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -124,3 +125,45 @@ class TestFunctionAndJobCollectionCrud:
         # simulate a fresh process by reloading straight from disk
         reloaded = ljs._load_store()
         assert any(f["uid"] == fun["uid"] for f in reloaded["functions"])
+
+
+class TestSaveStoreAtomicity:
+    """V31 (B18): `_save_store` must never leave a partially-written store file."""
+
+    def test_save_store_uses_temp_file_then_atomic_replace(self, isolated_store, monkeypatch):
+        store_dir, store_file = isolated_store
+        calls = []
+        real_replace = ljs.os.replace
+
+        def _spy_replace(src, dst):
+            calls.append((Path(src), Path(dst)))
+            return real_replace(src, dst)
+
+        monkeypatch.setattr(ljs.os, "replace", _spy_replace)
+        ljs.create_local_function(title="Fn", input_vars=["x"], output_vars=["y"])
+
+        assert len(calls) == 1
+        src, dst = calls[0]
+        assert dst == store_file
+        assert src != store_file
+        assert src.parent == store_dir
+        assert not list(store_dir.glob("*.tmp-*"))  # temp file cleaned up by the replace
+
+    def test_save_store_does_not_corrupt_existing_file_on_write_failure(
+        self, isolated_store, monkeypatch
+    ):
+        store_dir, store_file = isolated_store
+        ljs.create_local_function(title="Fn", input_vars=["x"], output_vars=["y"])
+        original_content = store_file.read_text(encoding="utf-8")
+
+        def _boom(*args, **kwargs):
+            raise OSError("simulated crash mid-write")
+
+        monkeypatch.setattr(ljs.json, "dump", _boom)
+
+        with pytest.raises(OSError):
+            ljs._save_store(ljs._empty_store())
+
+        # target file must be untouched -- no partial/corrupt write landed on it
+        assert store_file.read_text(encoding="utf-8") == original_content
+        assert not list(store_dir.glob("*.tmp-*"))  # no leftover temp file from the failed write

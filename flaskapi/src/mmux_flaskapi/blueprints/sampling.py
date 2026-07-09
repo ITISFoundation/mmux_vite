@@ -391,6 +391,11 @@ def _parse_uploaded_job_collection_csv(csv_content: str) -> dict[str, Any]:
         if not line.strip():
             continue
         cells = _parse_csv_row(line)
+        if len(cells) != len(header):
+            raise ValueError(
+                f"Row {row_index} has {len(cells)} column(s), expected {len(header)} "
+                "(matching the header row)"
+            )
         row_values = dict(zip(header, cells))
 
         inputs = {}

@@ -151,3 +151,28 @@ class TestUploadJobCollectionCsvValidation:
     def test_missing_required_fields(self, test_client):
         response = test_client.post("/flask/sampling/upload_job_collection_csv", json={})
         assert response.status_code == 400
+
+    def test_wrong_column_count_row_rejected_with_row_context(self, test_client):
+        """V30 (B18): a data row with fewer/more cells than the header must be
+        rejected (422 w/ row context), not silently truncated/misaligned by
+        `dict(zip(header, cells))`."""
+        csv_content = (
+            "source_job_uid,status,input__x,output__y\n"
+            "job-1,SUCCESS,1.0\n"  # missing the output__y cell
+        )
+        payload = {"csvContent": csv_content, "targetMode": "new"}
+        response = test_client.post("/flask/sampling/upload_job_collection_csv", json=payload)
+        assert response.status_code == 422
+        error = response.get_json()["error"]
+        assert "Row 2" in error
+
+    def test_extra_column_row_rejected_with_row_context(self, test_client):
+        csv_content = (
+            "source_job_uid,status,input__x,output__y\n"
+            "job-1,SUCCESS,1.0,2.0,extra\n"  # one extra cell
+        )
+        payload = {"csvContent": csv_content, "targetMode": "new"}
+        response = test_client.post("/flask/sampling/upload_job_collection_csv", json=payload)
+        assert response.status_code == 422
+        error = response.get_json()["error"]
+        assert "Row 2" in error
