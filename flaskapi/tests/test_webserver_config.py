@@ -434,7 +434,7 @@ class TestOsparcApiConnectionTesting:
                     # Should still be called only once
                     assert mock_users_api.get_my_profile.call_count == 1
 
-    def test_is_connected_property_short_circuits_after_failure(self):
+    def test_is_connected_short_circuits_after_failure(self):
         """Test that is_connected caches a failed probe instead of retesting every call."""
         with patch.dict(os.environ, self.test_env):
             with patch("mmux_flaskapi.utils.webserver_config.UsersApi") as mock_users_api_class:
