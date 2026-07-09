@@ -13,7 +13,7 @@ from typing import Any
 import pandas as pd
 from pydantic import ValidationError
 
-from mmux_flaskapi.blueprints.dakota_models import JobVariableSelection
+from mmux_flaskapi.blueprints.dakota_models import JobVariableSelection, required_completed_jobs
 from mmux_flaskapi.data_preprocessor import DataPreprocessor
 
 _logger = logging.getLogger(__name__)
@@ -52,6 +52,7 @@ def create_training_file_with_preprocessor(
                 "jobs": jobs,
                 "input_vars": input_vars,
                 "output_vars": output_response_list,
+                "minimum_completed_jobs": required_completed_jobs(input_vars),
             }
         )
     except ValidationError as exc:

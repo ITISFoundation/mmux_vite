@@ -75,7 +75,7 @@ util: `json_serializer.recursive_dict_keys_snake_to_camel(d, preserve_nested_key
 
 ## §V
 V1: `create_flask_app()` registers exactly 5 bp {deployment,osparc,text-file,sampling,dakota} under `/flask/*`
-V2: ∀ dakota endpoint → ≥5 completed jobs else 400; job complete ⟺ `status.lower() ∈ {"completed","success"}`
+V2: ∀ dakota endpoint → ≥`max(5, len(input_vars)+1)` completed jobs else 400 (dimension-scaled minimum, V30); job complete ⟺ `status.lower() ∈ {"completed","success"}`
 V3: requests parse camelCase|snake_case (pydantic `populate_by_name=True`); JSON responses camelCase (e.g. `drag_force` → `dragForce`)
 V4: `DataPreprocessor` maps orig→`x1..`,`y1..` before Dakota, `inverse_transform` back on response; mapping persisted `preprocessor_config.json`
 V5: UQ-with-uncertainty needs `{output}_std_hat` in job outputs (surrogate uncertainty); uses `scipy.special.erfinv`, noise `r = sqrt(2)*erfinv(uniform(-1,1))` (~N(0,1); Phi(x) = (1+erf(x/sqrt(2)))/2 — closes B16, V29)
@@ -104,6 +104,7 @@ V26: `recursive_dict_keys_{camel_to_snake,snake_to_camel}` ⊥ convert keys nest
 V27: `create_manual_uq_samples` ! draw ∀ distribution sample via the seeded `np.random.Generator` (passed as scipy `random_state=`), never scipy's un-seeded global state — same seed + same request ⇒ byte-identical samples (closes B12)
 V28: `get_osparc_api_if_connected()` logs the unreachable-backend WARNING once per unreachability episode (⊥ once per request/call while still down), re-arms (logs again) after a recovery + subsequent drop (closes B14)
 V29: `r` (erfinv-based noise injected into UQ-with-uncertainty histogram realizations) must be `sqrt(2)*erfinv(uniform(-1,1))`, not bare `erfinv(...)` (std 1/sqrt(2)~=0.707, understates reported uncertainty ~29%) (closes B16)
+V30: Dakota surfpack GP surrogate build aborts (MODEL_ERROR/exit-250) when training points ≤ input dimensionality; `required_completed_jobs(input_vars, floor=5) = max(floor, len(input_vars)+1)` gates all 6 job-consuming request models + `JobVariableSelection`, else clean 400 (closes B17)
 
 ## §T
 id|status|task|cites
@@ -125,6 +126,7 @@ T15|x|PORT: inline vendored `mmux_python` → `src/mmux_flaskapi/dakota/` (6 use
 T16|.|PORT [topic=be-preserve-case] remaining half of former T8: `utils/case_preserving.py` (`PreserveCaseTransform`/`FunctionVariablesDict`) + `DataPreprocessor` orig-case round-trip driven by function metadata (`has_preserve_case_metadata`) — NOT the Pydantic-wrapper design from closed/superseded PR #469 (its B8/B9, ../node/SPEC.md); design TBD|V14
 T17|x|PR #487 review (wvangeit): strengthen `test_dakota_funs_data_processing.py` (V27) w/ a mixed-distribution-types regression test (normal+uniform vars sampled together in 1 seeded call) — existing cases only exercise 1 distribution type per call, future-proofs against a per-type-generator regression|V27
 T18|x|fix B16: `flask_manual_uq_propagation_with_uncertainty` noise `r` scaled by `sqrt(2)` (was bare `erfinv(...)`, std 1/sqrt(2)~=0.707 not 1); regression test pins reported `std` to the injected `std_hat` (mocked `evaluate_sumo`) rather than `std_hat/sqrt(2)`. Backported from `jgo/uq-uncertainty-propagation` (simpler pre-T18-decomposition code path on this branch)|V5,V29,B16
+T19|x|fix B17: add `required_completed_jobs(input_vars, floor=5) = max(floor, len(input_vars)+1)` helper (`dakota_models.py`) + apply to `JobVariableSelection` (via `minimum_completed_jobs` param, wired through `dakota.py`'s `_jobs_to_df` + `data_preprocessor_integration.py`) and all 6 request models' own hardcoded `< 5` checks (`SumoCrossValidationRequest`,`ManualUQPropagationRequest`,`SumoAlongAxesRequest`,`SumoGridEvaluationRequest`,`MOGAOptimizationRequest`,`SumoCVAccuracyMetricsRequest`); regression test (11 vars/11 jobs→400, 12 jobs→200). Backported from `jgo/uq-uncertainty-propagation`|V2,V30,B17
 
 ## §B
 id|date|cause|fix
@@ -144,3 +146,4 @@ B13|2026-07-09|PR #495 Copilot review: `node/package-lock.json` carried unrelate
 B14|2026-07-09|PR #495 Copilot review: `flask_list_functions` logged the LOCAL-mode unreachable-oSPARC fallback at WARNING on every request — an expected, recurring condition while a dev backend stays down, spamming logs|V28
 B15|2026-07-09|PR #495 Copilot review: renamed test `test_is_connected_property_short_circuits_after_failure` kept `_property_` in its name though `is_connected` is a method, not a property — misleading re: the API shape|no §V (test-naming, mechanical); renamed to `test_is_connected_short_circuits_after_failure`
 B16|2026-07-09|`flask_manual_uq_propagation_with_uncertainty` generated noise via bare `r = erfinv(uniform(-1,1))` w/o the `sqrt(2)` factor required by the inverse-Gaussian-CDF identity (`Phi(x) = (1+erf(x/sqrt(2)))/2`); understated reported uncertainty by ~29% (std 1/sqrt(2) not 1). Backported from `jgo/uq-uncertainty-propagation` (B16 there)|V5,V29
+B17|2026-07-09|all 6 Dakota GP-surrogate-building request models validated a flat "≥5 completed jobs" regardless of input dimensionality; Dakota's surfpack GP surrogate build aborts (MODEL_ERROR/exit-250) once training points ≤ input dimensionality (e.g. 11 vars + 11 jobs), so high-dimensional requests could pass validation yet crash Dakota with an opaque "Dakota aborted: Unknown error 250". Backported from `jgo/uq-uncertainty-propagation` (B17 there)|V2,V30

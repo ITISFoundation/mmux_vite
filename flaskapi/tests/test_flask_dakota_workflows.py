@@ -1869,6 +1869,32 @@ class TestSumoCVAccuracyMetrics:
         assert "metrics" in data
         assert output in data["metrics"]
 
+    def test_insufficient_jobs_for_dimensionality_returns_clean_400(self, test_client: Flask):
+        """B17 regression: for high-dimensional inputs, the flat floor of 5 completed jobs is
+        not enough to build a Dakota GP surrogate (Dakota requires strictly more training points
+        than input variables, else it aborts with MODEL_ERROR/exit-250). 11 inputs with only 11
+        completed jobs must be rejected with a clean 400 (not a Dakota crash); 12 completed jobs
+        must succeed."""
+        input_vars = [f"x{i}" for i in range(11)]
+        output = "y"
+        jobs = self.create_cv_accuracy_jobs(11, input_vars, output)
+
+        payload = {"inputs": input_vars, "output": output, "FunctionJobs": jobs}
+
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        error_text = str(data.get("details", data.get("error", "")))
+        assert "12" in error_text
+        assert "Dakota aborted" not in error_text
+
+        jobs_ok = self.create_cv_accuracy_jobs(12, input_vars, output)
+        payload_ok = {"inputs": input_vars, "output": output, "FunctionJobs": jobs_ok}
+        response_ok = test_client.post(
+            "/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload_ok
+        )
+        assert response_ok.status_code == 200
+
     def test_insufficient_completed_jobs(self, test_client: Flask):
         """Test validation failure when there are insufficient completed jobs."""
         input_vars = ["x1"]

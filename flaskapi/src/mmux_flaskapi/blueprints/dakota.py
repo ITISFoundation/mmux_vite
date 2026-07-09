@@ -28,6 +28,7 @@ from mmux_flaskapi.blueprints.dakota_models import (
     SumoGridEvaluationRequest,
     SumoGridEvaluationResponse,
     UQWithUncertaintyResponse,
+    required_completed_jobs,
 )
 from mmux_flaskapi.dakota.funs_data_processing import (
     create_manual_uq_samples,
@@ -103,6 +104,7 @@ def _jobs_to_df(
                 "jobs": jobs,
                 "input_vars": input_vars,
                 "output_vars": output_vars,
+                "minimum_completed_jobs": required_completed_jobs(input_vars),
             }
         )
     except ValidationError as exc:
