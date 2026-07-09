@@ -434,8 +434,8 @@ class TestOsparcApiConnectionTesting:
                     # Should still be called only once
                     assert mock_users_api.get_my_profile.call_count == 1
 
-    def test_is_connected_property_retests_after_failure(self):
-        """Test that is_connected property retests after a failure."""
+    def test_is_connected_short_circuits_after_failure(self):
+        """Test that is_connected caches a failed probe instead of retesting every call."""
         with patch.dict(os.environ, self.test_env):
             with patch("mmux_flaskapi.utils.webserver_config.UsersApi") as mock_users_api_class:
                 with patch("mmux_flaskapi.utils.webserver_config.ApiClient"):
@@ -449,11 +449,32 @@ class TestOsparcApiConnectionTesting:
                     result = api.is_connected()
                     assert result is False
 
-                    # Second call should test again (because connection failed)
+                    # Second call should reuse the cached failure, not re-probe
                     result2 = api.is_connected()
                     assert result2 is False
 
-                    # Should have been called twice
+                    # Should have been called only once
+                    assert mock_users_api.get_my_profile.call_count == 1
+
+    def test_is_connected_force_recheck_after_failure(self):
+        """Test that is_connected(force_recheck=True) explicitly re-runs the probe."""
+        with patch.dict(os.environ, self.test_env):
+            with patch("mmux_flaskapi.utils.webserver_config.UsersApi") as mock_users_api_class:
+                with patch("mmux_flaskapi.utils.webserver_config.ApiClient"):
+                    mock_users_api = Mock()
+                    mock_users_api.get_my_profile.side_effect = Exception("Connection failed")
+                    mock_users_api_class.return_value = mock_users_api
+
+                    api = OsparcApi()
+
+                    # First call should fail
+                    result = api.is_connected()
+                    assert result is False
+
+                    # Forcing a recheck should re-probe even though the last result was cached
+                    result2 = api.is_connected(force_recheck=True)
+                    assert result2 is False
+
                     assert mock_users_api.get_my_profile.call_count == 2
 
     def test_is_connected_initial_state(self):
@@ -659,6 +680,62 @@ class TestGetOsparcApiIfConnectedHelper:
 
         with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
             assert get_osparc_api_if_connected() is mock_osparc_api
+
+    def test_unreachable_warning_logged_once_per_episode(self, caplog):
+        """V28: repeated calls while still unreachable must not spam WARNING per call."""
+        from mmux_flaskapi.app import MMUXFlask
+        from mmux_flaskapi.utils.webserver_config import get_osparc_api_if_connected
+
+        class FakeOsparcApi:
+            """Plain fake (⊥ Mock()) mirroring the real `OsparcApi.logged_unreachable_warning`
+            property contract; Mock()'s attribute auto-vivification would mask a missing
+            default here."""
+
+            def __init__(self):
+                self.logged_unreachable_warning = False
+
+            def is_connected(self):
+                return False
+
+        mock_app = Mock(spec=MMUXFlask)
+        mock_app.osparc_api = FakeOsparcApi()
+
+        with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
+            with caplog.at_level("WARNING"):
+                for _ in range(3):
+                    assert get_osparc_api_if_connected() is None
+
+        warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert len(warnings) == 1
+
+    def test_unreachable_warning_logged_again_after_recovery(self, caplog):
+        """A recovery (is_connected True) then a second drop must warn again."""
+        from mmux_flaskapi.app import MMUXFlask
+        from mmux_flaskapi.utils.webserver_config import get_osparc_api_if_connected
+
+        class FakeOsparcApi:
+            def __init__(self):
+                self.connected = False
+                self.logged_unreachable_warning = False
+
+            def is_connected(self):
+                return self.connected
+
+        mock_app = Mock(spec=MMUXFlask)
+        fake_api = FakeOsparcApi()
+        mock_app.osparc_api = fake_api
+
+        with patch("mmux_flaskapi.utils.webserver_config.current_app", mock_app):
+            with caplog.at_level("WARNING"):
+                fake_api.connected = False
+                get_osparc_api_if_connected()
+                fake_api.connected = True
+                get_osparc_api_if_connected()
+                fake_api.connected = False
+                get_osparc_api_if_connected()
+
+        warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert len(warnings) == 2
 
 
 class TestOsparcApiLogging:
