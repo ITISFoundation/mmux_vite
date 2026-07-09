@@ -35,7 +35,12 @@ export default function SobolIndicesPlot() {
           distributions: distribution[selectedFunction?.uid || ""],
           functionJobs: filteredJobList,
           numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
-          seed: 0,
+          // Unlike CorrelationIndicesPlot's seed (only feeds numpy.random.seed,
+          // where 0 is valid), this seed is written verbatim into a Dakota NIDR
+          // input file's `sampling` block for `variance_based_decomp`. Dakota's
+          // own NIDR parser rejects `seed = 0` ("seed must be > 0"), aborting
+          // with an opaque 400/500 (flaskapi/SPEC.md B17) - use 1 instead.
+          seed: 1,
         });
         setPlotData(
           buildSobolBarData(data.sobol, inputVars, {

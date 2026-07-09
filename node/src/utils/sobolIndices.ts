@@ -17,7 +17,12 @@ export type FetchSobolIndicesParams = {
  * `variance_based_decomp` on a surrogate model built from the completed jobs.
  */
 export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promise<SobolIndicesResponse> {
-  const { inputVars, output, distributions, functionJobs, numSamples, seed = 0 } = params;
+  // Unlike fetchCorrelationIndices' seed (only feeds numpy.random.seed, where 0
+  // is valid), this seed is written verbatim into a Dakota NIDR input file's
+  // `sampling` block for `variance_based_decomp`. Dakota's own NIDR parser
+  // rejects `seed = 0` ("seed must be > 0"), aborting with an opaque 400/500
+  // (flaskapi/SPEC.md B17) - default to 1 instead.
+  const { inputVars, output, distributions, functionJobs, numSamples, seed = 1 } = params;
 
   const response = await fetchWithRetry(`/flask/dakota/compute_sobol_indices`, {
     method: "POST",
