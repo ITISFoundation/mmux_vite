@@ -4,6 +4,7 @@ These tests cover the /flask/osparc/*** endpoints in the Flask app.
 Different patches for osparc_client.api.functions_api.***Api.*** are provided, to ensure that they are handled correctly.
 """
 
+from unittest.mock import patch
 
 #####################################################################################
 ## Listing endpoints for Functions, Jobs, Job Collections
@@ -55,6 +56,29 @@ class TestOsparcListFunctions:
         data = response.get_json()
         assert "error" in data
         assert "422" in data["error"]
+
+    def test_local_mode_unreachable_osparc_returns_empty_list(self, test_client):
+        with patch.dict("os.environ", {"DEPLOYMENT_MODE": "LOCAL"}):
+            with patch(
+                "mmux_flaskapi.blueprints.osparc.get_osparc_api_if_connected", return_value=None
+            ):
+                response = test_client.get("/flask/osparc/list_functions")
+
+        assert response.status_code == 200
+        assert response.get_json() == []
+
+    def test_list_functions_without_osparc_credentials_logs_warning(self, test_client, caplog):
+        """Non-LOCAL missing-config path stays a plain per-request WARNING."""
+        osparc_api = test_client.application.osparc_api
+        osparc_api._configuration.host = ""
+        osparc_api._configuration.username = ""
+        osparc_api._configuration.password = ""
+
+        response = test_client.get("/flask/osparc/list_functions")
+
+        assert response.status_code == 200
+        assert response.get_json() == []
+        assert any(r.levelname == "WARNING" for r in caplog.records)
 
 
 class TestOsparcListJobs:
