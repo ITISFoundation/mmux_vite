@@ -59,7 +59,7 @@ describe("fetchSobolIndices", () => {
     });
   });
 
-  it("defaults seed to 0 when not provided", async () => {
+  it("defaults seed to 1 when not provided (Dakota requires seed > 0, flaskapi/SPEC.md B17)", async () => {
     mockedFetchWithRetry.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({ sobol: {} }),
@@ -75,7 +75,7 @@ describe("fetchSobolIndices", () => {
 
     const [, options] = mockedFetchWithRetry.mock.calls[0];
     const body = JSON.parse((options as RequestInit).body as string);
-    expect(body.seed).toBe(0);
+    expect(body.seed).toBe(1);
   });
 
   it("throws (⊥ resolves) on a non-OK response", async () => {
