@@ -2,6 +2,8 @@
 Tests for POST /flask/sampling/upload_job_collection_csv (flaskapi/SPEC.md §T6).
 """
 
+from unittest.mock import patch
+
 import pytest
 
 from mmux_flaskapi.utils import local_job_store as ljs
@@ -92,6 +94,26 @@ class TestUploadJobCollectionCsvExistingMode:
             "targetFunctionUid": "local-func-doesnotexist",
         }
         response = test_client.post("/flask/sampling/upload_job_collection_csv", json=payload)
+        assert response.status_code == 422
+
+    def test_existing_mode_real_function_uid_degrades_gracefully_when_unreachable(
+        self, test_client
+    ):
+        """V29 (B16): a real (non-local) target_function_uid must produce a
+        controlled 422, not a 500, when DEPLOYMENT_MODE=LOCAL and oSPARC is
+        unreachable (_function_schema_vars fix)."""
+        payload = {
+            "csvContent": VALID_CSV,
+            "targetMode": "existing",
+            "targetFunctionUid": "real-func-1",
+        }
+        with patch.dict("os.environ", {"DEPLOYMENT_MODE": "LOCAL"}):
+            with patch(
+                "mmux_flaskapi.blueprints.osparc.get_osparc_api_if_connected", return_value=None
+            ):
+                response = test_client.post(
+                    "/flask/sampling/upload_job_collection_csv", json=payload
+                )
         assert response.status_code == 422
 
 

@@ -135,11 +135,63 @@ class TestLocalUidRouting:
         assert response.status_code == 200
         data_no_local = response.get_json()
 
+        from mmux_flaskapi.utils.webserver_config import OsparcApi
+
         with patch.dict("os.environ", {"DEPLOYMENT_MODE": "LOCAL"}):
-            response = test_client.get(
-                f"/flask/osparc/list_function_jobs_for_functionid?functionUid={real_function_uid}"
-            )
+            # Avoid a real network probe from `is_connected()`/`_test_connection()`:
+            # short-circuit "is oSPARC reachable?" to reuse the already-mocked SDK.
+            with patch(
+                "mmux_flaskapi.blueprints.osparc.get_osparc_api_if_connected",
+                return_value=OsparcApi(),
+            ):
+                response = test_client.get(
+                    f"/flask/osparc/list_function_jobs_for_functionid?functionUid={real_function_uid}"
+                )
         assert response.status_code == 200
         data_with_local = response.get_json()
 
         assert len(data_with_local) == len(data_no_local) + 1
+
+
+class TestLocalModeGracefulDegradationForFunctionIdEndpoints:
+    """V29 (B16): a real (non-local) function uid must degrade gracefully -- not
+    500 -- when DEPLOYMENT_MODE=LOCAL and oSPARC is unreachable, same as the
+    already-fixed list_functions/list_function_job_collections endpoints."""
+
+    def test_list_function_jobs_for_functionid_degrades_gracefully(self, test_client):
+        real_function_uid = "real-func-1"
+        local_jc = ljs.create_local_job_collection(
+            function_uid=real_function_uid,
+            title="Attached JC",
+            rows=[{"inputs": {"a": 1.0}, "outputs": {"b": 2.0}}],
+        )
+        with patch.dict("os.environ", {"DEPLOYMENT_MODE": "LOCAL"}):
+            with patch(
+                "mmux_flaskapi.blueprints.osparc.get_osparc_api_if_connected", return_value=None
+            ):
+                response = test_client.get(
+                    "/flask/osparc/list_function_jobs_for_functionid"
+                    f"?functionUid={real_function_uid}"
+                )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data) == len(local_jc.get("jobIds") or local_jc.get("job_ids"))
+
+    def test_list_function_job_collections_for_functionid_degrades_gracefully(self, test_client):
+        real_function_uid = "real-func-1"
+        ljs.create_local_job_collection(
+            function_uid=real_function_uid,
+            title="Attached JC",
+            rows=[{"inputs": {"a": 1.0}, "outputs": {"b": 2.0}}],
+        )
+        with patch.dict("os.environ", {"DEPLOYMENT_MODE": "LOCAL"}):
+            with patch(
+                "mmux_flaskapi.blueprints.osparc.get_osparc_api_if_connected", return_value=None
+            ):
+                response = test_client.get(
+                    "/flask/osparc/list_function_job_collections_for_functionid"
+                    f"?functionUid={real_function_uid}"
+                )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data) == 1

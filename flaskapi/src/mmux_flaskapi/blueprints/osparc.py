@@ -18,6 +18,7 @@ from mmux_flaskapi.utils.local_job_store import (
     is_local_function_uid,
     is_local_job_collection_uid,
     is_local_job_uid,
+    list_local_functions,
     list_local_job_collections,
     list_local_job_collections_for_function,
     list_local_jobs_for_collection,
@@ -116,12 +117,14 @@ def flask_list_functions():
         # per-request network probe, so it stays a plain per-request WARNING here.
         if not is_local:
             _logger.warning("oSPARC is not available - returning no remote functions")
-        return [], 200
-
-    functions = _get_all_items(osparc_api.get_functions_api().list_functions)
-    functions = functions[
-        ::-1
-    ]  # put last-created first? FIXME still need to expose "created_at" in the response
+        functions = []
+    else:
+        functions = _get_all_items(osparc_api.get_functions_api().list_functions)
+        functions = functions[
+            ::-1
+        ]  # put last-created first? FIXME still need to expose "created_at" in the response
+    if is_local:
+        functions = functions + list_local_functions()
     _logger.debug(f"N Functions: {len(functions)}")
     return functions, 200
 
@@ -174,14 +177,21 @@ def flask_list_function_jobs_for_functionid():
         _logger.debug(f"N local jobs for function {function_uid}: {len(jobs)}")
         return jobs, 200
 
-    osparc_api = get_osparc_api()
-    jobs = _get_all_items(
-        osparc_api.get_functions_api().list_function_jobs_for_functionid, function_uid
-    )
-    for j in jobs:
-        status: FunctionJobStatus = osparc_api.get_job_api().function_job_status(j["uid"])
-        j["status"] = status.status
-    if _is_local_deployment_mode():
+    # In LOCAL mode an unreachable oSPARC backend is tolerated (graceful degradation);
+    # otherwise, missing/blank credentials are tolerated. Either way, a None osparc_api
+    # here means "no remote jobs available", not an error (flaskapi/SPEC.md V15, V29).
+    is_local = _is_local_deployment_mode()
+    osparc_api = get_osparc_api_if_connected() if is_local else get_osparc_api_if_configured()
+    if osparc_api is None:
+        jobs = []
+    else:
+        jobs = _get_all_items(
+            osparc_api.get_functions_api().list_function_jobs_for_functionid, function_uid
+        )
+        for j in jobs:
+            status: FunctionJobStatus = osparc_api.get_job_api().function_job_status(j["uid"])
+            j["status"] = status.status
+    if is_local:
         jobs = jobs + list_local_jobs_for_function(function_uid)
     _logger.debug(f"N Jobs for function {function_uid}: {len(jobs)}")
     return jobs, 200
