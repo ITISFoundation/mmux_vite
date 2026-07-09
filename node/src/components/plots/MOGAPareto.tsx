@@ -453,6 +453,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}
           height={plotStyle.height}
+          numInputVars={inputVars.length}
         />
       )}
       {!propagating && selectedFunction && plotData.length !== 0 && (
