@@ -67,6 +67,19 @@ class TestOsparcListFunctions:
         assert response.status_code == 200
         assert response.get_json() == []
 
+    def test_list_functions_without_osparc_credentials_logs_warning(self, test_client, caplog):
+        """Non-LOCAL missing-config path stays a plain per-request WARNING."""
+        osparc_api = test_client.application.osparc_api
+        osparc_api._configuration.host = ""
+        osparc_api._configuration.username = ""
+        osparc_api._configuration.password = ""
+
+        response = test_client.get("/flask/osparc/list_functions")
+
+        assert response.status_code == 200
+        assert response.get_json() == []
+        assert any(r.levelname == "WARNING" for r in caplog.records)
+
 
 class TestOsparcListJobs:
     def test_list_jobs_random_error(self, test_client, patch_list_function_jobs_random_error):

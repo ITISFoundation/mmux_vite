@@ -4,7 +4,7 @@ import os
 from collections.abc import Callable
 from functools import wraps
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from flask import Blueprint, jsonify, make_response, request
 
@@ -42,7 +42,7 @@ def _get_query_arg(*names: str) -> str:
 #####################################################################################
 # Decorators for error handling and logging
 #####################################################################################
-def api_endpoint(func: Callable) -> Callable:
+def api_endpoint(func: Callable[..., Any]) -> Callable[..., Any]:
     """
     Decorator for API endpoints to handle errors, logging, and return proper HTTP status codes.
     Propagates downstream OsparcApiException errors with their status code and message.
@@ -50,7 +50,8 @@ def api_endpoint(func: Callable) -> Callable:
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        _logger.debug(f"Starting flask function: {func.__name__}")
+        func_name = getattr(func, "__name__", str(func))
+        _logger.debug(f"Starting flask function: {func_name}")
         _logger.debug(f"Cwd: {Path.cwd()}")
         try:
             result = func(*args, **kwargs)
@@ -90,13 +91,15 @@ def flask_list_functions():
     # In LOCAL mode an unreachable oSPARC backend is tolerated (graceful degradation);
     # otherwise, missing/blank credentials are tolerated. Either way, a None osparc_api
     # here means "no remote functions available", not an error.
-    osparc_api = (
-        get_osparc_api_if_connected()
-        if _is_local_deployment_mode()
-        else get_osparc_api_if_configured()
-    )
+    is_local = _is_local_deployment_mode()
+    osparc_api = get_osparc_api_if_connected() if is_local else get_osparc_api_if_configured()
     if osparc_api is None:
-        _logger.warning("oSPARC is not available - returning no remote functions")
+        # LOCAL-mode unreachable-backend WARNING is logged (once per unreachability
+        # episode, ⊥ per-request spam) inside get_osparc_api_if_connected() itself.
+        # The non-LOCAL missing-credentials case is a static config state, not a
+        # per-request network probe, so it stays a plain per-request WARNING here.
+        if not is_local:
+            _logger.warning("oSPARC is not available - returning no remote functions")
         return [], 200
 
     functions = _get_all_items(osparc_api.get_functions_api().list_functions)
@@ -156,7 +159,8 @@ def flask_list_function_jobs_for_jobcollectionid():
     jc_uid = _get_query_arg("JobCollectionUid", "job_collection_uid")
     _logger.debug(f"jc ID: {jc_uid}")
     jc = osparc_api.get_job_collection_api().get_function_job_collection(jc_uid)
-    jobs = [_get_function_job_from_uid(job_uid) for job_uid in jc.job_ids]  # type: ignore
+    job_ids = jc.job_ids or []
+    jobs = [_get_function_job_from_uid(job_uid) for job_uid in job_ids]
     _logger.debug(f"N Jobs for job collection {jc_uid}: {len(jobs)}")
     return jobs, 200
 
@@ -199,7 +203,7 @@ def _get_function_job_from_uid(job_uid: str) -> dict[str, Any]:
     _logger.debug(f"Job ID: {job_uid}")
     osparc_api = get_osparc_api()
     job = osparc_api.get_job_api().get_function_job(job_uid)
-    job_dict = job.to_dict()  # type: ignore
+    job_dict = cast(dict[str, Any], job.to_dict())
     _logger.debug(f"'Raw' Job: {job_dict}")
     job_dict["status"] = osparc_api.get_job_api().function_job_status(job_uid).status
     job_dict["outputs"] = osparc_api.get_job_api().function_job_outputs(job_uid)

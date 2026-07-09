@@ -23,7 +23,18 @@ class OsparcApi:
     """Configuration class for OSPARC API connections."""
 
     def __init__(self):
+        self._logged_unreachable_warning: bool = False
         self._setup_configuration()
+
+    @property
+    def logged_unreachable_warning(self) -> bool:
+        """Whether the unreachable-backend WARNING (SPEC.md V28) was already logged
+        for the current unreachability episode; reset once the backend recovers."""
+        return self._logged_unreachable_warning
+
+    @logged_unreachable_warning.setter
+    def logged_unreachable_warning(self, value: bool) -> None:
+        self._logged_unreachable_warning = value
 
     def _setup_configuration(self):
         """Set up OSPARC configuration from environment variables."""
@@ -170,7 +181,14 @@ def get_osparc_api_if_configured() -> OsparcApi | None:
 
 
 def get_osparc_api_if_connected() -> OsparcApi | None:
-    """Return the OsparcApi instance only when the backend is reachable."""
+    """Return the OsparcApi instance only when the backend is reachable.
+
+    When unreachable, this is called on every incoming request in the
+    LOCAL-mode graceful-degradation path (SPEC.md V15), so a persistently-down
+    backend must not spam the log once per request. The WARNING is therefore
+    logged only once per unreachability episode; it fires again if the
+    backend later recovers and then drops a second time.
+    """
     from mmux_flaskapi.app import MMUXFlask
 
     assert isinstance(current_app, MMUXFlask), "current_app is not an instance of MMUXFlask"
@@ -178,9 +196,13 @@ def get_osparc_api_if_connected() -> OsparcApi | None:
     if osparc_api is None:
         return None
     if not osparc_api.is_connected():
+        if not osparc_api.logged_unreachable_warning:
+            _logger.warning("oSPARC is configured but not reachable - degrading gracefully")
+            osparc_api.logged_unreachable_warning = True
         return None
-
-    return osparc_api
+    else:
+        osparc_api.logged_unreachable_warning = False
+        return osparc_api
 
 
 __all__ = [
