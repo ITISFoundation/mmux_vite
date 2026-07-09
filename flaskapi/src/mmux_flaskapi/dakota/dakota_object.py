@@ -26,14 +26,33 @@ def working_directory(path):
 # Static function to execute Dakota - needs to be at module level to be picklable
 def _dak_exec_static(conf):
     """Static version of dak_exec that can be pickled for multiprocessing."""
-    study = dakenv.study(callback=None, input_string=conf)  # type: ignore
+    study = None
     stdoutstr, stderrstr = None, None
+    exec_error: Exception | None = None
     with wio.capture_to_file(stdout="./stdout", stderr="./stderr") as (stdout, stderr):
-        study.execute()
+        try:
+            # NIDR input-file parsing (e.g. rejecting `seed = 0`) happens during
+            # study construction, not just study.execute() - construct it inside
+            # this same capture+try block so those aborts are captured/enriched
+            # too, not just execution-time ones (flaskapi/SPEC.md B17).
+            study = dakenv.study(callback=None, input_string=conf)  # type: ignore
+            study.execute()
+        except Exception as exc:  # noqa: BLE001 - re-raised below with captured diagnostics
+            exec_error = exc
+    # Always read back captured stdout/stderr, even on failure - Dakota's own
+    # exception (e.g. "Dakota aborted: Unknown error 254") carries no detail,
+    # but the captured stdout/stderr usually contains the real NIDR/input-file
+    # error message that caused the abort (flaskapi/SPEC.md B16).
     with open(stdout) as outf, open(stderr) as errf:
         stdoutstr = outf.read()
         stderrstr = errf.read()
     del study
+    if exec_error is not None:
+        diagnostics = "\n".join(s.strip() for s in (stdoutstr, stderrstr) if s and s.strip())
+        message = f"Dakota execution failed: {exec_error}"
+        if diagnostics:
+            message = f"{message}\n--- Dakota stdout/stderr ---\n{diagnostics}"
+        raise RuntimeError(message) from exec_error
     return stdoutstr, stderrstr
 
 
