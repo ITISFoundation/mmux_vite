@@ -411,8 +411,11 @@ def flask_manual_uq_propagation_with_uncertainty():
         # Generate samples in transformed space
         all_results_transformed = np.empty(shape=(n_histograms, num_samples), dtype=float)
         for i in range(n_histograms):
-            # Generate random samples from uniform distribution and transform via erfinv
-            r = erfinv(
+            # Generate standard-normal samples via the inverse-CDF/erfinv trick: for U~Uniform(-1,1),
+            # sqrt(2)*erfinv(U) ~ N(0,1) (since Phi(x) = (1+erf(x/sqrt(2)))/2). The sqrt(2) factor is
+            # required -- erfinv(U) alone has std 1/sqrt(2) =~ 0.707, not 1, which would understate
+            # the injected uncertainty by ~29%.
+            r = np.sqrt(2) * erfinv(
                 np.random.uniform(-1 + 1e-10, 1 - 1e-10, size=num_samples)
             )  # Avoid exact -1,1 for erfinv
             all_results_transformed[i, :] = results[prediction_key] + r * results[uncertainty_key]

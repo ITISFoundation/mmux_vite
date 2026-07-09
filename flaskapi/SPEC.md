@@ -78,7 +78,7 @@ V1: `create_flask_app()` registers exactly 5 bp {deployment,osparc,text-file,sam
 V2: ∀ dakota endpoint → ≥5 completed jobs else 400; job complete ⟺ `status.lower() ∈ {"completed","success"}`
 V3: requests parse camelCase|snake_case (pydantic `populate_by_name=True`); JSON responses camelCase (e.g. `drag_force` → `dragForce`)
 V4: `DataPreprocessor` maps orig→`x1..`,`y1..` before Dakota, `inverse_transform` back on response; mapping persisted `preprocessor_config.json`
-V5: UQ-with-uncertainty needs `{output}_std_hat` in job outputs (surrogate uncertainty); uses `scipy.special.erfinv`
+V5: UQ-with-uncertainty needs `{output}_std_hat` in job outputs (surrogate uncertainty); uses `scipy.special.erfinv`, noise `r = sqrt(2)*erfinv(uniform(-1,1))` (~N(0,1); Phi(x) = (1+erf(x/sqrt(2)))/2 — closes B16, V29)
 V6: MOGA `maximize` objective → sign-switch to internal minimize, inverse on result
 V7: `DEPLOYMENT_MODE=LOCAL` → parent node/project ids = `"null"`; `=OSPARC` → read `OSPARC_NODE_ID`/`OSPARC_STUDY_ID`; other → ValueError
 V8: text-file `filename` rejects path separators (⊥ traversal); root `/text-files/`
@@ -103,6 +103,7 @@ V25: Dakota endpoints ! call `os.chdir()`; run dirs use explicit paths only, req
 V26: `recursive_dict_keys_{camel_to_snake,snake_to_camel}` ⊥ convert keys nested *inside* a `preserve_nested_keys` value-dict (default `_DEFAULT_PRESERVE_NESTED_KEYS`); param overridable, not hardcoded; applies uniformly to request parsing, response serialization, AND `_get_all_items`/`_get_first_N_items`/`_get_last_N_items` SDK ingestion since all route through these two functions (closes B11); FE `opaqueValueDictKeys` (`functionUtils.ts`, read-path only) ⊆ this set, asserted by cross-language test `test_preserve_nested_keys_matches_frontend_opaque_keys` — no shared runtime file (../node/SPEC.md V19)
 V27: `create_manual_uq_samples` ! draw ∀ distribution sample via the seeded `np.random.Generator` (passed as scipy `random_state=`), never scipy's un-seeded global state — same seed + same request ⇒ byte-identical samples (closes B12)
 V28: `get_osparc_api_if_connected()` logs the unreachable-backend WARNING once per unreachability episode (⊥ once per request/call while still down), re-arms (logs again) after a recovery + subsequent drop (closes B14)
+V29: `r` (erfinv-based noise injected into UQ-with-uncertainty histogram realizations) must be `sqrt(2)*erfinv(uniform(-1,1))`, not bare `erfinv(...)` (std 1/sqrt(2)~=0.707, understates reported uncertainty ~29%) (closes B16)
 
 ## §T
 id|status|task|cites
@@ -123,6 +124,7 @@ T14|.|fix B5 (#467): narrow `_load_store` except to `(OSError, json.JSONDecodeEr
 T15|x|PORT: inline vendored `mmux_python` → `src/mmux_flaskapi/dakota/` (6 used modules kept verbatim filenames: `lhs`,`dakota_object`,`funs_create_dakota_conf`,`funs_data_processing`,`funs_evaluate`,`wiofiles`; dropped 3 unused: `dakota_object_map`,`funs_git`,`funs_plotting`); rewrote internal cross-imports + blueprint imports (`dakota.py`,`sampling.py`) to `mmux_flaskapi.dakota.*`; removed `mmux-python` dep + `[tool.uv.workspace]`/`[tool.uv.sources]` + 6 dead transitive deps (gitpython,httpx,ipykernel,matplotlib,seaborn,tqdm) + coverage omit line from `pyproject.toml`; `uv sync` verified; full pytest suite green (439 passed) before+after|../SPEC.md T21,T2
 T16|.|PORT [topic=be-preserve-case] remaining half of former T8: `utils/case_preserving.py` (`PreserveCaseTransform`/`FunctionVariablesDict`) + `DataPreprocessor` orig-case round-trip driven by function metadata (`has_preserve_case_metadata`) — NOT the Pydantic-wrapper design from closed/superseded PR #469 (its B8/B9, ../node/SPEC.md); design TBD|V14
 T17|x|PR #487 review (wvangeit): strengthen `test_dakota_funs_data_processing.py` (V27) w/ a mixed-distribution-types regression test (normal+uniform vars sampled together in 1 seeded call) — existing cases only exercise 1 distribution type per call, future-proofs against a per-type-generator regression|V27
+T18|x|fix B16: `flask_manual_uq_propagation_with_uncertainty` noise `r` scaled by `sqrt(2)` (was bare `erfinv(...)`, std 1/sqrt(2)~=0.707 not 1); regression test pins reported `std` to the injected `std_hat` (mocked `evaluate_sumo`) rather than `std_hat/sqrt(2)`. Backported from `jgo/uq-uncertainty-propagation` (simpler pre-T18-decomposition code path on this branch)|V5,V29,B16
 
 ## §B
 id|date|cause|fix
@@ -141,3 +143,4 @@ B12|2026-07-06|`create_manual_uq_samples` (funs_data_processing.py) called `np.r
 B13|2026-07-09|PR #495 Copilot review: `node/package-lock.json` carried unrelated `"peer": true` churn (~51 lines, different local npm version) alongside an unrelated flaskapi PR, no `package.json` dep change to justify it — noisy diff/merge-conflict risk|no §V (regenerated-artifact hygiene, not app behavior); reverted to match main
 B14|2026-07-09|PR #495 Copilot review: `flask_list_functions` logged the LOCAL-mode unreachable-oSPARC fallback at WARNING on every request — an expected, recurring condition while a dev backend stays down, spamming logs|V28
 B15|2026-07-09|PR #495 Copilot review: renamed test `test_is_connected_property_short_circuits_after_failure` kept `_property_` in its name though `is_connected` is a method, not a property — misleading re: the API shape|no §V (test-naming, mechanical); renamed to `test_is_connected_short_circuits_after_failure`
+B16|2026-07-09|`flask_manual_uq_propagation_with_uncertainty` generated noise via bare `r = erfinv(uniform(-1,1))` w/o the `sqrt(2)` factor required by the inverse-Gaussian-CDF identity (`Phi(x) = (1+erf(x/sqrt(2)))/2`); understated reported uncertainty by ~29% (std 1/sqrt(2) not 1). Backported from `jgo/uq-uncertainty-propagation` (B16 there)|V5,V29
