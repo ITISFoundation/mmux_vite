@@ -63,6 +63,9 @@ def dict_keys_snake_to_camel(d: dict) -> dict:
 #   "distributions", "output_var_selection", "project_inputs" - audited from
 #   every outgoing fetch() body in node/ (Curves1DPlot, Surface2DPlot,
 #   IsoSurface3DPlot, MOGAPareto, UncertainUQ, functionUtils.clone_job).
+# - read path (snake_to_camel, response serializer): "correlations", "sobol" -
+#   per-input-variable result dicts returned by compute_correlation_indices/
+#   compute_sobol_indices (flaskapi/SPEC.md V28/V32, B15).
 _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
     {
         "properties",
@@ -73,6 +76,8 @@ _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
         "distributions",
         "output_var_selection",
         "project_inputs",
+        "correlations",
+        "sobol",
     }
 )
 

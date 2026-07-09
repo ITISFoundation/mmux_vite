@@ -342,6 +342,24 @@ class TestPreserveNestedKeysForVariableNames:
             "properties": {key: {"type": "number"}},
         }
 
+    @pytest.mark.parametrize("key", IRREGULAR_NAMES)
+    def test_snake_to_camel_preserves_correlations_and_sobol_variable_names(self, key):
+        """Response-path regression (flaskapi/SPEC.md B15): compute_correlation_indices/
+        compute_sobol_indices key their results by input-variable name, not API field
+        name - the outer "correlations"/"sobol" key converts but per-variable inner
+        keys (e.g. multi-word snake_case names) must survive untouched, or the frontend's
+        inputVars[i] lookup into the response dict silently misses and defaults to 0
+        (correlation/sobol plots render as all-zero bars)."""
+        input_dict = {
+            "correlations": {key: {"pearson": 0.5, "spearman": 0.4}},
+            "sobol": {key: {"main": 0.3, "total": 0.6}},
+        }
+        result = recursive_dict_keys_snake_to_camel(input_dict)
+        assert result == {
+            "correlations": {key: {"pearson": 0.5, "spearman": 0.4}},
+            "sobol": {key: {"main": 0.3, "total": 0.6}},
+        }
+
     def test_preserve_nested_keys_custom_override(self):
         """preserve_nested_keys is overridable, not hardcoded module-global state."""
         result = recursive_dict_keys_camel_to_snake(
