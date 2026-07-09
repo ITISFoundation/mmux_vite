@@ -149,6 +149,30 @@ class TestComputeSobolIndicesRoute:
             assert "main" in entry and isinstance(entry["main"], (int, float))
             assert "total" in entry and isinstance(entry["total"], (int, float))
 
+    def test_sobol_indices_preserves_multi_word_variable_names(self, test_client: Flask):
+        """Regression (flaskapi/SPEC.md B15): a multi-word snake_case input var name
+        must survive the response's snake_to_camel JSON serialization untouched -
+        the frontend looks up `sobol[inputVars[i]]` by the exact var name it sent,
+        so a mangled key (e.g. "sigma_blood" -> "sigmaBlood") makes the lookup
+        silently miss and the plot render as all-zero bars."""
+        input_vars = ["sigma_blood", "x2"]
+        output = "y"
+
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": _make_distributions(input_vars),
+            "numSamples": 10,
+            "seed": 42,
+            "FunctionJobs": _make_jobs(50, input_vars, output),
+        }
+
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert set(data["sobol"].keys()) == set(input_vars)
+
     def test_missing_distribution_for_input_var(self, test_client: Flask):
         """Missing a distribution for a requested input var returns 400."""
         input_vars = ["x1", "x2"]
@@ -202,6 +226,29 @@ class TestComputeSobolIndicesRoute:
         assert response.status_code == 400
         data = response.get_json()
         assert "seed" in data["error"]
+
+    def test_seed_zero_rejected_with_clear_400(self, test_client: Flask):
+        """Regression (flaskapi/SPEC.md B17): `seed` is written verbatim into a Dakota
+        NIDR input file's `sampling` block for `variance_based_decomp`, and Dakota's
+        own NIDR parser rejects `seed = 0` ("seed must be > 0"), aborting with an
+        opaque top-level "Dakota aborted: Unknown error 254" 500. `seed=0` must be
+        rejected up front with a clear 400 instead of reaching Dakota at all."""
+        input_vars = ["x1"]
+        output = "y"
+
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": _make_distributions(input_vars),
+            "numSamples": 10,
+            "seed": 0,
+            "FunctionJobs": _make_jobs(50, input_vars, output),
+        }
+
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "seed" in data["error"].lower()
 
     def test_evaluation_failure_propagates_500(self, test_client: Flask, monkeypatch):
         """If Sobol' evaluation fails, the error is propagated as a 500."""
