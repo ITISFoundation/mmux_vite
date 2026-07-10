@@ -91,7 +91,8 @@ class JobVariableSelection(BaseModel):
             raise ValueError(
                 "At least "
                 f"{self.minimum_completed_jobs} samples are necessary to build a surrogate model in Dakota "
-                f"(must exceed the number of input variables, {len(self.input_vars)}). "
+                f"(dimension-scaled minimum: max(5, num_input_vars + 1) = "
+                f"max(5, {len(self.input_vars)} + 1)). "
                 f"Found {len(completed_jobs)} completed jobs."
             )
 

@@ -6,8 +6,8 @@ type InsufficientDataWarningPropsType = {
   filteredJobList: OsparcFunctionJob[];
   height?: number;
   // Number of input variables for the current function/model. Used to compute the
-  // minimum completed jobs Dakota needs to build a surrogate (max(5, numInputVars + 1)
-  // -- see flaskapi SPEC.md V28) and to pick the right explanation for why more
+  // minimum completed jobs Dakota needs to build a surrogate: max(5, numInputVars + 1)
+  // -- see flaskapi SPEC.md V30 -- and to pick the right explanation for why more
   // samples are needed.
   numInputVars: number;
 };
@@ -21,7 +21,7 @@ function InsufficientDataWarning(props: InsufficientDataWarningPropsType) {
     ? `You need at least ${minimumRequired} samples (one more than your ${numInputVars} input variables) to avoid an underdetermined system.`
     : `You need at least ${minimumRequired} samples.`;
   const hasEnoughSamples =
-    filteredJobList.length === 0 ? insufficientSamplesMessage : "Error during calculation, please contact support.";
+    filteredJobList.length < minimumRequired ? insufficientSamplesMessage : "Error during calculation, please contact support.";
   return (
     <DisplayMessage
       mssg={
