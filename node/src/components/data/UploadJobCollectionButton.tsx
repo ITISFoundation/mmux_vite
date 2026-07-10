@@ -94,7 +94,7 @@ export default function UploadJobCollectionButton(props: UploadJobCollectionButt
         csvContent,
         targetMode,
         targetFunctionUid: targetMode === "existing" ? targetFunctionUid : undefined,
-        newFunctionTitle: targetMode === "new" ? newFunctionTitle || undefined : undefined,
+        newFunctionTitle: targetMode === "new" ? newFunctionTitle.trim() || undefined : undefined,
         sourceFunctionUid: analysis.sourceFunctionUid,
       });
 

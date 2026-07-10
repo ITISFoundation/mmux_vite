@@ -66,7 +66,7 @@ function splitPreambleAndTable(csvContent: string): { preamble: Record<string, s
       // indexOf(",") split) so a quoted value can itself contain commas/quotes.
       const [key, ...rest] = parseCsvRow(trimmed.slice(1).trim());
       if (key !== undefined && rest.length > 0) {
-        preamble[key.trim()] = rest.join(",");
+        preamble[key.trim()] = rest.join(",").trim();
       }
       return;
     }
@@ -89,12 +89,21 @@ function parseNumericCell(rawCell: string | undefined): number | undefined {
   return Number.isFinite(numericValue) ? numericValue : undefined;
 }
 
+// B25: reduce (not `Math.min(...values)`/`Math.max(...values)`) — spreading a large
+// job collection's values into function arguments can throw a RangeError and abort
+// the import.
+function minMax(values: number[]): { min: number; max: number } {
+  return values.reduce((acc, value) => ({ min: Math.min(acc.min, value), max: Math.max(acc.max, value) }), {
+    min: values[0],
+    max: values[0],
+  });
+}
+
 function shouldUseLogScale(values: number[]): boolean {
   if (values.length === 0 || values.some(value => value <= 0)) {
     return false;
   }
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const { min, max } = minMax(values);
   if (!(max > min)) {
     return false;
   }
@@ -164,10 +173,11 @@ export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCs
     if (values.length === 0) {
       return;
     }
+    const { min, max } = minMax(values);
     inputPresets[variable] = {
       distribution: "uniform",
-      min: Math.min(...values),
-      max: Math.max(...values),
+      min,
+      max,
       logScale: shouldUseLogScale(values),
     };
   });
