@@ -11,6 +11,17 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 _logger = logging.getLogger(__name__)
 
 
+def required_completed_jobs(input_vars: list[str], floor: int = 5) -> int:
+    """Minimum completed jobs needed to build a Dakota (surfpack) GP surrogate.
+
+    Dakota aborts surrogate construction (opaque "Dakota aborted: Unknown error 250",
+    internal MODEL_ERROR) when given <= len(input_vars) training points -- confirmed
+    empirically: len(input_vars)+1 points build successfully, len(input_vars) points
+    abort. `floor` preserves the historical flat minimum for low-dimensional problems.
+    """
+    return max(floor, len(input_vars) + 1)
+
+
 class FunctionJob(BaseModel):
     """Model for a single function job with inputs, outputs, and status."""
 
@@ -79,7 +90,9 @@ class JobVariableSelection(BaseModel):
         if len(completed_jobs) < self.minimum_completed_jobs:
             raise ValueError(
                 "At least "
-                f"{self.minimum_completed_jobs} samples are necessary to build a surrogate model in Dakota. "
+                f"{self.minimum_completed_jobs} samples are necessary to build a surrogate model in Dakota "
+                f"(dimension-scaled minimum: max(5, num_input_vars + 1) = "
+                f"max(5, {len(self.input_vars)} + 1)). "
                 f"Found {len(completed_jobs)} completed jobs."
             )
 
@@ -165,9 +178,11 @@ class SumoCrossValidationRequest(BaseModel):
         # Filter to completed jobs only
         completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
 
-        if len(completed_jobs) < 5:
+        required = required_completed_jobs(input_vars)
+        if len(completed_jobs) < required:
             raise ValueError(
-                f"At least 5 completed jobs are required for cross-validation. Found {len(completed_jobs)} completed jobs."
+                f"At least {required} completed jobs are required for cross-validation with "
+                f"{len(input_vars)} input variable(s). Found {len(completed_jobs)} completed jobs."
             )
 
         # Validate that all completed jobs have required input/output variables
@@ -266,11 +281,14 @@ class ManualUQPropagationRequest(BaseModel):
         if missing_distributions:
             raise ValueError(f"Distributions missing for input variables: {missing_distributions}")
 
-        # Validate minimum completed jobs for UQ operations
+        # Validate minimum completed jobs for UQ operations (must exceed input dimensionality,
+        # else Dakota's surrogate build aborts -- see required_completed_jobs())
         completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
-        if len(completed_jobs) < 5:
+        required = required_completed_jobs(input_vars)
+        if len(completed_jobs) < required:
             raise ValueError(
-                f"At least 5 completed jobs are required for UQ operations. Found {len(completed_jobs)} completed jobs."
+                f"At least {required} completed jobs are required for UQ operations with "
+                f"{len(input_vars)} input variable(s). Found {len(completed_jobs)} completed jobs."
             )
 
         return self
@@ -373,9 +391,11 @@ class SumoAlongAxesRequest(BaseModel):
         # Filter to completed jobs only
         completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
 
-        if len(completed_jobs) < 5:
+        required = required_completed_jobs(input_vars)
+        if len(completed_jobs) < required:
             raise ValueError(
-                f"At least 5 completed jobs are required for SUMO along axes evaluation. Found {len(completed_jobs)} completed jobs."
+                f"At least {required} completed jobs are required for SUMO along axes evaluation with "
+                f"{len(input_vars)} input variable(s). Found {len(completed_jobs)} completed jobs."
             )
 
         # Validate that all completed jobs have required input/output variables
@@ -573,9 +593,11 @@ class SumoGridEvaluationRequest(BaseModel):
         # Filter to completed jobs only
         completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
 
-        if len(completed_jobs) < 5:
+        required = required_completed_jobs(input_vars)
+        if len(completed_jobs) < required:
             raise ValueError(
-                f"At least 5 completed jobs are required for SUMO grid evaluation. Found {len(completed_jobs)} completed jobs."
+                f"At least {required} completed jobs are required for SUMO grid evaluation with "
+                f"{len(input_vars)} input variable(s). Found {len(completed_jobs)} completed jobs."
             )
 
         # Validate that all completed jobs have required input/output variables
@@ -725,9 +747,11 @@ class MOGAOptimizationRequest(BaseModel):
         completed_jobs = [
             job for job in self.function_jobs if job.status in ["completed", "success"]
         ]
-        if len(completed_jobs) < 5:
+        required = required_completed_jobs(self.input_vars)
+        if len(completed_jobs) < required:
             raise ValueError(
-                f"At least 5 completed jobs required for MOGA optimization, got {len(completed_jobs)}"
+                f"At least {required} completed jobs required for MOGA optimization with "
+                f"{len(self.input_vars)} input variable(s), got {len(completed_jobs)}"
             )
 
         # Check that all completed jobs have the required variables
@@ -915,9 +939,11 @@ class SumoCVAccuracyMetricsRequest(BaseModel):
             job for job in self.function_jobs if job.status in ["completed", "success"]
         ]
 
-        if len(completed_jobs) < 5:
+        required = required_completed_jobs(self.inputs)
+        if len(completed_jobs) < required:
             raise ValueError(
-                f"At least 5 completed jobs required for cross-validation, got {len(completed_jobs)}"
+                f"At least {required} completed jobs required for cross-validation with "
+                f"{len(self.inputs)} input variable(s), got {len(completed_jobs)}"
             )
 
         # Check that all completed jobs have the required input variables
