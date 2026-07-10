@@ -199,6 +199,7 @@ function Curves1DPlots() {
             fetchedJobCollections={fetchedJobCollections}
             filteredJobList={filteredJobList}
             height={plotStyle.height}
+            numInputVars={inputVars.length}
           />
         )}
         {plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}

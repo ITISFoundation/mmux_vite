@@ -1412,6 +1412,53 @@ class TestManualUQWithUncertainty:
         assert len(data["binMeans"]) > 0
         assert len(data["binStds"]) > 0
 
+    def test_uq_uncertainty_noise_scaled_by_sqrt2_not_naive_erfinv(
+        self, test_client: Flask, monkeypatch
+    ):
+        """B16 regression: the noise term `r` used to inject `std_hat` into each UQ histogram
+        realization must be `sqrt(2)*erfinv(uniform(-1,1))` (~N(0,1)), not bare `erfinv(...)`
+        (std 1/sqrt(2)~=0.707 -- since Phi(x) = (1+erf(x/sqrt(2)))/2, the sqrt(2) factor is
+        required for a correct standard-normal transform). This endpoint never enables output
+        normalization (setup_preprocessor_for_workflow called without normalization args), so
+        DataPreprocessor's transform/inverse_transform is the identity here. With a constant
+        `yhat`=0 and `std_hat` and a single evaluation sample per histogram realization, the
+        reported total `std` (aggregated over n_histograms realizations) must equal std_hat (up
+        to MC noise), not std_hat/sqrt(2) as the un-scaled bug would report."""
+        input_vars = ["x1"]
+        output = "y"
+        std_hat_value = 2.0
+
+        def fake_evaluate_sumo(*args, **kwargs):
+            return {"y1_hat": [0.0], "y1_std_hat": [std_hat_value]}
+
+        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.evaluate_sumo", fake_evaluate_sumo)
+
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": self.create_distribution_dict(input_vars),
+            "numSamples": 1000,
+            "nHistograms": 1,
+            "seed": 42,
+            "FunctionJobs": self.create_uq_uncertainty_jobs(
+                50, input_vars, output, include_uncertainty=True
+            ),
+        }
+
+        response = test_client.post(
+            "/flask/dakota/manual_uq_propagation_with_uncertainty", json=payload
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+
+        reported_std = data["std"]
+        naive_std = std_hat_value / np.sqrt(2)
+
+        # With the sqrt(2) fix, reported std should be close to std_hat_value (2.0);
+        # without it, it would be close to std_hat_value/sqrt(2) (~1.414).
+        assert abs(reported_std - std_hat_value) / std_hat_value < 0.1
+        assert abs(reported_std - naive_std) / naive_std > 0.1
+
     # ------------------- Validation Error Cases -------------------
 
     def test_missing_uncertainty_output(self, test_client: Flask):
@@ -1821,6 +1868,32 @@ class TestSumoCVAccuracyMetrics:
 
         assert "metrics" in data
         assert output in data["metrics"]
+
+    def test_insufficient_jobs_for_dimensionality_returns_clean_400(self, test_client: Flask):
+        """B17 regression: for high-dimensional inputs, the flat floor of 5 completed jobs is
+        not enough to build a Dakota GP surrogate (Dakota requires strictly more training points
+        than input variables, else it aborts with MODEL_ERROR/exit-250). 11 inputs with only 11
+        completed jobs must be rejected with a clean 400 (not a Dakota crash); 12 completed jobs
+        must succeed."""
+        input_vars = [f"x{i}" for i in range(11)]
+        output = "y"
+        jobs = self.create_cv_accuracy_jobs(11, input_vars, output)
+
+        payload = {"inputs": input_vars, "output": output, "FunctionJobs": jobs}
+
+        response = test_client.post("/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        error_text = str(data.get("details", data.get("error", "")))
+        assert "12" in error_text
+        assert "Dakota aborted" not in error_text
+
+        jobs_ok = self.create_cv_accuracy_jobs(12, input_vars, output)
+        payload_ok = {"inputs": input_vars, "output": output, "FunctionJobs": jobs_ok}
+        response_ok = test_client.post(
+            "/flask/dakota/get_sumo_cv_accuracy_metrics", json=payload_ok
+        )
+        assert response_ok.status_code == 200
 
     def test_insufficient_completed_jobs(self, test_client: Flask):
         """Test validation failure when there are insufficient completed jobs."""

@@ -106,6 +106,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}
           height={plotStyle.height}
+          numInputVars={inputVars.length}
         />
       )}
       {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
