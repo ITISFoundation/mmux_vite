@@ -1,8 +1,7 @@
-import datetime
+import logging
 import os
 import re
 import shutil
-import uuid
 from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
@@ -30,17 +29,7 @@ from mmux_flaskapi.dakota.funs_data_processing import (
     sanitize_varnames,
 )
 
-
-def create_run_dir(script_dir: Path, dir_name: str = "sampling"):
-    ## part 1 - setup
-    main_runs_dir = script_dir / "runs"
-    current_time = datetime.datetime.now().strftime("%Y%m%d.%H%M%S%d")
-    uid = uuid.uuid4().hex
-    temp_dir = main_runs_dir / "_".join(["dakota", current_time, uid, dir_name])
-    print(str(temp_dir))
-    os.makedirs(temp_dir, exist_ok=True)
-    print("temp_dir: ", temp_dir)
-    return temp_dir
+_logger = logging.getLogger(__name__)
 
 
 def retrieve_csv_result(
@@ -66,8 +55,10 @@ def retrieve_csv_result(
     else:
         result = df.loc[np.all(df[inputs.keys()] == inputs.values(), axis=1)]
     # Check if the result is empty or has multiple rows
-    assert len(result) != 0, f"No result found for inputs {inputs}."
-    assert len(result) == 1, f"Multiple results found for inputs {inputs}."
+    if len(result) == 0:
+        raise ValueError(f"No result found for inputs {inputs}.")
+    if len(result) > 1:
+        raise ValueError(f"Multiple results found for inputs {inputs}.")
 
     return result.iloc[0].to_dict()
 
@@ -106,9 +97,10 @@ def evaluate_sumo_along_axes(
 
     if sumo_import_name:
         models_dir = run_dir.parent / "models"
-        assert models_dir.exists(), (
-            f"Models dir {models_dir} does not exist, but SuMo import is trying to copy files there"
-        )
+        if not models_dir.exists():
+            raise FileNotFoundError(
+                f"Models dir {models_dir} does not exist, but SuMo import is trying to copy files there"
+            )
         for file in models_dir.glob(f"{sumo_import_name}*"):
             shutil.copy(file, run_dir)
 
@@ -196,7 +188,7 @@ def _parse_crossvalidation_outputlogs(log_output: str, N_CROSS_VALIDATION: int):
         else:
             parsed_error_metrics[variable] = "No surrogate quality metrics found."
 
-    print(parsed_error_metrics)
+    _logger.debug("Parsed cross-validation metrics: %s", parsed_error_metrics)
     return parsed_error_metrics
 
 
@@ -262,8 +254,8 @@ def evaluate_sumo_manual_crossvalidation(
 
         # Extract predictions for this fold and store in the correct positions
         fold_predictions = get_results(fold_run_dir / "predictions.dat", output_response)
-        print(f"Fold {fold} predictions: {fold_predictions}")
-        print(f"Validation indices: {val_idx}")
+        _logger.debug("Fold %d predictions: %s", fold, fold_predictions)
+        _logger.debug("Validation indices: %s", val_idx)
 
         all_predictions[val_idx] = fold_predictions
         if (fold_run_dir / "variances.dat").is_file():
@@ -412,7 +404,7 @@ def perform_moga_optimization(
     output_responses: list[str],
     moga_kwargs: dict,
 ) -> dict[str, list[float | int]]:
-    print(f"minimizing {', '.join(output_responses)}")
+    _logger.debug("Minimizing responses: %s", ", ".join(output_responses))
 
     input_vars = sanitize_varnames(input_vars)
     output_responses = [sanitize_varnames(resp) for resp in output_responses]
@@ -448,4 +440,4 @@ def perform_moga_optimization(
 
 
 if __name__ == "__main__":
-    print("DONE")
+    _logger.info("Dakota evaluation module executed")

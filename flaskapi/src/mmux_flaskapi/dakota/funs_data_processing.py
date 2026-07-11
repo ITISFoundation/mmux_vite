@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import os
 import re
 from collections.abc import Callable
@@ -8,6 +9,8 @@ from typing import Literal, TypeVar, overload
 
 import numpy as np  # type: ignore
 import pandas as pd
+
+_logger = logging.getLogger(__name__)
 
 
 def _parse_data(file: str | Path) -> list[list[str]]:
@@ -27,7 +30,7 @@ def _parse_data(file: str | Path) -> list[list[str]]:
 
 
 def _parse_json_dict(file: str | Path):
-    print("DEPRECATED! _parse_json_dict was used with the old ParallelRunner input files")
+    _logger.warning("DEPRECATED! _parse_json_dict was used with the old ParallelRunner input files")
     with open(file) as f:
         data_dict = json.load(f)["tasks"]
 
@@ -149,7 +152,7 @@ def process_input_file(
             if c_sanitized in df.columns:
                 df.drop(c_sanitized, axis=1, inplace=True)
             else:
-                print(f"Column {c} (to be removed) not found in the dataframe")
+                _logger.debug("Column %s (to be removed) not found in the dataframe", c)
 
     # Replace spaces and special chars in column names
     df.columns = [sanitize_varname(col) for col in df.columns]
@@ -204,7 +207,7 @@ def _filter_data(
     if keep_idxs is not None:
         original_len = len(df)
         df = df.loc[keep_idxs]  # type: ignore
-        print(f"Keeping only {len(df)} rows (of {original_len})")
+        _logger.debug("Keeping only %d rows (of %d)", len(df), original_len)
 
     return df
 
@@ -315,10 +318,14 @@ def create_grid_samples(
     input_vars = sanitize_varnames(input_vars)
     grid_vars = sanitize_varnames(grid_vars)
 
-    print("Parameters to create grid: ")
-    print(mins, maxs, n_points_per_dimension)
-    print("Grid vars: ", grid_vars)
-    print("input vars: ", input_vars)
+    _logger.debug(
+        "Parameters to create grid: mins=%s, maxs=%s, n_points_per_dimension=%s",
+        mins,
+        maxs,
+        n_points_per_dimension,
+    )
+    _logger.debug("Grid vars: %s", grid_vars)
+    _logger.debug("Input vars: %s", input_vars)
 
     grid = np.meshgrid(
         *[

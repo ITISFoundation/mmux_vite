@@ -5,9 +5,12 @@ avoids max-pipe-size issue in exchange for dealing with files
 """
 
 import ctypes
+import logging
 import os
 import sys
 from contextlib import contextmanager
+
+_logger = logging.getLogger(__name__)
 
 # copied from wurlitzer
 libc = ctypes.CDLL(None)
@@ -61,7 +64,7 @@ def main():  # pragma: no cover
     sz = 64000
     # while sz < 100_000_000:
     while sz < 100_000:
-        print("writing", sz)
+        _logger.debug("Writing %d bytes", sz)
         buf = b"1" * sz
 
         with capture_to_file() as (stdout, stderr):
@@ -73,8 +76,8 @@ def main():  # pragma: no cover
             stdoutstr = outf.read()
             stderrstr = errf.read()
         # print strings
-        print(stdoutstr)
-        print(stderrstr)
+        _logger.debug("stdout: %s", stdoutstr)
+        _logger.debug("stderr: %s", stderrstr)
         with capture_to_file() as (stdout, stderr):
             # execute anything that outputs to stdout, stderr
             pylibc.printf(buf + b"\0")
@@ -84,8 +87,8 @@ def main():  # pragma: no cover
             stdoutstr = outf.read()
             stderrstr = errf.read()
         # print strings
-        print(stdoutstr)
-        print(stderrstr)
+        _logger.debug("stdout: %s", stdoutstr)
+        _logger.debug("stderr: %s", stderrstr)
 
 
 if __name__ == "__main__":

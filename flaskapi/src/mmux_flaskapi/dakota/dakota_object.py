@@ -2,7 +2,6 @@ import concurrent.futures
 import contextlib
 import logging
 import os
-import sys
 from pathlib import Path
 
 import dakota.environment as dakenv  # type: ignore
@@ -13,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 @contextlib.contextmanager
-def working_directory(path):
+def working_directory(path: Path):
     """Changes working directory and returns to previous on exit."""
     prev_cwd = Path.cwd()
     os.chdir(path)
@@ -24,7 +23,7 @@ def working_directory(path):
 
 
 # Static function to execute Dakota - needs to be at module level to be picklable
-def _dak_exec_static(conf):
+def _dak_exec_static(conf: str) -> tuple[str | None, str | None]:
     """Static version of dak_exec that can be pickled for multiprocessing."""
     study = dakenv.study(callback=None, input_string=conf)  # type: ignore
     stdoutstr, stderrstr = None, None
@@ -41,12 +40,12 @@ class DakotaObject:
     def __init__(self) -> None:
         logger.info("DakotaObject created")
 
-    def run(self, dakota_conf: str, output_dir: Path):
-        print("Starting dakota")
+    def run(self, dakota_conf: str, output_dir: Path) -> None:
+        logger.info("Starting Dakota run")
         with working_directory(output_dir):
             # Create a picklable version of the callback
             stdout, stderr = self.future_exec(conf=dakota_conf)
-            print("Dakota run finished")
+            logger.info("Dakota run finished")
             with (
                 open("dakota_stdout.txt", "w") as f_out,
                 open("dakota_stderr.txt", "w") as f_err,
@@ -56,7 +55,7 @@ class DakotaObject:
                 if stderr:
                     f_err.write(stderr)
             if stderr:
-                print(stderr, file=sys.stderr)
+                logger.warning("Dakota produced stderr output: %s", stderr)
 
     def future_exec(self, conf):
         # Use the static function directly rather than the instance method
