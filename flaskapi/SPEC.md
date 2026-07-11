@@ -21,6 +21,7 @@ Flask API: relay frontend ↔ oSPARC (functions, jobs, collections, studies), ge
 - ruff line-length 100, select E/F/I/UP; pytest markers slow/integration/unit; coverage aim ≥70% on modified code (soft)
 - naming: Classes PascalCase | funcs/methods snake_case | constants CONSTANT_CASE | private `_`prefix
 - type hints + PEP257/NumPy docstrings on public APIs; raise ValueError/RuntimeError w/ descriptive msg; log via `utils/logger.py`
+- type checker: `ty` (astral-sh/ty), config via `[tool.ty]` in pyproject.toml; strictness/rule-level TBD in §T18
 
 ## §I
 parent: [`../SPEC.md`](../SPEC.md) ; frontend consumer: [`../node/SPEC.md`](../node/SPEC.md) §I
@@ -112,6 +113,7 @@ V33: `local_job_store._save_store` ⊥ write directly to `LOCAL_STORE_FILE`; wri
 V34: `lhs()` method dispatch uses exact-match comparison (⊥ substring/`in` membership on a bare string) ∀ branch, incl. `lhsmu` (B21)
 V35: `evaluate_sumo_crossvalidation` log_output fed to `_parse_crossvalidation_outputlogs` reads the actual captured Dakota stdout (`run_dir/dakota_stdout.txt`, written by `DakotaObject.run`), ⊥ hardcoded empty string (B22)
 V36: `sanitize_varnames` char-class preserves literal `-` (placed last in `[...]`, ⊥ mid-class forming an unintended `*-+` range); e.g. default `get_results` key `-AFpeak` survives sanitization (B23)
+V37: `ty check src/mmux_flaskapi` passes with zero errors; enforced blocking in pre-commit (local hook, mirrors eslint-node) and CI (prek job)
 
 ## §T
 id|status|task|cites
@@ -137,6 +139,7 @@ T19|x|fix B17: add `required_completed_jobs(input_vars, floor=5) = max(floor, le
 T20|x|PR #496 Copilot review: fix remaining `get_osparc_api()` unconditional-crash sites for real function/job-collection uids (`list_function_job_collections_for_functionid`, `list_function_jobs_for_functionid`, `_function_schema_vars`) + drop broad `except Exception`/`assert` in `upload_job_collection_csv`; tests|V29,B16
 T21|x|backprop PR #496 Copilot review (remaining 2 open comments): reject CSV data rows whose cell count ≠ header (422 w/ row context, `_parse_uploaded_job_collection_csv`); make `local_job_store._save_store` atomic (temp file + `os.replace`, cleaned up on failure); tests|V32,V33,B20
 T22|x|[topic=dakota-cleanup] dakota/ code-quality pass (jgo/dakota-cleanup): fix B21-B23 w/ regression tests; add `test_dakota_{lhs,wiofiles,funs_evaluate,funs_data_processing,object}.py` (0%→98% lhs.py, 21%→91% wiofiles.py, 74%→90% funs_evaluate.py, 70%→87% funs_data_processing.py, 80%→100% dakota_object.py); deliberately did NOT invest in `funs_create_dakota_conf.py` (61%, unchanged) — input-file-generation logic likely superseded by Dakota's new JSON input format (§R); full suite green (507 passed, 0 regressions)|V34,V35,V36,B21,B22,B23
+T23|.|add `ty` (astral-sh) as flaskapi type checker: dev dep in pyproject.toml, `[tool.ty]` config, baseline-fix existing src/mmux_flaskapi (25 files, mixed type-hint coverage, ~22 legacy `# type: ignore` comments), untyped 3rd-party deps needing overrides (dakota.environment, itis-dakota, osparc, scikit-learn), local pre-commit hook (new flaskapi/scripts/run-ty-hook.sh mirroring eslint-node pattern, entry in .pre-commit-config.yaml scoped `files: ^flaskapi/`), Makefile targets (root + flaskapi/), CI wiring (.github/workflows/ci.yml prek job needs `make install-flaskapi-deps` before `uvx prek run` to let ty resolve imports); blocking in both pre-commit and CI; strictness/rule-level deferred to implementation time|V37
 
 ## §B
 id|date|cause|fix
