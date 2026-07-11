@@ -6,7 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
 
-import numpy as np  # type: ignore
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
 
@@ -76,7 +76,7 @@ def evaluate_sumo_along_axes(
     yscale: Literal["linear", "log"] = "linear",
     label_converter: Callable | None = None,
     MAKEPLOT: bool = False,
-) -> dict[str, dict[str, np.ndarray]]:
+) -> dict[str, dict[str, list[float]]]:
     """Given a training data to create a SuMo, generate it, and plot the profile along the central axes
     (e.g. all variables but the sweeped one will be set to its central value).
     No callback is necessary (everything internal to Dakota).

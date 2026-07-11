@@ -22,7 +22,7 @@ def lhs(
     k: int,
     method: str | None = None,
     iter: int | None = None,
-    seed: int | None = None,
+    seed: int | np.random.RandomState | None = None,
     corr_matrix: np.ndarray | None = None,
 ) -> np.ndarray:
     """
@@ -52,12 +52,14 @@ def lhs(
         An n-by-k design matrix that has been normalized so factor values
         are uniformly spaced between zero and one.
     """
-    H = None
+    H: np.ndarray | None = None
 
     if seed is None:
-        seed = np.random.RandomState()
+        rng = np.random.RandomState()
     elif not isinstance(seed, np.random.RandomState):
-        seed = np.random.RandomState(seed)
+        rng = np.random.RandomState(seed)
+    else:
+        rng = seed
 
     if method is not None:
         if method.lower() not in (
@@ -73,7 +75,7 @@ def lhs(
         ):
             raise ValueError(f'Invalid value for "method": {method}')
     else:
-        H = _lhsclassic(n, k, seed)
+        H = _lhsclassic(n, k, rng)
 
     if method is None:
         method = "center"
@@ -82,15 +84,18 @@ def lhs(
 
     if H is None:
         if method.lower() in ("center", "c"):
-            H = _lhscentered(n, k, seed)
+            H = _lhscentered(n, k, rng)
         elif method.lower() in ("maximin", "m"):
-            H = _lhsmaximin(n, k, iter, "maximin", seed)
+            H = _lhsmaximin(n, k, iter, "maximin", rng)
         elif method.lower() in ("centermaximin", "cm"):
-            H = _lhsmaximin(n, k, iter, "centermaximin", seed)
+            H = _lhsmaximin(n, k, iter, "centermaximin", rng)
         elif method.lower() in ("correlation", "corr"):
-            H = _lhscorrelate(n, k, iter, seed)
+            H = _lhscorrelate(n, k, iter, rng)
         elif method.lower() == "lhsmu":
-            H = _lhsmu(n, k, corr_matrix, seed)
+            H = _lhsmu(n, k, corr_matrix, rng)
+
+    if H is None:
+        raise ValueError(f'Invalid value for "method": {method}')
 
     return H
 

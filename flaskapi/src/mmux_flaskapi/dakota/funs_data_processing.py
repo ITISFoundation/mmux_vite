@@ -7,7 +7,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Literal, TypeVar, overload
 
-import numpy as np  # type: ignore
+import numpy as np
 import pandas as pd
 
 _logger = logging.getLogger(__name__)
@@ -94,7 +94,7 @@ def load_data(
         _, ext = os.path.splitext(file)
         if ext == ".dat" or ext == ".txt":
             lines = _parse_data(file)
-            dfs.append(pd.DataFrame(lines[1:], columns=sanitize_varnames(lines[0])))
+            dfs.append(pd.DataFrame(lines[1:], columns=pd.Index(sanitize_varnames(lines[0]))))
         elif ext == ".json":
             columns, data = _parse_json_dict(file)
             dfs.append(pd.DataFrame(data=data, columns=sanitize_varnames(columns)))
@@ -145,7 +145,7 @@ def process_input_file(
             if c in df.columns or sanitize_varname(c) in df.columns
         ]
         df.columns = [sanitize_varname(col) for col in df.columns]
-        df = df[columns_to_keep]  # type: ignore
+        df = df[columns_to_keep]
     else:
         for c in columns_to_remove:
             c_sanitized = sanitize_varname(c)
@@ -195,18 +195,18 @@ def _filter_data(
         filter_highest_N_variable = (
             str(df.columns[-1]) if filter_highest_N_variable is None else filter_highest_N_variable
         )
-        df = df.sort_values(by=filter_highest_N_variable, ascending=False).iloc[filter_highest_N:]  # type: ignore
+        df = df.sort_values(by=filter_highest_N_variable, ascending=False).iloc[filter_highest_N:]
 
     # allows to only take the first N rows
     if filter_N_samples is not None:
         assert filter_highest_N is None, (
             "only one of 'filter_highest_N' or 'filter_N_samples' is allowed"
         )
-        df = df.iloc[:filter_N_samples] if filter_N_samples is not None else df  # type: ignore
+        df = df.iloc[:filter_N_samples] if filter_N_samples is not None else df
     ## allow to only keep certain idxs
     if keep_idxs is not None:
         original_len = len(df)
-        df = df.loc[keep_idxs]  # type: ignore
+        df = df.loc[keep_idxs]
         _logger.debug("Keeping only %d rows (of %d)", len(df), original_len)
 
     return df
@@ -236,7 +236,7 @@ def create_samples_along_axes(
     input_vars = sanitize_varnames(input_vars)
 
     assert np.all([var in data.columns for var in input_vars]), "Input variables not found in data"
-    data = data[input_vars]  # type: ignore
+    data = data[input_vars]
     assert len(data.columns) == len(input_vars), "Data columns do not match input variables"
     mins, maxs = data.min().values, data.max().values
     cut_value_list = [cut_values[var] for var in input_vars] if cut_values else data.mean().values
@@ -261,7 +261,7 @@ def extract_predictions_along_axes(
     RESPONSE: str,
     input_vars: list[str],
     NSAMPLESPERVAR: int,
-) -> dict[str, dict[str, np.ndarray]]:
+) -> dict[str, dict[str, list[float]]]:
     """
     To retrieve results generated with 'create_samples_along_axes'
     For a RESPONSE output variable, return a dictionary with input variables as keys.
@@ -338,7 +338,7 @@ def create_grid_samples(
         ]
     )
     gridpoints = np.vstack([a.ravel() for a in grid]).T
-    gridpoints = pd.DataFrame(gridpoints, columns=input_vars)
+    gridpoints = pd.DataFrame(gridpoints, columns=pd.Index(input_vars))
 
     gridpoints.to_csv(GRIDPOINTS_INPUT_FILE, index=False)
     PROCESSED_GRIDPOINTS_INPUT_FILE = Path(process_input_file(GRIDPOINTS_INPUT_FILE))
@@ -365,9 +365,9 @@ def extract_predictions_gridpoints(
     results[RESPONSE] = y_hat.astype(float).tolist()
     if (run_dir / "variances.dat").is_file():
         std_hat = np.sqrt(get_results(run_dir / "variances.dat", RESPONSE + "_variance"))
-        results[RESPONSE + "_std"] = std_hat.astype(float).tolist()  # type: ignore
+        results[RESPONSE + "_std"] = std_hat.astype(float).tolist()
 
-    return results  # type: ignore
+    return results
 
 
 def create_manual_uq_samples(
@@ -385,7 +385,7 @@ def create_manual_uq_samples(
         sanitize_varname(k): sanitize_varnames_dict(v) for k, v in distributions.items()
     }
 
-    from scipy.stats import norm, uniform  # type: ignore
+    from scipy.stats import norm, uniform
 
     rng = np.random.default_rng(seed=seed)
     samples = {}
@@ -397,13 +397,13 @@ def create_manual_uq_samples(
             std = dist_info["std"]
             samples[var] = norm.rvs(
                 size=num_samples, loc=mean, scale=std, random_state=rng
-            ).tolist()  # type: ignore
+            ).tolist()
         elif dist_type == "uniform":
             min_val = dist_info["min"]
             max_val = dist_info["max"]
             samples[var] = uniform.rvs(
                 size=num_samples, loc=min_val, scale=max_val - min_val, random_state=rng
-            ).tolist()  # type: ignore
+            ).tolist()
         elif dist_type == "constant":
             value = dist_info["value"]
             samples[var] = [float(value)] * num_samples
@@ -498,7 +498,7 @@ def get_non_dominated_indices(
     optimization_modes: list[Literal["min", "max"]] | None = None,
     sort_by_column: str | None = None,
 ) -> list[int]:
-    data = data[optimized_vars].copy()  # type: ignore
+    data = data[optimized_vars].copy()
     data = data.apply(
         pd.to_numeric, errors="coerce"
     )  ## bfr they were "np.object_" and was giving weird comparison results
@@ -519,13 +519,11 @@ def get_non_dominated_indices(
 
     non_dominated_indices = []
     for i, point in data.iterrows():
-        if not is_dominated(point.values, data.drop(i).values):  # type: ignore
+        if not is_dominated(point.values, data.drop(i).values):
             non_dominated_indices.append(i)
 
     if sort_by_column:
-        sorted_indices = (
-            data.loc[non_dominated_indices].sort_values(by=sort_by_column).index.values  # type: ignore
-        )
+        sorted_indices = data.loc[non_dominated_indices].sort_values(by=sort_by_column).index.values
         return list(sorted_indices)
     else:
         return non_dominated_indices

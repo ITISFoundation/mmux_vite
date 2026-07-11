@@ -255,6 +255,21 @@ class DataPreprocessor:
 
         return pd.DataFrame(transformed_data)
 
+    @staticmethod
+    def _ndarray_to_variable_dict(
+        arr: np.ndarray, all_vars: list[VariableConfig]
+    ) -> dict[str, list[float]]:
+        data_dict: dict[str, list[float]] = {}
+        if arr.ndim == 1:
+            for i, var in enumerate(all_vars):
+                if i < len(arr):
+                    data_dict[var.mapped_name] = [float(arr[i])]
+        else:
+            for i, var in enumerate(all_vars):
+                if i < arr.shape[1]:
+                    data_dict[var.mapped_name] = arr[:, i].tolist()
+        return data_dict
+
     def inverse_transform(
         self, data: pd.DataFrame | dict[str, list[float]] | np.ndarray
     ) -> dict[str, list[float]]:
@@ -264,21 +279,10 @@ class DataPreprocessor:
         if not self._is_fitted:
             raise ValueError("Preprocessor must be fitted before inverse transforming data")
 
+        parsed_data: dict[str, list[float]]
         if isinstance(data, np.ndarray):
             all_vars = list(self.input_variables.values()) + list(self.output_variables.values())
-            if data.ndim == 1:
-                data_dict = {
-                    var.mapped_name: [float(data[i])]
-                    for i, var in enumerate(all_vars)
-                    if i < len(data)
-                }
-            else:
-                data_dict = {
-                    var.mapped_name: data[:, i].tolist()
-                    for i, var in enumerate(all_vars)
-                    if i < data.shape[1]
-                }
-            data = data_dict
+            parsed_data = self._ndarray_to_variable_dict(data, all_vars)
         elif isinstance(data, pd.DataFrame):
             data_dict: dict[str, list[float]] = {}
             for col in data.columns:
@@ -295,21 +299,21 @@ class DataPreprocessor:
                     ]
                 else:
                     data_dict[col] = col_data.tolist()
-            data = data_dict
-        elif isinstance(data, dict):
+            parsed_data = data_dict
+        else:
             data_dict = {}
             for key, value in data.items():
                 if isinstance(value, (list, np.ndarray)):
                     data_dict[key] = [float(v) for v in value]
                 else:
                     data_dict[key] = [float(value)]
-            data = data_dict
+            parsed_data = data_dict
 
         result = {}
 
         for var_name, config in self.input_variables.items():
-            if config.mapped_name in data:
-                value = data[config.mapped_name]
+            if config.mapped_name in parsed_data:
+                value = parsed_data[config.mapped_name]
 
                 if config.normalize and config.normalization_method != "none":
                     value = self._denormalize_value(value, config)
@@ -326,8 +330,8 @@ class DataPreprocessor:
                 result[var_name] = value
 
         for var_name, config in self.output_variables.items():
-            if config.mapped_name in data:
-                value = data[config.mapped_name]
+            if config.mapped_name in parsed_data:
+                value = parsed_data[config.mapped_name]
 
                 if config.normalize and config.normalization_method != "none":
                     value = self._denormalize_value(value, config)
@@ -370,7 +374,7 @@ class DataPreprocessor:
         if isinstance(value, list):
             values_array = np.array(value, dtype=float)
         elif isinstance(value, np.ndarray):
-            values_array = value.astype(float)
+            values_array = np.asarray(value, dtype=float)
         else:
             if config.normalization_method == "z_score":
                 if config.std is None or config.mean is None:

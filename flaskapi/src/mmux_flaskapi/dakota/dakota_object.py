@@ -4,7 +4,7 @@ import logging
 import os
 from pathlib import Path
 
-import dakota.environment as dakenv  # type: ignore
+import dakota.environment as dakenv
 
 from mmux_flaskapi.dakota import wiofiles as wio
 

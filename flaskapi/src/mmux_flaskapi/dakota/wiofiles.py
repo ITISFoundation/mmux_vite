@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 from contextlib import contextmanager
+from typing import IO
 
 _logger = logging.getLogger(__name__)
 
@@ -25,14 +26,19 @@ except ValueError:
 
 @contextmanager
 def capture_to_file(stdout="./stdout", stderr="./stderr"):
-    stdout_f = stderr_f = None
+    stdout_f: IO[bytes] | None = None
+    stderr_f: IO[bytes] | None = None
     if stdout:
         stdout_f = open(stdout, mode="wb")
+        if sys.__stdout__ is None:
+            raise RuntimeError("sys.__stdout__ is not available")
         real_stdout = sys.__stdout__.fileno()
         save_stdout = os.dup(real_stdout)
         os.dup2(stdout_f.fileno(), real_stdout)
     if stderr:
         stderr_f = open(stderr, mode="wb")
+        if sys.__stderr__ is None:
+            raise RuntimeError("sys.__stderr__ is not available")
         real_stderr = sys.__stderr__.fileno()
         save_stderr = os.dup(real_stderr)
         os.dup2(stderr_f.fileno(), real_stderr)
@@ -43,10 +49,10 @@ def capture_to_file(stdout="./stdout", stderr="./stderr"):
         libc.fflush(c_stdout_p)
         libc.fflush(c_stderr_p)
 
-        if stdout:
+        if stdout_f is not None:
             os.dup2(save_stdout, real_stdout)
             stdout_f.close()
-        if stderr:
+        if stderr_f is not None:
             os.dup2(save_stderr, real_stderr)
             stderr_f.close()
 
