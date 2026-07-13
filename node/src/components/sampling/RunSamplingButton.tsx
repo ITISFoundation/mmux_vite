@@ -8,7 +8,7 @@ import { useSamplingContext } from "../../context/SamplingContext";
 type RunSamplingButtonProps = {
   handleRunSampling: () => Promise<void>;
   disabled?: boolean;
-  testId: string;
+  testId?: string;
 };
 
 const tooltipMessage = {
@@ -19,7 +19,7 @@ const tooltipMessage = {
 };
 
 export function RunSamplingButton(props: RunSamplingButtonProps) {
-  const { handleRunSampling, disabled, testId } = props;
+  const { handleRunSampling, disabled, testId = "run-sampling-btn" } = props;
   const theme = useTheme();
   const { permissions } = useServiceContext();
   const { launchingSampling, setLaunchingSampling, setRunningSampling } = useSamplingContext();
