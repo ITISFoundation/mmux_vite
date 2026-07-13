@@ -44,3 +44,5 @@ htmlcov/
 .codex
 ph_context.json
 flaskapi/docs/*.md
+.mcp.json
+opencode.json
