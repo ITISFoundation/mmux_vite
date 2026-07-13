@@ -19,7 +19,8 @@ import {
 } from "@mui/material";
 import { toast } from "react-toastify";
 import { uploadJobCollectionCsv } from "../../utils/functionUtils";
-import { parseJobCollectionCsv, pickSingleCsvFile, type ParsedJobCollectionCsv } from "../../utils/jobCollectionCsv";
+import { parseJobCollectionCsv, pickSingleCsvFile } from "../../utils/jobCollectionCsv";
+import { type ParsedJobCollectionCsv } from "../../utils/types";
 import { RegisteredFunction } from "../../context/types";
 
 export type UploadJobCollectionSuccessResult = {

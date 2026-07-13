@@ -3,29 +3,7 @@
 // `POST /flask/sampling/upload_job_collection_csv`. Pure utility (⊥ JSX/React),
 // see node/SPEC.md §C structural conventions.
 
-export interface UploadedInputPreset {
-  distribution: "uniform";
-  min: number;
-  max: number;
-  logScale: boolean;
-}
-
-export interface ParsedJobCollectionRow {
-  sourceJobUid?: string;
-  status?: string;
-  inputs: Record<string, number>;
-  outputs: Record<string, number>;
-}
-
-export interface ParsedJobCollectionCsv {
-  sourceFunctionUid?: string;
-  sourceJobCollectionUid?: string;
-  sourceJobCollectionTitle?: string;
-  inputVars: string[];
-  outputVars: string[];
-  inputPresets: Record<string, UploadedInputPreset>;
-  rows: ParsedJobCollectionRow[];
-}
+import { UploadedInputPreset, ParsedJobCollectionRow, ParsedJobCollectionCsv } from "./types";
 
 const inputPrefix = "input__";
 const outputPrefix = "output__";
