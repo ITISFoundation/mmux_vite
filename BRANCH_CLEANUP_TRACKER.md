@@ -12,13 +12,12 @@
 | origin/402-jobs-not-reloading-even-though-activitycenter-shows-everything-finished | 2025-10-06 | Yes | x | x |
 | origin/update-npm-lock-file | 2025-11-03 | Yes | x | x |
 
-## Branches which might have content to port before deletion
-- allow-multiple-lhs-sampling-at-once
+## Branches which might have content to port before deletion (all resolved, deleted local + remote)
+- allow-multiple-lhs-sampling-at-once — DELETED without further review (user call; remote was already gone).
     - 3f21b8b53c8fa83dad85c56dae6fdc3f02bab964
-    - NOT YET REVIEWED (still open)
-- origin/add-more-e2e-test-tags
+- origin/add-more-e2e-test-tags — DELETED.
     - Ported: testIds on sampling components, commit 5bd8ff5 on jgo/backport-useful-bits (PR #502)
-- refactor/residual-robustness-cleanup
+- refactor/residual-robustness-cleanup — DELETED.
     - Reviewed. Most commits (data_preprocessor reorg, Serena onboarding, dakota.py CV fixes) already superseded in develop.
     - Ported from tip commit d914061 onto jgo/backport-useful-bits: PlotTools.tsx distribution-guard fix; MOGA/SuMo/UQ.tsx persistence-aware loading state.
     - Skipped as stale/superseded: Curves1DPlot.tsx normalizePredictionData (backend now camelCases responses globally) and PYTHON_DAKOTA_BACKEND removal (already gone from develop).
