@@ -14,7 +14,7 @@ and maintain compatibility with the ML workflow pipeline.
 import json
 import logging
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -271,7 +271,7 @@ class DataPreprocessor:
         return data_dict
 
     def inverse_transform(
-        self, data: pd.DataFrame | dict[str, list[float]] | np.ndarray
+        self, data: pd.DataFrame | Mapping[str, list[float] | float] | np.ndarray
     ) -> dict[str, list[float]]:
         """
         Inverse transform the data back to original scale and variable names.
@@ -304,7 +304,7 @@ class DataPreprocessor:
             data_dict = {}
             for key, value in data.items():
                 if isinstance(value, (list, np.ndarray)):
-                    data_dict[key] = [float(v) for v in value]
+                    data_dict[key] = [float(v) for v in np.asarray(value)]
                 else:
                     data_dict[key] = [float(value)]
             parsed_data = data_dict

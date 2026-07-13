@@ -51,9 +51,11 @@ def capture_to_file(stdout="./stdout", stderr="./stderr"):
 
         if stdout_f is not None:
             os.dup2(save_stdout, real_stdout)
+            os.close(save_stdout)
             stdout_f.close()
         if stderr_f is not None:
             os.dup2(save_stderr, real_stderr)
+            os.close(save_stderr)
             stderr_f.close()
 
 

@@ -215,7 +215,7 @@ def load_and_inverse_transform_results(
             inverse_results.append(preprocessor.inverse_transform(row.to_dict()))
         return inverse_results
     elif isinstance(results, list):
-        return [preprocessor.inverse_transform(result) for result in results]  # type: ignore
+        return [preprocessor.inverse_transform(result) for result in results]
     else:
         raise ValueError(f"Unsupported results format: {type(results)}")
 
