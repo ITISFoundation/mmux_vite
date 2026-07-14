@@ -14,7 +14,6 @@ from sklearn.model_selection import KFold
 from mmux_flaskapi.dakota.dakota_object import DakotaObject
 from mmux_flaskapi.dakota.funs_create_dakota_conf import (
     create_moga_optimization_conffile,
-    create_sobol_indices_conffile,
     create_sumo_crossvalidation_conffile,
     create_sumo_evaluation_conffile,
     create_sumo_manual_crossvalidation_conffile,
@@ -28,7 +27,9 @@ from mmux_flaskapi.dakota.funs_data_processing import (
     get_bounds_uniform_distributions,
     get_results,
     load_data,
+    sanitize_varname,
     sanitize_varnames,
+    sanitize_varnames_dict,
 )
 
 
@@ -447,95 +448,241 @@ def perform_moga_optimization(
     return results
 
 
-def parse_sobol_indices_output(
-    log_output: str, input_vars: list[str]
-) -> dict[str, dict[str, float]]:
-    """
-    Parse Dakota's "Global sensitivity indices" table produced by `variance_based_decomp`.
-
-    Expected format within `log_output` (captured stdout, see `dakota_object.py`'s
-    `DakotaObject.run()` -> `dakota_stdout.txt`), e.g.:
-
-        Global sensitivity indices for each response function:
-        y Sobol' indices:
-                                          Main             Total
-                              1.2709708306e+00  1.0834803986e+00 x1
-                             -8.9507032675e-03  1.1583617917e-02 x2
-                             -4.0785181539e-03  9.4132349628e-05 x3
-
-    Args:
-        log_output: Captured Dakota stdout text.
-        input_vars: Input variable names to extract indices for.
-
-    Returns:
-        Dict mapping each input variable name to `{"main": float, "total": float}`.
-
-    Raises:
-        ValueError: If `input_vars` is empty, the "Global sensitivity indices" section
-            is missing, or indices for a requested variable are not found.
-    """
-    if not input_vars:
-        raise ValueError("input_vars cannot be empty")
-
-    marker = "Global sensitivity indices for each response function:"
-    marker_idx = log_output.find(marker)
-    if marker_idx == -1:
-        raise ValueError(
-            "Could not find 'Global sensitivity indices' section in Dakota output. "
-            "Ensure variance_based_decomp was enabled for the sampling method."
-        )
-    section = log_output[marker_idx:]
-
-    row_pattern = r"([+-]?\d+\.\d+[eE][+-]?\d+)\s+([+-]?\d+\.\d+[eE][+-]?\d+)\s+(\w+)"
-    rows = re.findall(row_pattern, section)
-
-    parsed: dict[str, dict[str, float]] = {}
-    for main_str, total_str, var_name in rows:
-        if var_name in input_vars:
-            parsed[var_name] = {"main": float(main_str), "total": float(total_str)}
-
-    missing = [var for var in input_vars if var not in parsed]
-    if missing:
-        raise ValueError(
-            f"Could not find Sobol' indices for input variables: {missing} in Dakota output."
-        )
-
-    return parsed
-
-
 def evaluate_sobol_indices(
     run_dir: Path,
     PROCESSED_TRAINING_FILE: Path,
     input_vars: list[str],
     response_var: str,
     num_samples: int,
-    lower_bounds: list[float],
-    upper_bounds: list[float],
+    distributions: dict[str, dict],
+    preprocessor,
     seed: int | None = None,
-) -> dict[str, dict[str, float]]:
+) -> dict[str, dict]:
+    """Compute Sobol' first-order, total-order, and second-order sensitivity indices.
+
+    Generates Saltelli A/B/AB sample matrices locally (honouring per-input
+    distributions via ``scipy.stats.rv_continuous.ppf``), evaluates all samples
+    in ONE batch through ``evaluate_sumo()`` (surrogate-only, Dakota does not run
+    ``variance_based_decomp`` itself), then applies ``scipy.stats.sobol_indices``
+    for first-order + total-order indices plus a closed-form second-order
+    (pairwise interaction) estimator.
+
+    Second-order estimator: the Jansen/Saltelli 2010 algebraic identity for
+    pairwise interaction variances, V_ij = ((V_Ti - V_i) + (V_Tj - V_j) -
+    Σ_{k≠i,j} (V_Tk - V_k)) / 2, which is exact for d=3 with no third-order
+    interactions (validated against Ishigami analytical reference, §R1) and a
+    standard approximation for d > 3.  See: Saltelli, A. (2010). "Variance
+    based sensitivity analysis of model output. Design and estimator for the
+    total sensitivity index." Computer Physics Communications, 181(2), 259-270.
+
+    Args:
+        run_dir: Dakota run directory for intermediate files.
+        PROCESSED_TRAINING_FILE: Path to the preprocessed training data file.
+        input_vars: Original (unmapped) input variable names.
+        response_var: Mapped response variable name (as known to Dakota).
+        num_samples: Requested number of base samples (rounded up to next power of 2).
+        distributions: Dict mapping original var names to distribution params
+            (``{"distribution": "normal", "mean":, "std":}`` /
+            ``{"distribution": "uniform", "min":, "max":}`` /
+            ``{"distribution": "constant", "value":}``).
+        preprocessor: Fitted ``DataPreprocessor`` for transforming samples.
+        seed: Random seed for reproducibility (numpy/scipy RNGs accept 0).
+
+    Returns:
+        Dict with keys ``"sobol"`` (``{var: {"main": float, "total": float}}``)
+        and ``"sobolSecondOrder"`` (``{varA: {varB: float}}`` symmetric over
+        unordered pairs, no self-pair).
     """
-    Build a surrogate from `PROCESSED_TRAINING_FILE`, then compute Sobol' first-order
-    (main effect) and total-order sensitivity indices via Dakota's native
-    `variance_based_decomp` (#470). Mirrors `evaluate_sumo`'s structure.
-    """
+    import math
+
+    import pandas as pd
+    from scipy.stats import norm, sobol_indices, uniform  # type: ignore
+    from scipy.stats.qmc import Sobol  # type: ignore
+
     input_vars = sanitize_varnames(input_vars)
     response_var = sanitize_varnames(response_var)
+    distributions = {
+        sanitize_varname(k): sanitize_varnames_dict(v) for k, v in distributions.items()
+    }
 
-    dakota_conf = create_sobol_indices_conffile(
-        build_file=PROCESSED_TRAINING_FILE,
-        input_variables=input_vars,
-        response=response_var,
-        n_samples=num_samples,
-        lower_bounds=lower_bounds,
-        upper_bounds=upper_bounds,
-        seed=seed,
+    # --- 1. Separate constant vs. varying input variables ---
+    constant_vars: dict[str, float] = {}
+    varying_vars: list[str] = []
+    for var in input_vars:
+        dist_info = distributions[var]
+        if dist_info["distribution"] == "constant":
+            constant_vars[var] = float(dist_info["value"])
+        else:
+            varying_vars.append(var)
+
+    d_varying = len(varying_vars)
+
+    # Build frozen scipy distributions with .ppf for each varying variable
+    ppfs = {}
+    for var in varying_vars:
+        dist_info = distributions[var]
+        dist_type = dist_info["distribution"]
+        if dist_type == "normal":
+            ppfs[var] = norm(loc=dist_info["mean"], scale=dist_info["std"])
+        elif dist_type == "uniform":
+            ppfs[var] = uniform(loc=dist_info["min"], scale=dist_info["max"] - dist_info["min"])
+        else:
+            raise ValueError(f"Unsupported distribution type: {dist_type}")
+
+    # --- 2. Round num_samples up to next power of 2 (Sobol' QMC requirement) ---
+    if d_varying == 0:
+        # All variables are constant — indices are trivially zero
+        sobol = {var: {"main": 0.0, "total": 0.0} for var in input_vars}
+        return {"sobol": sobol, "sobolSecondOrder": {}}
+
+    n = 2 ** math.ceil(math.log2(max(num_samples, 2)))
+
+    # --- 3. Generate Saltelli A/B sample matrices via Sobol' QMC ---
+    sampler = Sobol(d=2 * d_varying, seed=seed, scramble=True)
+    U = sampler.random(n)  # shape (n, 2*d_varying)
+    U_A = U[:, :d_varying]
+    U_B = U[:, d_varying:]
+
+    # Map through ppf to get real-space A and B
+    A = np.column_stack([ppfs[var].ppf(U_A[:, i]) for i, var in enumerate(varying_vars)])
+    B = np.column_stack([ppfs[var].ppf(U_B[:, i]) for i, var in enumerate(varying_vars)])
+
+    # --- 4. Build AB_i matrices: A with column i replaced by B's column i ---
+    # (Saltelli 2010 convention: AB_i uses B's values for variable i, A's for the rest)
+    AB = np.empty((d_varying, n, d_varying))
+    for i in range(d_varying):
+        AB_i = A.copy()
+        AB_i[:, i] = B[:, i]
+        AB[i] = AB_i
+
+    # --- 5. Concatenate into one big sample matrix, restore constant columns ---
+    # Layout: A (n) + B (n) + AB_0 (n) + AB_1 (n) + ... + AB_{d-1} (n)
+    all_samples_varying = np.vstack([A, B] + [AB[i] for i in range(d_varying)])
+
+    # Build DataFrame with varying variables only
+    df_varying = pd.DataFrame(all_samples_varying, columns=varying_vars)
+
+    # Add constant columns (fixed values for all rows)
+    for var, val in constant_vars.items():
+        df_varying[var] = val
+
+    # Reorder columns to match original input_vars order
+    df_samples = df_varying[input_vars]
+
+    # --- 6. Transform and write processed samples, call evaluate_sumo ONCE ---
+    SAMPLES_FILE = run_dir / "sobol_samples.csv"
+    df_samples.to_csv(SAMPLES_FILE, index=False)
+
+    df_samples_transformed = preprocessor.transform(df_samples)
+    PROCESSED_SAMPLES_FILE = run_dir / "sobol_samples_processed.csv"
+    df_samples_transformed.to_csv(PROCESSED_SAMPLES_FILE, sep=" ", index=False)
+
+    mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
+    results = evaluate_sumo(
+        run_dir,
+        PROCESSED_TRAINING_FILE,
+        PROCESSED_SAMPLES_FILE,
+        mapped_input_vars,
+        response_var,
     )
 
-    dakobj = DakotaObject()
-    dakobj.run(dakota_conf, run_dir)
+    prediction_key = response_var + "_hat"
+    if prediction_key not in results:
+        raise ValueError(
+            f"Surrogate evaluation did not produce '{prediction_key}'. "
+            f"Available keys: {list(results.keys())}."
+        )
 
-    log_output = (run_dir / "dakota_stdout.txt").read_text()
-    return parse_sobol_indices_output(log_output, input_vars)
+    # --- 7. Split the single batch of predictions back into f_A, f_B, f_AB_i ---
+    all_preds = np.asarray(results[prediction_key])
+    total_rows = n * (d_varying + 2)
+    if len(all_preds) != total_rows:
+        raise ValueError(
+            f"Expected {total_rows} predictions (n={n}, d_varying={d_varying}), "
+            f"got {len(all_preds)}."
+        )
+
+    idx = 0
+    f_A = all_preds[idx : idx + n].reshape(1, n)  # shape (1, n)
+    idx += n
+    f_B = all_preds[idx : idx + n].reshape(1, n)  # shape (1, n)
+    idx += n
+    f_AB = np.empty((d_varying, 1, n))
+    for i in range(d_varying):
+        f_AB[i] = all_preds[idx : idx + n].reshape(1, 1, n)
+        idx += n
+
+    # --- 8. Compute first-order and total-order via scipy.stats.sobol_indices ---
+    if d_varying == 1:
+        # scipy.stats.sobol_indices squeezes to scalar when d=1 and s=1,
+        # causing an internal "item assignment" error.  For a single variable
+        # the Saltelli 2010 estimators reduce to simple formulas:
+        #   S_1  = Cov(f_A, f_AB_0) / Var(f_A)
+        #   ST_1 = 0.5 * Var(f_A - f_AB_0) / Var(f_A)
+        var_f = float(np.var(f_A))
+        if var_f == 0:
+            first_order = np.array([0.0])
+            total_order = np.array([0.0])
+        else:
+            cov_val = float(np.mean((f_A - f_A.mean()) * (f_AB[0] - f_AB[0].mean())))
+            first_order = np.array([cov_val / var_f])
+            total_order = np.array([0.5 * np.mean((f_A - f_AB[0]) ** 2) / var_f])
+    else:
+        si = sobol_indices(func={"f_A": f_A, "f_B": f_B, "f_AB": f_AB}, n=n)
+        # np.squeeze in scipy can collapse to scalar when d_varying=1; ensure 1-d
+        first_order = np.atleast_1d(si.first_order)  # shape (d_varying,)
+        total_order = np.atleast_1d(si.total_order)  # shape (d_varying,)
+
+    # --- 9. Compute second-order indices S_ij for every unordered pair ---
+    # Using the Jansen/Saltelli 2010 closed-form estimator:
+    #   S_ij = ((S_Ti - S_i) + (S_Tj - S_j) - Σ_{k≠i,j} (S_Tk - S_k)) / 2
+    # This is exact for d=3 with no third-order interactions (validated vs Ishigami §R1).
+    sobol_second_order: dict[str, dict[str, float]] = {}
+    if d_varying >= 2:
+        higher_order = total_order - first_order  # U_k = S_Tk - S_k
+        for ii in range(d_varying):
+            for jj in range(ii + 1, d_varying):
+                other_sum = float(np.sum(higher_order) - higher_order[ii] - higher_order[jj])
+                s_ij = (float(higher_order[ii] + higher_order[jj]) - other_sum) / 2.0
+                var_a = varying_vars[ii]
+                var_b = varying_vars[jj]
+                if var_a not in sobol_second_order:
+                    sobol_second_order[var_a] = {}
+                sobol_second_order[var_a][var_b] = float(s_ij)
+                # Symmetric entry
+                if var_b not in sobol_second_order:
+                    sobol_second_order[var_b] = {}
+                sobol_second_order[var_b][var_a] = float(s_ij)
+
+    # --- 10. Assemble final response (all requested input_vars, constants as zeros) ---
+    sobol: dict[str, dict[str, float]] = {}
+    for i, var in enumerate(input_vars):
+        if var in constant_vars:
+            # Constant variable: zero variance, Sobol' index is undefined/zero.
+            # A constant input contributes no variance to the output, so its
+            # first-order and total-order indices are both zero by definition.
+            sobol[var] = {"main": 0.0, "total": 0.0}
+        else:
+            idx_varying = varying_vars.index(var)
+            sobol[var] = {
+                "main": float(first_order[idx_varying]),
+                "total": float(total_order[idx_varying]),
+            }
+
+    # Only np.isfinite validated — small-N Monte Carlo noise can yield small
+    # negative estimates; do NOT clip or reject negative values (§V32).
+    for var in sobol:
+        for key in ("main", "total"):
+            val = sobol[var][key]
+            if not np.isfinite(val):
+                raise ValueError(f"Sobol' index for {var}.{key} is not finite: {val}")
+    for var_a in sobol_second_order:
+        for var_b in sobol_second_order[var_a]:
+            val = sobol_second_order[var_a][var_b]
+            if not np.isfinite(val):
+                raise ValueError(f"Second-order Sobol' index {var_a}:{var_b} is not finite: {val}")
+
+    return {"sobol": sobol, "sobolSecondOrder": sobol_second_order}
 
 
 if __name__ == "__main__":

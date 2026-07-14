@@ -78,6 +78,7 @@ _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
         "project_inputs",
         "correlations",
         "sobol",
+        "sobol_second_order",
     }
 )
 

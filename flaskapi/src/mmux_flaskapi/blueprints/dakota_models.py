@@ -1029,21 +1029,15 @@ class SobolIndicesRequest(ManualUQPropagationRequest):
 
     Mirrors `CorrelationIndicesRequest`'s shape (same Monte Carlo/UQ setup contract:
     output, inputVars, distributions, numSamples, FunctionJobs), plus a `seed` for
-    reproducibility, since variance-based decomposition is a different downstream
-    computation on the same UQ setup.
-
-    Unlike `CorrelationIndicesRequest`/`ManualUQWithUncertaintyRequest` (whose `seed`
-    only feeds `numpy.random.seed`, where 0 is valid), this `seed` is written verbatim
-    into a Dakota NIDR input file's `sampling` block (see `add_sampling_method`) for
-    the `variance_based_decomp` LHS sampling method. Dakota's own NIDR parser rejects
-    `seed = 0` ("seed must be > 0"), aborting with an opaque top-level error
-    (flaskapi/SPEC.md B17). Require `seed >= 1` here so that's a clear 400 instead.
+    reproducibility of the Sobol' QMC sampling.  Seed 0 is valid — scipy/numpy RNGs
+    accept it (the former Dakota NIDR constraint requiring seed ≥ 1 no longer applies
+    after the scipy migration, V34).
     """
 
     seed: int = Field(
         ...,
-        ge=1,
-        description="Random seed for reproducibility (must be >= 1; Dakota requires seed > 0)",
+        ge=0,
+        description="Random seed for reproducibility (scipy/numpy RNGs accept 0)",
     )
 
 
@@ -1072,6 +1066,13 @@ class SobolIndicesResponse(BaseModel):
     sobol: dict[str, SobolIndexPair] = Field(
         ...,
         description="Per-input-variable first-order/total-order Sobol' indices for the selected QoI",
+    )
+    sobol_second_order: dict[str, dict[str, float]] = Field(
+        default_factory=dict,
+        description=(
+            "Pairwise second-order Sobol' interaction indices, symmetric over all "
+            "unordered variable pairs (no self-pair). Empty when fewer than 2 input vars."
+        ),
     )
 
     @field_validator("sobol")

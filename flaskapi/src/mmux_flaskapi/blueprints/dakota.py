@@ -621,14 +621,16 @@ def flask_compute_correlation_indices():
 @dakota_bp.route("/compute_sobol_indices", methods=["POST"])
 def flask_compute_sobol_indices():
     """
-    Compute per-input first-order (main effect) and total-order Sobol' indices (#470).
+    Compute per-input first-order (main effect), total-order, and second-order
+    (pairwise interaction) Sobol' indices (#470).
 
-    Unlike `/compute_correlation_indices` (valid on any Monte Carlo sample set),
-    proper variance-based Sobol' indices require a dedicated Saltelli-style sampling
-    design (matrices A, B, and per-variable recombinations AB_i). Dakota's native
-    `variance_based_decomp` performs this resampling internally on top of an LHS
-    sampling method run directly against the surrogate model, auto-inflating the
-    requested `numSamples` to `numSamples * (nvars + 2)` surrogate evaluations.
+    Builds a surrogate from completed jobs via ``evaluate_sumo()``, then computes
+    Sobol' indices directly in Python: generates Saltelli A/B/AB sample matrices
+    locally (honouring per-input distributions via ``scipy.stats.rv_continuous.ppf``),
+    evaluates all samples in ONE batch through ``evaluate_sumo()``, then applies
+    ``scipy.stats.sobol_indices`` for first/total order plus a closed-form second-order
+    (pairwise interaction) estimator.  Response always includes ``sobolSecondOrder``
+    (no opt-in flag).
     """
     _logger.debug("Starting flask function: flask_compute_sobol_indices")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -652,34 +654,28 @@ def flask_compute_sobol_indices():
         )
 
         # Get mapped variable names
-        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
         mapped_output_var = preprocessor.output_variables[output_response].mapped_name
 
-        # Derive the sampling domain (bounds) for variance_based_decomp from the
-        # provided distributions
-        lower_bounds, upper_bounds = _bounds_from_distributions(input_vars, distributions)
+        # Convert Pydantic distribution models to dicts for evaluate_sobol_indices
+        distributions_dict = {var: dist.model_dump() for var, dist in distributions.items()}
 
-        # Compute Sobol' indices by building a surrogate and sampling it directly
-        # with Dakota's native variance_based_decomp
+        # Compute Sobol' indices: Saltelli sampling + single evaluate_sumo() batch
         results = evaluate_sobol_indices(
             run_dir,
             PROCESSED_TRAINING_FILE,
-            mapped_input_vars,
+            input_vars,
             mapped_output_var,
             num_samples,
-            lower_bounds,
-            upper_bounds,
+            distributions_dict,
+            preprocessor,
             seed=seed,
         )
 
-        # Map mapped variable names (x1, x2, ...) back to original input variable names
-        mapped_to_original = _mapped_to_original(preprocessor)
-        sobol = {
-            mapped_to_original.get(mapped_var, mapped_var): indices
-            for mapped_var, indices in results.items()
+        # Map sobol results (already keyed by original input variable names)
+        response_data = {
+            "sobol": results["sobol"],
+            "sobol_second_order": results["sobolSecondOrder"],
         }
-
-        response_data = {"sobol": sobol}
         validated_response = SobolIndicesResponse.model_validate(response_data)
 
         _logger.debug("Sobol' indices computation completed successfully")

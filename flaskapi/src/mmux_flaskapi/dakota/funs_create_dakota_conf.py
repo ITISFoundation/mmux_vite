@@ -468,43 +468,6 @@ def create_uq_propagation_conffile(
     return dakota_conf
 
 
-def create_sobol_indices_conffile(
-    build_file: Path,
-    input_variables: list[str],
-    response: str,
-    n_samples: int,
-    lower_bounds: list[float],
-    upper_bounds: list[float],
-    seed: int | None = None,
-    dakota_conf_file: str | Path | None = None,
-) -> str:
-    """Build a surrogate from `build_file`, then compute Sobol' first-order (main
-    effect) and total-order sensitivity indices via Dakota's native
-    `variance_based_decomp` on top of an LHS sampling method (#470).
-
-    Dakota's `variance_based_decomp` performs a Saltelli-style resampling scheme
-    internally, auto-inflating `n_samples` to `n_samples * (nvars + 2)` surrogate
-    evaluations to build the A, B and per-variable AB_i matrices.
-    """
-    dakota_conf = start_dakota_file()
-    dakota_conf += add_surrogate_model(training_samples_file=str(build_file.resolve()))
-    sampling_kwargs = {"num_samples": n_samples, "variance_based_decomp": True}
-    if seed is not None:
-        sampling_kwargs["seed"] = seed
-    dakota_conf += add_sampling_method(**sampling_kwargs)
-    dakota_conf += add_continuous_variables(
-        variables=input_variables,
-        lower_bounds=lower_bounds,
-        upper_bounds=upper_bounds,
-    )
-    dakota_conf += add_responses([response])
-
-    if dakota_conf_file:
-        write_to_file(dakota_conf, dakota_conf_file)
-
-    return dakota_conf
-
-
 def create_sumo_crossvalidation_conffile(
     build_file: Path,
     input_variables: list[str],
