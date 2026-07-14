@@ -11,7 +11,7 @@ export interface FunctionContextType {
   outputVars: string[];
   setOutputVars: (vars: string[]) => void;
   distribution: { [key: string]: InputVarSelection };
-  setDistribution: (d: { [key: string]: InputVarSelection }) => void;
+  setDistribution: React.Dispatch<React.SetStateAction<{ [key: string]: InputVarSelection }>>;
   outputTargets: { [key: string]: OutputVarSelection };
   setOutputTargets: (d: { [key: string]: OutputVarSelection }) => void;
 }
