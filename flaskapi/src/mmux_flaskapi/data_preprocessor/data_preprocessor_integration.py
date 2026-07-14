@@ -8,7 +8,7 @@ with the existing _create_training_file_from_jobs function and other workflow co
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import pandas as pd
 from pydantic import ValidationError
@@ -17,6 +17,17 @@ from mmux_flaskapi.blueprints.dakota_models import JobVariableSelection, require
 from mmux_flaskapi.data_preprocessor import DataPreprocessor
 
 _logger = logging.getLogger(__name__)
+
+
+class VariableStats(TypedDict):
+    count: int
+    mean: float | None
+    std: float | None
+    min: float | None
+    max: float | None
+    median: float | None
+    range: float | None
+    cv: float | None
 
 
 def create_training_file_with_preprocessor(
@@ -201,10 +212,10 @@ def load_and_inverse_transform_results(
     elif isinstance(results, pd.DataFrame):
         inverse_results = []
         for _, row in results.iterrows():
-            inverse_results.append(preprocessor.inverse_transform(row.to_dict()))  # type: ignore
+            inverse_results.append(preprocessor.inverse_transform(row.to_dict()))
         return inverse_results
     elif isinstance(results, list):
-        return [preprocessor.inverse_transform(result) for result in results]  # type: ignore
+        return [preprocessor.inverse_transform(result) for result in results]
     else:
         raise ValueError(f"Unsupported results format: {type(results)}")
 
@@ -278,7 +289,7 @@ def create_filtered_preprocessor(
 
 def get_variable_statistics(
     jobs: list[dict[str, Any]], variable_names: list[str], variable_type: str = "input"
-) -> dict[str, dict[str, float]]:
+) -> dict[str, VariableStats]:
     """
     Get basic statistics for variables from job data.
     Useful for deciding which variables to filter based on their characteristics.
@@ -300,7 +311,7 @@ def get_variable_statistics(
     if len(completed_jobs) == 0:
         raise ValueError("No completed jobs found for statistics calculation")
 
-    stats = {}
+    stats: dict[str, VariableStats] = {}
 
     for var_name in variable_names:
         values = []
@@ -313,31 +324,33 @@ def get_variable_statistics(
                 except (ValueError, TypeError):
                     continue
 
+        var_stats: VariableStats
         if values:
             values = np.array(values)
-            stats[var_name] = {
-                "count": len(values),
-                "mean": float(np.mean(values)),
-                "std": float(np.std(values)),
-                "min": float(np.min(values)),
-                "max": float(np.max(values)),
-                "median": float(np.median(values)),
-                "range": float(np.max(values) - np.min(values)),
-                "cv": float(np.std(values) / np.mean(values))
+            var_stats = VariableStats(
+                count=len(values),
+                mean=float(np.mean(values)),
+                std=float(np.std(values)),
+                min=float(np.min(values)),
+                max=float(np.max(values)),
+                median=float(np.median(values)),
+                range=float(np.max(values) - np.min(values)),
+                cv=float(np.std(values) / np.mean(values))
                 if np.mean(values) != 0
                 else float("inf"),
-            }
+            )
         else:
-            stats[var_name] = {
-                "count": 0,
-                "mean": None,
-                "std": None,
-                "min": None,
-                "max": None,
-                "median": None,
-                "range": None,
-                "cv": None,
-            }
+            var_stats = VariableStats(
+                count=0,
+                mean=None,
+                std=None,
+                min=None,
+                max=None,
+                median=None,
+                range=None,
+                cv=None,
+            )
+        stats[var_name] = var_stats
 
     return stats
 
@@ -371,7 +384,7 @@ def filter_variables_by_statistics(
     input_stats = get_variable_statistics(jobs, input_vars, "input")
     output_stats = get_variable_statistics(jobs, output_vars, "output")
 
-    def passes_filter(stats: dict[str, float]) -> bool:
+    def passes_filter(stats: VariableStats) -> bool:
         if stats["count"] == 0:
             return False
 
