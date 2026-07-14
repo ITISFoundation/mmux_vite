@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OsparcFunctionJob } from "../context/types";
 import { fetchWithRetry } from "./fetchRetry";
-import { buildSobolBarData, fetchSobolIndices } from "./sobolIndices";
+import { buildSobolBarData, buildSobolHeatmapData, fetchSobolIndices } from "./sobolIndices";
 
 vi.mock("./fetchRetry", () => ({
   fetchWithRetry: vi.fn(),
@@ -23,6 +23,10 @@ describe("fetchSobolIndices", () => {
       sobol: {
         x1: { main: 0.7, total: 0.9 },
         x2: { main: 0.1, total: 0.2 },
+      },
+      sobolSecondOrder: {
+        x1: { x2: 0.05 },
+        x2: { x1: 0.05 },
       },
     };
     mockedFetchWithRetry.mockResolvedValueOnce({
@@ -59,10 +63,10 @@ describe("fetchSobolIndices", () => {
     });
   });
 
-  it("defaults seed to 1 when not provided (Dakota requires seed > 0, flaskapi/SPEC.md B17)", async () => {
+  it("defaults seed to 0 when not provided (backend scipy accepts seed >= 0)", async () => {
     mockedFetchWithRetry.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({ sobol: {} }),
+      json: () => Promise.resolve({ sobol: {}, sobolSecondOrder: {} }),
     } as Response);
 
     await fetchSobolIndices({
@@ -75,7 +79,7 @@ describe("fetchSobolIndices", () => {
 
     const [, options] = mockedFetchWithRetry.mock.calls[0];
     const body = JSON.parse((options as RequestInit).body as string);
-    expect(body.seed).toBe(1);
+    expect(body.seed).toBe(0);
   });
 
   it("throws (⊥ resolves) on a non-OK response", async () => {
@@ -83,7 +87,7 @@ describe("fetchSobolIndices", () => {
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
-      json: () => Promise.resolve({}),
+      json: () => Promise.resolve({ sobol: {}, sobolSecondOrder: {} }),
     } as Response);
 
     await expect(
@@ -123,5 +127,97 @@ describe("buildSobolBarData", () => {
 
     expect(traces[0]).toMatchObject({ y: [0.5, 0] });
     expect(traces[1]).toMatchObject({ y: [0.6, 0] });
+  });
+});
+
+describe("buildSobolHeatmapData", () => {
+  const getZ = (trace: ReturnType<typeof buildSobolHeatmapData>): number[][] => trace.z as number[][];
+
+  it("returns a heatmap trace with correct shape", () => {
+    const sobol: SobolIndicesResponse["sobol"] = {
+      x1: { main: 0.7, total: 0.9 },
+      x2: { main: 0.1, total: 0.2 },
+    };
+    const sobolSecondOrder: SobolIndicesResponse["sobolSecondOrder"] = {
+      x1: { x2: 0.05 },
+      x2: { x1: 0.05 },
+    };
+
+    const trace = buildSobolHeatmapData(sobol, sobolSecondOrder, ["x1", "x2"]);
+
+    expect(trace.type).toBe("heatmap");
+    expect(trace.x).toEqual(["x1", "x2"]);
+    expect(trace.y).toEqual(["x1", "x2"]);
+    expect(trace.z).toHaveLength(2);
+    expect(getZ(trace)[0]).toHaveLength(2);
+    expect(getZ(trace)[1]).toHaveLength(2);
+  });
+
+  it("fills diagonal cells with first-order (main) index", () => {
+    const sobol: SobolIndicesResponse["sobol"] = {
+      x1: { main: 0.7, total: 0.9 },
+      x2: { main: 0.1, total: 0.2 },
+    };
+    const sobolSecondOrder: SobolIndicesResponse["sobolSecondOrder"] = {
+      x1: { x2: 0.05 },
+      x2: { x1: 0.05 },
+    };
+
+    const trace = buildSobolHeatmapData(sobol, sobolSecondOrder, ["x1", "x2"]);
+
+    expect(getZ(trace)[0][0]).toBe(0.7);
+    expect(getZ(trace)[1][1]).toBe(0.1);
+  });
+
+  it("places symmetric pairwise second-order values correctly", () => {
+    const sobol: SobolIndicesResponse["sobol"] = {
+      x1: { main: 0.5, total: 0.7 },
+      x2: { main: 0.3, total: 0.5 },
+      x3: { main: 0.1, total: 0.2 },
+    };
+    const sobolSecondOrder: SobolIndicesResponse["sobolSecondOrder"] = {
+      x1: { x2: 0.08, x3: 0.03 },
+      x2: { x1: 0.08, x3: 0.02 },
+      x3: { x1: 0.03, x2: 0.02 },
+    };
+
+    const trace = buildSobolHeatmapData(sobol, sobolSecondOrder, ["x1", "x2", "x3"]);
+
+    // off-diagonal: x1↔x2
+    expect(getZ(trace)[0][1]).toBe(0.08);
+    expect(getZ(trace)[1][0]).toBe(0.08);
+    // off-diagonal: x1↔x3
+    expect(getZ(trace)[0][2]).toBe(0.03);
+    expect(getZ(trace)[2][0]).toBe(0.03);
+    // off-diagonal: x2↔x3
+    expect(getZ(trace)[1][2]).toBe(0.02);
+    expect(getZ(trace)[2][1]).toBe(0.02);
+  });
+
+  it("handles missing second-order entries by falling back to 0", () => {
+    const sobol: SobolIndicesResponse["sobol"] = {
+      x1: { main: 0.4, total: 0.6 },
+      x2: { main: 0.2, total: 0.3 },
+    };
+    const sobolSecondOrder: SobolIndicesResponse["sobolSecondOrder"] = {};
+
+    const trace = buildSobolHeatmapData(sobol, sobolSecondOrder, ["x1", "x2"]);
+
+    // diagonal should still have first-order values
+    expect(getZ(trace)[0][0]).toBe(0.4);
+    expect(getZ(trace)[1][1]).toBe(0.2);
+    // off-diagonal should be 0
+    expect(getZ(trace)[0][1]).toBe(0);
+    expect(getZ(trace)[1][0]).toBe(0);
+  });
+
+  it("handles missing first-order entries by falling back to 0 on diagonal", () => {
+    const sobol: SobolIndicesResponse["sobol"] = {};
+    const sobolSecondOrder: SobolIndicesResponse["sobolSecondOrder"] = {};
+
+    const trace = buildSobolHeatmapData(sobol, sobolSecondOrder, ["x1", "x2"]);
+
+    expect(getZ(trace)[0][0]).toBe(0);
+    expect(getZ(trace)[1][1]).toBe(0);
   });
 });

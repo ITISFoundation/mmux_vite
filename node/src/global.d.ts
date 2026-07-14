@@ -53,9 +53,11 @@ type CorrelationIndicesResponse = {
   correlations: { [inputVar: string]: CorrelationCoefficients };
 };
 
-// #470 follow-up: per-input first-order (main effect) and total-order Sobol'
+// #470/#T22: per-input first-order (main effect) and total-order Sobol'
 // sensitivity indices, one entry per requested input variable, from
-// `/flask/dakota/compute_sobol_indices` (Dakota's native variance_based_decomp).
+// `/flask/dakota/compute_sobol_indices` (scipy-based, post-migration).
+// sobolSecondOrder: symmetric pairwise second-order indices (no self-pairs),
+// diagonal filled on frontend from the corresponding first-order index.
 type SobolIndexPair = {
   main: number;
   total: number;
@@ -63,6 +65,7 @@ type SobolIndexPair = {
 
 type SobolIndicesResponse = {
   sobol: { [inputVar: string]: SobolIndexPair };
+  sobolSecondOrder: { [varA: string]: { [varB: string]: number } };
 };
 
 type PlotConfig = {

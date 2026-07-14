@@ -13,16 +13,11 @@ export type FetchSobolIndicesParams = {
 
 /**
  * Fetch per-input first-order (main effect) and total-order Sobol' sensitivity
- * indices from the backend (#470 follow-up), computed via Dakota's native
- * `variance_based_decomp` on a surrogate model built from the completed jobs.
+ * indices plus pairwise second-order indices from the backend, computed via
+ * scipy on a surrogate model built from the completed jobs.
  */
 export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promise<SobolIndicesResponse> {
-  // Unlike fetchCorrelationIndices' seed (only feeds numpy.random.seed, where 0
-  // is valid), this seed is written verbatim into a Dakota NIDR input file's
-  // `sampling` block for `variance_based_decomp`. Dakota's own NIDR parser
-  // rejects `seed = 0` ("seed must be > 0"), aborting with an opaque 400/500
-  // (flaskapi/SPEC.md B17) - default to 1 instead.
-  const { inputVars, output, distributions, functionJobs, numSamples, seed = 1 } = params;
+  const { inputVars, output, distributions, functionJobs, numSamples, seed = 0 } = params;
 
   const response = await fetchWithRetry(`/flask/dakota/compute_sobol_indices`, {
     method: "POST",
@@ -74,4 +69,46 @@ export function buildSobolBarData(
       marker: { color: colors.total },
     },
   ];
+}
+
+/**
+ * Build a Plotly heatmap trace for second-order Sobol' indices.
+ * Diagonal cells are filled from the corresponding first-order (main) index.
+ * Off-diagonal cells come from the symmetric sobolSecondOrder pairwise matrix.
+ */
+export function buildSobolHeatmapData(
+  sobol: SobolIndicesResponse["sobol"],
+  sobolSecondOrder: SobolIndicesResponse["sobolSecondOrder"],
+  inputVars: string[],
+  colorScale?: string,
+): Partial<PlotData> {
+  const n = inputVars.length;
+  const z: number[][] = [];
+
+  for (let i = 0; i < n; i += 1) {
+    const row: number[] = [];
+    for (let j = 0; j < n; j += 1) {
+      if (i === j) {
+        row.push(sobol[inputVars[i]]?.main ?? 0);
+      } else {
+        const varA = inputVars[i];
+        const varB = inputVars[j];
+        const vA = sobolSecondOrder[varA]?.[varB];
+        const vB = sobolSecondOrder[varB]?.[varA];
+        row.push(vA ?? vB ?? 0);
+      }
+    }
+    z.push(row);
+  }
+
+  return {
+    z,
+    x: inputVars,
+    y: inputVars,
+    type: "heatmap",
+    colorscale: colorScale || "Viridis",
+    colorbar: { title: { text: "Sobol' index" } },
+    hoverongaps: false,
+    hovertemplate: "%{x} ↔ %{y}: %{z:.4f}<extra></extra>",
+  };
 }
