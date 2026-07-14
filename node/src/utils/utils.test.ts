@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import fs from "fs";
 import { JSX } from "react/jsx-runtime";
+import { SetStateAction } from "react";
 import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { RegisteredFunction, OsparcFunctionJob } from "../context/types";
 import { FunctionContextType } from "../context/FunctionContext";
@@ -169,7 +170,7 @@ describe("stepValidator", () => {
       setOutputVars: (_vars: string[]): void => {
         throw new Error("Function not implemented.");
       },
-      setDistribution: (_d: { [key: string]: InputVarSelection }): void => {
+      setDistribution: (_d: SetStateAction<{ [key: string]: InputVarSelection }>): void => {
         throw new Error("Function not implemented.");
       },
       setOutputTargets(_d: { [key: string]: OutputVarSelection }): void {
