@@ -9,6 +9,16 @@ repos:
       - id: ruff-format
         files: ^flaskapi/
 
+  # Python: ty type checking (flaskapi/)
+  - repo: local
+    hooks:
+      - id: ty-flaskapi
+        name: ty (flaskapi/)
+        language: system
+        entry: bash flaskapi/scripts/run-ty-hook.sh
+        files: ^flaskapi/
+        pass_filenames: false
+
   # General file hygiene
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

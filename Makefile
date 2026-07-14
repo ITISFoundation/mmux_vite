@@ -20,6 +20,10 @@ start-frontend:
 install-flaskapi-deps:
 	cd ${FLASKAPI_DIR} && make install-flaskapi-deps
 
+.PHONY: check-types-flaskapi
+check-types-flaskapi: install-flaskapi-deps ## run ty type checker against flaskapi/src/mmux_flaskapi
+	cd ${FLASKAPI_DIR} && make check-types-flaskapi
+
 
 # Builds new service version ----------------------------------------------------------------------------
 define _bumpversion

@@ -3,3 +3,7 @@
 .PHONY: install-flaskapi-deps
 install-flaskapi-deps: ## install Flask API Python dependencies
 	uv sync
+
+.PHONY: check-types-flaskapi
+check-types-flaskapi: ## run ty type checker against src/mmux_flaskapi
+	uv run ty check src/mmux_flaskapi
