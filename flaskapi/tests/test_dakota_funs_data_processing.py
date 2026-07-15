@@ -1,5 +1,7 @@
 """Unit tests for mmux_flaskapi.dakota.funs_data_processing (§V27)."""
 
+import re
+
 import pytest
 
 from mmux_flaskapi.dakota.funs_data_processing import create_manual_uq_samples, load_data
@@ -59,6 +61,20 @@ class TestLoadDataMalformedFile:
             "eval_id interface x1 x2 x3\n1 NO_ID 0.1 0.2 0.3\n2 NO_ID 0.4 0.5\n"
         )
         with pytest.raises(ValueError, match="line 3 has 4 columns"):
+            load_data(malformed_file)
+
+    def test_error_message_includes_raw_context_lines(self, tmp_path):
+        """B21: the raw (untokenized) previous/offending/next lines must be included
+        so a future occurrence can confirm/refute a Dakota tabular line-wrapping
+        cause without needing filesystem access to the (possibly already-cleaned-up)
+        run directory."""
+        malformed_file = tmp_path / "predictions.dat"
+        malformed_file.write_text(
+            "eval_id interface x1 x2 x3\n1 NO_ID 0.1 0.2 0.3\n2 NO_ID 0.4 0.5\n3 NO_ID 0.7 0.8 0.9\n"
+        )
+        with pytest.raises(ValueError, match=r"Raw context \(total 4 lines\)"):
+            load_data(malformed_file)
+        with pytest.raises(ValueError, match=re.escape("line 3 (offending): '2 NO_ID 0.4 0.5'")):
             load_data(malformed_file)
 
     def test_well_formed_file_still_loads_correctly(self, tmp_path):

@@ -95,9 +95,21 @@ def load_data(
             data_lines = lines[1:]
             for line_num, row in enumerate(data_lines, start=2):
                 if len(row) != len(header):
+                    # Grab raw (untokenized) lines around the mismatch - if this is ever a
+                    # Dakota tabular-writer line-wrapping quirk, the raw previous/next line
+                    # (e.g. unusually long or short) is the evidence needed to confirm it,
+                    # and it's otherwise lost once the offending run dir gets cleaned up.
+                    raw_lines = file.read_text().splitlines()
+                    prev_raw = raw_lines[line_num - 2] if line_num - 2 < len(raw_lines) else "<n/a>"
+                    curr_raw = raw_lines[line_num - 1] if line_num - 1 < len(raw_lines) else "<n/a>"
+                    next_raw = raw_lines[line_num] if line_num < len(raw_lines) else "<n/a>"
                     raise ValueError(
                         f"Malformed data file {file}: header (line 1) has {len(header)} "
-                        f"columns {header} but line {line_num} has {len(row)} columns: {row!r}"
+                        f"columns {header} but line {line_num} has {len(row)} columns: {row!r}. "
+                        f"Raw context (total {len(raw_lines)} lines) - "
+                        f"line {line_num - 1}: {prev_raw!r} ({len(prev_raw)} chars); "
+                        f"line {line_num} (offending): {curr_raw!r} ({len(curr_raw)} chars); "
+                        f"line {line_num + 1}: {next_raw!r}"
                     )
             dfs.append(pd.DataFrame(data_lines, columns=header))
         elif ext == ".json":
