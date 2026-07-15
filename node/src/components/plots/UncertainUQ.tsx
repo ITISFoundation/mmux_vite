@@ -7,7 +7,6 @@ import { useMMUXContext } from "../../context/MMUXContext";
 import { fetchWithRetry } from "../../utils/fetchRetry";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
-import HistogramStats from "./HistogramStats";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
 export default function UncertainUQ(props: LoadingPropsType) {
@@ -16,14 +15,12 @@ export default function UncertainUQ(props: LoadingPropsType) {
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { numSamples, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
-  const [dataUQHistogram, setDataUQHistogram] = useState<DataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
 
   useEffect(() => {
     (async () => {
       console.log("running job collections: ", filteredJobList);
-      setDataUQHistogram(undefined);
       setPlotData([]);
       setPropagating(true);
       if (filteredJobList.length === 0) {
@@ -70,12 +67,10 @@ export default function UncertainUQ(props: LoadingPropsType) {
           },
         ];
         setPlotData(newPlotData);
-        setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
         setPropagating(false);
       } catch (error) {
         console.warn("Error:", error);
         setPropagating(false);
-        setDataUQHistogram(undefined);
       }
     })();
   }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction, theme.palette.primary.main]);
@@ -109,7 +104,6 @@ export default function UncertainUQ(props: LoadingPropsType) {
         />
       )}
       {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
-      {dataUQHistogram !== undefined && <HistogramStats {...dataUQHistogram} />}
     </Box>
   );
 }
