@@ -60,3 +60,21 @@ export function formatBiasBanner(
     text: `No significant bias detected (paired t-test p=${pValueText})`,
   };
 }
+
+/**
+ * Compute cross-validation accuracy statistics (mean/std of observed+predicted, MAE, RMSE, R²)
+ * from paired actual/predicted arrays (V25, ../../SPEC.md T32/node/SPEC.md T34: MAE/RMSE/R²
+ * moved out of `SuMoValidation`'s inline display into the Stats step).
+ */
+export function computeCvStatistics(y: number[], yHat: number[]): CvMetricsType {
+  const mae = y.reduce((sum, value, index) => sum + Math.abs(value - yHat[index]), 0) / y.length;
+  const rmse = Math.sqrt(y.reduce((sum, value, index) => sum + (value - yHat[index]) ** 2, 0) / y.length);
+  const meanY = y.reduce((a, b) => a + b, 0) / y.length;
+  const stdY = Math.sqrt(y.reduce((sum, value) => sum + (value - meanY) ** 2, 0) / (y.length - 1));
+  const meanYHat = yHat.reduce((a, b) => a + b, 0) / yHat.length;
+  const stdYHat = Math.sqrt(yHat.reduce((sum, value) => sum + (value - meanYHat) ** 2, 0) / (yHat.length - 1));
+  const ssRes = y.reduce((sum, value, index) => sum + (value - yHat[index]) ** 2, 0);
+  const ssTot = y.reduce((sum, value) => sum + (value - meanY) ** 2, 0);
+  const r2 = ssTot === 0 ? 1 : 1 - ssRes / ssTot;
+  return { meanY, stdY, meanYHat, stdYHat, mae, rmse, r2 };
+}

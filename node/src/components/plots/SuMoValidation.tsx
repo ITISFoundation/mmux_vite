@@ -13,6 +13,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 import {
+  computeCvStatistics,
   CvConvergencePoint,
   formatBiasBanner,
   PairedTTestResult,
@@ -34,24 +35,7 @@ function SuMoValidation() {
   const boxRef = useRef<HTMLDivElement>(null);
 
   function computeStatisticsCv(y: number[], yHat: number[]) {
-    // compute statistics
-    const mae = y.reduce((sum: number, value: number, index: number) => sum + Math.abs(value - yHat[index]), 0) / y.length;
-    const rmse = Math.sqrt(
-      y.reduce((sum: number, value: number, index: number) => sum + (value - yHat[index]) ** 2, 0) / y.length,
-    );
-    const meanY = y.reduce((a: number, b: number) => a + b, 0) / y.length;
-    const stdY = Math.sqrt(y.reduce((sum: number, value: number) => sum + (value - meanY) ** 2, 0) / (y.length - 1));
-    const meanYhat = yHat.reduce((a: number, b: number) => a + b, 0) / yHat.length;
-    const stdYhat = Math.sqrt(yHat.reduce((sum: number, value: number) => sum + (value - meanYhat) ** 2, 0) / (yHat.length - 1));
-    const cvMetricsData = {
-      meanY,
-      stdY,
-      meanYHat: meanYhat,
-      stdYHat: stdYhat,
-      mae,
-      rmse,
-    };
-    setCvMetrics(cvMetricsData);
+    setCvMetrics(computeCvStatistics(y, yHat));
   }
 
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
@@ -301,10 +285,6 @@ function SuMoValidation() {
           <MetricRow width={width}>
             <Metric metricName="Mean" metricValue={cvMetrics.meanYHat} color="rgb(255, 127, 14)" />
             <Metric metricName="Std" metricValue={cvMetrics.stdYHat} color="rgb(255, 127, 14)" />
-          </MetricRow>
-          <MetricRow width={width}>
-            <Metric metricName="MAE" metricValue={cvMetrics.mae} />
-            <Metric metricName="RMSE" metricValue={cvMetrics.rmse} />
           </MetricRow>
         </Box>
       ) : (

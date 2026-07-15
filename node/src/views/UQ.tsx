@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
 import UQPlotsSteps from "../components/plots/UQPlotsSteps";
 import SuMoModal from "./SuMoModal";
+import UQStatsModal from "../components/plots/UQStatsModal";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { OutputSetup } from "./OutputSetup";
 import { JobSampling } from "../components/sampling/JobSampling";
@@ -12,6 +13,7 @@ export default function UQ() {
   const { setSelectedQoI } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [sumoModal, setSumoModal] = useState<boolean>(false);
+  const [uqStatsModal, setUqStatsModal] = useState<boolean>(false);
   const [jobProgress, setJobProgress] = useState<number>(0);
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
@@ -24,9 +26,10 @@ export default function UQ() {
 
   return (
     <MetaModelingUX headerType="title" tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}>
-      <OutputSetup loading={loading} setSumoModal={setSumoModal} mode="full" />
+      <OutputSetup loading={loading} setSumoModal={setSumoModal} setUqStatsModal={setUqStatsModal} mode="full" />
       <UQPlotsSteps loading={loading} jobProgress={jobProgress} colsFetched={colsFetched} jobsFetched={jobsFetched} />
       <SuMoModal open={sumoModal} setOpen={setSumoModal} />
+      <UQStatsModal open={uqStatsModal} setOpen={setUqStatsModal} />
       <JobSampling
         loading={loading}
         setLoading={setLoading}

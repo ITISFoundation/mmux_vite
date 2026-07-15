@@ -40,6 +40,11 @@ type DataUQHistogramType = {
   std: number;
   min: number;
   max: number;
+  // extended percentiles for UQ Stats modal (T24/T32/T34)
+  p1: number;
+  p5: number;
+  p95: number;
+  p99: number;
 };
 
 // #470: per-input <-> output correlation strength ({pearson,spearman} coefficients),
@@ -195,6 +200,7 @@ type CvMetricsType = {
   stdYHat: number;
   mae: number;
   rmse: number;
+  r2: number;
 };
 
 type MogaDataRowType = { [key: string]: number; performance: number; ndi: number };
