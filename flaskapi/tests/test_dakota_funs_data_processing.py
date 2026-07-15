@@ -85,3 +85,59 @@ class TestLoadDataMalformedFile:
         df = load_data(good_file)
         assert len(df) == 2
         assert list(df.columns) == ["eval_id", "interface", "x1", "x2", "x3"]
+
+
+class TestLoadDataHealOrDropMalformedRow:
+    """B22 (2026-07-15): confirmed real Dakota tabular-writer defect - some rows
+    duplicate the interface/leading-variable prefix before finishing the row, and
+    never repeat `_eval_id`. `on_malformed_row="heal_or_drop"` recovers what it can
+    (inferring `_eval_id` as the row's own sequential position) and drops+warns on
+    anything it can't reconstruct, instead of raising and failing the whole caller."""
+
+    HEADER = "%eval_id interface x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 y1\n"
+
+    def test_heals_real_captured_corrupted_row(self, tmp_path):
+        # Byte-for-byte the row captured from a real production predictions.dat
+        # (B22): the interface+x1..x9 prefix written twice (last x9 digit noisy),
+        # then x10/x11/y1 written once, `_eval_id` never repeated.
+        corrupted_line = (
+            "1        APPROX_INTERFACE_1 0.564657       0.0685889      0.163073       "
+            "0.347383       0.127338       0.000826683    0.565321       0.210969       "
+            "0.554521        APPROX_INTERFACE_1 0.564657       0.0685889      0.163073       "
+            "0.347383       0.127338       0.000826683    0.565321       0.210969       "
+            "0.554525       0.174912       488.687        0.3218000105   \n"
+        )
+        f = tmp_path / "predictions.dat"
+        f.write_text(self.HEADER + corrupted_line)
+        warnings: list[str] = []
+        df = load_data(f, on_malformed_row="heal_or_drop", warnings=warnings)
+        assert len(df) == 1
+        assert df.iloc[0]["_eval_id"] == "1"
+        assert df.iloc[0]["interface"] == "APPROX_INTERFACE_1"
+        assert float(df.iloc[0]["x9"]) == pytest.approx(0.554525)  # 2nd (final) write wins
+        assert float(df.iloc[0]["x10"]) == pytest.approx(0.174912)
+        assert float(df.iloc[0]["x11"]) == pytest.approx(488.687)
+        assert float(df.iloc[0]["y1"]) == pytest.approx(0.3218000105)
+        assert any("Recovered corrupted row" in w for w in warnings)
+
+    def test_drops_unhealable_row_and_warns_instead_of_raising(self, tmp_path):
+        f = tmp_path / "predictions.dat"
+        f.write_text(self.HEADER + "1 APPROX_INTERFACE_1 0.1 0.2 0.3\n")  # too short to heal
+        warnings: list[str] = []
+        df = load_data(f, on_malformed_row="heal_or_drop", warnings=warnings)
+        assert len(df) == 0
+        assert any("Dropped unrecoverable malformed row" in w for w in warnings)
+
+    def test_default_still_raises_for_the_same_unhealable_row(self, tmp_path):
+        f = tmp_path / "predictions.dat"
+        f.write_text(self.HEADER + "1 APPROX_INTERFACE_1 0.1 0.2 0.3\n")
+        with pytest.raises(ValueError, match="Malformed data file"):
+            load_data(f)  # on_malformed_row defaults to "raise"
+
+    def test_well_formed_rows_unaffected_by_heal_or_drop_mode(self, tmp_path):
+        f = tmp_path / "predictions.dat"
+        f.write_text(
+            self.HEADER + "1 APPROX_INTERFACE_1 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2\n"
+        )
+        df = load_data(f, on_malformed_row="heal_or_drop")
+        assert len(df) == 1

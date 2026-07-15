@@ -243,9 +243,10 @@ def evaluate_sumo_manual_crossvalidation(
     all_observations = load_data(PROCESSED_TRAINING_FILE)[output_response].astype(float)
     n_samples = len(all_observations)
     indices = np.arange(n_samples)
-    all_predictions = np.empty(n_samples)
-    all_stds = np.empty(n_samples)
+    all_predictions = np.full(n_samples, np.nan)
+    all_stds = np.full(n_samples, np.nan)
     kf = KFold(n_splits=N_CROSS_VALIDATION, shuffle=True, random_state=42)
+    parse_warnings: list[str] = []
 
     for fold, (_, val_idx) in enumerate(kf.split(indices)):
         fold_run_dir = run_dir / f"fold_{fold}"
@@ -263,27 +264,61 @@ def evaluate_sumo_manual_crossvalidation(
         dakobj = DakotaObject()
         dakobj.run(dakota_conf, fold_run_dir)
 
-        # Extract predictions for this fold and store in the correct positions
+        # Extract predictions for this fold and store in the correct positions.
+        # `on_malformed_row="heal_or_drop"` recovers/skips rows corrupted by Dakota's
+        # own tabular-writer defect (B22) instead of failing the whole fold; rows are
+        # matched back to `val_idx` via their own `_eval_id` (their sequential position
+        # among this fold's validation points), NOT by array position, so a dropped row
+        # simply leaves that sample's prediction as NaN rather than misaligning the rest.
         try:
-            fold_predictions = get_results(fold_run_dir / "predictions.dat", output_response)
+            predictions_df = load_data(
+                fold_run_dir / "predictions.dat",
+                on_malformed_row="heal_or_drop",
+                warnings=parse_warnings,
+            )
         except Exception as exc:
             raise RuntimeError(
                 f"Fold {fold} of {N_CROSS_VALIDATION}: failed to parse Dakota's "
                 f"predictions.dat ({exc})"
             ) from exc
+        fold_eval_ids = predictions_df["_eval_id"].astype(int).values
+        fold_predictions = predictions_df[output_response].astype(float).values
+        for local_eval_id, prediction in zip(fold_eval_ids, fold_predictions):
+            if not (1 <= local_eval_id <= len(val_idx)):
+                parse_warnings.append(
+                    f"Fold {fold}: predictions.dat row had _eval_id={local_eval_id}, "
+                    f"outside this fold's {len(val_idx)} validation points; dropped"
+                )
+                continue
+            all_predictions[val_idx[local_eval_id - 1]] = prediction
         print(f"Fold {fold} predictions: {fold_predictions}")
         print(f"Validation indices: {val_idx}")
 
-        all_predictions[val_idx] = fold_predictions
         if (fold_run_dir / "variances.dat").is_file():
-            fold_var = get_results(fold_run_dir / "variances.dat", output_response + "_variance")
-            all_stds[val_idx] = np.sqrt(fold_var)
+            variances_df = load_data(
+                fold_run_dir / "variances.dat",
+                on_malformed_row="heal_or_drop",
+                warnings=parse_warnings,
+            )
+            var_eval_ids = variances_df["_eval_id"].astype(int).values
+            fold_var = variances_df[output_response + "_variance"].astype(float).values
+            for local_eval_id, var in zip(var_eval_ids, fold_var):
+                if not (1 <= local_eval_id <= len(val_idx)):
+                    parse_warnings.append(
+                        f"Fold {fold}: variances.dat row had _eval_id={local_eval_id}, "
+                        f"outside this fold's {len(val_idx)} validation points; dropped"
+                    )
+                    continue
+                all_stds[val_idx[local_eval_id - 1]] = np.sqrt(var)
 
-    return {
+    result = {
         output_response: all_observations.tolist(),
         output_response + "_hat": all_predictions.tolist(),
         output_response + "_std_hat": all_stds.tolist(),
     }
+    if parse_warnings:
+        result["warnings"] = parse_warnings
+    return result
 
 
 def compute_cv_accuracy_metrics(
@@ -303,6 +338,12 @@ def compute_cv_accuracy_metrics(
             f"actual (shape {actual_arr.shape}) and predicted (shape {predicted_arr.shape}) "
             "must have the same shape"
         )
+    # NaN entries come from CV points evaluate_sumo_manual_crossvalidation couldn't fill
+    # (a fold row dropped per B22) - exclude them rather than let a single dropped point
+    # turn every metric into NaN.
+    valid = ~np.isnan(actual_arr) & ~np.isnan(predicted_arr)
+    actual_arr = actual_arr[valid]
+    predicted_arr = predicted_arr[valid]
     residuals = actual_arr - predicted_arr
     abs_residuals = np.abs(residuals)
     return {
@@ -329,6 +370,10 @@ def compute_paired_ttest(
             f"actual (shape {actual_arr.shape}) and predicted (shape {predicted_arr.shape}) "
             "must have the same shape"
         )
+    # See compute_cv_accuracy_metrics: NaN entries are dropped CV rows (B22), not real data.
+    valid = ~np.isnan(actual_arr) & ~np.isnan(predicted_arr)
+    actual_arr = actual_arr[valid]
+    predicted_arr = predicted_arr[valid]
     if actual_arr.size < 2:
         raise ValueError("Paired t-test requires at least 2 CV samples")
     result = ttest_rel(actual_arr, predicted_arr)

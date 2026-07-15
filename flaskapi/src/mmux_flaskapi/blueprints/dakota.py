@@ -233,7 +233,17 @@ def _inverse_transform_output_results(
             if original_name in inverse:
                 transformed[original_name + suffix] = inverse[original_name]
 
+    if "warnings" in results:
+        transformed["warnings"] = results["warnings"]
+
     return transformed
+
+
+def _replace_nan_with_none(values: list) -> list:
+    """Replace NaN (an unrecoverable CV row dropped per B22) with JSON-safe null -
+    Python's json module happily emits a literal `NaN` token, which is not valid JSON
+    and breaks `response.json()`/`JSON.parse` on the frontend."""
+    return [None if isinstance(v, float) and np.isnan(v) else v for v in values]
 
 
 def _mapped_to_original(preprocessor: DataPreprocessor) -> dict[str, str]:
@@ -337,6 +347,9 @@ def flask_sumo_cross_validation():
         # Inverse transform results to return original variable names while
         # preserving prediction suffixes expected by the client.
         results_transformed = _inverse_transform_output_results(preprocessor, results)
+        for key, value in results_transformed.items():
+            if key != "warnings" and isinstance(value, list):
+                results_transformed[key] = _replace_nan_with_none(value)
 
         _logger.debug("Cross-validation completed successfully!")
         return jsonify(results_transformed)

@@ -78,8 +78,44 @@ def get_variable_names(file: str | Path) -> list[str]:
         raise ValueError(f"File {file} is not a DAT / TXT / JSON / CSV file")
 
 
+def _try_heal_duplicated_prefix_row(
+    row: list[str], header: list[str], line_num: int
+) -> list[str] | None:
+    """Attempt to recover a row corrupted by Dakota's tabular writer (B22, 2026-07-15):
+    confirmed via raw-byte inspection of a real `predictions.dat` that Dakota can, for
+    some rows, write columns `1..k-1` (interface + leading variables) TWICE before
+    continuing on to write the remaining columns `k..H-1` once - e.g. for an 11-variable
+    row: `eval_id interface x1..x9` then AGAIN `interface x1..x9` (near-identical, tiny
+    float noise) then finally `x10 x11 y1`. Column 0 (`_eval_id`) is never repeated in
+    the second attempt, so it's lost - but since `_eval_id` is always the row's own
+    sequential position, it can be safely reconstructed as `line_num - 1`.
+
+    Only attempted when column 0/1 are `_eval_id`/`interface` (Dakota's own tabular
+    convention) - this is a targeted recovery for this exact observed corruption shape,
+    not a general-purpose repair.
+    """
+    H = len(header)
+    if H < 3 or header[0] != "_eval_id" or header[1] != "interface":
+        return None
+    row_len = len(row)
+    # row_len == k + (k - 1) + (H - k) for the k at which the duplicated write restarted
+    k = row_len - H + 1
+    if not (2 <= k <= H - 1):
+        return None
+    second_copy = row[k : 2 * k - 1]
+    tail = row[2 * k - 1 :]
+    if len(second_copy) != k - 1 or len(tail) != H - k:
+        return None
+    first_copy = row[1:k]
+    if not first_copy or first_copy[0] != second_copy[0]:
+        return None  # interface token must agree between the two write attempts
+    return [str(line_num - 1)] + second_copy + tail
+
+
 def load_data(
     files: str | Path | list[Path],
+    on_malformed_row: Literal["raise", "heal_or_drop"] = "raise",
+    warnings: list[str] | None = None,
 ) -> pd.DataFrame:
     dfs = []
     if isinstance(files, (str, Path)):
@@ -93,8 +129,29 @@ def load_data(
             lines = _parse_data(file)
             header = sanitize_varnames(lines[0])
             data_lines = lines[1:]
+            rows_to_drop = set()
             for line_num, row in enumerate(data_lines, start=2):
                 if len(row) != len(header):
+                    if on_malformed_row == "heal_or_drop":
+                        healed = _try_heal_duplicated_prefix_row(row, header, line_num)
+                        if healed is not None:
+                            data_lines[line_num - 2] = healed
+                            if warnings is not None:
+                                warnings.append(
+                                    f"Recovered corrupted row at {file}:{line_num} "
+                                    f"({len(row)} raw tokens for a {len(header)}-column "
+                                    "header) from Dakota's duplicated-prefix tabular-writer "
+                                    "defect (B22)"
+                                )
+                            continue
+                        rows_to_drop.add(line_num - 2)
+                        if warnings is not None:
+                            warnings.append(
+                                f"Dropped unrecoverable malformed row at {file}:{line_num} "
+                                f"(header has {len(header)} columns, row has {len(row)}): "
+                                f"{row!r}"
+                            )
+                        continue
                     # Grab raw (untokenized) lines around the mismatch - if this is ever a
                     # Dakota tabular-writer line-wrapping quirk, the raw previous/next line
                     # (e.g. unusually long or short) is the evidence needed to confirm it,
@@ -111,6 +168,8 @@ def load_data(
                         f"line {line_num} (offending): {curr_raw!r} ({len(curr_raw)} chars); "
                         f"line {line_num + 1}: {next_raw!r}"
                     )
+            if rows_to_drop:
+                data_lines = [r for i, r in enumerate(data_lines) if i not in rows_to_drop]
             dfs.append(pd.DataFrame(data_lines, columns=header))
         elif ext == ".json":
             columns, data = _parse_json_dict(file)
@@ -229,8 +288,13 @@ def _filter_data(
     return df
 
 
-def get_results(file: Path, key: str = "-AFpeak") -> np.ndarray:
-    df = load_data(file)
+def get_results(
+    file: Path,
+    key: str = "-AFpeak",
+    on_malformed_row: Literal["raise", "heal_or_drop"] = "raise",
+    warnings: list[str] | None = None,
+) -> np.ndarray:
+    df = load_data(file, on_malformed_row=on_malformed_row, warnings=warnings)
     results = df[key].values
     results = [float(r) for r in results]
     return np.array(results)

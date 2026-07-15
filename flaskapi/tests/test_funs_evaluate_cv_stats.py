@@ -40,6 +40,19 @@ class TestComputeCvAccuracyMetrics:
         with pytest.raises(ValueError, match="same shape"):
             compute_cv_accuracy_metrics([1.0, 2.0], [1.0, 2.0, 3.0])
 
+    def test_nan_pair_from_dropped_cv_row_is_excluded(self):
+        """B22: a fold row evaluate_sumo_manual_crossvalidation couldn't recover leaves
+        NaN in actual/predicted at that position - it must be excluded, not turn every
+        metric into NaN."""
+        actual = [1.0, 2.0, 3.0, 4.0]
+        predicted = [2.0, 2.0, 3.0, float("nan")]
+        metrics = compute_cv_accuracy_metrics(actual, predicted)
+        # only the first 3 pairs contribute: residuals -1, 0, 0
+        assert metrics["sum_abs"] == pytest.approx(1.0)
+        assert metrics["mean_abs"] == pytest.approx(1.0 / 3)
+        assert metrics["max_abs"] == pytest.approx(1.0)
+        assert not np.isnan(metrics["root_mean_squared"])
+
 
 class TestComputePairedTtest:
     def test_no_systematic_bias_high_pvalue(self):
@@ -73,6 +86,15 @@ class TestComputePairedTtest:
     def test_too_few_samples_raises(self):
         with pytest.raises(ValueError, match="at least 2"):
             compute_paired_ttest([1.0], [1.0])
+
+    def test_nan_pair_from_dropped_cv_row_is_excluded(self):
+        """B22: same NaN-exclusion behavior as compute_cv_accuracy_metrics."""
+        actual = [1.0, 2.0, 3.0, 4.0, 5.0]
+        predicted = [2.0, 1.0, 4.0, 3.0, float("nan")]  # last pair dropped (NaN)
+        result = compute_paired_ttest(actual, predicted)
+        # remaining residuals -1,+1,-1,+1 -> mean 0, non-zero variance
+        assert result["statistic"] == pytest.approx(0.0)
+        assert result["p_value"] == pytest.approx(1.0)
 
 
 class TestConvergenceSubsetSizes:
