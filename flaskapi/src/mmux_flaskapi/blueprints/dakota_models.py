@@ -821,6 +821,12 @@ class UQWithUncertaintyResponse(BaseModel):
     min: float = Field(..., description="Minimum value across all samples")
     max: float = Field(..., description="Maximum value across all samples")
 
+    # Extended percentile statistics for UQ Stats modal (T24/T32/node T34)
+    p1: float = Field(..., description="1st percentile")
+    p5: float = Field(..., description="5th percentile")
+    p95: float = Field(..., description="95th percentile")
+    p99: float = Field(..., description="99th percentile")
+
     @field_validator("bin_means", "bin_stds")
     @classmethod
     def validate_bin_arrays_same_length(cls, v: list[float]) -> list[float]:

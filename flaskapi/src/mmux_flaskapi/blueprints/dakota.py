@@ -493,6 +493,11 @@ def flask_manual_uq_propagation_with_uncertainty():
         q3 = np.percentile(all_values_flat, 75)
         iqr = q3 - q1
 
+        # Extended percentiles for UQ Stats modal (T24/T32/node T34); p1/p99 reuse the
+        # already-computed histogram bounds (hist_min/hist_max)
+        p5 = np.percentile(all_values_flat, 5)
+        p95 = np.percentile(all_values_flat, 95)
+
         # Calculate whisker boundaries (1.5 * IQR rule)
         whisker_min = max(hist_min, q1 - 1.5 * iqr)
         whisker_max = min(hist_max, q3 + 1.5 * iqr)
@@ -518,6 +523,10 @@ def flask_manual_uq_propagation_with_uncertainty():
             "std": float(np.std(all_values_flat)),
             "min": float(np.min(all_values_flat)),
             "max": float(np.max(all_values_flat)),
+            "p1": float(hist_min),
+            "p5": float(p5),
+            "p95": float(p95),
+            "p99": float(hist_max),
         }
 
         # Validate response using Pydantic

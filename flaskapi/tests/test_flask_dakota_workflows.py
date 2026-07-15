@@ -1383,11 +1383,26 @@ class TestManualUQWithUncertainty:
         assert "min" in data and isinstance(data["min"], (int, float))
         assert "max" in data and isinstance(data["max"], (int, float))
 
+        # Check extended percentile statistics (T24/T32/node T34, UQ Stats modal)
+        assert "p1" in data and isinstance(data["p1"], (int, float))
+        assert "p5" in data and isinstance(data["p5"], (int, float))
+        assert "p95" in data and isinstance(data["p95"], (int, float))
+        assert "p99" in data and isinstance(data["p99"], (int, float))
+
         # Validate statistical ordering
         assert data["q1"] <= data["median"] <= data["q3"]
         assert data["whiskerMin"] <= data["whiskerMax"]
         assert data["min"] <= data["max"]
         assert data["std"] >= 0
+        assert (
+            data["p1"]
+            <= data["p5"]
+            <= data["q1"]
+            <= data["median"]
+            <= data["q3"]
+            <= data["p95"]
+            <= data["p99"]
+        )
 
     def test_uq_uncertainty_large_histograms(self, test_client: Flask):
         """Test with larger number of histograms for uncertainty estimation."""
