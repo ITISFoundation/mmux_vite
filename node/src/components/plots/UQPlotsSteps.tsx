@@ -4,12 +4,12 @@ import UncertainUQ from "./UncertainUQ";
 import CorrelationIndicesPlot from "./CorrelationIndicesPlot";
 import SobolIndicesPlot from "./SobolIndicesPlot";
 
-const uqStepTitles = ["Histogram", "Correlation", "Sobol'"];
+const uqStepTitles = ["Histogram", "Correlation", "Sobol' Indices"];
 
 const uqStepInfoTexts: Record<string, string | undefined> = {
   Histogram: "Uncertainty propagation histogram with percentile statistics",
   Correlation: undefined,
-  "Sobol'": undefined,
+  "Sobol' Indices": undefined,
 };
 
 type UQPlotsStepsProps = LoadingPropsType;
@@ -41,6 +41,7 @@ function UQPlotsSteps(props: UQPlotsStepsProps) {
       maxSteps={uqStepTitles.length}
       onNext={handleNext}
       onBack={handleBack}
+      contentMinHeight={500}
       nextTestId="uq-plot-next"
       backTestId="uq-plot-back"
     />

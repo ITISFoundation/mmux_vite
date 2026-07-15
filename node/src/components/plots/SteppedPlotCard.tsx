@@ -20,10 +20,13 @@ export type SteppedPlotCardProps = {
   qoiSelector?: React.ReactNode;
   nextTestId?: string;
   backTestId?: string;
+  /** Reserves space for the content slot so steps of varying height don't shift the Next/Back buttons. */
+  contentMinHeight?: number | string;
 };
 
 function SteppedPlotCard(props: SteppedPlotCardProps) {
-  const { steps, activeStep, maxSteps, onNext, onBack, headerType, qoiSelector, nextTestId, backTestId } = props;
+  const { steps, activeStep, maxSteps, onNext, onBack, headerType, qoiSelector, nextTestId, backTestId, contentMinHeight } =
+    props;
   const theme = useTheme();
   const currentStep = steps[activeStep];
 
@@ -54,6 +57,7 @@ function SteppedPlotCard(props: SteppedPlotCardProps) {
           margin: "16px 0px",
           borderRadius: theme.spacing(2),
           overflow: "hidden",
+          minHeight: contentMinHeight,
         }}
       >
         {currentStep?.content}

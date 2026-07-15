@@ -53,7 +53,7 @@ describe("UQPlotsSteps", () => {
     render(<UQPlotsSteps {...defaultProps} />);
     await userEvent.click(screen.getByText("Next"));
     await userEvent.click(screen.getByText("Next"));
-    expect(screen.getByText("Sobol'")).toBeDefined();
+    expect(screen.getByText("Sobol' Indices")).toBeDefined();
     expect(screen.getByTestId("sobol-plot")).toBeDefined();
     expect(screen.queryByTestId("uncertain-uq")).toBeNull();
     expect(screen.queryByTestId("correlation-plot")).toBeNull();
