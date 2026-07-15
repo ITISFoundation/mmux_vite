@@ -20,7 +20,7 @@ export default function SobolIndicesPlot() {
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [computing, setComputing] = useState(false);
   const [viewMode, setViewMode] = useState<SobolViewMode>("first-order");
-  const [scaleType, setScaleType] = useState<ScaleType>("linear");
+  const [scaleType, setScaleType] = useState<ScaleType>("log");
 
   useEffect(() => {
     (async () => {
