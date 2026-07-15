@@ -36,6 +36,13 @@ class TestSobolSampling:
         for requested, expected_n in [(100, 128), (1, 2), (17, 32), (64, 64), (256, 256)]:
             assert 2 ** math.ceil(math.log2(max(requested, 2))) == expected_n
 
+    def test_sobol_base_samples_is_1024(self):
+        """V36: Sobol' uses a fixed base N=1024 (Saltelli scheme), decoupled from
+        the shared UQ `numSamples` field used by Histogram/Correlation."""
+        from mmux_flaskapi.dakota.funs_evaluate import SOBOL_BASE_SAMPLES
+
+        assert SOBOL_BASE_SAMPLES == 1024
+
     def test_constant_variable_indices_are_zero(self):
         """Constant input variables get main=0, total=0 in the response."""
 
@@ -60,7 +67,16 @@ class TestSobolSampling:
         from mmux_flaskapi.blueprints.dakota_models import SobolIndicesResponse
 
         resp = SobolIndicesResponse(
-            sobol={"x1": {"main": 0.3, "total": 0.5}},
+            sobol={
+                "x1": {
+                    "main": 0.3,
+                    "total": 0.5,
+                    "main_ci_low": 0.2,
+                    "main_ci_high": 0.4,
+                    "total_ci_low": 0.4,
+                    "total_ci_high": 0.6,
+                }
+            },
             sobol_second_order={},
         )
         assert resp.sobol_second_order == {}
@@ -70,8 +86,12 @@ class TestSobolSampling:
         from mmux_flaskapi.blueprints.dakota_models import SobolIndicesResponse
 
         s12 = 0.15
+        ci = {"main_ci_low": 0.1, "main_ci_high": 0.4, "total_ci_low": 0.3, "total_ci_high": 0.6}
         resp = SobolIndicesResponse(
-            sobol={"x1": {"main": 0.3, "total": 0.5}, "x2": {"main": 0.2, "total": 0.4}},
+            sobol={
+                "x1": {"main": 0.3, "total": 0.5, **ci},
+                "x2": {"main": 0.2, "total": 0.4, **ci},
+            },
             sobol_second_order={"x1": {"x2": s12}, "x2": {"x1": s12}},
         )
         assert resp.sobol_second_order["x1"]["x2"] == s12
@@ -184,8 +204,15 @@ def _make_distributions(input_vars: list[str]) -> dict:
 class TestComputeSobolIndicesRoute:
     """Test suite for the /flask/dakota/compute_sobol_indices endpoint."""
 
+    @pytest.fixture(autouse=True)
+    def _small_sobol_base_samples(self, monkeypatch):
+        """V36: SOBOL_BASE_SAMPLES is now a fixed constant (⊥ request numSamples), so
+        shrink it for these route tests to keep them fast (mirrors the old numSamples=10
+        trick these tests used before the base count was decoupled from the request)."""
+        monkeypatch.setattr("mmux_flaskapi.dakota.funs_evaluate.SOBOL_BASE_SAMPLES", 8)
+
     def test_sobol_indices_success(self, test_client: Flask):
-        """Valid request returns 200, sobol, and sobolSecondOrder keys."""
+        """Valid request returns 200, sobol, and sobolSecondOrder keys (incl. bootstrap CIs)."""
         input_vars = ["x1", "x2"]
         output = "y"
 
@@ -205,10 +232,15 @@ class TestComputeSobolIndicesRoute:
         assert isinstance(data, dict)
         assert "sobol" in data
         assert set(data["sobol"].keys()) == set(input_vars)
+        ci_keys = ("mainCiLow", "mainCiHigh", "totalCiLow", "totalCiHigh")
         for var in input_vars:
             entry = data["sobol"][var]
             assert "main" in entry and isinstance(entry["main"], (int, float))
             assert "total" in entry and isinstance(entry["total"], (int, float))
+            for key in ci_keys:
+                assert key in entry and isinstance(entry[key], (int, float))
+            assert entry["mainCiLow"] <= entry["mainCiHigh"]
+            assert entry["totalCiLow"] <= entry["totalCiHigh"]
         # sobolSecondOrder is always present
         assert "sobolSecondOrder" in data
         assert isinstance(data["sobolSecondOrder"], dict)

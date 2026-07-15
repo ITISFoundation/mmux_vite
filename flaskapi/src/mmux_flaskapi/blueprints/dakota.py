@@ -645,7 +645,10 @@ def flask_compute_sobol_indices():
         output_response = validated_request.output
         input_vars = validated_request.input_vars
         distributions = validated_request.distributions
-        num_samples = validated_request.num_samples
+        # NOTE (V36): `num_samples` is intentionally unused here -- Sobol' uses a
+        # fixed SOBOL_BASE_SAMPLES constant (decoupled from the shared UQ numSamples
+        # field, which SobolIndicesRequest still carries only for schema/validation
+        # compatibility with ManualUQPropagationRequest, e.g. the >=5-completed-jobs check).
         jobs = validated_request.function_jobs
         seed = validated_request.seed
 
@@ -663,13 +666,13 @@ def flask_compute_sobol_indices():
         # Convert Pydantic distribution models to dicts for evaluate_sobol_indices
         distributions_dict = {var: dist.model_dump() for var, dist in distributions.items()}
 
-        # Compute Sobol' indices: Saltelli sampling + single evaluate_sumo() batch
+        # Compute Sobol' indices: Saltelli sampling (fixed SOBOL_BASE_SAMPLES, V36)
+        # + single evaluate_sumo() batch
         results = evaluate_sobol_indices(
             run_dir,
             PROCESSED_TRAINING_FILE,
             input_vars,
             mapped_output_var,
-            num_samples,
             distributions_dict,
             preprocessor,
             seed=seed,

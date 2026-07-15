@@ -82,6 +82,14 @@ _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
     }
 )
 
+# Subset of `_DEFAULT_PRESERVE_NESTED_KEYS` whose values are ONE level of
+# {variable_name: {field: value}} -- the variable_name keys must stay
+# untouched (B15), but the per-field keys (e.g. "main_ci_low") are still API
+# field names and must still be camelCased (flaskapi/SPEC.md V37), unlike
+# "sobol_second_order" which nests a SECOND variable-name level
+# ({varA: {varB: float}}) that must be fully preserved instead.
+_FIELD_LEVEL_PRESERVE_KEYS = frozenset({"correlations", "sobol"})
+
 
 def recursive_dict_keys_camel_to_snake(
     d: dict,
@@ -123,7 +131,15 @@ def recursive_dict_keys_snake_to_camel(
     for k, v in d.items():
         camel_key = snake_to_camel(k)
         if k in preserve_nested_keys and isinstance(v, dict):
-            converted[camel_key] = v
+            if k in _FIELD_LEVEL_PRESERVE_KEYS:
+                converted[camel_key] = {
+                    var_name: (
+                        dict_keys_snake_to_camel(inner) if isinstance(inner, dict) else inner
+                    )
+                    for var_name, inner in v.items()
+                }
+            else:
+                converted[camel_key] = v
             continue
         if isinstance(v, dict) and (max_depth == -1 or current_depth < max_depth):
             converted[camel_key] = recursive_dict_keys_snake_to_camel(

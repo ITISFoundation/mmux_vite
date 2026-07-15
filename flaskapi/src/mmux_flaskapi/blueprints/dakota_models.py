@@ -1068,14 +1068,33 @@ class SobolIndicesRequest(ManualUQPropagationRequest):
 
 
 class SobolIndexPair(BaseModel):
-    """First-order (main effect) and total-order Sobol' sensitivity indices for a single input variable."""
+    """First-order (main effect) and total-order Sobol' sensitivity indices for a single input variable.
+
+    `*_ci_low`/`*_ci_high` are bootstrap confidence intervals (V37, default 95%)
+    computed by resampling the existing Saltelli evaluations -- no extra
+    surrogate calls, so they come for free alongside the point estimates.
+    """
 
     model_config = ConfigDict(frozen=True)
 
     main: float = Field(..., description="First-order (main effect) Sobol' index")
     total: float = Field(..., description="Total-order Sobol' index")
+    main_ci_low: float = Field(
+        ..., description="Bootstrap confidence interval lower bound for `main`"
+    )
+    main_ci_high: float = Field(
+        ..., description="Bootstrap confidence interval upper bound for `main`"
+    )
+    total_ci_low: float = Field(
+        ..., description="Bootstrap confidence interval lower bound for `total`"
+    )
+    total_ci_high: float = Field(
+        ..., description="Bootstrap confidence interval upper bound for `total`"
+    )
 
-    @field_validator("main", "total")
+    @field_validator(
+        "main", "total", "main_ci_low", "main_ci_high", "total_ci_low", "total_ci_high"
+    )
     @classmethod
     def validate_finite(cls, v: float) -> float:
         """Ensure Sobol' indices are finite numbers (⊥ nan/inf)."""
