@@ -91,7 +91,15 @@ def load_data(
         _, ext = os.path.splitext(file)
         if ext == ".dat" or ext == ".txt":
             lines = _parse_data(file)
-            dfs.append(pd.DataFrame(lines[1:], columns=sanitize_varnames(lines[0])))
+            header = sanitize_varnames(lines[0])
+            data_lines = lines[1:]
+            for line_num, row in enumerate(data_lines, start=2):
+                if len(row) != len(header):
+                    raise ValueError(
+                        f"Malformed data file {file}: header (line 1) has {len(header)} "
+                        f"columns {header} but line {line_num} has {len(row)} columns: {row!r}"
+                    )
+            dfs.append(pd.DataFrame(data_lines, columns=header))
         elif ext == ".json":
             columns, data = _parse_json_dict(file)
             dfs.append(pd.DataFrame(data=data, columns=sanitize_varnames(columns)))

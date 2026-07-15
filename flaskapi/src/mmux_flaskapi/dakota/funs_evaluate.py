@@ -264,7 +264,13 @@ def evaluate_sumo_manual_crossvalidation(
         dakobj.run(dakota_conf, fold_run_dir)
 
         # Extract predictions for this fold and store in the correct positions
-        fold_predictions = get_results(fold_run_dir / "predictions.dat", output_response)
+        try:
+            fold_predictions = get_results(fold_run_dir / "predictions.dat", output_response)
+        except Exception as exc:
+            raise RuntimeError(
+                f"Fold {fold} of {N_CROSS_VALIDATION}: failed to parse Dakota's "
+                f"predictions.dat ({exc})"
+            ) from exc
         print(f"Fold {fold} predictions: {fold_predictions}")
         print(f"Validation indices: {val_idx}")
 
