@@ -21,8 +21,8 @@ describe("fetchSobolIndices", () => {
   it("posts the expected payload and returns the parsed response on success", async () => {
     const mockResponseBody: SobolIndicesResponse = {
       sobol: {
-        x1: { main: 0.7, total: 0.9 },
-        x2: { main: 0.1, total: 0.2 },
+        x1: { main: 0.7, total: 0.9, mainCiLow: 0.7, mainCiHigh: 0.7, totalCiLow: 0.9, totalCiHigh: 0.9 },
+        x2: { main: 0.1, total: 0.2, mainCiLow: 0.1, mainCiHigh: 0.1, totalCiLow: 0.2, totalCiHigh: 0.2 },
       },
       sobolSecondOrder: {
         x1: { x2: 0.05 },
@@ -105,8 +105,8 @@ describe("fetchSobolIndices", () => {
 describe("buildSobolBarData", () => {
   it("builds one Main-effect trace and one Total-effect trace, ordered by inputVars", () => {
     const sobol: SobolIndicesResponse["sobol"] = {
-      x1: { main: 0.7, total: 0.9 },
-      x2: { main: 0.1, total: 0.2 },
+      x1: { main: 0.7, total: 0.9, mainCiLow: 0.7, mainCiHigh: 0.7, totalCiLow: 0.9, totalCiHigh: 0.9 },
+      x2: { main: 0.1, total: 0.2, mainCiLow: 0.1, mainCiHigh: 0.1, totalCiLow: 0.2, totalCiHigh: 0.2 },
     };
 
     const traces = buildSobolBarData(sobol, ["x1", "x2"], {
@@ -120,10 +120,14 @@ describe("buildSobolBarData", () => {
   });
 
   it("falls back to 0 for input variables missing from the sobol map", () => {
-    const traces = buildSobolBarData({ x1: { main: 0.5, total: 0.6 } }, ["x1", "x2"], {
-      main: "#111111",
-      total: "#222222",
-    });
+    const traces = buildSobolBarData(
+      { x1: { main: 0.5, total: 0.6, mainCiLow: 0.5, mainCiHigh: 0.5, totalCiLow: 0.6, totalCiHigh: 0.6 } },
+      ["x1", "x2"],
+      {
+        main: "#111111",
+        total: "#222222",
+      },
+    );
 
     expect(traces[0]).toMatchObject({ y: [0.5, 0] });
     expect(traces[1]).toMatchObject({ y: [0.6, 0] });
@@ -135,8 +139,8 @@ describe("buildSobolHeatmapData", () => {
 
   it("returns a heatmap trace with correct shape", () => {
     const sobol: SobolIndicesResponse["sobol"] = {
-      x1: { main: 0.7, total: 0.9 },
-      x2: { main: 0.1, total: 0.2 },
+      x1: { main: 0.7, total: 0.9, mainCiLow: 0.7, mainCiHigh: 0.7, totalCiLow: 0.9, totalCiHigh: 0.9 },
+      x2: { main: 0.1, total: 0.2, mainCiLow: 0.1, mainCiHigh: 0.1, totalCiLow: 0.2, totalCiHigh: 0.2 },
     };
     const sobolSecondOrder: SobolIndicesResponse["sobolSecondOrder"] = {
       x1: { x2: 0.05 },
@@ -155,8 +159,8 @@ describe("buildSobolHeatmapData", () => {
 
   it("fills diagonal cells with first-order (main) index", () => {
     const sobol: SobolIndicesResponse["sobol"] = {
-      x1: { main: 0.7, total: 0.9 },
-      x2: { main: 0.1, total: 0.2 },
+      x1: { main: 0.7, total: 0.9, mainCiLow: 0.7, mainCiHigh: 0.7, totalCiLow: 0.9, totalCiHigh: 0.9 },
+      x2: { main: 0.1, total: 0.2, mainCiLow: 0.1, mainCiHigh: 0.1, totalCiLow: 0.2, totalCiHigh: 0.2 },
     };
     const sobolSecondOrder: SobolIndicesResponse["sobolSecondOrder"] = {
       x1: { x2: 0.05 },
@@ -171,9 +175,9 @@ describe("buildSobolHeatmapData", () => {
 
   it("places symmetric pairwise second-order values correctly", () => {
     const sobol: SobolIndicesResponse["sobol"] = {
-      x1: { main: 0.5, total: 0.7 },
-      x2: { main: 0.3, total: 0.5 },
-      x3: { main: 0.1, total: 0.2 },
+      x1: { main: 0.5, total: 0.7, mainCiLow: 0.5, mainCiHigh: 0.5, totalCiLow: 0.7, totalCiHigh: 0.7 },
+      x2: { main: 0.3, total: 0.5, mainCiLow: 0.3, mainCiHigh: 0.3, totalCiLow: 0.5, totalCiHigh: 0.5 },
+      x3: { main: 0.1, total: 0.2, mainCiLow: 0.1, mainCiHigh: 0.1, totalCiLow: 0.2, totalCiHigh: 0.2 },
     };
     const sobolSecondOrder: SobolIndicesResponse["sobolSecondOrder"] = {
       x1: { x2: 0.08, x3: 0.03 },
@@ -196,8 +200,8 @@ describe("buildSobolHeatmapData", () => {
 
   it("handles missing second-order entries by falling back to 0", () => {
     const sobol: SobolIndicesResponse["sobol"] = {
-      x1: { main: 0.4, total: 0.6 },
-      x2: { main: 0.2, total: 0.3 },
+      x1: { main: 0.4, total: 0.6, mainCiLow: 0.4, mainCiHigh: 0.4, totalCiLow: 0.6, totalCiHigh: 0.6 },
+      x2: { main: 0.2, total: 0.3, mainCiLow: 0.2, mainCiHigh: 0.2, totalCiLow: 0.3, totalCiHigh: 0.3 },
     };
     const sobolSecondOrder: SobolIndicesResponse["sobolSecondOrder"] = {};
 

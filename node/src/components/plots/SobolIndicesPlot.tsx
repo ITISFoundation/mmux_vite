@@ -4,6 +4,7 @@ import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
+import { sobolLinearRange, sobolLogRange, toLogSafe, type ScaleType } from "../../utils/plotScale";
 import { buildSobolHeatmapData, fetchSobolIndices } from "../../utils/sobolIndices";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
@@ -19,6 +20,7 @@ export default function SobolIndicesPlot() {
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [computing, setComputing] = useState(false);
   const [viewMode, setViewMode] = useState<SobolViewMode>("first-order");
+  const [scaleType, setScaleType] = useState<ScaleType>("linear");
 
   useEffect(() => {
     (async () => {
@@ -58,6 +60,8 @@ export default function SobolIndicesPlot() {
 
     if (viewMode === "first-order") {
       const mainValues = inputVars.map(v => sobol[v]?.main ?? 0);
+      const ciHighDelta = inputVars.map(v => Math.max(0, (sobol[v]?.mainCiHigh ?? sobol[v]?.main ?? 0) - (sobol[v]?.main ?? 0)));
+      const ciLowDelta = inputVars.map(v => Math.max(0, (sobol[v]?.main ?? 0) - (sobol[v]?.mainCiLow ?? sobol[v]?.main ?? 0)));
       setPlotData([
         {
           x: inputVars,
@@ -65,10 +69,15 @@ export default function SobolIndicesPlot() {
           type: "bar",
           name: "First order",
           marker: { color: theme.palette.primary.main },
+          error_y: { type: "data", symmetric: false, array: ciHighDelta, arrayminus: ciLowDelta },
         },
       ]);
     } else if (viewMode === "total-order") {
       const totalValues = inputVars.map(v => sobol[v]?.total ?? 0);
+      const ciHighDelta = inputVars.map(v =>
+        Math.max(0, (sobol[v]?.totalCiHigh ?? sobol[v]?.total ?? 0) - (sobol[v]?.total ?? 0)),
+      );
+      const ciLowDelta = inputVars.map(v => Math.max(0, (sobol[v]?.total ?? 0) - (sobol[v]?.totalCiLow ?? sobol[v]?.total ?? 0)));
       setPlotData([
         {
           x: inputVars,
@@ -76,13 +85,20 @@ export default function SobolIndicesPlot() {
           type: "bar",
           name: "Total order",
           marker: { color: theme.palette.secondary.main },
+          error_y: { type: "data", symmetric: false, array: ciHighDelta, arrayminus: ciLowDelta },
         },
       ]);
     } else {
-      // second-order heatmap
-      setPlotData([buildSobolHeatmapData(sobol, sobolSecondOrder, inputVars)]);
+      // second-order heatmap: log scale applies to the color axis, not a value axis
+      const heatmap = buildSobolHeatmapData(sobol, sobolSecondOrder, inputVars);
+      if (scaleType === "log") {
+        const z = (heatmap.z as number[][]).map(row => row.map(toLogSafe));
+        setPlotData([{ ...heatmap, z, zmin: sobolLogRange[0], zmax: sobolLogRange[1] }]);
+      } else {
+        setPlotData([{ ...heatmap, zmin: sobolLinearRange[0], zmax: sobolLinearRange[1] }]);
+      }
     }
-  }, [sobolData, viewMode, inputVars, theme.palette.primary.main, theme.palette.secondary.main]);
+  }, [sobolData, viewMode, scaleType, inputVars, theme.palette.primary.main, theme.palette.secondary.main]);
 
   const handleViewModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: SobolViewMode | null) => {
     if (newMode !== null) {
@@ -90,10 +106,16 @@ export default function SobolIndicesPlot() {
     }
   };
 
+  const handleScaleTypeChange = (_event: React.MouseEvent<HTMLElement>, newScale: ScaleType | null) => {
+    if (newScale !== null) {
+      setScaleType(newScale);
+    }
+  };
+
   const isHeatmap = viewMode === "second-order";
   const layout = isHeatmap
     ? {
-        title: { text: "Sobol' Second-Order Indices" },
+        title: { text: "Sobol' Indices" },
         xaxis: { title: { text: "Variable" }, side: "bottom" as const },
         yaxis: { title: { text: "Variable" }, autorange: "reversed" as const },
         plot_bgcolor: `${theme.palette.background.default}`,
@@ -101,9 +123,13 @@ export default function SobolIndicesPlot() {
         font: { color: `${theme.palette.text.primary}` },
       }
     : {
-        title: { text: `Sobol' ${viewMode === "first-order" ? "First-Order" : "Total-Order"} Index` },
+        title: { text: "Sobol' Indices" },
         xaxis: { title: { text: "Input variable" } },
-        yaxis: { title: { text: "Sobol' index" } },
+        yaxis: {
+          title: { text: "Sobol' index" },
+          type: scaleType,
+          range: scaleType === "log" ? sobolLogRange : sobolLinearRange,
+        },
         barmode: "group" as const,
         plot_bgcolor: `${theme.palette.background.default}`,
         paper_bgcolor: `${theme.palette.background.default}`,
@@ -118,7 +144,7 @@ export default function SobolIndicesPlot() {
 
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%">
-      <Box display="flex" justifyContent="flex-end">
+      <Box display="flex" justifyContent="flex-end" gap={1}>
         <ToggleButtonGroup
           value={viewMode}
           exclusive
@@ -129,11 +155,25 @@ export default function SobolIndicesPlot() {
           <ToggleButton value="first-order" sx={{ textTransform: "none" }} mmux-testid="sobol-toggle-first">
             First order
           </ToggleButton>
+          <ToggleButton value="second-order" sx={{ textTransform: "none" }} mmux-testid="sobol-toggle-second">
+            Second order
+          </ToggleButton>
           <ToggleButton value="total-order" sx={{ textTransform: "none" }} mmux-testid="sobol-toggle-total">
             Total order
           </ToggleButton>
-          <ToggleButton value="second-order" sx={{ textTransform: "none" }} mmux-testid="sobol-toggle-second">
-            Second order
+        </ToggleButtonGroup>
+        <ToggleButtonGroup
+          value={scaleType}
+          exclusive
+          onChange={handleScaleTypeChange}
+          size="small"
+          mmux-testid="sobol-scale-toggle"
+        >
+          <ToggleButton value="linear" sx={{ textTransform: "none" }} mmux-testid="sobol-scale-linear">
+            Linear
+          </ToggleButton>
+          <ToggleButton value="log" sx={{ textTransform: "none" }} mmux-testid="sobol-scale-log">
+            Log
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>

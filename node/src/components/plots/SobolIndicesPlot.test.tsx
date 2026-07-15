@@ -9,8 +9,8 @@ vi.mock("../../utils/sobolIndices", async importOriginal => {
 describe("SobolIndicesPlot toggle helpers", () => {
   const getZ = (trace: ReturnType<typeof buildSobolHeatmapData>): number[][] => trace.z as number[][];
   const sobol = {
-    x1: { main: 0.5, total: 0.7 },
-    x2: { main: 0.3, total: 0.5 },
+    x1: { main: 0.5, total: 0.7, mainCiLow: 0.5, mainCiHigh: 0.5, totalCiLow: 0.7, totalCiHigh: 0.7 },
+    x2: { main: 0.3, total: 0.5, mainCiLow: 0.3, mainCiHigh: 0.3, totalCiLow: 0.5, totalCiHigh: 0.5 },
   };
   const sobolSecondOrder = {
     x1: { x2: 0.1 },

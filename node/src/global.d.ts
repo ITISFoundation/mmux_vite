@@ -53,14 +53,22 @@ type CorrelationIndicesResponse = {
   correlations: { [inputVar: string]: CorrelationCoefficients };
 };
 
-// #470/#T22: per-input first-order (main effect) and total-order Sobol'
+// #470/#T22/T25: per-input first-order (main effect) and total-order Sobol'
 // sensitivity indices, one entry per requested input variable, from
 // `/flask/dakota/compute_sobol_indices` (scipy-based, post-migration).
+// `*CiLow`/`*CiHigh`: bootstrap confidence interval bounds (95%, T25) --
+// always present (backend computes them for free alongside the point
+// estimates), displayed as error bars on the first/total-order bar charts.
 // sobolSecondOrder: symmetric pairwise second-order indices (no self-pairs),
-// diagonal filled on frontend from the corresponding first-order index.
+// diagonal filled on frontend from the corresponding first-order index; no
+// CI display on the second-order heatmap (out of scope).
 type SobolIndexPair = {
   main: number;
   total: number;
+  mainCiLow: number;
+  mainCiHigh: number;
+  totalCiLow: number;
+  totalCiHigh: number;
 };
 
 type SobolIndicesResponse = {
