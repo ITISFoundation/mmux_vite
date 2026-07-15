@@ -74,6 +74,22 @@ describe("UQPlotsSteps", () => {
     expect(backButton).toHaveProperty("disabled", true);
   });
 
+  it("shows the Stats button only on the Histogram step", async () => {
+    const onStatsClick = vi.fn();
+    render(<UQPlotsSteps {...defaultProps} onStatsClick={onStatsClick} />);
+    expect(screen.getByText("Stats")).toBeDefined();
+
+    await userEvent.click(screen.getByText("Next"));
+    expect(screen.queryByText("Stats")).toBeNull();
+  });
+
+  it("calls onStatsClick when the Stats button is clicked", async () => {
+    const onStatsClick = vi.fn();
+    render(<UQPlotsSteps {...defaultProps} onStatsClick={onStatsClick} />);
+    await userEvent.click(screen.getByText("Stats"));
+    expect(onStatsClick).toHaveBeenCalledTimes(1);
+  });
+
   it("disables Next on last step (Sobol')", async () => {
     render(<UQPlotsSteps {...defaultProps} />);
     await userEvent.click(screen.getByText("Next"));

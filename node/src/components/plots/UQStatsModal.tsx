@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Box, Typography, useTheme } from "@mui/material";
+import { useEffect, useState, type ReactNode } from "react";
+import { Box, Divider, Typography, useTheme } from "@mui/material";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
@@ -14,6 +14,26 @@ type UQStatsModalProps = {
   setOpen: (value: boolean) => void;
 };
 
+type StatsSectionProps = {
+  title: string;
+  children: ReactNode;
+  testId: string;
+};
+
+function StatsSection(props: StatsSectionProps) {
+  const { title, children, testId } = props;
+  const theme = useTheme();
+  return (
+    <Box display="flex" flexDirection="column" gap={1} mmux-testid={testId}>
+      <Typography variant="overline" color={theme.palette.text.secondary} sx={{ letterSpacing: "1px" }}>
+        {title}
+      </Typography>
+      <Divider sx={{ marginBottom: "4px" }} />
+      {children}
+    </Box>
+  );
+}
+
 /**
  * UQ "Stats" modal (../../SPEC.md T32/../flaskapi/SPEC.md T24/node T34): standalone modal
  * (⊥ nested inside SuMoModal's stepper) showing per-QoI mean/std/quantiles from the same
@@ -22,7 +42,6 @@ type UQStatsModalProps = {
  */
 function UQStatsModal(props: UQStatsModalProps) {
   const { open, setOpen } = props;
-  const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { numSamples, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
@@ -86,26 +105,34 @@ function UQStatsModal(props: UQStatsModalProps) {
         <InsufficientDataWarning fetchedJobCollections={fetchedJobCollections} filteredJobList={filteredJobList} height={200} />
       )}
       {!propagating && stats && (
-        <Box display="flex" flexDirection="column" gap={2} padding="0px 8px">
-          <Box display="flex" flexWrap="wrap" gap={2} justifyContent="center">
-            <StatCard label="Mean" value={stats.mean} />
-            <StatCard label="Std" value={stats.std} />
-            <StatCard label="P1" value={stats.p1} />
-            <StatCard label="P5" value={stats.p5} />
-            <StatCard label="Q1" value={stats.q1} />
-            <StatCard label="Median" value={stats.median} />
-            <StatCard label="Q3" value={stats.q3} />
-            <StatCard label="P95" value={stats.p95} />
-            <StatCard label="P99" value={stats.p99} />
-          </Box>
-          <Box display="flex" flexDirection="column" gap={1} mmux-testid="uq-stats-uncertainty-decomposition">
-            <Typography variant="body2" color={theme.palette.text.secondary}>
-              Epistemic uncertainty: coming soon
-            </Typography>
-            <Typography variant="body2" color={theme.palette.text.secondary}>
-              Aleatoric uncertainty: coming soon
-            </Typography>
-          </Box>
+        <Box display="flex" flexDirection="column" gap={3} padding="0px 8px">
+          <StatsSection title="Central tendency" testId="uq-stats-central-tendency">
+            <Box display="flex" flexWrap="wrap" gap={2} justifyContent="center">
+              <StatCard label="Mean" value={stats.mean} />
+              <StatCard label="Std" value={stats.std} />
+            </Box>
+          </StatsSection>
+          <StatsSection title="Percentiles" testId="uq-stats-percentiles">
+            <Box display="flex" flexWrap="wrap" gap={2} justifyContent="center">
+              <StatCard label="P1" value={stats.p1} />
+              <StatCard label="P5" value={stats.p5} />
+              <StatCard label="Q1" value={stats.q1} />
+              <StatCard label="Median" value={stats.median} />
+              <StatCard label="Q3" value={stats.q3} />
+              <StatCard label="P95" value={stats.p95} />
+              <StatCard label="P99" value={stats.p99} />
+            </Box>
+          </StatsSection>
+          <StatsSection title="Uncertainty decomposition" testId="uq-stats-uncertainty-decomposition">
+            <Box display="flex" flexDirection="column" gap={0.5}>
+              <Typography variant="body2" color="text.secondary">
+                Epistemic uncertainty: coming soon
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Aleatoric uncertainty: coming soon
+              </Typography>
+            </Box>
+          </StatsSection>
         </Box>
       )}
     </StatsModal>

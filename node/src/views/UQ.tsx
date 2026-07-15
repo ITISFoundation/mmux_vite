@@ -26,8 +26,14 @@ export default function UQ() {
 
   return (
     <MetaModelingUX headerType="title" tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}>
-      <OutputSetup loading={loading} setSumoModal={setSumoModal} setUqStatsModal={setUqStatsModal} mode="full" />
-      <UQPlotsSteps loading={loading} jobProgress={jobProgress} colsFetched={colsFetched} jobsFetched={jobsFetched} />
+      <OutputSetup loading={loading} setSumoModal={setSumoModal} mode="full" />
+      <UQPlotsSteps
+        loading={loading}
+        jobProgress={jobProgress}
+        colsFetched={colsFetched}
+        jobsFetched={jobsFetched}
+        onStatsClick={() => setUqStatsModal(true)}
+      />
       <SuMoModal open={sumoModal} setOpen={setSumoModal} />
       <UQStatsModal open={uqStatsModal} setOpen={setUqStatsModal} />
       <JobSampling

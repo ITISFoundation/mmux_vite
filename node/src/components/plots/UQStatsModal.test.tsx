@@ -76,6 +76,9 @@ describe("UQStatsModal", () => {
     await waitFor(() => {
       expect(screen.getByText("Median")).toBeInTheDocument();
     });
+    expect(screen.getByText("Central tendency")).toBeInTheDocument();
+    expect(screen.getByText("Percentiles")).toBeInTheDocument();
+    expect(screen.getByText("Uncertainty decomposition")).toBeInTheDocument();
     expect(screen.getByText("P1")).toBeInTheDocument();
     expect(screen.getByText("P99")).toBeInTheDocument();
     expect(screen.getByText(/Epistemic uncertainty: coming soon/)).toBeInTheDocument();

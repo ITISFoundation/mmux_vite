@@ -1,4 +1,6 @@
 import React from "react";
+import { Button } from "@mui/material";
+import { QueryStats } from "@mui/icons-material";
 import SteppedPlotCard, { type SteppedStep } from "./SteppedPlotCard";
 import UncertainUQ from "./UncertainUQ";
 import CorrelationIndicesPlot from "./CorrelationIndicesPlot";
@@ -12,10 +14,12 @@ const uqStepInfoTexts: Record<string, string | undefined> = {
   "Sobol' Indices": undefined,
 };
 
-type UQPlotsStepsProps = LoadingPropsType;
+type UQPlotsStepsProps = LoadingPropsType & {
+  onStatsClick?: () => void;
+};
 
 function UQPlotsSteps(props: UQPlotsStepsProps) {
-  const { loading, jobProgress, colsFetched, jobsFetched } = props;
+  const { loading, jobProgress, colsFetched, jobsFetched, onStatsClick } = props;
   const [activeStep, setActiveStep] = React.useState(0);
   const handleNext = () => {
     setActiveStep(prev => prev + 1);
@@ -44,6 +48,21 @@ function UQPlotsSteps(props: UQPlotsStepsProps) {
       contentMinHeight={500}
       nextTestId="uq-plot-next"
       backTestId="uq-plot-back"
+      qoiSelector={
+        activeStep === 0 &&
+        onStatsClick && (
+          <Button
+            variant="text"
+            size="small"
+            onClick={onStatsClick}
+            startIcon={<QueryStats />}
+            sx={{ textTransform: "none" }}
+            mmux-testid="uq-stats-button"
+          >
+            Stats
+          </Button>
+        )
+      }
     />
   );
 }
