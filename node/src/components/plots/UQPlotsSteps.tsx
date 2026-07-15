@@ -52,11 +52,11 @@ function UQPlotsSteps(props: UQPlotsStepsProps) {
         activeStep === 0 &&
         onStatsClick && (
           <Button
-            variant="text"
+            variant="contained"
             size="small"
             onClick={onStatsClick}
-            startIcon={<QueryStats />}
-            sx={{ textTransform: "none" }}
+            startIcon={<QueryStats sx={{ fontSize: "20px" }} />}
+            sx={{ padding: "8px 16px" }}
             mmux-testid="uq-stats-button"
           >
             Stats
