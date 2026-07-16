@@ -29,6 +29,8 @@ jobs:
         cache-dependency-path: '**/package-lock.json'
     - name: Install node dependencies
       run: cd node && npm ci
+    - name: Install Flask API dependencies
+      run: make install-flaskapi-deps
     - name: Run prek
       run: uvx prek run --all-files
 

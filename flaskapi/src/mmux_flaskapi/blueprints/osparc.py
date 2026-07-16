@@ -309,7 +309,9 @@ def _function_schema_vars(function_uid: str) -> tuple[list[str], list[str]]:
             raise ValueError(
                 f"Cannot fetch schema for function {function_uid}: oSPARC backend is not available"
             )
-        fun = osparc_api.get_functions_api().get_function(function_uid).to_dict()
+        fun = cast(
+            dict[str, Any], osparc_api.get_functions_api().get_function(function_uid).to_dict()
+        )
 
     input_vars = list(fun["input_schema"]["schema_content"]["properties"])
     output_vars = list(fun["output_schema"]["schema_content"]["properties"])

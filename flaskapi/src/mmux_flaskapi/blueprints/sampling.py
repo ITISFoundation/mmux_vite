@@ -122,7 +122,7 @@ def flask_lhs():
         n = validated_request.n
         function_uid = validated_request.fun_uid
 
-        _logger.debug(f"Validated config: {[c.dict() for c in config]}")
+        _logger.debug(f"Validated config: {[c.model_dump() for c in config]}")
         _logger.debug(f"n: {n}, k: {k}, seed: {seed}, function_uid: {function_uid}")
 
         from mmux_flaskapi.dakota.lhs import lhs
@@ -150,7 +150,7 @@ def flask_lhs():
     except Exception as e:
         error_msg = f"Error while performing LHS sampling: {e}"
         _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 500)
 
 
 @sampling_bp.route("/grid", methods=["POST"])
@@ -172,14 +172,14 @@ def flask_grid_sampling():
         input_vars = [var_config.variable for var_config in config]
         run_dir = create_run_dir(SAMPLING_RUNS_DIR, "grid_sampling")
 
-        _logger.debug(f"Validated config: {[c.dict() for c in config]}")
+        _logger.debug(f"Validated config: {[c.model_dump() for c in config]}")
         _logger.debug(f"Input variables: {input_vars}, function_uid: {function_uid}")
 
         from mmux_flaskapi.dakota.funs_data_processing import load_data
         from mmux_flaskapi.dakota.funs_evaluate import create_grid_samples
 
         # Convert config to the format expected by create_grid_samples
-        config_dict = {var_config.variable: var_config.dict() for var_config in config}
+        config_dict = {var_config.variable: var_config.model_dump() for var_config in config}
 
         PROCESSED_GRIDPOINTS_INPUT_FILE = create_grid_samples(
             run_dir=run_dir,
@@ -196,7 +196,7 @@ def flask_grid_sampling():
         samples = []
         df = load_data(PROCESSED_GRIDPOINTS_INPUT_FILE)
         for i in df.index:
-            sample = {var: float(df.loc[i, var]) for var in input_vars}  # type: ignore
+            sample = {var: float(df.loc[i, var]) for var in input_vars}
             samples.append(sample)
 
         _logger.debug(f"Generated {len(samples)} grid samples")
@@ -206,7 +206,7 @@ def flask_grid_sampling():
     except Exception as e:
         error_msg = f"Error while creating Grid Sampling: {e}"
         _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 500)
 
 
 @sampling_bp.route("/test_job", methods=["POST"])
@@ -228,7 +228,7 @@ def flask_test_job():
         functions_api = _get_functions_api()
 
         _logger.debug(f"Function UID: {function_uid}")
-        _logger.debug(f"Validated config: {[c.dict() for c in config]}")
+        _logger.debug(f"Validated config: {[c.model_dump() for c in config]}")
 
         # Convert config to sample format
         sample = {var_config.variable: var_config.value for var_config in config}
@@ -261,12 +261,12 @@ def flask_test_job():
     except ValueError as e:
         error_msg = str(e)
         _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 400)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 400)
 
     except Exception as e:
         error_msg = f"Error while testing job: {e}"
         _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 500)
 
 
 @sampling_bp.route("/clone_job", methods=["POST"])
@@ -314,7 +314,7 @@ def flask_clone_job():
     except Exception as e:
         error_msg = f"Error while cloning job: {e}"
         _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 500)
 
 
 #####################################################################################
@@ -488,9 +488,9 @@ def flask_upload_job_collection_csv():
     except ValueError as e:
         error_msg = str(e)
         _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 422)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 422)
 
     except Exception as e:
         error_msg = f"Error while uploading job collection CSV: {e}"
         _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 500)
