@@ -352,7 +352,7 @@ def flask_sumo_cross_validation():
                 results_transformed[key] = _replace_nan_with_none(value)
 
         _logger.debug("Cross-validation completed successfully!")
-        return jsonify(results_transformed)
+        return jsonify({"cv_results": results_transformed})
     except ValidationError as e:
         handle_workflow_error(e, "flask_sumo_cross_validation", 422)
     except ValueError as e:

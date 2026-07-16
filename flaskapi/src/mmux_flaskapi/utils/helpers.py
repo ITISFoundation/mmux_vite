@@ -66,6 +66,9 @@ def dict_keys_snake_to_camel(d: dict) -> dict:
 # - read path (snake_to_camel, response serializer): "correlations", "sobol" -
 #   per-input-variable result dicts returned by compute_correlation_indices/
 #   compute_sobol_indices (flaskapi/SPEC.md V28/V32, B15).
+# - read path (snake_to_camel, response serializer): "cv_results" -
+#   flat {variable_name: [...]} dict returned by sumo_cross_validation; variable
+#   names must survive camelCase (flaskapi/SPEC.md V42, B24).
 _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
     {
         "properties",
@@ -79,6 +82,7 @@ _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
         "correlations",
         "sobol",
         "sobol_second_order",
+        "cv_results",
     }
 )
 

@@ -68,18 +68,19 @@ class TestSumoCrossValidation:
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, dict)
-        # Should contain observations and prediction outputs in original names.
-        assert OUTPUT in data
-        assert f"{OUTPUT}Hat" in data
-        assert f"{OUTPUT}StdHat" in data
-        assert isinstance(data[OUTPUT], list)
-        assert isinstance(data[f"{OUTPUT}Hat"], list)
-        assert isinstance(data[f"{OUTPUT}StdHat"], list)
-        for v in data[OUTPUT]:
+        # V42: response nested under cv_results; variable names preserved.
+        cv = data["cvResults"]
+        assert OUTPUT in cv
+        assert f"{OUTPUT}_hat" in cv
+        assert f"{OUTPUT}_std_hat" in cv
+        assert isinstance(cv[OUTPUT], list)
+        assert isinstance(cv[f"{OUTPUT}_hat"], list)
+        assert isinstance(cv[f"{OUTPUT}_std_hat"], list)
+        for v in cv[OUTPUT]:
             assert isinstance(v, (int, float))
-        for v in data[f"{OUTPUT}Hat"]:
+        for v in cv[f"{OUTPUT}_hat"]:
             assert isinstance(v, (int, float))
-        for v in data[f"{OUTPUT}StdHat"]:
+        for v in cv[f"{OUTPUT}_std_hat"]:
             assert isinstance(v, (int, float))
 
     def test_sumo_cross_validation_preserves_prediction_suffixes_for_original_output_name(
@@ -112,10 +113,14 @@ class TestSumoCrossValidation:
         response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 200
         data = response.get_json()
+        # V42: cv_results is in _DEFAULT_PRESERVE_NESTED_KEYS, so both
+        # variable names and suffixes survive the global camelCase serializer.
         assert data == {
-            "dragForce": [1.0, 2.0, 3.0],
-            "dragForceHat": [1.1, 2.1, 3.1],
-            "dragForceStdHat": [0.1, 0.2, 0.3],
+            "cvResults": {
+                "drag_force": [1.0, 2.0, 3.0],
+                "drag_force_hat": [1.1, 2.1, 3.1],
+                "drag_force_std_hat": [0.1, 0.2, 0.3],
+            }
         }
 
     def test_sumo_cross_validation_accepts_snake_case_payload(self, test_client: Flask):
@@ -488,8 +493,9 @@ class TestSnakeCaseDakotaRequestCompatibility:
         response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 200
         data = response.get_json()
-        assert "y" in data
-        assert isinstance(data["y"], list)
+        cv = data["cvResults"]
+        assert "y" in cv
+        assert isinstance(cv["y"], list)
 
     # Add more edge cases as needed
 

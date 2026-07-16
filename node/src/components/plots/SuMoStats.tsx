@@ -53,10 +53,11 @@ function SuMoStats() {
           setPropagating(false);
           return;
         }
-        const y = data[selectedQoI];
-        // The backend builds the prediction key as `<output>_hat`, camelCased by the
-        // global after_request serializer to `<selectedQoI>Hat` (see SuMoValidation).
-        const yHat = data[`${selectedQoI}Hat`];
+        // V42: response is now { cvResults: { [originalVarName]: [...] } } —
+        // variable names preserved via _DEFAULT_PRESERVE_NESTED_KEYS.
+        const { cvResults } = data;
+        const y = cvResults[selectedQoI];
+        const yHat = cvResults[`${selectedQoI}_hat`];
         if (!y || !yHat) {
           setCvMetrics(undefined);
           setPropagating(false);

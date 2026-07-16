@@ -38,13 +38,13 @@ function SuMoValidation() {
     setCvMetrics(computeCvStatistics(y, yHat));
   }
 
-  const createDataAndMetrics = (data: { [key: string]: number[] }) => {
-    if (data && selectedQoI) {
-      const y = data[selectedQoI];
-      // The backend builds the prediction key as `<output>_hat`, but the global
-      // after_request serializer camelCases every response key, so the client
-      // receives `<selectedQoI>Hat` (e.g. `yHat`). Read the camelCase key.
-      const yHat = data[`${selectedQoI}Hat`];
+  const createDataAndMetrics = (cvResults: { [key: string]: number[] }) => {
+    if (cvResults && selectedQoI) {
+      // V42: response is now { cvResults: { [originalVarName]: [...] } } — the
+      // backend nests under `cv_results` (in _DEFAULT_PRESERVE_NESTED_KEYS) so
+      // multi-word variable names survive the global camelCase serializer.
+      const y = cvResults[selectedQoI];
+      const yHat = cvResults[`${selectedQoI}_hat`];
 
       // For violin plots, y should be the data and x should be the label
       const createViolinPlot = (
@@ -108,7 +108,7 @@ function SuMoValidation() {
           console.warn("SuMo Validation error: ", response.error);
           throw new Error(`Error running SuMo Validation: ${response.error}`);
         } else {
-          const data = response;
+          const data = response.cvResults;
           createDataAndMetrics(data);
           setPropagating(false);
         }
