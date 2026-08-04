@@ -40,7 +40,8 @@ function getRowId(value: SelectedJobCollection) {
 export default function JobsSelector(props: JobSelectorPropsType) {
   const { selectedFunction } = useFunctionContext();
   const { launchingSampling, runningSampling } = useSamplingContext();
-  const { setSelectedJobUids, fetchedJobCollections, requestForceFetch } = useJobContext();
+  const { setSelectedJobUids, fetchedJobCollections, requestForceFetch, hasAutoSelectedJobs, setHasAutoSelectedJobs } =
+    useJobContext();
   const { setIsSuMoGenerated } = useMMUXContext();
   const { loading, setLoading, setJobProgress } = props;
   const [jobCollections, setJobCollections] = useState<SelectedJobCollection[]>([]);
@@ -221,11 +222,30 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     }
 
     if (jobCollections.length > 0) {
-      onToggleAll(true);
+      // V25 (B19): clearing the view-local `loading` flag must happen on EVERY
+      // mount once data is ready (that's the whole point of the hydration-safe
+      // loading fix). But `onToggleAll(true)`/`setIsSuMoGenerated(true)` are
+      // destructive (they overwrite the user's manual job selection) and must
+      // run only ONCE per genuinely fresh fetch, not once per Setup<->Results
+      // remount. `hasAutoSelectedJobs` (JobContext) tracks that and survives
+      // remounts, unlike `loading`/this effect's own gating.
       setLoading(false);
+      if (hasAutoSelectedJobs) return;
+      onToggleAll(true);
       setIsSuMoGenerated(true);
+      setHasAutoSelectedJobs(true);
     }
-  }, [fetchedJobCollections, jobCollections, loading, onToggleAll, setIsSuMoGenerated, setLoading, updateJobContext]);
+  }, [
+    fetchedJobCollections,
+    jobCollections,
+    loading,
+    onToggleAll,
+    setIsSuMoGenerated,
+    setLoading,
+    hasAutoSelectedJobs,
+    setHasAutoSelectedJobs,
+    updateJobContext,
+  ]);
 
   useEffect(() => {
     if (fetchedJobCollections) {

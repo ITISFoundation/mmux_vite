@@ -201,6 +201,10 @@ describe("stepValidator", () => {
       parseStatus: (_jobStatus: string, _outputArray: Record<string, unknown>): string | JSX.Element[] => {
         throw new Error("Function not implemented.");
       },
+      hasAutoSelectedJobs: false,
+      setHasAutoSelectedJobs: (_value: boolean): void => {
+        throw new Error("Function not implemented.");
+      },
     };
 
     expect(stepValidator(functionContext, jobContext, "", 0)).toBe(true);
