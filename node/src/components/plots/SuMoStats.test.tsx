@@ -33,8 +33,10 @@ vi.mock("../../context/JobContext", () => ({
 }));
 
 const cvValidationResponse = {
-  y: [1, 2, 3, 4, 5],
-  yHat: [1.1, 1.9, 3.2, 3.8, 5.1],
+  cvResults: {
+    y: [1, 2, 3, 4, 5],
+    y_hat: [1.1, 1.9, 3.2, 3.8, 5.1],
+  },
 };
 
 function mockFetchImplementation(url: string) {
