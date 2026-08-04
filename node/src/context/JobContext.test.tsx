@@ -27,6 +27,8 @@ function TestComponent() {
     setSelectedJobUids,
     allJobsList,
     filteredJobList,
+    hasAutoSelectedJobs,
+    setHasAutoSelectedJobs,
   } = useJobContext();
 
   return (
@@ -60,11 +62,15 @@ function TestComponent() {
       >
         Set Running
       </button>
+      <button type="button" onClick={() => setHasAutoSelectedJobs(true)} data-testid="mark-auto-selected">
+        Mark Auto Selected
+      </button>
       <div data-testid="all-jobs">{JSON.stringify(allJobsList())}</div>
       <div data-testid="filtered-jobs">{JSON.stringify(filteredJobList)}</div>
       <div data-testid="selected-uids">{JSON.stringify(selectedJobUids)}</div>
       <div data-testid="running-job">{JSON.stringify(runningJobCollection)}</div>
       <div data-testid="fetched-jobs">{JSON.stringify(fetchedJobCollections)}</div>
+      <div data-testid="has-auto-selected">{JSON.stringify(hasAutoSelectedJobs)}</div>
     </div>
   );
 }
@@ -186,6 +192,45 @@ describe("JobContextProvider", () => {
       getByTestId("set-running").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(getByTestId("running-job").textContent).toBe("{}");
+  });
+
+  it("hasAutoSelectedJobs resets whenever fetchedJobCollections is genuinely refetched (V25/B19)", () => {
+    const { getByTestId } = render(
+      <JobContextProvider>
+        <TestComponent />
+      </JobContextProvider>,
+    );
+    act(() => {
+      getByTestId("mark-auto-selected").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(getByTestId("has-auto-selected").textContent).toBe("true");
+
+    // A genuine refetch (new fetchedJobCollections reference) must clear the flag so
+    // JobSelector's one-time auto-select-all-SUCCESS can run again for the new data.
+    act(() => {
+      getByTestId("set-fetched").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(getByTestId("has-auto-selected").textContent).toBe("false");
+  });
+
+  it("hasAutoSelectedJobs survives unrelated selection updates (does ⊥ reset on setSelectedJobUids)", () => {
+    const { getByTestId } = render(
+      <JobContextProvider>
+        <TestComponent />
+      </JobContextProvider>,
+    );
+    act(() => {
+      getByTestId("mark-auto-selected").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(getByTestId("has-auto-selected").textContent).toBe("true");
+
+    act(() => {
+      getByTestId("set-selected").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    // setSelectedJobUids never touches fetchedJobCollections, so the flag must stay set —
+    // this is what prevents a JobSelector remount (Setup<->Results nav) from re-running
+    // the destructive onToggleAll(true) auto-select.
+    expect(getByTestId("has-auto-selected").textContent).toBe("true");
   });
 
   it("throws error if useJobContext is used outside provider", () => {
