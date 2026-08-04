@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 from flask import Flask
@@ -135,6 +137,123 @@ class TestSumoCrossValidation:
         data = response.get_json()
         assert "error" in data
         assert "field required" not in data["error"].lower()
+
+
+class TestSumoCrossValidationRealData:
+    """Real production-shaped dataset regression (§T33 / B23 / V41).
+
+    `material_sweep_first50_Osparc.csv` (50 oSPARC jobs, 11 inputs, 7 outputs) is
+    the exact data that made `/sumo_cross_validation` 500 with `{"error":"'y1'"}`
+    for `output=delta_T_nerve` in production. These tests lock in V41's graceful
+    degradation (200 + `warnings`, never an opaque KeyError 500).
+    """
+
+    CSV_PATH = (
+        Path(__file__).resolve().parents[2]
+        / "tests"
+        / "e2e"
+        / "fixtures"
+        / "material_sweep_first50_Osparc.csv"
+    )
+
+    @staticmethod
+    def _load_real_jobs(output: str):
+        import csv as _csv
+
+        with open(TestSumoCrossValidationRealData.CSV_PATH, newline="") as fh:
+            reader = _csv.reader(fh)
+            header = next(reader)
+            in_cols = [c for c in header if c.startswith("input__")]
+            out_cols = [c for c in header if c.startswith("output__")]
+            inputs = [c[len("input__") :] for c in in_cols]
+            outputs = [c[len("output__") :] for c in out_cols]
+            jobs = []
+            for row in reader:
+                if not any(cell.strip() for cell in row):
+                    continue
+                inp = {inputs[i]: float(row[header.index(in_cols[i])]) for i in range(len(in_cols))}
+                out = {
+                    outputs[i]: float(row[header.index(out_cols[i])]) for i in range(len(out_cols))
+                }
+                jobs.append({"status": "completed", "inputs": inp, "outputs": out})
+        return inputs, jobs
+
+    def test_real_data_delta_T_nerve_does_not_500(self, test_client: Flask):
+        """The real dataset must not 500 on the B23-exposing QoI."""
+        inputs, jobs = self._load_real_jobs("delta_T_nerve")
+        payload = {
+            "inputVars": inputs,
+            "output": "delta_T_nerve",
+            "FunctionJobs": jobs,
+        }
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+        # Pre-V41 this was a 500 `{"error":"'y1'"}`; V41 must return 200.
+        assert response.status_code == 200, response.get_json()
+        data = response.get_json()
+        # V42: response nested under cv_results; variable names preserved.
+        cv = data["cvResults"]
+        assert "delta_T_nerve" in cv
+        assert "delta_T_nerve_hat" in cv
+        assert "delta_T_nerve_std_hat" in cv
+        # If Dakota omitted the output column, V41 attaches a `warnings` entry.
+        if "warnings" in cv:
+            assert any("delta_T_nerve" in str(w) or "y1" in str(w) for w in cv["warnings"])
+
+    def test_missing_output_column_returns_200_with_warnings(self, test_client: Flask, monkeypatch):
+        """Deterministic proof of V41: force predictions.dat to omit the output column."""
+        import mmux_flaskapi.dakota.funs_evaluate as fe
+
+        inputs, jobs = self._load_real_jobs("delta_T_nerve")
+        output_mapped = "y1"  # single output → mapped name
+
+        orig_load = fe.load_data
+
+        def fake_load(path, *args, **kwargs):
+            df = orig_load(path, *args, **kwargs)
+            if "predictions.dat" in str(path) and output_mapped in getattr(df, "columns", []):
+                return df.drop(columns=[output_mapped])
+            return df
+
+        monkeypatch.setattr(fe, "load_data", fake_load)
+
+        payload = {
+            "inputVars": inputs,
+            "output": "delta_T_nerve",
+            "FunctionJobs": jobs,
+        }
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 200, response.get_json()
+        data = response.get_json()
+        cv = data["cvResults"]
+        assert "warnings" in cv and cv["warnings"], data
+        assert any("predictions.dat" in str(w) and "y1" in str(w) for w in cv["warnings"])
+
+    def test_dakota_fold_abort_returns_200_with_warnings(self, test_client: Flask, monkeypatch):
+        """V43: a Dakota fold run that aborts (never writes predictions.dat) must be
+        skipped + continued, NOT a 500. Force every fold's run to write nothing."""
+        import mmux_flaskapi.dakota.funs_evaluate as fe
+
+        inputs, jobs = self._load_real_jobs("delta_T_nerve")
+
+        class FakeDakotaObject:
+            def run(self, conf, run_dir):  # simulate Dakota abort: no predictions.dat
+                return None
+
+        monkeypatch.setattr(fe, "DakotaObject", FakeDakotaObject)
+
+        payload = {
+            "inputVars": inputs,
+            "output": "delta_T_nerve",
+            "FunctionJobs": jobs,
+        }
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 200, response.get_json()
+        data = response.get_json()
+        cv = data["cvResults"]
+        assert "warnings" in cv and cv["warnings"], data
+        assert any(
+            "did not produce" in str(w) or "Dakota run raised" in str(w) for w in cv["warnings"]
+        )
 
 
 class TestSnakeCaseDakotaRequestCompatibility:

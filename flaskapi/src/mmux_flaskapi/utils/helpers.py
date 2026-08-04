@@ -69,6 +69,15 @@ def dict_keys_snake_to_camel(d: dict) -> dict:
 # - read path (snake_to_camel, response serializer): "cv_results" -
 #   flat {variable_name: [...]} dict returned by sumo_cross_validation; variable
 #   names must survive camelCase (flaskapi/SPEC.md V42, B24).
+# - read path (snake_to_camel, response serializer): "predictions" / "grid_data" -
+#   per-variable-name result dicts returned by sumo_along_axes /
+#   sumo_grid_evaluation (the 1D/2D/3D response-surface plots). The variable
+#   names are oSPARC identifiers that are NOT lossless camelCase round-trips
+#   (e.g. "delta_T_nerve"), so the variable_name keys must survive the
+#   serializer verbatim (or those plots get no data for multi-word QoIs), but
+#   the per-field keys (x / y_hat / std_hat) are API field names and must still
+#   be camelCased -> they live in `_FIELD_LEVEL_PRESERVE_KEYS`, not here
+#   (flaskapi/SPEC.md V42, B24).
 _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
     {
         "properties",
@@ -88,11 +97,14 @@ _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
 
 # Subset of `_DEFAULT_PRESERVE_NESTED_KEYS` whose values are ONE level of
 # {variable_name: {field: value}} -- the variable_name keys must stay
-# untouched (B15), but the per-field keys (e.g. "main_ci_low") are still API
-# field names and must still be camelCased (flaskapi/SPEC.md V37), unlike
-# "sobol_second_order" which nests a SECOND variable-name level
-# ({varA: {varB: float}}) that must be fully preserved instead.
-_FIELD_LEVEL_PRESERVE_KEYS = frozenset({"correlations", "sobol"})
+# untouched (B15/B24), but the per-field keys (e.g. "main_ci_low", "y_hat") are
+# still API field names and must still be camelCased (flaskapi/SPEC.md V37),
+# unlike "sobol_second_order" which nests a SECOND variable-name level
+# ({varA: {varB: float}}) that must be fully preserved instead. "predictions" /
+# "grid_data" join "correlations" / "sobol" here for the same reason:
+# {delta_T_nerve: {x, y_hat, std_hat}} must keep delta_T_nerve but camelCase
+# y_hat -> yHat.
+_FIELD_LEVEL_PRESERVE_KEYS = frozenset({"correlations", "sobol", "predictions", "grid_data"})
 
 
 def recursive_dict_keys_camel_to_snake(

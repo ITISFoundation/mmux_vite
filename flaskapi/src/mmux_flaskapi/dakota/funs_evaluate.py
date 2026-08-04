@@ -261,8 +261,29 @@ def evaluate_sumo_manual_crossvalidation(
             validation_indices=val_idx.tolist(),
             dakota_conf_file=fold_run_dir / "dakota_config.in",
         )
-        dakobj = DakotaObject()
-        dakobj.run(dakota_conf, fold_run_dir)
+        # V43 (root SPEC §T33 / B23): a Dakota fold run is non-deterministic in practice
+        # (near-degenerate surrogate training can make Dakota abort a fold and never write
+        # `predictions.dat`). A bare `load_data` on the missing file raised an opaque 500.
+        # Treat a Dakota abort like B22/B23's "warn & continue": skip the fold (its
+        # validation points stay NaN), surface a fold-scoped warning, and keep going so the
+        # endpoint returns instead of 500ing the whole cross-validation.
+        try:
+            dakobj = DakotaObject()
+            dakobj.run(dakota_conf, fold_run_dir)
+        except Exception as exc:
+            parse_warnings.append(
+                f"Fold {fold} of {N_CROSS_VALIDATION}: Dakota run raised "
+                f"({exc}); skipping this fold"
+            )
+            continue
+
+        predictions_path = fold_run_dir / "predictions.dat"
+        if not predictions_path.is_file():
+            parse_warnings.append(
+                f"Fold {fold} of {N_CROSS_VALIDATION}: Dakota did not produce "
+                f"{predictions_path} (surrogate training likely aborted); skipping this fold"
+            )
+            continue
 
         # Extract predictions for this fold and store in the correct positions.
         # `on_malformed_row="heal_or_drop"` recovers/skips rows corrupted by Dakota's
@@ -272,15 +293,29 @@ def evaluate_sumo_manual_crossvalidation(
         # simply leaves that sample's prediction as NaN rather than misaligning the rest.
         try:
             predictions_df = load_data(
-                fold_run_dir / "predictions.dat",
+                predictions_path,
                 on_malformed_row="heal_or_drop",
                 warnings=parse_warnings,
             )
         except Exception as exc:
-            raise RuntimeError(
+            parse_warnings.append(
                 f"Fold {fold} of {N_CROSS_VALIDATION}: failed to parse Dakota's "
-                f"predictions.dat ({exc})"
-            ) from exc
+                f"predictions.dat ({exc}); skipping this fold"
+            )
+            continue
+        # V41: Dakota can fail to produce the requested-output surrogate for a fold
+        # and emit a predictions.dat whose header OMITS `output_response` (B23) — a
+        # bare `predictions_df[output_response]` would raise an opaque KeyError('y1')
+        # 500. Skip the fold (its validation points stay NaN), surface a fold+file
+        # scoped warning, and continue per B22's "warn & continue" resolution.
+        if output_response not in predictions_df.columns:
+            parse_warnings.append(
+                f"Fold {fold} of {N_CROSS_VALIDATION}: predictions.dat for "
+                f"{fold_run_dir / 'predictions.dat'} has columns "
+                f"{list(predictions_df.columns)}, missing '{output_response}' — "
+                f"output surrogate not produced for this fold; skipping it"
+            )
+            continue
         fold_eval_ids = predictions_df["_eval_id"].astype(int).values
         fold_predictions = predictions_df[output_response].astype(float).values
         for local_eval_id, prediction in zip(fold_eval_ids, fold_predictions):
@@ -300,16 +335,25 @@ def evaluate_sumo_manual_crossvalidation(
                 on_malformed_row="heal_or_drop",
                 warnings=parse_warnings,
             )
-            var_eval_ids = variances_df["_eval_id"].astype(int).values
-            fold_var = variances_df[output_response + "_variance"].astype(float).values
-            for local_eval_id, var in zip(var_eval_ids, fold_var):
-                if not (1 <= local_eval_id <= len(val_idx)):
-                    parse_warnings.append(
-                        f"Fold {fold}: variances.dat row had _eval_id={local_eval_id}, "
-                        f"outside this fold's {len(val_idx)} validation points; dropped"
-                    )
-                    continue
-                all_stds[val_idx[local_eval_id - 1]] = np.sqrt(var)
+            # V41: same missing-column guard for the variance output (B23).
+            if output_response + "_variance" not in variances_df.columns:
+                parse_warnings.append(
+                    f"Fold {fold} of {N_CROSS_VALIDATION}: variances.dat for "
+                    f"{fold_run_dir / 'variances.dat'} has columns "
+                    f"{list(variances_df.columns)}, missing '{output_response}_variance' — "
+                    f"output variance not produced for this fold; skipping it"
+                )
+            else:
+                var_eval_ids = variances_df["_eval_id"].astype(int).values
+                fold_var = variances_df[output_response + "_variance"].astype(float).values
+                for local_eval_id, var in zip(var_eval_ids, fold_var):
+                    if not (1 <= local_eval_id <= len(val_idx)):
+                        parse_warnings.append(
+                            f"Fold {fold}: variances.dat row had _eval_id={local_eval_id}, "
+                            f"outside this fold's {len(val_idx)} validation points; dropped"
+                        )
+                        continue
+                    all_stds[val_idx[local_eval_id - 1]] = np.sqrt(var)
 
     result = {
         output_response: all_observations.tolist(),
