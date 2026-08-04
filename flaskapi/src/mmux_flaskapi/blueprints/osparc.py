@@ -298,7 +298,7 @@ def _fetch_remote_jobs_for_jobcollection(
 ) -> list[dict[str, Any]]:
     jc = osparc_api.get_job_collection_api().get_function_job_collection(jc_uid)
     job_ids = jc.job_ids or []
-    return [_get_function_job_from_uid(job_uid) for job_uid in job_ids]
+    return [_fetch_remote_job(osparc_api, job_uid) for job_uid in job_ids]
 
 
 @osparc_bp.route("/list_function_jobs_for_jobcollectionid", methods=["GET"])
