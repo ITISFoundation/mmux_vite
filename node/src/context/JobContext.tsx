@@ -21,6 +21,12 @@ export interface JobContextType {
   filteredJobList: OsparcFunctionJob[];
   requestForceFetch: (functionUID: string, progress: (progress: number) => void) => void;
   parseStatus: (jobStatus: string, outputArray: Record<string, unknown>) => string | JSX.Element[];
+  // V25 (B19): tracks whether JobSelector already ran its one-time auto-select-all-SUCCESS
+  // for the CURRENT fetchedJobCollections. Lives here (not a JobSelector-local ref) because
+  // it must survive JobSelector unmount/remount (Setup<->Results navigation), while still
+  // resetting whenever fetchedJobCollections is genuinely refetched (new function, forced refresh).
+  hasAutoSelectedJobs: boolean;
+  setHasAutoSelectedJobs: (value: boolean) => void;
 }
 
 export const JobContext = createContext<JobContextType | undefined>(undefined);
@@ -36,6 +42,15 @@ export function JobContextProvider({ children }: Props) {
   const [filteredJobList, setFilteredJobList] = useState<Array<OsparcFunctionJob>>([]);
   const [fetchedJobCollections, setFetchedJobCollections] = useState<SelectedJobCollection[] | undefined>(undefined);
   const [runningJobCollection, setRunningJobCollection] = useState<RegisteredFunctionJobCollection | undefined>(undefined);
+  const [hasAutoSelectedJobs, setHasAutoSelectedJobs] = useState<boolean>(false);
+
+  // V25 (B19): a genuinely new fetchedJobCollections reference means new data (new function
+  // selected, or a forced refresh) -> allow JobSelector's auto-select-all-SUCCESS to run once
+  // more. Local selection changes (onToggleAll, selectMainJob, ...) never call
+  // setFetchedJobCollections, so this does NOT reset on every re-render/remount.
+  useEffect(() => {
+    setHasAutoSelectedJobs(false);
+  }, [fetchedJobCollections]);
 
   // Flatten the API's FunctionJobStatus into a plain status string. The generated job
   // types either lack `status` entirely or expose it as a FunctionJobStatus OBJECT
@@ -231,6 +246,8 @@ export function JobContextProvider({ children }: Props) {
       filteredJobList,
       requestForceFetch,
       parseStatus,
+      hasAutoSelectedJobs,
+      setHasAutoSelectedJobs,
     }),
     [
       runningJobCollection,
@@ -243,6 +260,7 @@ export function JobContextProvider({ children }: Props) {
       filteredJobList,
       requestForceFetch,
       parseStatus,
+      hasAutoSelectedJobs,
     ],
   );
   return <JobContext.Provider value={memoState}>{children}</JobContext.Provider>;
