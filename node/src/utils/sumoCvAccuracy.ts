@@ -67,12 +67,17 @@ export function formatBiasBanner(
  * moved out of `SuMoValidation`'s inline display into the Stats step).
  */
 export function computeCvStatistics(y: number[], yHat: number[]): CvMetricsType {
-  const mae = y.reduce((sum, value, index) => sum + Math.abs(value - yHat[index]), 0) / y.length;
-  const rmse = Math.sqrt(y.reduce((sum, value, index) => sum + (value - yHat[index]) ** 2, 0) / y.length);
-  const meanY = y.reduce((a, b) => a + b, 0) / y.length;
-  const stdY = Math.sqrt(y.reduce((sum, value) => sum + (value - meanY) ** 2, 0) / (y.length - 1));
-  const meanYHat = yHat.reduce((a, b) => a + b, 0) / yHat.length;
-  const stdYHat = Math.sqrt(yHat.reduce((sum, value) => sum + (value - meanYHat) ** 2, 0) / (yHat.length - 1));
+  const n = y.length;
+  if (n === 0) {
+    return { meanY: 0, stdY: 0, meanYHat: 0, stdYHat: 0, mae: 0, rmse: 0, r2: 0 };
+  }
+  const mae = y.reduce((sum, value, index) => sum + Math.abs(value - yHat[index]), 0) / n;
+  const rmse = Math.sqrt(y.reduce((sum, value, index) => sum + (value - yHat[index]) ** 2, 0) / n);
+  const meanY = y.reduce((a, b) => a + b, 0) / n;
+  // Sample std is undefined for n=1 (0 degrees of freedom); treat it as 0 spread.
+  const stdY = n <= 1 ? 0 : Math.sqrt(y.reduce((sum, value) => sum + (value - meanY) ** 2, 0) / (n - 1));
+  const meanYHat = yHat.reduce((a, b) => a + b, 0) / n;
+  const stdYHat = n <= 1 ? 0 : Math.sqrt(yHat.reduce((sum, value) => sum + (value - meanYHat) ** 2, 0) / (n - 1));
   const ssRes = y.reduce((sum, value, index) => sum + (value - yHat[index]) ** 2, 0);
   const ssTot = y.reduce((sum, value) => sum + (value - meanY) ** 2, 0);
   const r2 = ssTot === 0 ? 1 : 1 - ssRes / ssTot;

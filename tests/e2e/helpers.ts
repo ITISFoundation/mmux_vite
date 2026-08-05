@@ -172,20 +172,7 @@ export async function uploadCsvViaUi(page: Page, csvPath: string, title?: string
     page.waitForEvent("filechooser"),
     uploadButton.click(),
   ]);
-  // The chooser wraps a hidden <input type="file">. Depending on the Playwright
-  // build, the FileChooser exposes `setInputFiles`, or an `elementHandle()`, or
-  // (FileChooser2) a private `_elementHandle`. Set the file on whichever is
-  // available so the input's `change` event fires and `pickSingleCsvFile` resolves.
-  const fc = fileChooser as any;
-  if (typeof fc.setInputFiles === "function") {
-    await fc.setInputFiles(csvPath);
-  } else if (typeof fc.elementHandle === "function") {
-    await fc.elementHandle().setInputFiles(csvPath);
-  } else if (fc._elementHandle) {
-    await fc._elementHandle.setInputFiles(csvPath);
-  } else {
-    throw new Error("unsupported FileChooser API: cannot set input files");
-  }
+  await fileChooser.setFiles(csvPath);
 
   if (title !== undefined) {
     const titleInput = page
