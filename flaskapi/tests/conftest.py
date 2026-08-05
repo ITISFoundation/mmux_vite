@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 #
 import pytest
@@ -58,6 +58,26 @@ def mock_test_env_vars():
             "OSPARC_API_KEY": "test_key",
             "OSPARC_API_SECRET": "test_secret",
         },
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def default_osparc_reachable():
+    """Default the oSPARC connectivity probe (`OsparcApi.is_connected()`) to "reachable"
+    across the suite, by making the underlying `UsersApi.get_my_profile()` call it makes
+    succeed without a real network request.
+
+    Needed because osparc.py's endpoints now check reachability unconditionally (not just
+    in DEPLOYMENT_MODE=LOCAL, see flaskapi/SPEC.md V15/V29), so any test relying only on a
+    `patch_list_functions_*`-style SDK-call fixture would otherwise also trigger a real
+    (failing) network probe. Tests exercising actual unreachability override this within
+    their own scope, e.g. by patching `mmux_flaskapi.blueprints.osparc.get_osparc_api_if_connected`
+    directly.
+    """
+    with patch(
+        "osparc_client.api.users_api.UsersApi.get_my_profile",
+        return_value=MagicMock(model_dump_json=lambda **kwargs: "{}"),
     ):
         yield
 

@@ -135,6 +135,10 @@ def list_local_job_collections() -> list[dict[str, Any]]:
     return list(_load_store()["job_collections"])
 
 
+def list_local_jobs() -> list[dict[str, Any]]:
+    return list(_load_store()["jobs"])
+
+
 def get_local_job_collection(job_collection_uid: str) -> dict[str, Any] | None:
     for jc in _load_store()["job_collections"]:
         if jc["uid"] == job_collection_uid:
