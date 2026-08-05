@@ -19,7 +19,8 @@ import {
 } from "@mui/material";
 import { toast } from "react-toastify";
 import { uploadJobCollectionCsv } from "../../utils/functionUtils";
-import { parseJobCollectionCsv, pickSingleCsvFile, type ParsedJobCollectionCsv } from "../../utils/jobCollectionCsv";
+import { parseJobCollectionCsv, pickSingleCsvFile } from "../../utils/jobCollectionCsv";
+import { type ParsedJobCollectionCsv } from "../../utils/types";
 import { RegisteredFunction } from "../../context/types";
 
 export type UploadJobCollectionSuccessResult = {
@@ -94,7 +95,7 @@ export default function UploadJobCollectionButton(props: UploadJobCollectionButt
         csvContent,
         targetMode,
         targetFunctionUid: targetMode === "existing" ? targetFunctionUid : undefined,
-        newFunctionTitle: targetMode === "new" ? newFunctionTitle || undefined : undefined,
+        newFunctionTitle: targetMode === "new" ? newFunctionTitle.trim() || undefined : undefined,
         sourceFunctionUid: analysis.sourceFunctionUid,
       });
 

@@ -192,9 +192,14 @@ export function FunctionList() {
     setRowSelection(targetFunction); // select fn (+ registers inputVars/outputVars)
     setDistribution(prev => ({
       ...prev,
-      [targetFunction.uid]: Object.fromEntries(
-        Object.entries(result.inputPresets).map(([variable, preset]) => [variable, preset as VarSelection]),
-      ),
+      [targetFunction.uid]: {
+        // merge (not overwrite): vars without an inferred preset keep their existing/default
+        // entry, so components dereferencing distribution[inputVar] directly don't crash.
+        ...prev[targetFunction.uid],
+        ...Object.fromEntries(
+          Object.entries(result.inputPresets).map(([variable, preset]) => [variable, preset as VarSelection]),
+        ),
+      },
     })); // prefill bounds + infer dist/log
   };
 

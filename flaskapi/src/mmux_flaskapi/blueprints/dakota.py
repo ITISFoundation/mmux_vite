@@ -34,6 +34,7 @@ from mmux_flaskapi.blueprints.dakota_models import (
     SumoGridEvaluationRequest,
     SumoGridEvaluationResponse,
     UQWithUncertaintyResponse,
+    required_completed_jobs,
 )
 from mmux_flaskapi.dakota.funs_data_processing import (
     compute_correlation_indices,
@@ -113,6 +114,7 @@ def _jobs_to_df(
                 "jobs": jobs,
                 "input_vars": input_vars,
                 "output_vars": output_vars,
+                "minimum_completed_jobs": required_completed_jobs(input_vars),
             }
         )
     except ValidationError as exc:
@@ -451,7 +453,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         _logger.debug(
             f"Generating {n_histograms} histogram realizations for uncertainty quantification"
         )
-        from scipy.special import erfinv  # type: ignore
+        from scipy.special import erfinv
 
         # Set random seed for reproducibility
         np.random.seed(seed)
@@ -459,8 +461,11 @@ def flask_manual_uq_propagation_with_uncertainty():
         # Generate samples in transformed space
         all_results_transformed = np.empty(shape=(n_histograms, num_samples), dtype=float)
         for i in range(n_histograms):
-            # Generate random samples from uniform distribution and transform via erfinv
-            r = erfinv(
+            # Generate standard-normal samples via the inverse-CDF/erfinv trick: for U~Uniform(-1,1),
+            # sqrt(2)*erfinv(U) ~ N(0,1) (since Phi(x) = (1+erf(x/sqrt(2)))/2). The sqrt(2) factor is
+            # required -- erfinv(U) alone has std 1/sqrt(2) =~ 0.707, not 1, which would understate
+            # the injected uncertainty by ~29%.
+            r = np.sqrt(2) * erfinv(
                 np.random.uniform(-1 + 1e-10, 1 - 1e-10, size=num_samples)
             )  # Avoid exact -1,1 for erfinv
             all_results_transformed[i, :] = results[prediction_key] + r * results[uncertainty_key]
@@ -965,7 +970,14 @@ def flask_get_sumo_cv_accuracy_metrics():
         predicted = cv_results[output_response + "_hat"]
 
         accuracy_metrics = compute_cv_accuracy_metrics(actual, predicted)
-        t_test = compute_paired_ttest(actual, predicted)
+        try:
+            t_test = compute_paired_ttest(actual, predicted)
+        except ValueError as exc:
+            # B23-style degradation: too few folds produced a valid prediction to run a
+            # paired t-test (needs >=2 samples). Don't 500 the whole endpoint over a
+            # stat that can't be computed - report it as NaN like the other metrics.
+            _logger.warning("Skipping paired t-test: %s", exc)
+            t_test = {"statistic": float("nan"), "p_value": float("nan")}
         convergence = compute_cv_convergence(
             run_dir,
             PROCESSED_TRAINING_FILE,

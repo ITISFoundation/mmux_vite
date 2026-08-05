@@ -84,7 +84,12 @@ function SuMoStats() {
 
   if (!cvMetrics) {
     return (
-      <InsufficientDataWarning fetchedJobCollections={fetchedJobCollections} filteredJobList={filteredJobList} height={200} />
+      <InsufficientDataWarning
+        fetchedJobCollections={fetchedJobCollections}
+        filteredJobList={filteredJobList}
+        height={200}
+        numInputVars={inputVars.length}
+      />
     );
   }
 

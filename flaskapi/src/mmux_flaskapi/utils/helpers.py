@@ -188,7 +188,7 @@ def _get_all_items(api_call: Callable, *args, **kwargs):
         response_items = response.items or []
         if len(response_items) == 0:
             break
-        retrieved += len(response_items)  # type: ignore
+        retrieved += len(response_items)
         items += [
             recursive_dict_keys_camel_to_snake(i.to_dict(), max_depth=1) for i in response_items
         ]

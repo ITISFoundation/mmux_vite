@@ -1,8 +1,11 @@
 ### Useful functions to couple Python and Dakota - to use accross different scripts & notebooks
+import logging
 import shutil
 from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
+
+_logger = logging.getLogger(__name__)
 
 
 def start_dakota_file(
@@ -161,7 +164,9 @@ def add_surrogate_model(
         """
 
     if training_samples_file is None:
-        print("No training samples file provided, using sampling to build the surrogate instead")
+        _logger.info(
+            "No training samples file provided, using sampling to build the surrogate instead"
+        )
         assert id_sampling_method is not None, (
             "id_sampling must be provided if no training samples file is provided"
         )
@@ -245,7 +250,9 @@ def add_sampling_method(
         conf += f"""
             refinement_samples = {refinement_samples}
         """
-        print("WARNING: to use refinement, make sure you provide reset files as input for Dakota")
+        _logger.warning(
+            "WARNING: to use refinement, make sure you provide reset files as input for Dakota"
+        )
 
     return conf
 
@@ -288,7 +295,7 @@ def add_moga_method(
     #####################################################
 ):
     if max_function_evaluations:
-        print("Max Function Evaluations for MOGA is deprecated; will be ignored")
+        _logger.warning("Max Function Evaluations for MOGA is deprecated; will be ignored")
     return f"""
         method
             id_method = '{id_method}'
@@ -365,7 +372,9 @@ def create_function_sampling_conffile(
     retrieve its input and output labels.
     """
     if dakota_results_file and dakota_results_file.is_file():
-        print(f"{dakota_results_file} already exists. Interrupting execution and re-using...")
+        _logger.info(
+            "%s already exists. Interrupting execution and re-using...", dakota_results_file
+        )
         return ""
 
     dakota_conf = start_dakota_file(
@@ -513,7 +522,7 @@ def create_sumo_manual_crossvalidation_conffile(
 
     dakota_conf = start_dakota_file()
     n_samples = len(load_data(build_file))
-    print(f"Number of samples in the build file: {n_samples}")
+    _logger.debug("Number of samples in the build file: %d", n_samples)
     ## filter OUT the validation indices from the build_file
     TRAINING_SAMPLES_FILE = process_input_file(
         build_file,
@@ -544,9 +553,9 @@ def create_sumo_manual_crossvalidation_conffile(
         )
     )
     ## For some freaking reason, there are 6 points in JUST_INPUTS_FILE and 9 get evaluated!!
-    print("Build file: ", build_file)
-    print("Training samples file: ", TRAINING_SAMPLES_FILE)
-    print("Just inputs file: ", JUST_INPUTS_FILE)
+    _logger.debug("Build file: %s", build_file)
+    _logger.debug("Training samples file: %s", TRAINING_SAMPLES_FILE)
+    _logger.debug("Just inputs file: %s", JUST_INPUTS_FILE)
     dakota_conf += add_evaluation_method(
         str(JUST_INPUTS_FILE.resolve()),
         includes_eval_id=False,

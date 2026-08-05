@@ -27,7 +27,7 @@ def _build_osparc_api():
     if os.environ.get("MMUX_E2E_MOCK_OSPARC"):
         # Lazy import; the package lives under tests/e2e/ (added to PYTHONPATH by
         # the e2e launcher) and must never be imported on the production path.
-        from mock_osparc import build_mock_osparc_api
+        from mock_osparc import build_mock_osparc_api  # ty: ignore[unresolved-import]
 
         return build_mock_osparc_api()
     return OsparcApi()
@@ -45,7 +45,7 @@ def create_flask_app() -> MMUXFlask:
     if os.environ.get("MMUX_E2E_MOCK_OSPARC"):
         # Test-only runtime control endpoint (lets a single backend boot serve
         # every service mode); never registered on the production path. §T9/§V11.
-        from mock_osparc.control import e2e_control_bp
+        from mock_osparc.control import e2e_control_bp  # ty: ignore[unresolved-import]
 
         app.register_blueprint(e2e_control_bp, url_prefix="/flask/e2e")
     return app

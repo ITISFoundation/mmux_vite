@@ -2,6 +2,8 @@
 Tests for POST /flask/sampling/upload_job_collection_csv (flaskapi/SPEC.md §T6).
 """
 
+from unittest.mock import patch
+
 import pytest
 
 from mmux_flaskapi.utils import local_job_store as ljs
@@ -94,6 +96,26 @@ class TestUploadJobCollectionCsvExistingMode:
         response = test_client.post("/flask/sampling/upload_job_collection_csv", json=payload)
         assert response.status_code == 422
 
+    def test_existing_mode_real_function_uid_degrades_gracefully_when_unreachable(
+        self, test_client
+    ):
+        """V29 (B16): a real (non-local) target_function_uid must produce a
+        controlled 422, not a 500, when DEPLOYMENT_MODE=LOCAL and oSPARC is
+        unreachable (_function_schema_vars fix)."""
+        payload = {
+            "csvContent": VALID_CSV,
+            "targetMode": "existing",
+            "targetFunctionUid": "real-func-1",
+        }
+        with patch.dict("os.environ", {"DEPLOYMENT_MODE": "LOCAL"}):
+            with patch(
+                "mmux_flaskapi.blueprints.osparc.get_osparc_api_if_connected", return_value=None
+            ):
+                response = test_client.post(
+                    "/flask/sampling/upload_job_collection_csv", json=payload
+                )
+        assert response.status_code == 422
+
 
 class TestUploadJobCollectionCsvValidation:
     def test_missing_input_output_columns_rejected(self, test_client):
@@ -129,3 +151,28 @@ class TestUploadJobCollectionCsvValidation:
     def test_missing_required_fields(self, test_client):
         response = test_client.post("/flask/sampling/upload_job_collection_csv", json={})
         assert response.status_code == 400
+
+    def test_wrong_column_count_row_rejected_with_row_context(self, test_client):
+        """V30 (B18): a data row with fewer/more cells than the header must be
+        rejected (422 w/ row context), not silently truncated/misaligned by
+        `dict(zip(header, cells))`."""
+        csv_content = (
+            "source_job_uid,status,input__x,output__y\n"
+            "job-1,SUCCESS,1.0\n"  # missing the output__y cell
+        )
+        payload = {"csvContent": csv_content, "targetMode": "new"}
+        response = test_client.post("/flask/sampling/upload_job_collection_csv", json=payload)
+        assert response.status_code == 422
+        error = response.get_json()["error"]
+        assert "Row 2" in error
+
+    def test_extra_column_row_rejected_with_row_context(self, test_client):
+        csv_content = (
+            "source_job_uid,status,input__x,output__y\n"
+            "job-1,SUCCESS,1.0,2.0,extra\n"  # one extra cell
+        )
+        payload = {"csvContent": csv_content, "targetMode": "new"}
+        response = test_client.post("/flask/sampling/upload_job_collection_csv", json=payload)
+        assert response.status_code == 422
+        error = response.get_json()["error"]
+        assert "Row 2" in error

@@ -1,13 +1,12 @@
-import datetime
+import logging
 import os
 import re
 import shutil
-import uuid
 from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
 
-import numpy as np  # type: ignore
+import numpy as np
 import pandas as pd
 from scipy.stats import ttest_rel
 from sklearn.model_selection import KFold
@@ -34,17 +33,7 @@ from mmux_flaskapi.dakota.funs_data_processing import (
     sanitize_varnames_dict,
 )
 
-
-def create_run_dir(script_dir: Path, dir_name: str = "sampling"):
-    ## part 1 - setup
-    main_runs_dir = script_dir / "runs"
-    current_time = datetime.datetime.now().strftime("%Y%m%d.%H%M%S%d")
-    uid = uuid.uuid4().hex
-    temp_dir = main_runs_dir / "_".join(["dakota", current_time, uid, dir_name])
-    print(str(temp_dir))
-    os.makedirs(temp_dir, exist_ok=True)
-    print("temp_dir: ", temp_dir)
-    return temp_dir
+_logger = logging.getLogger(__name__)
 
 
 def retrieve_csv_result(
@@ -70,8 +59,10 @@ def retrieve_csv_result(
     else:
         result = df.loc[np.all(df[inputs.keys()] == inputs.values(), axis=1)]
     # Check if the result is empty or has multiple rows
-    assert len(result) != 0, f"No result found for inputs {inputs}."
-    assert len(result) == 1, f"Multiple results found for inputs {inputs}."
+    if len(result) == 0:
+        raise ValueError(f"No result found for inputs {inputs}.")
+    if len(result) > 1:
+        raise ValueError(f"Multiple results found for inputs {inputs}.")
 
     return result.iloc[0].to_dict()
 
@@ -89,7 +80,7 @@ def evaluate_sumo_along_axes(
     yscale: Literal["linear", "log"] = "linear",
     label_converter: Callable | None = None,
     MAKEPLOT: bool = False,
-) -> dict[str, dict[str, np.ndarray]]:
+) -> dict[str, dict[str, list[float]]]:
     """Given a training data to create a SuMo, generate it, and plot the profile along the central axes
     (e.g. all variables but the sweeped one will be set to its central value).
     No callback is necessary (everything internal to Dakota).
@@ -110,9 +101,10 @@ def evaluate_sumo_along_axes(
 
     if sumo_import_name:
         models_dir = run_dir.parent / "models"
-        assert models_dir.exists(), (
-            f"Models dir {models_dir} does not exist, but SuMo import is trying to copy files there"
-        )
+        if not models_dir.exists():
+            raise FileNotFoundError(
+                f"Models dir {models_dir} does not exist, but SuMo import is trying to copy files there"
+            )
         for file in models_dir.glob(f"{sumo_import_name}*"):
             shutil.copy(file, run_dir)
 
@@ -200,7 +192,7 @@ def _parse_crossvalidation_outputlogs(log_output: str, N_CROSS_VALIDATION: int):
         else:
             parsed_error_metrics[variable] = "No surrogate quality metrics found."
 
-    print(parsed_error_metrics)
+    _logger.debug("Parsed cross-validation metrics: %s", parsed_error_metrics)
     return parsed_error_metrics
 
 
@@ -223,8 +215,9 @@ def evaluate_sumo_crossvalidation(
     # run dakota
     dakobj = DakotaObject()
     dakobj.run(dakota_conf, run_dir)
-    ## TODO I was parsing from the stdout. How to do it now?
-    log_output = ""
+    # `dakobj.run` writes captured stdout to "dakota_stdout.txt" in run_dir (see DakotaObject.run)
+    stdout_file = run_dir / "dakota_stdout.txt"
+    log_output = stdout_file.read_text() if stdout_file.is_file() else ""
     parsed_error_metrics = _parse_crossvalidation_outputlogs(log_output, N_CROSS_VALIDATION)
 
     return parsed_error_metrics
@@ -388,6 +381,17 @@ def compute_cv_accuracy_metrics(
     valid = ~np.isnan(actual_arr) & ~np.isnan(predicted_arr)
     actual_arr = actual_arr[valid]
     predicted_arr = predicted_arr[valid]
+    # If every CV fold failed (B23), no valid pairs remain: `np.max` has no identity for
+    # an empty array and would raise, turning a degraded-but-recoverable CV run into an
+    # opaque 500. Report NaN metrics instead, matching the NaN/None-tolerant
+    # `CVAccuracyMetrics` response model.
+    if actual_arr.size == 0:
+        return {
+            "root_mean_squared": float("nan"),
+            "sum_abs": float("nan"),
+            "mean_abs": float("nan"),
+            "max_abs": float("nan"),
+        }
     residuals = actual_arr - predicted_arr
     abs_residuals = np.abs(residuals)
     return {
@@ -621,7 +625,7 @@ def perform_moga_optimization(
     output_responses: list[str],
     moga_kwargs: dict,
 ) -> dict[str, list[float | int]]:
-    print(f"minimizing {', '.join(output_responses)}")
+    _logger.debug("Minimizing responses: %s", ", ".join(output_responses))
 
     input_vars = sanitize_varnames(input_vars)
     output_responses = [sanitize_varnames(resp) for resp in output_responses]
@@ -733,8 +737,8 @@ def evaluate_sobol_indices(
     import math
 
     import pandas as pd
-    from scipy.stats import norm, sobol_indices, uniform  # type: ignore
-    from scipy.stats.qmc import Sobol  # type: ignore
+    from scipy.stats import norm, sobol_indices, uniform
+    from scipy.stats.qmc import Sobol
 
     input_vars = sanitize_varnames(input_vars)
     response_var = sanitize_varnames(response_var)
@@ -807,7 +811,7 @@ def evaluate_sobol_indices(
     all_samples_varying = np.vstack([A, B] + [AB[i] for i in range(d_varying)])
 
     # Build DataFrame with varying variables only
-    df_varying = pd.DataFrame(all_samples_varying, columns=varying_vars)
+    df_varying = pd.DataFrame(all_samples_varying, columns=pd.Index(varying_vars))
 
     # Add constant columns (fixed values for all rows)
     for var, val in constant_vars.items():
@@ -995,4 +999,4 @@ def evaluate_sobol_indices(
 
 
 if __name__ == "__main__":
-    print("DONE")
+    _logger.info("Dakota evaluation module executed")

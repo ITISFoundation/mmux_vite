@@ -252,6 +252,7 @@ function IsoSurface3DPlot() {
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}
           height={plotStyle.height}
+          numInputVars={inputVars.length}
         />
       )}
       {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}

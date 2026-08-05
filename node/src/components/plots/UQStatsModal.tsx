@@ -102,7 +102,12 @@ function UQStatsModal(props: UQStatsModalProps) {
     <StatsModal open={open} setOpen={setOpen} title="UQ Stats" testId="uq-stats-modal">
       {propagating && <CalculatingWarning height={200} dontShowText />}
       {!propagating && !stats && (
-        <InsufficientDataWarning fetchedJobCollections={fetchedJobCollections} filteredJobList={filteredJobList} height={200} />
+        <InsufficientDataWarning
+          fetchedJobCollections={fetchedJobCollections}
+          filteredJobList={filteredJobList}
+          height={200}
+          numInputVars={inputVars.length}
+        />
       )}
       {!propagating && stats && (
         <Box display="flex" flexDirection="column" gap={3} padding="0px 8px">

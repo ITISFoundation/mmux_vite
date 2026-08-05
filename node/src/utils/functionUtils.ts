@@ -2,6 +2,7 @@ import { toast } from "react-toastify";
 import { ProjectFunctionJob, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { RegisteredFunction, OsparcFunctionJob } from "../context/types";
 import { fetchWithRetry } from "./fetchRetry";
+import { UploadJobCollectionCsvResponse, UploadJobCollectionCsvParams } from "./types";
 
 function snakeToCamelCase(value: string): string {
   return value.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase());
@@ -116,20 +117,6 @@ export async function getFunctionJobsFromFunctionJobCollection(jobCollectionUid:
   return fetchWithRetry(`/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=${jobCollectionUid}`).then(
     async response => normalizePayloadToCamelCase<OsparcFunctionJob[]>(await response.json()),
   );
-}
-
-export interface UploadJobCollectionCsvResponse {
-  targetFunctionUid: string;
-  importedSamples: number;
-  jobCollection: RegisteredFunctionJobCollection;
-}
-
-export interface UploadJobCollectionCsvParams {
-  csvContent: string;
-  targetMode: "existing" | "new";
-  targetFunctionUid?: string;
-  newFunctionTitle?: string;
-  sourceFunctionUid?: string;
 }
 
 export async function uploadJobCollectionCsv(params: UploadJobCollectionCsvParams): Promise<UploadJobCollectionCsvResponse> {

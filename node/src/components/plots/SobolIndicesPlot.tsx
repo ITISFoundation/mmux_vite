@@ -183,6 +183,7 @@ export default function SobolIndicesPlot() {
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}
           height={plotStyle.height}
+          numInputVars={inputVars.length}
         />
       )}
       {!computing && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
