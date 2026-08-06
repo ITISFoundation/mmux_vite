@@ -46,6 +46,14 @@ interface PersistenceType {
   // Per-function, per-output-variable log-scale toggle (surrogate trained/inverted in
   // log space for that output). Keyed by function uid, then output variable name. §V12.
   outputLogScales: { [key: string]: { [varName: string]: boolean } };
+  // V27: once a user manually toggles a QoI's surrogate scale (OutputVariableDist.tsx),
+  // this locks that (uid, QoI) pair so useAutoDetectQoiScale's auto-detected default
+  // never overrides it again, even as the job-set grows. Keyed like outputLogScales.
+  outputLogScaleUserSet: { [key: string]: { [varName: string]: boolean } };
+  // B32/V40: per-function, per-input-variable "manually edited" flag. True once the
+  // user edits a variable's distribution entry (vs auto-inferred/refreshed). Gates the
+  // existing-mode CSV-upload merge and drives the blue "user-modified" marker. §V40.
+  distributionUserModified: { [key: string]: { [varName: string]: boolean } };
   lhsSamplingConfig: LHSamplingConfig;
   gridSamplingConfig: GridSamplingConfig;
   singleJobConfig: SingleJobConfig[];

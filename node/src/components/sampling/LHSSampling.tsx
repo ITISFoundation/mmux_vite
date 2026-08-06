@@ -191,6 +191,20 @@ function LHSSampling() {
     });
   }, [generateInputsList, inputVars, lhsInputs.points, localSamplingPoints, recommendedLHSSamples, selectedFunction]);
 
+  // B33: log scale is display-only (not wired into LHS/Dakota sampling). Warn once when the
+  // LHS sampling screen is selected and any variable is configured for log scale.
+  useEffect(() => {
+    if (!selectedFunction) return;
+    const dists = distribution[selectedFunction.uid];
+    const hasLog = dists && Object.values(dists).some(d => d?.scale === "log");
+    if (hasLog) {
+      toast.warning(
+        "Log-scale variables are shown for visualization only: LHS sampling currently uses linear bounds and does not sample in log space.",
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <>
       <Typography variant="h5" fontFamily="inherit" fontWeight={300} marginBottom={1}>

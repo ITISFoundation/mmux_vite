@@ -11,6 +11,7 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import MogaParetoTable from "./MOGAParetoTable";
 import { fetchWithRetry } from "../../utils/fetchRetry";
 import { aggregateOutputValues } from "../../utils/functionUtils";
+import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
 import { MOGAPlotModal } from "./MOGAPlotModal";
@@ -37,7 +38,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
   const { loading, jobProgress, setCalculating } = props;
   const theme = useTheme();
   const ref = useRef<Plot>(null);
-  const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputTargets, outputLogScales } = useFunctionContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const { mogaSettings } = useMOGASettingsContext();
   const { weights } = useMOGATableContext();
@@ -48,6 +49,8 @@ export function MOGAPareto(props: MOGAParetoProps) {
   const [tableData, setTableData] = useState<MogaDataType | undefined>(undefined);
   const [hovered, setHovered] = useState<number | null>(null);
   const [propagating, setPropagating] = useState(false);
+
+  useAutoDetectQoiScale(selectedFunction ? Object.keys(outputTargets[selectedFunction.uid] || {}) : undefined);
 
   const calculatePerformance = useCallback(
     (row: { [x: string]: number }, OVS: OutputVarSelection, minMax: { [k: string]: { min: number; max: number } }) => {
@@ -159,12 +162,16 @@ export function MOGAPareto(props: MOGAParetoProps) {
       // console.log("localOptVars: ", localOptVars)
       // console.log("weights: ", weights)
       // console.log("outputVarSelection: ", OVS)
+      const localOutputLogScales = Object.fromEntries(
+        localOptVars.map(varName => [varName, Boolean(outputLogScales[selectedFunction?.uid || ""]?.[varName])]),
+      );
       const bodyData = JSON.stringify({
         inputVars,
         mogaSettings: localsettings,
         distributions: distribution[selectedFunction?.uid || ""],
         outputVarSelection: OVS,
         FunctionJobs: jobs,
+        outputLogScales: localOutputLogScales,
       });
       const response = await fetchWithRetry(`/flask/dakota/perform_moga_optimization`, {
         method: "POST",
@@ -204,7 +211,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
       setTableData(newTableData);
       return { newTableData, localOptVars };
     },
-    [mogaSettings, selectedFunction?.uid, distribution, inputVars, calculatePerformance],
+    [mogaSettings, selectedFunction?.uid, distribution, inputVars, calculatePerformance, outputLogScales],
   );
 
   const updatePlot = useCallback(
@@ -385,7 +392,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
       run();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredJobList, mogaSettings]);
+  }, [filteredJobList, mogaSettings, outputLogScales]);
 
   // When weights change, recalculate tableData (refresh table) but do NOT rerun runMOGA
   useEffect(() => {

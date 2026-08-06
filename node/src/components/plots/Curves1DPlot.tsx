@@ -53,7 +53,7 @@ function Curves1DPlots() {
     () =>
       inputVars.reduce(
         (acc: { [key: string]: boolean }, key) => {
-          acc[key] = Boolean(distribution[selectedFunction?.uid || ""]?.[key]?.logScale);
+          acc[key] = Boolean(distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log");
           return acc;
         },
         {} as { [key: string]: boolean },

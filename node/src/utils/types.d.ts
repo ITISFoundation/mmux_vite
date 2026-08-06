@@ -5,12 +5,10 @@ import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 // can import them directly without pulling in those modules and risking future
 // circular imports between utils files.
 
-export interface UploadedInputPreset {
-  distribution: "uniform";
-  min: number;
-  max: number;
-  logScale: boolean;
-}
+export type UploadedInputPreset =
+  | (VarSelection & { distribution: "constant"; value: number })
+  | (VarSelection & { distribution: "uniform"; min: number; max: number })
+  | (VarSelection & { distribution: "normal"; mean: number; std: number });
 
 export interface ParsedJobCollectionRow {
   sourceJobUid?: string;

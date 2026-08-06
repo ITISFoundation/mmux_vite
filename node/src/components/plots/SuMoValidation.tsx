@@ -11,12 +11,15 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 
 function SuMoValidation() {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
+
+  useAutoDetectQoiScale(selectedQoI ? [selectedQoI] : undefined);
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
   const [propagating, setPropagating] = useState(false);
@@ -98,6 +101,8 @@ function SuMoValidation() {
     setPlotData([]);
     setPropagating(true);
 
+    const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
+
     fetch(`/flask/dakota/sumo_cross_validation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -105,7 +110,7 @@ function SuMoValidation() {
         inputVars,
         output: selectedQoI,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
-        log: false,
+        outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
       }),
     })
       .then(response => response.json())
@@ -134,7 +139,7 @@ function SuMoValidation() {
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
+  }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList, outputLogScales]);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver(event => {

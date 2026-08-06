@@ -31,7 +31,13 @@ export function stepValidator(
         return dist.value !== undefined && !Number.isNaN(dist.value);
       }
       if (dist.distribution === "normal") {
-        return dist.mean !== undefined && !Number.isNaN(dist.mean) && dist.std !== undefined && !Number.isNaN(dist.std);
+        return (
+          dist.mean !== undefined &&
+          !Number.isNaN(dist.mean) &&
+          dist.std !== undefined &&
+          !Number.isNaN(dist.std) &&
+          (dist.scale !== "log" || (typeof dist.mean === "number" && dist.mean > 0))
+        );
       }
       if (dist.distribution === "uniform") {
         return (
@@ -39,17 +45,8 @@ export function stepValidator(
           !Number.isNaN(dist.min) &&
           dist.max !== undefined &&
           !Number.isNaN(dist.max) &&
-          dist.min <= dist.max
-        );
-      }
-      if (dist.distribution === "log-normal") {
-        return (
-          dist.logMean !== undefined && !Number.isNaN(dist.logMean) && dist.logStd !== undefined && !Number.isNaN(dist.logStd)
-        );
-      }
-      if (dist.distribution === "exponential") {
-        return (
-          dist.mean !== undefined && !Number.isNaN(dist.mean) // Exponential distribution typically uses mean
+          dist.min <= dist.max &&
+          (dist.scale !== "log" || (typeof dist.min === "number" && dist.min > 0))
         );
       }
       return false; // If the distribution type is not recognized or is missing values

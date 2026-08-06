@@ -26,6 +26,8 @@ export interface VariableDiagnostics {
   logNormality: NormalityVerdict;
   outlierCount: number;
   outlierIndices: number[];
+  /** The actual out-of-fence values (same order as outlierIndices), for display. */
+  outlierValues: number[];
   hasEnoughSamples: boolean;
 }
 
@@ -105,6 +107,7 @@ export function computeDiagnostics(values: number[]): VariableDiagnostics {
     logNormality: "not-applicable",
     outlierCount: 0,
     outlierIndices: [],
+    outlierValues: [],
     hasEnoughSamples: n >= minSamplesForDiagnostics,
   };
   if (n < minSamplesForDiagnostics) return empty;
@@ -131,8 +134,17 @@ export function computeDiagnostics(values: number[]): VariableDiagnostics {
     logNormality: logVerdict,
     outlierCount: outliers.indices.length,
     outlierIndices: outliers.indices,
+    outlierValues: outliers.indices.map(i => finite[i]),
     hasEnoughSamples: true,
   };
+}
+
+// Format a value for display in a warning message: 4 significant digits, without
+// forcing scientific notation for typical magnitudes (data here can range from
+// ~1e-4 to ~1e9, so plain toFixed would either truncate small values to 0 or print
+// unreadably long strings for large ones).
+function formatDiagnosticValue(value: number): string {
+  return String(Number(value.toPrecision(4)));
 }
 
 export function extractValuesFromJobs(jobs: OsparcFunctionJob[], variable: string, type: "input" | "output"): number[] {
@@ -153,8 +165,8 @@ export function extractValuesFromJobs(jobs: OsparcFunctionJob[], variable: strin
 }
 
 export interface DiagnosticsWarningContext {
-  /** True if the user has the per-variable log-scale toggle enabled (only meaningful for SUMO/MOGA). */
-  logScale?: boolean;
+  /** True if the user has the per-variable log scale enabled (orthogonal to distribution shape). */
+  scale?: "linear" | "log";
   /** The user's chosen distribution form (only meaningful for UQ inputs). */
   declaredDistribution?: Distribution;
   /** Variable role — affects message wording. */
@@ -188,15 +200,15 @@ export function buildWarnings(diag: VariableDiagnostics, ctx: DiagnosticsWarning
     diag.logNormality !== "not-applicable" && diag.logNormality !== "not-normal" && diag.rawNormality === "not-normal";
 
   if ((ctx.serviceMode === "SUMO" || ctx.serviceMode === "MOGA") && ctx.role === "input") {
-    if (logBetterThanRaw && !ctx.logScale) {
+    if (logBetterThanRaw && ctx.scale !== "log") {
       out.push(
         `Data is heavily skewed in linear space (skewness=${diag.skewness.toFixed(2)}) but more symmetric in log-space; consider enabling log-scale.`,
       );
-    } else if (ctx.logScale && diag.rawNormality === "likely-normal" && diag.logNormality !== "likely-normal") {
+    } else if (ctx.scale === "log" && diag.rawNormality === "likely-normal" && diag.logNormality !== "likely-normal") {
       out.push(
         `Log-scale is on but raw data already looks well-spread (skewness=${diag.skewness.toFixed(2)}); log may not be helping.`,
       );
-    } else if (diag.rawNormality === "not-normal" && diag.logNormality !== "likely-normal" && !ctx.logScale) {
+    } else if (diag.rawNormality === "not-normal" && diag.logNormality !== "likely-normal" && ctx.scale !== "log") {
       out.push(
         `Data is heavily skewed (skewness=${diag.skewness.toFixed(2)}); consider more samples or a wider parameter range.`,
       );
@@ -213,7 +225,7 @@ export function buildWarnings(diag: VariableDiagnostics, ctx: DiagnosticsWarning
   }
 
   if (ctx.role === "output" && (ctx.serviceMode === "SUMO" || ctx.serviceMode === "MOGA")) {
-    if (logBetterThanRaw && !ctx.logScale) {
+    if (logBetterThanRaw && ctx.scale !== "log") {
       out.push(
         `Output is heavily skewed in linear space (skewness=${diag.skewness.toFixed(2)}); consider enabling log-scale for better surrogate fit.`,
       );
@@ -221,7 +233,9 @@ export function buildWarnings(diag: VariableDiagnostics, ctx: DiagnosticsWarning
   }
 
   if (diag.outlierCount > 0) {
-    out.push(`${diag.outlierCount} of ${diag.count} samples are outside Tukey IQR fences (potential outliers).`);
+    const shown = diag.outlierValues.slice(0, 10).map(formatDiagnosticValue).join(", ");
+    const more = diag.outlierValues.length > 10 ? `, +${diag.outlierValues.length - 10} more` : "";
+    out.push(`${diag.outlierCount} of ${diag.count} samples are outside Tukey IQR fences (potential outliers): ${shown}${more}.`);
   }
 
   return out;

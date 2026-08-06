@@ -43,8 +43,36 @@ const types: { [key in HeaderTypes]: TypographyVariant } = {
 };
 
 function Header(props: HeaderProps) {
-  const { tabTitle, infoText, extendedInfoText, headerType, helpContents, fontWeight, errorMessage, qoiSelector } = props;
+  const {
+    tabTitle,
+    infoText,
+    extendedInfoText,
+    headerType,
+    helpContents,
+    fontWeight,
+    errorMessage,
+    qoiSelector,
+    titleAction,
+    trailingInfoIcon,
+  } = props;
   const theme = useTheme();
+
+  const infoIcon = infoText && infoText.length > 0 && (
+    <CustomTooltip title={infoText} extendedTooltip={extendedInfoText} placement="right" arrow>
+      <InfoOutline
+        sx={{
+          color: theme.palette.primary.light,
+          backgroundColor: theme.palette.background.default,
+          borderRadius: "50%",
+          padding: "2px",
+          marginLeft: "8px",
+          marginBottom: "2px",
+          fontSize: "24px",
+        }}
+      />
+    </CustomTooltip>
+  );
+
   return (
     <HeaderContainer headerType={headerType}>
       <Box flex={1} display="flex" alignItems="center">
@@ -57,21 +85,8 @@ function Header(props: HeaderProps) {
         >
           {tabTitle}
         </Typography>
-        {infoText && infoText.length > 0 && (
-          <CustomTooltip title={infoText} extendedTooltip={extendedInfoText} placement="right" arrow>
-            <InfoOutline
-              sx={{
-                color: theme.palette.primary.light,
-                backgroundColor: theme.palette.background.default,
-                borderRadius: "50%",
-                padding: "2px",
-                marginLeft: "8px",
-                marginBottom: "2px",
-                fontSize: "24px",
-              }}
-            />
-          </CustomTooltip>
-        )}
+        {!trailingInfoIcon && infoIcon}
+        {titleAction}
         {errorMessage && (
           <Typography color="error" sx={{ marginLeft: "16px", fontSize: "0.9em", fontWeight: 400 }}>
             {errorMessage}
@@ -79,6 +94,7 @@ function Header(props: HeaderProps) {
         )}
       </Box>
       {qoiSelector}
+      {trailingInfoIcon && infoIcon}
       {helpContents && (
         <CustomTooltip title={helpContents} placement="right" arrow>
           <HelpOutline

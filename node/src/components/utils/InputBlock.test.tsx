@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
 import { InputBlock } from "./InputBlock";
 
 describe("InputBlock", () => {
@@ -62,5 +63,25 @@ describe("InputBlock", () => {
     const { getByRole } = render(<InputBlock {...customProps} />);
     const input = getByRole("textbox") as HTMLInputElement;
     expect(input).toHaveProperty("type", "text");
+  });
+
+  it("re-syncs displayed value when the value prop changes after mount (B27/B28/B29 stale-prop fix)", () => {
+    const { getByDisplayValue, rerender } = render(<InputBlock {...defaultProps} value={42} />);
+    expect(getByDisplayValue("42")).toBeTruthy();
+
+    rerender(<InputBlock {...defaultProps} value={7} />);
+    expect(getByDisplayValue("7")).toBeTruthy();
+  });
+
+  it("does not render a refresh button when onRefresh is not provided", () => {
+    const { queryByRole } = render(<InputBlock {...defaultProps} />);
+    expect(queryByRole("button", { name: `Refresh ${defaultProps.name}` })).not.toBeInTheDocument();
+  });
+
+  it("renders a refresh button and calls onRefresh when clicked (T25)", () => {
+    const onRefresh = vi.fn();
+    const { getByRole } = render(<InputBlock {...defaultProps} onRefresh={onRefresh} />);
+    fireEvent.click(getByRole("button", { name: `Refresh ${defaultProps.name}` }));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 });

@@ -8,8 +8,15 @@ import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import { AddOutputModal } from "./AddOutputModal";
 
 export function OutputVariableDist() {
-  const { selectedFunction, outputVars, outputTargets, setOutputTargets, outputLogScales, setOutputLogScales } =
-    useFunctionContext();
+  const {
+    selectedFunction,
+    outputVars,
+    outputTargets,
+    setOutputTargets,
+    outputLogScales,
+    setOutputLogScales,
+    setOutputLogScaleUserSet,
+  } = useFunctionContext();
   // const { ServiceMode } = useServiceContext();
   const [openModal, setOpenModal] = useState(false);
   const [configuredOutputs, setConfiguredOutputs] = useState(outputTargets[selectedFunction?.uid || ""] || {});
@@ -37,6 +44,11 @@ export function OutputVariableDist() {
     setLocalOutputLogScales(next);
     if (selectedFunction) {
       setOutputLogScales({ ...outputLogScales, [selectedFunction.uid]: next });
+      // V27: manual toggle locks this (uid, QoI) pair so auto-detect never overrides it.
+      setOutputLogScaleUserSet(prev => ({
+        ...prev,
+        [selectedFunction.uid]: { ...prev[selectedFunction.uid], [outputVar]: true },
+      }));
     }
   };
 

@@ -54,6 +54,12 @@ describe("computeDiagnostics", () => {
     expect(diag.outlierIndices).toContain(values.indexOf(100));
   });
 
+  it("B31/V37: exposes the actual out-of-fence values (not just indices/count)", () => {
+    const values = [1, 2, 2, 3, 3, 3, 4, 4, 5, 5, 100];
+    const diag = computeDiagnostics(values);
+    expect(diag.outlierValues).toEqual([100]);
+  });
+
   it("treats roughly normal data as likely-normal", () => {
     // Symmetric, low-kurtosis data centered at 0
     const values = Array.from({ length: 60 }, (_, i) => Math.cos((i * Math.PI) / 30));
@@ -67,7 +73,7 @@ describe("buildWarnings", () => {
     const logSamples = gaussianSample(200, -1, 0.5, 7);
     const values = logSamples.map(v => 10 ** v);
     const diag = computeDiagnostics(values);
-    const warnings = buildWarnings(diag, { role: "input", serviceMode: "SUMO", logScale: false });
+    const warnings = buildWarnings(diag, { role: "input", serviceMode: "SUMO", scale: "linear" });
     expect(warnings.some(w => /log-scale/i.test(w))).toBe(true);
   });
 
@@ -75,7 +81,7 @@ describe("buildWarnings", () => {
     const logSamples = gaussianSample(200, -1, 0.5, 7);
     const values = logSamples.map(v => 10 ** v);
     const diag = computeDiagnostics(values);
-    const warnings = buildWarnings(diag, { role: "input", serviceMode: "SUMO", logScale: true });
+    const warnings = buildWarnings(diag, { role: "input", serviceMode: "SUMO", scale: "log" });
     expect(warnings.some(w => /consider enabling log-scale/i.test(w))).toBe(false);
   });
 
@@ -83,7 +89,7 @@ describe("buildWarnings", () => {
     const logSamples = gaussianSample(200, -1, 0.5, 7);
     const values = logSamples.map(v => 10 ** v);
     const diag = computeDiagnostics(values);
-    const warnings = buildWarnings(diag, { role: "output", serviceMode: "SUMO", logScale: false });
+    const warnings = buildWarnings(diag, { role: "output", serviceMode: "SUMO", scale: "linear" });
     expect(warnings.some(w => /log-scale/i.test(w))).toBe(true);
   });
 
@@ -92,6 +98,14 @@ describe("buildWarnings", () => {
     const diag = computeDiagnostics(values);
     const warnings = buildWarnings(diag, { role: "input", serviceMode: "SUMO" });
     expect(warnings.some(w => /Tukey/.test(w))).toBe(true);
+  });
+
+  it("B31/V37: lists the actual out-of-fence values in the outlier warning, not just a count", () => {
+    const values = [1, 2, 2, 3, 3, 3, 4, 4, 5, 5, 100];
+    const diag = computeDiagnostics(values);
+    const warnings = buildWarnings(diag, { role: "input", serviceMode: "SUMO" });
+    const outlierWarning = warnings.find(w => /Tukey/.test(w));
+    expect(outlierWarning).toContain("100");
   });
 
   it("returns a 'need more samples' notice below the minimum sample count", () => {

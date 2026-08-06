@@ -88,24 +88,15 @@ describe("Sampling Functions", () => {
     expect(typeof startValue).toBe("number");
     expect(startValue).toBeLessThanOrEqual(0); // mean - 2.5 * std
 
-    distribution.X.distribution = "log-normal";
-    startValue = getSamplingStartValue(inputVar, distribution);
-    expect(startValue).toBeDefined();
-    expect(typeof startValue).toBe("string");
-    expect(startValue).toBe("Error. Please contact support");
-
-    distribution.X.logMean = 0;
-    distribution.X.logStd = 0.5;
+    distribution.X.distribution = "normal";
+    distribution.X.scale = "log";
+    distribution.X.mean = 5;
+    distribution.X.std = 2;
     startValue = getSamplingStartValue(inputVar, distribution);
     expect(startValue).toBeDefined();
     expect(typeof startValue).toBe("number");
-    expect(startValue).toBeCloseTo(Math.exp(0 - 2.5 * 0.5));
-
-    distribution.X.distribution = "exponential";
-    startValue = getSamplingStartValue(inputVar, distribution);
-    expect(startValue).toBeDefined();
-    expect(typeof startValue).toBe("number");
-    expect(startValue).toBe(0);
+    // log scale is not wired into sampling bounds (B33): linear mean - 2.5*std
+    expect(startValue).toBeCloseTo(5 - 2.5 * 2);
   });
 
   it("should get the sampling end value", () => {
@@ -132,24 +123,15 @@ describe("Sampling Functions", () => {
     expect(typeof endValue).toBe("number");
     expect(endValue).toBeLessThanOrEqual(10); // mean + 2.5 * std
 
-    distribution.X.distribution = "log-normal";
-    endValue = getSamplingEndValue(inputVar, distribution);
-    expect(endValue).toBeDefined();
-    expect(typeof endValue).toBe("string");
-    expect(endValue).toBe("Error. Please contact support");
-
-    distribution.X.logMean = 0;
-    distribution.X.logStd = 0.5;
+    distribution.X.distribution = "normal";
+    distribution.X.scale = "log";
+    distribution.X.mean = 5;
+    distribution.X.std = 2;
     endValue = getSamplingEndValue(inputVar, distribution);
     expect(endValue).toBeDefined();
     expect(typeof endValue).toBe("number");
-    expect(endValue).toBeCloseTo(Math.exp(0 + 2.5 * 0.5));
-
-    distribution.X.distribution = "exponential";
-    endValue = getSamplingEndValue(inputVar, distribution);
-    expect(endValue).toBeDefined();
-    expect(typeof endValue).toBe("string");
-    expect(endValue).toBe("Error. Please contact support");
+    // log scale is not wired into sampling bounds (B33): linear mean + 2.5*std
+    expect(endValue).toBeCloseTo(5 + 2.5 * 2);
   });
 });
 
@@ -187,11 +169,19 @@ describe("stepValidator", () => {
       setDistribution: (_d: SetStateAction<{ [key: string]: InputVarSelection }>): void => {
         throw new Error("Function not implemented.");
       },
+      distributionUserModified: {},
+      setDistributionUserModified: (_d: SetStateAction<{ [key: string]: { [varName: string]: boolean } }>): void => {
+        throw new Error("Function not implemented.");
+      },
       setOutputTargets(_d: { [key: string]: OutputVarSelection }): void {
         throw new Error("Function not implemented.");
       },
       outputLogScales: {},
-      setOutputLogScales: (_d: { [key: string]: { [varName: string]: boolean } }): void => {
+      setOutputLogScales: (_d: SetStateAction<{ [key: string]: { [varName: string]: boolean } }>): void => {
+        throw new Error("Function not implemented.");
+      },
+      outputLogScaleUserSet: {},
+      setOutputLogScaleUserSet: (_d: SetStateAction<{ [key: string]: { [varName: string]: boolean } }>): void => {
         throw new Error("Function not implemented.");
       },
     };

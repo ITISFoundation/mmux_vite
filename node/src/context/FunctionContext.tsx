@@ -15,7 +15,16 @@ export interface FunctionContextType {
   outputTargets: { [key: string]: OutputVarSelection };
   setOutputTargets: (d: { [key: string]: OutputVarSelection }) => void;
   outputLogScales: { [key: string]: { [varName: string]: boolean } };
-  setOutputLogScales: (d: { [key: string]: { [varName: string]: boolean } }) => void;
+  setOutputLogScales: React.Dispatch<React.SetStateAction<{ [key: string]: { [varName: string]: boolean } }>>;
+  // V27: locks a (uid, QoI) pair once manually toggled, so useAutoDetectQoiScale never
+  // overrides it again.
+  outputLogScaleUserSet: { [key: string]: { [varName: string]: boolean } };
+  setOutputLogScaleUserSet: React.Dispatch<React.SetStateAction<{ [key: string]: { [varName: string]: boolean } }>>;
+  // B32/V40: true once a variable's distribution entry has been manually edited (vs
+  // auto-inferred/refreshed). Gates the existing-mode CSV-upload merge so user edits
+  // are preserved, and drives the blue "user-modified" marker. Orthogonal to `distribution`.
+  distributionUserModified: { [key: string]: { [varName: string]: boolean } };
+  setDistributionUserModified: React.Dispatch<React.SetStateAction<{ [key: string]: { [varName: string]: boolean } }>>;
 }
 
 export const FunctionContext = createContext<FunctionContextType>(undefined!);
@@ -34,6 +43,8 @@ export function FunctionContextProvider({ children }: Props) {
     distribution: id,
     outputTargets: od,
     outputLogScales: ols,
+    outputLogScaleUserSet: olsUserSet,
+    distributionUserModified: dum,
   } = functionValues as Partial<PersistenceType>;
   const [selectedFunction, setSelectedFunction] = useState<RegisteredFunction | undefined>(isf);
   const [distribution, setDistribution] = useState<{
@@ -47,6 +58,12 @@ export function FunctionContextProvider({ children }: Props) {
   const [outputLogScales, setOutputLogScales] = useState<{
     [key: string]: { [varName: string]: boolean };
   }>(ols || {});
+  const [outputLogScaleUserSet, setOutputLogScaleUserSet] = useState<{
+    [key: string]: { [varName: string]: boolean };
+  }>(olsUserSet || {});
+  const [distributionUserModified, setDistributionUserModified] = useState<{
+    [key: string]: { [varName: string]: boolean };
+  }>(dum || {});
 
   useEffect(() => {
     if (loading === false) {
@@ -57,9 +74,11 @@ export function FunctionContextProvider({ children }: Props) {
         distribution,
         outputTargets,
         outputLogScales,
+        outputLogScaleUserSet,
+        distributionUserModified,
       });
     }
-  }, [selectedFunction, inputVars, outputVars, distribution, outputTargets, outputLogScales]);
+  }, [selectedFunction, inputVars, outputVars, distribution, outputTargets, outputLogScales, outputLogScaleUserSet]);
 
   const memo = React.useMemo(
     () => ({
@@ -75,6 +94,10 @@ export function FunctionContextProvider({ children }: Props) {
       setOutputTargets,
       outputLogScales,
       setOutputLogScales,
+      outputLogScaleUserSet,
+      setOutputLogScaleUserSet,
+      distributionUserModified,
+      setDistributionUserModified,
     }),
     [
       selectedFunction,
@@ -89,6 +112,10 @@ export function FunctionContextProvider({ children }: Props) {
       setOutputTargets,
       outputLogScales,
       setOutputLogScales,
+      outputLogScaleUserSet,
+      setOutputLogScaleUserSet,
+      distributionUserModified,
+      setDistributionUserModified,
     ],
   );
 

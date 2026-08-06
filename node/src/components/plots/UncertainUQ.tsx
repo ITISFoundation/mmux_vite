@@ -5,6 +5,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { fetchWithRetry } from "../../utils/fetchRetry";
+import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
@@ -13,12 +14,14 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 export default function UncertainUQ(props: LoadingPropsType) {
   const { loading, jobProgress } = props;
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { numSamples, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [dataUQHistogram, setDataUQHistogram] = useState<DataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
+
+  useAutoDetectQoiScale(selectedQoI ? [selectedQoI] : undefined);
 
   useEffect(() => {
     (async () => {
@@ -34,6 +37,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
       try {
         console.info("Propagating UQ...");
         console.info("SelectedQoI: ", selectedQoI);
+        const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
         const response = await fetchWithRetry(`/flask/dakota/manual_uq_propagation_with_uncertainty`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -43,7 +47,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
             distributions: distribution[selectedFunction?.uid || ""],
             FunctionJobs: filteredJobList,
             numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
-            log: false,
+            outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
             nHistograms: 50,
             seed: 0,
           }),
@@ -78,7 +82,16 @@ export default function UncertainUQ(props: LoadingPropsType) {
         setDataUQHistogram(undefined);
       }
     })();
-  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction, theme.palette.primary.main]);
+  }, [
+    filteredJobList,
+    selectedQoI,
+    numSamples,
+    inputVars,
+    distribution,
+    selectedFunction,
+    outputLogScales,
+    theme.palette.primary.main,
+  ]);
   if (loading) {
     return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;
   }

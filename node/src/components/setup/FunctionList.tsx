@@ -39,7 +39,8 @@ function getRowId(row: RegisteredFunction) {
 }
 
 export function FunctionList() {
-  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars, setDistribution } = useFunctionContext();
+  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars, setDistribution, distributionUserModified } =
+    useFunctionContext();
   const { setLhsSamplingConfig, setGridSamplingConfig, setSingleJobConfig, clearSampling } = useSamplingContext();
   const { setSelectedJobUids, setFetchedJobCollections } = useJobContext();
   const [loading, setLoading] = useState<boolean>(true);
@@ -190,17 +191,19 @@ export function FunctionList() {
     }
 
     setRowSelection(targetFunction); // select fn (+ registers inputVars/outputVars)
-    setDistribution(prev => ({
-      ...prev,
-      [targetFunction.uid]: {
-        // merge (not overwrite): vars without an inferred preset keep their existing/default
-        // entry, so components dereferencing distribution[inputVar] directly don't crash.
-        ...prev[targetFunction.uid],
-        ...Object.fromEntries(
-          Object.entries(result.inputPresets).map(([variable, preset]) => [variable, preset as VarSelection]),
-        ),
-      },
-    })); // prefill bounds + infer dist/log
+    // B32: merge (not overwrite). Skip the inferred preset for any variable the user has
+    // manually edited (distributionUserModified) so their config is never silently dropped
+    // by a CSV upload. Vars without an entry keep their existing/default entry so direct
+    // derefs of distribution[inputVar] don't crash.
+    setDistribution(prev => {
+      const existing = prev[targetFunction.uid] || {};
+      const modified = distributionUserModified[targetFunction.uid] || {};
+      const merged: Record<string, VarSelection> = { ...existing };
+      for (const [variable, preset] of Object.entries(result.inputPresets)) {
+        if (!modified[variable]) merged[variable] = preset as VarSelection;
+      }
+      return { ...prev, [targetFunction.uid]: merged };
+    }); // prefill bounds + infer dist/log
   };
 
   const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {

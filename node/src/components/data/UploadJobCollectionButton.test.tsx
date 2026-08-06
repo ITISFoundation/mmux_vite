@@ -59,7 +59,7 @@ describe("UploadJobCollectionButton", () => {
       importedSamples: 2,
       inputVars: ["x1"],
       outputVars: ["y"],
-      inputPresets: { x1: { distribution: "uniform", min: 1.0, max: 5.0, logScale: false } },
+      inputPresets: { x1: { distribution: "uniform", min: 1.0, max: 5.0, scale: "linear" } },
     });
     expect(toastSuccessSpy).toHaveBeenCalled();
   });
