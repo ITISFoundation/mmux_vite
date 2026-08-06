@@ -16,84 +16,7 @@ from mmux_flaskapi.data_preprocessor.data_preprocessor import DataPreprocessor
 
 
 # ---------------------------------------------------------------------------
-# P1. Pareto Dominance Invariants
-# ---------------------------------------------------------------------------
-@pytest.mark.unit
-class TestParetoDominance:
-    def test_irreflexivity_self_dominated(self):
-        """is_dominated uses `>=`, so a point IS dominated by itself (reflexive).
-
-        This is a known behavior of the implementation: `all(a >= a)` is True for
-        any point, meaning the function treats self-comparison as domination.
-        We test the actual (reflexive) behavior here.
-        """
-        a = np.array([1.0, 2.0, 3.0])
-        assert is_dominated(a, [a]) is True
-
-    def test_asymmetry(self):
-        """If a dominates b in the is_dominated sense (a >= b in all dims),
-        then b does NOT dominate a."""
-        a = np.array([2.0, 3.0])
-        b = np.array([1.0, 2.0])
-        # is_dominated(a, [b]) checks a >= b → [True, True] → True
-        assert is_dominated(a, [b]) is True
-        # is_dominated(b, [a]) checks b >= a → [False, False] → False
-        assert is_dominated(b, [a]) is False
-
-    def test_asymmetry_strict(self):
-        """For strictly unequal points where one dominates, the reverse is false."""
-        a = np.array([5.0, 5.0, 5.0])
-        b = np.array([1.0, 1.0, 1.0])
-        assert is_dominated(a, [b]) is True
-        assert is_dominated(b, [a]) is False
-
-    def test_transitivity_on_dominance(self):
-        """If a dominates b and b dominates c, then a dominates c."""
-        a = np.array([3.0, 3.0])
-        b = np.array([2.0, 2.0])
-        c = np.array([1.0, 1.0])
-        assert is_dominated(a, [b]) is True
-        assert is_dominated(b, [c]) is True
-        assert is_dominated(a, [c]) is True
-
-    def test_non_dominated_output_no_dominated_pairs(self):
-        """No two points in the non-dominated set should dominate each other."""
-        df = pd.DataFrame({"x": [1.0, 2.0, 3.0, 0.5, 1.5], "y": [3.0, 2.0, 1.0, 0.5, 2.5]})
-        indices = get_non_dominated_indices(df, ["x", "y"], ["min", "min"])
-        nd_points = df.loc[indices, ["x", "y"]].values
-        for i, p in enumerate(nd_points):
-            others = [q for j, q in enumerate(nd_points) if j != i]
-            if others:
-                assert not is_dominated(p, others), (
-                    f"Non-dominated point {p} is dominated by another in the set"
-                )
-
-    def test_non_dominated_completeness(self):
-        """All non-dominated points must appear in the output."""
-        df = pd.DataFrame({"x": [1.0, 2.0, 3.0, 10.0], "y": [10.0, 3.0, 2.0, 1.0]})
-        indices = get_non_dominated_indices(df, ["x", "y"], ["min", "min"])
-        nd_set = set(indices)
-        data_np = df[["x", "y"]].values
-        for i, point in enumerate(data_np):
-            others = np.delete(data_np, i, axis=0)
-            if not is_dominated(point, others):
-                assert i in nd_set, (
-                    f"Point {point} at index {i} is truly non-dominated but missing from output"
-                )
-
-    def test_non_dominated_with_max_mode(self):
-        """Non-dominance works correctly when optimization mode is 'max'."""
-        df = pd.DataFrame({"x": [1.0, 2.0, 3.0], "y": [3.0, 2.0, 1.0]})
-        indices = get_non_dominated_indices(df, ["x", "y"], ["max", "max"])
-        nd_points = df.loc[indices, ["x", "y"]].values
-        for i, p in enumerate(nd_points):
-            others = [q for j, q in enumerate(nd_points) if j != i]
-            if others:
-                assert not is_dominated(p, others)
-
-
-# ---------------------------------------------------------------------------
-# P2. LHS Invariants
+# P1. LHS Invariants
 # ---------------------------------------------------------------------------
 @pytest.mark.unit
 class TestLHSInvariants:
@@ -153,7 +76,139 @@ class TestLHSInvariants:
 
 
 # ---------------------------------------------------------------------------
-# P3. DataPreprocessor Roundtrip
+# P2. Grid Sample Invariants
+# ---------------------------------------------------------------------------
+@pytest.mark.unit
+class TestGridSampleInvariants:
+    def test_total_points(self, tmp_path):
+        """Total rows = product of n_points_per_dimension for grid variables only.
+
+        n_points_per_dimension must have the same length as input_vars.
+        Non-grid vars still need an entry (it's ignored by meshgrid).
+        """
+        grid_vars = ["x1", "x2"]
+        input_vars = ["x1", "x2", "x3"]
+        mins = [0.0, 0.0, 5.0]
+        cut_values = [0.5, 0.5, 10.0]
+        maxs = [1.0, 1.0, 15.0]
+        n_points = [3, 4, 1]
+        path = create_grid_samples(
+            tmp_path, grid_vars, input_vars, mins, cut_values, maxs, n_points
+        )
+        df = load_data(path)
+        assert len(df) == 3 * 4
+
+    def test_grid_values_within_bounds(self, tmp_path):
+        """Grid variable values are >= min and <= max."""
+        grid_vars = ["x1", "x2"]
+        input_vars = ["x1", "x2"]
+        mins = [0.0, -1.0]
+        cut_values = [0.5, -0.5]
+        maxs = [1.0, 1.0]
+        n_points = [5, 5]
+        path = create_grid_samples(
+            tmp_path, grid_vars, input_vars, mins, cut_values, maxs, n_points
+        )
+        df = load_data(path)
+        for i, var in enumerate(grid_vars):
+            assert np.all(df[var].astype(float) >= mins[i] - 1e-12)
+            assert np.all(df[var].astype(float) <= maxs[i] + 1e-12)
+
+    def test_non_grid_variables_fixed(self, tmp_path):
+        """Non-grid variables are exactly equal to cut_value."""
+        grid_vars = ["x1"]
+        input_vars = ["x1", "x2"]
+        mins = [0.0, 0.0]
+        cut_values = [0.5, 42.0]
+        maxs = [1.0, 100.0]
+        n_points = [4, 1]
+        path = create_grid_samples(
+            tmp_path, grid_vars, input_vars, mins, cut_values, maxs, n_points
+        )
+        df = load_data(path)
+        np.testing.assert_allclose(df["x2"].astype(float).values, 42.0, atol=1e-12)
+
+    def test_2d_meshgrid_all_combinations(self, tmp_path):
+        """2 grid vars with 3 points each produces 9 rows covering all combos."""
+        grid_vars = ["x1", "x2"]
+        input_vars = ["x1", "x2"]
+        mins = [0.0, 0.0]
+        cut_values = [0.5, 0.5]
+        maxs = [1.0, 1.0]
+        n_points = [3, 3]
+        path = create_grid_samples(
+            tmp_path, grid_vars, input_vars, mins, cut_values, maxs, n_points
+        )
+        df = load_data(path)
+        assert len(df) == 9
+        x1_vals = sorted(df["x1"].astype(float).unique())
+        x2_vals = sorted(df["x2"].astype(float).unique())
+        assert len(x1_vals) == 3
+        assert len(x2_vals) == 3
+        np.testing.assert_allclose(x1_vals, np.linspace(0, 1, 3), atol=1e-12)
+        np.testing.assert_allclose(x2_vals, np.linspace(0, 1, 3), atol=1e-12)
+
+
+# ---------------------------------------------------------------------------
+# P3. Axis Sweep Invariants
+# ---------------------------------------------------------------------------
+@pytest.mark.unit
+class TestAxisSweepInvariants:
+    def test_total_points(self, tmp_path):
+        """Total rows = NSAMPLESPERVAR * number of input variables."""
+        df = pd.DataFrame({"x1": np.linspace(0, 10, 50), "x2": np.linspace(-5, 5, 50)})
+        NSP = 20
+        path = create_samples_along_axes(tmp_path, df, ["x1", "x2"], NSP)
+        result = load_data(path)
+        assert len(result) == NSP * 2
+
+    def test_sweep_monotonicity(self, tmp_path):
+        """Within each sweep segment, the swept variable increases monotonically."""
+        data = pd.DataFrame({"x1": np.linspace(0, 10, 50), "x2": np.linspace(-5, 5, 50)})
+        NSP = 15
+        path = create_samples_along_axes(tmp_path, data, ["x1", "x2"], NSP)
+        result = load_data(path)
+        for i, var in enumerate(["x1", "x2"]):
+            segment = result[var].astype(float).values[i * NSP : (i + 1) * NSP]
+            diffs = np.diff(segment)
+            assert np.all(diffs >= -1e-12), (
+                f"Sweep segment for {var} is not monotonically increasing"
+            )
+
+    def test_non_sweep_constancy(self, tmp_path):
+        """Within each sweep segment, non-sweep variables equal the cut value."""
+        data = pd.DataFrame({"x1": np.linspace(0, 10, 50), "x2": np.linspace(-5, 5, 50)})
+        NSP = 10
+        path = create_samples_along_axes(tmp_path, data, ["x1", "x2"], NSP)
+        result = load_data(path)
+        mean_vals = data.mean().values
+        for i, var in enumerate(["x1", "x2"]):
+            other_vars = [v for v in ["x1", "x2"] if v != var]
+            for ov in other_vars:
+                segment = result[ov].astype(float).values[i * NSP : (i + 1) * NSP]
+                np.testing.assert_allclose(
+                    segment, mean_vals[list(data.columns).index(ov)], atol=1e-12
+                )
+
+    def test_uniform_spacing(self, tmp_path):
+        """Consecutive differences within each sweep segment are equal."""
+        data = pd.DataFrame({"x1": np.linspace(0, 10, 50), "x2": np.linspace(-5, 5, 50)})
+        NSP = 12
+        path = create_samples_along_axes(tmp_path, data, ["x1", "x2"], NSP)
+        result = load_data(path)
+        for i, var in enumerate(["x1", "x2"]):
+            segment = result[var].astype(float).values[i * NSP : (i + 1) * NSP]
+            diffs = np.diff(segment)
+            np.testing.assert_allclose(
+                diffs,
+                diffs[0],
+                atol=1e-12,
+                err_msg=f"Sweep for {var} is not uniformly spaced",
+            )
+
+
+# ---------------------------------------------------------------------------
+# P4. DataPreprocessor Roundtrip
 # ---------------------------------------------------------------------------
 @pytest.mark.unit
 class TestDataPreprocessorRoundtrip:
@@ -228,139 +283,7 @@ class TestDataPreprocessorRoundtrip:
 
 
 # ---------------------------------------------------------------------------
-# P4. Grid Sample Invariants
-# ---------------------------------------------------------------------------
-@pytest.mark.unit
-class TestGridSampleInvariants:
-    def test_total_points(self, tmp_path):
-        """Total rows = product of n_points_per_dimension for grid variables only.
-
-        n_points_per_dimension must have the same length as input_vars.
-        Non-grid vars still need an entry (it's ignored by meshgrid).
-        """
-        grid_vars = ["x1", "x2"]
-        input_vars = ["x1", "x2", "x3"]
-        mins = [0.0, 0.0, 5.0]
-        cut_values = [0.5, 0.5, 10.0]
-        maxs = [1.0, 1.0, 15.0]
-        n_points = [3, 4, 1]
-        path = create_grid_samples(
-            tmp_path, grid_vars, input_vars, mins, cut_values, maxs, n_points
-        )
-        df = load_data(path)
-        assert len(df) == 3 * 4
-
-    def test_grid_values_within_bounds(self, tmp_path):
-        """Grid variable values are >= min and <= max."""
-        grid_vars = ["x1", "x2"]
-        input_vars = ["x1", "x2"]
-        mins = [0.0, -1.0]
-        cut_values = [0.5, -0.5]
-        maxs = [1.0, 1.0]
-        n_points = [5, 5]
-        path = create_grid_samples(
-            tmp_path, grid_vars, input_vars, mins, cut_values, maxs, n_points
-        )
-        df = load_data(path)
-        for i, var in enumerate(grid_vars):
-            assert np.all(df[var].astype(float) >= mins[i] - 1e-12)
-            assert np.all(df[var].astype(float) <= maxs[i] + 1e-12)
-
-    def test_non_grid_variables_fixed(self, tmp_path):
-        """Non-grid variables are exactly equal to cut_value."""
-        grid_vars = ["x1"]
-        input_vars = ["x1", "x2"]
-        mins = [0.0, 0.0]
-        cut_values = [0.5, 42.0]
-        maxs = [1.0, 100.0]
-        n_points = [4, 1]
-        path = create_grid_samples(
-            tmp_path, grid_vars, input_vars, mins, cut_values, maxs, n_points
-        )
-        df = load_data(path)
-        np.testing.assert_allclose(df["x2"].astype(float).values, 42.0, atol=1e-12)
-
-    def test_2d_meshgrid_all_combinations(self, tmp_path):
-        """2 grid vars with 3 points each produces 9 rows covering all combos."""
-        grid_vars = ["x1", "x2"]
-        input_vars = ["x1", "x2"]
-        mins = [0.0, 0.0]
-        cut_values = [0.5, 0.5]
-        maxs = [1.0, 1.0]
-        n_points = [3, 3]
-        path = create_grid_samples(
-            tmp_path, grid_vars, input_vars, mins, cut_values, maxs, n_points
-        )
-        df = load_data(path)
-        assert len(df) == 9
-        x1_vals = sorted(df["x1"].astype(float).unique())
-        x2_vals = sorted(df["x2"].astype(float).unique())
-        assert len(x1_vals) == 3
-        assert len(x2_vals) == 3
-        np.testing.assert_allclose(x1_vals, np.linspace(0, 1, 3), atol=1e-12)
-        np.testing.assert_allclose(x2_vals, np.linspace(0, 1, 3), atol=1e-12)
-
-
-# ---------------------------------------------------------------------------
-# P5. Axis Sweep Invariants
-# ---------------------------------------------------------------------------
-@pytest.mark.unit
-class TestAxisSweepInvariants:
-    def test_total_points(self, tmp_path):
-        """Total rows = NSAMPLESPERVAR * number of input variables."""
-        df = pd.DataFrame({"x1": np.linspace(0, 10, 50), "x2": np.linspace(-5, 5, 50)})
-        NSP = 20
-        path = create_samples_along_axes(tmp_path, df, ["x1", "x2"], NSP)
-        result = load_data(path)
-        assert len(result) == NSP * 2
-
-    def test_sweep_monotonicity(self, tmp_path):
-        """Within each sweep segment, the swept variable increases monotonically."""
-        data = pd.DataFrame({"x1": np.linspace(0, 10, 50), "x2": np.linspace(-5, 5, 50)})
-        NSP = 15
-        path = create_samples_along_axes(tmp_path, data, ["x1", "x2"], NSP)
-        result = load_data(path)
-        for i, var in enumerate(["x1", "x2"]):
-            segment = result[var].astype(float).values[i * NSP : (i + 1) * NSP]
-            diffs = np.diff(segment)
-            assert np.all(diffs >= -1e-12), (
-                f"Sweep segment for {var} is not monotonically increasing"
-            )
-
-    def test_non_sweep_constancy(self, tmp_path):
-        """Within each sweep segment, non-sweep variables equal the cut value."""
-        data = pd.DataFrame({"x1": np.linspace(0, 10, 50), "x2": np.linspace(-5, 5, 50)})
-        NSP = 10
-        path = create_samples_along_axes(tmp_path, data, ["x1", "x2"], NSP)
-        result = load_data(path)
-        mean_vals = data.mean().values
-        for i, var in enumerate(["x1", "x2"]):
-            other_vars = [v for v in ["x1", "x2"] if v != var]
-            for ov in other_vars:
-                segment = result[ov].astype(float).values[i * NSP : (i + 1) * NSP]
-                np.testing.assert_allclose(
-                    segment, mean_vals[list(data.columns).index(ov)], atol=1e-12
-                )
-
-    def test_uniform_spacing(self, tmp_path):
-        """Consecutive differences within each sweep segment are equal."""
-        data = pd.DataFrame({"x1": np.linspace(0, 10, 50), "x2": np.linspace(-5, 5, 50)})
-        NSP = 12
-        path = create_samples_along_axes(tmp_path, data, ["x1", "x2"], NSP)
-        result = load_data(path)
-        for i, var in enumerate(["x1", "x2"]):
-            segment = result[var].astype(float).values[i * NSP : (i + 1) * NSP]
-            diffs = np.diff(segment)
-            np.testing.assert_allclose(
-                diffs,
-                diffs[0],
-                atol=1e-12,
-                err_msg=f"Sweep for {var} is not uniformly spaced",
-            )
-
-
-# ---------------------------------------------------------------------------
-# P6. Normalization Invariants (DataPreprocessor)
+# P5. Normalization Invariants (DataPreprocessor)
 # ---------------------------------------------------------------------------
 @pytest.mark.unit
 class TestNormalizationInvariants:
@@ -432,3 +355,81 @@ class TestNormalizationInvariants:
         transformed = pp.transform(df)
         restored = pp.inverse_transform(transformed)
         np.testing.assert_allclose(restored["a"], df["a"].tolist(), atol=1e-10)
+
+
+# ---------------------------------------------------------------------------
+# DEFERRED: Pareto Dominance Invariants (formerly P1) — not this round,
+# see docs/TIER1_TIER2_UNIT_TESTS_PLAN.md
+# ---------------------------------------------------------------------------
+@pytest.mark.unit
+class TestParetoDominance:
+    def test_irreflexivity_self_dominated(self):
+        """is_dominated uses `>=`, so a point IS dominated by itself (reflexive).
+
+        This is a known behavior of the implementation: `all(a >= a)` is True for
+        any point, meaning the function treats self-comparison as domination.
+        We test the actual (reflexive) behavior here.
+        """
+        a = np.array([1.0, 2.0, 3.0])
+        assert is_dominated(a, [a]) is True
+
+    def test_asymmetry(self):
+        """If a dominates b in the is_dominated sense (a >= b in all dims),
+        then b does NOT dominate a."""
+        a = np.array([2.0, 3.0])
+        b = np.array([1.0, 2.0])
+        # is_dominated(a, [b]) checks a >= b → [True, True] → True
+        assert is_dominated(a, [b]) is True
+        # is_dominated(b, [a]) checks b >= a → [False, False] → False
+        assert is_dominated(b, [a]) is False
+
+    def test_asymmetry_strict(self):
+        """For strictly unequal points where one dominates, the reverse is false."""
+        a = np.array([5.0, 5.0, 5.0])
+        b = np.array([1.0, 1.0, 1.0])
+        assert is_dominated(a, [b]) is True
+        assert is_dominated(b, [a]) is False
+
+    def test_transitivity_on_dominance(self):
+        """If a dominates b and b dominates c, then a dominates c."""
+        a = np.array([3.0, 3.0])
+        b = np.array([2.0, 2.0])
+        c = np.array([1.0, 1.0])
+        assert is_dominated(a, [b]) is True
+        assert is_dominated(b, [c]) is True
+        assert is_dominated(a, [c]) is True
+
+    def test_non_dominated_output_no_dominated_pairs(self):
+        """No two points in the non-dominated set should dominate each other."""
+        df = pd.DataFrame({"x": [1.0, 2.0, 3.0, 0.5, 1.5], "y": [3.0, 2.0, 1.0, 0.5, 2.5]})
+        indices = get_non_dominated_indices(df, ["x", "y"], ["min", "min"])
+        nd_points = df.loc[indices, ["x", "y"]].values
+        for i, p in enumerate(nd_points):
+            others = [q for j, q in enumerate(nd_points) if j != i]
+            if others:
+                assert not is_dominated(p, others), (
+                    f"Non-dominated point {p} is dominated by another in the set"
+                )
+
+    def test_non_dominated_completeness(self):
+        """All non-dominated points must appear in the output."""
+        df = pd.DataFrame({"x": [1.0, 2.0, 3.0, 10.0], "y": [10.0, 3.0, 2.0, 1.0]})
+        indices = get_non_dominated_indices(df, ["x", "y"], ["min", "min"])
+        nd_set = set(indices)
+        data_np = df[["x", "y"]].values
+        for i, point in enumerate(data_np):
+            others = np.delete(data_np, i, axis=0)
+            if not is_dominated(point, others):
+                assert i in nd_set, (
+                    f"Point {point} at index {i} is truly non-dominated but missing from output"
+                )
+
+    def test_non_dominated_with_max_mode(self):
+        """Non-dominance works correctly when optimization mode is 'max'."""
+        df = pd.DataFrame({"x": [1.0, 2.0, 3.0], "y": [3.0, 2.0, 1.0]})
+        indices = get_non_dominated_indices(df, ["x", "y"], ["max", "max"])
+        nd_points = df.loc[indices, ["x", "y"]].values
+        for i, p in enumerate(nd_points):
+            others = [q for j, q in enumerate(nd_points) if j != i]
+            if others:
+                assert not is_dominated(p, others)
