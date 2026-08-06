@@ -29,6 +29,8 @@ jobs:
         cache-dependency-path: '**/package-lock.json'
     - name: Install node dependencies
       run: cd node && npm ci
+    - name: Install Flask API dependencies
+      run: make install-flaskapi-deps
     - name: Run prek
       run: uvx prek run --all-files
 
@@ -57,6 +59,8 @@ jobs:
       run: make install-flaskapi-deps
     - name: Run flaskapi tests
       run: make test-flaskapi
+    - name: Run flaskapi analytical tests (Tier 3, real Dakota)
+      run: make test-flaskapi-analytical
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
       with:

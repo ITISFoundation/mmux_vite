@@ -130,7 +130,7 @@ interface InputTextBlockProps {
 }
 
 type Distribution = "constant" | "normal" | "uniform" | "log-normal" | "exponential";
-type Variables = "value" | "mean" | "std" | "min" | "max" | "location" | "logMean" | "logStd" | "scale";
+type Variables = "value" | "mean" | "std" | "min" | "max" | "location" | "scale";
 type OutputOptimization = "minimize" | "maximize";
 
 interface VarSelection {
@@ -141,12 +141,9 @@ interface VarSelection {
   min?: number;
   max?: number;
   location?: number;
-  logMean?: number;
-  logStd?: number;
   scale?: number;
-  // Per-variable log-scale sampling/training toggle (SUMO/MOGA uniform inputs only).
-  // Flows FunctionContext -> request payload -> backend Dakota preprocessing, which
-  // samples/trains in log space and inverse-transforms on response. See §V12, §T8.
+  // Per-variable log-scale tag inferred/set alongside the distribution (V13);
+  // end-to-end plot/request wiring lands separately (§T8/T9, V12).
   logScale?: boolean;
 }
 

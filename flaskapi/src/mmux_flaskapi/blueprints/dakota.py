@@ -405,7 +405,7 @@ def flask_manual_uq_propagation_with_uncertainty():
         _logger.debug(
             f"Generating {n_histograms} histogram realizations for uncertainty quantification"
         )
-        from scipy.special import erfinv  # type: ignore
+        from scipy.special import erfinv
 
         # Set random seed for reproducibility
         np.random.seed(seed)

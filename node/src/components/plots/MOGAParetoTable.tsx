@@ -168,7 +168,11 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       sortable: false,
       renderCell: params => (
         <Box display="flex" flexDirection="row" justifyContent="space-between" marginTop={2}>
-          <RunSamplingButton disabled={loading} handleRunSampling={() => handleRunSampling(params.row)} />
+          <RunSamplingButton
+            testId={`run-sampling-btn-${params.id}`}
+            disabled={loading}
+            handleRunSampling={() => handleRunSampling(params.row)}
+          />
         </Box>
       ),
     },

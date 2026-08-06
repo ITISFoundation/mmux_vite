@@ -120,6 +120,10 @@ class TestFunctionAndJobCollectionCrud:
         assert ljs.get_local_job(jobs[0]["uid"]) == jobs[0]
         assert ljs.list_local_jobs_for_collection("does-not-exist") == []
 
+        all_jobs = ljs.list_local_jobs()
+        assert len(all_jobs) == 2
+        assert {job["uid"] for job in jobs} == {job["uid"] for job in all_jobs}
+
     def test_persists_across_reloads(self, isolated_store):
         fun = ljs.create_local_function(title="Fn", input_vars=["x"], output_vars=["y"])
         # simulate a fresh process by reloading straight from disk
