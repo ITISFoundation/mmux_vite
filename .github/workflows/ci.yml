@@ -59,6 +59,8 @@ jobs:
       run: make install-flaskapi-deps
     - name: Run flaskapi tests
       run: make test-flaskapi
+    - name: Run flaskapi analytical tests (Tier 3, real Dakota)
+      run: make test-flaskapi-analytical
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
       with:

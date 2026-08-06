@@ -162,13 +162,62 @@ Dakota subprocess.
 training file path contains `"processed"` (`funs_create_dakota_conf.py:180`) — fixture files must be
 named e.g. `train_processed.txt`, matching the convention `funs_data_processing.py` already uses.
 
-| Test | Function under test | Analytical case | Pass criteria |
-|------|---------------------|------------------|----------------|
-| Surrogate — linear | `evaluate_sumo` | `f(x) = 2x + 1` | predictions match analytical `f(x)` to tight tolerance (exact GP interpolation) |
-| Surrogate — quadratic | `evaluate_sumo` | `f(x) = x²` | predictions match analytical `f(x)` within a looser tolerance |
-| Grid evaluation | `evaluate_sumo_on_grid` | `f(x,y) = x + y` | predictions match analytically on a small 2D grid; output shape as expected |
-| Cross-validation | `evaluate_sumo_crossvalidation` | well-sampled `f(x) = 2x + 1` | parsed RMSE ≈ 0 (real Dakota CV log, not synthetic) |
-| UQ propagation | `propagate_uq` | `f(x) = 2x+1`, `x ~ N(0,1)` | output mean ≈ 1, std ≈ 2 within tolerance |
+Test IDs below mirror the categories/IDs in `VERIFICATION_VALIDATION_PLAN.md` (Categories B–F), so
+that document's Test Functions table and this one stay traceable to each other. Category A (LHS) and
+H (DataPreprocessor) are pure-Python and already covered by Tier 1/2; Category G (MOGA) is deferred
+(see below). **F2/F7 (uniform / mixed-distribution UQ inputs) are out of scope**: `propagate_uq`'s
+Dakota config only ever builds a `normal_uncertain` variables block (`create_uq_propagation_conffile`,
+itself flagged `## TODO ... need to generalize if we want to include other types of input
+distributions`) — testing non-normal inputs would require implementing that first.
+
+**Category B — Surrogate Model Accuracy** (`evaluate_sumo`)
+
+| ID | Case | Pass criteria |
+|----|------|----------------|
+| B1 | Exact interpolation at training points, `f(x) = 2x+1` | `y_hat ≈ y_train` (tight tolerance) |
+| B2 | Linear `f(x) = 2x + 1` | RMSE < 1e-2, R² > 0.99 |
+| B3 | Quadratic `f(x) = x²` | RMSE < 1e-2, R² > 0.99 |
+| B4 | Sinusoidal `f(x) = sin(x)` on `[0, 2π]` | RMSE < 0.05, R² > 0.95 |
+| B5 | Logarithmic `f(x) = ln(x)` on `[0.01, 2]` | RMSE < 0.01 (eval points kept away from the boundary singularity — see test docstring) |
+| B6 | Rosenbrock (2D), `N=100` | finite, non-trivial predictive std reported; normalized RMSE documents it's harder than the smooth cases above |
+| B7 | Convergence: `sin(x)` over 3 periods, `N = 6, 15, 60` | RMSE strictly decreasing |
+| B8 | Predictive variance | ≈0 at training points; larger when extrapolating far outside the training domain |
+
+**Category C — Axis Sweep** (`evaluate_sumo_along_axes`)
+
+| ID | Case | Pass criteria |
+|----|------|----------------|
+| C1 | Linear `f(x,y) = 2x + 3y` | sweep-along-x slope ≈ 2, sweep-along-y slope ≈ 3 (within 5%) |
+| C2 | `f(x,y) = sin(x) + y` | sweep along x (y fixed) RMSE < 0.1 vs analytical |
+| C3 | Non-default cut value | sweep predictions match `f(x, cut_y)` elementwise |
+
+**Category D — Grid Evaluation** (`evaluate_sumo_on_grid`)
+
+| ID | Case | Pass criteria |
+|----|------|----------------|
+| D1 | Linear `f(x,y) = x + y` | sorted predicted values match sorted analytical values (see test docstring re: known grid reshape ordering quirk) |
+| D2 | Quadratic `f(x,y) = x² + y²` | same sorted-set comparison, RMSE < 0.05 |
+| D3 | Dimension consistency | `NSAMPLESPERVAR=10`, 2 grid vars → output shape `(10, 10)` |
+| D4 | Fixed non-grid variable | 3 inputs, 2 grid + 1 fixed; fixed var equals its cut value in all evaluations |
+
+**Category E — Cross-Validation** (`evaluate_sumo_crossvalidation`, `evaluate_sumo_manual_crossvalidation`)
+
+| ID | Case | Pass criteria |
+|----|------|----------------|
+| E1 | Well-sampled linear `f(x) = 2x+1` | parsed RMSE < 0.1 |
+| E2 | Convergence: `sin(x)`, `N = 20, 50, 100` | RMSE(100) < RMSE(20) |
+| E3 | 95% prediction interval coverage (manual CV) | ≥ 70% of held-out points within `y_hat ± 1.96·std_hat` (generous lower bound — small-N regime) |
+| E4 | Manual vs built-in CV agreement | both RMSE < 0.1 for the same well-sampled linear case |
+
+**Category F — UQ Propagation** (`propagate_uq`, normal-uncertain inputs only)
+
+| ID | Case | Pass criteria |
+|----|------|----------------|
+| F1 | `f(x) = 2x+1`, `x ~ N(0,1)` | mean ≈ 1, std ≈ 2 (within tolerance) |
+| F3 | `f(x) = x²`, `x ~ N(0,1)` (→ χ²(1)) | mean ≈ 1, var ≈ 2 (within tolerance) |
+| F4 | Convergence: `f(x) = 2x+1`, `n_samples = 100 → 2000` | mean estimation error shrinks (loose, probabilistic) |
+| F5 | Multi-input `f(x,y) = x+y`, `x,y ~ N(0,1)` iid | mean ≈ 0, std ≈ √2 |
+| F6 | Sparse/off-center training | propagated std exceeds F1's well-sampled analytical std of 2.0 (surrogate uncertainty inflates output spread) |
 
 MOGA (Category G equivalent) is out of scope for this tier — see Deferred section below.
 
@@ -224,4 +273,4 @@ convergence, bound compliance) reusing `VERIFICATION_VALIDATION_PLAN.md`'s G1–
 | Property invariants (P1–P5) | ~19 |
 | Deferred — MOGA / Pareto | ~14 |
 | **Tier 1+2 total** | **~84** |
-| Tier 3 — analytical integration | ~5 |
+| Tier 3 — analytical integration (Categories B–F) | ~24 |
