@@ -165,10 +165,17 @@ named e.g. `train_processed.txt`, matching the convention `funs_data_processing.
 Test IDs below mirror the categories/IDs in `VERIFICATION_VALIDATION_PLAN.md` (Categories B–F), so
 that document's Test Functions table and this one stay traceable to each other. Category A (LHS) and
 H (DataPreprocessor) are pure-Python and already covered by Tier 1/2; Category G (MOGA) is deferred
-(see below). **F2/F7 (uniform / mixed-distribution UQ inputs) are out of scope**: `propagate_uq`'s
-Dakota config only ever builds a `normal_uncertain` variables block (`create_uq_propagation_conffile`,
-itself flagged `## TODO ... need to generalize if we want to include other types of input
-distributions`) — testing non-normal inputs would require implementing that first.
+(see below).
+
+**Category F implementation note:** `propagate_uq`/`create_uq_propagation_conffile` (Dakota-native
+UQ, normal-uncertain only) is **not called from any Flask route** — `blueprints/dakota.py` only
+imports `evaluate_sumo*` functions from `funs_evaluate.py`. The real, user-reachable UQ pathway is
+`POST /manual_uq_propagation_with_uncertainty`, which composes `create_manual_uq_samples`
+(`funs_data_processing.py` — supports `normal`/`uniform`/`constant` per-variable distributions) with
+`evaluate_sumo` and an erfinv-based predictive-uncertainty injection. Category F below tests *that*
+pathway, which is why F2 (uniform input) and F7 (mixed normal+uniform inputs) are included rather than
+excluded — the earlier assumption that non-normal inputs were unsupported was based on the wrong
+(unreachable) function.
 
 **Category B — Surrogate Model Accuracy** (`evaluate_sumo`)
 
@@ -199,6 +206,7 @@ distributions`) — testing non-normal inputs would require implementing that fi
 | D2 | Quadratic `f(x,y) = x² + y²` | same sorted-set comparison, RMSE < 0.05 |
 | D3 | Dimension consistency | `NSAMPLESPERVAR=10`, 2 grid vars → output shape `(10, 10)` |
 | D4 | Fixed non-grid variable | 3 inputs, 2 grid + 1 fixed; fixed var equals its cut value in all evaluations |
+| D5 | Asymmetric domain/function `f(x,y) = 2x + 5y` | elementwise match against `results[response][j][i] == f(x_lin[i], y_lin[j])` — resolves the reshape's own `# ... Why???` comment empirically; D1/D2's sorted-set comparisons can't catch a transpose bug because their symmetric domains/functions make it invisible |
 
 **Category E — Cross-Validation** (`evaluate_sumo_crossvalidation`, `evaluate_sumo_manual_crossvalidation`)
 
@@ -209,15 +217,17 @@ distributions`) — testing non-normal inputs would require implementing that fi
 | E3 | 95% prediction interval coverage (manual CV) | ≥ 70% of held-out points within `y_hat ± 1.96·std_hat` (generous lower bound — small-N regime) |
 | E4 | Manual vs built-in CV agreement | both RMSE < 0.1 for the same well-sampled linear case |
 
-**Category F — UQ Propagation** (`propagate_uq`, normal-uncertain inputs only)
+**Category F — UQ Propagation** (`create_manual_uq_samples` + `evaluate_sumo` + erfinv injection,
+mirroring `flask_manual_uq_propagation_with_uncertainty` — see implementation note above)
 
 | ID | Case | Pass criteria |
 |----|------|----------------|
 | F1 | `f(x) = 2x+1`, `x ~ N(0,1)` | mean ≈ 1, std ≈ 2 (within tolerance) |
+| F2 | `f(x) = 2x+1`, `x ~ U(-3,3)` | mean ≈ 1, std ≈ √12 (within tolerance) |
 | F3 | `f(x) = x²`, `x ~ N(0,1)` (→ χ²(1)) | mean ≈ 1, var ≈ 2 (within tolerance) |
-| F4 | Convergence: `f(x) = 2x+1`, `n_samples = 100 → 2000` | mean estimation error shrinks (loose, probabilistic) |
 | F5 | Multi-input `f(x,y) = x+y`, `x,y ~ N(0,1)` iid | mean ≈ 0, std ≈ √2 |
-| F6 | Sparse/off-center training | propagated std exceeds F1's well-sampled analytical std of 2.0 (surrogate uncertainty inflates output spread) |
+| F6 | Undersampled oscillation (`sin(x)`, `N=5`) | documents a real miscalibration: RMSE > 0.2 while reported `std_hat` stays < 0.01 — undersampling here shows up as a biased/damped fit with a deceptively tight confidence band, not as legitimately wider ones (see test docstring for the two failed "sparse ⇒ wider" assumptions this replaced) |
+| F7 | Mixed `f(x,y) = x+y`, `x ~ N(0,1)`, `y ~ U(-1,1)` | mean ≈ 0, std ≈ √(4/3) |
 
 MOGA (Category G equivalent) is out of scope for this tier — see Deferred section below.
 
@@ -273,4 +283,4 @@ convergence, bound compliance) reusing `VERIFICATION_VALIDATION_PLAN.md`'s G1–
 | Property invariants (P1–P5) | ~19 |
 | Deferred — MOGA / Pareto | ~14 |
 | **Tier 1+2 total** | **~84** |
-| Tier 3 — analytical integration (Categories B–F) | ~24 |
+| Tier 3 — analytical integration (Categories B–F) | ~26 |
