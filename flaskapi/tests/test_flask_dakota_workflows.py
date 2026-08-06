@@ -132,6 +132,268 @@ class TestSumoCrossValidation:
         assert "field required" not in data["error"].lower()
 
 
+class TestSumoCrossValidationLogScaleOutput:
+    """T9/V26/V34: `outputLogScales` wiring for /sumo_cross_validation."""
+
+    def test_log_scale_output_inverse_transform_uses_delta_method_for_std(
+        self, test_client: Flask, monkeypatch
+    ):
+        """Predictions/std_hat returned by Dakota in log-space must be inverse-transformed
+        back to original units: y = exp(log_y), and std via delta method
+        (std_orig ~= y_hat_orig * std_log), not a naive exp(std_log)."""
+
+        def fake_eval(*args, **kwargs):
+            return {
+                "y1": [np.log(10.0), np.log(20.0)],
+                "y1_hat": [np.log(10.0), np.log(20.0)],
+                "y1_std_hat": [0.1, 0.2],
+            }
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
+            fake_eval,
+        )
+
+        payload = {
+            "inputVars": ["x_len"],
+            "output": "qoi",
+            "outputLogScales": {"qoi": True},
+            "FunctionJobs": create_function_job_list(50, inputs=["x_len"], outputs=["qoi"]),
+        }
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["qoi"] == pytest.approx([10.0, 20.0])
+        assert data["qoiHat"] == pytest.approx([10.0, 20.0])
+        assert data["qoiStdHat"] == pytest.approx([1.0, 4.0])
+
+    def test_log_scale_output_rejects_non_positive_job_outputs(self, test_client: Flask):
+        """V34: output_log_scales[var]=True must be rejected when any completed job's
+        output for that var is <= 0 (log undefined)."""
+        jobs = create_function_job_list(50, inputs=["x_len"], outputs=["qoi"])
+        jobs[0]["outputs"]["qoi"] = -5.0
+
+        payload = {
+            "inputVars": ["x_len"],
+            "output": "qoi",
+            "outputLogScales": {"qoi": True},
+            "FunctionJobs": jobs,
+        }
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+        assert "log" in data["error"].lower()
+
+    def test_log_scale_false_does_not_trigger_positivity_guard(self, test_client: Flask):
+        """A non-positive output value is fine as long as its log_scale flag is False."""
+        jobs = create_function_job_list(50, inputs=["x_len"], outputs=["qoi"])
+        jobs[0]["outputs"]["qoi"] = -5.0
+
+        payload = {
+            "inputVars": ["x_len"],
+            "output": "qoi",
+            "outputLogScales": {"qoi": False},
+            "FunctionJobs": jobs,
+        }
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+        assert response.status_code == 200
+
+
+class TestSumoCrossValidationLogScaleImprovesRmseForLogLinearFunction:
+    """T9 acceptance criterion: for a genuinely log-linear function (log(y) = k*x, so y
+    spans several orders of magnitude), training the surrogate in log-space (via
+    outputLogScales) must produce a lower cross-validation RMSE in original units than
+    training in linear space -- the actual motivating case for the whole feature.
+
+    Uses the real Dakota cross-validation pipeline (no mocking) on both configurations.
+    """
+
+    @staticmethod
+    def _rmse(actual: list[float], predicted: list[float]) -> float:
+        actual_arr, predicted_arr = np.array(actual), np.array(predicted)
+        return float(np.sqrt(np.mean((actual_arr - predicted_arr) ** 2)))
+
+    def test_log_scale_output_yields_lower_cv_rmse_than_linear(self, test_client: Flask):
+        rng = np.random.default_rng(42)
+        x_values = np.linspace(0.0, 20.0, 30)
+        y_values = np.exp(0.5 * x_values)  # spans ~[1, ~22000]: strongly log-linear
+
+        jobs = [
+            {
+                "status": "completed",
+                "inputs": {"x": float(x)},
+                "outputs": {"qoi": float(y)},
+            }
+            for x, y in zip(x_values, y_values)
+        ]
+        rng.shuffle(jobs)
+
+        base_payload = {
+            "inputVars": ["x"],
+            "output": "qoi",
+            "FunctionJobs": jobs,
+        }
+
+        response_linear = test_client.post(
+            "/flask/dakota/sumo_cross_validation",
+            json={**base_payload, "outputLogScales": {"qoi": False}},
+        )
+        response_log = test_client.post(
+            "/flask/dakota/sumo_cross_validation",
+            json={**base_payload, "outputLogScales": {"qoi": True}},
+        )
+
+        assert response_linear.status_code == 200, response_linear.get_json()
+        assert response_log.status_code == 200, response_log.get_json()
+
+        data_linear = response_linear.get_json()
+        data_log = response_log.get_json()
+
+        rmse_linear = self._rmse(data_linear["qoi"], data_linear["qoiHat"])
+        rmse_log = self._rmse(data_log["qoi"], data_log["qoiHat"])
+
+        assert rmse_log < rmse_linear
+
+
+class TestMOGAOptimizationLogScaleOutputPositivityGuard:
+    """V34 applied to MOGAOptimizationRequest's multi-output `output_var_selection`."""
+
+    def test_rejects_non_positive_outputs_for_flagged_output_var(self, test_client: Flask):
+        input_vars = ["temperature"]
+        output_vars = ["loss", "activation"]
+        jobs = create_function_job_list(10, inputs=input_vars, outputs=output_vars)
+        jobs[0]["outputs"]["loss"] = 0.0  # non-positive, and "loss" is log-flagged below
+
+        payload = {
+            "inputVars": input_vars,
+            "distributions": {"temperature": {"distribution": "uniform", "min": -1.0, "max": 1.0}},
+            "outputVarSelection": {"loss": "minimize", "activation": "maximize"},
+            "outputLogScales": {"loss": True},
+            "FunctionJobs": jobs,
+        }
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "log" in data["error"].lower()
+
+    def test_accepts_when_flagged_output_var_all_positive(self, test_client: Flask, monkeypatch):
+        input_vars = ["temperature"]
+        output_vars = ["loss", "activation"]
+        jobs = create_function_job_list(10, inputs=input_vars, outputs=output_vars)
+        for job in jobs:
+            job["outputs"]["loss"] = abs(job["outputs"]["loss"]) + 0.1  # ensure > 0
+
+        def fake_perform_moga_optimization(
+            run_dir,
+            processed_training_file,
+            mapped_input_vars,
+            mapped_distributions,
+            mapped_output_vars,
+            moga_kwargs,
+        ):
+            return {
+                mapped_input_vars[0]: [0.25, 0.75],
+                mapped_output_vars[0]: [-2.0, -1.5],
+                mapped_output_vars[1]: [-2.0, -1.5],
+            }
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.perform_moga_optimization",
+            fake_perform_moga_optimization,
+        )
+
+        payload = {
+            "inputVars": input_vars,
+            "distributions": {"temperature": {"distribution": "uniform", "min": -1.0, "max": 1.0}},
+            "outputVarSelection": {"loss": "minimize", "activation": "maximize"},
+            "outputLogScales": {"loss": True},
+            "FunctionJobs": jobs,
+        }
+        response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
+        assert response.status_code == 200
+
+
+class TestV36zmAlongAxesLogScaleStdInverse:
+    """B21/V36zm: along_axes std_hat must use delta-method inverse, not point-estimate path."""
+
+    def test_along_axes_log_scale_std_uses_delta_method(self, test_client: Flask, monkeypatch):
+        """When outputLogScales is active, std_hat returned by Dakota in log-space must be
+        inverse-transformed via delta method (std_orig = std_log * |y_hat_orig|),
+        not passed through raw or exp'd."""
+
+        def fake_along_axes(*args, **kwargs):
+            return {
+                "x_len": {
+                    "x": [0.0, 0.5, 1.0],
+                    "y_hat": [np.log(10.0), np.log(20.0), np.log(40.0)],
+                    "std_hat": [0.1, 0.2, 0.15],
+                }
+            }
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_along_axes",
+            fake_along_axes,
+        )
+
+        payload = {
+            "inputs": ["x_len"],
+            "output": "qoi",
+            "outputLogScales": {"qoi": True},
+            "FunctionJobs": create_function_job_list(50, inputs=["x_len"], outputs=["qoi"]),
+        }
+        response = test_client.post("/flask/dakota/sumo_along_axes", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        preds = data["predictions"]["x_len"]
+
+        # y_hat should be in original space: exp(log(10))=10, exp(log(20))=20, exp(log(40))=40
+        assert preds["yHat"] == pytest.approx([10.0, 20.0, 40.0])
+
+        # std_hat should use delta method: std_log * |y_hat_orig|
+        # 0.1 * 10 = 1.0, 0.2 * 20 = 4.0, 0.15 * 40 = 6.0
+        assert preds["stdHat"] == pytest.approx([1.0, 4.0, 6.0])
+
+
+class TestV36zmGridEvaluationLogScaleStdInverse:
+    """B21/V36zm: grid_evaluation std values must use delta-method inverse, not np.exp."""
+
+    def test_grid_evaluation_log_scale_std_uses_delta_method(self, test_client: Flask, monkeypatch):
+        """When outputLogScales is active, _std values from grid evaluation must be
+        inverse-transformed via delta method, not np.exp'd."""
+
+        def fake_grid_eval(*args, **kwargs):
+            return {
+                "x1": [0.0, 0.5, 1.0],
+                "qoi": [np.log(10.0), np.log(20.0), np.log(40.0)],
+                "qoi_std": [0.1, 0.2, 0.15],
+            }
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_on_grid",
+            fake_grid_eval,
+        )
+
+        payload = {
+            "inputVars": ["x_len"],
+            "gridVars": ["x_len"],
+            "output": "qoi",
+            "outputLogScales": {"qoi": True},
+            "FunctionJobs": create_function_job_list(50, inputs=["x_len"], outputs=["qoi"]),
+        }
+        response = test_client.post("/flask/dakota/sumo_grid_evaluation", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        grid = data["gridData"]
+
+        # qoi should be in original space
+        assert grid["qoi"] == pytest.approx([10.0, 20.0, 40.0])
+
+        # qoi_std should use delta method: std_log * |y_hat_orig|
+        # 0.1 * 10 = 1.0, 0.2 * 20 = 4.0, 0.15 * 40 = 6.0
+        assert grid["qoiStd"] == pytest.approx([1.0, 4.0, 6.0])
+
+
 class TestSnakeCaseDakotaRequestCompatibility:
     def test_perform_moga_optimization_accepts_snake_case_payload(self, test_client: Flask):
         payload = {

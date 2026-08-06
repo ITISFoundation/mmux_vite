@@ -22,6 +22,33 @@ def required_completed_jobs(input_vars: list[str], floor: int = 5) -> int:
     return max(floor, len(input_vars) + 1)
 
 
+def validate_output_log_scale_positivity(
+    output_log_scales: dict[str, bool],
+    completed_jobs: list["FunctionJob"],
+    valid_output_vars: set[str] | None = None,
+) -> None:
+    """V34: reject (via ValueError, mapped to 422) any output_log_scales[var]=True unless
+    every completed job's output for that var is strictly > 0 (log is undefined for <= 0).
+    Mirrors the existing DistributionParams.log_scale uniform-input min>0 guard.
+    """
+    for var, flag in output_log_scales.items():
+        if not flag:
+            continue
+        if valid_output_vars is not None and var not in valid_output_vars:
+            continue  # unknown/unused var name - other validators handle that error
+        non_positive = [
+            job.outputs[var]
+            for job in completed_jobs
+            if var in job.outputs and job.outputs[var] <= 0
+        ]
+        if non_positive:
+            raise ValueError(
+                f"output_log_scales['{var}']=True requires all completed job outputs for "
+                f"'{var}' to be > 0 (log is undefined for values <= 0). Found non-positive "
+                f"value(s): {non_positive[:5]}"
+            )
+
+
 class FunctionJob(BaseModel):
     """Model for a single function job with inputs, outputs, and status."""
 
@@ -155,6 +182,14 @@ class SumoCrossValidationRequest(BaseModel):
         min_length=5,
         description="List of function jobs (minimum 5 required)",
     )
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: train the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: train the surrogate on log(value) for this variable.",
+    )
 
     @field_validator("input_vars")
     @classmethod
@@ -220,6 +255,10 @@ class SumoCrossValidationRequest(BaseModel):
                 f"Available output keys: {list(available_keys)}"
             )
 
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars={output}
+        )
+
         return self
 
 
@@ -283,6 +322,14 @@ class ManualUQPropagationRequest(BaseModel):
     distributions: dict[str, DistributionParams]
     num_samples: int = Field(..., gt=0, description="Number of samples to generate")
     function_jobs: list[FunctionJob] = Field(..., min_length=5)
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: train the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: train the surrogate on log(value) for this variable.",
+    )
 
     @field_validator("input_vars")
     @classmethod
@@ -312,6 +359,10 @@ class ManualUQPropagationRequest(BaseModel):
                 f"At least {required} completed jobs are required for UQ operations with "
                 f"{len(input_vars)} input variable(s). Found {len(completed_jobs)} completed jobs."
             )
+
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars={self.output}
+        )
 
         return self
 
@@ -374,6 +425,14 @@ class SumoAlongAxesRequest(BaseModel):
     )
     slider_values: dict[str, float] | None = Field(
         default=None, description="Cut values for input variables"
+    )
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: train the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: train the surrogate on log(value) for this variable.",
     )
 
     @field_validator("inputs")
@@ -449,6 +508,10 @@ class SumoAlongAxesRequest(BaseModel):
                     f"Slider variables {invalid_slider_vars} must be present in inputs. "
                     f"Available input variables: {input_vars}"
                 )
+
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars={output}
+        )
 
         return self
 
@@ -556,6 +619,14 @@ class SumoGridEvaluationRequest(BaseModel):
     slider_values: dict[str, float] | None = Field(
         default=None, description="Fixed values for non-grid input variables"
     )
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: train the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: train the surrogate on log(value) for this variable.",
+    )
 
     @field_validator("grid_vars")
     @classmethod
@@ -652,6 +723,10 @@ class SumoGridEvaluationRequest(BaseModel):
                     f"Available input variables: {input_vars}"
                 )
 
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars={output}
+        )
+
         return self
 
 
@@ -728,6 +803,14 @@ class MOGAOptimizationRequest(BaseModel):
         min_length=5,
         description="List of function jobs (minimum 5 required)",
     )
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: train the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: train the surrogate on log(value) for this variable.",
+    )
 
     @field_validator("input_vars")
     @classmethod
@@ -774,6 +857,10 @@ class MOGAOptimizationRequest(BaseModel):
             missing_outputs = [var for var in output_vars if var not in job.outputs]
             if missing_outputs:
                 raise ValueError(f"Job {i} missing required output variables: {missing_outputs}")
+
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars=set(output_vars)
+        )
 
         return self
 

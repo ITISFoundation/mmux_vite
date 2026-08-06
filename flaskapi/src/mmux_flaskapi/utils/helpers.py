@@ -63,6 +63,8 @@ def dict_keys_snake_to_camel(d: dict) -> dict:
 #   "distributions", "output_var_selection", "project_inputs" - audited from
 #   every outgoing fetch() body in node/ (Curves1DPlot, Surface2DPlot,
 #   IsoSurface3DPlot, MOGAPareto, UncertainUQ, functionUtils.clone_job).
+#   "input_log_scales", "output_log_scales" added for fullstack-logscale T9
+#   (per-variable log-scale flags keyed by user variable/QoI names).
 _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
     {
         "properties",
@@ -73,6 +75,8 @@ _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
         "distributions",
         "output_var_selection",
         "project_inputs",
+        "input_log_scales",
+        "output_log_scales",
     }
 )
 

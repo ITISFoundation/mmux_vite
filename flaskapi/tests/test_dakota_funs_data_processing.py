@@ -177,6 +177,47 @@ def test_create_manual_uq_samples_unsupported_distribution_raises():
         create_manual_uq_samples(["x"], {"x": {"distribution": "lognormal"}}, num_samples=3, seed=1)
 
 
+def test_create_manual_uq_samples_missing_distribution_raises():
+    with pytest.raises(ValueError, match="not defined"):
+        create_manual_uq_samples(["missing"], {}, num_samples=3, seed=1)
+
+
+@pytest.mark.parametrize(
+    "distribution",
+    [
+        {"distribution": "uniform", "min": 0.0, "max": 10.0, "log_scale": True},
+        {"distribution": "uniform", "min": -10.0, "max": -1.0, "log_scale": True},
+        {"distribution": "uniform", "min": 10.0, "max": 1.0, "log_scale": True},
+    ],
+)
+def test_create_manual_uq_samples_rejects_invalid_log_uniform_bounds(distribution):
+    with pytest.raises(ValueError, match="Log-scale uniform bounds|Uniform distribution bounds"):
+        create_manual_uq_samples(["x"], {"x": distribution}, num_samples=3, seed=1)
+
+
+@pytest.mark.parametrize("distribution", ["normal", "constant", "log-normal"])
+def test_create_manual_uq_samples_rejects_log_scale_on_non_uniform(distribution):
+    parameters = {
+        "normal": {"mean": 0.0, "std": 1.0},
+        "constant": {"value": 1.0},
+        "log-normal": {"log_mean": 0.0, "log_std": 1.0},
+    }[distribution]
+    with pytest.raises(ValueError, match="only supported for uniform"):
+        create_manual_uq_samples(
+            ["x"],
+            {"x": {"distribution": distribution, "log_scale": True, **parameters}},
+            num_samples=3,
+            seed=1,
+        )
+
+
+def test_create_manual_uq_samples_rejects_invalid_distribution_parameters():
+    with pytest.raises(ValueError, match="Normal distribution parameters"):
+        create_manual_uq_samples(
+            ["x"], {"x": {"distribution": "normal", "mean": 0.0, "std": 0.0}}, num_samples=3, seed=1
+        )
+
+
 class TestCreateManualUqSamplesSeedReproducibility:
     """B12/V27: `seed` must actually control reproducibility of generated samples."""
 
@@ -209,6 +250,31 @@ class TestCreateManualUqSamplesSeedReproducibility:
         samples_b = create_manual_uq_samples(["x1", "x2"], distributions, num_samples=50, seed=42)
         assert samples_a["x1"] == samples_b["x1"]
         assert samples_a["x2"] == samples_b["x2"]
+
+
+class TestCreateManualUqSamplesLogScaleUniform:
+    def test_log_scale_samples_are_uniform_in_log10_space(self):
+        distributions = {
+            "x1": {"distribution": "uniform", "min": 1.0, "max": 1000.0, "log_scale": True}
+        }
+        values = np.array(
+            create_manual_uq_samples(["x1"], distributions, num_samples=5000, seed=1)["x1"]
+        )
+
+        assert np.all((values >= 1.0) & (values <= 1000.0))
+        assert np.mean(values < 10.0) > 0.2
+        assert np.mean(values > 100.0) > 0.2
+
+    def test_log_scale_false_keeps_plain_uniform_sampling(self):
+        distributions = {
+            "x1": {"distribution": "uniform", "min": 1.0, "max": 1000.0, "log_scale": False}
+        }
+        values = np.array(
+            create_manual_uq_samples(["x1"], distributions, num_samples=5000, seed=1)["x1"]
+        )
+
+        assert values.mean() == pytest.approx(500.5, abs=30)
+        assert np.mean(values < 10.0) < 0.02
 
 
 # --- _parse_data / load_data / get_results / get_variable_names -------------

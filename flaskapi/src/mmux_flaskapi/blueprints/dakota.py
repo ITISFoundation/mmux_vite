@@ -123,6 +123,8 @@ def setup_preprocessor_for_workflow(
     output_normalizations: dict[str, str] | None = None,
     input_sign_switches: list[str] | None = None,
     output_sign_switches: list[str] | None = None,
+    input_log_scales: dict[str, bool] | None = None,
+    output_log_scales: dict[str, bool] | None = None,
 ) -> tuple[Path, DataPreprocessor]:
     """
     Standardized preprocessor setup for Dakota workflows.
@@ -136,6 +138,8 @@ def setup_preprocessor_for_workflow(
         output_normalizations: Optional dict mapping output vars to normalization methods
         input_sign_switches: Optional list of input vars to switch signs
         output_sign_switches: Optional list of output vars to switch signs
+        input_log_scales: Optional dict mapping input vars to a log-transform flag
+        output_log_scales: Optional dict mapping output vars to a log-transform flag
 
     Returns:
         Tuple of (processed_training_file_path, fitted_preprocessor)
@@ -164,6 +168,14 @@ def setup_preprocessor_for_workflow(
     if input_sign_switches or output_sign_switches:
         preprocessor.setup_sign_switching(
             input_sign_switches=input_sign_switches, output_sign_switches=output_sign_switches
+        )
+
+    # Configure log-transform (V26/T9: train surrogate on log(value) for flagged variables)
+    input_log_vars = [var for var, flag in (input_log_scales or {}).items() if flag]
+    output_log_vars = [var for var, flag in (output_log_scales or {}).items() if flag]
+    if input_log_vars or output_log_vars:
+        preprocessor.setup_log_transform(
+            input_log_vars=input_log_vars, output_log_vars=output_log_vars
         )
 
     # Fit and transform
@@ -217,13 +229,27 @@ def _inverse_transform_output_results(
             if original_name in inverse:
                 transformed[original_name] = inverse[original_name]
 
-        for suffix in ("_hat", "_std_hat"):
-            suffixed_key = mapped_name + suffix
-            if suffixed_key not in results:
-                continue
-            inverse = preprocessor.inverse_transform({mapped_name: results[suffixed_key]})
+        hat_key = mapped_name + "_hat"
+        if hat_key in results:
+            inverse = preprocessor.inverse_transform({mapped_name: results[hat_key]})
             if original_name in inverse:
-                transformed[original_name + suffix] = inverse[original_name]
+                transformed[original_name + "_hat"] = inverse[original_name]
+
+        std_hat_key = mapped_name + "_std_hat"
+        if std_hat_key in results:
+            # std values require a different (multiplicative-only) inverse-transform
+            # than point values -- see DataPreprocessor.inverse_transform_output_std.
+            point_estimates = {}
+            if original_name + "_hat" in transformed:
+                point_estimates[original_name] = transformed[original_name + "_hat"]
+            elif original_name in transformed:
+                point_estimates[original_name] = transformed[original_name]
+
+            inverse_std = preprocessor.inverse_transform_output_std(
+                {mapped_name: results[std_hat_key]}, point_estimates
+            )
+            if original_name in inverse_std:
+                transformed[original_name + "_std_hat"] = inverse_std[original_name]
 
     return transformed
 
@@ -276,7 +302,12 @@ def flask_sumo_cross_validation():
 
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_var], run_dir=run_dir
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_var],
+            run_dir=run_dir,
+            input_log_scales=validated_request.input_log_scales,
+            output_log_scales=validated_request.output_log_scales,
         )
 
         # Get mapped variable names for Dakota
@@ -349,7 +380,12 @@ def flask_manual_uq_propagation_with_uncertainty():
 
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_response],
+            run_dir=run_dir,
+            input_log_scales=validated_request.input_log_scales,
+            output_log_scales=validated_request.output_log_scales,
         )
 
         # Get mapped variable names
@@ -533,7 +569,12 @@ def flask_evaluate_sumo_along_axes():
 
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_response],
+            run_dir=run_dir,
+            input_log_scales=request_data.input_log_scales,
+            output_log_scales=request_data.output_log_scales,
         )
 
         # Get mapped variable names
@@ -634,7 +675,12 @@ def flask_sumo_grid_evaluation():
 
         # Use DataPreprocessor for standardized data handling
         PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
+            jobs=jobs,
+            input_vars=input_vars,
+            output_vars=[output_response],
+            run_dir=run_dir,
+            input_log_scales=request_data.input_log_scales,
+            output_log_scales=request_data.output_log_scales,
         )
 
         # Get mapped variable names
@@ -817,6 +863,8 @@ def flask_perform_moga_optimization():
             output_vars=output_responses,
             run_dir=run_dir,
             output_sign_switches=maximize_outputs,
+            input_log_scales=request_data.input_log_scales,
+            output_log_scales=request_data.output_log_scales,
         )
 
         mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]

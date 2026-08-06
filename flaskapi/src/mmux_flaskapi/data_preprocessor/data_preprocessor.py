@@ -33,6 +33,7 @@ class VariableConfig:
     mapped_name: str
     normalize: bool = False
     switch_sign: bool = False
+    log_transform: bool = False
     mean: float | None = None
     std: float | None = None
     min_val: float | None = None
@@ -127,6 +128,42 @@ class DataPreprocessor:
             f"Configured sign switching for {len(input_sign_switches)} input and {len(output_sign_switches)} output variables"
         )
 
+    def setup_log_transform(
+        self,
+        input_log_vars: list[str] | None = None,
+        output_log_vars: list[str] | None = None,
+    ) -> None:
+        """
+        Configure natural-log transformation for variables (surrogate trains on log(value)).
+
+        Args:
+            input_log_vars: List of input vars to train the surrogate on log(value)
+            output_log_vars: List of output vars to train the surrogate on log(value)
+        """
+        input_log_vars = input_log_vars or []
+        output_log_vars = output_log_vars or []
+
+        self._configure_log_transform(self.input_variables, input_log_vars, "input")
+        self._configure_log_transform(self.output_variables, output_log_vars, "output")
+
+        _logger.info(
+            f"Configured log-transform for {len(input_log_vars)} input and {len(output_log_vars)} output variables"
+        )
+
+    def _configure_log_transform(
+        self,
+        variables: dict[str, VariableConfig],
+        log_vars: list[str],
+        var_type: str,
+    ) -> None:
+        for var_name in log_vars:
+            if var_name in variables:
+                variables[var_name].log_transform = True
+            else:
+                _logger.warning(
+                    f"{var_type.capitalize()} variable {var_name} not found in setup variables"
+                )
+
     def _setup_variable_group(self, var_names: list[str], prefix: str) -> dict[str, VariableConfig]:
         """
         Helper function to set up a group of variables (inputs or outputs).
@@ -184,6 +221,15 @@ class DataPreprocessor:
                 continue
 
             values = np.array(data[var_name].values, dtype=float)
+
+            if config.log_transform:
+                if np.any(values <= 0):
+                    raise ValueError(
+                        f"Cannot apply log_transform to {var_type} variable '{var_name}': "
+                        "log is undefined for values <= 0"
+                    )
+                values = np.log(values)
+
             if config.switch_sign:
                 values = -values
 
@@ -210,6 +256,14 @@ class DataPreprocessor:
                 continue
 
             values = np.array(data[var_name].values, dtype=float).copy()
+
+            if config.log_transform:
+                if np.any(values <= 0):
+                    raise ValueError(
+                        f"Cannot apply log_transform to {var_type} variable '{var_name}': "
+                        "log is undefined for values <= 0"
+                    )
+                values = np.log(values)
 
             if config.switch_sign:
                 values = -values
@@ -327,6 +381,9 @@ class DataPreprocessor:
                 if not isinstance(value, list):
                     value = [value]
 
+                if config.log_transform:
+                    value = np.exp(np.array(value, dtype=float)).tolist()
+
                 result[var_name] = value
 
         for var_name, config in self.output_variables.items():
@@ -345,7 +402,61 @@ class DataPreprocessor:
                 if not isinstance(value, list):
                     value = [value]
 
+                if config.log_transform:
+                    value = np.exp(np.array(value, dtype=float)).tolist()
+
                 result[var_name] = value
+
+        return result
+
+    def inverse_transform_output_std(
+        self,
+        std_data: dict[str, list[float]],
+        point_estimates_original: dict[str, list[float]] | None = None,
+    ) -> dict[str, list[float]]:
+        """
+        Inverse-transform output *uncertainty* (standard deviation) values.
+
+        A std cannot be inverse-transformed the same way as a point value (e.g.
+        mean-shifting a std is meaningless). This applies the correct multiplicative
+        rule per configured transform:
+        - z_score normalize: std_orig = std_mapped * std (no mean shift)
+        - min_max normalize: std_orig = std_mapped * (max - min)
+        - log_transform: std_orig ~= y_hat_orig * std_log (delta method / natural-log
+          approximation: d(exp(x))/dx = exp(x), evaluated at the point estimate).
+          Requires the already-inverse-transformed point estimate for that variable
+          in `point_estimates_original`; if missing, the log-space std is returned
+          unchanged (with a warning) rather than silently producing a wrong value.
+        switch_sign does not affect the magnitude of a std.
+        """
+        point_estimates_original = point_estimates_original or {}
+        result: dict[str, list[float]] = {}
+
+        for var_name, config in self.output_variables.items():
+            if config.mapped_name not in std_data:
+                continue
+
+            values = np.array(std_data[config.mapped_name], dtype=float)
+
+            if config.normalize and config.normalization_method == "z_score":
+                if config.std is not None:
+                    values = values * config.std
+            elif config.normalize and config.normalization_method == "min_max":
+                if config.max_val is not None and config.min_val is not None:
+                    values = values * (config.max_val - config.min_val)
+
+            if config.log_transform:
+                point_est = point_estimates_original.get(var_name)
+                if point_est is not None and len(point_est) == len(values):
+                    values = values * np.abs(np.array(point_est, dtype=float))
+                else:
+                    _logger.warning(
+                        f"Cannot delta-method inverse-transform std for log-scale output "
+                        f"'{var_name}' without matching point estimates; returning "
+                        "log-space std unchanged"
+                    )
+
+            result[var_name] = values.tolist()
 
         return result
 

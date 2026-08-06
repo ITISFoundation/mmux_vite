@@ -390,26 +390,53 @@ def create_manual_uq_samples(
     rng = np.random.default_rng(seed=seed)
     samples = {}
     for var in input_vars:
+        if var not in distributions:
+            raise ValueError(f"Distribution is not defined for variable: {var}")
         dist_info = distributions[var]
-        dist_type = dist_info["distribution"]
+        dist_type = dist_info.get("distribution")
+        log_scale = dist_info.get("log_scale", False)
+        if log_scale and dist_type != "uniform":
+            raise ValueError(f"log_scale is only supported for uniform distributions: {var}")
         if dist_type == "normal":
             mean = dist_info["mean"]
             std = dist_info["std"]
+            if not np.isfinite(mean) or not np.isfinite(std) or std <= 0:
+                raise ValueError(f"Normal distribution parameters are invalid: {var}")
             samples[var] = norm.rvs(
                 size=num_samples, loc=mean, scale=std, random_state=rng
             ).tolist()
         elif dist_type == "uniform":
             min_val = dist_info["min"]
             max_val = dist_info["max"]
-            samples[var] = uniform.rvs(
-                size=num_samples, loc=min_val, scale=max_val - min_val, random_state=rng
-            ).tolist()
+            if not np.isfinite(min_val) or not np.isfinite(max_val) or min_val >= max_val:
+                raise ValueError(f"Uniform distribution bounds are invalid: {var}")
+            if log_scale and min_val <= 0:
+                raise ValueError(f"Log-scale uniform bounds must be strictly positive: {var}")
+            if log_scale:
+                log_min, log_max = np.log10(min_val), np.log10(max_val)
+                samples[var] = np.power(
+                    10,
+                    uniform.rvs(
+                        size=num_samples,
+                        loc=log_min,
+                        scale=log_max - log_min,
+                        random_state=rng,
+                    ),
+                ).tolist()
+            else:
+                samples[var] = uniform.rvs(
+                    size=num_samples, loc=min_val, scale=max_val - min_val, random_state=rng
+                ).tolist()
         elif dist_type == "constant":
             value = dist_info["value"]
+            if not np.isfinite(value):
+                raise ValueError(f"Constant distribution value is invalid: {var}")
             samples[var] = [float(value)] * num_samples
         elif dist_type == "log-normal":
             log_mean = dist_info["log_mean"]
             log_std = dist_info["log_std"]
+            if not np.isfinite(log_mean) or not np.isfinite(log_std) or log_std <= 0:
+                raise ValueError(f"Log-normal distribution parameters are invalid: {var}")
             samples[var] = rng.lognormal(mean=log_mean, sigma=log_std, size=num_samples).tolist()
         else:
             raise ValueError(f"Unsupported distribution type: {dist_type}")

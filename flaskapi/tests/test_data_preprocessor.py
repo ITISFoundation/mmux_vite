@@ -1,4 +1,6 @@
+import numpy as np
 import pandas as pd
+import pytest
 
 from mmux_flaskapi.data_preprocessor import DataPreprocessor
 
@@ -76,3 +78,84 @@ class TestDataPreprocessor:
 
         assert loaded.get_variable_mapping() == {"alpha": "x1", "beta": "y1"}
         assert loaded.output_variables["beta"].mean == 5.0
+
+
+class TestDataPreprocessorLogTransform:
+    """Tests for T9: per-variable log-transform (train surrogate on log(value))."""
+
+    def test_log_transform_round_trip_for_input_and_output(self):
+        dataframe = pd.DataFrame(
+            {
+                "length": [1.0, np.e, np.e**2],
+                "stress": [10.0, 100.0, 1000.0],
+            }
+        )
+        preprocessor = DataPreprocessor()
+        preprocessor.setup_variables(["length"], ["stress"])
+        preprocessor.setup_log_transform(input_log_vars=["length"], output_log_vars=["stress"])
+
+        transformed = preprocessor.fit_transform(dataframe)
+        # log(length) should be [0, 1, 2]
+        assert transformed["x1"].tolist() == pytest.approx([0.0, 1.0, 2.0])
+
+        restored = preprocessor.inverse_transform(transformed)
+        assert restored["length"] == pytest.approx([1.0, np.e, np.e**2])
+        assert restored["stress"] == pytest.approx([10.0, 100.0, 1000.0])
+
+    def test_log_transform_combines_with_switch_sign(self):
+        dataframe = pd.DataFrame({"a": [1.0, 2.0], "out": [1.0, np.e]})
+        preprocessor = DataPreprocessor()
+        preprocessor.setup_variables(["a"], ["out"])
+        preprocessor.setup_log_transform(output_log_vars=["out"])
+        preprocessor.setup_sign_switching(output_sign_switches=["out"])
+
+        transformed = preprocessor.fit_transform(dataframe)
+        # log(out) = [0, 1], then sign-switched => [0, -1]
+        assert transformed["y1"].tolist() == pytest.approx([0.0, -1.0])
+
+        restored = preprocessor.inverse_transform(transformed)
+        assert restored["out"] == pytest.approx([1.0, np.e])
+
+    def test_log_transform_fit_rejects_non_positive_values(self):
+        dataframe = pd.DataFrame({"a": [1.0, -2.0], "out": [1.0, 2.0]})
+        preprocessor = DataPreprocessor()
+        preprocessor.setup_variables(["a"], ["out"])
+        preprocessor.setup_log_transform(input_log_vars=["a"])
+
+        with pytest.raises(ValueError, match="log_transform"):
+            preprocessor.fit(dataframe)
+
+    def test_inverse_transform_output_std_uses_delta_method_for_log_transform(self):
+        dataframe = pd.DataFrame({"a": [1.0, 2.0, 3.0], "out": [10.0, 20.0, 30.0]})
+        preprocessor = DataPreprocessor()
+        preprocessor.setup_variables(["a"], ["out"])
+        preprocessor.setup_log_transform(output_log_vars=["out"])
+        preprocessor.fit(dataframe)
+
+        # std_hat=0.1 in log-space, point estimate (original space) = 50.0
+        # delta method: std_orig ~= y_hat_orig * std_log = 50.0 * 0.1 = 5.0
+        result = preprocessor.inverse_transform_output_std(
+            {"y1": [0.1]}, point_estimates_original={"out": [50.0]}
+        )
+        assert result["out"] == pytest.approx([5.0])
+
+    def test_inverse_transform_output_std_without_point_estimate_returns_unchanged(self):
+        dataframe = pd.DataFrame({"a": [1.0, 2.0], "out": [10.0, 20.0]})
+        preprocessor = DataPreprocessor()
+        preprocessor.setup_variables(["a"], ["out"])
+        preprocessor.setup_log_transform(output_log_vars=["out"])
+        preprocessor.fit(dataframe)
+
+        result = preprocessor.inverse_transform_output_std({"y1": [0.1]})
+        assert result["out"] == pytest.approx([0.1])
+
+    def test_inverse_transform_output_std_multiplicative_for_normalize(self):
+        dataframe = pd.DataFrame({"a": [1.0, 2.0], "out": [10.0, 20.0, 30.0][:2]})
+        preprocessor = DataPreprocessor()
+        preprocessor.setup_variables(["a"], ["out"])
+        preprocessor.setup_normalization(output_normalizations={"out": "z_score"})
+        preprocessor.fit(dataframe)
+
+        std_config = preprocessor.output_variables["out"]
+        result = preprocessor.inverse_transform_output_std({"y1": [2.0]})
+        assert result["out"] == pytest.approx([2.0 * std_config.std])
