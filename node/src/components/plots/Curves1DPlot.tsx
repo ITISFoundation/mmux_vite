@@ -5,7 +5,7 @@ import { Box, useTheme } from "@mui/material";
 import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
 import Header from "../navigation/Header";
-import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
+import { CreateSelect, CreateSlider, DownloadDataButton, filterInputVars } from "./PlotTools";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
@@ -30,6 +30,7 @@ function Curves1DPlots() {
     distribution,
   });
   const [plotData, setPlotData] = useState<Array<Data>>([]);
+  const [rawData, setRawData] = useState<unknown>(undefined);
   const [axis, setAxis] = useState(filteredInputVars[0]);
   const [propagating, setPropagating] = useState(false);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
@@ -143,6 +144,7 @@ function Curves1DPlots() {
       .then(data => {
         // Backend wraps the per-axis predictions under `predictions` (SumoAlongAxesResponse).
         createPlotData(data?.predictions);
+        setRawData(data);
         // V18: cache key ONLY on success, so transient failures don't block retry
         lastFetchedKey.current = requestKey;
         setPropagating(false);
@@ -151,6 +153,7 @@ function Curves1DPlots() {
         // V18: clear cache on error so same inputs can be retried
         lastFetchedKey.current = undefined;
         setPlotData([]);
+        setRawData(undefined);
         setPropagating(false);
       });
   };
@@ -213,7 +216,7 @@ function Curves1DPlots() {
 
   return (
     <>
-      <Box display="flex" flexDirection="column">
+      <Box display="flex" flexDirection="column" position="relative">
         {!propagating && plotData.length === 0 && (
           <InsufficientDataWarning
             fetchedJobCollections={fetchedJobCollections}
@@ -222,7 +225,18 @@ function Curves1DPlots() {
             numInputVars={inputVars.length}
           />
         )}
-        {plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+        {plotData.length !== 0 && (
+          <>
+            <Box position="absolute" top={4} right={4} zIndex={1}>
+              <DownloadDataButton
+                data={rawData}
+                filename={`curves1d-${selectedQoI}-vs-${axis}.json`}
+                testId="download-curves1d-data-btn"
+              />
+            </Box>
+            <Plot data={plotData} layout={layout} style={plotStyle} />
+          </>
+        )}
       </Box>
       <Box>
         <Header headerType="subTitle" infoText="" tabTitle="Selection" />

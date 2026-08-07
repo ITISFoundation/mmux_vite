@@ -4,7 +4,7 @@ import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow } from "./PlotTools";
+import { CreateSelect, CreateSlider, DownloadDataButton, filterInputVars, plotMarginsNarrow } from "./PlotTools";
 import Header from "../navigation/Header";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -22,6 +22,7 @@ function Surface2DPlot() {
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [propagating, setPropagating] = useState(false);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
+  const [rawData, setRawData] = useState<unknown>(undefined);
   const lastFetchedKey = useRef<string | undefined>(undefined);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
@@ -127,6 +128,7 @@ function Surface2DPlot() {
         .then(d => {
           // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
           reshapePlotData(d?.gridData);
+          setRawData(d);
           // V18: cache key ONLY on success, so transient failures don't block retry
           lastFetchedKey.current = requestKey;
           setPropagating(false);
@@ -137,6 +139,7 @@ function Surface2DPlot() {
           console.warn("Error:", error);
           setPropagating(false);
           setPlotData([]);
+          setRawData(undefined);
         });
     },
     [inputVars, selectedQoI, otherAxis, reshapePlotData, inputLogScales, outputLogScaleForQoi],
@@ -205,7 +208,7 @@ function Surface2DPlot() {
 
   return (
     <>
-      <Box display="flex" flexDirection="column" width="100%">
+      <Box display="flex" flexDirection="column" width="100%" position="relative">
         {!propagating && plotData.length === 0 && (
           <InsufficientDataWarning
             fetchedJobCollections={fetchedJobCollections}
@@ -214,7 +217,18 @@ function Surface2DPlot() {
             numInputVars={inputVars.length}
           />
         )}
-        {plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+        {plotData.length !== 0 && (
+          <>
+            <Box position="absolute" top={4} right={4} zIndex={1}>
+              <DownloadDataButton
+                data={rawData}
+                filename={`surface2d-${selectedQoI}-${axis1}-${axis2}.json`}
+                testId="download-surface2d-data-btn"
+              />
+            </Box>
+            <Plot data={plotData} layout={layout} style={plotStyle} />
+          </>
+        )}
       </Box>
 
       <Box mt={2}>

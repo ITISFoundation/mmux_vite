@@ -15,7 +15,7 @@ import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
 import { MOGAPlotModal } from "./MOGAPlotModal";
-import { plotMarginsNarrow, plotMarginsMedium } from "./PlotTools";
+import { plotMarginsNarrow, plotMarginsMedium, DownloadDataButton } from "./PlotTools";
 
 interface MOGAParetoProps extends LoadingPropsType {
   setCalculating?: (value: boolean) => void;
@@ -43,6 +43,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
   const { mogaSettings } = useMOGASettingsContext();
   const { weights } = useMOGATableContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
+  const [rawResults, setRawResults] = useState<unknown>(undefined);
   const [layout, setLayout] = useState<Partial<Plotly.Layout>>({});
   const [plotType, setPlotType] = useState<PlotConfig>();
   const [selectedOptVars, setSelectedOptVars] = useState<Array<string>>([]);
@@ -183,7 +184,9 @@ export function MOGAPareto(props: MOGAParetoProps) {
         throw new Error(`Error in MOGA response: ${response.status}, ${response.statusText}`);
       }
 
-      const results = normalizeMogaResults(await response.json());
+      const rawJson = await response.json();
+      setRawResults(rawJson);
+      const results = normalizeMogaResults(rawJson);
       const minMax = getMinMax(localOptVars, results);
       // console.info("MOGA results:", results);
       // console.log("localOptVars: ", localOptVars)
@@ -465,7 +468,16 @@ export function MOGAPareto(props: MOGAParetoProps) {
       )}
       {!propagating && selectedFunction && plotData.length !== 0 && (
         <>
-          <Plot ref={ref} data={plotData} layout={layout} style={plotStyle} />
+          <Box position="relative">
+            <Box position="absolute" top={4} right={4} zIndex={1}>
+              <DownloadDataButton
+                data={rawResults}
+                filename={`moga-pareto-${selectedFunction.uid}.json`}
+                testId="download-moga-data-btn"
+              />
+            </Box>
+            <Plot ref={ref} data={plotData} layout={layout} style={plotStyle} />
+          </Box>
           <MOGAPlotModal
             plotType={plotType}
             tableData={tableData}

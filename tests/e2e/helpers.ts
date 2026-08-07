@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, type Page, type APIRequestContext } from "@playwright/test";
 
 /**
@@ -132,4 +133,20 @@ export async function fillNormalDistributions(page: Page): Promise<void> {
     await stdInputs.nth(index).fill("1");
     await stdInputs.nth(index).press("Tab");
   }
+}
+
+/**
+ * Click a plot's "download data" button (mmux-testid="download-*-data-btn"),
+ * capture the resulting browser download, and parse its content as JSON.
+ * The button downloads a Blob built client-side from data already held in
+ * component state, so no extra network round-trip happens on click.
+ */
+export async function downloadAndParseJson(page: Page, testId: string): Promise<unknown> {
+  const button = page.locator(`[mmux-testid="${testId}"]`);
+  await expect(button, `download button ${testId} visible`).toBeVisible({ timeout: VIEW_TIMEOUT });
+  const [download] = await Promise.all([page.waitForEvent("download"), button.click()]);
+  const filePath = await download.path();
+  expect(filePath, `download ${testId} produced a file`).toBeTruthy();
+  const content = readFileSync(filePath as string, "utf-8");
+  return JSON.parse(content);
 }

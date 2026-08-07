@@ -7,7 +7,18 @@ import {
   resetPersistence,
   setDeployment,
   fillUniformInputRanges,
+  downloadAndParseJson,
 } from "./helpers";
+
+// The mock function's input schema (mock_osparc/data.py) — used to assert on
+// download payload keys without hard-coding which QoI happens to be selected.
+const INPUT_VARS = ["x1", "x2", "x3", "x4"];
+
+// NSAMPLESPERVAR is a fixed constant in funs_evaluate.py, so these point counts
+// are guaranteed by the backend code, not just by the mock data being static.
+const CURVE_POINTS = 21;
+const GRID_2D_POINTS = CURVE_POINTS * CURVE_POINTS; // 441
+const GRID_3D_POINTS = CURVE_POINTS * CURVE_POINTS * CURVE_POINTS; // 9261
 
 /**
  * SuMo READ-ONLY behavioral + pixel-snapshot suite (§T11 / §V10,§V13).
@@ -113,6 +124,19 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("sumo-readonly-plot-1d.png");
 
+  // Download button: the mock backend is deterministic, so the downloaded file's
+  // shape is fully pinned by the fixed NSAMPLESPERVAR=21 constant in funs_evaluate.py.
+  const curveDownload = (await downloadAndParseJson(page, "download-curves1d-data-btn")) as {
+    predictions: Record<string, { x: number[]; yHat: number[]; stdHat: number[] }>;
+  };
+  expect(Object.keys(curveDownload.predictions).sort()).toEqual([...INPUT_VARS].sort());
+  for (const varName of INPUT_VARS) {
+    const axisData = curveDownload.predictions[varName];
+    expect(axisData.x, `${varName}.x length`).toHaveLength(CURVE_POINTS);
+    expect(axisData.yHat, `${varName}.yHat length`).toHaveLength(CURVE_POINTS);
+    expect(axisData.stdHat, `${varName}.stdHat length`).toHaveLength(CURVE_POINTS);
+  }
+
   // Step 2 — 2D Surface.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
@@ -120,12 +144,38 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("sumo-readonly-plot-2d.png");
 
+  const surface2dDownload = (await downloadAndParseJson(page, "download-surface2d-data-btn")) as {
+    gridData: Record<string, number[] | number[][]>;
+  };
+  for (const varName of INPUT_VARS) {
+    expect(surface2dDownload.gridData[varName], `${varName} length`).toHaveLength(GRID_2D_POINTS);
+  }
+  // The selected QoI's z-grid is a nested 21x21 array (Surface2DPlot reshapes it
+  // as z[y][x]); other non-input keys (e.g. an uncertainty grid) stay flat.
+  const qoiKeys2d = Object.keys(surface2dDownload.gridData).filter(k => !INPUT_VARS.includes(k));
+  expect(qoiKeys2d.length, "at least one QoI key present").toBeGreaterThan(0);
+  const nestedQoiKey2d = qoiKeys2d.find(k => Array.isArray((surface2dDownload.gridData[k] as unknown[])[0]));
+  expect(nestedQoiKey2d, "one non-input key holds the nested 21x21 z-grid").toBeTruthy();
+  const qoiGrid2d = surface2dDownload.gridData[nestedQoiKey2d as string] as number[][];
+  expect(qoiGrid2d, "QoI grid is a nested 21x21 array").toHaveLength(CURVE_POINTS);
+  expect(qoiGrid2d[0], "QoI grid row length").toHaveLength(CURVE_POINTS);
+
   // Step 3 — 3D IsoSurface.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("3D IsoSurface", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("sumo-readonly-plot-3d.png");
+
+  const surface3dDownload = (await downloadAndParseJson(page, "download-isosurface3d-data-btn")) as {
+    gridData: Record<string, number[]>;
+  };
+  for (const varName of INPUT_VARS) {
+    expect(surface3dDownload.gridData[varName], `${varName} length`).toHaveLength(GRID_3D_POINTS);
+  }
+  const qoiKeys3d = Object.keys(surface3dDownload.gridData).filter(k => !INPUT_VARS.includes(k));
+  expect(qoiKeys3d.length, "at least one QoI key present").toBeGreaterThan(0);
+  expect(surface3dDownload.gridData[qoiKeys3d[0]], "QoI value grid length").toHaveLength(GRID_3D_POINTS);
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
   expect(runtimeErrors, `JavaScript errors captured: ${runtimeErrors.join("\n")}`).toEqual([]);

@@ -3,7 +3,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import Plot from "react-plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow } from "./PlotTools";
+import { CreateSelect, CreateSlider, DownloadDataButton, filterInputVars, plotMarginsNarrow } from "./PlotTools";
 import Header from "../navigation/Header";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
@@ -28,6 +28,7 @@ function IsoSurface3DPlot() {
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [axis3, setAxis3] = useState(filteredInputVars[2]);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
+  const [rawData, setRawData] = useState<unknown>(undefined);
   const lastFetchedKey = useRef<string | undefined>(undefined);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
@@ -199,6 +200,7 @@ function IsoSurface3DPlot() {
       .then(d => {
         // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
         reshapePlotData(d?.gridData);
+        setRawData(d);
         // V18: cache key ONLY on success, so transient failures don't block retry
         lastFetchedKey.current = requestKey;
         setPropagating(false);
@@ -209,6 +211,7 @@ function IsoSurface3DPlot() {
         console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
+        setRawData(undefined);
       });
   };
 
@@ -275,7 +278,7 @@ function IsoSurface3DPlot() {
   };
 
   return (
-    <Box display="flex" flexDirection="column" width="100%">
+    <Box display="flex" flexDirection="column" width="100%" position="relative">
       {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={false} />}
       {!propagating && plotData.length === 0 && (
         <InsufficientDataWarning
@@ -285,7 +288,18 @@ function IsoSurface3DPlot() {
           numInputVars={inputVars.length}
         />
       )}
-      {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+      {!propagating && plotData.length !== 0 && (
+        <>
+          <Box position="absolute" top={4} right={4} zIndex={1}>
+            <DownloadDataButton
+              data={rawData}
+              filename={`isosurface3d-${selectedQoI}-${axis1}-${axis2}-${axis3}.json`}
+              testId="download-isosurface3d-data-btn"
+            />
+          </Box>
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+        </>
+      )}
       <Box mt={2}>
         <Header headerType="subTitle" infoText="" tabTitle="Selection" />
       </Box>

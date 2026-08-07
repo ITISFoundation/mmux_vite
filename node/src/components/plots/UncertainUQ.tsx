@@ -10,6 +10,7 @@ import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
 import InsufficientDataWarning from "./InsufficientDataWarning";
+import { DownloadDataButton } from "./PlotTools";
 
 export default function UncertainUQ(props: LoadingPropsType) {
   const { loading, jobProgress } = props;
@@ -122,7 +123,18 @@ export default function UncertainUQ(props: LoadingPropsType) {
           numInputVars={inputVars.length}
         />
       )}
-      {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+      {!propagating && plotData.length !== 0 && (
+        <Box position="relative">
+          <Box position="absolute" top={4} right={4} zIndex={1}>
+            <DownloadDataButton
+              data={dataUQHistogram}
+              filename={`uq-histogram-${selectedQoI}.json`}
+              testId="download-uq-data-btn"
+            />
+          </Box>
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+        </Box>
+      )}
       {dataUQHistogram !== undefined && <HistogramStats {...dataUQHistogram} />}
     </Box>
   );

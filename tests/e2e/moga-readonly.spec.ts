@@ -7,7 +7,18 @@ import {
   resetPersistence,
   setDeployment,
   fillUniformInputRanges,
+  downloadAndParseJson,
 } from "./helpers";
+
+// addFirstOutputTarget always adds the mock function's first output var ("y",
+// minimize) with the default MOGA settings (MOGASettingsContext.tsx: populationSize
+// 50, maxIterations 100, seed 42, numberSeeds 1), which is empirically reproducible
+// as a fixed-length (4107) population dump against the deterministic mock backend.
+const MOGA_POPULATION_SIZE = 4107;
+// Mock function formula (mock_osparc/data.py): y = 2*x1 + 0.3*x1^2 + 0.5*x2. The
+// GP surrogate fits this near-exactly (empirically <1e-6 abs error), so the
+// downloaded y values must match the closed-form formula within a loose tolerance.
+const mockY = (x1: number, x2: number) => 2 * x1 + 0.3 * x1 * x1 + 0.5 * x2;
 
 /**
  * MOGA (Multi-Objective Genetic Algorithm) READ-ONLY behavioral + pixel-snapshot
@@ -99,6 +110,21 @@ test("MOGA read-only optimization flow renders pareto front and inspect-model mo
 
   // Pixel baseline: the MOGA Pareto front with the real (deterministic) Plotly render.
   await expect(page).toHaveScreenshot("moga-readonly-pareto.png");
+
+  // Download button: the mock backend + fixed default MOGA settings (seed 42)
+  // make the optimization population fully deterministic.
+  const mogaDownload = (await downloadAndParseJson(page, "download-moga-data-btn")) as {
+    optimizationResults: Record<string, number[]>;
+  };
+  const opt = mogaDownload.optimizationResults;
+  expect(opt, "optimizationResults present").toBeTruthy();
+  for (const key of ["x1", "x2", "x3", "x4", "y"]) {
+    expect(opt[key], `${key} present`).toBeTruthy();
+    expect(opt[key], `${key} length`).toHaveLength(MOGA_POPULATION_SIZE);
+  }
+  for (let i = 0; i < opt.y.length; i++) {
+    expect(opt.y[i], `y[${i}] matches formula within tolerance`).toBeCloseTo(mockY(opt.x1[i], opt.x2[i]), 2);
+  }
 
   // Inspect Model opens the SuMo cross-validation modal (regression guard for
   // the MUI Modal ref-forwarding fix; the MOGA-mode button now carries a testid).

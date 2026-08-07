@@ -1,4 +1,5 @@
-import { InputLabel, Typography, Select, MenuItem, TextField, styled, Slider } from "@mui/material";
+import { InputLabel, Typography, Select, MenuItem, TextField, styled, Slider, IconButton, Tooltip } from "@mui/material";
+import { Download } from "@mui/icons-material";
 import { useState } from "react";
 import { RegisteredFunction, OsparcFunctionJob } from "src/context/types";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -251,3 +252,34 @@ export function CreateSlider({ dist, input, otherAxis, setOtherAxis }: CreateSli
 // plot margings to be applied to all plots
 export const plotMarginsNarrow = { l: 20, r: 40, b: 30, t: 55 };
 export const plotMarginsMedium = { l: 60, r: 40, b: 60, t: 40 };
+
+export function downloadJson(data: unknown, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+interface DownloadDataButtonProps {
+  data: unknown;
+  filename: string;
+  testId: string;
+}
+
+// Small, portable "download the data behind this plot" button.
+// Placed with position:absolute by callers so it never disturbs existing plot layout.
+export function DownloadDataButton({ data, filename, testId }: DownloadDataButtonProps) {
+  if (data === undefined || data === null) {
+    return null;
+  }
+  return (
+    <Tooltip title="Download plot data">
+      <IconButton size="small" aria-label="Download plot data" onClick={() => downloadJson(data, filename)} mmux-testid={testId}>
+        <Download fontSize="small" />
+      </IconButton>
+    </Tooltip>
+  );
+}

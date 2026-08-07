@@ -7,7 +7,12 @@ import {
   resetPersistence,
   setDeployment,
   fillNormalDistributions,
+  downloadAndParseJson,
 } from "./helpers";
+
+// UncertainUQ.tsx hardcodes nHistograms: 50, seed: 0 for the propagation request,
+// so the bin arrays' length is guaranteed by the frontend code, not just the mock.
+const HISTOGRAM_BINS = 50;
 
 /**
  * UQ (Uncertainty Quantification) READ-ONLY behavioral + pixel-snapshot suite
@@ -87,6 +92,40 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
 
   // Pixel baseline: the UQ histogram with the real (deterministic) Plotly render.
   await expect(page).toHaveScreenshot("uq-readonly-histogram.png");
+
+  // Download button: the mock backend + hardcoded nHistograms/seed make the
+  // propagation result fully deterministic, so both the shape and the ordering
+  // relationships between the summary statistics are pinned.
+  const uqDownload = (await downloadAndParseJson(page, "download-uq-data-btn")) as {
+    binMeans: number[];
+    binStds: number[];
+    binsStart: number;
+    binsEnd: number;
+    mean: number;
+    median: number;
+    min: number;
+    max: number;
+    q1: number;
+    q3: number;
+    std: number;
+    whiskerMin: number;
+    whiskerMax: number;
+    outliers: number[];
+  };
+  expect(uqDownload.binMeans, "binMeans length").toHaveLength(HISTOGRAM_BINS);
+  expect(uqDownload.binStds, "binStds length").toHaveLength(HISTOGRAM_BINS);
+  expect(Array.isArray(uqDownload.outliers), "outliers is an array").toBe(true);
+  expect(uqDownload.binsStart, "binsStart < binsEnd").toBeLessThan(uqDownload.binsEnd);
+  // Five-number-summary ordering must hold regardless of the exact sampled values.
+  expect(uqDownload.min, "min <= whiskerMin").toBeLessThanOrEqual(uqDownload.whiskerMin);
+  expect(uqDownload.whiskerMin, "whiskerMin <= q1").toBeLessThanOrEqual(uqDownload.q1);
+  expect(uqDownload.q1, "q1 <= median").toBeLessThanOrEqual(uqDownload.median);
+  expect(uqDownload.median, "median <= q3").toBeLessThanOrEqual(uqDownload.q3);
+  expect(uqDownload.q3, "q3 <= whiskerMax").toBeLessThanOrEqual(uqDownload.whiskerMax);
+  expect(uqDownload.whiskerMax, "whiskerMax <= max").toBeLessThanOrEqual(uqDownload.max);
+  expect(uqDownload.mean, "min <= mean <= max").toBeGreaterThanOrEqual(uqDownload.min);
+  expect(uqDownload.mean, "min <= mean <= max").toBeLessThanOrEqual(uqDownload.max);
+  expect(uqDownload.std, "std >= 0").toBeGreaterThanOrEqual(0);
 
   // Inspect Model opens the SuMo cross-validation modal (regression guard: the
   // MUI Modal child must forward a ref, otherwise the modal never renders).
