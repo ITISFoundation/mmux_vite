@@ -3,10 +3,11 @@ import { render, fireEvent, cleanup, waitFor, screen } from "@testing-library/re
 import "@testing-library/jest-dom/vitest";
 import { toast } from "react-toastify";
 import UploadJobCollectionButton from "./UploadJobCollectionButton";
-import { uploadJobCollectionCsv } from "../../utils/functionUtils";
+import { listFunctions, uploadJobCollectionCsv } from "../../utils/functionUtils";
 import { pickSingleCsvFile } from "../../utils/jobCollectionCsv";
 
 vi.mock("../../utils/functionUtils", () => ({
+  listFunctions: vi.fn(),
   uploadJobCollectionCsv: vi.fn(),
 }));
 
@@ -28,6 +29,7 @@ describe("UploadJobCollectionButton", () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.mocked(listFunctions).mockResolvedValue([]);
   });
 
   it("parses the CSV, opens the import dialog, and drives onUploadSuccess with 1 authoritative result (V13)", async () => {
@@ -57,6 +59,8 @@ describe("UploadJobCollectionButton", () => {
     expect(onUploadSuccess).toHaveBeenCalledWith({
       targetFunctionUid: "func-new",
       importedSamples: 2,
+      jobCollection: { uid: "jc-new" },
+      targetMode: "new",
       inputVars: ["x1"],
       outputVars: ["y"],
       inputPresets: { x1: { distribution: "uniform", min: 1.0, max: 5.0, scale: "linear" } },
@@ -116,7 +120,7 @@ describe("UploadJobCollectionButton", () => {
     render(
       <UploadJobCollectionButton
         onUploadSuccess={onUploadSuccess}
-        existingFunctions={[{ uid: "func-1", title: "Existing Fn" } as never]}
+        existingFunctions={[{ uid: "func-1", title: "Existing Fn" }]}
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Upload Data" }));
