@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from flask import Flask
 
+import mmux_flaskapi.utils.local_job_store as local_job_store
 from mmux_flaskapi.app import create_flask_app
 
 TEST_RUNS_DIR = Path.cwd() / "runs_test"
@@ -80,6 +81,16 @@ def default_osparc_reachable():
         return_value=MagicMock(model_dump_json=lambda **kwargs: "{}"),
     ):
         yield
+
+
+@pytest.fixture(autouse=True)
+def isolate_local_job_store(monkeypatch, tmp_path):
+    """Keep endpoint tests independent from repository-local imported CSV artifacts."""
+    store_dir = tmp_path / "runs_local"
+    monkeypatch.setattr(local_job_store, "LOCAL_STORE_DIR", store_dir)
+    monkeypatch.setattr(
+        local_job_store, "LOCAL_STORE_FILE", store_dir / "uploaded_job_collections_store.json"
+    )
 
 
 @pytest.fixture

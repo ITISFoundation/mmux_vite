@@ -77,6 +77,7 @@ _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
         "project_inputs",
         "input_log_scales",
         "output_log_scales",
+        "predictions",
     }
 )
 

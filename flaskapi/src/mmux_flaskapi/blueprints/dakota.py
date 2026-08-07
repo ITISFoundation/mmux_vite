@@ -607,23 +607,42 @@ def flask_evaluate_sumo_along_axes():
         predictions_original = {}
         for m_var, axis_data in results.items():
             orig_var = mapped_to_orig_input.get(m_var, m_var)
-            x_inv = preprocessor.inverse_transform({m_var: list(axis_data["x"])}).get(
+            mapped_axis_var = preprocessor.input_variables.get(m_var)
+            axis_key = mapped_axis_var.mapped_name if mapped_axis_var is not None else m_var
+            x_inv = preprocessor.inverse_transform({axis_key: list(axis_data["x"])}).get(
                 orig_var, list(axis_data["x"])
             )
-            y_inv = preprocessor.inverse_transform(
-                {mapped_output_var: list(axis_data["y_hat"])}
-            ).get(output_response, list(axis_data["y_hat"]))
-            axis_orig: dict = {"x": x_inv, "y_hat": y_inv}
+            axis_results = {mapped_output_var + "_hat": list(axis_data["y_hat"])}
             if "std_hat" in axis_data:
-                axis_orig["std_hat"] = list(axis_data["std_hat"])
+                axis_results[mapped_output_var + "_std_hat"] = list(axis_data["std_hat"])
+            inverse_axis_results = _inverse_transform_output_results(preprocessor, axis_results)
+            axis_orig: dict = {
+                "x": x_inv,
+                "y_hat": inverse_axis_results.get(
+                    output_response + "_hat", list(axis_data["y_hat"])
+                ),
+            }
+            if "std_hat" in axis_data:
+                axis_orig["std_hat"] = inverse_axis_results.get(
+                    output_response + "_std_hat", list(axis_data["std_hat"])
+                )
             predictions_original[orig_var] = axis_orig
 
         # Validate and structure response
         response_data = {"predictions": predictions_original}
         validated_response = SumoAlongAxesResponse.model_validate(response_data)
+        response_payload = validated_response.model_dump()
+        response_payload["predictions"] = {
+            variable: {
+                "x": axis["x"],
+                "yHat": axis["y_hat"],
+                **({"stdHat": axis["std_hat"]} if axis.get("std_hat") is not None else {}),
+            }
+            for variable, axis in response_payload["predictions"].items()
+        }
 
         _logger.debug("SUMO along axes evaluation completed successfully")
-        return jsonify(validated_response.model_dump())
+        return jsonify(response_payload)
 
     except ValidationError as e:
         _logger.error(f"Validation error in SUMO along axes: {e}")
@@ -711,20 +730,50 @@ def flask_sumo_grid_evaluation():
         mapped_to_orig = _mapped_to_original(preprocessor)
         grid_data_original = {}
         for key, values in results.items():
-            orig_key = mapped_to_orig.get(key, key)
+            is_std = key.endswith("_std")
+            base_key = key[:-4] if is_std else key
+            mapped_base_key = preprocessor.output_variables.get(base_key)
+            resolved_base_key = (
+                mapped_base_key.mapped_name if mapped_base_key is not None else base_key
+            )
+            output_original_key = mapped_to_orig.get(resolved_base_key, base_key)
+            orig_key = output_original_key + "_std" if is_std else output_original_key
             if values and isinstance(values[0], list):
                 # 2D array (reshaped grid output) - flatten, inverse transform, reshape back
                 nested_values = cast(list[list[float]], values)
                 flat = [item for row in nested_values for item in row]
-                flat_inv = _inverse_transform_values(preprocessor, key, flat, mapped_to_orig)
+                if is_std:
+                    point_values = grid_data_original.get(output_original_key, flat)
+                    if point_values and isinstance(point_values[0], list):
+                        point_values_for_std = [
+                            item for row in cast(list[list[float]], point_values) for item in row
+                        ]
+                    else:
+                        point_values_for_std = cast(list[float], point_values)
+                    flat_inv = preprocessor.inverse_transform_output_std(
+                        {resolved_base_key: flat}, {output_original_key: point_values_for_std}
+                    ).get(output_original_key, flat)
+                else:
+                    flat_inv = _inverse_transform_values(
+                        preprocessor, resolved_base_key, flat, mapped_to_orig
+                    )
                 inner = len(nested_values[0])
                 grid_data_original[orig_key] = [
                     flat_inv[i : i + inner] for i in range(0, len(flat_inv), inner)
                 ]
             else:
-                grid_data_original[orig_key] = _inverse_transform_values(
-                    preprocessor, key, list(values), mapped_to_orig
-                )
+                flat_values = list(values)
+                if is_std:
+                    point_values = grid_data_original.get(output_original_key, flat_values)
+                    point_values_for_std = cast(list[float], point_values)
+                    grid_data_original[orig_key] = preprocessor.inverse_transform_output_std(
+                        {resolved_base_key: flat_values},
+                        {output_original_key: point_values_for_std},
+                    ).get(output_original_key, flat_values)
+                else:
+                    grid_data_original[orig_key] = _inverse_transform_values(
+                        preprocessor, resolved_base_key, flat_values, mapped_to_orig
+                    )
 
         # Validate and structure response
         response_data = {"grid_data": grid_data_original}
