@@ -71,6 +71,17 @@ def test_development_compose_passes_app_port_to_vite():
     )
 
 
+def test_development_web_healthcheck_allows_dependency_install():
+    content = (REPO_ROOT / "docker-compose-development.yml").read_text()
+
+    assert "start_period: 120s" in content, (
+        "docker-compose-development.yml: mmux-vite-web must allow the mounted "
+        "development install to complete before health-gating mmux-vite-app; "
+        "otherwise make run-develop-* exits with an unhealthy web dependency "
+        "and Caddy reports no upstreams (V26/B8)"
+    )
+
+
 def test_make_targets_reuse_running_compose_app_port():
     content = (REPO_ROOT / "Makefile").read_text()
 
