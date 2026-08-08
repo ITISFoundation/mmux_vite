@@ -1000,3 +1000,130 @@ class SumoCVAccuracyMetricsResponse(BaseModel):
             elif not isinstance(metrics, CVAccuracyMetrics):
                 raise ValueError(f"Metrics for {var_name} must be CVAccuracyMetrics or string")
         return self
+
+
+class CorrelationIndicesRequest(ManualUQPropagationRequest):
+    """Request model for the correlation-indices endpoint (#470).
+
+    Mirrors `ManualUQPropagationRequest` (same Monte Carlo sample generation from
+    per-input distributions), plus a `seed` for reproducibility, since no
+    uncertainty histogram is required here.
+    """
+
+    seed: int = Field(..., description="Random seed for reproducibility")
+
+
+class CorrelationCoefficients(BaseModel):
+    """Pearson and Spearman correlation coefficients for a single input variable."""
+
+    model_config = ConfigDict(frozen=True)
+
+    pearson: float = Field(..., description="Pearson correlation coefficient")
+    spearman: float = Field(..., description="Spearman rank correlation coefficient")
+
+    @field_validator("pearson", "spearman")
+    @classmethod
+    def validate_finite(cls, v: float) -> float:
+        """Ensure correlation coefficients are finite numbers (⊥ nan/inf)."""
+        if not np.isfinite(v):
+            raise ValueError("Correlation coefficient must be a finite number")
+        return v
+
+
+class CorrelationIndicesResponse(BaseModel):
+    """Response model for the correlation-indices endpoint (#470)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    correlations: dict[str, CorrelationCoefficients] = Field(
+        ..., description="Per-input-variable Pearson/Spearman correlation with the selected QoI"
+    )
+
+    @field_validator("correlations")
+    @classmethod
+    def validate_correlations_not_empty(
+        cls, v: dict[str, CorrelationCoefficients]
+    ) -> dict[str, CorrelationCoefficients]:
+        """Ensure correlations dictionary covers at least one input variable."""
+        if not v:
+            raise ValueError("Correlations dictionary cannot be empty")
+        return v
+
+
+class SobolIndicesRequest(ManualUQPropagationRequest):
+    """Request model for the Sobol'-indices endpoint (#470).
+
+    Mirrors `CorrelationIndicesRequest`'s shape (same Monte Carlo/UQ setup contract:
+    output, inputVars, distributions, numSamples, FunctionJobs), plus a `seed` for
+    reproducibility of the Sobol' QMC sampling.  Seed 0 is valid — scipy/numpy RNGs
+    accept it (the former Dakota NIDR constraint requiring seed ≥ 1 no longer applies
+    after the scipy migration, V34).
+    """
+
+    seed: int = Field(
+        ...,
+        ge=0,
+        description="Random seed for reproducibility (scipy/numpy RNGs accept 0)",
+    )
+
+
+class SobolIndexPair(BaseModel):
+    """First-order (main effect) and total-order Sobol' sensitivity indices for a single input variable.
+
+    `*_ci_low`/`*_ci_high` are bootstrap confidence intervals (V37, default 95%)
+    computed by resampling the existing Saltelli evaluations -- no extra
+    surrogate calls, so they come for free alongside the point estimates.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    main: float = Field(..., description="First-order (main effect) Sobol' index")
+    total: float = Field(..., description="Total-order Sobol' index")
+    main_ci_low: float = Field(
+        ..., description="Bootstrap confidence interval lower bound for `main`"
+    )
+    main_ci_high: float = Field(
+        ..., description="Bootstrap confidence interval upper bound for `main`"
+    )
+    total_ci_low: float = Field(
+        ..., description="Bootstrap confidence interval lower bound for `total`"
+    )
+    total_ci_high: float = Field(
+        ..., description="Bootstrap confidence interval upper bound for `total`"
+    )
+
+    @field_validator(
+        "main", "total", "main_ci_low", "main_ci_high", "total_ci_low", "total_ci_high"
+    )
+    @classmethod
+    def validate_finite(cls, v: float) -> float:
+        """Ensure Sobol' indices are finite numbers (⊥ nan/inf)."""
+        if not np.isfinite(v):
+            raise ValueError("Sobol' index must be a finite number")
+        return v
+
+
+class SobolIndicesResponse(BaseModel):
+    """Response model for the Sobol'-indices endpoint (#470)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    sobol: dict[str, SobolIndexPair] = Field(
+        ...,
+        description="Per-input-variable first-order/total-order Sobol' indices for the selected QoI",
+    )
+    sobol_second_order: dict[str, dict[str, float]] = Field(
+        default_factory=dict,
+        description=(
+            "Pairwise second-order Sobol' interaction indices, symmetric over all "
+            "unordered variable pairs (no self-pair). Empty when fewer than 2 input vars."
+        ),
+    )
+
+    @field_validator("sobol")
+    @classmethod
+    def validate_sobol_not_empty(cls, v: dict[str, SobolIndexPair]) -> dict[str, SobolIndexPair]:
+        """Ensure sobol dictionary covers at least one input variable."""
+        if not v:
+            raise ValueError("Sobol dictionary cannot be empty")
+        return v

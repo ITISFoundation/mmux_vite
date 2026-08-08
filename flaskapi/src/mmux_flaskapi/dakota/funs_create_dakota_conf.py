@@ -225,6 +225,7 @@ def add_sampling_method(
     seed: int = 1234,
     refinement: bool = False,
     refinement_samples: int | None = None,
+    variance_based_decomp: bool = False,
 ) -> str:
     conf = f"""
         method
@@ -234,8 +235,12 @@ def add_sampling_method(
             sampling
                 samples = {num_samples}
                 {f"seed = {seed}" if seed is not None else ""}
+                {"variance_based_decomp" if variance_based_decomp else ""}
             {f'model_pointer = "{model_pointer}"' if model_pointer is not None else ""}
         """
+
+    if variance_based_decomp:
+        assert sampling_method == "lhs", "variance_based_decomp only available for LHS sampling"
 
     if refinement:
         assert sampling_method == "lhs", "Refinement only available for LHS"

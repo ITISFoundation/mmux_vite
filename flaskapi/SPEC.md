@@ -57,6 +57,8 @@ api: POST `/manual_uq_propagation_with_uncertainty` `{output,inputVars[],distrib
 api: POST `/sumo_along_axes` `{output,inputs[],FunctionJobs[],sliderValues?}` → `{predictions:{var:{x,yHat,stdHat}}}`
 api: POST `/sumo_grid_evaluation` `{output,gridVars[],inputVars[],FunctionJobs[],sliderValues?}` → `{gridData}`
 api: POST `/get_sumo_cv_accuracy_metrics` `{inputs[],output,FunctionJobs[]}` → `{metrics}`
+api: POST `/compute_correlation_indices` `{output,inputVars[],distributions,numSamples,FunctionJobs[],seed}` → `{correlations:{inputVar:{pearson,spearman}}}`
+api: POST `/compute_sobol_indices` `{output,inputVars[],distributions,numSamples,FunctionJobs[],seed}` → `{sobol:{inputVar:{main,total,mainCiLow,mainCiHigh,totalCiLow,totalCiHigh}},sobolSecondOrder:{varA:{varB:float}}}`; scipy Saltelli sampling, bootstrap CIs, always-on second-order indices
 api: POST `/perform_moga_optimization` `{inputVars[],distributions,outputVarSelection{var:minimize|maximize},FunctionJobs[]}` → `{optimizationResults}`
 --- env ---
 env: `OSPARC_API_BASE_URL`,`OSPARC_API_KEY`,`OSPARC_API_SECRET` ! set
@@ -68,7 +70,7 @@ lib: `lhs(n,k,seed)` → normalized [0,1] sample matrix
 lib: `create_grid_samples()`,`create_manual_uq_samples()`,`create_samples_along_axes()`
 lib: `DakotaObject.run(conf,output_dir)` → subprocess `dakota.environment.study()`
 lib: `create_{sumo_evaluation|sumo_crossvalidation|sumo_manual_crossvalidation|moga_optimization|uq_propagation}_conffile()`
-lib: `evaluate_sumo()`,`evaluate_sumo_along_axes()`,`evaluate_sumo_on_grid()`,`evaluate_sumo_crossvalidation()`,`evaluate_sumo_manual_crossvalidation()`,`perform_moga_optimization()`,`propagate_uq()`
+lib: `evaluate_sumo()`,`evaluate_sumo_along_axes()`,`evaluate_sumo_on_grid()`,`evaluate_sumo_crossvalidation()`,`evaluate_sumo_manual_crossvalidation()`,`evaluate_sobol_indices()`,`perform_moga_optimization()`,`propagate_uq()`
 --- util surface (distilled from feature/local-functions, to port) ---
 util: `utils/local_job_store.py` → JSON-backed store for synthetic local functions/collections/jobs (no live oSPARC). uid-prefix detect `is_local_function_uid`/`is_local_job_collection_uid`/`is_local_job_uid`; CRUD `create_local_function`/`create_local_job_collection`/`list_local_*`/`get_local_*`/`list_local_jobs_for_collection` (§T7)
 util: `utils/case_preserving.py` → `PreserveCaseTransform`, `FunctionVariablesDict`/`FunctionVariableStr` wrappers, `has_preserve_case_metadata(metadata)` → keep orig variable-name case through serialization (§T8)
@@ -115,6 +117,8 @@ V35: `evaluate_sumo_crossvalidation` log_output fed to `_parse_crossvalidation_o
 V36: `sanitize_varnames` char-class preserves literal `-` (placed last in `[...]`, ⊥ mid-class forming an unintended `*-+` range); e.g. default `get_results` key `-AFpeak` survives sanitization (B23)
 V37: `ty check src/mmux_flaskapi` passes with zero errors; enforced blocking in pre-commit (local hook, mirrors eslint-node) and CI (prek job)
 V38: osparc.py's local-merge (V15) + graceful-degradation (V31) behavior for functions/job-collections/jobs each have exactly ONE implementation point — `_get_osparc_api_if_available()` (availability gate) + `_ResourceKind` (bundles local_job_store/SDK accessors per kind) + the 3 generics `_list_merged`/`_get_by_id`/`_list_merged_for_parent` in osparc.py — endpoint handlers are thin wrappers calling these, ⊥ per-endpoint hand-rolled merge/degrade logic (closes T24's original duplication complaint; a future re-introduction of a `DEPLOYMENT_MODE` branch inside an endpoint handler, instead of inside these shared helpers, violates this)
+V39: correlation indices sample every requested input distribution, evaluate the fitted surrogate once, and return Pearson/Spearman coefficients keyed by original variable names
+V40: Sobol indices use a fixed power-of-two base sample count, evaluate Saltelli A/B/AB samples in one surrogate batch, return first/total/second-order indices plus bootstrap confidence intervals, and accept seed `0` because computation is SciPy-based rather than Dakota NIDR
 
 ## §T
 id|status|task|cites
@@ -142,6 +146,7 @@ T21|x|backprop PR #496 Copilot review (remaining 2 open comments): reject CSV da
 T22|x|[topic=dakota-cleanup] dakota/ code-quality pass (jgo/dakota-cleanup): fix B21-B23 w/ regression tests; add `test_dakota_{lhs,wiofiles,funs_evaluate,funs_data_processing,object}.py` (0%→98% lhs.py, 21%→91% wiofiles.py, 74%→90% funs_evaluate.py, 70%→87% funs_data_processing.py, 80%→100% dakota_object.py); deliberately did NOT invest in `funs_create_dakota_conf.py` (61%, unchanged) — input-file-generation logic likely superseded by Dakota's new JSON input format (§R); full suite green (507 passed, 0 regressions)|V34,V35,V36,B21,B22,B23
 T23|x|add `ty` (astral-sh) as flaskapi type checker: dev dep in pyproject.toml, `[tool.ty]` config, baseline-fix existing src/mmux_flaskapi (25 files, mixed type-hint coverage, ~22 legacy `# type: ignore` comments), untyped 3rd-party deps needing overrides (dakota.environment, itis-dakota, osparc, scikit-learn), local pre-commit hook (new flaskapi/scripts/run-ty-hook.sh mirroring eslint-node pattern, entry in .pre-commit-config.yaml scoped `files: ^flaskapi/`), Makefile targets (root + flaskapi/), CI wiring (.github/workflows/ci.yml prek job needs `make install-flaskapi-deps` before `uvx prek run` to let ty resolve imports); blocking in both pre-commit and CI; strictness/rule-level deferred to implementation time|V37
 T24|x|refactor osparc.py: (1) collapse the duplicated local-merge/graceful-degradation logic across functions/job-collections/jobs into a single `_ResourceKind` dataclass + 3 shared generics (`_list_merged`,`_get_by_id`,`_list_merged_for_parent`) behind one `_get_osparc_api_if_available()` gate, deleting `_is_local_deployment_mode()`; (2) reverse B3/T12's `DEPLOYMENT_MODE=LOCAL` gate — local-store merging + graceful degradation now apply unconditionally, so a live-in-prod oSPARC deployment can still serve local/CSV-imported functions and a down oSPARC never 500s regardless of mode; (3) fix `get_function_job_status`/`get_function_job_outputs` to route real vs. local job uids the same way `get_function_job` already did (previously always called `get_osparc_api()` unconditionally, ⊥ local-uid support, unlike the analogous B18 fix); added autouse `default_osparc_reachable` fixture (conftest.py) patching `UsersApi.get_my_profile` so existing SDK-call-only test fixtures keep working under the now-universal availability probe; tests (512 passed)|V15,V31,V38,B3,B18,B21
+T25|x|correlation and Sobol sensitivity endpoints: Pearson/Spearman analysis plus SciPy Saltelli first/total/second-order indices and bootstrap confidence intervals, with focused route and numerical regression tests|V39,V40
 
 ## §B
 id|date|cause|fix
