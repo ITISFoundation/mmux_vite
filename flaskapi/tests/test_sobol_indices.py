@@ -33,7 +33,13 @@ class TestSobolSampling:
         """num_samples is rounded up to the next power of 2."""
 
         # 100 -> 128, 1 -> 2, 17 -> 32
-        for requested, expected_n in [(100, 128), (1, 2), (17, 32), (64, 64), (256, 256)]:
+        for requested, expected_n in [
+            (100, 128),
+            (1, 2),
+            (17, 32),
+            (64, 64),
+            (256, 256),
+        ]:
             assert 2 ** math.ceil(math.log2(max(requested, 2))) == expected_n
 
     def test_sobol_base_samples_is_1024(self):
@@ -86,7 +92,12 @@ class TestSobolSampling:
         from mmux_flaskapi.blueprints.dakota_models import SobolIndicesResponse
 
         s12 = 0.15
-        ci = {"main_ci_low": 0.1, "main_ci_high": 0.4, "total_ci_low": 0.3, "total_ci_high": 0.6}
+        ci = {
+            "main_ci_low": 0.1,
+            "main_ci_high": 0.4,
+            "total_ci_low": 0.3,
+            "total_ci_high": 0.6,
+        }
         resp = SobolIndicesResponse(
             sobol={
                 "x1": {"main": 0.3, "total": 0.5, **ci},
@@ -196,7 +207,13 @@ def _make_jobs(n: int, input_vars: list[str], output: str) -> list[dict]:
 
 def _make_distributions(input_vars: list[str]) -> dict:
     return {
-        var: {"distribution": "normal", "mean": 0.0, "std": 1.0, "min": -3.0, "max": 3.0}
+        var: {
+            "distribution": "normal",
+            "mean": 0.0,
+            "std": 1.0,
+            "min": -3.0,
+            "max": 3.0,
+        }
         for var in input_vars
     }
 
@@ -295,6 +312,31 @@ class TestComputeSobolIndicesRoute:
         so a mangled key (e.g. "sigma_blood" -> "sigmaBlood") makes the lookup
         silently miss and the plot render as all-zero bars."""
         input_vars = ["sigma_blood", "x2"]
+        output = "y"
+
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": _make_distributions(input_vars),
+            "numSamples": 10,
+            "seed": 42,
+            "FunctionJobs": _make_jobs(50, input_vars, output),
+        }
+
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 200
+
+        data = response.get_json()
+        assert set(data["sobol"].keys()) == set(input_vars)
+
+    def test_sobol_indices_preserves_sanitize_affecting_variable_names(self, test_client: Flask):
+        """Regression: an input var name containing characters that
+        `sanitize_varnames` rewrites (spaces, parentheses) must NOT be sanitized
+        inside `evaluate_sobol_indices` - `preprocessor.input_variables` is keyed
+        by the original request name, so sanitizing first causes a KeyError on
+        that lookup, and sanitizing the response keys would return names the
+        frontend never sent."""
+        input_vars = ["sigma blood (kg)", "x2"]
         output = "y"
 
         payload = {

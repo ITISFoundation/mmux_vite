@@ -26,9 +26,7 @@ from mmux_flaskapi.dakota.funs_data_processing import (
     get_bounds_uniform_distributions,
     get_results,
     load_data,
-    sanitize_varname,
     sanitize_varnames,
-    sanitize_varnames_dict,
 )
 
 _logger = logging.getLogger(__name__)
@@ -521,11 +519,10 @@ def evaluate_sobol_indices(
     from scipy.stats import norm, sobol_indices, uniform
     from scipy.stats.qmc import Sobol
 
-    input_vars = sanitize_varnames(input_vars)
-    response_var = sanitize_varnames(response_var)
-    distributions = {
-        sanitize_varname(k): sanitize_varnames_dict(v) for k, v in distributions.items()
-    }
+    # NOTE: input_vars/distributions are NOT sanitized here (unlike sibling
+    # evaluate_* functions) - preprocessor.input_variables is keyed by the
+    # original request variable names, and the final response dict below must
+    # be keyed by those same original names for the frontend lookup to work.
 
     # --- 1. Separate constant vs. varying input variables ---
     constant_vars: dict[str, float] = {}
@@ -683,10 +680,20 @@ def evaluate_sobol_indices(
                 boot_st[b] = 0.5 * np.mean((fa_b - fab_b) ** 2) / var_b
             alpha = (1 - SOBOL_BOOTSTRAP_CONFIDENCE) / 2
             first_order_ci = np.array(
-                [[np.percentile(boot_s1, 100 * alpha), np.percentile(boot_s1, 100 * (1 - alpha))]]
+                [
+                    [
+                        np.percentile(boot_s1, 100 * alpha),
+                        np.percentile(boot_s1, 100 * (1 - alpha)),
+                    ]
+                ]
             )
             total_order_ci = np.array(
-                [[np.percentile(boot_st, 100 * alpha), np.percentile(boot_st, 100 * (1 - alpha))]]
+                [
+                    [
+                        np.percentile(boot_st, 100 * alpha),
+                        np.percentile(boot_st, 100 * (1 - alpha)),
+                    ]
+                ]
             )
     else:
         si = sobol_indices(func={"f_A": f_A, "f_B": f_B, "f_AB": f_AB}, n=n)
@@ -694,7 +701,8 @@ def evaluate_sobol_indices(
         first_order = np.atleast_1d(si.first_order)  # shape (d_varying,)
         total_order = np.atleast_1d(si.total_order)  # shape (d_varying,)
         boot = si.bootstrap(
-            confidence_level=SOBOL_BOOTSTRAP_CONFIDENCE, n_resamples=SOBOL_BOOTSTRAP_RESAMPLES
+            confidence_level=SOBOL_BOOTSTRAP_CONFIDENCE,
+            n_resamples=SOBOL_BOOTSTRAP_RESAMPLES,
         )
         first_order_ci = np.column_stack(
             [
