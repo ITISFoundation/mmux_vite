@@ -1,4 +1,3 @@
-/* eslint-disable no-nested-ternary */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
@@ -111,7 +110,6 @@ export function MOGAPareto(props: MOGAParetoProps) {
         performance = NaN;
       }
       if (performance < 0 || performance > 1 || Number.isNaN(performance)) {
-        // eslint-disable-next-line no-console
         console.warn("Performance calculation out of bounds:", performance, { row, ovs: OVS, weights, minMax });
       }
       // console.log("Performance: ", performance)

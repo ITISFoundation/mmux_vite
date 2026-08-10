@@ -46,7 +46,7 @@ export default defineConfig({
     baseURL: BASE_URL,
     viewport: { width: 1920, height: 1080 },
     trace: "on-first-retry",
-    screenshot: "only-on-failure",
+    screenshot: "on",
     video: "off",
   },
   projects: [
