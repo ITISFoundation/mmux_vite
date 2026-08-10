@@ -234,12 +234,17 @@ test-node: clean
 		npm test
 
 .PHONY: test-flaskapi
-test-flaskapi: install-flaskapi-deps ## run Flask backend tests
+test-flaskapi: install-flaskapi-deps ## run Flask backend tests (excludes real-Dakota analytical tests)
 	cd ${FLASKAPI_DIR} && \
-	uv run pytest tests/ -v --cov-report=html --cov-report=term-missing
+	uv run pytest tests/ -v -m "not analytical" --cov-report=html --cov-report=term-missing
 
 .PHONY: tests-flaskapi
 tests-flaskapi: test-flaskapi ## alias for test-flaskapi
+
+.PHONY: test-flaskapi-analytical
+test-flaskapi-analytical: install-flaskapi-deps ## run real-Dakota analytical integration tests (Tier 3)
+	cd ${FLASKAPI_DIR} && \
+	uv run pytest tests/ -v -m analytical --cov-report=html --cov-report=term-missing
 
 .PHONY: test-e2e
 test-e2e: ## run the Playwright read-only pixel-snapshot e2e suite (SuMo/UQ/MOGA; boots backend+web via webServer)
