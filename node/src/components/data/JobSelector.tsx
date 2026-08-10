@@ -251,7 +251,6 @@ export default function JobsSelector(props: JobSelectorPropsType) {
     if (fetchedJobCollections) {
       setJobCollections(fetchedJobCollections);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchedJobCollections]);
 
   useEffect(() => {

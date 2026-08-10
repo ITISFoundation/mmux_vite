@@ -104,7 +104,6 @@ describe("SamplingContextProvider", async () => {
   });
 
   it("updates launchingSampling and runningSampling", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let getByTestId: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     let getByText: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     await act(() => {
@@ -127,7 +126,6 @@ describe("SamplingContextProvider", async () => {
   });
 
   it("updates lhsSamplingConfig", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let getByTestId: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     let getByText: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     await act(() => {
@@ -148,7 +146,6 @@ describe("SamplingContextProvider", async () => {
   });
 
   it("updates gridSamplingConfig", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let getByTestId: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     let getByText: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     await act(() => {
@@ -171,7 +168,6 @@ describe("SamplingContextProvider", async () => {
   });
 
   it("updates singleJobConfig", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let getByTestId: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     let getByText: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     await waitFor(() => {
@@ -192,7 +188,6 @@ describe("SamplingContextProvider", async () => {
   });
 
   it("clearSampling resets all values", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let getByTestId: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     let getByText: (id: Matcher, options?: MatcherOptions | undefined) => HTMLElement;
     await waitFor(() => {
