@@ -114,6 +114,7 @@ T25|.|Document or script WSL2 Windows portproxy setup for local fallback app por
 T26|.|backend test isolation: autouse pytest fixture allocates per-run `tmp_path` dirs for `LOCAL_STORE_DIR` + `TEXT_FILES_DIR` before `create_flask_app()`; reset persistence between tests; add regression run from dirty `runs_local` clone|V26,B25,flaskapi/SPEC.md V17
 T27|.|Node deprecation cleanup: upgrade ESLint/toolchain off deprecated ESLint 8 dependency chain (`inflight`, `@humanwhocodes/*`, `rimraf@3`, old nested `glob`); clean `npm ci` emits no listed deprecation warnings|—
 T28|.|incrementally fix the 30 `react-hooks/set-state-in-effect` warnings surfaced by eslint-plugin-react-hooks v7 (rule downgraded error→warn in T27 to unblock the ESLint v9 upgrade w/o a risky bulk behavioral refactor); mostly persistence/context-hydration + job-status polling patterns, needs case-by-case triage (derive-during-render vs justified external-sync exception)|node/eslint.config.js
+T29|x|Correlation and Sobol sensitivity-analysis backend endpoints, SciPy computation, response-key preservation, and numerical regression tests|flaskapi/SPEC.md T25
 
 ## §B
 id|date|cause|fix

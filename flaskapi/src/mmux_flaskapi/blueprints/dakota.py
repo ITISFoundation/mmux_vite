@@ -14,12 +14,16 @@ from pydantic import ValidationError
 
 #
 from mmux_flaskapi.blueprints.dakota_models import (
+    CorrelationIndicesRequest,
+    CorrelationIndicesResponse,
     CVAccuracyMetrics,
     FunctionJob,
     JobVariableSelection,
     ManualUQWithUncertaintyRequest,
     MOGAOptimizationRequest,
     MOGAOptimizationResponse,
+    SobolIndicesRequest,
+    SobolIndicesResponse,
     SumoAlongAxesRequest,
     SumoAlongAxesResponse,
     SumoCrossValidationRequest,
@@ -31,11 +35,13 @@ from mmux_flaskapi.blueprints.dakota_models import (
     required_completed_jobs,
 )
 from mmux_flaskapi.dakota.funs_data_processing import (
+    compute_correlation_indices,
     create_manual_uq_samples,
     process_input_file,
     sanitize_varnames,
 )
 from mmux_flaskapi.dakota.funs_evaluate import (
+    evaluate_sobol_indices,
     evaluate_sumo,
     evaluate_sumo_along_axes,
     evaluate_sumo_crossvalidation,
@@ -246,6 +252,31 @@ def _inverse_transform_values(
 
     inverse = preprocessor.inverse_transform({mapped_key: values})
     return inverse.get(original_key, values)
+
+
+def _bounds_from_distributions(
+    input_vars: list[str],
+    distributions: dict,
+) -> tuple[list[float], list[float]]:
+    """Derive Sobol'/VBD sampling bounds per input variable from its distribution (#470).
+
+    Uses explicit min/max when provided (always the case for a "uniform" distribution,
+    enforced by `DistributionParams`); otherwise falls back to mean +/- 3*std for a
+    "normal" distribution (also always present, enforced by `DistributionParams`).
+    variance_based_decomp needs a bounded continuous_design domain, unlike the
+    correlation-indices endpoint which samples directly from the distribution.
+    """
+    lower_bounds: list[float] = []
+    upper_bounds: list[float] = []
+    for var in input_vars:
+        dist = distributions[var]
+        if dist.min is not None and dist.max is not None:
+            lower_bounds.append(dist.min)
+            upper_bounds.append(dist.max)
+        else:
+            lower_bounds.append(dist.mean - 3 * dist.std)
+            upper_bounds.append(dist.mean + 3 * dist.std)
+    return lower_bounds, upper_bounds
 
 
 ########################################################
@@ -502,6 +533,168 @@ def flask_manual_uq_propagation_with_uncertainty():
         handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 500)
+
+
+@dakota_bp.route("/compute_correlation_indices", methods=["POST"])
+def flask_compute_correlation_indices():
+    """
+    Compute per-input <-> output Pearson and Spearman correlation coefficients (#470).
+
+    Generates the same kind of Monte Carlo sample set used for manual UQ propagation
+    (per-input distributions -> samples -> surrogate evaluation), then correlates each
+    input variable's samples against the predicted QoI values. Returns one response
+    covering all requested input variables, so sensitivity of a QoI to every parameter
+    can be inspected in a single plot (beyond the current 3-var 1D/2D/3D plot limit).
+    """
+    _logger.debug("Starting flask function: flask_compute_correlation_indices")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+
+    validated_request = parse_request_model(CorrelationIndicesRequest)
+
+    try:
+        output_response = validated_request.output
+        input_vars = validated_request.input_vars
+        distributions = validated_request.distributions
+        num_samples = validated_request.num_samples
+        jobs = validated_request.function_jobs
+        seed = validated_request.seed
+
+        # Create run directory
+        run_dir = create_run_dir(DAKOTA_RUNS_DIR, "correlation_indices")
+
+        # Use DataPreprocessor for standardized data handling
+        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
+            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
+        )
+
+        # Get mapped variable names
+        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
+        mapped_output_var = preprocessor.output_variables[output_response].mapped_name
+
+        # Generate Monte Carlo samples using the provided distributions
+        _logger.debug(f"Generating {num_samples} correlation samples with seed {seed}")
+        distributions_dict = {var: dist.model_dump() for var, dist in distributions.items()}
+        samples = create_manual_uq_samples(input_vars, distributions_dict, num_samples, seed)
+        df_samples = pd.DataFrame(samples)
+        SAMPLES_FILE = run_dir / "correlation_samples.csv"
+        df_samples.to_csv(SAMPLES_FILE, index=False)
+
+        df_samples_transformed = preprocessor.transform(df_samples)
+        PROCESSED_SAMPLES_FILE = run_dir / "correlation_samples_processed.csv"
+        df_samples_transformed.to_csv(PROCESSED_SAMPLES_FILE, sep=" ", index=False)
+
+        # Evaluate surrogate model on the samples
+        results = evaluate_sumo(
+            run_dir,
+            PROCESSED_TRAINING_FILE,
+            PROCESSED_SAMPLES_FILE,
+            mapped_input_vars,
+            mapped_output_var,
+        )
+
+        prediction_key = mapped_output_var + "_hat"
+        if prediction_key not in results:
+            raise ValueError(
+                f"Cannot compute correlation indices without '{prediction_key}' predictions. "
+                f"Available result keys: {list(results.keys())}."
+            )
+
+        # Inverse transform predicted output values back to original space
+        output_predictions_original = preprocessor.inverse_transform(
+            {mapped_output_var: results[prediction_key]}
+        ).get(output_response, results[prediction_key])
+
+        # Compute per-input correlation coefficients (original variable names/units)
+        correlations = compute_correlation_indices(
+            df_samples, output_predictions_original, input_vars
+        )
+
+        response_data = {"correlations": correlations}
+        validated_response = CorrelationIndicesResponse.model_validate(response_data)
+
+        _logger.debug("Correlation indices computation completed successfully")
+        return jsonify(validated_response.model_dump())
+
+    except ValidationError as e:
+        handle_workflow_error(e, "flask_compute_correlation_indices", 400)
+    except ValueError as e:
+        handle_workflow_error(e, "flask_compute_correlation_indices", 400)
+    except Exception as e:
+        handle_workflow_error(e, "flask_compute_correlation_indices", 500)
+
+
+@dakota_bp.route("/compute_sobol_indices", methods=["POST"])
+def flask_compute_sobol_indices():
+    """
+    Compute per-input first-order (main effect), total-order, and second-order
+    (pairwise interaction) Sobol' indices (#470).
+
+    Builds a surrogate from completed jobs via ``evaluate_sumo()``, then computes
+    Sobol' indices directly in Python: generates Saltelli A/B/AB sample matrices
+    locally (honouring per-input distributions via ``scipy.stats.rv_continuous.ppf``),
+    evaluates all samples in ONE batch through ``evaluate_sumo()``, then applies
+    ``scipy.stats.sobol_indices`` for first/total order plus a closed-form second-order
+    (pairwise interaction) estimator.  Response always includes ``sobolSecondOrder``
+    (no opt-in flag).
+    """
+    _logger.debug("Starting flask function: flask_compute_sobol_indices")
+    _logger.debug("Cwd: " + str(Path.cwd()))
+
+    validated_request = parse_request_model(SobolIndicesRequest)
+
+    try:
+        output_response = validated_request.output
+        input_vars = validated_request.input_vars
+        distributions = validated_request.distributions
+        # NOTE (V36): `num_samples` is intentionally unused here -- Sobol' uses a
+        # fixed SOBOL_BASE_SAMPLES constant (decoupled from the shared UQ numSamples
+        # field, which SobolIndicesRequest still carries only for schema/validation
+        # compatibility with ManualUQPropagationRequest, e.g. the >=5-completed-jobs check).
+        jobs = validated_request.function_jobs
+        seed = validated_request.seed
+
+        # Create run directory
+        run_dir = create_run_dir(DAKOTA_RUNS_DIR, "sobol_indices")
+
+        # Use DataPreprocessor for standardized data handling
+        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
+            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
+        )
+
+        # Get mapped variable names
+        mapped_output_var = preprocessor.output_variables[output_response].mapped_name
+
+        # Convert Pydantic distribution models to dicts for evaluate_sobol_indices
+        distributions_dict = {var: dist.model_dump() for var, dist in distributions.items()}
+
+        # Compute Sobol' indices: Saltelli sampling (fixed SOBOL_BASE_SAMPLES, V36)
+        # + single evaluate_sumo() batch
+        results = evaluate_sobol_indices(
+            run_dir,
+            PROCESSED_TRAINING_FILE,
+            input_vars,
+            mapped_output_var,
+            distributions_dict,
+            preprocessor,
+            seed=seed,
+        )
+
+        # Map sobol results (already keyed by original input variable names)
+        response_data = {
+            "sobol": results["sobol"],
+            "sobol_second_order": results["sobolSecondOrder"],
+        }
+        validated_response = SobolIndicesResponse.model_validate(response_data)
+
+        _logger.debug("Sobol' indices computation completed successfully")
+        return jsonify(validated_response.model_dump())
+
+    except ValidationError as e:
+        handle_workflow_error(e, "flask_compute_sobol_indices", 400)
+    except ValueError as e:
+        handle_workflow_error(e, "flask_compute_sobol_indices", 400)
+    except Exception as e:
+        handle_workflow_error(e, "flask_compute_sobol_indices", 500)
 
 
 @dakota_bp.route("/sumo_along_axes", methods=["POST"])
