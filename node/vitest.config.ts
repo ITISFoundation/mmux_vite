@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { playwright } from "@vitest/browser-playwright";
 
 export default defineConfig({
   plugins: [react()],
@@ -7,7 +8,7 @@ export default defineConfig({
     environment: "jsdom", // Use jsdom for testing React components
     browser: {
       enabled: false,
-      provider: "playwright",
+      provider: playwright(),
       // https://vitest.dev/guide/browser/playwright
       instances: [{ browser: "chromium" }],
     },
