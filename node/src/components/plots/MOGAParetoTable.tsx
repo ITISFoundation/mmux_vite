@@ -84,7 +84,6 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
     // Simulate loading data
     setData(tableData);
     setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableData]);
 
   const columnProps: Partial<GridColDef> = {

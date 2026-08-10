@@ -170,7 +170,7 @@ export function JobContextProvider({ children }: Props) {
       setFetchedJobCollections(newJobCollections);
       progress(100);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [fetchedJobCollections],
   );
 
