@@ -56,6 +56,7 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
+    "analytical: marks tests that build real Dakota surrogates/CV/UQ against analytical functions (no mocking, spawns a real Dakota subprocess)",
 ]
 
 [tool.coverage.run]
