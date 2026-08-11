@@ -10,7 +10,6 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "npx vitest",
-    "test:browser": "vitest --config=vitest.browser.config.ts",
     "test:e2e": "NODE_PATH=\"$PWD/node_modules\" playwright test",
     "test:e2e:update": "NODE_PATH=\"$PWD/node_modules\" playwright test --update-snapshots",
     "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json}\"",
@@ -68,7 +67,6 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2",
     "vite": "^6.4.3",
-    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.1.10",
     "vitest-browser-react": "^2.2.0"
   },
