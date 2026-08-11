@@ -1,6 +1,9 @@
 """Tests for mmux_flaskapi.dakota.wiofiles (fd-level stdout/stderr capture)."""
 
 import os
+import sys
+
+import pytest
 
 from mmux_flaskapi.dakota.wiofiles import capture_to_file
 
@@ -42,3 +45,14 @@ def test_capture_to_file_stdout_only(tmp_path):
         os.write(1, b"only stdout\n")
 
     assert stdout_path.read_text() == "only stdout\n"
+
+
+def test_capture_to_file_checks_system_stream_before_opening_file(monkeypatch, tmp_path):
+    stdout_path = tmp_path / "stdout"
+    monkeypatch.setattr(sys, "__stdout__", None)
+
+    with pytest.raises(RuntimeError, match="sys.__stdout__ is not available"):
+        with capture_to_file(stdout=str(stdout_path), stderr=None):
+            pass
+
+    assert not stdout_path.exists()
