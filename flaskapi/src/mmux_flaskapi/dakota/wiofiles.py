@@ -5,9 +5,13 @@ avoids max-pipe-size issue in exchange for dealing with files
 """
 
 import ctypes
+import logging
 import os
 import sys
 from contextlib import contextmanager
+from typing import IO
+
+_logger = logging.getLogger(__name__)
 
 # copied from wurlitzer
 libc = ctypes.CDLL(None)
@@ -22,15 +26,24 @@ except ValueError:
 
 @contextmanager
 def capture_to_file(stdout="./stdout", stderr="./stderr"):
-    stdout_f = stderr_f = None
+    stdout_f: IO[bytes] | None = None
+    stderr_f: IO[bytes] | None = None
+    if stdout and sys.__stdout__ is None:
+        raise RuntimeError("sys.__stdout__ is not available")
+    if stderr and sys.__stderr__ is None:
+        raise RuntimeError("sys.__stderr__ is not available")
     if stdout:
         stdout_f = open(stdout, mode="wb")
-        real_stdout = sys.__stdout__.fileno()
+        real_stdout_stream = sys.__stdout__
+        assert real_stdout_stream is not None
+        real_stdout = real_stdout_stream.fileno()
         save_stdout = os.dup(real_stdout)
         os.dup2(stdout_f.fileno(), real_stdout)
     if stderr:
         stderr_f = open(stderr, mode="wb")
-        real_stderr = sys.__stderr__.fileno()
+        real_stderr_stream = sys.__stderr__
+        assert real_stderr_stream is not None
+        real_stderr = real_stderr_stream.fileno()
         save_stderr = os.dup(real_stderr)
         os.dup2(stderr_f.fileno(), real_stderr)
     try:
@@ -40,16 +53,18 @@ def capture_to_file(stdout="./stdout", stderr="./stderr"):
         libc.fflush(c_stdout_p)
         libc.fflush(c_stderr_p)
 
-        if stdout:
+        if stdout_f is not None:
             os.dup2(save_stdout, real_stdout)
+            os.close(save_stdout)
             stdout_f.close()
-        if stderr:
+        if stderr_f is not None:
             os.dup2(save_stderr, real_stderr)
+            os.close(save_stderr)
             stderr_f.close()
 
 
 # ======================================================================
-# example
+# example (manual smoke-test script, not part of the public API)
 
 # calls via PyDLL hold the GIL,
 # which blocks when using wurlitzer with pipes
@@ -57,11 +72,11 @@ def capture_to_file(stdout="./stdout", stderr="./stderr"):
 pylibc = ctypes.PyDLL(None)
 
 
-def main():
+def main():  # pragma: no cover
     sz = 64000
     # while sz < 100_000_000:
     while sz < 100_000:
-        print("writing", sz)
+        _logger.debug("Writing %d bytes", sz)
         buf = b"1" * sz
 
         with capture_to_file() as (stdout, stderr):
@@ -73,8 +88,8 @@ def main():
             stdoutstr = outf.read()
             stderrstr = errf.read()
         # print strings
-        print(stdoutstr)
-        print(stderrstr)
+        _logger.debug("stdout: %s", stdoutstr)
+        _logger.debug("stderr: %s", stderrstr)
         with capture_to_file() as (stdout, stderr):
             # execute anything that outputs to stdout, stderr
             pylibc.printf(buf + b"\0")
@@ -84,8 +99,8 @@ def main():
             stdoutstr = outf.read()
             stderrstr = errf.read()
         # print strings
-        print(stdoutstr)
-        print(stderrstr)
+        _logger.debug("stdout: %s", stdoutstr)
+        _logger.debug("stderr: %s", stderrstr)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /node
+    target-branch: develop
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: uv
+    directory: /flaskapi
+    target-branch: develop
+    schedule:
+      interval: weekly

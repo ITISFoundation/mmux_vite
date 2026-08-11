@@ -6,9 +6,9 @@ providing proper validation and type safety.
 """
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 _logger = logging.getLogger(__name__)
 
@@ -20,9 +20,11 @@ class VariableConfig(BaseModel):
     start: float = Field(..., description="Start value of the variable range")
     end: float = Field(..., description="End value of the variable range")
 
-    @validator("end")
-    def end_must_be_greater_than_start(cls, v, values):
-        if "start" in values and v <= values["start"]:
+    @field_validator("end")
+    @classmethod
+    def end_must_be_greater_than_start(cls, v: float, info: ValidationInfo) -> float:
+        start = info.data.get("start")
+        if start is not None and v <= start:
             raise ValueError("end must be greater than start")
         return v
 
@@ -42,7 +44,8 @@ class LHSSamplingRequest(BaseModel):
     n: int = Field(..., gt=0, description="Number of samples to generate")
     fun_uid: str = Field(..., min_length=1, description="Function UID for OSPARC")
 
-    @validator("config")
+    @field_validator("config")
+    @classmethod
     def config_must_not_be_empty(cls, v):
         if not v:
             raise ValueError("config must not be empty")
@@ -57,9 +60,11 @@ class GridSamplingVariableConfig(BaseModel):
     end: float = Field(..., description="End value of the variable range")
     steps: int = Field(..., gt=0, description="Number of steps for grid sampling")
 
-    @validator("end")
-    def end_must_be_greater_than_start(cls, v, values):
-        if "start" in values and v <= values["start"]:
+    @field_validator("end")
+    @classmethod
+    def end_must_be_greater_than_start(cls, v: float, info: ValidationInfo) -> float:
+        start = info.data.get("start")
+        if start is not None and v <= start:
             raise ValueError("end must be greater than start")
         return v
 
@@ -72,7 +77,8 @@ class GridSamplingRequest(BaseModel):
     )
     fun_uid: str = Field(..., min_length=1, description="Function UID for OSPARC")
 
-    @validator("config")
+    @field_validator("config")
+    @classmethod
     def config_must_not_be_empty(cls, v):
         if not v:
             raise ValueError("config must not be empty")
@@ -87,7 +93,8 @@ class TestJobRequest(BaseModel):
     )
     fun_uid: str = Field(..., min_length=1, description="Function UID for OSPARC")
 
-    @validator("config")
+    @field_validator("config")
+    @classmethod
     def config_must_not_be_empty(cls, v):
         if not v:
             raise ValueError("config must not be empty")
@@ -100,6 +107,33 @@ class CloneJobRequest(BaseModel):
     project_job_id: str = Field(..., min_length=1, description="ID of the project job to clone")
     function_name: str = Field(..., min_length=1, description="Name of the function")
     project_inputs: dict[str, Any] = Field(..., description="Inputs for the project")
+
+
+class JobCollectionCsvUploadRequest(BaseModel):
+    """Request model for uploading a job-collection CSV (flaskapi/SPEC.md §T6)."""
+
+    csv_content: str = Field(..., min_length=1, description="Raw CSV file content")
+    target_mode: Literal["existing", "new"] = Field(
+        ..., description="Whether to attach imported samples to an existing function or a new one"
+    )
+    target_function_uid: str | None = Field(
+        None,
+        description="Function UID to attach to when target_mode='existing'",
+        validate_default=True,
+    )
+    new_function_title: str | None = Field(
+        None, description="Title for the newly-created function when target_mode='new'"
+    )
+    source_function_uid: str | None = Field(
+        None, description="Function UID the CSV was originally exported from, if known"
+    )
+
+    @field_validator("target_function_uid")
+    @classmethod
+    def target_function_uid_required_for_existing(cls, v, info: ValidationInfo):
+        if info.data.get("target_mode") == "existing" and not v:
+            raise ValueError("target_function_uid is required when target_mode is 'existing'")
+        return v
 
 
 class SamplingResponse(BaseModel):

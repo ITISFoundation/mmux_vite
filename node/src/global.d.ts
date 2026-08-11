@@ -142,6 +142,9 @@ interface VarSelection {
   max?: number;
   location?: number;
   scale?: number;
+  // Per-variable log-scale tag inferred/set alongside the distribution (V13);
+  // end-to-end plot/request wiring lands separately (§T8/T9, V12).
+  logScale?: boolean;
 }
 
 interface OutputVarSelection {

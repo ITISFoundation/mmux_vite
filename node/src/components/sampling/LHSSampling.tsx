@@ -268,7 +268,7 @@ function LHSSampling() {
         </form>
       )}
       <Box display="flex" flexDirection="row" justifyContent="space-between" marginTop={2}>
-        <RunSamplingButton disabled={loading} handleRunSampling={handleRunSampling} />
+        <RunSamplingButton testId="run-sampling-btn" disabled={loading} handleRunSampling={handleRunSampling} />
       </Box>
     </>
   );

@@ -23,7 +23,18 @@ class OsparcApi:
     """Configuration class for OSPARC API connections."""
 
     def __init__(self):
+        self._logged_unreachable_warning: bool = False
         self._setup_configuration()
+
+    @property
+    def logged_unreachable_warning(self) -> bool:
+        """Whether the unreachable-backend WARNING (SPEC.md V28) was already logged
+        for the current unreachability episode; reset once the backend recovers."""
+        return self._logged_unreachable_warning
+
+    @logged_unreachable_warning.setter
+    def logged_unreachable_warning(self, value: bool) -> None:
+        self._logged_unreachable_warning = value
 
     def _setup_configuration(self):
         """Set up OSPARC configuration from environment variables."""
@@ -112,9 +123,17 @@ class OsparcApi:
             _logger.warning(f"API connection test failed: {e}")
             self._is_connected = False
 
-    def is_connected(self) -> bool:
-        """Check if API is connected."""
-        if not hasattr(self, "_is_connected") or not self._is_connected:
+    def is_connected(self, force_recheck: bool = False) -> bool:
+        """Check if API is connected.
+
+        The result of the first probe (success or failure) is cached and
+        reused on subsequent calls, so a persistently unreachable backend
+        does not incur a new network round-trip on every call (e.g. once per
+        incoming request in the LOCAL-mode graceful-degradation path). Pass
+        `force_recheck=True` to explicitly re-run the probe, e.g. to detect a
+        backend that has since come back online.
+        """
+        if force_recheck or not hasattr(self, "_is_connected"):
             self._test_connection()
 
         return self._is_connected
@@ -128,10 +147,68 @@ def get_osparc_api() -> OsparcApi:
     osparc_api = current_app.osparc_api
     if osparc_api is None:
         raise ValueError("OsparcApi instance is not initialized in the Flask app")
-    if not osparc_api.is_connected:
-        raise ValueError("OsparcApi instance is not connected to the osparc backend")
 
     return osparc_api
 
 
-__all__ = ["OsparcApi", "get_osparc_api", "OsparcApiException"]
+def get_osparc_api_if_configured() -> OsparcApi | None:
+    """Return the OsparcApi instance only when local credentials are nonblank.
+
+    Checks the configured host/username/password directly on the app's OsparcApi
+    instance before delegating to `get_osparc_api()`, so a blank/missing
+    credential set is treated as "not configured" (returns None) rather than
+    risking whatever exception `get_osparc_api()` raises for an uninitialized or
+    disconnected client.
+
+    `app.osparc_api` may instead be a duck-typed test double (e.g. the e2e
+    in-backend `MockOsparcApi`, see tests/e2e/mock_osparc/api.py) that never
+    implements `_configuration` at all. Such a double is always "configured"
+    by construction, so a missing `_configuration` attribute is treated as
+    configured rather than raising `AttributeError` (SPEC.md B12/V25).
+    """
+    from mmux_flaskapi.app import MMUXFlask
+
+    assert isinstance(current_app, MMUXFlask), "current_app is not an instance of MMUXFlask"
+    osparc_api = current_app.osparc_api
+    if osparc_api is None:
+        return None
+    configuration = getattr(osparc_api, "_configuration", None)
+    if configuration is not None and (
+        not configuration.host or not configuration.username or not configuration.password
+    ):
+        return None
+    return get_osparc_api()
+
+
+def get_osparc_api_if_connected() -> OsparcApi | None:
+    """Return the OsparcApi instance only when the backend is reachable.
+
+    When unreachable, this is called on every incoming request in the
+    LOCAL-mode graceful-degradation path (SPEC.md V15), so a persistently-down
+    backend must not spam the log once per request. The WARNING is therefore
+    logged only once per unreachability episode; it fires again if the
+    backend later recovers and then drops a second time.
+    """
+    from mmux_flaskapi.app import MMUXFlask
+
+    assert isinstance(current_app, MMUXFlask), "current_app is not an instance of MMUXFlask"
+    osparc_api = current_app.osparc_api
+    if osparc_api is None:
+        return None
+    if not osparc_api.is_connected():
+        if not osparc_api.logged_unreachable_warning:
+            _logger.warning("oSPARC is configured but not reachable - degrading gracefully")
+            osparc_api.logged_unreachable_warning = True
+        return None
+    else:
+        osparc_api.logged_unreachable_warning = False
+        return osparc_api
+
+
+__all__ = [
+    "OsparcApi",
+    "get_osparc_api",
+    "get_osparc_api_if_configured",
+    "get_osparc_api_if_connected",
+    "OsparcApiException",
+]

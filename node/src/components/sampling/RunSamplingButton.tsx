@@ -8,6 +8,7 @@ import { useSamplingContext } from "../../context/SamplingContext";
 type RunSamplingButtonProps = {
   handleRunSampling: () => Promise<void>;
   disabled?: boolean;
+  testId?: string;
 };
 
 const tooltipMessage = {
@@ -18,7 +19,7 @@ const tooltipMessage = {
 };
 
 export function RunSamplingButton(props: RunSamplingButtonProps) {
-  const { handleRunSampling, disabled } = props;
+  const { handleRunSampling, disabled, testId = "run-sampling-btn" } = props;
   const theme = useTheme();
   const { permissions } = useServiceContext();
   const { launchingSampling, setLaunchingSampling, setRunningSampling } = useSamplingContext();
@@ -52,7 +53,7 @@ export function RunSamplingButton(props: RunSamplingButtonProps) {
           variant="contained"
           onClick={handleRunSamplingWithErrorHandling}
           disabled={launchingSampling || disabled || permissions !== "WRITE"}
-          mmux-testid="run-sampling-btn"
+          mmux-testid={testId}
           sx={{
             "&:disabled": {
               backgroundColor: launchingSampling ? theme.palette.grey[100] : undefined,

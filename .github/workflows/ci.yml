@@ -29,6 +29,10 @@ jobs:
         cache-dependency-path: '**/package-lock.json'
     - name: Install node dependencies
       run: cd node && npm ci
+    - name: Generate oSPARC TypeScript client
+      run: cd node && npm run generate-osparc-cli
+    - name: Install Flask API dependencies
+      run: make install-flaskapi-deps
     - name: Run prek
       run: uvx prek run --all-files
 
@@ -57,6 +61,8 @@ jobs:
       run: make install-flaskapi-deps
     - name: Run flaskapi tests
       run: make test-flaskapi
+    - name: Run flaskapi analytical tests (Tier 3, real Dakota)
+      run: make test-flaskapi-analytical
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
       with:
@@ -99,14 +105,15 @@ jobs:
       # a non-green pixel diff fails the job and (via branch protection) gates merge (§C).
       - name: Run Playwright e2e suite (pixel diff vs committed baselines)
         run: make test-e2e
-      - name: Upload Playwright report + diffs on failure
-        if: failure()
+      - name: Upload Playwright report + screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: |
             node/playwright-report
             node/test-results
+          if-no-files-found: warn
           retention-days: 14
 
   verify-image-build:

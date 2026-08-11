@@ -17,6 +17,7 @@ import { HelpContents } from "../navigation/TutorialManualLinks";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useSamplingContext } from "../../context/SamplingContext";
 import { useJobContext } from "../../context/JobContext";
+import UploadJobCollectionButton, { UploadJobCollectionSuccessResult } from "../data/UploadJobCollectionButton";
 
 function NFunctionJobCollections(props: {
   fun: RegisteredFunction;
@@ -38,7 +39,7 @@ function getRowId(row: RegisteredFunction) {
 }
 
 export function FunctionList() {
-  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars } = useFunctionContext();
+  const { selectedFunction, setSelectedFunction, setInputVars, setOutputVars, setDistribution } = useFunctionContext();
   const { setLhsSamplingConfig, setGridSamplingConfig, setSingleJobConfig, clearSampling } = useSamplingContext();
   const { setSelectedJobUids, setFetchedJobCollections } = useJobContext();
   const [loading, setLoading] = useState<boolean>(true);
@@ -67,10 +68,11 @@ export function FunctionList() {
     return undefined;
   };
 
-  const fetchFunctions = async () => {
+  const fetchFunctions = async (): Promise<RegisteredFunction[]> => {
+    let funs: RegisteredFunction[] = [];
     try {
       setLoading(true);
-      const funs = await listFunctions();
+      funs = await listFunctions();
       setFunctions(funs);
       if (funs.length === 0) {
         toast.info("No functions available. Please create a function first.");
@@ -94,6 +96,7 @@ export function FunctionList() {
       toast.error("Error fetching functions. Please try again later.");
     }
     setLoading(false);
+    return funs;
   };
 
   const showInputOutputSchema = (schema: JSONFunctionInputSchema | JSONFunctionOutputSchema) => {
@@ -175,6 +178,31 @@ export function FunctionList() {
     console.log("outputVars registered:", Object.keys(fun.outputSchema.schemaContent?.properties ?? {}));
   }
 
+  // V13: CSV upload -> 1 authoritative parsed result drives 4 effects atomically
+  // {add fn, select fn, prefill bounds, infer dist/log}; a partial update (e.g. the
+  // new function selected without its bounds/distribution) is never left visible.
+  const handleCsvUploadSuccess = async (result: UploadJobCollectionSuccessResult) => {
+    const funs = await fetchFunctions(); // add fn: refreshed list includes the newly created function
+    const targetFunction = funs.find(fun => fun.uid === result.targetFunctionUid);
+    if (!targetFunction) {
+      toast.error("Uploaded function could not be found after creation.");
+      return;
+    }
+
+    setRowSelection(targetFunction); // select fn (+ registers inputVars/outputVars)
+    setDistribution(prev => ({
+      ...prev,
+      [targetFunction.uid]: {
+        // merge (not overwrite): vars without an inferred preset keep their existing/default
+        // entry, so components dereferencing distribution[inputVar] directly don't crash.
+        ...prev[targetFunction.uid],
+        ...Object.fromEntries(
+          Object.entries(result.inputPresets).map(([variable, preset]) => [variable, preset as VarSelection]),
+        ),
+      },
+    })); // prefill bounds + infer dist/log
+  };
+
   const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {
     setRowSelectionModel(newRowSelectionModel);
     if (newRowSelectionModel.ids.size > 0) {
@@ -211,6 +239,9 @@ export function FunctionList() {
         <IconButton size="small" onClick={async () => fetchFunctions()}>
           <Refresh color="primary" />
         </IconButton>
+        <Box mt={1}>
+          <UploadJobCollectionButton onUploadSuccess={handleCsvUploadSuccess} existingFunctions={functions} />
+        </Box>
       </Box>
     );
   }
@@ -221,144 +252,152 @@ export function FunctionList() {
         <Typography variant="body1" fontFamily="inherit" fontSize="1.2em" fontWeight={300} display="inline" mr={1}>
           <HelpContents type="FunctionsHelp" />
         </Typography>
+        <Box mt={1}>
+          <UploadJobCollectionButton onUploadSuccess={handleCsvUploadSuccess} existingFunctions={functions} />
+        </Box>
       </Box>
     );
   }
   return (
-    <DataGrid
-      onRowSelectionModelChange={newRowSelectionModel => {
-        handleRowSelection(newRowSelectionModel);
-      }}
-      rowSelectionModel={rowSelectionModel}
-      rows={functions}
-      columns={[
-        {
-          field: "title",
-          headerName: "Name",
-          flex: 1,
-          minWidth: 80,
-          maxWidth: 200,
-        },
-        {
-          field: "description",
-          headerName: "Description",
-          flex: 1,
-          minWidth: 80,
-          maxWidth: 260,
-        },
-        {
-          field: "inputSchema",
-          headerName: "Inputs",
-          flex: 1,
-          minWidth: 20,
-          maxWidth: 100,
-          renderCell: params => showInputOutputSchema(params.row.inputSchema),
-        },
-        {
-          field: "outputSchema",
-          headerName: "Outputs",
-          flex: 1,
-          minWidth: 20,
-          maxWidth: 100,
-          renderCell: params => showInputOutputSchema(params.row.outputSchema),
-        },
-        {
-          field: "n_evaluations",
-          headerName: "# Campaigns / Evaluations",
-          flex: 1,
-          minWidth: 100,
-          maxWidth: 250,
-          renderCell: params => (
-            <NFunctionJobCollections fun={params.row} jobCollectionCount={jobCollectionCount} jobCount={jobCount} />
-          ),
-        },
-        {
-          field: "solverKey",
-          headerName: "Further Info",
-          align: "center",
-          flex: 1,
-          minWidth: 100,
-          maxWidth: 100,
-          renderCell: params => getFunctionSolver(params.row),
-        },
-        {
-          field: "actions",
-          headerName: "",
-          sortable: false,
-          flex: 0.5,
-          headerAlign: "right",
-          maxWidth: 130,
-          minWidth: 130,
-          renderHeader: () => (
-            <IconButton
-              sx={theme => ({
-                flex: 1,
-                padding: "8px",
-                alignSelf: "right",
-                color: theme.palette.primary.contrastText,
-              })}
-              onClick={async () => {
-                setLoading(true);
-                await fetchFunctions();
-              }}
-            >
-              <Refresh />
-            </IconButton>
-          ),
-          renderCell: params => (
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={() => setRowSelection(params.row)}
-              mmux-testid={`select-function-btn-${params.row.uid}`}
-            >
-              {selectedFunction?.uid === params.row.uid ? "Unselect" : "Select"}
-            </Button>
-          ),
-        },
-      ]}
-      sx={{
-        borderRadius: "8px",
-        overflow: "hidden",
-        fontFamily: "inherit",
-        padding: "0px 8px",
-        "& .MuiDataGrid-cell": {
-          fontWeight: 400,
-        },
-        "& .MuiDataGrid-row:hover": {
-          backgroundColor: theme =>
-            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"})`,
-        },
-        "& .MuiDataGrid-row.Mui-selected": {
-          backgroundColor: theme =>
-            `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"})`,
-        },
-        "& .MuiDataGrid-row.Mui-selected:hover": {
-          backgroundColor: theme =>
-            `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"})`,
-        },
-        "& .MuiDataGrid-sortButton": {
-          backgroundColor: theme => theme.palette.background.paper,
-        },
-      }}
-      getRowId={getRowId}
-      initialState={{
-        pagination: {
-          paginationModel: { pageSize: 10 },
-        },
-        sorting: {
-          sortModel: [{ field: "title", sort: "asc" }],
-        },
-        filter: {
-          filterModel: {
-            items: [],
+    <Box>
+      <Box display="flex" justifyContent="flex-end" mb={1}>
+        <UploadJobCollectionButton onUploadSuccess={handleCsvUploadSuccess} existingFunctions={functions} />
+      </Box>
+      <DataGrid
+        onRowSelectionModelChange={newRowSelectionModel => {
+          handleRowSelection(newRowSelectionModel);
+        }}
+        rowSelectionModel={rowSelectionModel}
+        rows={functions}
+        columns={[
+          {
+            field: "title",
+            headerName: "Name",
+            flex: 1,
+            minWidth: 80,
+            maxWidth: 200,
           },
-        },
-      }}
-      pageSizeOptions={[5, 10, 20, 50]}
-      loading={loading}
-      disableColumnMenu
-      disableColumnSelector
-    />
+          {
+            field: "description",
+            headerName: "Description",
+            flex: 1,
+            minWidth: 80,
+            maxWidth: 260,
+          },
+          {
+            field: "inputSchema",
+            headerName: "Inputs",
+            flex: 1,
+            minWidth: 20,
+            maxWidth: 100,
+            renderCell: params => showInputOutputSchema(params.row.inputSchema),
+          },
+          {
+            field: "outputSchema",
+            headerName: "Outputs",
+            flex: 1,
+            minWidth: 20,
+            maxWidth: 100,
+            renderCell: params => showInputOutputSchema(params.row.outputSchema),
+          },
+          {
+            field: "n_evaluations",
+            headerName: "# Campaigns / Evaluations",
+            flex: 1,
+            minWidth: 100,
+            maxWidth: 250,
+            renderCell: params => (
+              <NFunctionJobCollections fun={params.row} jobCollectionCount={jobCollectionCount} jobCount={jobCount} />
+            ),
+          },
+          {
+            field: "solverKey",
+            headerName: "Further Info",
+            align: "center",
+            flex: 1,
+            minWidth: 100,
+            maxWidth: 100,
+            renderCell: params => getFunctionSolver(params.row),
+          },
+          {
+            field: "actions",
+            headerName: "",
+            sortable: false,
+            flex: 0.5,
+            headerAlign: "right",
+            maxWidth: 130,
+            minWidth: 130,
+            renderHeader: () => (
+              <IconButton
+                sx={theme => ({
+                  flex: 1,
+                  padding: "8px",
+                  alignSelf: "right",
+                  color: theme.palette.primary.contrastText,
+                })}
+                onClick={async () => {
+                  setLoading(true);
+                  await fetchFunctions();
+                }}
+              >
+                <Refresh />
+              </IconButton>
+            ),
+            renderCell: params => (
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => setRowSelection(params.row)}
+                mmux-testid={`select-function-btn-${params.row.uid}`}
+              >
+                {selectedFunction?.uid === params.row.uid ? "Unselect" : "Select"}
+              </Button>
+            ),
+          },
+        ]}
+        sx={{
+          borderRadius: "8px",
+          overflow: "hidden",
+          fontFamily: "inherit",
+          padding: "0px 8px",
+          "& .MuiDataGrid-cell": {
+            fontWeight: 400,
+          },
+          "& .MuiDataGrid-row:hover": {
+            backgroundColor: theme =>
+              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"})`,
+          },
+          "& .MuiDataGrid-row.Mui-selected": {
+            backgroundColor: theme =>
+              `color-mix(in srgb, ${theme.palette.primary.main} 70%, ${theme.palette.mode === "dark" ? "black" : "white"})`,
+          },
+          "& .MuiDataGrid-row.Mui-selected:hover": {
+            backgroundColor: theme =>
+              `color-mix(in srgb, ${theme.palette.primary.main} 50%, ${theme.palette.mode === "dark" ? "black" : "white"})`,
+          },
+          "& .MuiDataGrid-sortButton": {
+            backgroundColor: theme => theme.palette.background.paper,
+          },
+        }}
+        getRowId={getRowId}
+        initialState={{
+          pagination: {
+            paginationModel: { pageSize: 10 },
+          },
+          sorting: {
+            sortModel: [{ field: "title", sort: "asc" }],
+          },
+          filter: {
+            filterModel: {
+              items: [],
+            },
+          },
+        }}
+        pageSizeOptions={[5, 10, 20, 50]}
+        loading={loading}
+        disableColumnMenu
+        disableColumnSelector
+      />
+    </Box>
   );
 }

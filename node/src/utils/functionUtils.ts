@@ -2,6 +2,7 @@ import { toast } from "react-toastify";
 import { ProjectFunctionJob, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { RegisteredFunction, OsparcFunctionJob } from "../context/types";
 import { fetchWithRetry } from "./fetchRetry";
+import { UploadJobCollectionCsvResponse, UploadJobCollectionCsvParams } from "./types";
 
 function snakeToCamelCase(value: string): string {
   return value.replace(/_([a-z])/g, (_match, char: string) => char.toUpperCase());
@@ -17,22 +18,20 @@ function snakeToCamelCase(value: string): string {
 // `normalizePayloadToCamelCase` below) — keep them camelCase, do not "fix" to
 // snake_case.
 //
-// KNOWN GAP (live bug, not yet fixed, own follow-up branch/PR): this only
-// protects the read path (backend -> FE response). The write path (FE ->
-// backend request body) has no equivalent guard yet, and the backend's
-// `to_snake_case_request` (flaskapi/utils/json_serializer.py) blindly
-// case-converts every incoming key unconditionally — so any irregular-case
-// variable name (e.g. "TissueConduc", "peak_Averaged_Field", not just
-// "sigma_blood"-style all-lowercase) sent back in a job config / slider
-// values / distribution params body gets mangled on arrival today. Plan
-// (node/SPEC.md T13+T19, grilled 2026-07-02): audit every outgoing fetch()
-// body + Flask endpoint first to enumerate the real key-set, then extend
-// THIS Set+parentKey pattern (not the heavier `FunctionVariablesDict`
-// Pydantic-wrapper design from the closed/superseded PR #469, which had its
-// own unresolved B8/B9 bugs) to both the backend converter and a new FE
-// `camelToSnakeCase`/`toBackendVarNames` outgoing conversion, with a
-// cross-language equality test keeping the two lists in sync (no shared
-// runtime file). Test-first: red against today's code, then green.
+// Write path (FE -> backend request body): fixed on the backend side only
+// (flaskapi/src/mmux_flaskapi/utils/helpers.py `_DEFAULT_PRESERVE_NESTED_KEYS`,
+// applied in `to_snake_case_request`/`json_serializer.py`) — the backend now
+// passes `distributions`/`sliderValues`/`outputVarSelection`/`projectInputs`
+// subtrees through untouched, so no FE-side outgoing camelToSnakeCase
+// conversion utility is needed (deliberately not built — would be dead code
+// with no caller; see node/SPEC.md T13/T19, grilled 2026-07-02). Covered by
+// flaskapi's `test_utils_helpers.py::TestPreserveNestedKeysForVariableNames`,
+// the cross-language subset tripwire test
+// (`test_preserve_nested_keys_matches_frontend_opaque_keys`), and an
+// end-to-end regression test in `test_flask_dakota_workflows.py`. Do NOT
+// resurrect the `FunctionVariablesDict`/Pydantic-wrapper approach from the
+// closed, superseded PR #469 (JavierGOrdonnez/port-be-preserve-case) — it had
+// its own unresolved bugs (B8/B9) and didn't merge cleanly.
 const opaqueValueDictKeys = new Set(["properties", "defaultInputs", "inputs", "outputs"]);
 
 function normalizePayloadToCamelCase<T>(payload: unknown, parentKey?: string): T {
@@ -120,18 +119,7 @@ export async function getFunctionJobsFromFunctionJobCollection(jobCollectionUid:
   );
 }
 
-export async function downloadJobCollectionCsv(jobCollectionUid: string): Promise<string> {
-  const response = await fetchWithRetry(`/flask/osparc/download_job_collection_csv?JobCollectionUid=${jobCollectionUid}`);
-  return response.text();
-}
-
-export async function uploadJobCollectionCsv(params: {
-  csvContent: string;
-  targetMode: "existing" | "new";
-  targetFunctionUid?: string;
-  newFunctionTitle?: string;
-  sourceFunctionUid?: string;
-}) {
+export async function uploadJobCollectionCsv(params: UploadJobCollectionCsvParams): Promise<UploadJobCollectionCsvResponse> {
   const response = await fetch(`/flask/sampling/upload_job_collection_csv`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -143,7 +131,7 @@ export async function uploadJobCollectionCsv(params: {
     throw new Error(errorData.error || "Failed to upload JobCollection CSV");
   }
 
-  return response.json();
+  return normalizePayloadToCamelCase<UploadJobCollectionCsvResponse>(await response.json());
 }
 
 export function getSimplifiedHost(): string {

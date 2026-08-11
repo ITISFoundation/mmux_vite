@@ -1,8 +1,9 @@
+import csv
 import logging
 import os
 import time
 from pathlib import Path
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 #
 from flask import Blueprint, jsonify, make_response
@@ -13,16 +14,21 @@ from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import
 )
 
 #
-from mmux_flaskapi.blueprints.osparc import _get_function_job_from_uid
+from mmux_flaskapi.blueprints.osparc import _function_schema_vars, _get_function_job_from_uid
 from mmux_flaskapi.blueprints.sampling_models import (
     CloneJobRequest,
     ErrorResponse,
     GridSamplingRequest,
+    JobCollectionCsvUploadRequest,
     LHSSamplingRequest,
     TestJobRequest,
 )
 from mmux_flaskapi.utils.helpers import create_run_dir, dict_keys_snake_to_camel
 from mmux_flaskapi.utils.json_serializer import parse_request_model
+from mmux_flaskapi.utils.local_job_store import (
+    create_local_function,
+    create_local_job_collection,
+)
 from mmux_flaskapi.utils.webserver_config import get_osparc_api
 
 #
@@ -116,7 +122,7 @@ def flask_lhs():
         n = validated_request.n
         function_uid = validated_request.fun_uid
 
-        _logger.debug(f"Validated config: {[c.dict() for c in config]}")
+        _logger.debug(f"Validated config: {[c.model_dump() for c in config]}")
         _logger.debug(f"n: {n}, k: {k}, seed: {seed}, function_uid: {function_uid}")
 
         from mmux_flaskapi.dakota.lhs import lhs
@@ -144,7 +150,7 @@ def flask_lhs():
     except Exception as e:
         error_msg = f"Error while performing LHS sampling: {e}"
         _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 500)
 
 
 @sampling_bp.route("/grid", methods=["POST"])
@@ -166,14 +172,14 @@ def flask_grid_sampling():
         input_vars = [var_config.variable for var_config in config]
         run_dir = create_run_dir(SAMPLING_RUNS_DIR, "grid_sampling")
 
-        _logger.debug(f"Validated config: {[c.dict() for c in config]}")
+        _logger.debug(f"Validated config: {[c.model_dump() for c in config]}")
         _logger.debug(f"Input variables: {input_vars}, function_uid: {function_uid}")
 
         from mmux_flaskapi.dakota.funs_data_processing import load_data
         from mmux_flaskapi.dakota.funs_evaluate import create_grid_samples
 
         # Convert config to the format expected by create_grid_samples
-        config_dict = {var_config.variable: var_config.dict() for var_config in config}
+        config_dict = {var_config.variable: var_config.model_dump() for var_config in config}
 
         PROCESSED_GRIDPOINTS_INPUT_FILE = create_grid_samples(
             run_dir=run_dir,
@@ -190,7 +196,7 @@ def flask_grid_sampling():
         samples = []
         df = load_data(PROCESSED_GRIDPOINTS_INPUT_FILE)
         for i in df.index:
-            sample = {var: float(df.loc[i, var]) for var in input_vars}  # type: ignore
+            sample = {var: float(df.loc[i, var]) for var in input_vars}
             samples.append(sample)
 
         _logger.debug(f"Generated {len(samples)} grid samples")
@@ -200,7 +206,7 @@ def flask_grid_sampling():
     except Exception as e:
         error_msg = f"Error while creating Grid Sampling: {e}"
         _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 500)
 
 
 @sampling_bp.route("/test_job", methods=["POST"])
@@ -222,7 +228,7 @@ def flask_test_job():
         functions_api = _get_functions_api()
 
         _logger.debug(f"Function UID: {function_uid}")
-        _logger.debug(f"Validated config: {[c.dict() for c in config]}")
+        _logger.debug(f"Validated config: {[c.model_dump() for c in config]}")
 
         # Convert config to sample format
         sample = {var_config.variable: var_config.value for var_config in config}
@@ -255,12 +261,12 @@ def flask_test_job():
     except ValueError as e:
         error_msg = str(e)
         _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 400)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 400)
 
     except Exception as e:
         error_msg = f"Error while testing job: {e}"
         _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 500)
 
 
 @sampling_bp.route("/clone_job", methods=["POST"])
@@ -308,4 +314,183 @@ def flask_clone_job():
     except Exception as e:
         error_msg = f"Error while cloning job: {e}"
         _logger.error(error_msg)
-        return make_response(jsonify(ErrorResponse(error=error_msg).dict()), 500)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 500)
+
+
+#####################################################################################
+# Job-collection CSV import (flaskapi/SPEC.md §T6, node/SPEC.md V13)
+#####################################################################################
+
+INPUT_COLUMN_PREFIX = "input__"
+OUTPUT_COLUMN_PREFIX = "output__"
+
+
+def _parse_csv_row(line: str) -> list[str]:
+    return next(csv.reader([line]))
+
+
+def _split_csv_preamble_and_table(csv_content: str) -> tuple[dict[str, str], list[str]]:
+    """Split `# key,value` metadata preamble lines from the data table.
+
+    Uses the CSV row parser (not a raw comma-index split) for the preamble lines
+    too, so a quoted value containing a comma (e.g. a title) round-trips
+    correctly -- see the equivalent fix in node/SPEC.md's `jobCollectionCsv.ts`.
+    """
+    preamble: dict[str, str] = {}
+    table_lines: list[str] = []
+    for line in csv_content.splitlines():
+        stripped = line.strip()
+        if not table_lines and stripped.startswith("#"):
+            without_hash = stripped[1:].strip()
+            if without_hash:
+                cells = _parse_csv_row(without_hash)
+                if len(cells) >= 2:
+                    preamble[cells[0].strip()] = cells[1]
+            continue
+        if not table_lines and not stripped:
+            continue  # skip blank lines before the table starts
+        table_lines.append(line)
+    return preamble, table_lines
+
+
+def _parse_number(raw: str | None, *, row_index: int, column: str) -> float | None:
+    """Parse a single CSV cell into a float.
+
+    Blank/whitespace-only cells are treated as "missing" (returns None), never
+    silently coerced to 0. A genuinely unparseable non-blank cell raises
+    ValueError with row/column context (flaskapi/SPEC.md §B4/§V19 fix).
+    """
+    if raw is None or raw.strip() == "":
+        return None
+    try:
+        return float(raw)
+    except ValueError as exc:
+        raise ValueError(
+            f"Could not parse numeric value {raw!r} in column '{column}' (row {row_index})"
+        ) from exc
+
+
+def _parse_uploaded_job_collection_csv(csv_content: str) -> dict[str, Any]:
+    preamble, table_lines = _split_csv_preamble_and_table(csv_content)
+    if not table_lines:
+        raise ValueError("CSV content has no header/table rows")
+
+    header = _parse_csv_row(table_lines[0])
+    input_columns = [c for c in header if c.startswith(INPUT_COLUMN_PREFIX)]
+    output_columns = [c for c in header if c.startswith(OUTPUT_COLUMN_PREFIX)]
+    input_vars = [c[len(INPUT_COLUMN_PREFIX) :] for c in input_columns]
+    output_vars = [c[len(OUTPUT_COLUMN_PREFIX) :] for c in output_columns]
+    if not input_vars or not output_vars:
+        raise ValueError(
+            f"CSV must contain at least one '{INPUT_COLUMN_PREFIX}*' and one "
+            f"'{OUTPUT_COLUMN_PREFIX}*' column"
+        )
+
+    rows: list[dict[str, dict[str, float]]] = []
+    for row_index, line in enumerate(table_lines[1:], start=2):  # 1-based, +1 for header row
+        if not line.strip():
+            continue
+        cells = _parse_csv_row(line)
+        if len(cells) != len(header):
+            raise ValueError(
+                f"Row {row_index} has {len(cells)} column(s), expected {len(header)} "
+                "(matching the header row)"
+            )
+        row_values = dict(zip(header, cells))
+
+        inputs = {}
+        for column, var in zip(input_columns, input_vars):
+            value = _parse_number(row_values.get(column), row_index=row_index, column=column)
+            if value is not None:
+                inputs[var] = value
+
+        outputs = {}
+        for column, var in zip(output_columns, output_vars):
+            value = _parse_number(row_values.get(column), row_index=row_index, column=column)
+            if value is not None:
+                outputs[var] = value
+
+        rows.append({"inputs": inputs, "outputs": outputs})
+
+    if not rows:
+        raise ValueError("CSV contains no data rows")
+
+    return {
+        "preamble": preamble,
+        "input_vars": input_vars,
+        "output_vars": output_vars,
+        "rows": rows,
+    }
+
+
+@sampling_bp.route("/upload_job_collection_csv", methods=["POST"])
+def flask_upload_job_collection_csv():
+    """
+    Import a job-collection CSV and attach the samples to either a new local
+    function or an existing function (local or real oSPARC).
+
+    Always creates a LOCAL job collection for the imported rows: there is no oSPARC
+    API to inject fabricated historical job results into a real function's job
+    history, so "existing" mode still stores the jobs locally, merely tagged with
+    the real target function's UID (flaskapi/SPEC.md §T6/§T7 architecture note).
+    """
+    # Let parse_request_model raise; the registered RequestParsingError handler will
+    # normalize the response and ensure consistency with other sampling endpoints
+    # (flaskapi/SPEC.md V22, B10 fix).
+    validated_request = parse_request_model(JobCollectionCsvUploadRequest)
+
+    try:
+        parsed = _parse_uploaded_job_collection_csv(validated_request.csv_content)
+        input_vars = parsed["input_vars"]
+        output_vars = parsed["output_vars"]
+
+        if validated_request.target_mode == "existing":
+            target_function_uid = validated_request.target_function_uid
+            # Explicit check instead of assert; asserts can be optimized away with python -O
+            # (flaskapi/SPEC.md V23, B11 fix).
+            if not target_function_uid:
+                raise ValueError("target_function_uid is required when target_mode is 'existing'")
+            existing_input_vars, existing_output_vars = _function_schema_vars(target_function_uid)
+            if set(existing_input_vars) != set(input_vars) or set(existing_output_vars) != set(
+                output_vars
+            ):
+                raise ValueError(
+                    "CSV schema does not match the target function's schema: "
+                    f"expected inputs {sorted(existing_input_vars)} / "
+                    f"outputs {sorted(existing_output_vars)}, got inputs {sorted(input_vars)} / "
+                    f"outputs {sorted(output_vars)}"
+                )
+        else:
+            title = validated_request.new_function_title or (
+                parsed["preamble"].get("source_job_collection_title") or "Imported function"
+            )
+            new_function = create_local_function(
+                title=title, input_vars=input_vars, output_vars=output_vars
+            )
+            target_function_uid = new_function["uid"]
+
+        job_collection_title = (
+            parsed["preamble"].get("source_job_collection_title") or "Imported job collection"
+        )
+        job_collection = create_local_job_collection(
+            function_uid=target_function_uid,
+            title=job_collection_title,
+            rows=parsed["rows"],
+        )
+
+        response_data = {
+            "target_function_uid": target_function_uid,
+            "imported_samples": len(parsed["rows"]),
+            "job_collection": job_collection,
+        }
+        return jsonify(response_data), 200
+
+    except ValueError as e:
+        error_msg = str(e)
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 422)
+
+    except Exception as e:
+        error_msg = f"Error while uploading job collection CSV: {e}"
+        _logger.error(error_msg)
+        return make_response(jsonify(ErrorResponse(error=error_msg).model_dump()), 500)

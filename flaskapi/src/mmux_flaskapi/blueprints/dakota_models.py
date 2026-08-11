@@ -11,6 +11,17 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 _logger = logging.getLogger(__name__)
 
 
+def required_completed_jobs(input_vars: list[str], floor: int = 5) -> int:
+    """Minimum completed jobs needed to build a Dakota (surfpack) GP surrogate.
+
+    Dakota aborts surrogate construction (opaque "Dakota aborted: Unknown error 250",
+    internal MODEL_ERROR) when given <= len(input_vars) training points -- confirmed
+    empirically: len(input_vars)+1 points build successfully, len(input_vars) points
+    abort. `floor` preserves the historical flat minimum for low-dimensional problems.
+    """
+    return max(floor, len(input_vars) + 1)
+
+
 class FunctionJob(BaseModel):
     """Model for a single function job with inputs, outputs, and status."""
 
@@ -79,7 +90,9 @@ class JobVariableSelection(BaseModel):
         if len(completed_jobs) < self.minimum_completed_jobs:
             raise ValueError(
                 "At least "
-                f"{self.minimum_completed_jobs} samples are necessary to build a surrogate model in Dakota. "
+                f"{self.minimum_completed_jobs} samples are necessary to build a surrogate model in Dakota "
+                f"(dimension-scaled minimum: max(5, num_input_vars + 1) = "
+                f"max(5, {len(self.input_vars)} + 1)). "
                 f"Found {len(completed_jobs)} completed jobs."
             )
 
@@ -165,9 +178,11 @@ class SumoCrossValidationRequest(BaseModel):
         # Filter to completed jobs only
         completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
 
-        if len(completed_jobs) < 5:
+        required = required_completed_jobs(input_vars)
+        if len(completed_jobs) < required:
             raise ValueError(
-                f"At least 5 completed jobs are required for cross-validation. Found {len(completed_jobs)} completed jobs."
+                f"At least {required} completed jobs are required for cross-validation with "
+                f"{len(input_vars)} input variable(s). Found {len(completed_jobs)} completed jobs."
             )
 
         # Validate that all completed jobs have required input/output variables
@@ -266,11 +281,14 @@ class ManualUQPropagationRequest(BaseModel):
         if missing_distributions:
             raise ValueError(f"Distributions missing for input variables: {missing_distributions}")
 
-        # Validate minimum completed jobs for UQ operations
+        # Validate minimum completed jobs for UQ operations (must exceed input dimensionality,
+        # else Dakota's surrogate build aborts -- see required_completed_jobs())
         completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
-        if len(completed_jobs) < 5:
+        required = required_completed_jobs(input_vars)
+        if len(completed_jobs) < required:
             raise ValueError(
-                f"At least 5 completed jobs are required for UQ operations. Found {len(completed_jobs)} completed jobs."
+                f"At least {required} completed jobs are required for UQ operations with "
+                f"{len(input_vars)} input variable(s). Found {len(completed_jobs)} completed jobs."
             )
 
         return self
@@ -312,26 +330,12 @@ class ManualUQWithUncertaintyRequest(ManualUQPropagationRequest):
                 f"Low samples per histogram ({self.num_samples // self.n_histograms}). Consider increasing numSamples for better statistics."
             )
 
-        # Check that at least some jobs have the required uncertainty output
-        output = self.output
-        jobs = self.function_jobs
-        completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
-
-        if completed_jobs:  # Only check if we have completed jobs
-            uncertainty_output_key = f"{output}_std_hat"
-            jobs_with_uncertainty = [
-                job for job in completed_jobs if uncertainty_output_key in job.outputs
-            ]
-
-            if not jobs_with_uncertainty:
-                # Get available output keys for better error message
-                available_keys = set()
-                for job in completed_jobs[:3]:  # Sample a few jobs
-                    available_keys.update(job.outputs.keys())
-                raise ValueError(
-                    f"UQ with uncertainty requires '{uncertainty_output_key}' in job outputs for uncertainty estimation. "
-                    f"Available output keys: {list(available_keys)}"
-                )
+        # NOTE (V32/B14): uncertainty availability (`{output}_std_hat`) is NOT checked here.
+        # Real job outputs never carry a pre-existing `_std_hat` key -- it's a surrogate-derived
+        # quantity computed by evaluate_sumo() after fitting, not something present in raw
+        # function_jobs[].outputs. The actual check happens post-evaluate_sumo() in
+        # flask_manual_uq_propagation_with_uncertainty (see V5). Checking here rejected every
+        # real (non-test-mocked) request before Dakota ever ran.
 
         return self
 
@@ -373,9 +377,11 @@ class SumoAlongAxesRequest(BaseModel):
         # Filter to completed jobs only
         completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
 
-        if len(completed_jobs) < 5:
+        required = required_completed_jobs(input_vars)
+        if len(completed_jobs) < required:
             raise ValueError(
-                f"At least 5 completed jobs are required for SUMO along axes evaluation. Found {len(completed_jobs)} completed jobs."
+                f"At least {required} completed jobs are required for SUMO along axes evaluation with "
+                f"{len(input_vars)} input variable(s). Found {len(completed_jobs)} completed jobs."
             )
 
         # Validate that all completed jobs have required input/output variables
@@ -573,9 +579,11 @@ class SumoGridEvaluationRequest(BaseModel):
         # Filter to completed jobs only
         completed_jobs = [job for job in jobs if job.status in ["completed", "success"]]
 
-        if len(completed_jobs) < 5:
+        required = required_completed_jobs(input_vars)
+        if len(completed_jobs) < required:
             raise ValueError(
-                f"At least 5 completed jobs are required for SUMO grid evaluation. Found {len(completed_jobs)} completed jobs."
+                f"At least {required} completed jobs are required for SUMO grid evaluation with "
+                f"{len(input_vars)} input variable(s). Found {len(completed_jobs)} completed jobs."
             )
 
         # Validate that all completed jobs have required input/output variables
@@ -725,9 +733,11 @@ class MOGAOptimizationRequest(BaseModel):
         completed_jobs = [
             job for job in self.function_jobs if job.status in ["completed", "success"]
         ]
-        if len(completed_jobs) < 5:
+        required = required_completed_jobs(self.input_vars)
+        if len(completed_jobs) < required:
             raise ValueError(
-                f"At least 5 completed jobs required for MOGA optimization, got {len(completed_jobs)}"
+                f"At least {required} completed jobs required for MOGA optimization with "
+                f"{len(self.input_vars)} input variable(s), got {len(completed_jobs)}"
             )
 
         # Check that all completed jobs have the required variables
@@ -915,9 +925,11 @@ class SumoCVAccuracyMetricsRequest(BaseModel):
             job for job in self.function_jobs if job.status in ["completed", "success"]
         ]
 
-        if len(completed_jobs) < 5:
+        required = required_completed_jobs(self.inputs)
+        if len(completed_jobs) < required:
             raise ValueError(
-                f"At least 5 completed jobs required for cross-validation, got {len(completed_jobs)}"
+                f"At least {required} completed jobs required for cross-validation with "
+                f"{len(self.inputs)} input variable(s), got {len(completed_jobs)}"
             )
 
         # Check that all completed jobs have the required input variables
@@ -988,3 +1000,130 @@ class SumoCVAccuracyMetricsResponse(BaseModel):
             elif not isinstance(metrics, CVAccuracyMetrics):
                 raise ValueError(f"Metrics for {var_name} must be CVAccuracyMetrics or string")
         return self
+
+
+class CorrelationIndicesRequest(ManualUQPropagationRequest):
+    """Request model for the correlation-indices endpoint (#470).
+
+    Mirrors `ManualUQPropagationRequest` (same Monte Carlo sample generation from
+    per-input distributions), plus a `seed` for reproducibility, since no
+    uncertainty histogram is required here.
+    """
+
+    seed: int = Field(..., description="Random seed for reproducibility")
+
+
+class CorrelationCoefficients(BaseModel):
+    """Pearson and Spearman correlation coefficients for a single input variable."""
+
+    model_config = ConfigDict(frozen=True)
+
+    pearson: float = Field(..., description="Pearson correlation coefficient")
+    spearman: float = Field(..., description="Spearman rank correlation coefficient")
+
+    @field_validator("pearson", "spearman")
+    @classmethod
+    def validate_finite(cls, v: float) -> float:
+        """Ensure correlation coefficients are finite numbers (⊥ nan/inf)."""
+        if not np.isfinite(v):
+            raise ValueError("Correlation coefficient must be a finite number")
+        return v
+
+
+class CorrelationIndicesResponse(BaseModel):
+    """Response model for the correlation-indices endpoint (#470)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    correlations: dict[str, CorrelationCoefficients] = Field(
+        ..., description="Per-input-variable Pearson/Spearman correlation with the selected QoI"
+    )
+
+    @field_validator("correlations")
+    @classmethod
+    def validate_correlations_not_empty(
+        cls, v: dict[str, CorrelationCoefficients]
+    ) -> dict[str, CorrelationCoefficients]:
+        """Ensure correlations dictionary covers at least one input variable."""
+        if not v:
+            raise ValueError("Correlations dictionary cannot be empty")
+        return v
+
+
+class SobolIndicesRequest(ManualUQPropagationRequest):
+    """Request model for the Sobol'-indices endpoint (#470).
+
+    Mirrors `CorrelationIndicesRequest`'s shape (same Monte Carlo/UQ setup contract:
+    output, inputVars, distributions, numSamples, FunctionJobs), plus a `seed` for
+    reproducibility of the Sobol' QMC sampling.  Seed 0 is valid — scipy/numpy RNGs
+    accept it (the former Dakota NIDR constraint requiring seed ≥ 1 no longer applies
+    after the scipy migration, V34).
+    """
+
+    seed: int = Field(
+        ...,
+        ge=0,
+        description="Random seed for reproducibility (scipy/numpy RNGs accept 0)",
+    )
+
+
+class SobolIndexPair(BaseModel):
+    """First-order (main effect) and total-order Sobol' sensitivity indices for a single input variable.
+
+    `*_ci_low`/`*_ci_high` are bootstrap confidence intervals (V37, default 95%)
+    computed by resampling the existing Saltelli evaluations -- no extra
+    surrogate calls, so they come for free alongside the point estimates.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    main: float = Field(..., description="First-order (main effect) Sobol' index")
+    total: float = Field(..., description="Total-order Sobol' index")
+    main_ci_low: float = Field(
+        ..., description="Bootstrap confidence interval lower bound for `main`"
+    )
+    main_ci_high: float = Field(
+        ..., description="Bootstrap confidence interval upper bound for `main`"
+    )
+    total_ci_low: float = Field(
+        ..., description="Bootstrap confidence interval lower bound for `total`"
+    )
+    total_ci_high: float = Field(
+        ..., description="Bootstrap confidence interval upper bound for `total`"
+    )
+
+    @field_validator(
+        "main", "total", "main_ci_low", "main_ci_high", "total_ci_low", "total_ci_high"
+    )
+    @classmethod
+    def validate_finite(cls, v: float) -> float:
+        """Ensure Sobol' indices are finite numbers (⊥ nan/inf)."""
+        if not np.isfinite(v):
+            raise ValueError("Sobol' index must be a finite number")
+        return v
+
+
+class SobolIndicesResponse(BaseModel):
+    """Response model for the Sobol'-indices endpoint (#470)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    sobol: dict[str, SobolIndexPair] = Field(
+        ...,
+        description="Per-input-variable first-order/total-order Sobol' indices for the selected QoI",
+    )
+    sobol_second_order: dict[str, dict[str, float]] = Field(
+        default_factory=dict,
+        description=(
+            "Pairwise second-order Sobol' interaction indices, symmetric over all "
+            "unordered variable pairs (no self-pair). Empty when fewer than 2 input vars."
+        ),
+    )
+
+    @field_validator("sobol")
+    @classmethod
+    def validate_sobol_not_empty(cls, v: dict[str, SobolIndexPair]) -> dict[str, SobolIndexPair]:
+        """Ensure sobol dictionary covers at least one input variable."""
+        if not v:
+            raise ValueError("Sobol dictionary cannot be empty")
+        return v
