@@ -1,6 +1,6 @@
 key: simcore/services/dynamic/mmux-vite-web
 name: MMUX Frontend
-version: 1.6.0
+version: 1.6.1
 description: Vite (React + NodeJS + TypeScript) frontend for meta-modeling functionality in an interactive, user-friendly, guided step-by-step way
 integration-version: 2.0.0
 type: dynamic

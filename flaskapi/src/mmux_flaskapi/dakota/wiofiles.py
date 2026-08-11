@@ -28,18 +28,22 @@ except ValueError:
 def capture_to_file(stdout="./stdout", stderr="./stderr"):
     stdout_f: IO[bytes] | None = None
     stderr_f: IO[bytes] | None = None
+    if stdout and sys.__stdout__ is None:
+        raise RuntimeError("sys.__stdout__ is not available")
+    if stderr and sys.__stderr__ is None:
+        raise RuntimeError("sys.__stderr__ is not available")
     if stdout:
         stdout_f = open(stdout, mode="wb")
-        if sys.__stdout__ is None:
-            raise RuntimeError("sys.__stdout__ is not available")
-        real_stdout = sys.__stdout__.fileno()
+        real_stdout_stream = sys.__stdout__
+        assert real_stdout_stream is not None
+        real_stdout = real_stdout_stream.fileno()
         save_stdout = os.dup(real_stdout)
         os.dup2(stdout_f.fileno(), real_stdout)
     if stderr:
         stderr_f = open(stderr, mode="wb")
-        if sys.__stderr__ is None:
-            raise RuntimeError("sys.__stderr__ is not available")
-        real_stderr = sys.__stderr__.fileno()
+        real_stderr_stream = sys.__stderr__
+        assert real_stderr_stream is not None
+        real_stderr = real_stderr_stream.fileno()
         save_stderr = os.dup(real_stderr)
         os.dup2(stderr_f.fileno(), real_stderr)
     try:
