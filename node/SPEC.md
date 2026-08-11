@@ -32,7 +32,6 @@ cmd: `npm run build` → `tsc -b && vite build`
 cmd: `npm run build:e2e` → `npm run generate-osparc-cli && tsc -b && vite build` (Playwright webServer build; regenerates the committed client when missing)
 cmd: `npm run lint` → `eslint .`
 cmd: `npm test` → `npx vitest`
-cmd: `npm run test:browser` → `vitest --config vitest.browser.config.ts` (Playwright; component-level browser tests)
 cmd: `npm run test:e2e` → `playwright test` (TS `@playwright/test`, testDir `../tests/e2e/`) — SuMo read-only pixel-snapshot e2e ; ⊥ vitest browser mode for e2e ; pairs root §T4/§T8-T12
 cmd: `npm run preview` → `vite preview`
 cmd: `npm run pretty` → `prettier --write`

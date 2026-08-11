@@ -87,6 +87,7 @@ V24: `get_osparc_api_if_configured()` ! check oSPARC configuration (host/usernam
 V25: `get_osparc_api_if_configured()` ! tolerate `app.osparc_api` implementations without a `_configuration` attribute (duck-typed test doubles, e.g. e2e `MockOsparcApi`) by treating a missing attribute as "configured"; ⊥ assume every `app.osparc_api` exposes the concrete `OsparcApi._configuration` shape (B12)
 V26: backend tests touching `local_job_store`/text-file persistence ! use per-run temp dirs (or isolated validation mount) via `LOCAL_STORE_DIR`/`TEXT_FILES_DIR`, reset before app creation; ⊥ read/write repository `runs_local` or shared persistent state (B15)
 V27: CI `prek` job generates `node/src/osparc-api-ts-client/` before `uvx prek run --all-files`; generated client is untracked and required by `tsconfig.app.json` path alias `osparc-api-ts-client`, so lint ! run against a clean checkout without the generated module (B16)
+V28: CI node-tests job ! run `npm test`; deprecated `npm run test:browser` alias may remain manual but ⊥ duplicate the jsdom suite in CI; real browser coverage remains `npm run test:e2e` (B17)
 
 ## §T
 id|status|task|cites
@@ -131,3 +132,4 @@ B11|2026-07-07|PR #489 Copilot review: `get_osparc_api_if_configured()` called `
 B12|2026-07-07|B6/B11's `get_osparc_api_if_configured()` unconditionally read `osparc_api._configuration`; the e2e in-backend test-double `MockOsparcApi` (tests/e2e/mock_osparc/api.py, predates this branch, PR #475) duck-types `OsparcApi` without a `_configuration` attribute, so every e2e `GET /flask/osparc/list_functions` raised `AttributeError` → 500, surfaced in the UI as "Error fetching functions from the server" and failing all 3 read-only e2e specs (moga/sumo/uq-readonly)|V25
 B15|2026-08-10|Flask tests inherited shared repository local-data state (`runs_local`/text files); dirty state changed list endpoints (expected 3 functions → actual 27), producing order/state-dependent failures after dependency validation|V26
 B16|2026-08-10|CI `prek` ran before the untracked OpenAPI-generated `node/src/osparc-api-ts-client/` existed; `import/no-unresolved` rejected valid `osparc-api-ts-client` imports despite local `npm run build`/generated working tree passing|V27
+B17|2026-08-11|PR #521 review: `node/package.json` `test:browser` referenced removed `vitest.browser.config.ts`, but CI `node-tests` ran only `make test-node` → `npm ci && npm test`, so the stale script was never executed|V28

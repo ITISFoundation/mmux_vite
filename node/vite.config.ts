@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
+import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import viteconfigtspaths from "vite-tsconfig-paths";
 
 // e2e (§T10): when set, vite proxies the `/flask/*` split to the live backend,
 // replicating the Caddy proxy locally without docker. Unset in normal dev.
@@ -21,7 +21,14 @@ const appPort = process.env.APP_PORT ? Number(process.env.APP_PORT) : undefined;
 // https://vite.dev/config/
 export default defineConfig({
   base: "/",
-  plugins: [react(), tailwindcss(), viteconfigtspaths()],
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "osparc-api-ts-client": fileURLToPath(
+        new URL("./src/osparc-api-ts-client", import.meta.url),
+      ),
+    },
+  },
   preview: {
     port: webPort,
     strictPort: true,
