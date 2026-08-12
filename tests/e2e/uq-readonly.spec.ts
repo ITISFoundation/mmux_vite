@@ -99,6 +99,21 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
 
   // Pixel baseline: the Inspect Model modal (cross-validation view).
   await expect(page).toHaveScreenshot("uq-readonly-inspect-modal.png");
+  await page.keyboard.press("Escape");
+  await expect(modal).toBeHidden({ timeout: VIEW_TIMEOUT });
+
+  const plotNext = page.locator('[mmux-testid="uq-plot-next"]');
+  await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
+  await plotNext.click();
+  await expect(page.getByText("Sensitivity / Correlation Indices")).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expect(page.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(page).toHaveScreenshot("uq-readonly-correlation-indices.png");
+
+  await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
+  await plotNext.click();
+  await expect(page.getByText("Sobol' Indices")).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expect(page.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(page).toHaveScreenshot("uq-readonly-sobol-indices.png");
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
   expect(runtimeErrors, `JavaScript errors captured: ${runtimeErrors.join("\n")}`).toEqual([]);
