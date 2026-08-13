@@ -195,6 +195,7 @@ type CvMetricsType = {
   stdYHat: number;
   mae: number;
   rmse: number;
+  r2: number;
 };
 
 type MogaDataRowType = { [key: string]: number; performance: number; ndi: number };

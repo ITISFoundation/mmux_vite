@@ -4,6 +4,7 @@ import { InfoOutline } from "@mui/icons-material";
 import IsoSurface3DPlot from "./IsoSurface3DPlot";
 import Curves1DPlots from "./Curves1DPlot";
 import SuMoValidation from "./SuMoValidation";
+import SuMoStats from "./SuMoStats";
 import Surface2DPlot from "./Surface2DPlot";
 import SteppedPlotCard, { type SteppedStep } from "./SteppedPlotCard";
 import { filterInputVars } from "./PlotTools";
@@ -15,7 +16,7 @@ import SelectQoIDocument from "../documents/SelectQoIDocument";
 import CustomTooltip from "../utils/CustomTooltip";
 import { useServiceContext } from "../../context/ServiceContext";
 
-function SuMoPlotsSteps() {
+function SuMoPlotsSteps(_props: unknown, ref: React.Ref<SuMoPlotsStepsHandle>) {
   const theme = useTheme();
   const { inputVars, selectedFunction, distribution, outputVars } = useFunctionContext();
   const { selectedQoI, setSelectedQoI } = useMMUXContext();
@@ -33,7 +34,7 @@ function SuMoPlotsSteps() {
     setActiveStep(prevActiveStep => prevActiveStep - 1);
   };
 
-  const stepDefinitions: SteppedStep[] = [
+  const plotStepDefinitions: SteppedStep[] = [
     {
       title: "Validation",
       infoText: "Assessment of model quality through Cross-Validation",
@@ -44,20 +45,30 @@ function SuMoPlotsSteps() {
     { title: "2D Surface", content: <Surface2DPlot /> },
     { title: "3D IsoSurface", content: <IsoSurface3DPlot /> },
   ];
+  const statsStep: SteppedStep = { title: "Stats", content: <SuMoStats /> };
+
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      goToStats: () => setActiveStep(maxSteps - 1),
+    }),
+    [maxSteps],
+  );
 
   React.useEffect(() => {
     const jobs = filteredJobList;
-    const nextFilteredInputVars =
+    const newFilteredInputVars =
       jobs.length === 0 ? inputVars : filterInputVars({ ...context, selectedFunction, inputVars, distribution });
-    const nextMaxSteps = Math.min(nextFilteredInputVars.length + 1, stepDefinitions.length);
-    setFilteredInputVars(nextFilteredInputVars);
-    setMaxSteps(nextMaxSteps);
-    setActiveStep(prevActiveStep => Math.min(prevActiveStep, Math.max(0, nextMaxSteps - 1)));
+    setFilteredInputVars(newFilteredInputVars);
+    setMaxSteps(Math.min(newFilteredInputVars.length + 1, plotStepDefinitions.length) + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedJobUids, filteredJobList]);
 
-  const visibleSteps = stepDefinitions.slice(0, maxSteps);
+  const numPlotSteps = Math.max(0, maxSteps - 1);
+  const visibleSteps = maxSteps === 0 ? [] : [...plotStepDefinitions.slice(0, numPlotSteps), statsStep];
+  const isStatsStepActive = activeStep === visibleSteps.length - 1;
   const gatedContent = (() => {
+    if (isStatsStepActive) return visibleSteps[activeStep]?.content;
     if (filteredInputVars.length === 0) return undefined;
     const minVars = activeStep <= 1 ? 0 : activeStep - 1;
     if (filteredInputVars.length <= minVars) return undefined;
@@ -135,4 +146,6 @@ function SuMoPlotsSteps() {
   );
 }
 
-export default SuMoPlotsSteps;
+export type SuMoPlotsStepsHandle = { goToStats: () => void };
+
+export default React.forwardRef(SuMoPlotsSteps);

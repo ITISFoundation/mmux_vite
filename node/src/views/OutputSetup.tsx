@@ -12,10 +12,12 @@ interface UQSetupProps {
   mode?: "onlyQoI" | "full" | "moga";
   setSumoModal?: (value: boolean) => void;
   setMogaModal?: (value: boolean) => void;
+  setUqStatsModal?: (value: boolean) => void;
+  onStatsClick?: () => void;
 }
 
 export function OutputSetup(props: UQSetupProps) {
-  const { loading, mode, setSumoModal, setMogaModal } = props;
+  const { loading, mode, setSumoModal, setMogaModal, setUqStatsModal, onStatsClick } = props;
   const theme = useTheme();
   const { selectedFunction, outputVars } = useFunctionContext();
   const { filteredJobList } = useJobContext();
@@ -142,6 +144,18 @@ export function OutputSetup(props: UQSetupProps) {
           ))}
         </Select>
       </InputLabel>
+      {mode === "onlyQoI" && onStatsClick && (
+        <Button
+          variant="contained"
+          size="small"
+          disabled={loading || !selectedFunction || filteredJobList.length === 0}
+          onClick={onStatsClick}
+          sx={{ padding: "8px 16px" }}
+          mmux-testid="stats-button"
+        >
+          Stats
+        </Button>
+      )}
       {mode !== "onlyQoI" && setSumoModal && (
         <>
           <InputLabel
@@ -176,6 +190,18 @@ export function OutputSetup(props: UQSetupProps) {
               }}
             />
           </InputLabel>
+          {mode === "full" && setUqStatsModal && (
+            <Button
+              variant="contained"
+              size="small"
+              disabled={loading || !selectedFunction || filteredJobList.length === 0}
+              onClick={() => setUqStatsModal(true)}
+              sx={{ padding: "8px 16px" }}
+              mmux-testid="uq-stats-button"
+            >
+              UQ Stats
+            </Button>
+          )}
           <Button
             variant="contained"
             size="small"

@@ -7,7 +7,6 @@ import { useMMUXContext } from "../../context/MMUXContext";
 import { fetchWithRetry } from "../../utils/fetchRetry";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
-import HistogramStats from "./HistogramStats";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
 export default function UncertainUQ(props: LoadingPropsType) {
@@ -16,7 +15,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { numSamples, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
-  const [dataUQHistogram, setDataUQHistogram] = useState<DataUQHistogramType>();
+  const [, setDataUQHistogram] = useState<DataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
 
@@ -110,7 +109,6 @@ export default function UncertainUQ(props: LoadingPropsType) {
         />
       )}
       {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
-      {dataUQHistogram !== undefined && <HistogramStats {...dataUQHistogram} />}
     </Box>
   );
 }
