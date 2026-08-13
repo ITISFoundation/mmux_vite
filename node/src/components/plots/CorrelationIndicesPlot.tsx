@@ -16,12 +16,59 @@ import { fetchCorrelationIndices } from "../../utils/correlationIndices";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
-type CorrelationViewMode = "pearson" | "spearman";
+export type CorrelationViewMode = "pearson" | "spearman";
+
+type CorrelationIndicesPlotProps = {
+  viewMode: CorrelationViewMode;
+  scaleType: CorrelationScaleType;
+};
+
+type CorrelationControlsProps = {
+  viewMode: CorrelationViewMode;
+  scaleType: CorrelationScaleType;
+  onViewModeChange: (_event: React.MouseEvent<HTMLElement>, newMode: CorrelationViewMode | null) => void;
+  onScaleTypeChange: (_event: React.MouseEvent<HTMLElement>, newScale: CorrelationScaleType | null) => void;
+};
+
+export function CorrelationControls({ viewMode, scaleType, onViewModeChange, onScaleTypeChange }: CorrelationControlsProps) {
+  return (
+    <Box display="flex" gap={1}>
+      <ToggleButtonGroup
+        value={viewMode}
+        exclusive
+        onChange={onViewModeChange}
+        size="small"
+        mmux-testid="correlation-view-toggle"
+      >
+        <ToggleButton value="pearson" sx={{ textTransform: "none" }} mmux-testid="correlation-toggle-pearson">
+          Pearson
+        </ToggleButton>
+        <ToggleButton value="spearman" sx={{ textTransform: "none" }} mmux-testid="correlation-toggle-spearman">
+          Spearman
+        </ToggleButton>
+      </ToggleButtonGroup>
+      <ToggleButtonGroup
+        value={scaleType}
+        exclusive
+        onChange={onScaleTypeChange}
+        size="small"
+        mmux-testid="correlation-scale-toggle"
+      >
+        <ToggleButton value="linear" sx={{ textTransform: "none" }} mmux-testid="correlation-scale-linear">
+          Linear
+        </ToggleButton>
+        <ToggleButton value="abslog" sx={{ textTransform: "none" }} mmux-testid="correlation-scale-abslog">
+          Log
+        </ToggleButton>
+      </ToggleButtonGroup>
+    </Box>
+  );
+}
 
 // #470: single-plot sensitivity view — one bar per input variable, toggling between
 // Pearson and Spearman correlation strength to the selected QoI (beyond the current
 // 3-var 1D/2D/3D plot limit).
-export default function CorrelationIndicesPlot() {
+export default function CorrelationIndicesPlot({ viewMode, scaleType }: CorrelationIndicesPlotProps) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { numSamples, selectedQoI } = useMMUXContext();
@@ -29,8 +76,6 @@ export default function CorrelationIndicesPlot() {
   const [correlations, setCorrelations] = useState<CorrelationIndicesResponse["correlations"] | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [computing, setComputing] = useState(false);
-  const [viewMode, setViewMode] = useState<CorrelationViewMode>("pearson");
-  const [scaleType, setScaleType] = useState<CorrelationScaleType>("abslog");
 
   useEffect(() => {
     (async () => {
@@ -122,18 +167,6 @@ export default function CorrelationIndicesPlot() {
     ]);
   }, [correlations, viewMode, scaleType, inputVars, theme.palette.primary.main, theme.palette.secondary.main]);
 
-  const handleViewModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: CorrelationViewMode | null) => {
-    if (newMode !== null) {
-      setViewMode(newMode);
-    }
-  };
-
-  const handleScaleTypeChange = (_event: React.MouseEvent<HTMLElement>, newScale: CorrelationScaleType | null) => {
-    if (newScale !== null) {
-      setScaleType(newScale);
-    }
-  };
-
   const symlogAxis = symlogTicks();
   const gridStyle = { showgrid: true, gridcolor: theme.palette.divider };
   const minorGridStyle = { showgrid: true, gridcolor: theme.palette.divider, gridwidth: 0.5 };
@@ -183,38 +216,6 @@ export default function CorrelationIndicesPlot() {
 
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%">
-      <Box display="flex" justifyContent="flex-end" gap={1}>
-        <ToggleButtonGroup
-          value={viewMode}
-          exclusive
-          onChange={handleViewModeChange}
-          size="small"
-          mmux-testid="correlation-view-toggle"
-        >
-          <ToggleButton value="pearson" sx={{ textTransform: "none" }} mmux-testid="correlation-toggle-pearson">
-            Pearson
-          </ToggleButton>
-          <ToggleButton value="spearman" sx={{ textTransform: "none" }} mmux-testid="correlation-toggle-spearman">
-            Spearman
-          </ToggleButton>
-        </ToggleButtonGroup>
-        <ToggleButtonGroup
-          value={scaleType}
-          exclusive
-          onChange={handleScaleTypeChange}
-          size="small"
-          mmux-testid="correlation-scale-toggle"
-        >
-          <ToggleButton value="linear" sx={{ textTransform: "none" }} mmux-testid="correlation-scale-linear">
-            Linear
-          </ToggleButton>
-          {/* symlog hidden per user feedback (T43) — abslog covers the "compare magnitudes" use
-              case better; symlogTransform/symlogTicks kept for potential future re-use */}
-          <ToggleButton value="abslog" sx={{ textTransform: "none" }} mmux-testid="correlation-scale-abslog">
-            Log
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
       {computing && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
       {!computing && plotData.length === 0 && (
         <InsufficientDataWarning

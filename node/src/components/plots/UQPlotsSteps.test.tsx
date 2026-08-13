@@ -9,10 +9,12 @@ vi.mock("./UncertainUQ", () => ({
 
 vi.mock("./CorrelationIndicesPlot", () => ({
   default: () => <div data-testid="correlation-plot">CorrelationIndicesPlot content</div>,
+  ["CorrelationControls"]: () => <div data-testid="correlation-controls">Correlation controls</div>,
 }));
 
 vi.mock("./SobolIndicesPlot", () => ({
   default: () => <div data-testid="sobol-plot">SobolIndicesPlot content</div>,
+  ["SobolControls"]: () => <div data-testid="sobol-controls">Sobol controls</div>,
 }));
 
 const defaultProps = {

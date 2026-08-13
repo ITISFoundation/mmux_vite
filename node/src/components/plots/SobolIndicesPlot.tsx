@@ -9,9 +9,47 @@ import { buildSobolHeatmapData, fetchSobolIndices } from "../../utils/sobolIndic
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
-type SobolViewMode = "first-order" | "total-order" | "second-order";
+export type SobolViewMode = "first-order" | "total-order" | "second-order";
 
-export default function SobolIndicesPlot() {
+type SobolIndicesPlotProps = {
+  viewMode: SobolViewMode;
+  scaleType: ScaleType;
+};
+
+type SobolControlsProps = {
+  viewMode: SobolViewMode;
+  scaleType: ScaleType;
+  onViewModeChange: (_event: React.MouseEvent<HTMLElement>, newMode: SobolViewMode | null) => void;
+  onScaleTypeChange: (_event: React.MouseEvent<HTMLElement>, newScale: ScaleType | null) => void;
+};
+
+export function SobolControls({ viewMode, scaleType, onViewModeChange, onScaleTypeChange }: SobolControlsProps) {
+  return (
+    <Box display="flex" gap={1}>
+      <ToggleButtonGroup value={viewMode} exclusive onChange={onViewModeChange} size="small" mmux-testid="sobol-view-toggle">
+        <ToggleButton value="first-order" sx={{ textTransform: "none" }} mmux-testid="sobol-toggle-first">
+          First order
+        </ToggleButton>
+        <ToggleButton value="second-order" sx={{ textTransform: "none" }} mmux-testid="sobol-toggle-second">
+          Second order
+        </ToggleButton>
+        <ToggleButton value="total-order" sx={{ textTransform: "none" }} mmux-testid="sobol-toggle-total">
+          Total order
+        </ToggleButton>
+      </ToggleButtonGroup>
+      <ToggleButtonGroup value={scaleType} exclusive onChange={onScaleTypeChange} size="small" mmux-testid="sobol-scale-toggle">
+        <ToggleButton value="linear" sx={{ textTransform: "none" }} mmux-testid="sobol-scale-linear">
+          Linear
+        </ToggleButton>
+        <ToggleButton value="log" sx={{ textTransform: "none" }} mmux-testid="sobol-scale-log">
+          Log
+        </ToggleButton>
+      </ToggleButtonGroup>
+    </Box>
+  );
+}
+
+export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPlotProps) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { numSamples, selectedQoI } = useMMUXContext();
@@ -19,8 +57,6 @@ export default function SobolIndicesPlot() {
   const [sobolData, setSobolData] = useState<SobolIndicesResponse | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [computing, setComputing] = useState(false);
-  const [viewMode, setViewMode] = useState<SobolViewMode>("first-order");
-  const [scaleType, setScaleType] = useState<ScaleType>("log");
 
   useEffect(() => {
     (async () => {
@@ -102,18 +138,6 @@ export default function SobolIndicesPlot() {
     }
   }, [sobolData, viewMode, scaleType, inputVars, theme.palette.primary.main, theme.palette.secondary.main]);
 
-  const handleViewModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: SobolViewMode | null) => {
-    if (newMode !== null) {
-      setViewMode(newMode);
-    }
-  };
-
-  const handleScaleTypeChange = (_event: React.MouseEvent<HTMLElement>, newScale: ScaleType | null) => {
-    if (newScale !== null) {
-      setScaleType(newScale);
-    }
-  };
-
   const isHeatmap = viewMode === "second-order";
   const layout = isHeatmap
     ? {
@@ -146,39 +170,6 @@ export default function SobolIndicesPlot() {
 
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%">
-      <Box display="flex" justifyContent="flex-end" gap={1}>
-        <ToggleButtonGroup
-          value={viewMode}
-          exclusive
-          onChange={handleViewModeChange}
-          size="small"
-          mmux-testid="sobol-view-toggle"
-        >
-          <ToggleButton value="first-order" sx={{ textTransform: "none" }} mmux-testid="sobol-toggle-first">
-            First order
-          </ToggleButton>
-          <ToggleButton value="second-order" sx={{ textTransform: "none" }} mmux-testid="sobol-toggle-second">
-            Second order
-          </ToggleButton>
-          <ToggleButton value="total-order" sx={{ textTransform: "none" }} mmux-testid="sobol-toggle-total">
-            Total order
-          </ToggleButton>
-        </ToggleButtonGroup>
-        <ToggleButtonGroup
-          value={scaleType}
-          exclusive
-          onChange={handleScaleTypeChange}
-          size="small"
-          mmux-testid="sobol-scale-toggle"
-        >
-          <ToggleButton value="linear" sx={{ textTransform: "none" }} mmux-testid="sobol-scale-linear">
-            Linear
-          </ToggleButton>
-          <ToggleButton value="log" sx={{ textTransform: "none" }} mmux-testid="sobol-scale-log">
-            Log
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
       {computing && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
       {!computing && !sobolData && (
         <InsufficientDataWarning
