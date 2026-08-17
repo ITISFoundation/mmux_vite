@@ -15,7 +15,7 @@ dependencies = [
     "gunicorn==23.0.0",
     "itis-dakota==1.5.9",
     "numpy==2.2.6",
-    "osparc==0.8.3.post0.dev30",
+    "osparc==0.8.4.post0.dev2",
     "pandas==2.2.3",
     "python-dotenv==1.2.2",
     "scikit-learn==1.6.1",

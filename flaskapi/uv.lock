@@ -641,7 +641,7 @@ requires-dist = [
     { name = "gunicorn", specifier = "==23.0.0" },
     { name = "itis-dakota", specifier = "==1.5.9" },
     { name = "numpy", specifier = "==2.2.6" },
-    { name = "osparc", specifier = "==0.8.3.post0.dev30" },
+    { name = "osparc", specifier = "==0.8.4.post0.dev2" },
     { name = "pandas", specifier = "==2.2.3" },
     { name = "python-dotenv", specifier = "==1.2.2" },
     { name = "scikit-learn", specifier = "==1.6.1" },
@@ -726,7 +726,7 @@ wheels = [
 
 [[package]]
 name = "osparc"
-version = "0.8.3.post0.dev30"
+version = "0.8.4.post0.dev2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -741,12 +741,12 @@ dependencies = [
     { name = "urllib3" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/65/8d/1963526bc3daf46af241c6b10843f50e66ebb65952978474510bdd4415ea/osparc-0.8.3.post0.dev30-py3-none-any.whl", hash = "sha256:df99acbe7f077a43182050423afadfd8d7f57b6f21627709bce4405199479bab", size = 35444, upload-time = "2025-06-17T08:49:59.417Z" },
+    { url = "https://files.pythonhosted.org/packages/7a/b3/d466857156690fd7256c6a2e7fc2292490cf7f2d467ea531e524d562fa2f/osparc-0.8.4.post0.dev2-py3-none-any.whl", hash = "sha256:51838a176d4736c0ea85b79cbf8eb383985ff2145213994160cf8a31485dc872", size = 38395, upload-time = "2026-07-16T09:58:27.602Z" },
 ]
 
 [[package]]
 name = "osparc-client"
-version = "0.8.3.post0.dev30"
+version = "0.8.4.post0.dev2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
@@ -755,7 +755,7 @@ dependencies = [
     { name = "urllib3" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/23/6c/e79890e6cdfbfdd49900ad1e3c69039a512e929c320671e9aafb9f68ce80/osparc_client-0.8.3.post0.dev30-py3-none-any.whl", hash = "sha256:b155ba81757ea63ddc422d3038ea28f9f52a80f06354bd0abeb0e1c445091518", size = 207370, upload-time = "2025-06-17T08:50:00.574Z" },
+    { url = "https://files.pythonhosted.org/packages/ee/3f/54439547183bbf5996064416aaf507439f06d028dd58a5427c24b3d4dc00/osparc_client-0.8.4.post0.dev2-py3-none-any.whl", hash = "sha256:310910c55758be5fe2935fd7ee1393d86c7a15c5062abe85dd8e645a5b28e7d0", size = 233436, upload-time = "2026-07-16T09:58:28.722Z" },
 ]
 
 [[package]]
