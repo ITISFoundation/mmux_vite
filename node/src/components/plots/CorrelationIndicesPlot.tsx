@@ -8,6 +8,7 @@ import {
   correlationAbsLogRange,
   correlationLinearRange,
   correlationSymlogRange,
+  logDisplayValue,
   symlogTicks,
   symlogTransform,
   type CorrelationScaleType,
@@ -123,7 +124,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
         const raw = rawValues[i];
         const bucket = raw >= 0 ? positive : negative;
         bucket.x.push(inputVar);
-        bucket.y.push(Math.abs(raw));
+        bucket.y.push(logDisplayValue(Math.abs(raw)));
         bucket.raw.push(raw);
       });
       setPlotData([

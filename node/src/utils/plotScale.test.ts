@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { correlationSymlogRange, logFloor, sobolLogRange, symlogTicks, symlogTransform, toLogSafe } from "./plotScale";
+import {
+  correlationSymlogRange,
+  logDisplayValue,
+  logErrorDeltas,
+  logFloor,
+  sobolLogRange,
+  symlogTicks,
+  symlogTransform,
+  toLogSafe,
+} from "./plotScale";
 
 describe("toLogSafe", () => {
   it("returns log10 of the value when above the floor", () => {
@@ -63,5 +72,19 @@ describe("symlogTicks", () => {
 describe("sobolLogRange", () => {
   it("spans 1e-2 to 1 in log10 units", () => {
     expect(sobolLogRange).toEqual([-2, 0]);
+  });
+});
+
+describe("log display helpers", () => {
+  it("clamps rendered values without changing raw values", () => {
+    expect(logDisplayValue(0)).toBe(logFloor);
+    expect(logDisplayValue(0.2)).toBe(0.2);
+  });
+
+  it("shows only the CI portion at or above the display floor", () => {
+    expect(logErrorDeltas(0, 0, 0.005)).toEqual([0, 0]);
+    expect(logErrorDeltas(0.005, 0, 0.02)).toEqual([0.01, 0]);
+    expect(logErrorDeltas(0.2, 0.1, 0.3)[0]).toBeCloseTo(0.1);
+    expect(logErrorDeltas(0.2, 0.1, 0.3)[1]).toBeCloseTo(0.1);
   });
 });

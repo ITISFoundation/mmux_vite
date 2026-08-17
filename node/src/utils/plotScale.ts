@@ -13,6 +13,15 @@ export function toLogSafe(value: number): number {
   return Math.log10(Math.max(value, logFloor));
 }
 
+export function logDisplayValue(value: number): number {
+  return Math.max(value, logFloor);
+}
+
+export function logErrorDeltas(value: number, ciLow: number, ciHigh: number): [number, number] {
+  const displayValue = logDisplayValue(value);
+  return [Math.max(0, logDisplayValue(ciHigh) - displayValue), Math.max(0, displayValue - logDisplayValue(ciLow))];
+}
+
 /**
  * Symlog transform for signed values (correlation coefficients): values inside
  * the floor band `(-logFloor, logFloor)` collapse to exactly 0 (indistinguishable

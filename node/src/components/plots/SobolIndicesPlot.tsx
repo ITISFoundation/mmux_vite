@@ -4,7 +4,14 @@ import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { sobolLinearRange, sobolLogRange, toLogSafe, type ScaleType } from "../../utils/plotScale";
+import {
+  logDisplayValue,
+  logErrorDeltas,
+  sobolLinearRange,
+  sobolLogRange,
+  toLogSafe,
+  type ScaleType,
+} from "../../utils/plotScale";
 import { buildSobolHeatmapData, fetchSobolIndices } from "../../utils/sobolIndices";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
@@ -95,35 +102,59 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
     const { sobol, sobolSecondOrder } = sobolData;
 
     if (viewMode === "first-order") {
-      const mainValues = inputVars.map(v => sobol[v]?.main ?? 0);
-      const ciHighDelta = inputVars.map(v => Math.max(0, (sobol[v]?.mainCiHigh ?? sobol[v]?.main ?? 0) - (sobol[v]?.main ?? 0)));
-      const ciLowDelta = inputVars.map(v => Math.max(0, (sobol[v]?.main ?? 0) - (sobol[v]?.mainCiLow ?? sobol[v]?.main ?? 0)));
+      const rawValues = inputVars.map(v => sobol[v]?.main ?? 0);
+      const rawCiLow = inputVars.map(v => sobol[v]?.mainCiLow ?? sobol[v]?.main ?? 0);
+      const rawCiHigh = inputVars.map(v => sobol[v]?.mainCiHigh ?? sobol[v]?.main ?? 0);
+      const mainValues = scaleType === "log" ? rawValues.map(logDisplayValue) : rawValues;
+      const ciDeltas = inputVars.map((_, i) =>
+        scaleType === "log"
+          ? logErrorDeltas(rawValues[i], rawCiLow[i], rawCiHigh[i])
+          : [Math.max(0, rawCiHigh[i] - rawValues[i]), Math.max(0, rawValues[i] - rawCiLow[i])],
+      );
       setPlotData([
         {
           x: inputVars,
           y: mainValues,
+          customdata: inputVars.map((_, i) => [rawValues[i], rawCiLow[i], rawCiHigh[i]]),
           type: "bar",
           width: 0.45,
           name: "First order",
           marker: { color: theme.palette.primary.main },
-          error_y: { type: "data", symmetric: false, array: ciHighDelta, arrayminus: ciLowDelta },
+          error_y: {
+            type: "data",
+            symmetric: false,
+            array: ciDeltas.map(([high]) => high),
+            arrayminus: ciDeltas.map(([, low]) => low),
+          },
+          hovertemplate: "%{x}<br>Index: %{customdata[0]:.4f}<br>CI: %{customdata[1]:.4f} - %{customdata[2]:.4f}<extra></extra>",
         },
       ]);
     } else if (viewMode === "total-order") {
-      const totalValues = inputVars.map(v => sobol[v]?.total ?? 0);
-      const ciHighDelta = inputVars.map(v =>
-        Math.max(0, (sobol[v]?.totalCiHigh ?? sobol[v]?.total ?? 0) - (sobol[v]?.total ?? 0)),
+      const rawValues = inputVars.map(v => sobol[v]?.total ?? 0);
+      const rawCiLow = inputVars.map(v => sobol[v]?.totalCiLow ?? sobol[v]?.total ?? 0);
+      const rawCiHigh = inputVars.map(v => sobol[v]?.totalCiHigh ?? sobol[v]?.total ?? 0);
+      const totalValues = scaleType === "log" ? rawValues.map(logDisplayValue) : rawValues;
+      const ciDeltas = inputVars.map((_, i) =>
+        scaleType === "log"
+          ? logErrorDeltas(rawValues[i], rawCiLow[i], rawCiHigh[i])
+          : [Math.max(0, rawCiHigh[i] - rawValues[i]), Math.max(0, rawValues[i] - rawCiLow[i])],
       );
-      const ciLowDelta = inputVars.map(v => Math.max(0, (sobol[v]?.total ?? 0) - (sobol[v]?.totalCiLow ?? sobol[v]?.total ?? 0)));
       setPlotData([
         {
           x: inputVars,
           y: totalValues,
+          customdata: inputVars.map((_, i) => [rawValues[i], rawCiLow[i], rawCiHigh[i]]),
           type: "bar",
           width: 0.45,
           name: "Total order",
           marker: { color: theme.palette.secondary.main },
-          error_y: { type: "data", symmetric: false, array: ciHighDelta, arrayminus: ciLowDelta },
+          error_y: {
+            type: "data",
+            symmetric: false,
+            array: ciDeltas.map(([high]) => high),
+            arrayminus: ciDeltas.map(([, low]) => low),
+          },
+          hovertemplate: "%{x}<br>Index: %{customdata[0]:.4f}<br>CI: %{customdata[1]:.4f} - %{customdata[2]:.4f}<extra></extra>",
         },
       ]);
     } else {
@@ -131,7 +162,16 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
       const heatmap = buildSobolHeatmapData(sobol, sobolSecondOrder, inputVars);
       if (scaleType === "log") {
         const z = (heatmap.z as number[][]).map(row => row.map(toLogSafe));
-        setPlotData([{ ...heatmap, z, zmin: sobolLogRange[0], zmax: sobolLogRange[1] }]);
+        setPlotData([
+          {
+            ...heatmap,
+            z,
+            customdata: heatmap.z as number[][],
+            hovertemplate: "%{x} ↔ %{y}: %{customdata:.4f}<extra></extra>",
+            zmin: sobolLogRange[0],
+            zmax: sobolLogRange[1],
+          },
+        ]);
       } else {
         setPlotData([{ ...heatmap, zmin: sobolLinearRange[0], zmax: sobolLinearRange[1] }]);
       }

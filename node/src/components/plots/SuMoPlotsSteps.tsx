@@ -47,13 +47,12 @@ function SuMoPlotsSteps() {
 
   React.useEffect(() => {
     const jobs = filteredJobList;
-    if (jobs.length === 0) {
-      // avoid everything disappearing when there are not enough selected jobs
-      setFilteredInputVars(inputVars);
-    } else {
-      setFilteredInputVars(filterInputVars({ ...context, selectedFunction, inputVars, distribution }));
-    }
-    setMaxSteps(Math.min(filteredInputVars.length + 1, stepDefinitions.length));
+    const nextFilteredInputVars =
+      jobs.length === 0 ? inputVars : filterInputVars({ ...context, selectedFunction, inputVars, distribution });
+    const nextMaxSteps = Math.min(nextFilteredInputVars.length + 1, stepDefinitions.length);
+    setFilteredInputVars(nextFilteredInputVars);
+    setMaxSteps(nextMaxSteps);
+    setActiveStep(prevActiveStep => Math.min(prevActiveStep, Math.max(0, nextMaxSteps - 1)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedJobUids, filteredJobList]);
 
