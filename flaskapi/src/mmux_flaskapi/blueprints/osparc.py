@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from functools import wraps
 from pathlib import Path
 from typing import Any, cast
+from uuid import UUID
 
 from flask import Blueprint, jsonify, make_response, request
 
@@ -75,10 +76,10 @@ class _ResourceKind:
     list_local: Callable[[], list[dict[str, Any]]]
     get_local: Callable[[str], dict[str, Any] | None]
     fetch_remote_list: Callable[[OsparcApi], list[dict[str, Any]]]
-    fetch_remote_by_id: Callable[[OsparcApi, str], dict[str, Any]] | None = None
+    fetch_remote_by_id: Callable[[OsparcApi, UUID], dict[str, Any]] | None = None
 
 
-def _fetch_remote_job(osparc_api: OsparcApi, job_uid: str) -> dict[str, Any]:
+def _fetch_remote_job(osparc_api: OsparcApi, job_uid: UUID) -> dict[str, Any]:
     """Fetch a single real (non-local) job, enriched with its status and outputs."""
     job = osparc_api.get_job_api().get_function_job(job_uid)
     job_dict = cast(dict[str, Any], job.to_dict())
@@ -142,7 +143,7 @@ def _get_by_id(kind: _ResourceKind, uid: str) -> dict[str, Any]:
     if osparc_api is None:
         raise ValueError(f"Cannot fetch {kind.label} {uid}: oSPARC backend is not available")
     assert kind.fetch_remote_by_id is not None  # programming error if a kind omits this
-    return kind.fetch_remote_by_id(osparc_api, uid)
+    return kind.fetch_remote_by_id(osparc_api, UUID(uid))
 
 
 def _list_merged_for_parent(
@@ -164,7 +165,7 @@ def _list_merged_for_parent(
 
 
 def _get_job_field_by_id(
-    job_uid: str, field: str, fetch_remote_field: Callable[[OsparcApi, str], Any]
+    job_uid: str, field: str, fetch_remote_field: Callable[[OsparcApi, UUID], Any]
 ) -> Any:
     """Shared skeleton for `/get_function_job_status` and `/get_function_job_outputs`: a
     local job's field is already complete (local jobs run synchronously, see
@@ -181,7 +182,7 @@ def _get_job_field_by_id(
     osparc_api = _get_osparc_api_if_available()
     if osparc_api is None:
         raise ValueError(f"Cannot fetch job {job_uid}: oSPARC backend is not available")
-    return fetch_remote_field(osparc_api, job_uid)
+    return fetch_remote_field(osparc_api, UUID(job_uid))
 
 
 def _get_query_arg(*names: str) -> str:
@@ -296,7 +297,7 @@ def flask_list_function_jobs_for_functionid():
 def _fetch_remote_jobs_for_jobcollection(
     osparc_api: OsparcApi, jc_uid: str
 ) -> list[dict[str, Any]]:
-    jc = osparc_api.get_job_collection_api().get_function_job_collection(jc_uid)
+    jc = osparc_api.get_job_collection_api().get_function_job_collection(UUID(jc_uid))
     job_ids = jc.job_ids or []
     return [_fetch_remote_job(osparc_api, job_uid) for job_uid in job_ids]
 
