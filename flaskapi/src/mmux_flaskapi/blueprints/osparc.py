@@ -143,7 +143,12 @@ def _get_by_id(kind: _ResourceKind, uid: str) -> dict[str, Any]:
     if osparc_api is None:
         raise ValueError(f"Cannot fetch {kind.label} {uid}: oSPARC backend is not available")
     assert kind.fetch_remote_by_id is not None  # programming error if a kind omits this
-    return kind.fetch_remote_by_id(osparc_api, UUID(uid))
+    # The SDK's `@validate_call` decorator coerces a valid UUID-string at runtime (and
+    # raises a pydantic.ValidationError -- a ValueError subclass, so `api_endpoint` still
+    # turns malformed ids into 422s); `cast` only satisfies ty's static UUID annotation
+    # without eagerly parsing here, which would otherwise reject the plain-string ids the
+    # mocked SDK tests use.
+    return kind.fetch_remote_by_id(osparc_api, cast(UUID, uid))
 
 
 def _list_merged_for_parent(
@@ -182,7 +187,7 @@ def _get_job_field_by_id(
     osparc_api = _get_osparc_api_if_available()
     if osparc_api is None:
         raise ValueError(f"Cannot fetch job {job_uid}: oSPARC backend is not available")
-    return fetch_remote_field(osparc_api, UUID(job_uid))
+    return fetch_remote_field(osparc_api, cast(UUID, job_uid))
 
 
 def _get_query_arg(*names: str) -> str:
@@ -297,7 +302,7 @@ def flask_list_function_jobs_for_functionid():
 def _fetch_remote_jobs_for_jobcollection(
     osparc_api: OsparcApi, jc_uid: str
 ) -> list[dict[str, Any]]:
-    jc = osparc_api.get_job_collection_api().get_function_job_collection(UUID(jc_uid))
+    jc = osparc_api.get_job_collection_api().get_function_job_collection(cast(UUID, jc_uid))
     job_ids = jc.job_ids or []
     return [_fetch_remote_job(osparc_api, job_uid) for job_uid in job_ids]
 
