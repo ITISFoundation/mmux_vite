@@ -19,7 +19,7 @@ dependencies = [
     "pandas==2.2.3",
     "python-dotenv==1.2.2",
     "scikit-learn==1.6.1",
-    "scipy==1.15.3",
+    "scipy==1.17.1",
 ]
 
 [dependency-groups]
