@@ -89,6 +89,7 @@ V26: backend tests touching `local_job_store`/text-file persistence ! use per-ru
 V27: CI `prek` job generates `node/src/osparc-api-ts-client/` before `uvx prek run --all-files`; generated client is untracked and required by `tsconfig.app.json` path alias `osparc-api-ts-client`, so lint ! run against a clean checkout without the generated module (B16)
 V28: CI node-tests job ! run `npm test`; deprecated `npm run test:browser` alias may remain manual but ⊥ duplicate the jsdom suite in CI; real browser coverage remains `npm run test:e2e` (B17)
 V29: e2e fixtures ! use deterministic synthetic data from `tests/e2e/mock_osparc/data.py`; refactors ! change existing screenshot baselines; new views get separate baselines
+V30jk: Sobol second-order + order-mass diagnostics ! remain scientifically valid for typical 4–25 varying parameters: validated pair estimator/design, joint bootstrap uncertainty, UI `M1/M2/R`; ⊥ infer arbitrary-dimensional pair terms only from per-variable first/total indices; document group-total approximation + nominal-point UQ distinction
 
 ## §T
 id|status|task|cites
@@ -118,6 +119,7 @@ T27|.|Node deprecation cleanup: upgrade ESLint/toolchain off deprecated ESLint 8
 T28|.|incrementally fix the 30 `react-hooks/set-state-in-effect` warnings surfaced by eslint-plugin-react-hooks v7 (rule downgraded error→warn in T27 to unblock the ESLint v9 upgrade w/o a risky bulk behavioral refactor); mostly persistence/context-hydration + job-status polling patterns, needs case-by-case triage (derive-during-render vs justified external-sync exception)|node/eslint.config.js
 T29|x|Correlation and Sobol sensitivity-analysis backend endpoints, SciPy computation, response-key preservation, and numerical regression tests|flaskapi/SPEC.md T25
 T30|x|e2e UQ sensitivity coverage: reuse deterministic synthetic mock fixture; add correlation and Sobol screenshots; remove real material-sweep CSV/spec and keep existing SuMo baselines unchanged|V29,T29
+T31lm|.|high-priority Sobol validity: accurate arbitrary-`d` second-order backend + jointly bootstrapped `M1/M2/R`; surface order contributions/noise interpretation in frontend|V30jk,flaskapi/SPEC.md T31rb,node/SPEC.md T21gh
 
 ## §B
 id|date|cause|fix
