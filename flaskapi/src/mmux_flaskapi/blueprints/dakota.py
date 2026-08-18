@@ -12,6 +12,7 @@ from flask import Blueprint, abort, jsonify, make_response
 from itis_sumo.api import DistributionSpec, SumoInputError
 from itis_sumo.api import compute_correlations as sumo_compute_correlations
 from itis_sumo.api import cross_validate as sumo_cross_validate
+from itis_sumo.api import evaluate_along_axes as sumo_evaluate_along_axes
 from itis_sumo.api import evaluate_sobol as sumo_evaluate_sobol
 from itis_sumo.api import evaluate_uncertainty as sumo_evaluate_uncertainty
 from pydantic import ValidationError
@@ -43,7 +44,6 @@ from mmux_flaskapi.dakota.funs_data_processing import (
     sanitize_varnames,
 )
 from mmux_flaskapi.dakota.funs_evaluate import (
-    evaluate_sumo_along_axes,
     evaluate_sumo_crossvalidation,
     evaluate_sumo_on_grid,
     perform_moga_optimization,
@@ -522,93 +522,51 @@ def flask_evaluate_sumo_along_axes():
     """
     SuMo model evaluation along each input axis with optional fixed values.
 
-    Uses DataPreprocessor for variable mapping and normalization.
-    Uses Pydantic validation to ensure robust input validation and consistent error handling.
-    Returns predictions along each specified input variable axis in original space.
+    Delegates to itis_sumo.api.evaluate_along_axes, which fits a surrogate on the
+    completed-job samples and sweeps each input variable while holding the others
+    at their optional slider values. Unit/name mapping is handled internally, so
+    the result is already expressed in original variable names and units.
     """
     _logger.debug("Starting flask function: flask_evaluate_sumo_along_axes")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    request_data = parse_request_model(SumoAlongAxesRequest)
+    validated_request = parse_request_model(SumoAlongAxesRequest)
 
     try:
-        # Extract validated data
-        output_response = request_data.output
-        input_vars = request_data.inputs
-        jobs = request_data.function_jobs
-        slider_values = request_data.slider_values
+        output_response = validated_request.output
+        input_vars = validated_request.inputs
+        jobs = validated_request.function_jobs
+        slider_values = validated_request.slider_values
 
-        _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(jobs)} jobs")
-        _logger.debug(f"Slider values: {slider_values}")
-
-        # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "along_axes")
+        samples = _jobs_to_df(jobs, input_vars, [output_response])
 
-        # Use DataPreprocessor for standardized data handling
-        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
+        result = sumo_evaluate_along_axes(
+            samples,
+            input_vars,
+            output_response,
+            at=slider_values,
+            workspace=run_dir,
         )
 
-        # Get mapped variable names
-        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
-        mapped_output_var = preprocessor.output_variables[output_response].mapped_name
-
-        # Transform slider values to mapped space if provided
-        mapped_slider_values = None
-        if slider_values:
-            # Transform the slider values using the preprocessor
-            slider_df = pd.DataFrame([slider_values])
-            slider_df_transformed = preprocessor.transform(slider_df)
-            mapped_slider_values = cast(dict[str, float], slider_df_transformed.iloc[0].to_dict())
-            _logger.debug(f"Mapped slider values: {mapped_slider_values}")
-
-        # Evaluate SUMO along axes with mapped variables
-        results = evaluate_sumo_along_axes(
-            run_dir,
-            PROCESSED_TRAINING_FILE,
-            mapped_input_vars,
-            mapped_output_var,
-            cut_values=mapped_slider_values,
-        )
-
-        # Inverse transform results to return original variable names
-        # Map results from mapped input names back to original names
-        mapped_to_orig_input = {
-            cfg.mapped_name: orig for orig, cfg in preprocessor.input_variables.items()
+        predictions = {
+            var: {
+                "x": sweep.x,
+                "y_hat": sweep.predicted,
+                "std_hat": sweep.predicted_std,
+            }
+            for var, sweep in result.sweeps.items()
         }
-        predictions_original = {}
-        for m_var, axis_data in results.items():
-            orig_var = mapped_to_orig_input.get(m_var, m_var)
-            x_inv = preprocessor.inverse_transform({m_var: list(axis_data["x"])}).get(
-                orig_var, list(axis_data["x"])
-            )
-            y_inv = preprocessor.inverse_transform(
-                {mapped_output_var: list(axis_data["y_hat"])}
-            ).get(output_response, list(axis_data["y_hat"]))
-            axis_orig: dict = {"x": x_inv, "y_hat": y_inv}
-            if "std_hat" in axis_data:
-                axis_orig["std_hat"] = list(axis_data["std_hat"])
-            predictions_original[orig_var] = axis_orig
-
-        # Validate and structure response
-        response_data = {"predictions": predictions_original}
+        response_data = {"predictions": predictions}
         validated_response = SumoAlongAxesResponse.model_validate(response_data)
 
         _logger.debug("SUMO along axes evaluation completed successfully")
         return jsonify(validated_response.model_dump())
 
     except ValidationError as e:
-        _logger.error(f"Validation error in SUMO along axes: {e}")
-        error_details = []
-        for error in e.errors():
-            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
-            error_details.append(f"{location}: {error['msg']}")
-        handle_workflow_error(
-            Exception(f"Validation failed: {', '.join(error_details)}"),
-            "flask_evaluate_sumo_along_axes",
-            400,
-        )
-
+        handle_workflow_error(e, "flask_evaluate_sumo_along_axes", 400)
+    except (ValueError, SumoInputError) as e:
+        handle_workflow_error(e, "flask_evaluate_sumo_along_axes", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_evaluate_sumo_along_axes", 500)
 
