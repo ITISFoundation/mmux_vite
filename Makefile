@@ -28,7 +28,7 @@ check-types-flaskapi: install-flaskapi-deps ## run ty type checker against flask
 # Builds new service version ----------------------------------------------------------------------------
 define _bumpversion
 	# upgrades as $(subst $(1),,$@) version, commits and tags
-	@docker run -i --rm -v $(PWD):/ml-lab \
+	@docker run -it --rm -v $(PWD):/ml-lab \
 		-u $(shell id -u):$(shell id -g) \
 		itisfoundation/ci-service-integration-library:v2.1.23 \
 		sh -c "cd /ml-lab && bump2version --verbose --list --config-file $(1) $(subst $(2),,$@)"
@@ -43,7 +43,7 @@ version-patch version-minor version-major: .bumpversion.cfg ## increases service
 
 .PHONY: compose-spec
 compose-spec: ## runs ooil to assemble the docker-compose.yml file
-	@docker run -i --rm -v $(PWD):/ml-lab \
+	@docker run -it --rm -v $(PWD):/ml-lab \
 		-u $(shell id -u):$(shell id -g) \
 		itisfoundation/ci-service-integration-library:v2.1.23 \
 		sh -c "cd /ml-lab && ooil compose"
