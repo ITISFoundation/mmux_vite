@@ -10,6 +10,7 @@ import pandas as pd
 #
 from flask import Blueprint, abort, jsonify, make_response
 from itis_sumo.api import DistributionSpec, SumoInputError
+from itis_sumo.api import compute_correlations as sumo_compute_correlations
 from itis_sumo.api import cross_validate as sumo_cross_validate
 from itis_sumo.api import evaluate_uncertainty as sumo_evaluate_uncertainty
 from pydantic import ValidationError
@@ -37,14 +38,11 @@ from mmux_flaskapi.blueprints.dakota_models import (
     required_completed_jobs,
 )
 from mmux_flaskapi.dakota.funs_data_processing import (
-    compute_correlation_indices,
-    create_manual_uq_samples,
     process_input_file,
     sanitize_varnames,
 )
 from mmux_flaskapi.dakota.funs_evaluate import (
     evaluate_sobol_indices,
-    evaluate_sumo,
     evaluate_sumo_along_axes,
     evaluate_sumo_crossvalidation,
     evaluate_sumo_on_grid,
@@ -421,11 +419,10 @@ def flask_compute_correlation_indices():
     """
     Compute per-input <-> output Pearson and Spearman correlation coefficients (#470).
 
-    Generates the same kind of Monte Carlo sample set used for manual UQ propagation
-    (per-input distributions -> samples -> surrogate evaluation), then correlates each
-    input variable's samples against the predicted QoI values. Returns one response
-    covering all requested input variables, so sensitivity of a QoI to every parameter
-    can be inspected in a single plot (beyond the current 3-var 1D/2D/3D plot limit).
+    Correlates each input variable's completed-job samples against the response's
+    observed values (SPEC V16qf). Returns one response covering all requested input
+    variables, so sensitivity of a QoI to every parameter can be inspected in a
+    single plot (beyond the current 3-var 1D/2D/3D plot limit).
     """
     _logger.debug("Starting flask function: flask_compute_correlation_indices")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -435,62 +432,12 @@ def flask_compute_correlation_indices():
     try:
         output_response = validated_request.output
         input_vars = validated_request.input_vars
-        distributions = validated_request.distributions
-        num_samples = validated_request.num_samples
         jobs = validated_request.function_jobs
-        seed = validated_request.seed
 
-        # Create run directory
-        run_dir = create_run_dir(DAKOTA_RUNS_DIR, "correlation_indices")
+        samples = _jobs_to_df(jobs, input_vars, [output_response])
+        result = sumo_compute_correlations(samples, input_vars, output_response)
 
-        # Use DataPreprocessor for standardized data handling
-        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
-        )
-
-        # Get mapped variable names
-        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
-        mapped_output_var = preprocessor.output_variables[output_response].mapped_name
-
-        # Generate Monte Carlo samples using the provided distributions
-        _logger.debug(f"Generating {num_samples} correlation samples with seed {seed}")
-        distributions_dict = {var: dist.model_dump() for var, dist in distributions.items()}
-        samples = create_manual_uq_samples(input_vars, distributions_dict, num_samples, seed)
-        df_samples = pd.DataFrame(samples)
-        SAMPLES_FILE = run_dir / "correlation_samples.csv"
-        df_samples.to_csv(SAMPLES_FILE, index=False)
-
-        df_samples_transformed = preprocessor.transform(df_samples)
-        PROCESSED_SAMPLES_FILE = run_dir / "correlation_samples_processed.csv"
-        df_samples_transformed.to_csv(PROCESSED_SAMPLES_FILE, sep=" ", index=False)
-
-        # Evaluate surrogate model on the samples
-        results = evaluate_sumo(
-            run_dir,
-            PROCESSED_TRAINING_FILE,
-            PROCESSED_SAMPLES_FILE,
-            mapped_input_vars,
-            mapped_output_var,
-        )
-
-        prediction_key = mapped_output_var + "_hat"
-        if prediction_key not in results:
-            raise ValueError(
-                f"Cannot compute correlation indices without '{prediction_key}' predictions. "
-                f"Available result keys: {list(results.keys())}."
-            )
-
-        # Inverse transform predicted output values back to original space
-        output_predictions_original = preprocessor.inverse_transform(
-            {mapped_output_var: results[prediction_key]}
-        ).get(output_response, results[prediction_key])
-
-        # Compute per-input correlation coefficients (original variable names/units)
-        correlations = compute_correlation_indices(
-            df_samples, output_predictions_original, input_vars
-        )
-
-        response_data = {"correlations": correlations}
+        response_data = {"correlations": result.coefficients}
         validated_response = CorrelationIndicesResponse.model_validate(response_data)
 
         _logger.debug("Correlation indices computation completed successfully")
@@ -498,7 +445,7 @@ def flask_compute_correlation_indices():
 
     except ValidationError as e:
         handle_workflow_error(e, "flask_compute_correlation_indices", 400)
-    except ValueError as e:
+    except (ValueError, SumoInputError) as e:
         handle_workflow_error(e, "flask_compute_correlation_indices", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_compute_correlation_indices", 500)

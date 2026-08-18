@@ -250,13 +250,13 @@ class TestComputeCorrelationIndicesRoute:
         data = response.get_json()
         assert "seed" in data["error"]
 
-    def test_evaluation_failure_propagates_500(self, test_client: Flask, monkeypatch):
-        """If surrogate evaluation fails, the error is propagated as a 500."""
+    def test_correlation_computation_failure_propagates_500(self, test_client: Flask, monkeypatch):
+        """If itis_sumo.api.compute_correlations fails unexpectedly, it's a 500."""
 
         def fail_eval(*args, **kwargs):
             raise RuntimeError("Some Dakota error")
 
-        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.evaluate_sumo", fail_eval)
+        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.sumo_compute_correlations", fail_eval)
 
         input_vars = ["x1"]
         output = "y"
@@ -274,13 +274,14 @@ class TestComputeCorrelationIndicesRoute:
         data = response.get_json()
         assert "Some Dakota error" in data["error"]
 
-    def test_missing_prediction_key_raises_error(self, test_client: Flask, monkeypatch):
-        """If evaluate_sumo doesn't return the expected '_hat' prediction key, returns 400."""
+    def test_correlation_input_error_returns_400(self, test_client: Flask, monkeypatch):
+        """If itis_sumo.api.compute_correlations rejects the samples, it's a 400."""
+        from itis_sumo.api import SumoInputError
 
-        def fake_eval(*args, **kwargs):
-            return {}  # no "<output>_hat" key
+        def fail_eval(*args, **kwargs):
+            raise SumoInputError("Samples do not contain columns: ['y']")
 
-        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.evaluate_sumo", fake_eval)
+        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.sumo_compute_correlations", fail_eval)
 
         input_vars = ["x1"]
         output = "y"
@@ -296,4 +297,4 @@ class TestComputeCorrelationIndicesRoute:
         response = test_client.post("/flask/dakota/compute_correlation_indices", json=payload)
         assert response.status_code == 400
         data = response.get_json()
-        assert "hat" in data["error"]
+        assert "Samples do not contain columns" in data["error"]
