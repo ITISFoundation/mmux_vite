@@ -12,6 +12,7 @@ from flask import Blueprint, abort, jsonify, make_response
 from itis_sumo.api import DistributionSpec, SumoInputError
 from itis_sumo.api import compute_correlations as sumo_compute_correlations
 from itis_sumo.api import cross_validate as sumo_cross_validate
+from itis_sumo.api import evaluate_sobol as sumo_evaluate_sobol
 from itis_sumo.api import evaluate_uncertainty as sumo_evaluate_uncertainty
 from pydantic import ValidationError
 
@@ -42,7 +43,6 @@ from mmux_flaskapi.dakota.funs_data_processing import (
     sanitize_varnames,
 )
 from mmux_flaskapi.dakota.funs_evaluate import (
-    evaluate_sobol_indices,
     evaluate_sumo_along_axes,
     evaluate_sumo_crossvalidation,
     evaluate_sumo_on_grid,
@@ -457,12 +457,9 @@ def flask_compute_sobol_indices():
     Compute per-input first-order (main effect), total-order, and second-order
     (pairwise interaction) Sobol' indices (#470).
 
-    Builds a surrogate from completed jobs via ``evaluate_sumo()``, then computes
-    Sobol' indices directly in Python: generates Saltelli A/B/AB sample matrices
-    locally (honouring per-input distributions via ``scipy.stats.rv_continuous.ppf``),
-    evaluates all samples in ONE batch through ``evaluate_sumo()``, then applies
-    ``scipy.stats.sobol_indices`` for first/total order plus a closed-form second-order
-    (pairwise interaction) estimator.  Response always includes ``sobolSecondOrder``
+    Delegates to itis_sumo.api.evaluate_sobol, which fits a surrogate on the
+    completed-job samples and computes Sobol' indices from explicit per-input
+    distributions (SPEC V16qf). Response always includes ``sobolSecondOrder``
     (no opt-in flag).
     """
     _logger.debug("Starting flask function: flask_compute_sobol_indices")
@@ -475,42 +472,37 @@ def flask_compute_sobol_indices():
         input_vars = validated_request.input_vars
         distributions = validated_request.distributions
         # NOTE (V36): `num_samples` is intentionally unused here -- Sobol' uses a
-        # fixed SOBOL_BASE_SAMPLES constant (decoupled from the shared UQ numSamples
-        # field, which SobolIndicesRequest still carries only for schema/validation
-        # compatibility with ManualUQPropagationRequest, e.g. the >=5-completed-jobs check).
+        # fixed sample count internal to itis_sumo.api (decoupled from the shared UQ
+        # numSamples field, which SobolIndicesRequest still carries only for
+        # schema/validation compatibility with ManualUQPropagationRequest, e.g. the
+        # >=5-completed-jobs check).
         jobs = validated_request.function_jobs
         seed = validated_request.seed
 
-        # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "sobol_indices")
-
-        # Use DataPreprocessor for standardized data handling
-        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
-        )
-
-        # Get mapped variable names
-        mapped_output_var = preprocessor.output_variables[output_response].mapped_name
-
-        # Convert Pydantic distribution models to dicts for evaluate_sobol_indices
-        distributions_dict = {var: dist.model_dump() for var, dist in distributions.items()}
-
-        # Compute Sobol' indices: Saltelli sampling (fixed SOBOL_BASE_SAMPLES, V36)
-        # + single evaluate_sumo() batch
-        results = evaluate_sobol_indices(
-            run_dir,
-            PROCESSED_TRAINING_FILE,
+        samples = _jobs_to_df(jobs, input_vars, [output_response])
+        distribution_specs = {
+            var: DistributionSpec(
+                distribution=dist.distribution,
+                mean=dist.mean,
+                std=dist.std,
+                minimum=dist.min,
+                maximum=dist.max,
+            )
+            for var, dist in distributions.items()
+        }
+        result = sumo_evaluate_sobol(
+            samples,
             input_vars,
-            mapped_output_var,
-            distributions_dict,
-            preprocessor,
+            output_response,
+            distributions=distribution_specs,
             seed=seed,
+            workspace=run_dir,
         )
 
-        # Map sobol results (already keyed by original input variable names)
         response_data = {
-            "sobol": results["sobol"],
-            "sobol_second_order": results["sobolSecondOrder"],
+            "sobol": result.indices,
+            "sobol_second_order": result.second_order,
         }
         validated_response = SobolIndicesResponse.model_validate(response_data)
 
@@ -519,7 +511,7 @@ def flask_compute_sobol_indices():
 
     except ValidationError as e:
         handle_workflow_error(e, "flask_compute_sobol_indices", 400)
-    except ValueError as e:
+    except (ValueError, SumoInputError) as e:
         handle_workflow_error(e, "flask_compute_sobol_indices", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_compute_sobol_indices", 500)

@@ -225,8 +225,10 @@ class TestComputeSobolIndicesRoute:
     def _small_sobol_base_samples(self, monkeypatch):
         """V36: SOBOL_BASE_SAMPLES is now a fixed constant (⊥ request numSamples), so
         shrink it for these route tests to keep them fast (mirrors the old numSamples=10
-        trick these tests used before the base count was decoupled from the request)."""
-        monkeypatch.setattr("mmux_flaskapi.dakota.funs_evaluate.SOBOL_BASE_SAMPLES", 8)
+        trick these tests used before the base count was decoupled from the request).
+        The route now delegates to itis_sumo.api.evaluate_sobol, which reads the
+        constant from its own engine module -- patch it there, not the vendored copy."""
+        monkeypatch.setattr("itis_sumo.evaluate.funs_evaluate.SOBOL_BASE_SAMPLES", 8)
 
     def test_sobol_indices_success(self, test_client: Flask):
         """Valid request returns 200, sobol, and sobolSecondOrder keys (incl. bootstrap CIs)."""
@@ -414,7 +416,7 @@ class TestComputeSobolIndicesRoute:
         def fail_eval(*args, **kwargs):
             raise RuntimeError("Some error")
 
-        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.evaluate_sobol_indices", fail_eval)
+        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.sumo_evaluate_sobol", fail_eval)
 
         input_vars = ["x1"]
         output = "y"
