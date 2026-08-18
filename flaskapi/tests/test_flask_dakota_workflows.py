@@ -1417,27 +1417,45 @@ class TestManualUQWithUncertainty:
         assert len(data["binMeans"]) > 0
         assert len(data["binStds"]) > 0
 
-    def test_uq_uncertainty_noise_scaled_by_sqrt2_not_naive_erfinv(
+    def test_uq_uncertainty_builds_response_from_itis_sumo_result(
         self, test_client: Flask, monkeypatch
     ):
-        """B16 regression: the noise term `r` used to inject `std_hat` into each UQ histogram
-        realization must be `sqrt(2)*erfinv(uniform(-1,1))` (~N(0,1)), not bare `erfinv(...)`
-        (std 1/sqrt(2)~=0.707 -- since Phi(x) = (1+erf(x/sqrt(2)))/2, the sqrt(2) factor is
-        required for a correct standard-normal transform). This endpoint never enables output
-        normalization (setup_preprocessor_for_workflow called without normalization args), so
-        DataPreprocessor's transform/inverse_transform is the identity here. With a constant
-        `yhat`=0 and `std_hat` and a single evaluation sample per histogram realization, the
-        reported total `std` (aggregated over n_histograms realizations) must equal std_hat (up
-        to MC noise), not std_hat/sqrt(2) as the un-scaled bug would report."""
+        """The route builds its JSON response from itis_sumo.api.evaluate_uncertainty's typed
+        result (SPEC V16qf). The B16 sqrt(2)*erfinv noise-injection regression this test used to
+        guard now lives inside itis-sumo's own evaluate/funs_evaluate.py and is covered by
+        itis-sumo's test suite (test_metamodeling_analytical.py), not this repo. What stays worth
+        guarding here is the response-key rename: UncertaintyResult uses `minimum`/`maximum`, but
+        the pre-existing Pydantic response model (and the frontend contract) keeps `min`/`max`."""
+        from itis_sumo.api import UncertaintyResult
+
+        def fake_evaluate_uncertainty(*args, **kwargs):
+            return UncertaintyResult(
+                response="y",
+                distributions={},
+                seed=42,
+                bins_start=0.0,
+                bins_end=10.0,
+                bin_means=[0.1, 0.2],
+                bin_stds=[0.01, 0.02],
+                q1=2.0,
+                median=5.0,
+                q3=8.0,
+                whisker_min=0.0,
+                whisker_max=10.0,
+                outliers=[],
+                mean=5.0,
+                std=2.5,
+                minimum=0.0,
+                maximum=10.0,
+            )
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.sumo_evaluate_uncertainty",
+            fake_evaluate_uncertainty,
+        )
+
         input_vars = ["x1"]
         output = "y"
-        std_hat_value = 2.0
-
-        def fake_evaluate_sumo(*args, **kwargs):
-            return {"y1_hat": [0.0], "y1_std_hat": [std_hat_value]}
-
-        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.evaluate_sumo", fake_evaluate_sumo)
-
         payload = {
             "inputVars": input_vars,
             "output": output,
@@ -1456,13 +1474,11 @@ class TestManualUQWithUncertainty:
         assert response.status_code == 200
         data = response.get_json()
 
-        reported_std = data["std"]
-        naive_std = std_hat_value / np.sqrt(2)
-
-        # With the sqrt(2) fix, reported std should be close to std_hat_value (2.0);
-        # without it, it would be close to std_hat_value/sqrt(2) (~1.414).
-        assert abs(reported_std - std_hat_value) / std_hat_value < 0.1
-        assert abs(reported_std - naive_std) / naive_std > 0.1
+        assert data["min"] == 0.0
+        assert data["max"] == 10.0
+        assert data["mean"] == 5.0
+        assert data["binsStart"] == 0.0
+        assert data["binsEnd"] == 10.0
 
     # ------------------- Validation Error Cases -------------------
 

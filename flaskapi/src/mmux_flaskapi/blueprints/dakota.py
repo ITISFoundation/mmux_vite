@@ -5,13 +5,13 @@ import traceback
 from pathlib import Path
 from typing import NoReturn, cast
 
-import numpy as np
 import pandas as pd
 
 #
 from flask import Blueprint, abort, jsonify, make_response
-from itis_sumo.api import SumoInputError
+from itis_sumo.api import DistributionSpec, SumoInputError
 from itis_sumo.api import cross_validate as sumo_cross_validate
+from itis_sumo.api import evaluate_uncertainty as sumo_evaluate_uncertainty
 from pydantic import ValidationError
 
 #
@@ -334,10 +334,9 @@ def flask_manual_uq_propagation_with_uncertainty():
     """
     Perform manual UQ propagation with uncertainty quantification.
 
-    Uses DataPreprocessor for variable mapping and normalization.
-    Creates multiple histogram realizations using uncertainty estimates
-    from a trained surrogate model to quantify the uncertainty in the UQ results.
-    Returns results in original variable space.
+    Delegates to itis_sumo.api.evaluate_uncertainty, which owns sampling,
+    surrogate evaluation, and the histogram/boxplot summary end-to-end in the
+    response's original units (SPEC V16qf).
     """
     _logger.debug("Starting flask function: flask_manual_uq_propagation_with_uncertainty")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -358,150 +357,49 @@ def flask_manual_uq_propagation_with_uncertainty():
         n_histograms = validated_request.n_histograms
         seed = validated_request.seed
 
-        # Create run directory
+        # Create run directory (kept for debugging; itis-sumo persists its
+        # working files here instead of a self-cleaning temp dir).
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "uq_with_uncertainty")
 
-        # Use DataPreprocessor for standardized data handling
-        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
-        )
+        samples = _jobs_to_df(jobs, input_vars, [output_response])
 
-        # Get mapped variable names
-        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
-        mapped_output_var = preprocessor.output_variables[output_response].mapped_name
-
-        # Generate UQ samples using provided distributions
-        _logger.debug(f"Generating {num_samples} UQ samples with seed {seed}")
-        # Convert Pydantic models to dict format expected by create_manual_uq_samples
-        distributions_dict = {var: dist.model_dump() for var, dist in distributions.items()}
-        samples = create_manual_uq_samples(input_vars, distributions_dict, num_samples, seed)
-        df_samples = pd.DataFrame(samples)
-        UQ_SAMPLES_FILE = run_dir / "manual_uq_samples.csv"
-        df_samples.to_csv(UQ_SAMPLES_FILE, index=False)
-        _logger.debug(f"Generated manual UQ samples saved to {UQ_SAMPLES_FILE}")
-
-        df_samples_transformed = preprocessor.transform(df_samples)
-        PROCESSED_UQ_SAMPLES_FILE = run_dir / "manual_uq_samples_processed.csv"
-        df_samples_transformed.to_csv(PROCESSED_UQ_SAMPLES_FILE, sep=" ", index=False)
-
-        # Evaluate surrogate model on UQ samples
-        _logger.debug("Evaluating surrogate model on UQ samples")
-        results = evaluate_sumo(
-            run_dir,
-            PROCESSED_TRAINING_FILE,
-            PROCESSED_UQ_SAMPLES_FILE,
-            mapped_input_vars,
-            mapped_output_var,
-        )
-
-        # Verify uncertainty predictions are available
-        uncertainty_key = mapped_output_var + "_std_hat"
-        prediction_key = mapped_output_var + "_hat"
-
-        if uncertainty_key not in results:
-            available_keys = list(results.keys())
-            raise ValueError(
-                f"Cannot perform uncertainty quantification without '{uncertainty_key}' predictions. "
-                f"Available result keys: {available_keys}. "
-                f"Ensure the surrogate model was trained to predict uncertainty."
+        distribution_specs = {
+            var: DistributionSpec(
+                distribution=dist.distribution,
+                mean=dist.mean,
+                std=dist.std,
+                minimum=dist.min,
+                maximum=dist.max,
             )
+            for var, dist in distributions.items()
+        }
 
-        if prediction_key not in results:
-            available_keys = list(results.keys())
-            raise ValueError(
-                f"Cannot perform uncertainty quantification without '{prediction_key}' predictions. "
-                f"Available result keys: {available_keys}."
-            )
-
-        _logger.debug(f"Found required predictions: {prediction_key} and {uncertainty_key}")
-
-        # Perform uncertainty propagation using error function inverse
-        _logger.debug(
-            f"Generating {n_histograms} histogram realizations for uncertainty quantification"
-        )
-        from scipy.special import erfinv
-
-        # Set random seed for reproducibility
-        np.random.seed(seed)
-
-        # Generate samples in transformed space
-        all_results_transformed = np.empty(shape=(n_histograms, num_samples), dtype=float)
-        for i in range(n_histograms):
-            # Generate standard-normal samples via the inverse-CDF/erfinv trick: for U~Uniform(-1,1),
-            # sqrt(2)*erfinv(U) ~ N(0,1) (since Phi(x) = (1+erf(x/sqrt(2)))/2). The sqrt(2) factor is
-            # required -- erfinv(U) alone has std 1/sqrt(2) =~ 0.707, not 1, which would understate
-            # the injected uncertainty by ~29%.
-            r = np.sqrt(2) * erfinv(
-                np.random.uniform(-1 + 1e-10, 1 - 1e-10, size=num_samples)
-            )  # Avoid exact -1,1 for erfinv
-            all_results_transformed[i, :] = results[prediction_key] + r * results[uncertainty_key]
-
-        # Inverse transform results to original space for histogram calculation
-        # Create a results dict with all samples for inverse transform
-        all_samples_dict = {mapped_output_var: all_results_transformed.flatten().tolist()}
-        all_samples_original = preprocessor.inverse_transform(all_samples_dict)
-        all_values = np.array(all_samples_original[output_response])
-
-        # Reshape back to (n_histograms, num_samples)
-        all_values_reshaped = all_values.reshape(n_histograms, num_samples)
-
-        # Compute histogram statistics in original space
-        _logger.debug("Computing histogram and statistical summaries in original space")
-        all_values_flat = all_values.flatten()
-        num_bins = min(50, max(10, num_samples // 10))  # Ensure reasonable number of bins
-        hist_min, hist_max = np.percentile(all_values_flat, 1), np.percentile(all_values_flat, 99)
-
-        # Handle edge case where hist_min == hist_max
-        if hist_min == hist_max:
-            hist_range = max(1e-10, abs(hist_min) * 1e-6)  # Small range around the value
-            hist_min -= hist_range
-            hist_max += hist_range
-
-        bin_edges = np.linspace(hist_min, hist_max, num_bins + 1)
-
-        # Compute histograms for each realization
-        histograms = np.array(
-            [
-                np.histogram(all_values_reshaped[i, :], bins=bin_edges, density=True)[0]
-                for i in range(n_histograms)
-            ]
+        result = sumo_evaluate_uncertainty(
+            samples,
+            input_vars,
+            output_response,
+            distributions=distribution_specs,
+            num_samples=num_samples,
+            n_histograms=n_histograms,
+            seed=seed,
+            workspace=run_dir,
         )
 
-        # Calculate statistics across histogram realizations
-        bin_means = np.mean(histograms, axis=0)
-        bin_stds = np.std(histograms, axis=0)
-
-        # Calculate box plot quantities
-        q1 = np.percentile(all_values_flat, 25)
-        median = np.percentile(all_values_flat, 50)
-        q3 = np.percentile(all_values_flat, 75)
-        iqr = q3 - q1
-
-        # Calculate whisker boundaries (1.5 * IQR rule)
-        whisker_min = max(hist_min, q1 - 1.5 * iqr)
-        whisker_max = min(hist_max, q3 + 1.5 * iqr)
-
-        # Identify outliers
-        outliers = all_values_flat[
-            (all_values_flat < whisker_min) | (all_values_flat > whisker_max)
-        ]
-
-        # Create response object
         response_data = {
-            "bins_start": float(hist_min),
-            "bins_end": float(hist_max),
-            "bin_means": bin_means.tolist(),
-            "bin_stds": bin_stds.tolist(),
-            "q1": float(q1),
-            "median": float(median),
-            "q3": float(q3),
-            "whisker_min": float(whisker_min),
-            "whisker_max": float(whisker_max),
-            "outliers": outliers.tolist(),
-            "mean": float(np.mean(all_values_flat)),
-            "std": float(np.std(all_values_flat)),
-            "min": float(np.min(all_values_flat)),
-            "max": float(np.max(all_values_flat)),
+            "bins_start": result.bins_start,
+            "bins_end": result.bins_end,
+            "bin_means": result.bin_means,
+            "bin_stds": result.bin_stds,
+            "q1": result.q1,
+            "median": result.median,
+            "q3": result.q3,
+            "whisker_min": result.whisker_min,
+            "whisker_max": result.whisker_max,
+            "outliers": result.outliers,
+            "mean": result.mean,
+            "std": result.std,
+            "min": result.minimum,
+            "max": result.maximum,
         }
 
         # Validate response using Pydantic
@@ -512,7 +410,7 @@ def flask_manual_uq_propagation_with_uncertainty():
 
     except ValidationError as e:
         handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
-    except ValueError as e:
+    except (ValueError, SumoInputError) as e:
         handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_manual_uq_propagation_with_uncertainty", 500)
