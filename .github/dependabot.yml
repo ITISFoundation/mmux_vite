@@ -5,9 +5,17 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: uv
     directory: /flaskapi
     target-branch: develop
     schedule:
       interval: weekly
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
