@@ -24,4 +24,13 @@ describe("computeCvStatistics", () => {
     expect(metrics.stdYHat).toBe(0);
     expect(Number.isFinite(metrics.rmse)).toBe(true);
   });
+
+  it("rejects mismatched actual and predicted samples", () => {
+    expect(() => computeCvStatistics([1, 2], [1])).toThrow("CV actual and predicted arrays must have the same length");
+  });
+
+  it("reports zero R2 for incorrect constant-target predictions", () => {
+    expect(computeCvStatistics([2, 2], [3, 3]).r2).toBe(0);
+    expect(computeCvStatistics([2, 2], [2, 2]).r2).toBe(1);
+  });
 });

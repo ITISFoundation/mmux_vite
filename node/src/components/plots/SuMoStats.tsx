@@ -9,7 +9,7 @@ import StatCard from "./StatCard";
 import { computeCvStatistics } from "../../utils/sumoCvAccuracy";
 
 function SuMoStats() {
-  const { inputVars, selectedFunction, distribution } = useFunctionContext();
+  const { inputVars } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [metrics, setMetrics] = useState<CvMetricsType>();
@@ -44,7 +44,7 @@ function SuMoStats() {
     return () => {
       cancelled = true;
     };
-  }, [filteredJobList, inputVars, selectedFunction, distribution, selectedQoI]);
+  }, [filteredJobList, inputVars, selectedQoI]);
 
   if (loading) return <CalculatingWarning height={200} dontShowText />;
   if (!metrics) {

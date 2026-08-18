@@ -22,6 +22,7 @@ function UQStatsModal({ open, setOpen }: UQStatsModalProps) {
     if (!open) return undefined;
     if (filteredJobList.length === 0) {
       setStats(undefined);
+      setLoading(false);
       return undefined;
     }
     let cancelled = false;

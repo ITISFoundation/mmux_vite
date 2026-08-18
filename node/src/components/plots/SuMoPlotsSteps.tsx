@@ -50,7 +50,7 @@ function SuMoPlotsSteps(_props: unknown, ref: React.Ref<SuMoPlotsStepsHandle>) {
   React.useImperativeHandle(
     ref,
     () => ({
-      goToStats: () => setActiveStep(maxSteps - 1),
+      goToStats: () => setActiveStep(Math.max(0, maxSteps - 1)),
     }),
     [maxSteps],
   );
@@ -60,7 +60,9 @@ function SuMoPlotsSteps(_props: unknown, ref: React.Ref<SuMoPlotsStepsHandle>) {
     const newFilteredInputVars =
       jobs.length === 0 ? inputVars : filterInputVars({ ...context, selectedFunction, inputVars, distribution });
     setFilteredInputVars(newFilteredInputVars);
-    setMaxSteps(Math.min(newFilteredInputVars.length + 1, plotStepDefinitions.length) + 1);
+    const newMaxSteps = Math.min(newFilteredInputVars.length + 1, plotStepDefinitions.length) + 1;
+    setMaxSteps(newMaxSteps);
+    setActiveStep(prevActiveStep => Math.min(prevActiveStep, Math.max(0, newMaxSteps - 1)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedJobUids, filteredJobList]);
 
