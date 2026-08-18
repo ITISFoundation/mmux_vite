@@ -9,10 +9,11 @@ import pandas as pd
 
 #
 from flask import Blueprint, abort, jsonify, make_response
-from itis_sumo.api import DistributionSpec, SumoInputError
+from itis_sumo.api import DistributionSpec, SumoInputError, SumoResultError
 from itis_sumo.api import compute_correlations as sumo_compute_correlations
 from itis_sumo.api import cross_validate as sumo_cross_validate
 from itis_sumo.api import evaluate_along_axes as sumo_evaluate_along_axes
+from itis_sumo.api import evaluate_cv_metrics as sumo_evaluate_cv_metrics
 from itis_sumo.api import evaluate_grid as sumo_evaluate_grid
 from itis_sumo.api import evaluate_sobol as sumo_evaluate_sobol
 from itis_sumo.api import evaluate_uncertainty as sumo_evaluate_uncertainty
@@ -40,14 +41,7 @@ from mmux_flaskapi.blueprints.dakota_models import (
     UQWithUncertaintyResponse,
     required_completed_jobs,
 )
-from mmux_flaskapi.dakota.funs_data_processing import (
-    process_input_file,
-    sanitize_varnames,
-)
-from mmux_flaskapi.dakota.funs_evaluate import (
-    evaluate_sumo_crossvalidation,
-    perform_moga_optimization,
-)
+from mmux_flaskapi.dakota.funs_evaluate import perform_moga_optimization
 from mmux_flaskapi.data_preprocessor import DataPreprocessor
 
 #
@@ -61,24 +55,6 @@ DAKOTA_RUNS_DIR = Path.cwd().parent.parent.parent / "runs_dakota"
 _logger.info(f"Saving runs in {DAKOTA_RUNS_DIR}")
 DAKOTA_RUNS_DIR.mkdir(exist_ok=True)
 assert DAKOTA_RUNS_DIR.is_dir(), "Dakota Runs Dir does not exist!!"
-
-
-########################################################
-def _create_training_file_from_jobs(
-    jobs: list[FunctionJob],
-    input_vars: list[str],
-    output_response: str | list[str],
-    folder_name: str = "evaluate",
-) -> Path:
-    output_vars = [output_response] if isinstance(output_response, str) else output_response
-    df_jobs = _jobs_to_df(jobs, input_vars, output_vars)
-    df_jobs = df_jobs.rename(
-        columns={column: sanitize_varnames(column) for column in df_jobs.columns}
-    )
-    run_dir = create_run_dir(DAKOTA_RUNS_DIR, folder_name)
-    TRAINING_FILE = run_dir / "df_jobs.csv"
-    df_jobs.to_csv(TRAINING_FILE, index=False)
-    return TRAINING_FILE
 
 
 ########################################################
@@ -605,68 +581,52 @@ def flask_get_sumo_cv_accuracy_metrics():
     """
     Get SUMO cross-validation accuracy metrics for model evaluation.
 
-    Uses Pydantic validation to ensure robust input validation and consistent error handling.
-    Returns cross-validation accuracy metrics including RMSE, MAE, and other error statistics.
+    Delegates to itis_sumo.api.evaluate_cv_metrics, which fits a surrogate on the
+    completed-job samples and cross-validates it against the requested output. If
+    the run finishes without producing predictions, the response falls back to a
+    "No surrogate quality metrics found." string for that output, matching prior
+    behavior.
     """
     _logger.debug("Starting flask function: flask_get_sumo_cv_accuracy_metrics")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    request_data = parse_request_model(SumoCVAccuracyMetricsRequest)
+    validated_request = parse_request_model(SumoCVAccuracyMetricsRequest)
 
     try:
-        # Extract validated data
-        output_response = request_data.output
-        input_vars = request_data.inputs
-        jobs = request_data.function_jobs
+        output_response = validated_request.output
+        input_vars = validated_request.inputs
+        jobs = validated_request.function_jobs
 
-        _logger.debug(f"Validated request: {len(input_vars)} inputs, {len(jobs)} jobs")
+        run_dir = create_run_dir(DAKOTA_RUNS_DIR, "cv_accuracy_metrics")
+        samples = _jobs_to_df(jobs, input_vars, [output_response])
 
-        # Create training file from validated jobs
-        TRAINING_FILE = _create_training_file_from_jobs(jobs, input_vars, output_response)
-        run_dir = TRAINING_FILE.parent
+        try:
+            result = sumo_evaluate_cv_metrics(
+                samples, input_vars, output_response, workspace=run_dir
+            )
+            response_metrics = {
+                output_response: CVAccuracyMetrics(
+                    root_mean_squared=result.root_mean_squared,
+                    sum_abs=result.sum_abs,
+                    mean_abs=result.mean_abs,
+                    max_abs=result.max_abs,
+                )
+            }
+        except SumoResultError:
+            response_metrics = {output_response: "No surrogate quality metrics found."}
 
-        # Process the training file
-        PROCESSED_TRAINING_FILE = process_input_file(
-            TRAINING_FILE,
-            columns_to_keep=input_vars + [output_response],
-        )
-
-        # Evaluate SUMO cross-validation
-        results = evaluate_sumo_crossvalidation(
-            run_dir,
-            PROCESSED_TRAINING_FILE,
-            input_vars,
-            output_response,
-        )
-
-        _logger.debug(f"Raw CV results: {results}")
-
-        # Handle case where Dakota returns empty results
-        if not results:
-            # Return a default response indicating no metrics were found
-            results = {output_response: "No surrogate quality metrics found."}
-
-        # Transform results to match expected response format
-        response_metrics = {}
-        for var_name, metrics in results.items():
-            if isinstance(metrics, dict):
-                # Convert metrics dict to CVAccuracyMetrics model
-                cv_metrics = CVAccuracyMetrics(**metrics)
-                response_metrics[var_name] = cv_metrics
-            else:
-                # Handle string responses like "No surrogate quality metrics found."
-                response_metrics[var_name] = metrics
-
-        # Validate and structure response
         response_data = {"metrics": response_metrics}
         validated_response = SumoCVAccuracyMetricsResponse.model_validate(response_data)
 
         _logger.debug("SUMO CV accuracy metrics completed successfully")
         return jsonify(validated_response.model_dump())
 
+    except ValidationError as e:
+        handle_workflow_error(e, "flask_get_sumo_cv_accuracy_metrics", 400)
+    except (ValueError, SumoInputError) as e:
+        handle_workflow_error(e, "flask_get_sumo_cv_accuracy_metrics", 400)
     except Exception as e:
-        _logger.error(f"Error while getting SUMO CV accuracy metrics: {e}")
-        abort(make_response(jsonify({"error": str(e)}), 500))
+        handle_workflow_error(e, "flask_get_sumo_cv_accuracy_metrics", 500)
 
 
 @dakota_bp.route("/perform_moga_optimization", methods=["POST"])
