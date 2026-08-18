@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import traceback
 from pathlib import Path
-from typing import NoReturn, cast
+from typing import NoReturn
 
 import pandas as pd
 
@@ -13,6 +13,7 @@ from itis_sumo.api import DistributionSpec, SumoInputError
 from itis_sumo.api import compute_correlations as sumo_compute_correlations
 from itis_sumo.api import cross_validate as sumo_cross_validate
 from itis_sumo.api import evaluate_along_axes as sumo_evaluate_along_axes
+from itis_sumo.api import evaluate_grid as sumo_evaluate_grid
 from itis_sumo.api import evaluate_sobol as sumo_evaluate_sobol
 from itis_sumo.api import evaluate_uncertainty as sumo_evaluate_uncertainty
 from pydantic import ValidationError
@@ -45,7 +46,6 @@ from mmux_flaskapi.dakota.funs_data_processing import (
 )
 from mmux_flaskapi.dakota.funs_evaluate import (
     evaluate_sumo_crossvalidation,
-    evaluate_sumo_on_grid,
     perform_moga_optimization,
 )
 from mmux_flaskapi.data_preprocessor import DataPreprocessor
@@ -231,26 +231,6 @@ def _inverse_transform_output_results(
                 transformed[original_name + suffix] = inverse[original_name]
 
     return transformed
-
-
-def _mapped_to_original(preprocessor: DataPreprocessor) -> dict[str, str]:
-    """Return the original variable name for each mapped variable name."""
-    return preprocessor.get_inverse_mapping()
-
-
-def _inverse_transform_values(
-    preprocessor: DataPreprocessor,
-    mapped_key: str,
-    values: list[float],
-    mapped_to_original: dict[str, str],
-) -> list[float]:
-    """Inverse transform mapped values when they correspond to known variables."""
-    original_key = mapped_to_original.get(mapped_key)
-    if original_key is None:
-        return values
-
-    inverse = preprocessor.inverse_transform({mapped_key: values})
-    return inverse.get(original_key, values)
 
 
 def _bounds_from_distributions(
@@ -577,99 +557,45 @@ def flask_sumo_grid_evaluation():
     """
     SUMO model evaluation on a grid with optional fixed values for non-grid variables.
 
-    Uses DataPreprocessor for variable mapping and normalization.
-    Uses Pydantic validation to ensure robust input validation and consistent error handling.
-    Returns grid data with input coordinates and predictions in original space.
+    Delegates to itis_sumo.api.evaluate_grid, which fits a surrogate on the
+    completed-job samples and sweeps the requested grid variables while holding
+    the others at their optional slider values. Unit/name mapping is handled
+    internally, so grid_data is already keyed by original variable names.
     """
     _logger.debug("Starting flask function: flask_sumo_grid_evaluation")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    request_data = parse_request_model(SumoGridEvaluationRequest)
+    validated_request = parse_request_model(SumoGridEvaluationRequest)
 
     try:
-        # Extract validated data
-        output_response = request_data.output
-        grid_vars = request_data.grid_vars
-        input_vars = request_data.input_vars
-        jobs = request_data.function_jobs
-        slider_values = request_data.slider_values
+        output_response = validated_request.output
+        grid_vars = validated_request.grid_vars
+        input_vars = validated_request.input_vars
+        jobs = validated_request.function_jobs
+        slider_values = validated_request.slider_values
 
-        _logger.debug(
-            f"Validated request: {len(input_vars)} inputs, {len(grid_vars)} grid vars, {len(jobs)} jobs"
-        )
-        _logger.debug(f"Grid variables: {grid_vars}")
-        _logger.debug(f"Slider values: {slider_values}")
-
-        # Create run directory
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "grid_evaluation")
+        samples = _jobs_to_df(jobs, input_vars, [output_response])
 
-        # Use DataPreprocessor for standardized data handling
-        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_response], run_dir=run_dir
+        result = sumo_evaluate_grid(
+            samples,
+            input_vars,
+            output_response,
+            grid_variables=grid_vars,
+            at=slider_values,
+            workspace=run_dir,
         )
 
-        # Get mapped variable names
-        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
-        mapped_grid_vars = [preprocessor.input_variables[var].mapped_name for var in grid_vars]
-        mapped_output_var = preprocessor.output_variables[output_response].mapped_name
-
-        # Transform slider values to mapped space if provided
-        mapped_slider_values = None
-        if slider_values:
-            # Transform the slider values using the preprocessor
-            slider_df = pd.DataFrame([slider_values])
-            slider_df_transformed = preprocessor.transform(slider_df)
-            mapped_slider_values = cast(dict[str, float], slider_df_transformed.iloc[0].to_dict())
-            _logger.debug(f"Mapped slider values: {mapped_slider_values}")
-
-        # Evaluate SUMO on grid with mapped variables
-        results = evaluate_sumo_on_grid(
-            run_dir,
-            PROCESSED_TRAINING_FILE,
-            mapped_grid_vars,
-            mapped_input_vars,
-            mapped_output_var,
-            cut_values=mapped_slider_values,
-        )
-
-        # Inverse transform results to return original variable names.
-        mapped_to_orig = _mapped_to_original(preprocessor)
-        grid_data_original = {}
-        for key, values in results.items():
-            orig_key = mapped_to_orig.get(key, key)
-            if values and isinstance(values[0], list):
-                # 2D array (reshaped grid output) - flatten, inverse transform, reshape back
-                nested_values = cast(list[list[float]], values)
-                flat = [item for row in nested_values for item in row]
-                flat_inv = _inverse_transform_values(preprocessor, key, flat, mapped_to_orig)
-                inner = len(nested_values[0])
-                grid_data_original[orig_key] = [
-                    flat_inv[i : i + inner] for i in range(0, len(flat_inv), inner)
-                ]
-            else:
-                grid_data_original[orig_key] = _inverse_transform_values(
-                    preprocessor, key, list(values), mapped_to_orig
-                )
-
-        # Validate and structure response
-        response_data = {"grid_data": grid_data_original}
+        response_data = {"grid_data": result.data}
         validated_response = SumoGridEvaluationResponse.model_validate(response_data)
 
         _logger.debug("SUMO grid evaluation completed successfully")
         return jsonify(validated_response.model_dump())
 
     except ValidationError as e:
-        _logger.error(f"Validation error in SUMO grid evaluation: {e}")
-        error_details = []
-        for error in e.errors():
-            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
-            error_details.append(f"{location}: {error['msg']}")
-        handle_workflow_error(
-            Exception(f"Validation failed: {', '.join(error_details)}"),
-            "flask_sumo_grid_evaluation",
-            400,
-        )
-
+        handle_workflow_error(e, "flask_sumo_grid_evaluation", 400)
+    except (ValueError, SumoInputError) as e:
+        handle_workflow_error(e, "flask_sumo_grid_evaluation", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_sumo_grid_evaluation", 500)
 
