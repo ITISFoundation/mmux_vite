@@ -82,6 +82,8 @@ V24: `normalizePayloadToCamelCase` ⊥ case-convert keys nested *inside* identif
 V25: `JobSelector`'s destructive auto-select-all-SUCCESS (`onToggleAll(true)`+`setIsSuMoGenerated(true)`) fires ≤1× per genuinely-fetched `fetchedJobCollections` (`JobContext.hasAutoSelectedJobs`, reset only on refetch); ⊥ retrigger on view remount (Setup↔Results nav unmounts/remounts MOGA/SuMo/UQ per `ReturnCurrentView`, clobbering manual job (de)selection each time). Clearing the view-local `loading` spinner stays decoupled — that still fires on every remount (B19, refines B11)
 V26hs: shared MUI `MuiTable`/`MuiDataGrid` roots ! use `theme.palette.background.default` as their surface; ⊥ table backgrounds inherit the lighter card/paper surface (root V37hs)
 V27qn: shared `MuiDataGrid.columnHeaders` ! use `theme.palette.background.default` as their surface; ⊥ table headers inherit the lighter card/paper surface; guard: `theme.test.ts`
+V28df: Sobol results surface `M1` first-order, `M2` second-order, `R` third+-order as variance fractions w/ bootstrap CIs; explain `M1+M2+R=1` by definition, `ΣS_Ti` ≠1 due interaction overlap, `R` CI containing 0 = unresolved from sampling noise, and heuristic noise comparison = rough only; ⊥ imply negative finite-sample estimate is negative physical variance
+V29mn: Sobol UI distinguishes unique order masses (`M1`,`M2`,`R`) from overlapping total indices (`S_Ti`,`S_T,G`); group values shown as approximations when derived from truncated returned terms, with truncation caveat visible
 
 ## §T
 id|status|task|cites

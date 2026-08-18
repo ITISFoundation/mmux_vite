@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMMUXContext } from "../context/MMUXContext";
-import UncertainUQ from "../components/plots/UncertainUQ";
+import UQPlotsSteps from "../components/plots/UQPlotsSteps";
 import SuMoModal from "./SuMoModal";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { OutputSetup } from "./OutputSetup";
@@ -25,7 +25,7 @@ export default function UQ() {
   return (
     <MetaModelingUX headerType="title" tabTitle={`Uncertainty Quantification: ${selectedFunction?.title}`}>
       <OutputSetup loading={loading} setSumoModal={setSumoModal} mode="full" />
-      <UncertainUQ colsFetched={colsFetched} jobProgress={jobProgress} jobsFetched={jobsFetched} loading={loading} />
+      <UQPlotsSteps loading={loading} jobProgress={jobProgress} colsFetched={colsFetched} jobsFetched={jobsFetched} />
       <SuMoModal open={sumoModal} setOpen={setSumoModal} />
       <JobSampling
         loading={loading}
