@@ -14,6 +14,7 @@ dependencies = [
     "gevent==26.7.0",
     "gunicorn==23.0.0",
     "itis-dakota==1.5.9",
+    "itis-sumo",
     "numpy==2.4.6",
     "osparc==0.8.4.post0.dev2",
     "pandas==2.2.3",
@@ -95,6 +96,9 @@ indent-style = "space"
 
 [tool.uv]
 override-dependencies = ["httpx==0.28.1"]
+
+[tool.uv.sources]
+itis-sumo = { path = "../../itis-sumo", editable = true }
 
 [tool.ty.environment]
 python-version = "3.11"

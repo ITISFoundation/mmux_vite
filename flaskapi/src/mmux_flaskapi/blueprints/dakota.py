@@ -10,6 +10,8 @@ import pandas as pd
 
 #
 from flask import Blueprint, abort, jsonify, make_response
+from itis_sumo.api import SumoInputError
+from itis_sumo.api import cross_validate as sumo_cross_validate
 from pydantic import ValidationError
 
 #
@@ -45,7 +47,6 @@ from mmux_flaskapi.dakota.funs_evaluate import (
     evaluate_sumo,
     evaluate_sumo_along_axes,
     evaluate_sumo_crossvalidation,
-    evaluate_sumo_manual_crossvalidation,
     evaluate_sumo_on_grid,
     perform_moga_optimization,
 )
@@ -289,8 +290,10 @@ def flask_sumo_cross_validation():
     """
     Perform SUMO cross-validation to assess surrogate model accuracy.
 
-    Uses DataPreprocessor for variable mapping and normalization.
-    Returns cross-validation predictions with uncertainty estimates in original variable names.
+    Delegates to itis_sumo.api.cross_validate, which owns preprocessing, Dakota
+    configuration, and inverse transforms end-to-end (SPEC V16qf). Returns
+    cross-validation predictions with uncertainty estimates in original
+    variable names.
     """
     _logger.debug("Starting flask function: flask_sumo_cross_validation")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -302,45 +305,25 @@ def flask_sumo_cross_validation():
         input_vars: list[str] = validated_request.input_vars
         output_var: str = validated_request.output
 
-        # Create run directory
+        # Create run directory (kept for debugging; itis-sumo persists its
+        # working files here instead of a self-cleaning temp dir).
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "cross_validation")
 
-        # Use DataPreprocessor for standardized data handling
-        PROCESSED_TRAINING_FILE, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs, input_vars=input_vars, output_vars=[output_var], run_dir=run_dir
-        )
+        samples = _jobs_to_df(jobs, input_vars, [output_var])
 
-        # Get mapped variable names for Dakota
-        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
-        mapped_output_var = preprocessor.output_variables[output_var].mapped_name
+        result = sumo_cross_validate(samples, input_vars, output_var, workspace=run_dir)
 
-        # Evaluate cross-validation with mapped variable names
-        results = evaluate_sumo_manual_crossvalidation(
-            run_dir,
-            PROCESSED_TRAINING_FILE,
-            mapped_input_vars,
-            mapped_output_var,
-        )
-
-        # Validate that "results" contains the expected keys: estimate of output (_hat) and its std (_std_hat)
-        expected_keys = [mapped_output_var + "_hat", mapped_output_var + "_std_hat"]
-        missing_keys = [key for key in expected_keys if key not in results]
-        if missing_keys:
-            _logger.error(f"Missing expected keys in results: {missing_keys}")
-            return (
-                jsonify({"error": f"Missing expected keys in results: {missing_keys}"}),
-                422,
-            )  # Unprocessable Entity
-
-        # Inverse transform results to return original variable names while
-        # preserving prediction suffixes expected by the client.
-        results_transformed = _inverse_transform_output_results(preprocessor, results)
+        response_data = {
+            output_var: result.observed,
+            f"{output_var}_hat": result.predicted,
+            f"{output_var}_std_hat": result.predicted_std,
+        }
 
         _logger.debug("Cross-validation completed successfully!")
-        return jsonify(results_transformed)
+        return jsonify(response_data)
     except ValidationError as e:
         handle_workflow_error(e, "flask_sumo_cross_validation", 422)
-    except ValueError as e:
+    except (ValueError, SumoInputError) as e:
         handle_workflow_error(e, "flask_sumo_cross_validation", 400)
     except Exception as e:
         handle_workflow_error(e, "flask_sumo_cross_validation", 500)

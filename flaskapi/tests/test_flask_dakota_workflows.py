@@ -82,21 +82,28 @@ class TestSumoCrossValidation:
         for v in data[f"{OUTPUT}StdHat"]:
             assert isinstance(v, (int, float))
 
-    def test_sumo_cross_validation_preserves_prediction_suffixes_for_original_output_name(
+    def test_sumo_cross_validation_builds_response_from_itis_sumo_result(
         self, test_client: Flask, monkeypatch
     ):
-        """Mapped Dakota keys should come back under the original output name with preserved suffixes."""
+        """The route builds its JSON response from itis_sumo.api.cross_validate's
+        typed result, already in original names and units (itis-sumo's own test
+        suite covers the internal Dakota name-mapping, SPEC V16qf)."""
+        from itis_sumo.api import CrossValidationResult
 
-        def fake_eval(*args, **kwargs):
-            return {
-                "y1": [1.0, 2.0, 3.0],
-                "y1_hat": [1.1, 2.1, 3.1],
-                "y1_std_hat": [0.1, 0.2, 0.3],
-            }
+        def fake_cross_validate(*args, **kwargs):
+            return CrossValidationResult(
+                response="drag_force",
+                observed=[1.0, 2.0, 3.0],
+                predicted=[1.1, 2.1, 3.1],
+                predicted_std=[0.1, 0.2, 0.3],
+                warnings=[],
+                seed=42,
+                effective_config={},
+            )
 
         monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
-            fake_eval,
+            "mmux_flaskapi.blueprints.dakota.sumo_cross_validate",
+            fake_cross_validate,
         )
 
         payload = {
@@ -347,9 +354,7 @@ class TestSnakeCaseDakotaRequestCompatibility:
             raise RuntimeError("Some Dakota error")
 
         # monkeypatch the evaluation function in the dakota blueprint module where it's used
-        monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation", fail_eval
-        )
+        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.sumo_cross_validate", fail_eval)
         payload = {"output": "y", "inputVars": ["x1"], "FunctionJobs": create_function_job_list(50)}
         response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 500
@@ -379,7 +384,7 @@ class TestSnakeCaseDakotaRequestCompatibility:
             raise RuntimeError("Exploded during evaluation")
 
         monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
+            "mmux_flaskapi.blueprints.dakota.sumo_cross_validate",
             fail_eval,
         )
         payload = {
@@ -404,7 +409,7 @@ class TestSnakeCaseDakotaRequestCompatibility:
             raise RuntimeError("Exploded during evaluation")
 
         monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
+            "mmux_flaskapi.blueprints.dakota.sumo_cross_validate",
             fail_eval,
         )
         test_client.application.config["MMUX_INCLUDE_TRACEBACKS"] = True

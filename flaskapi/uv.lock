@@ -66,7 +66,7 @@ name = "cffi"
 version = "2.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pycparser", marker = "implementation_name != 'PyPy'" },
+    { name = "pycparser", marker = "(python_full_version < '3.13' and implementation_name != 'PyPy') or (implementation_name != 'PyPy' and platform_python_implementation != 'PyPy')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9e/ef/008a1939e372c06329a3fce4279c02f328488f3526744906eeec3da7ad5f/cffi-2.1.1.tar.gz", hash = "sha256:dd31f52ea1086513bb9df30f8fcee9b8918323ae067a3d5b78bc826a000712be", size = 530807, upload-time = "2026-08-03T21:21:18.939Z" }
 wheels = [
@@ -493,6 +493,41 @@ wheels = [
 ]
 
 [[package]]
+name = "itis-sumo"
+source = { editable = "../../itis-sumo" }
+dependencies = [
+    { name = "itis-dakota" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pydantic" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "itis-dakota", specifier = "==1.5.9" },
+    { name = "numpy", specifier = ">=2.0" },
+    { name = "pandas", specifier = ">=2.2" },
+    { name = "pydantic", specifier = ">=2.0" },
+    { name = "scikit-learn", specifier = ">=1.6" },
+    { name = "scipy", specifier = ">=1.15" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-cov", specifier = ">=5.0" },
+    { name = "ruff", specifier = ">=0.16.3" },
+    { name = "ty", specifier = ">=0.0.72" },
+]
+docs = [
+    { name = "matplotlib", specifier = ">=3.8" },
+    { name = "mkdocs", specifier = ">=1.6" },
+    { name = "mkdocs-material", specifier = ">=9.5" },
+]
+
+[[package]]
 name = "itsdangerous"
 version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -606,6 +641,7 @@ dependencies = [
     { name = "gevent" },
     { name = "gunicorn" },
     { name = "itis-dakota" },
+    { name = "itis-sumo" },
     { name = "numpy" },
     { name = "osparc" },
     { name = "pandas" },
@@ -640,8 +676,9 @@ requires-dist = [
     { name = "gevent", specifier = "==26.7.0" },
     { name = "gunicorn", specifier = "==23.0.0" },
     { name = "itis-dakota", specifier = "==1.5.9" },
-    { name = "osparc", specifier = "==0.8.4.post0.dev2" },
+    { name = "itis-sumo", editable = "../../itis-sumo" },
     { name = "numpy", specifier = "==2.4.6" },
+    { name = "osparc", specifier = "==0.8.4.post0.dev2" },
     { name = "pandas", specifier = "==2.2.3" },
     { name = "python-dotenv", specifier = "==1.2.2" },
     { name = "scikit-learn", specifier = "==1.6.1" },
