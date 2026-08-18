@@ -9,7 +9,7 @@ import pandas as pd
 
 #
 from flask import Blueprint, abort, jsonify, make_response
-from itis_sumo.api import DistributionSpec, SumoInputError, SumoResultError
+from itis_sumo.api import DistributionSpec, DomainSpec, SumoInputError, SumoResultError
 from itis_sumo.api import compute_correlations as sumo_compute_correlations
 from itis_sumo.api import cross_validate as sumo_cross_validate
 from itis_sumo.api import evaluate_along_axes as sumo_evaluate_along_axes
@@ -17,6 +17,7 @@ from itis_sumo.api import evaluate_cv_metrics as sumo_evaluate_cv_metrics
 from itis_sumo.api import evaluate_grid as sumo_evaluate_grid
 from itis_sumo.api import evaluate_sobol as sumo_evaluate_sobol
 from itis_sumo.api import evaluate_uncertainty as sumo_evaluate_uncertainty
+from itis_sumo.api import optimize as sumo_optimize
 from pydantic import ValidationError
 
 #
@@ -41,7 +42,6 @@ from mmux_flaskapi.blueprints.dakota_models import (
     UQWithUncertaintyResponse,
     required_completed_jobs,
 )
-from mmux_flaskapi.dakota.funs_evaluate import perform_moga_optimization
 from mmux_flaskapi.data_preprocessor import DataPreprocessor
 
 #
@@ -93,73 +93,6 @@ def _jobs_to_df(
 
     _logger.debug("N Completed jobs: %s", len(validated_selection.completed_jobs))
     return pd.DataFrame(validated_selection.to_records())
-
-
-def setup_preprocessor_for_workflow(
-    jobs: list[FunctionJob],
-    input_vars: list[str],
-    output_vars: list[str],
-    run_dir: Path,
-    input_normalizations: dict[str, str] | None = None,
-    output_normalizations: dict[str, str] | None = None,
-    input_sign_switches: list[str] | None = None,
-    output_sign_switches: list[str] | None = None,
-) -> tuple[Path, DataPreprocessor]:
-    """
-    Standardized preprocessor setup for Dakota workflows.
-
-    Args:
-        jobs: List of completed FunctionJob objects
-        input_vars: List of input variable names
-        output_vars: List of output variable names (can be single string or list)
-        run_dir: Directory to save files
-        input_normalizations: Optional dict mapping input vars to normalization methods
-        output_normalizations: Optional dict mapping output vars to normalization methods
-        input_sign_switches: Optional list of input vars to switch signs
-        output_sign_switches: Optional list of output vars to switch signs
-
-    Returns:
-        Tuple of (processed_training_file_path, fitted_preprocessor)
-    """
-    # Ensure output_vars is a list
-    if isinstance(output_vars, str):
-        output_vars = [output_vars]
-
-    df_completed_jobs = _jobs_to_df(jobs, input_vars, output_vars)
-
-    # Save original training file
-    training_file = run_dir / "df_jobs.csv"
-    df_completed_jobs.to_csv(training_file, index=False)
-
-    # Setup preprocessor
-    preprocessor = DataPreprocessor()
-    preprocessor.setup_variables(input_vars=input_vars, output_vars=output_vars)
-
-    # Configure normalizations if provided
-    if input_normalizations or output_normalizations:
-        preprocessor.setup_normalization(
-            input_normalizations=input_normalizations, output_normalizations=output_normalizations
-        )
-
-    # Configure sign switching if provided
-    if input_sign_switches or output_sign_switches:
-        preprocessor.setup_sign_switching(
-            input_sign_switches=input_sign_switches, output_sign_switches=output_sign_switches
-        )
-
-    # Fit and transform
-    df_preprocessed = preprocessor.fit_transform(df_completed_jobs)
-
-    # Save configuration
-    preprocessor.save_config(run_dir / "preprocessor_config.json")
-
-    # Save processed file (Dakota format - space separated)
-    processed_file = run_dir / "df_processed_jobs.dat"
-    df_preprocessed.to_csv(processed_file, sep=" ", index=False)
-
-    _logger.info(f"Preprocessor fitted and saved to {run_dir}")
-
-    return processed_file, preprocessor
 
 
 def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 500) -> NoReturn:
@@ -634,189 +567,49 @@ def flask_perform_moga_optimization():
     """
     Perform Multi-Objective Genetic Algorithm (MOGA) optimization.
 
-    Uses Pydantic validation to ensure robust input validation and consistent error handling.
-    Returns Pareto front solutions with input and output variable values for multi-objective optimization.
+    Delegates to itis_sumo.api.optimize, which fits one surrogate per objective
+    over the requested input domains and finds the Pareto-optimal trade-off
+    front. Unit/name mapping and maximize-direction sign handling are done
+    internally, so optimization_results is already expressed in original
+    variable names and original sign.
     """
     _logger.debug("Starting flask function: flask_perform_moga_optimization")
     _logger.debug("Cwd: " + str(Path.cwd()))
 
-    request_data = parse_request_model(MOGAOptimizationRequest)
+    validated_request = parse_request_model(MOGAOptimizationRequest)
 
     try:
-        # Extract validated data
-        input_vars = request_data.input_vars
-        input_distributions_raw = request_data.distributions
-        output_var_selection = request_data.output_var_selection
-        jobs = request_data.function_jobs
-
-        # Convert Pydantic distribution models to dict format expected by the optimization function
-        input_distributions = {
-            var: dist.model_dump() for var, dist in input_distributions_raw.items()
-        }
-
-        output_responses = list(output_var_selection.keys())
-        _logger.debug(
-            f"Validated request: {len(input_vars)} inputs, {len(output_responses)} outputs, {len(jobs)} jobs"
-        )
-        _logger.debug(f"Output responses: {output_responses}")
-        _logger.debug(f"Output var selection: {output_var_selection}")
+        input_vars = validated_request.input_vars
+        distributions = validated_request.distributions
+        output_var_selection = validated_request.output_var_selection
+        jobs = validated_request.function_jobs
+        output_vars = list(output_var_selection.keys())
 
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "moga")
-        maximize_outputs = [
-            variable
-            for variable, direction in output_var_selection.items()
-            if direction == "maximize"
-        ]
+        samples = _jobs_to_df(jobs, input_vars, output_vars)
 
-        processed_training_file, preprocessor = setup_preprocessor_for_workflow(
-            jobs=jobs,
-            input_vars=input_vars,
-            output_vars=output_responses,
-            run_dir=run_dir,
-            output_sign_switches=maximize_outputs,
+        domains: dict[str, DomainSpec] = {}
+        for var, dist in distributions.items():
+            if var not in input_vars:
+                continue
+            assert dist.min is not None and dist.max is not None, (
+                f"MOGA requires a uniform distribution with min/max for variable '{var}'"
+            )
+            domains[var] = DomainSpec(minimum=dist.min, maximum=dist.max)
+
+        result = sumo_optimize(
+            samples, input_vars, output_var_selection, domains=domains, workspace=run_dir
         )
 
-        mapped_input_vars = [preprocessor.input_variables[var].mapped_name for var in input_vars]
-        mapped_output_vars = [
-            preprocessor.output_variables[var].mapped_name for var in output_responses
-        ]
-        mapped_input_distributions = {
-            preprocessor.input_variables[var].mapped_name: distribution
-            for var, distribution in input_distributions.items()
-        }
-
-        # Perform MOGA optimization
-        results = perform_moga_optimization(
-            run_dir,
-            processed_training_file,
-            mapped_input_vars,
-            mapped_input_distributions,
-            mapped_output_vars,
-            moga_kwargs={"max_function_evaluations": 1000},
-        )
-
-        results = preprocessor.inverse_transform(results)
-
-        _logger.debug(f"Final MOGA results before validation: {results}")
-        _logger.debug(f"Result array lengths: {[(k, len(v)) for k, v in results.items()]}")
-
-        # Validate and structure response
-        response_data = {"optimization_results": results}
+        response_data = {"optimization_results": result.data}
         validated_response = MOGAOptimizationResponse.model_validate(response_data)
 
         _logger.debug("MOGA optimization completed successfully")
         return jsonify(validated_response.model_dump())
 
     except ValidationError as e:
-        _logger.error(f"Validation error in MOGA optimization: {e}")
-        error_details = []
-        for error in e.errors():
-            location = " -> ".join(str(x) for x in error["loc"]) if error["loc"] else "root"
-            error_details.append(f"{location}: {error['msg']}")
-        abort(make_response(jsonify({"error": "Validation failed", "details": error_details}), 400))
+        handle_workflow_error(e, "flask_perform_moga_optimization", 400)
+    except (ValueError, SumoInputError) as e:
+        handle_workflow_error(e, "flask_perform_moga_optimization", 400)
     except Exception as e:
-        error_message = str(e)
-
-        # Check for specific validation errors that should return 400
-        if "Missing required output variable" in error_message or (
-            "Missing outputs" in error_message and "job" in error_message
-        ):
-            _logger.error(f"Missing output variable validation error: {e}")
-            abort(make_response(jsonify({"error": f"Validation failed: {error_message}"}), 400))
-        elif "Distribution for variable" in error_message and "is not defined" in error_message:
-            _logger.error(f"Missing distribution validation error: {e}")
-            # Extract variable name for better error message
-            import re
-
-            var_match = re.search(
-                r"Distribution for variable '(.+?)' is not defined", error_message
-            )
-            if var_match:
-                var_name = var_match.group(1)
-                abort(
-                    make_response(
-                        jsonify(
-                            {
-                                "error": f"Validation failed: Missing distribution for variable '{var_name}'"
-                            }
-                        ),
-                        400,
-                    )
-                )
-            else:
-                abort(
-                    make_response(
-                        jsonify(
-                            {"error": f"Validation failed: Missing distribution - {error_message}"}
-                        ),
-                        400,
-                    )
-                )
-        elif isinstance(e, KeyError):
-            # KeyError typically means missing required variables/fields
-            _logger.error(f"Missing required field validation error: {e}")
-            field_name = str(e).strip("'\"")
-
-            # Determine if this is an input or output variable error by checking context
-            if field_name in input_vars:
-                abort(
-                    make_response(
-                        jsonify(
-                            {
-                                "error": f"Validation failed: Missing required input variable '{field_name}'"
-                            }
-                        ),
-                        400,
-                    )
-                )
-            elif field_name in output_responses:
-                abort(
-                    make_response(
-                        jsonify(
-                            {
-                                "error": f"Validation failed: Missing required output variable '{field_name}'"
-                            }
-                        ),
-                        400,
-                    )
-                )
-            else:
-                abort(
-                    make_response(
-                        jsonify(
-                            {
-                                "error": f"Validation failed: Missing required variable '{field_name}'"
-                            }
-                        ),
-                        400,
-                    )
-                )
-        elif error_message.startswith("Input ") and " not in job:" in error_message:
-            field_name = error_message[len("Input ") :].split(" not in job:", 1)[0]
-            _logger.error(f"Missing required input variable validation error: {e}")
-            abort(
-                make_response(
-                    jsonify(
-                        {
-                            "error": f"Validation failed: Missing required input variable '{field_name}'"
-                        }
-                    ),
-                    400,
-                )
-            )
-        elif error_message.startswith("Output ") and " not in job:" in error_message:
-            field_name = error_message[len("Output ") :].split(" not in job:", 1)[0]
-            _logger.error(f"Missing required output variable validation error: {e}")
-            abort(
-                make_response(
-                    jsonify(
-                        {
-                            "error": f"Validation failed: Missing required output variable '{field_name}'"
-                        }
-                    ),
-                    400,
-                )
-            )
-        else:
-            _logger.error(f"Error while performing MOGA optimization: {e}")
-            abort(make_response(jsonify({"error": str(e)}), 500))
+        handle_workflow_error(e, "flask_perform_moga_optimization", 500)

@@ -2164,38 +2164,36 @@ class TestMOGAOptimization:
         selections = ["minimize", "maximize"]
         return {var: selections[i % len(selections)] for i, var in enumerate(output_vars)}
 
-    def test_moga_restores_original_names_and_maximize_direction(
+    def test_moga_optimization_builds_response_from_itis_sumo_result(
         self, test_client: Flask, monkeypatch
     ):
-        """Mapped optimizer outputs should be returned in original variable names and original sign."""
+        """The route builds its JSON response from itis_sumo.api.optimize's typed
+        result, already in original names and original sign for maximized
+        objectives (itis-sumo's own test suite covers the internal Dakota
+        name-mapping and sign-switching, SPEC T27fr)."""
+        from itis_sumo.api import ParetoFrontResult
+
         input_vars = ["temperature"]
         output_vars = ["loss", "activation"]
         jobs = self.create_moga_jobs(10, input_vars, output_vars)
 
         captured_call = {}
 
-        def fake_perform_moga_optimization(
-            run_dir,
-            processed_training_file,
-            mapped_input_vars,
-            mapped_distributions,
-            mapped_output_vars,
-            moga_kwargs,
-        ):
-            captured_call["mapped_input_vars"] = mapped_input_vars
-            captured_call["mapped_distributions"] = mapped_distributions
-            captured_call["mapped_output_vars"] = mapped_output_vars
-            captured_call["moga_kwargs"] = moga_kwargs
-            return {
-                mapped_input_vars[0]: [0.25, 0.75],
-                mapped_output_vars[0]: [-2.0, -1.5],
-                mapped_output_vars[1]: [-2.0, -1.5],
-            }
+        def fake_optimize(samples, variables, objectives, *, domains, workspace=None, **kwargs):
+            captured_call["variables"] = list(variables)
+            captured_call["objectives"] = dict(objectives)
+            captured_call["domains"] = domains
+            return ParetoFrontResult(
+                objectives=dict(objectives),
+                variables=tuple(variables),
+                data={
+                    "temperature": [0.25, 0.75],
+                    "loss": [-2.0, -1.5],
+                    "activation": [2.0, 1.5],
+                },
+            )
 
-        monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.perform_moga_optimization",
-            fake_perform_moga_optimization,
-        )
+        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.sumo_optimize", fake_optimize)
 
         payload = {
             "inputVars": input_vars,
@@ -2213,14 +2211,15 @@ class TestMOGAOptimization:
         data = response.get_json()
         results = data["optimizationResults"]
 
-        assert captured_call["mapped_input_vars"] == ["x1"]
-        assert set(captured_call["mapped_output_vars"]) == {"y1", "y2"}
-        assert set(captured_call["mapped_distributions"].keys()) == {"x1"}
+        assert captured_call["variables"] == ["temperature"]
+        assert captured_call["objectives"] == {"loss": "minimize", "activation": "maximize"}
+        assert set(captured_call["domains"].keys()) == {"temperature"}
 
-        assert set(results.keys()) == {"temperature", "loss", "activation"}
-        assert results["temperature"] == [0.25, 0.75]
-        assert results["loss"] == [-2.0, -1.5]
-        assert results["activation"] == [2.0, 1.5]
+        assert results == {
+            "temperature": [0.25, 0.75],
+            "loss": [-2.0, -1.5],
+            "activation": [2.0, 1.5],
+        }
 
     def test_moga_preserves_irregular_case_variable_name_end_to_end(
         self, test_client: Flask, monkeypatch
@@ -2228,31 +2227,28 @@ class TestMOGAOptimization:
         """Regression test for the write-path case-mangling bug (node/SPEC.md T13/T19):
         a variable name that does NOT round-trip losslessly through camelCase<->snake_case
         (e.g. "TissueConduc") must survive as-is through `distributions` and
-        `FunctionJobs[].inputs` (both `to_snake_case_request`-parsed) all the way to the
-        DataPreprocessor's x1..xn mapping and back into the final response - not get
+        `FunctionJobs[].inputs` (both `to_snake_case_request`-parsed) all the way into
+        itis_sumo.api.optimize's call and back into the final response - not get
         silently lowercased to "tissue_conduc" along the way.
         """
+        from itis_sumo.api import ParetoFrontResult
+
         input_var = "TissueConduc"
         output_vars = ["loss"]
         jobs = self.create_moga_jobs(10, [input_var], output_vars)
 
-        def fake_perform_moga_optimization(
-            run_dir,
-            processed_training_file,
-            mapped_input_vars,
-            mapped_distributions,
-            mapped_output_vars,
-            moga_kwargs,
-        ):
-            return {
-                mapped_input_vars[0]: [0.25, 0.75],
-                mapped_output_vars[0]: [-2.0, -1.5],
-            }
+        captured_call = {}
 
-        monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.perform_moga_optimization",
-            fake_perform_moga_optimization,
-        )
+        def fake_optimize(samples, variables, objectives, *, domains, workspace=None, **kwargs):
+            captured_call["variables"] = list(variables)
+            captured_call["domains"] = domains
+            return ParetoFrontResult(
+                objectives=dict(objectives),
+                variables=tuple(variables),
+                data={input_var: [0.25, 0.75], "loss": [-2.0, -1.5]},
+            )
+
+        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.sumo_optimize", fake_optimize)
 
         payload = {
             "inputVars": [input_var],
@@ -2264,6 +2260,9 @@ class TestMOGAOptimization:
         response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
 
         assert response.status_code == 200
+        assert captured_call["variables"] == [input_var]
+        assert set(captured_call["domains"].keys()) == {input_var}
+
         results = response.get_json()["optimizationResults"]
         assert input_var in results, (
             f"Expected original variable name {input_var!r} preserved in response keys "
