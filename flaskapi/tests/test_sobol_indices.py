@@ -45,7 +45,7 @@ class TestSobolSampling:
     def test_sobol_base_samples_is_1024(self):
         """V36: Sobol' uses a fixed base N=1024 (Saltelli scheme), decoupled from
         the shared UQ `numSamples` field used by Histogram/Correlation."""
-        from mmux_flaskapi.dakota.funs_evaluate import SOBOL_BASE_SAMPLES
+        from itis_sumo.evaluate.funs_evaluate import SOBOL_BASE_SAMPLES
 
         assert SOBOL_BASE_SAMPLES == 1024
 

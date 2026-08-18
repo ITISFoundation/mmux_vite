@@ -13,7 +13,6 @@ dependencies = [
     "flask-cors==6.0.5",
     "gevent==26.7.0",
     "gunicorn==23.0.0",
-    "itis-dakota==1.5.9",
     "itis-sumo",
     "numpy==2.4.6",
     "osparc==0.8.4.post0.dev2",
@@ -102,7 +101,7 @@ itis-sumo = { path = "../../itis-sumo", editable = true }
 
 [tool.ty.environment]
 python-version = "3.11"
-# dakota.environment, itis-dakota, osparc, scikit-learn ship without inline type
+# osparc, scikit-learn ship without inline type
 # hints or py.typed stub packages. ty infers their exports as Unknown rather than
 # erroring (unlike mypy's ignore_missing_imports), so no per-module overrides are
 # needed for `ty check` to pass; this section pins the interpreter version ty

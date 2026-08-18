@@ -14,7 +14,6 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pandas as pd
 import pytest
-from conftest import TEST_RUNS_DIR
 from osparc_client.exceptions import ApiException as OsparcApiException
 
 
@@ -2064,43 +2063,36 @@ class TestSamplingErrorHandlingMissingCoverage:
         }
 
         # Mock grid dependencies
-        with patch("mmux_flaskapi.dakota.funs_evaluate.create_grid_samples") as mock_create_grid:
-            with patch("mmux_flaskapi.dakota.funs_data_processing.load_data") as mock_load_data:
-                with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
-                    run_dir = TEST_RUNS_DIR / "test_run"
-                    mock_create_run_dir.return_value = run_dir
-                    mock_create_grid.return_value = run_dir / "grid_samples.csv"
-                    sample_df = pd.DataFrame({"x": [0.0, 1.0]})
-                    mock_load_data.return_value = sample_df
+        with patch("mmux_flaskapi.blueprints.sampling.generate_grid_samples") as mock_grid:
+            sample_df = pd.DataFrame({"x": [0.0, 1.0]})
+            mock_grid.return_value = sample_df
 
-                    # Mock a generic exception in map_function
-                    def mock_generic_exception(*args, **kwargs):
-                        raise TimeoutError("Request timed out")
+            # Mock a generic exception in map_function
+            def mock_generic_exception(*args, **kwargs):
+                raise TimeoutError("Request timed out")
 
+            with patch(
+                "osparc_client.api.functions_api.FunctionsApi.map_function",
+                side_effect=mock_generic_exception,
+            ):
+                with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
                     with patch(
-                        "osparc_client.api.functions_api.FunctionsApi.map_function",
-                        side_effect=mock_generic_exception,
-                    ):
-                        with patch(
-                            "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-                        ) as mock_parent_ids:
-                            with patch(
-                                "mmux_flaskapi.blueprints.sampling._get_functions_api"
-                            ) as mock_get_api:
-                                mock_parent_ids.return_value.parent_node_id = "test-node"
-                                mock_parent_ids.return_value.parent_project_id = "test-project"
+                        "mmux_flaskapi.blueprints.sampling._get_functions_api"
+                    ) as mock_get_api:
+                        mock_parent_ids.return_value.parent_node_id = "test-node"
+                        mock_parent_ids.return_value.parent_project_id = "test-project"
 
-                                mock_api = Mock()
-                                mock_api.map_function = Mock(side_effect=mock_generic_exception)
-                                mock_get_api.return_value = mock_api
+                        mock_api = Mock()
+                        mock_api.map_function = Mock(side_effect=mock_generic_exception)
+                        mock_get_api.return_value = mock_api
 
-                                response = test_client.post("/flask/sampling/grid", json=payload)
+                        response = test_client.post("/flask/sampling/grid", json=payload)
 
-                                assert response.status_code == 500
-                                data = response.get_json()
-                                assert "error" in data
-                                assert "Error while creating Grid Sampling" in data["error"]
-                                assert "Request timed out" in data["error"]
+                        assert response.status_code == 500
+                        data = response.get_json()
+                        assert "error" in data
+                        assert "Error while creating Grid Sampling" in data["error"]
+                        assert "Request timed out" in data["error"]
 
     def test_test_job_osparc_api_generic_exception(self, test_client):
         """Test test_job when OSPARC API raises a generic exception."""
