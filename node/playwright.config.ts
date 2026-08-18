@@ -31,9 +31,10 @@ export default defineConfig({
   reporter: env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
   timeout: 120_000,
   expect: {
-    // Deterministic-ish UI; small tolerance for AA/font rasterization differences.
+    // Pixel baselines are strict; relax this only deliberately if the pinned
+    // environment cannot produce identical renders.
     toHaveScreenshot: {
-      maxDiffPixelRatio: 0.01,
+      maxDiffPixelRatio: 0,
       animations: "disabled",
       caret: "hide",
       // Plotly/DataGrid can take a few render frames to settle; the default 5s
