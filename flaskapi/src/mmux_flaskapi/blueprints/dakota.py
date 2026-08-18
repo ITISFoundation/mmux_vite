@@ -42,9 +42,6 @@ from mmux_flaskapi.blueprints.dakota_models import (
     UQWithUncertaintyResponse,
     required_completed_jobs,
 )
-from mmux_flaskapi.data_preprocessor import DataPreprocessor
-
-#
 from mmux_flaskapi.utils.helpers import create_run_dir
 from mmux_flaskapi.utils.json_serializer import parse_request_model
 
@@ -114,57 +111,6 @@ def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 5
     }
 
     abort(make_response(jsonify(response_payload), status_code))
-
-
-def _inverse_transform_output_results(
-    preprocessor: DataPreprocessor,
-    results: dict[str, list[float]],
-) -> dict[str, list[float]]:
-    """Inverse transform output values while preserving Dakota suffixes."""
-    transformed: dict[str, list[float]] = {}
-
-    for original_name, config in preprocessor.output_variables.items():
-        mapped_name = config.mapped_name
-
-        if mapped_name in results:
-            inverse = preprocessor.inverse_transform({mapped_name: results[mapped_name]})
-            if original_name in inverse:
-                transformed[original_name] = inverse[original_name]
-
-        for suffix in ("_hat", "_std_hat"):
-            suffixed_key = mapped_name + suffix
-            if suffixed_key not in results:
-                continue
-            inverse = preprocessor.inverse_transform({mapped_name: results[suffixed_key]})
-            if original_name in inverse:
-                transformed[original_name + suffix] = inverse[original_name]
-
-    return transformed
-
-
-def _bounds_from_distributions(
-    input_vars: list[str],
-    distributions: dict,
-) -> tuple[list[float], list[float]]:
-    """Derive Sobol'/VBD sampling bounds per input variable from its distribution (#470).
-
-    Uses explicit min/max when provided (always the case for a "uniform" distribution,
-    enforced by `DistributionParams`); otherwise falls back to mean +/- 3*std for a
-    "normal" distribution (also always present, enforced by `DistributionParams`).
-    variance_based_decomp needs a bounded continuous_design domain, unlike the
-    correlation-indices endpoint which samples directly from the distribution.
-    """
-    lower_bounds: list[float] = []
-    upper_bounds: list[float] = []
-    for var in input_vars:
-        dist = distributions[var]
-        if dist.min is not None and dist.max is not None:
-            lower_bounds.append(dist.min)
-            upper_bounds.append(dist.max)
-        else:
-            lower_bounds.append(dist.mean - 3 * dist.std)
-            upper_bounds.append(dist.mean + 3 * dist.std)
-    return lower_bounds, upper_bounds
 
 
 ########################################################
