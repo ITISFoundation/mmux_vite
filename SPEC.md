@@ -24,6 +24,7 @@ Domain: scientific UQ & sensitivity analysis; documented use-case = TI (Temporal
 - secrets via `.env` (`make .env` clones `.env-devel`); `.env` ∉ git
 - WSL2+Windows local dev: fallback app ports (e.g. 8889-8892) may require Windows admin `netsh interface portproxy` rules to reach WSL Docker publications from Windows browser; WSL IP may change after restart → refresh rules
 - CI green before merge: prek + node tests + flaskapi tests + image build (`ooil compose` then `docker compose build`)
+- pytest test cases ! carry ≥1 marker ∈ {`unit`,`integration`,`analytical`}
 - e2e tests = TS `@playwright/test` runner in `tests/e2e/` (⊥ vitest browser mode for e2e); pixel-perfect `toHaveScreenshot` baselines committed to git; determinism via pinned Playwright docker image (fonts/render); oSPARC mocked at backend boundary (⊥ real oSPARC or production data in e2e); existing baselines stay fixed across refactors; new correlation/Sobol baselines added separately
 - commits ! Conventional Commits `<type>(<scope>): <subject> (#PR)`; types {feat,fix,refactor,chore,docs,test}; feature branch → PR review → merge to `main`
 - ⊥ hardcoded secrets / sensitive data in code or git
@@ -91,6 +92,7 @@ V28: CI node-tests job ! run `npm test`; deprecated `npm run test:browser` alias
 V29: e2e fixtures ! use deterministic synthetic data from `tests/e2e/mock_osparc/data.py`; refactors ! change existing screenshot baselines; new views get separate baselines
 V30jk: Sobol second-order + order-mass diagnostics ! remain scientifically valid for typical 4–25 varying parameters: validated pair estimator/design, joint bootstrap uncertainty, UI `M1/M2/R`; ⊥ infer arbitrary-dimensional pair terms only from per-variable first/total indices; document group-total approximation + nominal-point UQ distinction
 V31vr: dev-compose services bind-mounting live source (`./flaskapi:/app`, `./node:/app`) ! pin `user: "${UID:-1000}:${GID:-1000}"` so container runtime writes (`.venv`, `runs_local/*.json`, `__pycache__`, `node_modules`) land host-owned; ⊥ root-run container process writing into a host bind mount (B18kt)
+V32qt: ∀ pytest test case ∈ `flaskapi/tests/` → ≥1 marker ∈ {`unit`,`integration`,`analytical`}
 
 ## §T
 id|status|task|cites
