@@ -111,3 +111,6 @@ python-version = "3.11"
 # erroring (unlike mypy's ignore_missing_imports), so no per-module overrides are
 # needed for `ty check` to pass; this section pins the interpreter version ty
 # resolves stdlib/third-party types against so local and CI runs agree.
+
+[tool.ty.src]
+exclude = ["tests/"]
