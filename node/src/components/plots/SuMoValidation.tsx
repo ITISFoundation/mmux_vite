@@ -11,6 +11,7 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { getResponseErrorMessage } from "../../utils/httpError";
 
 function SuMoValidation() {
   const theme = useTheme();
@@ -20,6 +21,7 @@ function SuMoValidation() {
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
   const [propagating, setPropagating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>();
   const [width, setWidth] = useState(1080);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -97,6 +99,7 @@ function SuMoValidation() {
     setCvMetrics(undefined);
     setPlotData([]);
     setPropagating(true);
+    setErrorMessage(undefined);
 
     fetch(`/flask/dakota/sumo_cross_validation`, {
       method: "POST",
@@ -108,7 +111,12 @@ function SuMoValidation() {
         log: false,
       }),
     })
-      .then(response => response.json())
+      .then(async response => {
+        if (response && !response.ok) {
+          return Promise.reject(new Error(await getResponseErrorMessage(response)));
+        }
+        return response.json();
+      })
       .then(response => {
         if (!response || (response && response.error)) {
           console.warn("SuMo Validation error: ", response.error);
@@ -117,6 +125,7 @@ function SuMoValidation() {
           const data = response;
           createDataAndMetrics(data);
           setPropagating(false);
+          setErrorMessage(undefined);
         }
       })
       .catch(error => {
@@ -124,6 +133,7 @@ function SuMoValidation() {
         setPropagating(false);
         setPlotData([]);
         setCvMetrics(undefined);
+        setErrorMessage(error instanceof Error ? error.message : String(error));
       });
   };
 
@@ -133,6 +143,69 @@ function SuMoValidation() {
       return RunSuMoValidation(jobs);
     };
     run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
+
+  // V25 (../flaskapi/SPEC.md V26/V27): paired t-test bias banner + convergence curve,
+  // fetched from the (now populated) `/get_sumo_cv_accuracy_metrics` endpoint alongside
+  // the existing MAE/RMSE + CV scatter above.
+  const RunCvAccuracyMetrics = async (jobs: OsparcFunctionJob[], requestKey: string) => {
+    fetch(`/flask/dakota/get_sumo_cv_accuracy_metrics`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        inputs: inputVars,
+        output: selectedQoI,
+        FunctionJobs: jobs,
+      }),
+    })
+      .then(async response => {
+        if (response && !response.ok) {
+          // V18/V23-style: reject (⊥ resolve) so .catch clears lastFetchedCvAccuracyKey
+          // and identical inputs can be retried instead of caching a failed fetch.
+          return Promise.reject(new Error(await getResponseErrorMessage(response)));
+        }
+        return response.json();
+      })
+      .then((data: SumoCvAccuracyMetricsResponse) => {
+        if (!data || data.error) {
+          return Promise.reject(new Error(`Error fetching SuMo CV accuracy metrics: ${data?.error}`));
+        }
+        setTTest(data.tTest);
+        setConvergence(data.convergence || []);
+        lastFetchedCvAccuracyKey.current = requestKey;
+        return undefined;
+      })
+      .catch(error => {
+        console.warn("Error fetching SuMo CV accuracy metrics:", error);
+        lastFetchedCvAccuracyKey.current = undefined;
+        setTTest(undefined);
+        setConvergence([]);
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      });
+  };
+
+  useEffect(() => {
+    const jobs = filteredJobList;
+    if (!jobs || jobs.length < 5 || !selectedQoI) {
+      lastFetchedCvAccuracyKey.current = undefined;
+      setTTest(undefined);
+      setConvergence([]);
+      return;
+    }
+    // V16-style: dedup by stable logical request key; same key → no new fetch.
+    const requestKey = buildDakotaRequestKey({
+      axes: inputVars,
+      sliderValues: {},
+      qoi: selectedQoI,
+      fn: selectedFunction?.uid,
+      jobList: jobs.map(job => job.uid),
+      logScale: false,
+    });
+    if (requestKey === lastFetchedCvAccuracyKey.current) {
+      return;
+    }
+    RunCvAccuracyMetrics(jobs, requestKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
 
@@ -190,6 +263,7 @@ function SuMoValidation() {
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}
           height={plotStyle.height}
+          errorMessage={errorMessage}
           numInputVars={inputVars.length}
         />
       )}
