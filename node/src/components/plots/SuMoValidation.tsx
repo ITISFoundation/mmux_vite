@@ -146,69 +146,6 @@ function SuMoValidation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
 
-  // V25 (../flaskapi/SPEC.md V26/V27): paired t-test bias banner + convergence curve,
-  // fetched from the (now populated) `/get_sumo_cv_accuracy_metrics` endpoint alongside
-  // the existing MAE/RMSE + CV scatter above.
-  const RunCvAccuracyMetrics = async (jobs: OsparcFunctionJob[], requestKey: string) => {
-    fetch(`/flask/dakota/get_sumo_cv_accuracy_metrics`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        inputs: inputVars,
-        output: selectedQoI,
-        FunctionJobs: jobs,
-      }),
-    })
-      .then(async response => {
-        if (response && !response.ok) {
-          // V18/V23-style: reject (⊥ resolve) so .catch clears lastFetchedCvAccuracyKey
-          // and identical inputs can be retried instead of caching a failed fetch.
-          return Promise.reject(new Error(await getResponseErrorMessage(response)));
-        }
-        return response.json();
-      })
-      .then((data: SumoCvAccuracyMetricsResponse) => {
-        if (!data || data.error) {
-          return Promise.reject(new Error(`Error fetching SuMo CV accuracy metrics: ${data?.error}`));
-        }
-        setTTest(data.tTest);
-        setConvergence(data.convergence || []);
-        lastFetchedCvAccuracyKey.current = requestKey;
-        return undefined;
-      })
-      .catch(error => {
-        console.warn("Error fetching SuMo CV accuracy metrics:", error);
-        lastFetchedCvAccuracyKey.current = undefined;
-        setTTest(undefined);
-        setConvergence([]);
-        setErrorMessage(error instanceof Error ? error.message : String(error));
-      });
-  };
-
-  useEffect(() => {
-    const jobs = filteredJobList;
-    if (!jobs || jobs.length < 5 || !selectedQoI) {
-      lastFetchedCvAccuracyKey.current = undefined;
-      setTTest(undefined);
-      setConvergence([]);
-      return;
-    }
-    // V16-style: dedup by stable logical request key; same key → no new fetch.
-    const requestKey = buildDakotaRequestKey({
-      axes: inputVars,
-      sliderValues: {},
-      qoi: selectedQoI,
-      fn: selectedFunction?.uid,
-      jobList: jobs.map(job => job.uid),
-      logScale: false,
-    });
-    if (requestKey === lastFetchedCvAccuracyKey.current) {
-      return;
-    }
-    RunCvAccuracyMetrics(jobs, requestKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
-
   useEffect(() => {
     const resizeObserver = new ResizeObserver(event => {
       // Depending on the layout, you may need to swap inlineSize with blockSize
