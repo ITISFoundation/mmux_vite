@@ -29,6 +29,10 @@ export const fetchWithRetry = async (
     await delay(exponentialWait + jitter);
   }
 
+  if (response) {
+    return response;
+  }
+
   // If we reach here, it means all retries failed
   throw ErrorToRetry ?? new Error("fetchWithRetry: All retries failed and no error was captured."); // Re-throw the last error encountered
 };
