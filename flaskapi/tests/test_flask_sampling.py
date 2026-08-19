@@ -16,6 +16,8 @@ import pandas as pd
 import pytest
 from osparc_client.exceptions import ApiException as OsparcApiException
 
+pytestmark = pytest.mark.integration
+
 
 # Define the mocks directly in this file for simplicity
 def mock_map_function_success(*args, **kwargs):

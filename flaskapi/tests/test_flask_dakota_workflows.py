@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 from flask import Flask
 
+pytestmark = pytest.mark.integration
+
 
 ###
 # Example FunctionJob structure (should match actual FunctionJob model)

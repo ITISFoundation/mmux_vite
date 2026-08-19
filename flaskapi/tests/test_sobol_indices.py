@@ -13,6 +13,8 @@ import numpy as np
 import pytest
 from flask import Flask
 
+pytestmark = pytest.mark.analytical
+
 # ---------------------------------------------------------------------------
 # Pure-function helpers (no Dakota/surrogate needed)
 # ---------------------------------------------------------------------------
