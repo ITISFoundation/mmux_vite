@@ -23,7 +23,7 @@
     "@mui/styled-engine-sc": "^7.0.2",
     "@mui/x-data-grid": "^8.4.0",
     "@tailwindcss/vite": "^4.1.6",
-    "plotly.js": "^3.0.1",
+    "plotly.js": "^3.7.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-plotly.js": "^4.1.0",
