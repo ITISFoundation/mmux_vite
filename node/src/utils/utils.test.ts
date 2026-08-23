@@ -56,9 +56,7 @@ describe("fetchWithRetry", () => {
     const fetchMock = vi.fn(() => Promise.reject(new Error("Network error")));
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    await expect(fetchWithRetry("https://example.com/api", {}, 3, 100)).rejects.toThrow(
-      "fetchWithRetry: All retries failed and no error was captured.",
-    );
+    await expect(fetchWithRetry("https://example.com/api", {}, 3, 100)).rejects.toThrow("Network error");
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 

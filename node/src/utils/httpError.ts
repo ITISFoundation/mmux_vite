@@ -1,7 +1,6 @@
 export async function getResponseErrorMessage(response: Response): Promise<string> {
-  const responseCopy = response.clone();
   try {
-    const payload: unknown = await responseCopy.json();
+    const payload: unknown = await response.clone().json();
     if (payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string") {
       const message = payload.error.trim();
       if (message) return message;
