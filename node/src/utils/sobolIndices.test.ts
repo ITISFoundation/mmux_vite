@@ -87,7 +87,12 @@ describe("fetchSobolIndices", () => {
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
-      json: () => Promise.resolve({ sobol: {}, sobolSecondOrder: {} }),
+      json: () => Promise.resolve({ error: "Sobol model failed" }),
+      clone: () =>
+        ({
+          json: () => Promise.resolve({ error: "Sobol model failed" }),
+          text: () => Promise.resolve(""),
+        }) as Response,
     } as Response);
 
     await expect(
@@ -98,7 +103,7 @@ describe("fetchSobolIndices", () => {
         functionJobs: mockJobs,
         numSamples: 100,
       }),
-    ).rejects.toThrow(/500/);
+    ).rejects.toThrow("Sobol model failed");
   });
 });
 

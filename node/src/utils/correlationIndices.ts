@@ -1,6 +1,7 @@
 import { PlotData } from "plotly.js";
 import { OsparcFunctionJob } from "../context/types";
 import { fetchWithRetry } from "./fetchRetry";
+import { getResponseErrorMessage } from "./httpError";
 
 export type FetchCorrelationIndicesParams = {
   inputVars: string[];
@@ -34,7 +35,7 @@ export async function fetchCorrelationIndices(params: FetchCorrelationIndicesPar
   if (!response.ok) {
     // V23-style: reject (⊥ resolve) on non-OK so callers' .catch/try-catch can clear
     // any cached fetch-dedup state instead of treating the failure as a success.
-    throw new Error(`Error in correlation indices response: ${response.status}, ${response.statusText}`);
+    throw new Error(await getResponseErrorMessage(response));
   }
 
   return response.json();
