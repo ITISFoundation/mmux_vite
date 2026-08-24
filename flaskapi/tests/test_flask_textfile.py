@@ -14,6 +14,10 @@ This module tests all text file management functionality including:
 import json
 from unittest.mock import mock_open, patch
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 
 class TestTextFileEndpoints:
     """Test class for text file management endpoints."""

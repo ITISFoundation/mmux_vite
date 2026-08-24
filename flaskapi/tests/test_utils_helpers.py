@@ -32,6 +32,8 @@ from mmux_flaskapi.utils.helpers import (
     snake_to_camel,
 )
 
+pytestmark = pytest.mark.unit
+
 
 class TestEnvironmentDetection:
     """Test environment detection functionality."""
