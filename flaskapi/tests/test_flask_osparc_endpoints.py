@@ -6,6 +6,10 @@ Different patches for osparc_client.api.functions_api.***Api.*** are provided, t
 
 from unittest.mock import patch
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 #####################################################################################
 ## Listing endpoints for Functions, Jobs, Job Collections
 #####################################################################################

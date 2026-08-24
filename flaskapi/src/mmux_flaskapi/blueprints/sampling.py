@@ -9,11 +9,13 @@ from typing import Any, NamedTuple
 from flask import Blueprint, jsonify, make_response
 
 #
+from itis_sumo.api import DomainSpec, generate_grid_samples, generate_lhs_samples
+
+#
 from osparc_client.models.body_clone_study_v0_studies_study_id_clone_post import (
     BodyCloneStudyV0StudiesStudyIdClonePost,
 )
 
-#
 from mmux_flaskapi.blueprints.osparc import _function_schema_vars, _get_function_job_from_uid
 from mmux_flaskapi.blueprints.sampling_models import (
     CloneJobRequest,
@@ -23,7 +25,7 @@ from mmux_flaskapi.blueprints.sampling_models import (
     LHSSamplingRequest,
     TestJobRequest,
 )
-from mmux_flaskapi.utils.helpers import create_run_dir, dict_keys_snake_to_camel
+from mmux_flaskapi.utils.helpers import dict_keys_snake_to_camel
 from mmux_flaskapi.utils.json_serializer import parse_request_model
 from mmux_flaskapi.utils.local_job_store import (
     create_local_function,
@@ -125,21 +127,12 @@ def flask_lhs():
         _logger.debug(f"Validated config: {[c.model_dump() for c in config]}")
         _logger.debug(f"n: {n}, k: {k}, seed: {seed}, function_uid: {function_uid}")
 
-        from mmux_flaskapi.dakota.lhs import lhs
-
-        H = lhs(n, k, seed=seed)
-        _logger.debug(f"H: {H.shape}")
-
-        samples = []
-        for j in range(n):
-            sample = {}
-            for i in range(k):
-                variable_config = config[i]
-                scaled_value = float(
-                    H[i, j] * (variable_config.end - variable_config.start) + variable_config.start
-                )
-                sample[variable_config.variable] = scaled_value
-            samples.append(sample)
+        domains = {vc.variable: DomainSpec(minimum=vc.start, maximum=vc.end) for vc in config}
+        design = generate_lhs_samples(domains, n, seed=seed)
+        samples = [
+            {name: float(value) for name, value in row.items()}
+            for row in design.to_dict(orient="records")
+        ]
 
         _logger.debug(f"Generated {len(samples)} samples")
 
@@ -170,34 +163,18 @@ def flask_grid_sampling():
         function_uid = validated_request.fun_uid
         config = validated_request.config
         input_vars = [var_config.variable for var_config in config]
-        run_dir = create_run_dir(SAMPLING_RUNS_DIR, "grid_sampling")
 
         _logger.debug(f"Validated config: {[c.model_dump() for c in config]}")
         _logger.debug(f"Input variables: {input_vars}, function_uid: {function_uid}")
 
-        from mmux_flaskapi.dakota.funs_data_processing import load_data
-        from mmux_flaskapi.dakota.funs_evaluate import create_grid_samples
+        domains = {vc.variable: DomainSpec(minimum=vc.start, maximum=vc.end) for vc in config}
+        points_per_variable = {vc.variable: vc.steps for vc in config}
 
-        # Convert config to the format expected by create_grid_samples
-        config_dict = {var_config.variable: var_config.model_dump() for var_config in config}
-
-        PROCESSED_GRIDPOINTS_INPUT_FILE = create_grid_samples(
-            run_dir=run_dir,
-            grid_vars=input_vars,
-            input_vars=input_vars,
-            mins=[config_dict[var]["start"] for var in input_vars],
-            cut_values=[
-                (config_dict[var]["end"] + config_dict[var]["start"]) / 2 for var in input_vars
-            ],
-            maxs=[config_dict[var]["end"] for var in input_vars],
-            n_points_per_dimension=[config_dict[var]["steps"] for var in input_vars],
-        )
-
-        samples = []
-        df = load_data(PROCESSED_GRIDPOINTS_INPUT_FILE)
-        for i in df.index:
-            sample = {var: float(df.loc[i, var]) for var in input_vars}
-            samples.append(sample)
+        grid = generate_grid_samples(domains, points_per_variable, workspace=SAMPLING_RUNS_DIR)
+        samples = [
+            {name: float(value) for name, value in row.items()}
+            for row in grid.to_dict(orient="records")
+        ]
 
         _logger.debug(f"Generated {len(samples)} grid samples")
         jc = _run_sampling_map(function_uid, samples)
