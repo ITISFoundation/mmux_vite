@@ -76,12 +76,14 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [correlations, setCorrelations] = useState<CorrelationIndicesResponse["correlations"] | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string>();
   const [computing, setComputing] = useState(false);
 
   useEffect(() => {
     (async () => {
       setCorrelations(null);
       setPlotData([]);
+      setErrorMessage(undefined);
       setComputing(true);
       if (filteredJobList.length === 0 || !selectedQoI) {
         console.warn("No jobs selected for correlation indices computation.");
@@ -98,11 +100,13 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
           seed: 0,
         });
         setCorrelations(data.correlations);
+        setErrorMessage(undefined);
         setComputing(false);
       } catch (error) {
         console.warn("Error computing correlation indices:", error);
         setComputing(false);
         setCorrelations(null);
+        setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     })();
   }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction]);
@@ -223,6 +227,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}
           height={plotStyle.height}
+          errorMessage={errorMessage}
           numInputVars={inputVars.length}
         />
       )}

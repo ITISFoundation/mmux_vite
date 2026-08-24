@@ -83,7 +83,12 @@ describe("fetchCorrelationIndices", () => {
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
-      json: () => Promise.resolve({}),
+      json: () => Promise.resolve({ error: "Correlation model failed" }),
+      clone: () =>
+        ({
+          json: () => Promise.resolve({ error: "Correlation model failed" }),
+          text: () => Promise.resolve(""),
+        }) as Response,
     } as Response);
 
     await expect(
@@ -94,7 +99,7 @@ describe("fetchCorrelationIndices", () => {
         functionJobs: mockJobs,
         numSamples: 100,
       }),
-    ).rejects.toThrow(/500/);
+    ).rejects.toThrow("Correlation model failed");
   });
 });
 

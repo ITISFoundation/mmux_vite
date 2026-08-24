@@ -10,6 +10,7 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
+import { getResponseErrorMessage } from "../../utils/httpError";
 
 function Surface2DPlot() {
   const theme = useTheme();
@@ -22,6 +23,7 @@ function Surface2DPlot() {
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [propagating, setPropagating] = useState(false);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
+  const [errorMessage, setErrorMessage] = useState<string>();
   const lastFetchedKey = useRef<string | undefined>(undefined);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
@@ -84,6 +86,7 @@ function Surface2DPlot() {
       console.info("Evaluating SuMo for 2D surface...");
       console.info("Jobs to build SuMo: ", jobs);
       setPropagating(true);
+      setErrorMessage(undefined);
       fetch(`/flask/dakota/sumo_grid_evaluation`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -96,13 +99,13 @@ function Surface2DPlot() {
           log: false, // FIXME not used atm
         }),
       })
-        .then(response => {
+        .then(async response => {
           if (response && !response.ok) {
             console.warn("SuMo Surface plot error: ", response.body);
             // V18: reject (⊥ return) so the .catch path clears lastFetchedKey and the
             // identical inputs can be retried; a returned Error would resolve the chain
             // and cache the key as if the fetch had succeeded.
-            return Promise.reject(new Error(`SuMo Surface plot response not ok: ${response.status}, ${response.statusText}`));
+            return Promise.reject(new Error(await getResponseErrorMessage(response)));
           }
           return response.json();
         })
@@ -112,6 +115,7 @@ function Surface2DPlot() {
           // V18: cache key ONLY on success, so transient failures don't block retry
           lastFetchedKey.current = requestKey;
           setPropagating(false);
+          setErrorMessage(undefined);
         })
         .catch(error => {
           // V18: clear cache on error so same inputs can be retried
@@ -119,6 +123,7 @@ function Surface2DPlot() {
           console.warn("Error:", error);
           setPropagating(false);
           setPlotData([]);
+          setErrorMessage(error instanceof Error ? error.message : String(error));
         });
     },
     [inputVars, selectedQoI, otherAxis, reshapePlotData],
@@ -182,6 +187,7 @@ function Surface2DPlot() {
             fetchedJobCollections={fetchedJobCollections}
             filteredJobList={filteredJobList}
             height={plotStyle.height}
+            errorMessage={errorMessage}
             numInputVars={inputVars.length}
           />
         )}

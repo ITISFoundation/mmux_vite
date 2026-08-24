@@ -15,18 +15,22 @@ export const fetchWithRetry = async (
     try {
       response = await fetch(url, options);
     } catch (error: unknown) {
-      if (attempt >= retries) {
-        ErrorToRetry = error as Error; // Re-throw the error after all retries have failed
-      }
+      ErrorToRetry = error as Error; // Capture the error so it can be re-thrown below
     }
     if ((response && response.ok) || (response && response.status === 404)) {
       return response; // If the response is successful or not found, return it immediately
     }
 
-    // Exponential backoff with jitter
-    const exponentialWait = Math.min(baseWait * 2 ** attempt, maxWait);
-    const jitter = Math.random() * (exponentialWait * 0.2);
-    await delay(exponentialWait + jitter);
+    // Exponential backoff with jitter; skip after the final attempt.
+    if (attempt < retries - 1) {
+      const exponentialWait = Math.min(baseWait * 2 ** attempt, maxWait);
+      const jitter = Math.random() * (exponentialWait * 0.2);
+      await delay(exponentialWait + jitter);
+    }
+  }
+
+  if (response) {
+    return response;
   }
 
   // If we reach here, it means all retries failed
