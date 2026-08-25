@@ -63,12 +63,14 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [sobolData, setSobolData] = useState<SobolIndicesResponse | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string>();
   const [computing, setComputing] = useState(false);
 
   useEffect(() => {
     (async () => {
       setSobolData(null);
       setPlotData([]);
+      setErrorMessage(undefined);
       setComputing(true);
       if (filteredJobList.length === 0 || !selectedQoI) {
         console.warn("No jobs selected for Sobol' indices computation.");
@@ -85,11 +87,13 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
           seed: 0,
         });
         setSobolData(data);
+        setErrorMessage(undefined);
         setComputing(false);
       } catch (error) {
         console.warn("Error computing Sobol' indices:", error);
         setComputing(false);
         setSobolData(null);
+        setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     })();
   }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction]);
@@ -216,6 +220,7 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}
           height={plotStyle.height}
+          errorMessage={errorMessage}
           numInputVars={inputVars.length}
         />
       )}

@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 from flask import Flask
 
+pytestmark = pytest.mark.integration
+
 
 ###
 # Example FunctionJob structure (should match actual FunctionJob model)
@@ -82,21 +84,28 @@ class TestSumoCrossValidation:
         for v in data[f"{OUTPUT}StdHat"]:
             assert isinstance(v, (int, float))
 
-    def test_sumo_cross_validation_preserves_prediction_suffixes_for_original_output_name(
+    def test_sumo_cross_validation_builds_response_from_itis_sumo_result(
         self, test_client: Flask, monkeypatch
     ):
-        """Mapped Dakota keys should come back under the original output name with preserved suffixes."""
+        """The route builds its JSON response from itis_sumo.api.cross_validate's
+        typed result, already in original names and units (itis-sumo's own test
+        suite covers the internal Dakota name-mapping, SPEC V16qf)."""
+        from itis_sumo.api import CrossValidationResult
 
-        def fake_eval(*args, **kwargs):
-            return {
-                "y1": [1.0, 2.0, 3.0],
-                "y1_hat": [1.1, 2.1, 3.1],
-                "y1_std_hat": [0.1, 0.2, 0.3],
-            }
+        def fake_cross_validate(*args, **kwargs):
+            return CrossValidationResult(
+                response="drag_force",
+                observed=[1.0, 2.0, 3.0],
+                predicted=[1.1, 2.1, 3.1],
+                predicted_std=[0.1, 0.2, 0.3],
+                warnings=[],
+                seed=42,
+                effective_config={},
+            )
 
         monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
-            fake_eval,
+            "mmux_flaskapi.blueprints.dakota.sumo_cross_validate",
+            fake_cross_validate,
         )
 
         payload = {
@@ -347,9 +356,7 @@ class TestSnakeCaseDakotaRequestCompatibility:
             raise RuntimeError("Some Dakota error")
 
         # monkeypatch the evaluation function in the dakota blueprint module where it's used
-        monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation", fail_eval
-        )
+        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.sumo_cross_validate", fail_eval)
         payload = {"output": "y", "inputVars": ["x1"], "FunctionJobs": create_function_job_list(50)}
         response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 500
@@ -379,7 +386,7 @@ class TestSnakeCaseDakotaRequestCompatibility:
             raise RuntimeError("Exploded during evaluation")
 
         monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
+            "mmux_flaskapi.blueprints.dakota.sumo_cross_validate",
             fail_eval,
         )
         payload = {
@@ -404,7 +411,7 @@ class TestSnakeCaseDakotaRequestCompatibility:
             raise RuntimeError("Exploded during evaluation")
 
         monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
+            "mmux_flaskapi.blueprints.dakota.sumo_cross_validate",
             fail_eval,
         )
         test_client.application.config["MMUX_INCLUDE_TRACEBACKS"] = True
@@ -1412,27 +1419,45 @@ class TestManualUQWithUncertainty:
         assert len(data["binMeans"]) > 0
         assert len(data["binStds"]) > 0
 
-    def test_uq_uncertainty_noise_scaled_by_sqrt2_not_naive_erfinv(
+    def test_uq_uncertainty_builds_response_from_itis_sumo_result(
         self, test_client: Flask, monkeypatch
     ):
-        """B16 regression: the noise term `r` used to inject `std_hat` into each UQ histogram
-        realization must be `sqrt(2)*erfinv(uniform(-1,1))` (~N(0,1)), not bare `erfinv(...)`
-        (std 1/sqrt(2)~=0.707 -- since Phi(x) = (1+erf(x/sqrt(2)))/2, the sqrt(2) factor is
-        required for a correct standard-normal transform). This endpoint never enables output
-        normalization (setup_preprocessor_for_workflow called without normalization args), so
-        DataPreprocessor's transform/inverse_transform is the identity here. With a constant
-        `yhat`=0 and `std_hat` and a single evaluation sample per histogram realization, the
-        reported total `std` (aggregated over n_histograms realizations) must equal std_hat (up
-        to MC noise), not std_hat/sqrt(2) as the un-scaled bug would report."""
+        """The route builds its JSON response from itis_sumo.api.evaluate_uncertainty's typed
+        result (SPEC V16qf). The B16 sqrt(2)*erfinv noise-injection regression this test used to
+        guard now lives inside itis-sumo's own evaluate/funs_evaluate.py and is covered by
+        itis-sumo's test suite (test_metamodeling_analytical.py), not this repo. What stays worth
+        guarding here is the response-key rename: UncertaintyResult uses `minimum`/`maximum`, but
+        the pre-existing Pydantic response model (and the frontend contract) keeps `min`/`max`."""
+        from itis_sumo.api import UncertaintyResult
+
+        def fake_evaluate_uncertainty(*args, **kwargs):
+            return UncertaintyResult(
+                response="y",
+                distributions={},
+                seed=42,
+                bins_start=0.0,
+                bins_end=10.0,
+                bin_means=[0.1, 0.2],
+                bin_stds=[0.01, 0.02],
+                q1=2.0,
+                median=5.0,
+                q3=8.0,
+                whisker_min=0.0,
+                whisker_max=10.0,
+                outliers=[],
+                mean=5.0,
+                std=2.5,
+                minimum=0.0,
+                maximum=10.0,
+            )
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.sumo_evaluate_uncertainty",
+            fake_evaluate_uncertainty,
+        )
+
         input_vars = ["x1"]
         output = "y"
-        std_hat_value = 2.0
-
-        def fake_evaluate_sumo(*args, **kwargs):
-            return {"y1_hat": [0.0], "y1_std_hat": [std_hat_value]}
-
-        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.evaluate_sumo", fake_evaluate_sumo)
-
         payload = {
             "inputVars": input_vars,
             "output": output,
@@ -1451,13 +1476,11 @@ class TestManualUQWithUncertainty:
         assert response.status_code == 200
         data = response.get_json()
 
-        reported_std = data["std"]
-        naive_std = std_hat_value / np.sqrt(2)
-
-        # With the sqrt(2) fix, reported std should be close to std_hat_value (2.0);
-        # without it, it would be close to std_hat_value/sqrt(2) (~1.414).
-        assert abs(reported_std - std_hat_value) / std_hat_value < 0.1
-        assert abs(reported_std - naive_std) / naive_std > 0.1
+        assert data["min"] == 0.0
+        assert data["max"] == 10.0
+        assert data["mean"] == 5.0
+        assert data["binsStart"] == 0.0
+        assert data["binsEnd"] == 10.0
 
     # ------------------- Validation Error Cases -------------------
 
@@ -2143,38 +2166,36 @@ class TestMOGAOptimization:
         selections = ["minimize", "maximize"]
         return {var: selections[i % len(selections)] for i, var in enumerate(output_vars)}
 
-    def test_moga_restores_original_names_and_maximize_direction(
+    def test_moga_optimization_builds_response_from_itis_sumo_result(
         self, test_client: Flask, monkeypatch
     ):
-        """Mapped optimizer outputs should be returned in original variable names and original sign."""
+        """The route builds its JSON response from itis_sumo.api.optimize's typed
+        result, already in original names and original sign for maximized
+        objectives (itis-sumo's own test suite covers the internal Dakota
+        name-mapping and sign-switching, SPEC T27fr)."""
+        from itis_sumo.api import ParetoFrontResult
+
         input_vars = ["temperature"]
         output_vars = ["loss", "activation"]
         jobs = self.create_moga_jobs(10, input_vars, output_vars)
 
         captured_call = {}
 
-        def fake_perform_moga_optimization(
-            run_dir,
-            processed_training_file,
-            mapped_input_vars,
-            mapped_distributions,
-            mapped_output_vars,
-            moga_kwargs,
-        ):
-            captured_call["mapped_input_vars"] = mapped_input_vars
-            captured_call["mapped_distributions"] = mapped_distributions
-            captured_call["mapped_output_vars"] = mapped_output_vars
-            captured_call["moga_kwargs"] = moga_kwargs
-            return {
-                mapped_input_vars[0]: [0.25, 0.75],
-                mapped_output_vars[0]: [-2.0, -1.5],
-                mapped_output_vars[1]: [-2.0, -1.5],
-            }
+        def fake_optimize(samples, variables, objectives, *, domains, workspace=None, **kwargs):
+            captured_call["variables"] = list(variables)
+            captured_call["objectives"] = dict(objectives)
+            captured_call["domains"] = domains
+            return ParetoFrontResult(
+                objectives=dict(objectives),
+                variables=tuple(variables),
+                data={
+                    "temperature": [0.25, 0.75],
+                    "loss": [-2.0, -1.5],
+                    "activation": [2.0, 1.5],
+                },
+            )
 
-        monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.perform_moga_optimization",
-            fake_perform_moga_optimization,
-        )
+        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.sumo_optimize", fake_optimize)
 
         payload = {
             "inputVars": input_vars,
@@ -2192,14 +2213,15 @@ class TestMOGAOptimization:
         data = response.get_json()
         results = data["optimizationResults"]
 
-        assert captured_call["mapped_input_vars"] == ["x1"]
-        assert set(captured_call["mapped_output_vars"]) == {"y1", "y2"}
-        assert set(captured_call["mapped_distributions"].keys()) == {"x1"}
+        assert captured_call["variables"] == ["temperature"]
+        assert captured_call["objectives"] == {"loss": "minimize", "activation": "maximize"}
+        assert set(captured_call["domains"].keys()) == {"temperature"}
 
-        assert set(results.keys()) == {"temperature", "loss", "activation"}
-        assert results["temperature"] == [0.25, 0.75]
-        assert results["loss"] == [-2.0, -1.5]
-        assert results["activation"] == [2.0, 1.5]
+        assert results == {
+            "temperature": [0.25, 0.75],
+            "loss": [-2.0, -1.5],
+            "activation": [2.0, 1.5],
+        }
 
     def test_moga_preserves_irregular_case_variable_name_end_to_end(
         self, test_client: Flask, monkeypatch
@@ -2207,31 +2229,28 @@ class TestMOGAOptimization:
         """Regression test for the write-path case-mangling bug (node/SPEC.md T13/T19):
         a variable name that does NOT round-trip losslessly through camelCase<->snake_case
         (e.g. "TissueConduc") must survive as-is through `distributions` and
-        `FunctionJobs[].inputs` (both `to_snake_case_request`-parsed) all the way to the
-        DataPreprocessor's x1..xn mapping and back into the final response - not get
+        `FunctionJobs[].inputs` (both `to_snake_case_request`-parsed) all the way into
+        itis_sumo.api.optimize's call and back into the final response - not get
         silently lowercased to "tissue_conduc" along the way.
         """
+        from itis_sumo.api import ParetoFrontResult
+
         input_var = "TissueConduc"
         output_vars = ["loss"]
         jobs = self.create_moga_jobs(10, [input_var], output_vars)
 
-        def fake_perform_moga_optimization(
-            run_dir,
-            processed_training_file,
-            mapped_input_vars,
-            mapped_distributions,
-            mapped_output_vars,
-            moga_kwargs,
-        ):
-            return {
-                mapped_input_vars[0]: [0.25, 0.75],
-                mapped_output_vars[0]: [-2.0, -1.5],
-            }
+        captured_call = {}
 
-        monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.perform_moga_optimization",
-            fake_perform_moga_optimization,
-        )
+        def fake_optimize(samples, variables, objectives, *, domains, workspace=None, **kwargs):
+            captured_call["variables"] = list(variables)
+            captured_call["domains"] = domains
+            return ParetoFrontResult(
+                objectives=dict(objectives),
+                variables=tuple(variables),
+                data={input_var: [0.25, 0.75], "loss": [-2.0, -1.5]},
+            )
+
+        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.sumo_optimize", fake_optimize)
 
         payload = {
             "inputVars": [input_var],
@@ -2243,6 +2262,9 @@ class TestMOGAOptimization:
         response = test_client.post("/flask/dakota/perform_moga_optimization", json=payload)
 
         assert response.status_code == 200
+        assert captured_call["variables"] == [input_var]
+        assert set(captured_call["domains"].keys()) == {input_var}
+
         results = response.get_json()["optimizationResults"]
         assert input_var in results, (
             f"Expected original variable name {input_var!r} preserved in response keys "
