@@ -23,13 +23,13 @@
     "@mui/styled-engine-sc": "^7.0.2",
     "@mui/x-data-grid": "^8.4.0",
     "@tailwindcss/vite": "^4.1.6",
-    "plotly.js": "^3.0.1",
+    "plotly.js": "^3.7.0",
     "react": "^19.0.0",
     "react-dom": "^19.2.8",
     "react-plotly.js": "^4.1.0",
     "react-toastify": "^11.1.0",
     "styled-components": "^6.5.2",
-    "superagent": "^10.2.0",
+    "superagent": "^10.3.0",
     "whatwg-fetch": "^3.6.20"
   },
   "devDependencies": {
