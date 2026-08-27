@@ -346,21 +346,23 @@ wheels = [
 
 [[package]]
 name = "itis-dakota"
-version = "1.5.9"
+version = "1.5.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d3/66/beea03e3b6d6f37c1c0f5dde6b49f0d513c309e15ca878d4810cb906c4b0/itis_dakota-1.5.9-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:e0af82d158b90394ca1b45e141922fae26e0b91ce38df2dbf39832a81d9809e2", size = 35193123, upload-time = "2025-04-22T14:08:02.013Z" },
-    { url = "https://files.pythonhosted.org/packages/82/b3/f60fbd820fdf32e0a6a0b6eb00e34e8ce4e4e1a9f0f0078dab87b9bcd86c/itis_dakota-1.5.9-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:cbf8cd8efc2a0212a1169729aba6b0a89044d01c7f115b9be61e26d6231c89f0", size = 37741088, upload-time = "2025-04-22T14:08:05.539Z" },
-    { url = "https://files.pythonhosted.org/packages/c2/f4/3d4377561eeae08d1f0e762822f4596dd060d5a26256b73804207c42e8ec/itis_dakota-1.5.9-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:d1d28dbc6d8c8fbbb36e1aeb7c8bdfbe4ee68f915616567faa77162c4a75db52", size = 35193749, upload-time = "2025-04-22T14:08:08.664Z" },
-    { url = "https://files.pythonhosted.org/packages/6d/a9/4aae65a51a09a725944cbaeb95db6c6eff9b90bcae0fb2b050e45a4e8820/itis_dakota-1.5.9-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:b82c0df3c6db6bcf8454821940891f5ff0ca82e81ba62f85e669e709a9d35072", size = 37741822, upload-time = "2025-04-22T14:08:12.066Z" },
+    { url = "https://files.pythonhosted.org/packages/3f/b2/47ff96944b8da46da9965e19ede1796a67c87c1c53f8633b066d4496e3bc/itis_dakota-1.5.11-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:a2d681907203c70de332ae6bd861e6cc547d3611547af6ad276f43f21c5ef88f", size = 35192830, upload-time = "2025-06-30T09:44:50.176Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/52/c1b51be316124e390a31d20b4c4eeadd5ccee43a9c9268d95a2daf0e1bb2/itis_dakota-1.5.11-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:9da371d788080902aefd0d9c3a65be0ecb83e5802ee800b4782cd490fec8cd01", size = 37741294, upload-time = "2025-06-30T09:44:53.722Z" },
+    { url = "https://files.pythonhosted.org/packages/7f/8b/c5ed69331dbae789b45abd5103f10fbe56d2570beb1c2b578267c0e75d78/itis_dakota-1.5.11-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:79896f15e2eb7f6f0086d4d54ef0994a1eb9de200c7729c3c60a09feb8961c55", size = 35192972, upload-time = "2025-06-30T09:44:57.462Z" },
+    { url = "https://files.pythonhosted.org/packages/46/ba/a64379564c843725d5e240cd43f7a2362f1ff340e1e24e30b5bedd57e1ec/itis_dakota-1.5.11-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:4922a767ca13cf9aec06e7cc4100876efed99a39897aa8ca2b728d2ca1434384", size = 37740118, upload-time = "2025-06-30T09:45:01.099Z" },
+    { url = "https://files.pythonhosted.org/packages/66/3d/fa91c3697a2c4178f0d33b45e64f9ae6bae7bef1f989749c962ae22a92ab/itis_dakota-1.5.11-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:c1fdf6bcef5eabcc8fc756b1b0342d5f4152c40bd4eb4f383e83b7a0c5d79656", size = 35194105, upload-time = "2025-06-30T09:45:05.218Z" },
+    { url = "https://files.pythonhosted.org/packages/90/25/22bb2b4459858a1e50ef51c0c10f279f36fc8b26d4d703b30e1e325f55e1/itis_dakota-1.5.11-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:3d70fee81c91a727ac935a5721b250e68103743755b960491b8fa2c5281fa428", size = 37743856, upload-time = "2025-06-30T09:45:08.974Z" },
 ]
 
 [[package]]
 name = "itis-sumo"
-version = "0.1.0.dev2"
+version = "0.1.0a3"
 source = { registry = "https://test.pypi.org/simple/" }
 dependencies = [
     { name = "itis-dakota" },
@@ -370,9 +372,9 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "scipy" },
 ]
-sdist = { url = "https://test-files.pythonhosted.org/packages/e7/ab/b5a7ed80bb8416a3d7a420732a411a96675062dba4ff0b0c0a28c33e49ae/itis_sumo-0.1.0.dev2.tar.gz", hash = "sha256:c324c8d22feac174eef212911252033bd41e20659c0b7cec43a166d0fabf5b23", size = 56512, upload-time = "2026-08-19T11:59:10.269Z" }
+sdist = { url = "https://test-files.pythonhosted.org/packages/9c/77/b3835232a9393564a357915ef433be8905dec78f6b223d67b20d9c48a304/itis_sumo-0.1.0a3.tar.gz", hash = "sha256:ab37950a2f869ed179aada910195f4ff02e2f3d715de553236a1e1cb404fda67", size = 56816, upload-time = "2026-08-27T13:10:06.456Z" }
 wheels = [
-    { url = "https://test-files.pythonhosted.org/packages/c9/2f/a8506925b62d47972f95ce771cc3134f40a2c8ec7adbc70cdb6b9f19c1dd/itis_sumo-0.1.0.dev2-py3-none-any.whl", hash = "sha256:e9ebe6d236062426903a1956802f8a23aee60604a2151c3cf87040ec6ae112ce", size = 67168, upload-time = "2026-08-19T11:59:08.73Z" },
+    { url = "https://test-files.pythonhosted.org/packages/74/02/010a98907c913ceae025662f7bf7137b80390d752a7b49d4d81f12df8ba9/itis_sumo-0.1.0a3-py3-none-any.whl", hash = "sha256:992398b23babc7ab2132e651c041fc640e1cbdea9448c108077765f4275e761e", size = 66942, upload-time = "2026-08-27T13:10:05.24Z" },
 ]
 
 [[package]]
@@ -500,7 +502,7 @@ requires-dist = [
     { name = "flask-cors", specifier = "==6.0.5" },
     { name = "gevent", specifier = "==26.7.0" },
     { name = "gunicorn", specifier = "==23.0.0" },
-    { name = "itis-sumo", specifier = "==0.1.0.dev2", index = "https://test.pypi.org/simple/" },
+    { name = "itis-sumo", specifier = "==0.1.0a3", index = "https://test.pypi.org/simple/" },
     { name = "numpy", specifier = "==2.4.6" },
     { name = "osparc", specifier = "==0.8.4.post0.dev2" },
     { name = "pandas", specifier = "==2.2.3" },
