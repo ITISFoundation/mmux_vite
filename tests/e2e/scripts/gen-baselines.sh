@@ -6,7 +6,7 @@
 #
 #   docker run --rm --user root --network host \
 #     -v "$PWD":/work -w /work -e HOME=/root \
-#     mcr.microsoft.com/playwright:v1.61.0-noble \
+#     mcr.microsoft.com/playwright:v1.62.1-noble \
 #     bash /work/tests/e2e/scripts/gen-baselines.sh
 #
 # Python venv, text-file storage and Dakota runs are redirected to /tmp so the
