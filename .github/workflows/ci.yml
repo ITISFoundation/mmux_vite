@@ -81,7 +81,7 @@ jobs:
       - flaskapi-tests
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.61.0-noble
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
     steps:
       - name: Checkout repo content
         uses: actions/checkout@v5
