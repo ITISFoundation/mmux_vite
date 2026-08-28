@@ -83,7 +83,7 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
 
   const validationView = page.locator('[mmux-testid="sumo-validation-view"]');
   await expect(validationView).toBeVisible({ timeout: VIEW_TIMEOUT });
-  const qoiSelect = page.locator('[mmux-testid="qoi-select"]');
+  const qoiSelect = validationView.locator('[mmux-testid="qoi-select"]').first();
   await expect(qoiSelect).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expect(validationView.locator(".js-plotly-plot")).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(validationView.getByText("MAE:")).toBeVisible({ timeout: VIEW_TIMEOUT });
