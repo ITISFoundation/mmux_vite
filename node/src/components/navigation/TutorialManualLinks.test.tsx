@@ -9,13 +9,13 @@ import { manualDocsUrl, tutorialDocsUrl } from "./TutorialManualLinks";
  * derived from the host.
  */
 describe("TutorialManualLinks (issue #450)", () => {
-  it("uses a single canonical Manual URL, not a host-derived subdomain", () => {
-    expect(manualDocsUrl).toMatch(/^https:\/\//);
+  it("uses the canonical ZMT GitHub Pages Manual URL, not a host-derived subdomain", () => {
+    expect(manualDocsUrl).toBe("https://zurichmedtech.github.io/model-intelligence/manual/hypertool-creation/");
     expect(manualDocsUrl).not.toContain("${");
   });
 
-  it("uses a single canonical Tutorial URL, not a host-derived subdomain", () => {
-    expect(tutorialDocsUrl).toMatch(/^https:\/\//);
+  it("uses the canonical ZMT GitHub Pages Tutorial URL, not a host-derived subdomain", () => {
+    expect(tutorialDocsUrl).toBe("https://zurichmedtech.github.io/model-intelligence/tutorials/overview/");
     expect(tutorialDocsUrl).not.toContain("${");
   });
 });
