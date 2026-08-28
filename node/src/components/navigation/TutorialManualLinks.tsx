@@ -5,8 +5,8 @@ import StyledHyperLink from "../utils/HyperLink";
 // host-independent URLs — the docs are no longer served from a per-host
 // `manual.<host>` subdomain (#450). TODO: replace placeholders with the real
 // ZMT GitHub Pages URLs.
-export const manualDocsUrl = "https://<zmt-github-pages>/MetaModeling/Manual.html";
-export const tutorialDocsUrl = "https://<zmt-github-pages>/MetaModeling/Tutorials.html";
+export const manualDocsUrl = "https://zurichmedtech.github.io/model-intelligence/manual/hypertool-creation/";
+export const tutorialDocsUrl = "https://zurichmedtech.github.io/model-intelligence/tutorials/overview/";
 
 export function getManualLinkUrl(): string {
   return manualDocsUrl;
