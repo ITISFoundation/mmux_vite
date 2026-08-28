@@ -5,6 +5,10 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "@mui/material"
+      - dependency-name: "@mui/icons-material"
+      - dependency-name: "@mui/x-data-grid"
     groups:
       all-dependencies:
         patterns:
