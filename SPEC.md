@@ -94,6 +94,7 @@ V30jk: Sobol second-order + order-mass diagnostics ! remain scientifically valid
 V31vr: dev-compose services bind-mounting live source (`./flaskapi:/app`, `./node:/app`) ! pin `user: "${UID:-1000}:${GID:-1000}"` so container runtime writes (`.venv`, `runs_local/*.json`, `__pycache__`, `node_modules`) land host-owned; ⊥ root-run container process writing into a host bind mount (B18kt)
 V32qt: ∀ pytest test case ∈ `flaskapi/tests/` → ≥1 marker ∈ {`unit`,`integration`,`analytical`}
 V33mu: ∀ bump of `@mui/material` to a NEW MAJOR → `@mui/icons-material` & `@mui/x-data-grid` must bump to the SAME MAJOR in the same PR AND `tsc -b` (node build) must pass; ⊥ merge a single MUI package major in isolation (peer-ERESOLVE on icons-material + MUI v9 API breakage in source)
+V33mu: ∀ bump of `@mui/material` to a NEW MAJOR → `@mui/icons-material` & `@mui/x-data-grid` must bump to the SAME MAJOR in the same PR AND `tsc -b` (node build) must pass; ⊥ merge a single MUI package major in isolation (peer-ERESOLVE on icons-material + MUI v9 API breakage in source)
 
 ## §T
 id|status|task|cites
