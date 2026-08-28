@@ -17,7 +17,7 @@ dependencies = [
     "numpy==2.4.6",
     "osparc==0.8.4.post0.dev2",
     "pandas==2.2.3",
-    "python-dotenv==1.2.2",
+    "python-dotenv==1.2.3",
     "scikit-learn==1.6.1",
     "scipy==1.17.1",
 ]
