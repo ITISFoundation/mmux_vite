@@ -57,4 +57,28 @@ describe("buildDakotaRequestKey (V16 dedup)", () => {
     expect(a).toBe(b);
     expect(a).not.toBe(buildDakotaRequestKey(base));
   });
+
+  it("changes the key when an axis sampling range changes (#501)", () => {
+    const a = buildDakotaRequestKey({ ...base, axisRanges: { x: [0, 1] } });
+    const b = buildDakotaRequestKey({ ...base, axisRanges: { x: [0, 10] } });
+    expect(a).not.toBe(b);
+  });
+
+  it("changes the key when the axis with the range changes (#501)", () => {
+    const a = buildDakotaRequestKey({ ...base, axisRanges: { x: [0, 1] } });
+    const b = buildDakotaRequestKey({ ...base, axisRanges: { y: [0, 1] } });
+    expect(a).not.toBe(b);
+  });
+
+  it("is stable for identical ranges regardless of object identity/order (#501)", () => {
+    const a = buildDakotaRequestKey({ ...base, axisRanges: { x: [0, 1], y: [2, 3] } });
+    const b = buildDakotaRequestKey({ ...base, axisRanges: { y: [2, 3], x: [0, 1] } });
+    expect(a).toBe(b);
+  });
+
+  it("treats omitted and empty axisRanges as equivalent (#501)", () => {
+    const a = buildDakotaRequestKey(base);
+    const b = buildDakotaRequestKey({ ...base, axisRanges: undefined });
+    expect(a).toBe(b);
+  });
 });

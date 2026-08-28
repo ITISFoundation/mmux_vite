@@ -13,6 +13,9 @@ export interface DakotaRequestKeyInput {
   fn: string | undefined;
   jobList: string[];
   logScale: boolean;
+  // Per-axis sampling range [min, max]; changing an input's sampling range must
+  // invalidate the cached surrogate plot (#501: 1D plot ignored expanded range).
+  axisRanges?: { [key: string]: [number, number] };
 }
 
 const sortedRecordEntries = (record: { [key: string]: number }): [string, number][] =>
@@ -20,7 +23,22 @@ const sortedRecordEntries = (record: { [key: string]: number }): [string, number
     .sort()
     .map(key => [key, record[key]] as [string, number]);
 
-export function buildDakotaRequestKey({ axes, sliderValues, qoi, fn, jobList, logScale }: DakotaRequestKeyInput): string {
+const sortedRangeEntries = (record: { [key: string]: [number, number] } | undefined): [string, [number, number]][] => {
+  if (!record) return [];
+  return Object.keys(record)
+    .sort()
+    .map(key => [key, record[key]] as [string, [number, number]]);
+};
+
+export function buildDakotaRequestKey({
+  axes,
+  sliderValues,
+  qoi,
+  fn,
+  jobList,
+  logScale,
+  axisRanges,
+}: DakotaRequestKeyInput): string {
   // axes are positional (axis1/axis2/axis3) so order is meaningful and preserved.
   // sliderValues and jobList are order-independent, so they are sorted for stability.
   return JSON.stringify({
@@ -30,5 +48,6 @@ export function buildDakotaRequestKey({ axes, sliderValues, qoi, fn, jobList, lo
     fn: fn ?? null,
     jobList: [...jobList].sort(),
     logScale,
+    axisRanges: sortedRangeEntries(axisRanges),
   });
 }

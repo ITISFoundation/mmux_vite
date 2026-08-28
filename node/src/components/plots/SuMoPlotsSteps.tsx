@@ -79,7 +79,7 @@ function SuMoPlotsSteps() {
       nextTestId="sumo-plot-next"
       backTestId="sumo-plot-back"
       qoiSelector={
-        (serviceMode === "MOGA" || serviceMode === "UQ") && (
+        (serviceMode === "SUMO" || serviceMode === "MOGA" || serviceMode === "UQ") && (
           <InputLabel
             size="small"
             sx={{
