@@ -28,7 +28,7 @@ check-types-flaskapi: install-flaskapi-deps ## run ty type checker against flask
 # Builds new service version ----------------------------------------------------------------------------
 define _bumpversion
 	# upgrades as $(subst $(1),,$@) version, commits and tags
-	@docker run -it --rm -v $(PWD):/ml-lab \
+	@docker run -i --rm -v $(PWD):/ml-lab \
 		-u $(shell id -u):$(shell id -g) \
 		itisfoundation/ci-service-integration-library:v2.1.23 \
 		sh -c "cd /ml-lab && bump2version --verbose --list --config-file $(1) $(subst $(2),,$@)"
@@ -43,7 +43,7 @@ version-patch version-minor version-major: .bumpversion.cfg ## increases service
 
 .PHONY: compose-spec
 compose-spec: ## runs ooil to assemble the docker-compose.yml file
-	@docker run -it --rm -v $(PWD):/ml-lab \
+	@docker run -i --rm -v $(PWD):/ml-lab \
 		-u $(shell id -u):$(shell id -g) \
 		itisfoundation/ci-service-integration-library:v2.1.23 \
 		sh -c "cd /ml-lab && ooil compose"
@@ -255,7 +255,7 @@ test-e2e-update: ## regenerate read-only e2e pixel baselines (SuMo/UQ/MOGA; run 
 	cd ${NODE_DIR} && npm run test:e2e:update
 
 .PHONY: test-e2e-update-docker
-PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.61.0-noble
+PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.62.1-noble
 test-e2e-update-docker: ## regenerate e2e baselines INSIDE the pinned Playwright image (font-stable, see V12); keep tag == @playwright/test
 	docker run --rm --user root --network host \
 		-v "$(PWD)":/work -w /work -e HOME=/root \
