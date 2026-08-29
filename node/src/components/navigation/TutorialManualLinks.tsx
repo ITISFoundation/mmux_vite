@@ -3,8 +3,7 @@ import StyledHyperLink from "../utils/HyperLink";
 
 // Canonical documentation URLs (ZMT GitHub Pages). These are single,
 // host-independent URLs — the docs are no longer served from a per-host
-// `manual.<host>` subdomain (#450). TODO: replace placeholders with the real
-// ZMT GitHub Pages URLs.
+// `manual.<host>` subdomain (#450).
 export const manualDocsUrl = "https://zurichmedtech.github.io/model-intelligence/manual/hypertool-creation/";
 export const tutorialDocsUrl = "https://zurichmedtech.github.io/model-intelligence/tutorials/overview/";
 
