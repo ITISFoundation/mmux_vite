@@ -5,15 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run generate-osparc-cli && tsc -b && vite build",
-    "build:e2e": "npm run generate-osparc-cli && tsc -b && vite build",
+    "build": "tsc -b && vite build",
+    "build:e2e": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "npx vitest",
     "test:e2e": "NODE_PATH=\"$PWD/node_modules\" playwright test",
     "test:e2e:update": "NODE_PATH=\"$PWD/node_modules\" playwright test --update-snapshots",
-    "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json}\"",
-    "generate-osparc-cli": "openapi-generator-cli generate"
+    "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json}\""
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

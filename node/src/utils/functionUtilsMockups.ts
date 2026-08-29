@@ -8,11 +8,11 @@ import { RegisteredFunction, OsparcFunctionJob } from "../context/types";
 
 // Mockups model *registered* functions because the app only ever handles registered
 // functions (they carry `uid`). The bare generated `SolverFunction` has no `uid`.
-const mockupFunctions: RegisteredFunction[] = [new RegisteredSolverFunction()];
+const mockupFunctions: RegisteredFunction[] = [{} as RegisteredSolverFunction];
 mockupFunctions[0].title = "Mockup Function";
 mockupFunctions[0].description = "A simple mockup Function for FrontEnd development & testing";
 mockupFunctions[0].uid = "asdfasdfasdf";
-mockupFunctions[0].inputSchema = new JSONFunctionInputSchema();
+mockupFunctions[0].inputSchema = {} as JSONFunctionInputSchema;
 mockupFunctions[0].inputSchema.schemaContent = {
   type: "object",
   properties: {
@@ -21,7 +21,7 @@ mockupFunctions[0].inputSchema.schemaContent = {
   },
   required: ["x", "y"],
 };
-mockupFunctions[0].outputSchema = new JSONFunctionOutputSchema();
+mockupFunctions[0].outputSchema = {} as JSONFunctionOutputSchema;
 mockupFunctions[0].outputSchema.schemaContent = {
   type: "object",
   properties: { result: { type: "number" } },
@@ -52,7 +52,7 @@ const mockupJobs: OsparcFunctionJob[] = [
 
 /// //////////////////////////////
 
-const mockupJobCollections: RegisteredFunctionJobCollection[] = [new RegisteredFunctionJobCollection()]; // TODO fill up the first JobCOllection w the MOCKUP_JOBS
+const mockupJobCollections: RegisteredFunctionJobCollection[] = [{} as RegisteredFunctionJobCollection]; // TODO fill up the first JobCOllection w the MOCKUP_JOBS
 mockupJobCollections[0].uid = "mockup-job-collection-1";
 mockupJobCollections[0].title = "Mockup Job Campaign 1";
 mockupJobCollections[0].description = "A simple mockup for a Job Collection of a Solver Function";
