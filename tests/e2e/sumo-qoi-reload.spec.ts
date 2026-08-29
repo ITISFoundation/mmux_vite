@@ -41,7 +41,7 @@ test("SuMo validation view exposes a QoI selector that updates the metrics", asy
   await page.locator('[mmux-testid="next-button"]').click();
 
   // The QoI selector must be reachable from the validation view in SuMo mode.
-  const qoiSelect = page.locator('[mmux-testid="qoi-select"]').first();
+  const qoiSelect = page.locator('[mmux-testid="qoi-select"]');
   await expect(qoiSelect, "QoI selector must be present in the SuMo plot header").toBeVisible();
 
   const first = await readMae(page);
