@@ -1,6 +1,7 @@
 services:
   mmux-vite-backend:
     image: simcore/services/dynamic/mmux-vite-backend:1.6.1
+    user: "${UID:-1000}:${GID:-1000}"
     environment:
       - OSPARC_API_BASE_URL=${OSPARC_API_BASE_URL}
       - OSPARC_API_KEY=${OSPARC_API_KEY}
