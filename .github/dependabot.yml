@@ -5,6 +5,13 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "@mui/material"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@mui/icons-material"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@mui/x-data-grid"
+        update-types: ["version-update:semver-major"]
     groups:
       all-dependencies:
         patterns:
