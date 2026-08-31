@@ -24,7 +24,8 @@ Domain: scientific UQ & sensitivity analysis; documented use-case = TI (Temporal
 - secrets via `.env` (`make .env` clones `.env-devel`); `.env` ∉ git
 - WSL2+Windows local dev: fallback app ports (e.g. 8889-8892) may require Windows admin `netsh interface portproxy` rules to reach WSL Docker publications from Windows browser; WSL IP may change after restart → refresh rules
 - CI green before merge: prek + node tests + flaskapi tests + image build (`ooil compose` then `docker compose build`)
-- e2e tests = TS `@playwright/test` runner in `tests/e2e/` (⊥ vitest browser mode for e2e); pixel-perfect `toHaveScreenshot` baselines committed to git; determinism via pinned Playwright docker image (fonts/render); oSPARC mocked at backend boundary (⊥ real oSPARC in e2e)
+- pytest test cases ! carry ≥1 marker ∈ {`unit`,`integration`,`analytical`}
+- e2e tests = TS `@playwright/test` runner in `tests/e2e/` (⊥ vitest browser mode for e2e); pixel-perfect `toHaveScreenshot` baselines committed to git; determinism via pinned Playwright docker image (fonts/render); oSPARC mocked at backend boundary (⊥ real oSPARC or production data in e2e); existing baselines stay fixed across refactors; new correlation/Sobol baselines added separately
 - commits ! Conventional Commits `<type>(<scope>): <subject> (#PR)`; types {feat,fix,refactor,chore,docs,test}; feature branch → PR review → merge to `main`
 - ⊥ hardcoded secrets / sensitive data in code or git
 
@@ -88,6 +89,12 @@ V25: `get_osparc_api_if_configured()` ! tolerate `app.osparc_api` implementation
 V26: backend tests touching `local_job_store`/text-file persistence ! use per-run temp dirs (or isolated validation mount) via `LOCAL_STORE_DIR`/`TEXT_FILES_DIR`, reset before app creation; ⊥ read/write repository `runs_local` or shared persistent state (B15)
 V27: CI `prek` job generates `node/src/osparc-api-ts-client/` before `uvx prek run --all-files`; generated client is untracked and required by `tsconfig.app.json` path alias `osparc-api-ts-client`, so lint ! run against a clean checkout without the generated module (B16)
 V28: CI node-tests job ! run `npm test`; deprecated `npm run test:browser` alias may remain manual but ⊥ duplicate the jsdom suite in CI; real browser coverage remains `npm run test:e2e` (B17)
+V29: e2e fixtures ! use deterministic synthetic data from `tests/e2e/mock_osparc/data.py`; refactors ! change existing screenshot baselines; new views get separate baselines
+V30jk: Sobol second-order + order-mass diagnostics ! remain scientifically valid for typical 4–25 varying parameters: validated pair estimator/design, joint bootstrap uncertainty, UI `M1/M2/R`; ⊥ infer arbitrary-dimensional pair terms only from per-variable first/total indices; document group-total approximation + nominal-point UQ distinction
+V31vr: dev-compose services bind-mounting live source (`./flaskapi:/app`, `./node:/app`) ! pin `user: "${UID:-1000}:${GID:-1000}"` so container runtime writes (`.venv`, `runs_local/*.json`, `__pycache__`, `node_modules`) land host-owned; ⊥ root-run container process writing into a host bind mount (B18kt)
+V32qt: ∀ pytest test case ∈ `flaskapi/tests/` → ≥1 marker ∈ {`unit`,`integration`,`analytical`}
+V33mu: ∀ bump of `@mui/material` to a NEW MAJOR → `@mui/icons-material` & `@mui/x-data-grid` must bump to the SAME MAJOR in the same PR AND `tsc -b` (node build) must pass; ⊥ merge a single MUI package major in isolation (peer-ERESOLVE on icons-material + MUI v9 API breakage in source)
+V34lt: ∀ dependency-change PR touching `flaskapi/uv.lock` or `node/package-lock.json` → lockfile ! be valid TOML/JSON AND ⊥ contain unresolved git conflict markers (`<<<<<<<`/`>>>>>>>`/`=======`); regenerate via tool (`uv lock` / `npm install`), ⊥ hand-edit resolved dep blocks (B20lt)
 
 ## §T
 id|status|task|cites
@@ -116,6 +123,8 @@ T26|.|backend test isolation: autouse pytest fixture allocates per-run `tmp_path
 T27|.|Node deprecation cleanup: upgrade ESLint/toolchain off deprecated ESLint 8 dependency chain (`inflight`, `@humanwhocodes/*`, `rimraf@3`, old nested `glob`); clean `npm ci` emits no listed deprecation warnings|—
 T28|.|incrementally fix the 30 `react-hooks/set-state-in-effect` warnings surfaced by eslint-plugin-react-hooks v7 (rule downgraded error→warn in T27 to unblock the ESLint v9 upgrade w/o a risky bulk behavioral refactor); mostly persistence/context-hydration + job-status polling patterns, needs case-by-case triage (derive-during-render vs justified external-sync exception)|node/eslint.config.js
 T29|x|Correlation and Sobol sensitivity-analysis backend endpoints, SciPy computation, response-key preservation, and numerical regression tests|flaskapi/SPEC.md T25
+T30|x|e2e UQ sensitivity coverage: reuse deterministic synthetic mock fixture; add correlation and Sobol screenshots; remove real material-sweep CSV/spec and keep existing SuMo baselines unchanged|V29,T29
+T31lm|.|high-priority Sobol validity: accurate arbitrary-`d` second-order backend + jointly bootstrapped `M1/M2/R`; surface order contributions/noise interpretation in frontend|V30jk,flaskapi/SPEC.md T31rb,node/SPEC.md T21gh
 
 ## §B
 id|date|cause|fix
@@ -133,3 +142,6 @@ B12|2026-07-07|B6/B11's `get_osparc_api_if_configured()` unconditionally read `o
 B15|2026-08-10|Flask tests inherited shared repository local-data state (`runs_local`/text files); dirty state changed list endpoints (expected 3 functions → actual 27), producing order/state-dependent failures after dependency validation|V26
 B16|2026-08-10|CI `prek` ran before the untracked OpenAPI-generated `node/src/osparc-api-ts-client/` existed; `import/no-unresolved` rejected valid `osparc-api-ts-client` imports despite local `npm run build`/generated working tree passing|V27
 B17|2026-08-11|PR #521 review: `node/package.json` `test:browser` referenced removed `vitest.browser.config.ts`, but CI `node-tests` ran only `make test-node` → `npm ci && npm test`, so the stale script was never executed|V28
+B18kt|2026-08-19|`docker-compose-development.yml` `mmux-vite-backend` had no `user:` override (unlike sibling `mmux-vite-web`, which already pins `user: "${UID:-1000}:${GID:-1000}"`) and `flaskapi/Dockerfile` declares no `USER`; container ran as root, and the dev `./flaskapi:/app` bind mount meant every runtime write inside it (entrypoint.sh's `uv run` syncing `.venv` at container start, Flask's `runs_local/*.json` local-store, `__pycache__`) landed on the host owned by uid 0, permanently undeletable by the dev user without sudo|V31vr
+B19mu|2026-08-28|dependabot PR #551 (`@mui/material` 7.3.2→9.3.1) failed node-tests on TWO independent causes: (a) `npm ci` → ERESOLVE because sibling `@mui/icons-material@^7` peers `@mui/material@^7` — bumping one MUI MAJOR alone breaks peer resolution; (b) after a lockstep icons-material bump, `tsc -b` → 104 errors — MUI v9 is a breaking MAJOR (renamed icon exports e.g. `InfoOutline`→`InfoOutlined`/`HelpOutline`→`HelpOutlined`; removed `TextField` `InputProps`→`slotProps.input`; tightened `Typography` `component` overload + removed `fontFamily` prop). A major MUI bump is a migration, not a version bump dependabot can perform alone|V33mu
+B20lt|2026-08-30|PR #561 review-comment follow-up: commit `2df63a1` (addr. review comment #3 — bump gunicorn 23.0.0→26.2.0) resolved `flaskapi/uv.lock` `requires-dist` by hand-editing a cherry-pick/merge instead of re-running `uv lock`, leaving raw `<<<<<<< HEAD` conflict markers → `uv.lock` invalid TOML (`missing comma between array elements`) → `uv lock --check` fails → flaskapi CI breaks; also left a duplicate `V33mu` line in root SPEC.md §V|V34lt
