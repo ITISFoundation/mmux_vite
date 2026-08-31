@@ -27,7 +27,7 @@ def validate_output_log_scale_positivity(
     completed_jobs: list["FunctionJob"],
     valid_output_vars: set[str] | None = None,
 ) -> None:
-    """V34: reject (via ValueError, mapped to 422) any output_log_scales[var]=True unless
+    """V41qz: reject (via ValueError, mapped to 422) any output_log_scales[var]=True unless
     every completed job's output for that var is strictly > 0 (log is undefined for <= 0).
     Mirrors the existing DistributionParams.log_scale uniform-input min>0 guard.
     """

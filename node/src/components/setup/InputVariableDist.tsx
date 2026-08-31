@@ -160,7 +160,7 @@ const UniformInputDistribution = ({ inputVar, distribution, handleSetValue, hand
   );
 };
 
-// B33/V40: transparent derived note for a log-scaled normal (log-normal). The user enters
+// B33: transparent derived note for a log-scaled normal (log-normal). The user enters
 // LINEAR mean/std; this shows what those map to so it's clear how the params are applied.
 function logNormalDerivedNote(mean: number | undefined, std: number | undefined): string {
   if (typeof mean !== "number" || typeof std !== "number" || !(mean > 0)) return "";

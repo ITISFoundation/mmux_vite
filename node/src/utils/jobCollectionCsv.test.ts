@@ -360,7 +360,7 @@ describe("analyzeUploadedJobCollectionCsv", () => {
     }
   });
 
-  it("B28/V34: with inferDistributionType, rounds inferred uniform min/max to 3 significant digits, rounding outward so bounds still cover the observed data", () => {
+  it("B28/V41qz: with inferDistributionType, rounds inferred uniform min/max to 3 significant digits, rounding outward so bounds still cover the observed data", () => {
     // stratified/evenly-spread values (like a uniform LHS design) over a narrow
     // (<2 orders of magnitude) range, N=10: reliably picks uniform via the shape-fit
     // path, exercising the min/max rounding rather than the log-normal branches.

@@ -68,7 +68,7 @@ describe("useAutoDetectQoiScale", () => {
     expect(setOutputLogScales).not.toHaveBeenCalled();
   });
 
-  it("does not fire CV requests when any completed job output for the QoI is <= 0 (mirrors V34)", async () => {
+  it("does not fire CV requests when any completed job output for the QoI is <= 0 (mirrors V41qz)", async () => {
     const fetchMock = mockCvFetch();
     vi.stubGlobal("fetch", fetchMock);
     setupContexts({

@@ -3,7 +3,7 @@ import { useFunctionContext } from "../context/FunctionContext";
 import { useJobContext } from "../context/JobContext";
 import { aggregateOutputValues } from "./functionUtils";
 
-// V26/V27/T21: shared per-QoI "auto-detect better surrogate scale" hook, consumed by
+// V26/V27: shared per-QoI "auto-detect better surrogate scale" hook, consumed by
 // the UncertainUQ / SuMoValidation / MOGA results views (each mounted only under its
 // own serviceMode). Fires /flask/dakota/sumo_cross_validation twice per candidate QoI
 // (outputLogScales[qoi] = false, then true), compares RMSE in original units (lower
@@ -12,7 +12,7 @@ import { aggregateOutputValues } from "./functionUtils";
 // `outputLogScaleUserSet[uid][qoi]` locks that QoI and this hook never overrides it
 // again, even as the job-set grows (V27).
 //
-// Eligibility (mirrors ../flaskapi/SPEC.md V34 + distributionDiagnostics.ts's min>0 guard):
+// Eligibility (mirrors ../flaskapi/SPEC.md V41qz + distributionDiagnostics.ts's min>0 guard):
 //   - >=5 completed jobs carry a numeric output for the QoI (matches the existing
 //     `jobs.length < 5` gate used by SuMoValidation/JobContext).
 //   - every one of those outputs is > 0 (log is undefined otherwise; also avoids the
@@ -87,7 +87,7 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
 
       const outputValues = outputsByVar[qoi] || [];
       if (outputValues.length < minCompletedJobs) return;
-      if (!outputValues.every(value => value > 0)) return; // mirrors ../flaskapi/SPEC.md V34
+      if (!outputValues.every(value => value > 0)) return; // mirrors ../flaskapi/SPEC.md V41qz
 
       resolvedKeys.current.add(cacheKey);
 

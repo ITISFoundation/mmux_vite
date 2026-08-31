@@ -133,7 +133,7 @@ class TestSumoCrossValidation:
 
 
 class TestSumoCrossValidationLogScaleOutput:
-    """T9/V26/V34: `outputLogScales` wiring for /sumo_cross_validation."""
+    """T9/V26/V41qz: `outputLogScales` wiring for /sumo_cross_validation."""
 
     def test_log_scale_output_inverse_transform_uses_delta_method_for_std(
         self, test_client: Flask, monkeypatch
@@ -168,7 +168,7 @@ class TestSumoCrossValidationLogScaleOutput:
         assert data["qoiStdHat"] == pytest.approx([1.0, 4.0])
 
     def test_log_scale_output_rejects_non_positive_job_outputs(self, test_client: Flask):
-        """V34: output_log_scales[var]=True must be rejected when any completed job's
+        """V41qz: output_log_scales[var]=True must be rejected when any completed job's
         output for that var is <= 0 (log undefined)."""
         jobs = create_function_job_list(50, inputs=["x_len"], outputs=["qoi"])
         jobs[0]["outputs"]["qoi"] = -5.0
@@ -257,7 +257,7 @@ class TestSumoCrossValidationLogScaleImprovesRmseForLogLinearFunction:
 
 
 class TestMOGAOptimizationLogScaleOutputPositivityGuard:
-    """V34 applied to MOGAOptimizationRequest's multi-output `output_var_selection`."""
+    """V41qz applied to MOGAOptimizationRequest's multi-output `output_var_selection`."""
 
     def test_rejects_non_positive_outputs_for_flagged_output_var(self, test_client: Flask):
         input_vars = ["temperature"]
