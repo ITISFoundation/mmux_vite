@@ -18,15 +18,15 @@ dependencies = [
     "osparc==0.8.4.post0.dev2",
     "pandas==2.2.3",
     "python-dotenv==1.2.3",
-    "scikit-learn==1.6.1",
+    "scikit-learn==1.9.0",
     "scipy==1.17.1",
 ]
 
 [dependency-groups]
 dev = [
   {include-group = "test"},
-  "prek==0.4.14",
-  "ruff==0.16.4",
+  "prek==0.5.0",
+  "ruff==0.16.5",
   "ty>=0.0.58",
 ]
 test = [
