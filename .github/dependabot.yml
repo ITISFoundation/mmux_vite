@@ -5,6 +5,9 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+      day: monday
+      time: "03:00"
+      timezone: Europe/Zurich
     ignore:
       - dependency-name: "@mui/material"
         update-types: ["version-update:semver-major"]
@@ -13,7 +16,7 @@ updates:
       - dependency-name: "@mui/x-data-grid"
         update-types: ["version-update:semver-major"]
     groups:
-      all-dependencies:
+      javascript-dependencies:
         patterns:
           - "*"
 
@@ -22,7 +25,10 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+      day: monday
+      time: "03:00"
+      timezone: Europe/Zurich
     groups:
-      all-dependencies:
+      python-dependencies:
         patterns:
           - "*"
