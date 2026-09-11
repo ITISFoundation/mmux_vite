@@ -31,6 +31,7 @@ def test_v35rx_dependabot_updates_are_grouped_and_scheduled():
     }
 
     for block in blocks:
+        assert "target-branch: develop" in block
         assert "interval: weekly" in block
         assert "day: monday" in block
         assert 'time: "03:00"' in block
