@@ -126,18 +126,15 @@ function IsoSurface3DPlot() {
     }
   };
 
-  interface IsoSurfaceData extends Plotly.PlotData {
-    surface: { show: boolean; count: number }; // Just to make TypeScript happy. Edit if necessary.
-  }
   const reshapePlotData = (data: { [key: string]: number[] } | { [key: string]: number[][] } | { [key: string]: number }) => {
     if (data && selectedQoI) {
-      const newData: Partial<IsoSurfaceData>[] = [
+      const newData: Partial<Plotly.IsosurfaceData>[] = [
         {
           type: "isosurface",
           x: data[axis1] as number[],
           y: data[axis2] as number[],
           z: data[axis3] as number[],
-          value: data[selectedQoI] as number,
+          value: [data[selectedQoI] as number],
           colorscale: "Electric",
           showscale: true,
           opacity: 0.5,
