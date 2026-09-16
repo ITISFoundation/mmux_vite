@@ -133,7 +133,7 @@ export function OutputSetup(props: UQSetupProps) {
           onChange={e => {
             handlesetLocalQoI(e.target.value);
           }}
-          mmux-testid="qoi-select"
+          mmux-testid="output-setup-qoi-select"
         >
           {outputVars.map(qoi => (
             <MenuItem key={`qoi-${qoi}`} value={qoi}>

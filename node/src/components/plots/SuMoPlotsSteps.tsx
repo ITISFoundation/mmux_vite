@@ -120,7 +120,7 @@ function SuMoPlotsSteps() {
               onChange={e => {
                 setSelectedQoI(e.target.value);
               }}
-              mmux-testid="qoi-select"
+              mmux-testid="sumo-plot-qoi-select"
             >
               {outputVars.map(qoi => (
                 <MenuItem key={`qoi-${qoi}`} value={qoi}>

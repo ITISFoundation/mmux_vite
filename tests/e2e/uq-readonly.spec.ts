@@ -77,7 +77,7 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   }
 
   // UQ output setup: QoI selector + Inspect Model button.
-  const qoiSelect = page.locator('[mmux-testid="qoi-select"]').first();
+  const qoiSelect = page.locator('[mmux-testid="output-setup-qoi-select"]');
   await expect(qoiSelect).toBeVisible({ timeout: VIEW_TIMEOUT });
   const inspectButton = page.locator('[mmux-testid="inspect-model-button"]');
   await expect(inspectButton).toBeVisible({ timeout: VIEW_TIMEOUT });

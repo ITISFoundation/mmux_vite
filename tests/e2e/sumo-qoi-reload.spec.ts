@@ -29,7 +29,7 @@ async function readMae(page: import("@playwright/test").Page): Promise<string> {
   return maeMatch[1];
 }
 
-test("SuMo validation view exposes a QoI selector that updates the metrics", async ({ page, baseURL }) => {
+test("V37qn: SuMo validation view exposes a QoI selector that updates the metrics", async ({ page, baseURL }) => {
   const url = baseURL!;
   await setDeployment(page.request, url, "SUMO", "READ-ONLY");
   await resetPersistence(page.request, url);
@@ -41,14 +41,14 @@ test("SuMo validation view exposes a QoI selector that updates the metrics", asy
   await page.locator('[mmux-testid="next-button"]').click();
 
   // The QoI selector must be reachable from the validation view in SuMo mode.
-  const qoiSelect = page.locator('[mmux-testid="qoi-select"]').last();
+  const qoiSelect = page.locator('[mmux-testid="sumo-plot-qoi-select"]');
   await expect(qoiSelect, "QoI selector must be present in the SuMo plot header").toBeVisible();
 
   const first = await readMae(page);
 
   // Switch to a different QoI and confirm the metrics recompute.
   await qoiSelect.click();
-  await page.getByRole("option", { name: /y2/i }).first().click();
+  await page.getByRole("option", { name: "y2", exact: true }).click();
   const second = await readMae(page);
 
   expect(second, `MAE did not change after switching QoI (first=${first})`).not.toEqual(first);
