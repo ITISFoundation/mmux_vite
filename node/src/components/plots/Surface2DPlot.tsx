@@ -133,6 +133,15 @@ function Surface2DPlot() {
     const run = async () => {
       const jobs = filteredJobList;
       // V16: dedup by stable logical request key; same key → no new fetch.
+      const functionDistribution = distribution[selectedFunction?.uid || ""];
+      const axisRanges = Object.fromEntries(
+        [axis1, axis2]
+          .map(axis => {
+            const range = functionDistribution?.[axis];
+            return range ? [axis, [range.min, range.max] as [number, number]] : undefined;
+          })
+          .filter((entry): entry is [string, [number, number]] => entry !== undefined),
+      );
       const requestKey = buildDakotaRequestKey({
         axes: [axis1, axis2],
         sliderValues: otherAxis,
@@ -140,6 +149,7 @@ function Surface2DPlot() {
         fn: selectedFunction?.uid,
         jobList: jobs.map(job => job.uid),
         logScale: false,
+        axisRanges,
       });
       if (requestKey === lastFetchedKey.current) {
         return undefined;
