@@ -219,12 +219,23 @@ export function MOGAPareto(props: MOGAParetoProps) {
         scaleType = extPlotType.scaleType;
       }
 
-      const newPlotData: Partial<Plotly.ScatterData>[] = [
+      type MogaPlotData = {
+        boxpoints?: Plotly.BoxData["boxpoints"];
+        marker?: Plotly.ScatterData["marker"];
+        mode?: Plotly.ScatterData["mode"];
+        name?: string;
+        showlegend?: boolean;
+        type?: "box" | "scatter" | "scatter3d";
+        x?: Plotly.BoxData["x"];
+        y?: Plotly.BoxData["y"];
+        z?: Plotly.Scatter3dData["z"];
+      };
+      const newPlotData: MogaPlotData[] = [
         {
           name: "Sample Points",
           mode: "markers",
           type: localPlotType === "3D" ? "scatter3d" : "box",
-          marker: { color: "rgb(41, 146, 221)", size: 3, symbol: "·" },
+          marker: { color: "rgb(41, 146, 221)", size: 3, symbol: "circle" },
         },
         {
           name: "MOGA Samples",
@@ -345,7 +356,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
       }
       // console.log("MOGA plot data:", newPlotData);
 
-      setPlotData(newPlotData);
+      setPlotData(newPlotData as Plotly.Data[]);
       setLayout(newLayout);
       setPlotType({ dimensionType: localPlotType, scaleType });
     },

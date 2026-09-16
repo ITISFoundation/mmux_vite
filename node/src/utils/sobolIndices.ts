@@ -1,4 +1,3 @@
-import { PlotData } from "plotly.js";
 import { OsparcFunctionJob } from "../context/types";
 import { fetchWithRetry } from "./fetchRetry";
 import { getResponseErrorMessage } from "./httpError";
@@ -50,7 +49,7 @@ export function buildSobolBarData(
   sobol: SobolIndicesResponse["sobol"],
   inputVars: string[],
   colors: { main: string; total: string },
-): Partial<PlotData>[] {
+): Plotly.Data[] {
   const mainValues = inputVars.map(inputVar => sobol[inputVar]?.main ?? 0);
   const totalValues = inputVars.map(inputVar => sobol[inputVar]?.total ?? 0);
 
@@ -82,7 +81,7 @@ export function buildSobolHeatmapData(
   sobolSecondOrder: SobolIndicesResponse["sobolSecondOrder"],
   inputVars: string[],
   colorScale?: string,
-): Partial<PlotData> {
+): Partial<Plotly.HeatmapData> {
   const n = inputVars.length;
   const z: number[][] = [];
 
@@ -107,7 +106,7 @@ export function buildSobolHeatmapData(
     x: inputVars,
     y: inputVars,
     type: "heatmap",
-    colorscale: colorScale || "Viridis",
+    colorscale: (colorScale || "Viridis") as Plotly.ColorScale,
     colorbar: { title: { text: "Sobol' index" } },
     hoverongaps: false,
     hovertemplate: "%{x} ↔ %{y}: %{z:.4f}<extra></extra>",

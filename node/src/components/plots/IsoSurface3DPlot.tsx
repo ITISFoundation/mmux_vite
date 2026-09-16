@@ -11,6 +11,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 import { getResponseErrorMessage } from "../../utils/httpError";
+import { buildIsoSurfacePlotData } from "./isoSurfacePlotData";
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
@@ -126,24 +127,9 @@ function IsoSurface3DPlot() {
     }
   };
 
-  interface IsoSurfaceData extends Plotly.PlotData {
-    surface: { show: boolean; count: number }; // Just to make TypeScript happy. Edit if necessary.
-  }
   const reshapePlotData = (data: { [key: string]: number[] } | { [key: string]: number[][] } | { [key: string]: number }) => {
     if (data && selectedQoI) {
-      const newData: Partial<IsoSurfaceData>[] = [
-        {
-          type: "isosurface",
-          x: data[axis1] as number[],
-          y: data[axis2] as number[],
-          z: data[axis3] as number[],
-          value: data[selectedQoI] as number,
-          colorscale: "Electric",
-          showscale: true,
-          opacity: 0.5,
-          surface: { show: true, count: 10 },
-        },
-      ];
+      const newData: Partial<Plotly.IsosurfaceData>[] = [buildIsoSurfacePlotData(data, axis1, axis2, axis3, selectedQoI)];
       setPlotData(newData);
     } else {
       setPlotData([]);
