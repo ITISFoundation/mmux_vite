@@ -47,7 +47,7 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   await page.goto(url, { timeout: MODEL_READY_TIMEOUT });
   await page.waitForLoadState("networkidle");
 
-  const functionGrid = page.locator('[role="grid"]').first();
+  const functionGrid = page.locator('[role="grid"]');
   await functionGrid.waitFor({ state: "visible", timeout: VIEW_TIMEOUT });
 
   // Pixel baseline: the function-selection setup grid (full 1920x1080 viewport).
@@ -59,7 +59,7 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
 
   // UQ uses a normal distribution: Mean / Standard Deviation blocks open once a
   // function is selected.
-  await expect(page.locator('[mmux-testid="input-block-Mean"] input').first()).toBeVisible({
+  await expect(page.locator('[mmux-testid="input-block-x1-Mean"] input')).toBeVisible({
     timeout: VIEW_TIMEOUT,
   });
   await fillNormalDistributions(page);
@@ -72,18 +72,19 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   await nextButton.click();
 
   const creatingModel = page.getByText("Creating AI model...");
-  if (await creatingModel.first().isVisible().catch(() => false)) {
-    await creatingModel.first().waitFor({ state: "hidden", timeout: MODEL_READY_TIMEOUT });
+  if (await creatingModel.isVisible().catch(() => false)) {
+    await creatingModel.waitFor({ state: "hidden", timeout: MODEL_READY_TIMEOUT });
   }
 
   // UQ output setup: QoI selector + Inspect Model button.
-  const qoiSelect = page.locator('[mmux-testid="qoi-select"]').first();
+  const qoiSelect = page.locator('[mmux-testid="uq-plot-qoi-select"]');
   await expect(qoiSelect).toBeVisible({ timeout: VIEW_TIMEOUT });
   const inspectButton = page.locator('[mmux-testid="inspect-model-button"]');
   await expect(inspectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
 
   // The UQ histogram renders once propagation over the mock jobs completes.
-  await expect(page.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(page.locator(".js-plotly-plot")).toHaveCount(1);
+  await expect(page.locator(".js-plotly-plot")).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
 
   // Pixel baseline: the UQ histogram with the real (deterministic) Plotly render.
   await expect(page).toHaveScreenshot("uq-readonly-histogram.png");
@@ -93,9 +94,10 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   await expect(inspectButton).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });
   await inspectButton.click();
 
-  const modal = page.locator('[mmux-testid="sumo-model-modal"]');
+  const modal = page.locator('[mmux-testid="validation-modal"]');
   await expect(modal).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(modal.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(modal.locator(".js-plotly-plot")).toHaveCount(1);
+  await expect(modal.locator(".js-plotly-plot")).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
 
   // Pixel baseline: the Inspect Model modal (cross-validation view).
   await expect(page).toHaveScreenshot("uq-readonly-inspect-modal.png");
@@ -106,13 +108,15 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("Sensitivity / Correlation Indices")).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(page.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(page.locator(".js-plotly-plot")).toHaveCount(1);
+  await expect(page.locator(".js-plotly-plot")).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("uq-readonly-correlation-indices.png");
 
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("Sobol' Indices")).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(page.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(page.locator(".js-plotly-plot")).toHaveCount(1);
+  await expect(page.locator(".js-plotly-plot")).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("uq-readonly-sobol-indices.png");
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
