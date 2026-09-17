@@ -173,7 +173,7 @@ export async function fillUniformInputRanges(page: Page): Promise<void> {
  */
 export async function fillNormalDistributions(page: Page): Promise<void> {
   const meanInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Mean"] input');
-  const stdInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Standard Deviation"] input');
+  const stdInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Standard-Deviation"] input');
 
   const meanCount = await meanInputs.count();
   const stdCount = await stdInputs.count();

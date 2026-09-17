@@ -84,7 +84,7 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
 
   const validationView = page.locator('[mmux-testid="sumo-validation-view"]');
   await expect(validationView).toBeVisible({ timeout: VIEW_TIMEOUT });
-  const qoiSelect = page.locator('[mmux-testid="qoi-select"]');
+  const qoiSelect = page.locator('[mmux-testid="sumo-plot-qoi-select"]');
   await expect(qoiSelect).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expectPlotlyReady(validationView);
   await expect(validationView.getByText("MAE:")).toBeVisible({ timeout: VIEW_TIMEOUT });
