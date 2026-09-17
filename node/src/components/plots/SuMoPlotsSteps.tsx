@@ -1,16 +1,18 @@
 import React from "react";
 import IsoSurface3DPlot from "./IsoSurface3DPlot";
 import Curves1DPlots from "./Curves1DPlot";
-import SuMoValidation from "./SuMoValidation";
 import Surface2DPlot from "./Surface2DPlot";
 import SteppedPlotCard, { type SteppedStep } from "./SteppedPlotCard";
 import { filterInputVars } from "./PlotTools";
-import CrossValidationDocument from "../documents/CrossValidationDocument";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { useMMUXContext } from "../../context/MMUXContext";
+import { QoISelector } from "./QoISelector";
+import { Button } from "@mui/material";
 
-function SuMoPlotsSteps() {
-  const { inputVars, selectedFunction, distribution } = useFunctionContext();
+function SuMoPlotsSteps({ onInspectModel }: { onInspectModel?: () => void }) {
+  const { inputVars, selectedFunction, distribution, outputVars } = useFunctionContext();
+  const { selectedQoI, setSelectedQoI } = useMMUXContext();
   const context = useJobContext();
   const { filteredJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);
@@ -25,12 +27,6 @@ function SuMoPlotsSteps() {
   };
 
   const stepDefinitions: SteppedStep[] = [
-    {
-      title: "Validation",
-      infoText: "Assessment of model quality through Cross-Validation",
-      extendedInfoText: CrossValidationDocument,
-      content: <SuMoValidation />,
-    },
     { title: "1D Curves", content: <Curves1DPlots /> },
     { title: "2D Surface", content: <Surface2DPlot /> },
     { title: "3D IsoSurface", content: <IsoSurface3DPlot /> },
@@ -40,7 +36,7 @@ function SuMoPlotsSteps() {
     const jobs = filteredJobList;
     const nextFilteredInputVars =
       jobs.length === 0 ? inputVars : filterInputVars({ ...context, selectedFunction, inputVars, distribution });
-    const nextMaxSteps = Math.min(nextFilteredInputVars.length + 1, stepDefinitions.length);
+    const nextMaxSteps = Math.min(nextFilteredInputVars.length, stepDefinitions.length);
     setFilteredInputVars(nextFilteredInputVars);
     setMaxSteps(nextMaxSteps);
     setActiveStep(prevActiveStep => Math.min(prevActiveStep, Math.max(0, nextMaxSteps - 1)));
@@ -50,7 +46,7 @@ function SuMoPlotsSteps() {
   const visibleSteps = stepDefinitions.slice(0, maxSteps);
   const gatedContent = (() => {
     if (filteredInputVars.length === 0) return undefined;
-    const minVars = activeStep <= 1 ? 0 : activeStep - 1;
+    const minVars = activeStep;
     if (filteredInputVars.length <= minVars) return undefined;
     return visibleSteps[activeStep]?.content;
   })();
@@ -69,6 +65,16 @@ function SuMoPlotsSteps() {
       onBack={handleBack}
       nextTestId="sumo-plot-next"
       backTestId="sumo-plot-back"
+      qoiSelector={
+        <>
+          <QoISelector outputVars={outputVars} selectedQoI={selectedQoI} setSelectedQoI={setSelectedQoI} />
+          {onInspectModel && (
+            <Button variant="contained" size="small" onClick={onInspectModel} mmux-testid="inspect-model-button">
+              Inspect Model
+            </Button>
+          )}
+        </>
+      }
     />
   );
 }
