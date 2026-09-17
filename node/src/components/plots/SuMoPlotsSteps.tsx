@@ -67,7 +67,12 @@ function SuMoPlotsSteps({ onInspectModel }: { onInspectModel?: () => void }) {
       backTestId="sumo-plot-back"
       qoiSelector={
         <>
-          <QoISelector outputVars={outputVars} selectedQoI={selectedQoI} setSelectedQoI={setSelectedQoI} />
+          <QoISelector
+            outputVars={outputVars}
+            selectedQoI={selectedQoI}
+            setSelectedQoI={setSelectedQoI}
+            testId="sumo-plot-qoi-select"
+          />
           {onInspectModel && (
             <Button variant="contained" size="small" onClick={onInspectModel} mmux-testid="inspect-model-button">
               Inspect Model
