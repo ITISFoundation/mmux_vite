@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "@mui/material";
 import SteppedPlotCard, { type SteppedStep } from "./SteppedPlotCard";
 import UncertainUQ from "./UncertainUQ";
 import CorrelationIndicesPlot from "./CorrelationIndicesPlot";
@@ -15,10 +16,10 @@ const uqStepInfoTexts: Record<string, string | undefined> = {
   "Sobol' Indices": undefined,
 };
 
-type UQPlotsStepsProps = LoadingPropsType & { qoiSelector?: React.ReactNode };
+type UQPlotsStepsProps = LoadingPropsType & { qoiSelector?: React.ReactNode; onOpenSettings?: () => void };
 
 function UQPlotsSteps(props: UQPlotsStepsProps) {
-  const { loading, jobProgress, colsFetched, jobsFetched, qoiSelector } = props;
+  const { loading, jobProgress, colsFetched, jobsFetched, qoiSelector, onOpenSettings } = props;
   const [activeStep, setActiveStep] = React.useState(0);
   const [sobolViewMode, setSobolViewMode] = React.useState<SobolViewMode>("first-order");
   const [sobolScaleType, setSobolScaleType] = React.useState<ScaleType>("log");
@@ -35,6 +36,11 @@ function UQPlotsSteps(props: UQPlotsStepsProps) {
     {
       title: uqStepTitles[0],
       infoText: uqStepInfoTexts[uqStepTitles[0]],
+      headerContent: onOpenSettings ? (
+        <Button variant="contained" size="small" onClick={onOpenSettings}>
+          UQ Settings
+        </Button>
+      ) : undefined,
       content: <UncertainUQ colsFetched={colsFetched} jobProgress={jobProgress} jobsFetched={jobsFetched} loading={loading} />,
     },
     {
