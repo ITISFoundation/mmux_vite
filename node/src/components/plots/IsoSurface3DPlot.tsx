@@ -9,7 +9,7 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
+import { buildAxisRanges, buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 import { getResponseErrorMessage } from "../../utils/httpError";
 import { buildIsoSurfacePlotData } from "./isoSurfacePlotData";
 
@@ -188,6 +188,7 @@ function IsoSurface3DPlot() {
     const run = async () => {
       const jobs = filteredJobList;
       // V16: dedup by stable logical request key; same key → no new fetch.
+      const axisRanges = buildAxisRanges(distribution[selectedFunction?.uid || ""], [axis1, axis2, axis3]);
       const requestKey = buildDakotaRequestKey({
         axes: [axis1, axis2, axis3],
         sliderValues: otherAxis,
@@ -195,6 +196,7 @@ function IsoSurface3DPlot() {
         fn: selectedFunction?.uid,
         jobList: jobs.map(job => job.uid),
         logScale: false,
+        axisRanges,
       });
       if (requestKey === lastFetchedKey.current) {
         return undefined;
@@ -203,7 +205,7 @@ function IsoSurface3DPlot() {
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [axis1, axis2, axis3, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList]);
+  }, [axis1, axis2, axis3, inputVars, selectedQoI, selectedFunction, distribution, otherAxis, filteredJobList]);
 
   const layout = {
     title: {
