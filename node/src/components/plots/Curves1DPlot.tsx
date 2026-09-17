@@ -9,7 +9,7 @@ import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
+import { buildAxisRanges, buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 import { getResponseErrorMessage } from "../../utils/httpError";
 
 type GPPrediction = {
@@ -154,8 +154,7 @@ function Curves1DPlots() {
       // V36 (#501): encode the plotted axis' sampling range so that widening an
       // input's range invalidates the cache and the plot re-fetches with the new range.
       const fnUid = selectedFunction?.uid || "";
-      const axisDist = distribution[fnUid]?.[axis];
-      const axisRanges = axisDist ? { [axis]: [axisDist.min, axisDist.max] as [number, number] } : undefined;
+      const axisRanges = buildAxisRanges(distribution[fnUid], [axis]);
       const requestKey = buildDakotaRequestKey({
         axes: [axis],
         sliderValues: otherAxis,

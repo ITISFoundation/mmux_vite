@@ -18,6 +18,17 @@ export interface DakotaRequestKeyInput {
   axisRanges?: { [key: string]: [number, number] };
 }
 
+export function buildAxisRanges(
+  distribution: InputVarSelection | undefined,
+  axes: string[],
+): { [key: string]: [number, number] } | undefined {
+  const entries = axes.flatMap(axis => {
+    const range = distribution?.[axis];
+    return range?.min !== undefined && range.max !== undefined ? [[axis, [range.min, range.max] as [number, number]]] : [];
+  });
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
 const sortedRecordEntries = (record: { [key: string]: number }): [string, number][] =>
   Object.keys(record)
     .sort()
