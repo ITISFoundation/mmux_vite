@@ -57,7 +57,7 @@ test("MOGA read-only optimization flow renders pareto front and inspect-model mo
   await page.goto(url, { timeout: MODEL_READY_TIMEOUT });
   await page.waitForLoadState("networkidle");
 
-  const functionGrid = page.locator('[role="grid"]').first();
+  const functionGrid = page.locator('[role="grid"]');
   await functionGrid.waitFor({ state: "visible", timeout: VIEW_TIMEOUT });
 
   // Pixel baseline: the function-selection setup grid (full 1920x1080 viewport).
@@ -68,7 +68,7 @@ test("MOGA read-only optimization flow renders pareto front and inspect-model mo
   await selectButton.click();
 
   // MOGA uses uniform parameter ranges (Min/Max) like SuMo.
-  await expect(page.locator('[mmux-testid="input-block-Min"] input').first()).toBeVisible({
+  await expect(page.locator('[mmux-testid="input-block-x1-Min"] input')).toBeVisible({
     timeout: VIEW_TIMEOUT,
   });
   await fillUniformInputRanges(page);
@@ -84,8 +84,8 @@ test("MOGA read-only optimization flow renders pareto front and inspect-model mo
   await nextButton.click();
 
   const creatingModel = page.getByText("Creating AI model...");
-  if (await creatingModel.first().isVisible().catch(() => false)) {
-    await creatingModel.first().waitFor({ state: "hidden", timeout: MODEL_READY_TIMEOUT });
+  if (await creatingModel.isVisible().catch(() => false)) {
+    await creatingModel.waitFor({ state: "hidden", timeout: MODEL_READY_TIMEOUT });
   }
 
   // MOGA output setup: QoI selector + Inspect Model button + the Pareto view.
@@ -95,7 +95,8 @@ test("MOGA read-only optimization flow renders pareto front and inspect-model mo
   await expect(paretoView).toBeVisible({ timeout: VIEW_TIMEOUT });
 
   // The Pareto front renders once the optimization over the mock jobs completes.
-  await expect(paretoView.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(paretoView.locator(".js-plotly-plot")).toHaveCount(1);
+  await expect(paretoView.locator(".js-plotly-plot")).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
 
   // Pixel baseline: the MOGA Pareto front with the real (deterministic) Plotly render.
   await expect(page).toHaveScreenshot("moga-readonly-pareto.png");
@@ -105,9 +106,10 @@ test("MOGA read-only optimization flow renders pareto front and inspect-model mo
   await expect(inspectButton).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });
   await inspectButton.click();
 
-  const modal = page.locator('[mmux-testid="sumo-model-modal"]');
+  const modal = page.locator('[mmux-testid="validation-modal"]');
   await expect(modal).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(modal.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(modal.locator(".js-plotly-plot")).toHaveCount(1);
+  await expect(modal.locator(".js-plotly-plot")).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
 
   // Pixel baseline: the Inspect Model modal (cross-validation view).
   await expect(page).toHaveScreenshot("moga-readonly-inspect-modal.png");
