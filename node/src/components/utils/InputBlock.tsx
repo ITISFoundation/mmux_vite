@@ -2,7 +2,7 @@ import { InputLabel, TextField } from "@mui/material";
 import { useState } from "react";
 
 export function InputBlock(props: InputBlockProps) {
-  const { name, value, type, error, minmax, onChange } = props;
+  const { name, value, type, error, minmax, onChange, testId } = props;
   const [currentValue, setCurrentValue] = useState<number>(value);
 
   const handleChange = (newValue: number) => {
@@ -17,7 +17,7 @@ export function InputBlock(props: InputBlockProps) {
         variant="outlined"
         size="small"
         sx={{ marginTop: "8px" }}
-        mmux-testid={`input-block-${name}`}
+        mmux-testid={testId || `input-block-${name}`}
         InputProps={{ inputProps: { min: minmax.min, max: minmax.max } }}
         color="primary"
         value={Number.isNaN(currentValue) ? "" : currentValue}
