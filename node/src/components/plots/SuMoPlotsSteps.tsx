@@ -79,7 +79,7 @@ function SuMoPlotsSteps() {
       nextTestId="sumo-plot-next"
       backTestId="sumo-plot-back"
       qoiSelector={
-        (serviceMode === "SUMO" || serviceMode === "MOGA" || serviceMode === "UQ") && (
+        (serviceMode === "MOGA" || serviceMode === "UQ") && (
           <InputLabel
             size="small"
             sx={{
@@ -120,7 +120,7 @@ function SuMoPlotsSteps() {
               onChange={e => {
                 setSelectedQoI(e.target.value);
               }}
-              mmux-testid="sumo-plot-qoi-select"
+              mmux-testid="qoi-select"
             >
               {outputVars.map(qoi => (
                 <MenuItem key={`qoi-${qoi}`} value={qoi}>
