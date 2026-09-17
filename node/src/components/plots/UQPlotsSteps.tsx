@@ -6,6 +6,7 @@ import { CorrelationControls, type CorrelationViewMode } from "./CorrelationIndi
 import SobolIndicesPlot from "./SobolIndicesPlot";
 import { SobolControls, type SobolViewMode } from "./SobolIndicesPlot";
 import { type CorrelationScaleType, type ScaleType } from "../../utils/plotScale";
+import { Button } from "@mui/material";
 
 const uqStepTitles = ["Histogram", "Correlation", "Sobol' Indices"];
 
@@ -15,10 +16,13 @@ const uqStepInfoTexts: Record<string, string | undefined> = {
   "Sobol' Indices": undefined,
 };
 
-type UQPlotsStepsProps = LoadingPropsType;
+type UQPlotsStepsProps = LoadingPropsType & {
+  qoiSelector?: React.ReactNode;
+  onOpenSettings?: () => void;
+};
 
 function UQPlotsSteps(props: UQPlotsStepsProps) {
-  const { loading, jobProgress, colsFetched, jobsFetched } = props;
+  const { loading, jobProgress, colsFetched, jobsFetched, qoiSelector, onOpenSettings } = props;
   const [activeStep, setActiveStep] = React.useState(0);
   const [sobolViewMode, setSobolViewMode] = React.useState<SobolViewMode>("first-order");
   const [sobolScaleType, setSobolScaleType] = React.useState<ScaleType>("log");
@@ -35,6 +39,11 @@ function UQPlotsSteps(props: UQPlotsStepsProps) {
     {
       title: uqStepTitles[0],
       infoText: uqStepInfoTexts[uqStepTitles[0]],
+      headerContent: onOpenSettings ? (
+        <Button variant="contained" size="small" onClick={onOpenSettings}>
+          UQ Settings
+        </Button>
+      ) : undefined,
       content: <UncertainUQ colsFetched={colsFetched} jobProgress={jobProgress} jobsFetched={jobsFetched} loading={loading} />,
     },
     {
@@ -83,6 +92,7 @@ function UQPlotsSteps(props: UQPlotsStepsProps) {
       contentMinHeight={500}
       nextTestId="uq-plot-next"
       backTestId="uq-plot-back"
+      qoiSelector={qoiSelector}
     />
   );
 }

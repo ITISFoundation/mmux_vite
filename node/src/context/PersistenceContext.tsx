@@ -22,6 +22,8 @@ const defaultPersistence: PersistenceType = {
   currentView: 0,
   numSamples: {},
   selectedQoI: undefined,
+  validationQoI: undefined,
+  uqSettings: {},
   isSuMoGenerated: false,
   selectedFunction: undefined,
   inputVars: [],
@@ -61,6 +63,7 @@ export function PersistenceContextProvider({ children }: Props) {
       typeof data === "object" &&
       "currentView" in data &&
       "numSamples" in data &&
+      "selectedQoI" in data &&
       "isSuMoGenerated" in data &&
       "inputVars" in data &&
       "outputVars" in data &&

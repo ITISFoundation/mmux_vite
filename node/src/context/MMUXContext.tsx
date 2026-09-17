@@ -1,13 +1,17 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { usePersistenceContext } from "./PersistenceContext";
-import { PersistenceType } from "./types";
+import { PersistenceType, UQSettings } from "./types";
 
 export interface MMUXContextType {
   numSamples: { [key: string]: number };
   setNumSamples: (ns: { [key: string]: number }) => void;
   selectedQoI: string | undefined;
   setSelectedQoI: (response: string | undefined) => void;
+  validationQoI: string | undefined;
+  setValidationQoI: (response: string | undefined) => void;
+  uqSettings: { [key: string]: UQSettings };
+  setUQSettings: (settings: { [key: string]: UQSettings }) => void;
   isSuMoGenerated: boolean;
   setIsSuMoGenerated: (is: boolean) => void;
 }
@@ -23,6 +27,8 @@ export function MMUXContextProvider({ children }: Props) {
   const [localLoading, setLocalLoading] = useState(true);
   const [numSamples, setNumSamples] = useState<{ [key: string]: number }>({});
   const [selectedQoI, setSelectedQoI] = useState<string | undefined>(undefined);
+  const [validationQoI, setValidationQoI] = useState<string | undefined>(undefined);
+  const [uqSettings, setUQSettings] = useState<{ [key: string]: UQSettings }>({});
   const [isSuMoGenerated, setIsSuMoGenerated] = useState<boolean>(false);
 
   // persist the state of the MMUX context using the persistenceContext provider every time any of the state variables change
@@ -33,16 +39,20 @@ export function MMUXContextProvider({ children }: Props) {
       ...(persistence as PersistenceType),
       numSamples,
       selectedQoI,
+      validationQoI,
+      uqSettings,
       isSuMoGenerated,
     };
     saveState(newPersistence);
-  }, [numSamples, selectedQoI, isSuMoGenerated]);
+  }, [numSamples, selectedQoI, validationQoI, uqSettings, isSuMoGenerated]);
 
   useEffect(() => {
     if (loading === false && persistence && persistence.currentView !== undefined) {
       console.info("Loading MMUX context from persistence...");
       setNumSamples(persistence.numSamples);
       setSelectedQoI(persistence.selectedQoI);
+      setValidationQoI(persistence.validationQoI ?? persistence.selectedQoI);
+      setUQSettings(persistence.uqSettings ?? {});
       setIsSuMoGenerated(persistence.isSuMoGenerated);
       setLocalLoading(false);
     }
@@ -54,10 +64,14 @@ export function MMUXContextProvider({ children }: Props) {
       setNumSamples,
       selectedQoI,
       setSelectedQoI,
+      validationQoI,
+      setValidationQoI,
+      uqSettings,
+      setUQSettings,
       isSuMoGenerated,
       setIsSuMoGenerated,
     }),
-    [numSamples, selectedQoI, isSuMoGenerated],
+    [numSamples, selectedQoI, validationQoI, uqSettings, isSuMoGenerated],
   );
   return <MMUXContext.Provider value={memoState}>{children}</MMUXContext.Provider>;
 }
