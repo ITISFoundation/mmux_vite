@@ -26,7 +26,7 @@ dependencies = [
 dev = [
   {include-group = "test"},
   "prek==0.5.2",
-  "ruff==0.16.6",
+  "ruff==0.16.7",
   "ty>=0.0.58",
 ]
 test = [
