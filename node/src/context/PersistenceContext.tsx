@@ -22,6 +22,7 @@ const defaultPersistence: PersistenceType = {
   currentView: 0,
   numSamples: {},
   selectedQoI: undefined,
+  validationQoI: undefined,
   isSuMoGenerated: false,
   selectedFunction: undefined,
   inputVars: [],
@@ -71,6 +72,7 @@ export function PersistenceContextProvider({ children }: Props) {
       "singleJobConfig" in data &&
       "fetchedJobCollections" in data &&
       "selectedJobUids" in data &&
+      "selectedQoI" in data &&
       "mogaSettings" in data &&
       Object.keys(data).length <= Object.keys(defaultPersistence).length
     );
