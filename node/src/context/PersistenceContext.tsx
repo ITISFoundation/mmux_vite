@@ -22,6 +22,7 @@ const defaultPersistence: PersistenceType = {
   currentView: 0,
   numSamples: {},
   selectedQoI: undefined,
+  validationQoI: undefined,
   isSuMoGenerated: false,
   selectedFunction: undefined,
   inputVars: [],
