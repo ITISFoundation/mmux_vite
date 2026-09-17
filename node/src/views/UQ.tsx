@@ -4,6 +4,7 @@ import { useMMUXContext } from "../context/MMUXContext";
 import UQPlotsSteps from "../components/plots/UQPlotsSteps";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import ValidationModal from "./ValidationModal";
+import UQSettingsModal from "./UQSettingsModal";
 import { QoISelector } from "../components/plots/QoISelector";
 import { JobSampling } from "../components/sampling/JobSampling";
 import { useFunctionContext } from "../context/FunctionContext";
@@ -13,6 +14,7 @@ export default function UQ() {
   const { selectedQoI, setSelectedQoI } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [validationModal, setValidationModal] = useState<boolean>(false);
+  const [settingsModal, setSettingsModal] = useState(false);
   const [jobProgress, setJobProgress] = useState<number>(0);
   const jobsFetched = useRef(0);
   const colsFetched = useRef(0);
@@ -43,8 +45,10 @@ export default function UQ() {
             </Button>
           </>
         }
+        onOpenSettings={() => setSettingsModal(true)}
       />
       <ValidationModal open={validationModal} setOpen={setValidationModal} />
+      <UQSettingsModal open={settingsModal} setOpen={setSettingsModal} />
       <JobSampling
         loading={loading}
         setLoading={setLoading}
