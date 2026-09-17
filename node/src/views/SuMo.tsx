@@ -4,7 +4,7 @@ import SuMoPlotsSteps from "../components/plots/SuMoPlotsSteps";
 import MetaModelingUX from "../components/navigation/MetaModelingUX";
 import { JobSampling } from "../components/sampling/JobSampling";
 import { JobsLoading } from "../components/data/JobsLoading";
-import { OutputSetup } from "./OutputSetup";
+import ValidationModal from "./ValidationModal";
 import { useFunctionContext } from "../context/FunctionContext";
 
 export default function SuMo() {
@@ -12,6 +12,7 @@ export default function SuMo() {
   const { setSelectedQoI } = useMMUXContext();
   const [loading, setLoading] = useState<boolean>(true);
   const [jobProgress, setJobProgress] = useState<number>(0);
+  const [validationModal, setValidationModal] = useState(false);
 
   useEffect(() => {
     if (outputVars && outputVars.length > 0) {
@@ -21,8 +22,12 @@ export default function SuMo() {
 
   return (
     <MetaModelingUX headerType="title" tabTitle={`Response Surface Modeling: ${selectedFunction?.title}`}>
-      <OutputSetup loading={loading} mode="onlyQoI" />
-      {loading ? <JobsLoading jobProgress={jobProgress} message="Creating AI model..." /> : <SuMoPlotsSteps />}
+      {loading ? (
+        <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />
+      ) : (
+        <SuMoPlotsSteps onInspectModel={() => setValidationModal(true)} />
+      )}
+      <ValidationModal open={validationModal} setOpen={setValidationModal} />
       <JobSampling
         loading={loading}
         setLoading={setLoading}

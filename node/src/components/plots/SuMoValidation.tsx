@@ -15,10 +15,11 @@ import { getValidationSeries } from "../../utils/sumoValidation";
 import { requestJson } from "../../api/client";
 import { getErrorMessage } from "../../utils/httpError";
 
-function SuMoValidation() {
+function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: string }) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const { selectedQoI } = useMMUXContext();
+  const { validationQoI: contextValidationQoI } = useMMUXContext();
+  const validationQoI = validationQoIOverride ?? contextValidationQoI;
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
@@ -49,7 +50,7 @@ function SuMoValidation() {
   }
 
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
-    if (data && selectedQoI) {
+    if (data && validationQoI) {
       const series = getValidationSeries(data);
       if (!series) {
         console.warn("SuMo Validation response is missing the selected QoI series.");
@@ -110,7 +111,7 @@ function SuMoValidation() {
       method: "POST",
       body: {
         inputVars,
-        output: selectedQoI,
+        output: validationQoI,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false,
       },
@@ -145,7 +146,7 @@ function SuMoValidation() {
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
+  }, [validationQoI, inputVars, selectedFunction, distribution, filteredJobList]);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver(event => {
@@ -164,7 +165,7 @@ function SuMoValidation() {
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
     title: {
-      text: `${selectedQoI || "Quantity of Interest"} Sample Distribution`,
+      text: `${validationQoI || "Quantity of Interest"} Sample Distribution`,
     },
     margin: plotMarginsNarrow,
     width,
