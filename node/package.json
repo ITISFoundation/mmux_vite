@@ -51,7 +51,7 @@
     "@vitest/browser-playwright": "^5.0.1",
     "@vitest/coverage-v8": "^5.0.1",
     "@vitest/ui": "^5.0.1",
-    "autoprefixer": "^10.5.4",
+    "autoprefixer": "^10.6.0",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.5",
