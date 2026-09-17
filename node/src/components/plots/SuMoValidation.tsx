@@ -14,10 +14,11 @@ import { useJobContext } from "../../context/JobContext";
 import { getResponseErrorMessage } from "../../utils/httpError";
 import { getValidationSeries } from "../../utils/sumoValidation";
 
-function SuMoValidation() {
+function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: string }) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const { selectedQoI } = useMMUXContext();
+  const { validationQoI: contextValidationQoI } = useMMUXContext();
+  const validationQoI = validationQoIOverride ?? contextValidationQoI;
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
@@ -48,15 +49,12 @@ function SuMoValidation() {
   }
 
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
-    if (data && selectedQoI) {
-      const series = getValidationSeries(data);
-      if (!series) {
-        console.warn("SuMo Validation response is missing the selected QoI series.");
-        setPlotData([]);
-        setCvMetrics(undefined);
-        throw new Error("Validation response did not include observed and predicted series.");
-      }
-      const { observations: y, predictions: yHat } = series;
+    if (data && validationQoI) {
+      const y = data[validationQoI];
+      // The backend builds the prediction key as `<output>_hat`, but the global
+      // after_request serializer camelCases every response key, so the client
+      // receives `<selectedQoI>Hat` (e.g. `yHat`). Read the camelCase key.
+      const yHat = data[`${validationQoI}Hat`];
 
       // For violin plots, y should be the data and x should be the label
       const createViolinPlot = (
@@ -110,7 +108,7 @@ function SuMoValidation() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         inputVars,
-        output: selectedQoI,
+        output: validationQoI,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false,
       }),
@@ -148,7 +146,7 @@ function SuMoValidation() {
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
+  }, [validationQoI, inputVars, selectedFunction, distribution, filteredJobList]);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver(event => {
@@ -167,7 +165,7 @@ function SuMoValidation() {
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
     title: {
-      text: `${selectedQoI || "Quantity of Interest"} Sample Distribution`,
+      text: `${validationQoI || "Quantity of Interest"} Sample Distribution`,
     },
     margin: plotMarginsNarrow,
     width,
