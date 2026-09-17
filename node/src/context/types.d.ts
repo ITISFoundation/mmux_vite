@@ -51,6 +51,7 @@ interface PersistenceType {
   fetchedJobCollections: SelectedJobCollection[] | undefined;
   selectedJobUids: string[];
   selectedQoI: string | undefined;
+  validationQoI: string | undefined;
   isSuMoGenerated: boolean;
   mogaSettings: MOGASettings;
   weights: { [key: string]: number };
