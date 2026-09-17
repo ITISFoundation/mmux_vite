@@ -15,10 +15,10 @@ const uqStepInfoTexts: Record<string, string | undefined> = {
   "Sobol' Indices": undefined,
 };
 
-type UQPlotsStepsProps = LoadingPropsType;
+type UQPlotsStepsProps = LoadingPropsType & { qoiSelector?: React.ReactNode };
 
 function UQPlotsSteps(props: UQPlotsStepsProps) {
-  const { loading, jobProgress, colsFetched, jobsFetched } = props;
+  const { loading, jobProgress, colsFetched, jobsFetched, qoiSelector } = props;
   const [activeStep, setActiveStep] = React.useState(0);
   const [sobolViewMode, setSobolViewMode] = React.useState<SobolViewMode>("first-order");
   const [sobolScaleType, setSobolScaleType] = React.useState<ScaleType>("log");
@@ -83,6 +83,7 @@ function UQPlotsSteps(props: UQPlotsStepsProps) {
       contentMinHeight={500}
       nextTestId="uq-plot-next"
       backTestId="uq-plot-back"
+      qoiSelector={qoiSelector}
     />
   );
 }
