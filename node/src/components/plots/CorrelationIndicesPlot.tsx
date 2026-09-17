@@ -73,7 +73,7 @@ export function CorrelationControls({ viewMode, scaleType, onViewModeChange, onS
 export default function CorrelationIndicesPlot({ viewMode, scaleType }: CorrelationIndicesPlotProps) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const { numSamples, selectedQoI } = useMMUXContext();
+  const { uqSettings, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [correlations, setCorrelations] = useState<CorrelationIndicesResponse["correlations"] | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
@@ -97,8 +97,8 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
           output: selectedQoI,
           distributions: distribution[selectedFunction?.uid || ""],
           functionJobs: filteredJobList,
-          numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
-          seed: 0,
+          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
+          seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
         });
         setCorrelations(data.correlations);
         setErrorMessage(undefined);
@@ -110,7 +110,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
         setErrorMessage(getErrorMessage(error));
       }
     })();
-  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction]);
+  }, [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction]);
 
   useEffect(() => {
     if (!correlations) {

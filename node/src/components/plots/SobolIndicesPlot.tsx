@@ -60,7 +60,7 @@ export function SobolControls({ viewMode, scaleType, onViewModeChange, onScaleTy
 export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPlotProps) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const { numSamples, selectedQoI } = useMMUXContext();
+  const { uqSettings, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [sobolData, setSobolData] = useState<SobolIndicesResponse | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
@@ -84,8 +84,8 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
           output: selectedQoI,
           distributions: distribution[selectedFunction?.uid || ""],
           functionJobs: filteredJobList,
-          numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
-          seed: 0,
+          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
+          seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
         });
         setSobolData(data);
         setErrorMessage(undefined);
@@ -97,7 +97,7 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
         setErrorMessage(getErrorMessage(error));
       }
     })();
-  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction]);
+  }, [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction]);
 
   useEffect(() => {
     if (!sobolData) {

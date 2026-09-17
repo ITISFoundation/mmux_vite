@@ -15,7 +15,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
   const { loading, jobProgress } = props;
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const { numSamples, selectedQoI } = useMMUXContext();
+  const { uqSettings, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [dataUQHistogram, setDataUQHistogram] = useState<DataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
@@ -45,10 +45,10 @@ export default function UncertainUQ(props: LoadingPropsType) {
             output: selectedQoI,
             distributions: distribution[selectedFunction?.uid || ""],
             FunctionJobs: filteredJobList,
-            numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
+            numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
             log: false,
-            nHistograms: 50,
-            seed: 0,
+            nHistograms: uqSettings[selectedFunction?.uid || ""]?.nHistograms || 50,
+            seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
           },
         });
         const newPlotData: Plotly.Data[] = [
@@ -78,7 +78,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
         setDataUQHistogram(undefined);
       }
     })();
-  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction, theme.palette.primary.main]);
+  }, [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction, theme.palette.primary.main]);
   if (loading) {
     return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;
   }
