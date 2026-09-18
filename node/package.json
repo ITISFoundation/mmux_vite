@@ -34,7 +34,7 @@
     "whatwg-fetch": "^3.6.20"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.6",
+    "@eslint/eslintrc": "^3.3.7",
     "@openapitools/openapi-generator-cli": "^2.41.0",
     "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^7.0.1",
