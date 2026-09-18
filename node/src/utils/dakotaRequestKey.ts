@@ -13,6 +13,18 @@ export interface DakotaRequestKeyInput {
   fn: string | undefined;
   jobList: string[];
   logScale: boolean;
+  axisRanges?: { [key: string]: [number, number] };
+}
+
+export function buildAxisRanges(
+  distribution: InputVarSelection | undefined,
+  axes: string[],
+): { [key: string]: [number, number] } | undefined {
+  const entries = axes.flatMap(axis => {
+    const range = distribution?.[axis];
+    return range?.min !== undefined && range.max !== undefined ? [[axis, [range.min, range.max] as [number, number]]] : [];
+  });
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
 const sortedRecordEntries = (record: { [key: string]: number }): [string, number][] =>
@@ -20,7 +32,20 @@ const sortedRecordEntries = (record: { [key: string]: number }): [string, number
     .sort()
     .map(key => [key, record[key]] as [string, number]);
 
-export function buildDakotaRequestKey({ axes, sliderValues, qoi, fn, jobList, logScale }: DakotaRequestKeyInput): string {
+const sortedRangeEntries = (record: { [key: string]: [number, number] } | undefined): [string, [number, number]][] =>
+  Object.keys(record ?? {})
+    .sort()
+    .map(key => [key, record![key]] as [string, [number, number]]);
+
+export function buildDakotaRequestKey({
+  axes,
+  sliderValues,
+  qoi,
+  fn,
+  jobList,
+  logScale,
+  axisRanges,
+}: DakotaRequestKeyInput): string {
   // axes are positional (axis1/axis2/axis3) so order is meaningful and preserved.
   // sliderValues and jobList are order-independent, so they are sorted for stability.
   return JSON.stringify({
@@ -30,5 +55,6 @@ export function buildDakotaRequestKey({ axes, sliderValues, qoi, fn, jobList, lo
     fn: fn ?? null,
     jobList: [...jobList].sort(),
     logScale,
+    axisRanges: sortedRangeEntries(axisRanges),
   });
 }

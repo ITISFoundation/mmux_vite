@@ -9,7 +9,7 @@ import Header from "../navigation/Header";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
+import { buildAxisRanges, buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 import { getResponseErrorMessage } from "../../utils/httpError";
 
 function Surface2DPlot() {
@@ -133,6 +133,7 @@ function Surface2DPlot() {
     const run = async () => {
       const jobs = filteredJobList;
       // V16: dedup by stable logical request key; same key → no new fetch.
+      const axisRanges = buildAxisRanges(distribution[selectedFunction?.uid || ""], [axis1, axis2]);
       const requestKey = buildDakotaRequestKey({
         axes: [axis1, axis2],
         sliderValues: otherAxis,
@@ -140,6 +141,7 @@ function Surface2DPlot() {
         fn: selectedFunction?.uid,
         jobList: jobs.map(job => job.uid),
         logScale: false,
+        axisRanges,
       });
       if (requestKey === lastFetchedKey.current) {
         return undefined;
@@ -147,7 +149,7 @@ function Surface2DPlot() {
       return RunSuMo2DInterpolation(jobs, axis1, axis2, requestKey);
     };
     run();
-  }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList, RunSuMo2DInterpolation]);
+  }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, distribution, otherAxis, filteredJobList, RunSuMo2DInterpolation]);
 
   const layout: Partial<Layout> = {
     title: {
