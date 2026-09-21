@@ -75,6 +75,20 @@ def test_development_compose_passes_app_port_to_vite():
     )
 
 
+def test_development_backend_uses_writable_uv_cache():
+    content = (REPO_ROOT / "docker-compose-development.yml").read_text()
+
+    assert 'user: "${UID:-1000}:${GID:-1000}"' in content, (
+        "docker-compose-development.yml: mmux-vite-backend must run as the host user "
+        "when bind-mounting the Flask source (V31vr/B18kt)"
+    )
+    assert "UV_CACHE_DIR=/app/.cache/uv" in content, (
+        "docker-compose-development.yml: non-root mmux-vite-backend must direct uv's "
+        "cache below the writable /app source mount, not its unwritable default /.cache/uv "
+        "(V36zn/B22zn)"
+    )
+
+
 def test_make_targets_reuse_running_compose_app_port():
     content = (REPO_ROOT / "Makefile").read_text()
 
