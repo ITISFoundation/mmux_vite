@@ -6,6 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
 RUN npm run build
+RUN chown node:node /app/node_modules /app/node_modules/.vite-temp
 
 # Production stage
 FROM node:24-alpine AS runner

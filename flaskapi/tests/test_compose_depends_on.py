@@ -28,6 +28,7 @@ COMPOSE_FILES = [
 
 VITE_CONFIG = REPO_ROOT / "node" / "vite.config.ts"
 RESOLVE_APP_PORT = REPO_ROOT / "scripts" / "resolve-app-port.sh"
+BACKEND_ENTRYPOINT = REPO_ROOT / "flaskapi" / "entrypoint.sh"
 
 
 def test_app_service_depends_on_healthy_upstreams():
@@ -86,6 +87,63 @@ def test_development_backend_uses_writable_uv_cache():
         "docker-compose-development.yml: non-root mmux-vite-backend must direct uv's "
         "cache below the writable /app source mount, not its unwritable default /.cache/uv "
         "(V36zn/B22zn)"
+    )
+
+
+def test_development_backend_preserves_prebuilt_virtualenv():
+    content = (REPO_ROOT / "docker-compose-development.yml").read_text()
+
+    assert "- mmux-vite-backend-venv:/app/.venv" in content, (
+        "docker-compose-development.yml: the live /app source bind mount must not hide "
+        "the image-built Flask virtualenv; mount a named volume at /app/.venv (V37kp/B23kp)"
+    )
+    assert "volumes:\n  mmux-vite-backend-venv:" in content, (
+        "docker-compose-development.yml: mmux-vite-backend-venv must be declared as a "
+        "top-level named volume (V37kp/B23kp)"
+    )
+
+
+def test_development_web_uses_prebuilt_node_modules():
+    compose_content = (REPO_ROOT / "docker-compose-development.yml").read_text()
+    makefile_content = (REPO_ROOT / "Makefile").read_text()
+    dockerfile_content = (REPO_ROOT / "node" / "Dockerfile").read_text()
+
+    assert "image: simcore/services/dynamic/mmux-vite-web-dev:1.6.1" in compose_content, (
+        "docker-compose-development.yml: mmux-vite-web must use the builder-stage "
+        "development image with prebuilt Node dependencies (V41ne/B28ne)"
+    )
+    assert "- mmux-vite-web-node-modules:/app/node_modules" in compose_content
+    assert 'command: sh -c "npm run dev -- --host 0.0.0.0 --port 8080"' in compose_content
+    assert "npm install && npm run dev" not in compose_content
+    assert "test: wget -q -O /dev/null http://127.0.0.1:8080/" in compose_content, (
+        "docker-compose-development.yml: the builder-stage web image needs an explicit "
+        "Vite health check so the proxy can wait for it (V43vh/B30vh)"
+    )
+    assert (
+        "--target builder --tag simcore/services/dynamic/mmux-vite-web-dev:" in makefile_content
+    ), (
+        "Makefile build must tag the Node builder stage for the development compose service "
+        "(V41ne/B28ne)"
+    )
+    assert (
+        "RUN chown node:node /app/node_modules /app/node_modules/.vite-temp" in dockerfile_content
+    ), (
+        "node/Dockerfile: builder-stage node_modules and Vite's generated .vite-temp "
+        "directory copied into the development volume must be writable by the non-root user "
+        "(V42wu/B29wu)"
+    )
+
+
+def test_development_entrypoint_uses_prebuilt_virtualenv_without_syncing():
+    content = BACKEND_ENTRYPOINT.read_text()
+
+    assert "exec uv run --no-sync python -m flask run" in content, (
+        "flaskapi/entrypoint.sh: development startup must not resynchronize the root-seeded "
+        "/app/.venv under the non-root container user (V38hp/B24hp)"
+    )
+    assert "$(id)" in content and "whoami" not in content, (
+        "flaskapi/entrypoint.sh: the non-root host UID may not have a passwd entry; log its "
+        "numeric identity directly without whoami (V38hp/B24hp)"
     )
 
 

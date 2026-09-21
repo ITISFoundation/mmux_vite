@@ -51,6 +51,7 @@ compose-spec: ## runs ooil to assemble the docker-compose.yml file
 .PHONY: build
 build: compose-spec ## build docker images
 	docker compose build
+	docker build --target builder --tag simcore/services/dynamic/mmux-vite-web-dev:$(DOCKER_IMAGE_TAG) node
 
 .PHONY: build-no-cache
 build-no-cache: compose-spec ## build docker images

@@ -14,17 +14,25 @@ services:
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE}
     volumes:
       - ./flaskapi:/app
+      - mmux-vite-backend-venv:/app/.venv
       - ./validation/text-files:/text-files
   mmux-vite-web:
-    image: simcore/services/dynamic/mmux-vite-web:1.6.1
+    image: simcore/services/dynamic/mmux-vite-web-dev:1.6.1
     working_dir: /app
     user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./node:/app
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 8080"
+      - mmux-vite-web-node-modules:/app/node_modules
+    command: sh -c "npm run dev -- --host 0.0.0.0 --port 8080"
     environment:
       - NODE_ENV=development
       - APP_PORT=${APP_PORT:-8888}
+    healthcheck:
+      test: wget -q -O /dev/null http://127.0.0.1:8080/
+      interval: 5s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
   mmux-vite-app:
     image: simcore/services/dynamic/${APP_IMAGE}:1.6.1
     environment:
@@ -37,3 +45,7 @@ services:
         condition: service_healthy
       mmux-vite-web:
         condition: service_healthy
+
+volumes:
+  mmux-vite-backend-venv:
+  mmux-vite-web-node-modules:
