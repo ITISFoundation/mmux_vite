@@ -104,6 +104,7 @@ V40as: sampling intermediate runs ! resolve from explicit `SAMPLING_RUNS_DIR` or
 V41ne: `make build` ! tag Node Dockerfile `builder` stage as the dev-web image; dev `mmux-vite-web` ! preserve its prebuilt `/app/node_modules` in a named volume and run Vite directly, ⊥ runtime `npm install`/network dependency (B28ne)
 V42wu: Node builder-stage `/app/node_modules` ! be owned by the dev container user before Docker seeds the named volume; Vite (UID/GID 1000) ! write its `.vite-temp` runtime files there (B29wu)
 V43vh: dev builder-stage `mmux-vite-web` ! define its own Vite `:8080` health check because it does not inherit the production stage's `HEALTHCHECK`; proxy starts only after that check and backend health succeed (B30vh)
+V44tf: dev `mmux-vite-backend` ! wait for a root-only `mmux-vite-text-files-init` service to chown `./validation/text-files:/text-files` to `${UID}:${GID}` before starting; persistence POST ! remain writable after migration from root-run containers (B31tf)
 
 ## §T
 id|status|task|cites
@@ -164,3 +165,4 @@ B27as|2026-09-21|after the Dakota cwd fix, sampling blueprint import exposed the
 B28ne|2026-09-21|dev web bind mount hid all image files and ran `npm install` before Vite; transient package-network work never completed, the web health check stayed unavailable, and Caddy correctly refused to start|V41ne
 B29wu|2026-09-21|the prebuilt Node `node_modules` named volume was seeded from a root-owned builder stage; non-root Vite then failed to create `.vite-temp` under that volume with EACCES, so the web health check never became ready|V42wu
 B30vh|2026-09-21|dev compose switched `mmux-vite-web` to the Dockerfile builder stage to reuse prebuilt dependencies, but that stage has no production-stage `HEALTHCHECK`; `depends_on.condition: service_healthy` could therefore never release the Caddy proxy|V43vh
+B31tf|2026-09-21|after development services began correctly running as the host UID/GID, existing `validation/text-files/persistence.json` and its directory remained owned by prior root-run containers; browser persistence writes then failed with EACCES and HTTP 500|V44tf

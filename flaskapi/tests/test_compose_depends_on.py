@@ -79,15 +79,31 @@ def test_development_compose_passes_app_port_to_vite():
 def test_development_backend_uses_writable_uv_cache():
     content = (REPO_ROOT / "docker-compose-development.yml").read_text()
 
-    assert 'user: "${UID:-1000}:${GID:-1000}"' in content, (
-        "docker-compose-development.yml: mmux-vite-backend must run as the host user "
-        "when bind-mounting the Flask source (V31vr/B18kt)"
+    assert 'user: "0:0"' in content, (
+        "docker-compose-development.yml: mmux-vite-backend must start as root so its "
+        "entrypoint can repair legacy bind-mount ownership before dropping privileges"
     )
     assert "UV_CACHE_DIR=/app/.cache/uv" in content, (
         "docker-compose-development.yml: non-root mmux-vite-backend must direct uv's "
         "cache below the writable /app source mount, not its unwritable default /.cache/uv "
         "(V36zn/B22zn)"
     )
+
+
+def test_development_backend_repairs_text_file_mount_ownership_on_startup():
+    compose_content = (REPO_ROOT / "docker-compose-development.yml").read_text()
+    entrypoint_content = BACKEND_ENTRYPOINT.read_text()
+
+    assert "mmux-vite-text-files-init:" not in compose_content, (
+        "docker-compose-development.yml: the backend entrypoint owns development "
+        "persistence-mount initialization (V44tf/B31tf)"
+    )
+    assert 'user: "0:0"' in compose_content
+    assert "APP_UID=${UID:-1000}" in compose_content
+    assert "APP_GID=${GID:-1000}" in compose_content
+    assert "  gosu \\" in (REPO_ROOT / "flaskapi" / "Dockerfile").read_text()
+    assert 'chown -R "$APP_UID:$APP_GID" /text-files' in entrypoint_content
+    assert 'exec gosu "$APP_UID:$APP_GID" "$0" "$@"' in entrypoint_content
 
 
 def test_development_backend_preserves_prebuilt_virtualenv():

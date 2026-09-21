@@ -1,7 +1,7 @@
 services:
   mmux-vite-backend:
     image: simcore/services/dynamic/mmux-vite-backend:1.6.1
-    user: "${UID:-1000}:${GID:-1000}"
+    user: "0:0"
     environment:
       - OSPARC_API_BASE_URL=${OSPARC_API_BASE_URL}
       - OSPARC_API_KEY=${OSPARC_API_KEY}
@@ -9,6 +9,8 @@ services:
       - LOG_LEVEL=DEBUG
       - DEVELOPMENT_MODE=true
       - UV_CACHE_DIR=/app/.cache/uv
+      - APP_UID=${UID:-1000}
+      - APP_GID=${GID:-1000}
       - SERVICE_MODE=${SERVICE_MODE}
       - PERMISSIONS=${PERMISSIONS}
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE}
