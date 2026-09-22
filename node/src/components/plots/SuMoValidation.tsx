@@ -12,6 +12,7 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { getResponseErrorMessage } from "../../utils/httpError";
+import { getValidationSeries } from "../../utils/sumoValidation";
 
 function SuMoValidation() {
   const theme = useTheme();
@@ -48,11 +49,15 @@ function SuMoValidation() {
 
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
     if (data && selectedQoI) {
-      const y = data[selectedQoI];
-      // The backend builds the prediction key as `<output>_hat`, but the global
-      // after_request serializer camelCases every response key, so the client
-      // receives `<selectedQoI>Hat` (e.g. `yHat`). Read the camelCase key.
-      const yHat = data[`${selectedQoI}Hat`];
+      const series = getValidationSeries(data);
+      if (!series) {
+        console.warn("SuMo Validation response is missing the selected QoI series.");
+        setPlotData([]);
+        setCvMetrics(undefined);
+        setErrorMessage("Validation response did not include the selected quantity of interest.");
+        return;
+      }
+      const { observations: y, predictions: yHat } = series;
 
       // For violin plots, y should be the data and x should be the label
       const createViolinPlot = (

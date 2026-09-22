@@ -70,18 +70,15 @@ class TestSumoCrossValidation:
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, dict)
-        # Should contain observations and prediction outputs in original names.
-        assert OUTPUT in data
-        assert f"{OUTPUT}Hat" in data
-        assert f"{OUTPUT}StdHat" in data
-        assert isinstance(data[OUTPUT], list)
-        assert isinstance(data[f"{OUTPUT}Hat"], list)
-        assert isinstance(data[f"{OUTPUT}StdHat"], list)
-        for v in data[OUTPUT]:
+        assert set(data) == {"observed", "predicted", "predictedStd"}
+        assert isinstance(data["observed"], list)
+        assert isinstance(data["predicted"], list)
+        assert isinstance(data["predictedStd"], list)
+        for v in data["observed"]:
             assert isinstance(v, (int, float))
-        for v in data[f"{OUTPUT}Hat"]:
+        for v in data["predicted"]:
             assert isinstance(v, (int, float))
-        for v in data[f"{OUTPUT}StdHat"]:
+        for v in data["predictedStd"]:
             assert isinstance(v, (int, float))
 
     def test_sumo_cross_validation_builds_response_from_itis_sumo_result(
@@ -122,9 +119,9 @@ class TestSumoCrossValidation:
         assert response.status_code == 200
         data = response.get_json()
         assert data == {
-            "dragForce": [1.0, 2.0, 3.0],
-            "dragForceHat": [1.1, 2.1, 3.1],
-            "dragForceStdHat": [0.1, 0.2, 0.3],
+            "observed": [1.0, 2.0, 3.0],
+            "predicted": [1.1, 2.1, 3.1],
+            "predictedStd": [0.1, 0.2, 0.3],
         }
 
     def test_sumo_cross_validation_accepts_snake_case_payload(self, test_client: Flask):
@@ -495,8 +492,8 @@ class TestSnakeCaseDakotaRequestCompatibility:
         response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 200
         data = response.get_json()
-        assert "y" in data
-        assert isinstance(data["y"], list)
+        assert set(data) == {"observed", "predicted", "predictedStd"}
+        assert isinstance(data["observed"], list)
 
     # Add more edge cases as needed
 

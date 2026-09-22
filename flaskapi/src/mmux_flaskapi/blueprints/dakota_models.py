@@ -223,6 +223,30 @@ class SumoCrossValidationRequest(BaseModel):
         return self
 
 
+class SumoCrossValidationResponse(BaseModel):
+    """Fixed-field response for SuMo cross-validation."""
+
+    model_config = ConfigDict(frozen=True)
+
+    observed: list[float] = Field(..., description="Observed output values")
+    predicted: list[float] = Field(..., description="Cross-validated predictions")
+    predicted_std: list[float] = Field(..., description="Prediction standard deviations")
+
+    @field_validator("observed", "predicted", "predicted_std")
+    @classmethod
+    def validate_non_empty(cls, v: list[float]) -> list[float]:
+        if not v:
+            raise ValueError("Cross-validation arrays cannot be empty")
+        return v
+
+    @model_validator(mode="after")
+    def validate_array_lengths(self) -> "SumoCrossValidationResponse":
+        lengths = {len(self.observed), len(self.predicted), len(self.predicted_std)}
+        if len(lengths) != 1:
+            raise ValueError("Cross-validation arrays must have the same length")
+        return self
+
+
 class DistributionParams(BaseModel):
     """Model for distribution parameters."""
 

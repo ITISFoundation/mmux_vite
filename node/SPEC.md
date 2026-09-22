@@ -86,6 +86,7 @@ V26df: Sobol results surface `M1` first-order, `M2` second-order, `R` third+-ord
 V27mn: Sobol UI distinguishes unique order masses (`M1`,`M2`,`R`) from overlapping total indices (`S_Ti`,`S_T,G`); group values shown as approximations when derived from truncated returned terms, with truncation caveat visible
 V28kp: whisker IQR rectangle ! use a Plotly `scatter` polygon with explicit x/y coordinates and `fill: "toself"`; ⊥ attach scatter-only fill properties to a `box` trace, so `tsc -b` and the e2e web server remain green
 V29rt: 3D isosurface `x`,`y`,`z`,`value` arrays ! be nested or misaligned; ⊥ wrap a prediction array in an extra array, which renders an empty Plotly surface and emits `NaN` SVG dimensions
+V30ab: SuMo validation consumes fixed `{observed,predicted,predictedStd}` response fields independent of QoI spelling; missing observation/prediction arrays render a handled error state, ⊥ QoI-derived response-key guessing
 
 ## §T
 id|status|task|cites
@@ -129,3 +130,4 @@ B18|2026-07-01|prod oSPARC fn UID `ddfc5b42-...` ("Tissue Conductivity Uncertain
 B19|2026-08-04|PR #502 review (Alex, human, "additional note"): `JobSelector`'s hydration effect coupled clearing view-local `loading` with destructive `onToggleAll(true)`/`setIsSuMoGenerated(true)`, gated only on `loading===true`. Pre-existing `loading` initializer (`fetchedJobCollections===undefined`) usually skipped this on Setup↔Results remounts, so Alex flagged it "likely benign". A same-PR fix for a separate Copilot-flagged loading-flash bug changed the initializer to always `true` — turning the coupling into a guaranteed reset of the user's manual job (de)selection on every remount (`ReturnCurrentView` unmounts MOGA/SuMo/UQ per nav). Caught while following up on Alex's note, not by a failing test|V25
 B20qs|2026-09-16|PR #596 restored the native `box` trace while retaining unsupported scatter `fill` properties; Plotly 4 rejected the trace during `tsc -b`, so the e2e web server exited before tests ran|V28kp
 B21rt|2026-09-16|3D SuMo plot wrapped the prediction array as `value: [data[selectedQoI]]`; Plotly received a nested value array, rendered an empty isosurface, and emitted `<rect> height: NaN`|V29rt
+B22ab|2026-09-22|`sumo_cross_validation` emitted QoI-derived top-level response keys and global serialization camelCased them, forcing frontend `getValidationSeries` to guess transformed identifiers|V30ab,../flaskapi/SPEC.md V46jk
