@@ -124,6 +124,47 @@ class TestSumoCrossValidation:
             "predictedStd": [0.1, 0.2, 0.3],
         }
 
+    @pytest.mark.parametrize(
+        ("observed", "predicted", "predicted_std"),
+        [
+            ([], [1.0], [0.1]),
+            ([1.0, 2.0], [1.1], [0.1, 0.2]),
+            ([1.0], [1.1], None),
+        ],
+    )
+    def test_sumo_cross_validation_rejects_invalid_response_arrays(
+        self, test_client: Flask, monkeypatch, observed, predicted, predicted_std
+    ):
+        """The endpoint rejects incomplete or misaligned cross-validation results."""
+        from itis_sumo.api import CrossValidationResult
+
+        def fake_cross_validate(*args, **kwargs):
+            return CrossValidationResult(
+                response="y",
+                observed=observed,
+                predicted=predicted,
+                predicted_std=predicted_std,
+                warnings=[],
+                seed=42,
+                effective_config={},
+            )
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.sumo_cross_validate",
+            fake_cross_validate,
+        )
+
+        payload = {
+            "inputVars": ["x1"],
+            "output": "y",
+            "FunctionJobs": create_function_job_list(50),
+        }
+
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+
+        assert response.status_code in {400, 422}
+        assert "error" in response.get_json()
+
     def test_sumo_cross_validation_accepts_snake_case_payload(self, test_client: Flask):
         payload = {
             "input_vars": ["x1"],

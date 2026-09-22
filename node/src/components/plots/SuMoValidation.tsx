@@ -54,8 +54,7 @@ function SuMoValidation() {
         console.warn("SuMo Validation response is missing the selected QoI series.");
         setPlotData([]);
         setCvMetrics(undefined);
-        setErrorMessage("Validation response did not include the selected quantity of interest.");
-        return;
+        throw new Error("Validation response did not include observed and predicted series.");
       }
       const { observations: y, predictions: yHat } = series;
 
