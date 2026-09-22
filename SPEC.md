@@ -45,8 +45,8 @@ env: `PERMISSIONS` ∈ {READ-ONLY,WRITE}
 env: `DEPLOYMENT_MODE` ∈ {LOCAL,OSPARC}
 env: `BACKEND_SERVICE`,`WEB_SERVICE` → Caddy upstreams
 cmd: `make .env` → clone `.env-devel` → `.env`
-cmd: `make build` → `compose-spec` (ooil) + build all images + tag Node builder-stage dev-web image (host UID/GID build-args)
-cmd: `make build-no-cache` → build `--no-cache --pull --parallel` + tag Node builder-stage dev-web image `--no-cache` (host UID/GID build-args)
+cmd: `make build` → `compose-spec` (ooil) + build all images
+cmd: `make build-no-cache` → build `--no-cache --pull --parallel`
 cmd: `make run-develop-{mode}-{perm}` → `docker compose -f docker-compose-development.yml up` (live source mounts, LOG_LEVEL=DEBUG, DEVELOPMENT_MODE=true)
 cmd: `make run-prod-local-{mode}-{perm}` → `docker compose -f docker-compose-local.yml up` (prod build, validation mount only)
 cmd (Windows Admin, WSL2 fallback ports): `for /L %p in (8889,1,8892) do netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=%p connectaddress=<WSL_IP> connectport=%p`; inspect via `netsh interface portproxy show v4tov4`; refresh by deleting same listen ports before re-adding
