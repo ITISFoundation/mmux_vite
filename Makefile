@@ -51,11 +51,14 @@ compose-spec: ## runs ooil to assemble the docker-compose.yml file
 .PHONY: build
 build: compose-spec ## build docker images
 	docker compose build
-	docker build --target builder --tag simcore/services/dynamic/mmux-vite-web-dev:$(DOCKER_IMAGE_TAG) node
+	docker build --target builder --tag simcore/services/dynamic/mmux-vite-web-dev:$(DOCKER_IMAGE_TAG) \
+		--build-arg APP_UID=$(shell id -u) --build-arg APP_GID=$(shell id -g) node
 
 .PHONY: build-no-cache
 build-no-cache: compose-spec ## build docker images
 	docker compose build --no-cache --pull --parallel
+	docker build --no-cache --pull --target builder --tag simcore/services/dynamic/mmux-vite-web-dev:$(DOCKER_IMAGE_TAG) \
+		--build-arg APP_UID=$(shell id -u) --build-arg APP_GID=$(shell id -g) node
 
 ## NB: VSCode might keep old credentials cached, even if changed in .env
 ## run in a non-VSCode terminal to avoid this

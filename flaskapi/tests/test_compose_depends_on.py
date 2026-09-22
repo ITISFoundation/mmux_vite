@@ -135,18 +135,33 @@ def test_development_web_uses_prebuilt_node_modules():
         "docker-compose-development.yml: the builder-stage web image needs an explicit "
         "Vite health check so the proxy can wait for it (V43vh/B30vh)"
     )
-    assert (
-        "--target builder --tag simcore/services/dynamic/mmux-vite-web-dev:" in makefile_content
-    ), (
-        "Makefile build must tag the Node builder stage for the development compose service "
-        "(V41ne/B28ne)"
+    dev_image_tag_cmd = (
+        "--target builder --tag simcore/services/dynamic/mmux-vite-web-dev:$(DOCKER_IMAGE_TAG) \\\n"
+        "\t\t--build-arg APP_UID=$(shell id -u) --build-arg APP_GID=$(shell id -g) node"
     )
+    assert dev_image_tag_cmd in makefile_content, (
+        "Makefile must tag the Node builder stage for the development compose service, "
+        "passing the host UID/GID as build-args so the seeded node_modules volume matches "
+        "the identity docker-compose-development.yml runs the container as (V41ne/V42wu, "
+        "B28ne/B32ui)"
+    )
+    assert makefile_content.count(dev_image_tag_cmd) == 2, (
+        "Makefile: both `build` and `build-no-cache` must tag the Node builder-stage dev "
+        "image — `build-no-cache` also feeds `build-publish-local` and `make ci`, and "
+        "leaving it untagged there serves a stale/missing dev image after a no-cache "
+        "rebuild (V41ne/B33bn)"
+    )
+
+    assert "ARG APP_UID=1000" in dockerfile_content
+    assert "ARG APP_GID=1000" in dockerfile_content
     assert (
-        "RUN chown node:node /app/node_modules /app/node_modules/.vite-temp" in dockerfile_content
+        'RUN chown "$APP_UID":"$APP_GID" /app/node_modules /app/node_modules/.vite-temp'
+        in dockerfile_content
     ), (
         "node/Dockerfile: builder-stage node_modules and Vite's generated .vite-temp "
-        "directory copied into the development volume must be writable by the non-root user "
-        "(V42wu/B29wu)"
+        "directory copied into the development volume must be owned by the build-time "
+        "host identity (APP_UID/APP_GID), not a hardcoded node:node, so hosts whose "
+        "UID/GID differ from 1000 still get a writable volume (V42wu/B32ui)"
     )
 
 

@@ -1,12 +1,14 @@
 # Build stage
 FROM node:24-alpine AS builder
+ARG APP_UID=1000
+ARG APP_GID=1000
 RUN apk --no-cache --update add openjdk21
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
 RUN npm run build
-RUN chown node:node /app/node_modules /app/node_modules/.vite-temp
+RUN chown "$APP_UID":"$APP_GID" /app/node_modules /app/node_modules/.vite-temp
 
 # Production stage
 FROM node:24-alpine AS runner
