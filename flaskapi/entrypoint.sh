@@ -15,13 +15,6 @@ PORT=${PORT:-5000}
 DEVELOPMENT_MODE=${DEVELOPMENT_MODE:-false}
 export LOG_LEVEL=${LOG_LEVEL:-INFO}
 
-if [ "$DEVELOPMENT_MODE" = "true" ] && [ "$(id -u)" = "0" ]; then
-    : "${APP_UID:=1000}"
-    : "${APP_GID:=1000}"
-    chown -R "$APP_UID:$APP_GID" /text-files
-    exec gosu "$APP_UID:$APP_GID" "$0" "$@"
-fi
-
 # NOTE: only required to test in local oSPARC deployment
 # uncomment and adjust with correct IP and PORT where the api servver is exposed
 # export OSPARC_API_BASE_URL=api.10.43.103.120.nip.io:8006
@@ -34,7 +27,7 @@ if [ "$DEVELOPMENT_MODE" = "true" ]; then
     FLASK_ARGS=("--host=$HOST" "--port=$PORT" "--debug" "--debugger" "--reload")
 
     echo "$INFO" "Starting Flask development server with arguments: ${FLASK_ARGS[@]}"
-    exec uv run --no-sync python -m flask run "${FLASK_ARGS[@]}"
+    exec uv run python -m flask run "${FLASK_ARGS[@]}"
 else
     # Production mode - use gunicorn
     echo "$INFO" "Starting gunicorn production server on $HOST:$PORT"

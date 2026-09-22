@@ -79,9 +79,9 @@ def test_development_compose_passes_app_port_to_vite():
 def test_development_backend_uses_writable_uv_cache():
     content = (REPO_ROOT / "docker-compose-development.yml").read_text()
 
-    assert 'user: "0:0"' in content, (
-        "docker-compose-development.yml: mmux-vite-backend must start as root so its "
-        "entrypoint can repair legacy bind-mount ownership before dropping privileges"
+    assert 'user: "${UID:-1000}:${GID:-1000}"' in content, (
+        "docker-compose-development.yml: mmux-vite-backend must run as the host UID/GID "
+        "from container start, not root (V31vr)"
     )
     assert "UV_CACHE_DIR=/app/.cache/uv" in content, (
         "docker-compose-development.yml: non-root mmux-vite-backend must direct uv's "
@@ -90,92 +90,60 @@ def test_development_backend_uses_writable_uv_cache():
     )
 
 
-def test_development_backend_repairs_text_file_mount_ownership_on_startup():
+def test_development_backend_and_web_never_run_as_root():
+    """Regression test: PR #613 briefly ran mmux-vite-backend as root (`user: "0:0"`)
+    with an entrypoint chown+gosu dance to drop privileges, which self-inflicted the
+    root-owned persistence-mount bug it was meant to fix. Both dev services must run
+    as the host UID/GID from container start (V31vr); no root, chown, or gosu.
+    """
     compose_content = (REPO_ROOT / "docker-compose-development.yml").read_text()
     entrypoint_content = BACKEND_ENTRYPOINT.read_text()
+    dockerfile_content = (REPO_ROOT / "flaskapi" / "Dockerfile").read_text()
 
-    assert "mmux-vite-text-files-init:" not in compose_content, (
-        "docker-compose-development.yml: the backend entrypoint owns development "
-        "persistence-mount initialization (V44tf/B31tf)"
-    )
-    assert 'user: "0:0"' in compose_content
-    assert "APP_UID=${UID:-1000}" in compose_content
-    assert "APP_GID=${GID:-1000}" in compose_content
-    assert "  gosu \\" in (REPO_ROOT / "flaskapi" / "Dockerfile").read_text()
-    assert 'chown -R "$APP_UID:$APP_GID" /text-files' in entrypoint_content
-    assert 'exec gosu "$APP_UID:$APP_GID" "$0" "$@"' in entrypoint_content
+    assert 'user: "0:0"' not in compose_content
+    assert "gosu" not in entrypoint_content
+    assert "chown" not in entrypoint_content
+    assert "gosu" not in dockerfile_content
 
 
-def test_development_backend_preserves_prebuilt_virtualenv():
-    content = (REPO_ROOT / "docker-compose-development.yml").read_text()
-
-    assert "- mmux-vite-backend-venv:/app/.venv" in content, (
-        "docker-compose-development.yml: the live /app source bind mount must not hide "
-        "the image-built Flask virtualenv; mount a named volume at /app/.venv (V37kp/B23kp)"
-    )
-    assert "volumes:\n  mmux-vite-backend-venv:" in content, (
-        "docker-compose-development.yml: mmux-vite-backend-venv must be declared as a "
-        "top-level named volume (V37kp/B23kp)"
-    )
-
-
-def test_development_web_uses_prebuilt_node_modules():
+def test_development_web_uses_production_image_with_runtime_install():
+    """Regression test: PR #613 introduced a second local-only image
+    (`mmux-vite-web-dev`, builder stage) with a prebuilt node_modules volume to
+    dodge a transient npm-install network failure. That never shipped as a real
+    oSPARC service and added chown/volume complexity for no lasting benefit —
+    dev must reuse the single published `mmux-vite-web` image and install at
+    container start, per the colleague's original design.
+    """
     compose_content = (REPO_ROOT / "docker-compose-development.yml").read_text()
     makefile_content = (REPO_ROOT / "Makefile").read_text()
     dockerfile_content = (REPO_ROOT / "node" / "Dockerfile").read_text()
 
-    assert "image: simcore/services/dynamic/mmux-vite-web-dev:1.6.1" in compose_content, (
-        "docker-compose-development.yml: mmux-vite-web must use the builder-stage "
-        "development image with prebuilt Node dependencies (V41ne/B28ne)"
-    )
-    assert "- mmux-vite-web-node-modules:/app/node_modules" in compose_content
-    assert 'command: sh -c "npm run dev -- --host 0.0.0.0 --port 8080"' in compose_content
-    assert "npm install && npm run dev" not in compose_content
-    assert "test: wget -q -O /dev/null http://127.0.0.1:8080/" in compose_content, (
-        "docker-compose-development.yml: the builder-stage web image needs an explicit "
-        "Vite health check so the proxy can wait for it (V43vh/B30vh)"
-    )
-    dev_image_tag_cmd = (
-        "--target builder --tag simcore/services/dynamic/mmux-vite-web-dev:$(DOCKER_IMAGE_TAG) \\\n"
-        "\t\t--build-arg APP_UID=$(shell id -u) --build-arg APP_GID=$(shell id -g) node"
-    )
-    assert dev_image_tag_cmd in makefile_content, (
-        "Makefile must tag the Node builder stage for the development compose service, "
-        "passing the host UID/GID as build-args so the seeded node_modules volume matches "
-        "the identity docker-compose-development.yml runs the container as (V41ne/V42wu, "
-        "B28ne/B32ui)"
-    )
-    assert makefile_content.count(dev_image_tag_cmd) == 2, (
-        "Makefile: both `build` and `build-no-cache` must tag the Node builder-stage dev "
-        "image — `build-no-cache` also feeds `build-publish-local` and `make ci`, and "
-        "leaving it untagged there serves a stale/missing dev image after a no-cache "
-        "rebuild (V41ne/B33bn)"
-    )
-
-    assert "ARG APP_UID=1000" in dockerfile_content
-    assert "ARG APP_GID=1000" in dockerfile_content
+    assert "image: simcore/services/dynamic/mmux-vite-web:1.6.1" in compose_content
+    assert "mmux-vite-web-dev" not in compose_content
+    assert "mmux-vite-web-node-modules" not in compose_content
     assert (
-        'RUN chown "$APP_UID":"$APP_GID" /app/node_modules /app/node_modules/.vite-temp'
-        in dockerfile_content
-    ), (
-        "node/Dockerfile: builder-stage node_modules and Vite's generated .vite-temp "
-        "directory copied into the development volume must be owned by the build-time "
-        "host identity (APP_UID/APP_GID), not a hardcoded node:node, so hosts whose "
-        "UID/GID differ from 1000 still get a writable volume (V42wu/B32ui)"
+        'command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 8080"'
+        in compose_content
     )
+    assert "mmux-vite-web-dev" not in makefile_content
+    assert "APP_UID" not in dockerfile_content
+    assert "APP_GID" not in dockerfile_content
+    assert "chown" not in dockerfile_content
 
 
-def test_development_entrypoint_uses_prebuilt_virtualenv_without_syncing():
-    content = BACKEND_ENTRYPOINT.read_text()
+def test_development_backend_no_venv_volume_plain_uv_run():
+    """Regression test: PR #613 preserved the image-built /app/.venv in a named
+    volume + `uv run --no-sync` to skip resyncing on every start; the volume was
+    seeded root-owned by the image build, requiring the root/gosu/chown dance
+    reverted above. Dev backend runs `uv run` (resyncing at every start) with no
+    preserved venv volume, matching the colleague's original design.
+    """
+    compose_content = (REPO_ROOT / "docker-compose-development.yml").read_text()
+    entrypoint_content = BACKEND_ENTRYPOINT.read_text()
 
-    assert "exec uv run --no-sync python -m flask run" in content, (
-        "flaskapi/entrypoint.sh: development startup must not resynchronize the root-seeded "
-        "/app/.venv under the non-root container user (V38hp/B24hp)"
-    )
-    assert "$(id)" in content and "whoami" not in content, (
-        "flaskapi/entrypoint.sh: the non-root host UID may not have a passwd entry; log its "
-        "numeric identity directly without whoami (V38hp/B24hp)"
-    )
+    assert "mmux-vite-backend-venv" not in compose_content
+    assert "exec uv run python -m flask run" in entrypoint_content
+    assert "--no-sync" not in entrypoint_content
 
 
 def test_make_targets_reuse_running_compose_app_port():
