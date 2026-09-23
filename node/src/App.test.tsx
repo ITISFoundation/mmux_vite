@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { getHealth } from "./utils/functionUtils";
 
-const mocks = vi.hoisted(() => ({ loading: true, setHealthOK: vi.fn() }));
+const mocks = vi.hoisted(() => ({ loading: true, setHealthOK: vi.fn(), viewCrashes: false }));
 const { passthrough } = vi.hoisted(() => ({
   passthrough: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -27,11 +27,16 @@ vi.mock("./context/MOGATableContext", () => ({ MOGATableContextProvider: passthr
 vi.mock("./context/JobContext", () => ({ JobContextProvider: passthrough }));
 vi.mock("./context/MMUXContext", () => ({ MMUXContextProvider: passthrough }));
 vi.mock("./views/SplashScreen", () => ({ default: () => <div>Splash</div> }));
-// eslint-disable-next-line @typescript-eslint/naming-convention
-vi.mock("./views/ReturnCurrentView", () => ({ ReturnCurrentView: () => <div>Workflow</div> }));
+vi.mock("./views/ReturnCurrentView", () => ({
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  ReturnCurrentView: () => {
+    if (mocks.viewCrashes) throw new Error("view exploded");
+    return <div>Workflow</div>;
+  },
+}));
 vi.mock("./components/navigation/Navigation", () => ({ default: () => null }));
 // eslint-disable-next-line @typescript-eslint/naming-convention
-vi.mock("./components/navigation/Footer", () => ({ Footer: () => null }));
+vi.mock("./components/navigation/Footer", () => ({ Footer: () => <nav>Footer</nav> }));
 vi.mock("./components/navigation/PreviewWarning", () => ({ default: () => null }));
 
 async function poll(times: number) {
@@ -46,6 +51,7 @@ describe("App health gate", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     mocks.loading = true;
+    mocks.viewCrashes = false;
     vi.spyOn(console, "info").mockImplementation(() => undefined);
   });
 
@@ -108,6 +114,19 @@ describe("App health gate", () => {
     await poll(3);
     expect(getHealth).toHaveBeenCalledTimes(301);
     expect(screen.getByText("Splash")).toBeInTheDocument();
+  });
+
+  it("contains a crashing workflow view so navigation stays usable", async () => {
+    vi.mocked(getHealth).mockResolvedValue(200);
+    mocks.loading = false;
+    mocks.viewCrashes = true;
+    await act(async () => {
+      render(<App />);
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong");
+    expect(screen.getByText("Footer")).toBeInTheDocument();
+    vi.mocked(console.error).mockClear();
   });
 
   it("does not report a connection failure when the last attempt succeeds", async () => {
