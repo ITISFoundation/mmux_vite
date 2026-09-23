@@ -140,6 +140,10 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
   };
 
   useEffect(() => {
+    if (!validationQoI) {
+      return;
+    }
+
     const run = async () => {
       const jobs = filteredJobList;
       return RunSuMoValidation(jobs);
