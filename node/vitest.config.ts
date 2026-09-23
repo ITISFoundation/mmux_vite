@@ -1,8 +1,12 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import codspeedPlugin from "@codspeed/vitest-plugin";
 
 export default defineConfig({
-  plugins: [react()],
+  // The CodSpeed plugin is a no-op unless the run is driven by the CodSpeed
+  // runner (`npm run bench:codspeed` / the CodSpeed CI job), so `npm test` and
+  // a plain `npx vitest bench` are unaffected.
+  plugins: [react(), codspeedPlugin()],
   test: {
     // The current Vitest suite is a jsdom/unit-component suite. Real browser
     // coverage runs through the Playwright e2e suite.

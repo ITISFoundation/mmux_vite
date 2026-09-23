@@ -1,6 +1,7 @@
 # MMUX Vite
 
 [![codecov](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://app.codspeed.io/ITISFoundation/mmux_vite?utm_source=badge)
 
 This repository is under active development. It aims to bring up meta-modeling functionality in an interactive, user-friendly, guided step-by-step way.
 
@@ -58,6 +59,20 @@ When done editing always validate the production build of the app with the below
 
 ```shell
 make run-prod-local
+```
+
+## Performance benchmarks
+
+Performance is measured continuously with [CodSpeed](https://app.codspeed.io/ITISFoundation/mmux_vite) in CPU simulation mode; every pull request gets a report through `.github/workflows/codspeed.yml`.
+
+- Backend benchmarks: `flaskapi/benchmarks/` (pytest-codspeed) — Dakota data processing, LHS sampling, the DataPreprocessor and the request/response case-conversion layer.
+- Frontend benchmarks: `node/src/**/*.bench.ts` (vitest bench) — job-collection CSV import, plot request keys and sampling bounds.
+
+Run them locally (requires the [CodSpeed CLI](https://codspeed.io/docs/cli)):
+
+```shell
+make bench-flaskapi
+make bench-node
 ```
 
 ## Updating the ospsarc package

@@ -1,0 +1,63 @@
+name: CodSpeed benchmarks
+
+on:
+  # Run the workflow for pushes to the main branch (baseline for comparisons)
+  push:
+    branches:
+      - main
+
+  # Run the workflow for pull requests, so every PR gets a performance report
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+  # Allows CodSpeed to trigger backtest runs to generate initial data
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # OpenID Connect authentication with CodSpeed
+
+jobs:
+  flaskapi-benchmarks:
+    name: Flask API benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+      - name: Install Flask API dependencies
+        run: make install-flaskapi-deps
+      # pytest-codspeed is installed as an overlay (uv run --with) instead of
+      # being added to pyproject.toml: the pinned `itis-dakota==1.5.9` only ships
+      # cp311/cp312 wheels, so the lock file cannot currently be re-resolved.
+      - name: Run benchmarks
+        uses: CodSpeedHQ/action@v5
+        with:
+          mode: simulation
+          working-directory: flaskapi
+          run: uv run --with 'pytest-codspeed>=5,<6' pytest benchmarks/ --codspeed --no-cov
+
+  node-benchmarks:
+    name: Frontend benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v5
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+      - name: Install node dependencies
+        run: cd node && npm ci
+      - name: Run benchmarks
+        uses: CodSpeedHQ/action@v5
+        with:
+          mode: simulation
+          working-directory: node
+          run: npm run bench
