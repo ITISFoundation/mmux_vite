@@ -33,7 +33,7 @@ export const defaultMogaValues: MOGASettingsSelection = {
   numberSeeds: 1,
 };
 
-export const MOGASettingsContext = createContext<MOGASettingsContextType | undefined>(undefined);
+const MOGASettingsContext = createContext<MOGASettingsContextType | undefined>(undefined);
 
 type Props = {
   children: React.ReactNode;

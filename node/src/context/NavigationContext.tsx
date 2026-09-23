@@ -9,7 +9,7 @@ interface NavigationContextType {
   steps: Step[];
 }
 
-export const NavigationContext = createContext<NavigationContextType>(undefined!);
+const NavigationContext = createContext<NavigationContextType>(undefined!);
 
 type Props = {
   children: React.ReactNode;

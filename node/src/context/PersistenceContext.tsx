@@ -12,7 +12,7 @@ interface PersistenceContextType {
   loading: boolean;
 }
 
-export const PersistenceContext = createContext<PersistenceContextType>(undefined!);
+const PersistenceContext = createContext<PersistenceContextType>(undefined!);
 
 type Props = {
   children: React.ReactNode;

@@ -12,7 +12,7 @@ export interface MOGATableContextType {
   setSortModel: (sortModel: GridSortModel) => void;
 }
 
-export const MOGATableContext = createContext<MOGATableContextType | undefined>(undefined);
+const MOGATableContext = createContext<MOGATableContextType | undefined>(undefined);
 
 type Props = {
   children: React.ReactNode;

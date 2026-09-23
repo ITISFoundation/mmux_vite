@@ -91,6 +91,7 @@ V31rs: `runningSampling` = one-shot "launched, refresh pending" flag; `JobSelect
 V32ff: context async actions called from UI (e.g. `requestForceFetch`) ! return the Promise and own failure feedback (toast); ⊥ fire-and-forget async that leaks unhandled rejections (B23ff)
 V33sv: `stepValidator` step-0 gate ! reject every distribution the inline input errors flag (non-finite values, `std`/`scale`/exponential `mean` ≤ 0, uniform `min ≥ max`); ⊥ enable Next while an input shows an error (B24sv)
 V34lw: Dakota plot fetches (1D/2D/3D) ! let only the latest request update plot/loading state; an older response (success or failure) resolving later ⊥ overwrite newer slider/axis results (B25rc)
+V35kn: CI `node-tests` ! pass `npm run knip` (⊥ unused files/exports/deps in `node/`); `knip.json` `ignoreDependencies` only for deps consumed outside knip's view (untracked generated client, ambient `@types/react-plotly.js`, `whatwg-fetch` in the generated client, Istanbul libs in `../tests/e2e/coverage-teardown.ts`)
 
 ## §T
 id|status|task|cites
@@ -122,6 +123,7 @@ T25|.|testing-permissions: test health/permissions failures and READ-ONLY fallba
 T26|x|dead-code removal: delete unreachable `views/ParallelRunner.tsx`/`.css` (only mount path was Footer's `permissions === "WRITE" && false` Task Manager button) + Footer modal state; fix B22rs/B23ff test-first (`JobSelector.test.tsx`, `JobContext.test.tsx`)|V31rs,V32ff,B22rs,B23ff
 T27|x|fix B24sv test-first: table-driven `stepValidator.test.ts` (per-distribution valid/invalid, MOGA targets, step bounds); failure-path suites for `LHSSampling` (422 text surfaced, network reject, post-launch job lookup failure, clamped points) and `ReturnCurrentView` (unsupported mode)|V33sv,B24sv,V26jt
 T28lw|x|fix B25rc test-first with a request-id guard in `Curves1DPlot`/`Surface2DPlot`/`IsoSurface3DPlot`; per-plot suites cover V16 dedup, V18 retry after 4xx/5xx/network/malformed JSON, missing predictions, <5 jobs / <2 inputs, stale race, 3D axis de-duplication|V34lw,B25rc,V18,V16
+T29kn|x|add knip dead-code gate: deleted unused `WhiskerPlot.tsx` + `functionUtilsMockups.ts`, un-exported context objects/internal helpers, removed unused deps (`superagent`, `styled-components`, `@mui/styled-engine-sc`, `autoprefixer`, `postcss`, `ts-node`, `vitest-browser-react`, `globals`); verified with and without the generated client|V35kn
 
 ## §B
 id|date|cause|fix

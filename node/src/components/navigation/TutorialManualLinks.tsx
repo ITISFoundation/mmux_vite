@@ -14,7 +14,7 @@ const checkSimplifiedHost = (): HostType => {
   return "unknown";
 };
 
-export function getTutorialLink(): React.ReactNode | undefined {
+function getTutorialLink(): React.ReactNode | undefined {
   const simplifiedHost = getSimplifiedHost();
   const check = checkSimplifiedHost();
   let link: string | undefined;

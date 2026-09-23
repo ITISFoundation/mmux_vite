@@ -25,5 +25,3 @@ export const malformedJsonResponse = (status = 200) =>
   new Response("{not json", { status, headers: { "Content-Type": "application/json" } });
 
 export const networkError = () => new TypeError("Failed to fetch");
-
-export const hang = () => () => new Promise<Response>(() => undefined);
