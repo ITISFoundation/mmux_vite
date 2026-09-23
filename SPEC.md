@@ -126,6 +126,8 @@ T28|.|incrementally fix the 30 `react-hooks/set-state-in-effect` warnings surfac
 T29|x|Correlation and Sobol sensitivity-analysis backend endpoints, SciPy computation, response-key preservation, and numerical regression tests|flaskapi/SPEC.md T25
 T30|x|e2e UQ sensitivity coverage: reuse deterministic synthetic mock fixture; add correlation and Sobol screenshots; remove real material-sweep CSV/spec and keep existing SuMo baselines unchanged|V29,T29
 T31lm|.|high-priority Sobol validity: accurate arbitrary-`d` second-order backend + jointly bootstrapped `M1/M2/R`; surface order contributions/noise interpretation in frontend|V30jk,flaskapi/SPEC.md T31rb,node/SPEC.md T21gh
+T32qx|.|FUTURE PR: Python dependency modernization → upgrade `itis-dakota`→`itis-sumo`/Dakota 6.24 plus gevent, NumPy, SciPy, scikit-learn, oSPARC, gunicorn, uv-build, ruff, prek, related lockfile entries; regenerate `flaskapi/uv.lock` via `uv lock`; preserve Flask/Dakota behavior; verify `uv lock --check`, `make test-flaskapi`, `make test-flaskapi-analytical`, `make prek`, image build|V34lt,flaskapi/SPEC.md
+T33rz|.|FUTURE PR: Playwright + Plotly modernization → upgrade Playwright package/image + regenerate e2e snapshots inside pinned Playwright image; upgrade Plotly/`react-plotly.js` + adapt app typings/rendering; preserve deterministic mock fixtures + existing e2e behavior; verify `npm ci`, `npm test`, `npm run build`, `make test-e2e-docker`, CI e2e/image jobs; Vitest upgrade separate + intentional|V10,V12,V29
 
 ## §B
 id|date|cause|fix
