@@ -135,10 +135,10 @@ T31lm|.|high-priority Sobol validity: accurate arbitrary-`d` second-order backen
 T32qx|.|FUTURE PR: Python dependency modernization → upgrade `itis-dakota`→`itis-sumo`/Dakota 6.24 plus gevent, NumPy, SciPy, scikit-learn, oSPARC, gunicorn, uv-build, ruff, prek, related lockfile entries; regenerate `flaskapi/uv.lock` via `uv lock`; preserve Flask/Dakota behavior; verify `uv lock --check`, `make test-flaskapi`, `make test-flaskapi-analytical`, `make prek`, image build|V34lt,flaskapi/SPEC.md
 T33rz|.|FUTURE PR: Playwright + Plotly modernization → upgrade Playwright package/image + regenerate e2e snapshots inside pinned Playwright image; upgrade Plotly/`react-plotly.js` + adapt app typings/rendering; preserve deterministic mock fixtures + existing e2e behavior; verify `npm ci`, `npm test`, `npm run build`, `make test-e2e-docker`, CI e2e/image jobs; Vitest upgrade separate + intentional|V10,V12,V29
 T34cv|~|port current E2E interaction assertions + validation QoI guard; every screenshot reference ! produce PNG after Docker regeneration; audit remaining interactive controls for `mmux-testid` + dedicated interaction screenshot|V36ez,V10,V12,V29
-T35|.|e2e-negative: add route fault injection and mode×permission error companions; assert visible recovery and no unhandled console errors|V29qa,node/SPEC.md V26jt
+T35|~|e2e-negative: `helpers.ts` `failRoute`/`trackPageErrors` + `negative-network.spec.ts` (SuMo READ-ONLY: persistence load 500, permissions 503, list_functions abort/malformed JSON, cross-validation 500 → visible recovery, no page errors); UQ/MOGA and WRITE companions pending|V29qa,node/SPEC.md V26jt
 T36|.|e2e-write: add WRITE sampling, persistence reload, and backend-fault flows for UQ/SuMo/MOGA|V29qa
 T37|.|e2e-a11y: add `@axe-core/playwright`; fail serious/critical violations on setup/results/error views|V30rb
-T38|.|e2e-gate: keep fault controls behind `MMUX_E2E_MOCK_OSPARC` and test production-disabled behavior|V31sc
+T38|x|e2e-gate: `flaskapi/tests/test_frontend_contract.py` asserts `/flask/e2e/*` is absent without `MMUX_E2E_MOCK_OSPARC`, and pins the JSON content-type contract behind node B27ct (sampling endpoints 415 on text/plain)|V31sc
 
 ## §B
 id|date|cause|fix
