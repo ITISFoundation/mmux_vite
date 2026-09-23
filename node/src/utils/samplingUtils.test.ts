@@ -45,6 +45,22 @@ describe("runSingleJob", () => {
     vi.mocked(console.error).mockClear();
   });
 
+  it("sends the test job as JSON so the backend can parse it", async () => {
+    const fetchMock = vi.fn((_url: string, _init?: RequestInit) =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ uid: "job-1" }) }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    vi.mocked(createJobStudyCopy).mockResolvedValueOnce("" as never);
+    vi.spyOn(toast, "warning").mockImplementation(() => "" as never);
+
+    await runSingleJob({ uid: "function-1", title: "Function" } as never, [{ variable: "x", value: 1 }], vi.fn());
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/flask/sampling/test_job");
+    expect(new Headers(init?.headers).get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(init?.body as string)).toEqual({ funUid: "function-1", config: [{ variable: "x", value: 1 }] });
+  });
+
   it.each([
     [new Error("copy failed"), "Not possible to open your Job! copy failed Please contact support"],
     ["", "Not possible to open your Job! Please contact support"],
