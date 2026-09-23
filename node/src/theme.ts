@@ -162,6 +162,10 @@ export function setupTheme(mode: "light" | "dark") {
               color: theme.palette.text.primary,
             },
           },
+          columnHeaders: {
+            backgroundColor: theme.palette.background.default,
+            color: theme.palette.text.primary,
+          },
           columnHeader: {
             "& .MuiSvgIcon-root": {
               color: theme.palette.common.white,
