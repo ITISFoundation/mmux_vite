@@ -99,6 +99,9 @@ V35rx: ∀ Dependabot ecosystem entry in `.github/dependabot.yml` → weekly Mon
 V36ez: ∀ interactive UI element (button/icon-button/toggle) ! ship without ≥1 e2e test asserting it via `mmux-testid` ∧ ≥1 dedicated `toHaveScreenshot` baseline capturing its triggered state; ⊥ crash-free-only coverage
 V37hs: shared MUI `MuiTable` and `MuiDataGrid` roots ! use `theme.palette.background.default` for table surfaces; ⊥ inherit lighter card/paper background and change every table's visual baseline together
 V38gu: backend prod entrypoint ! launch Gunicorn via `uv run` from `flaskapi/uv.lock`, ⊥ isolated `uvx` tool env; guard `flaskapi/tests/test_main.py::test_v42gu_production_gunicorn_uses_project_lockfile` (B23gu, flaskapi/SPEC.md V42gu)
+V29qa: each `{mode}×{perm}` e2e workflow has a negative companion covering backend/network fault injection, not only happy path
+V30rb: e2e accessibility checks fail on axe serious/critical violations for workflow-critical views
+V31sc: fault-injection endpoints exist only when `MMUX_E2E_MOCK_OSPARC` is set; production routes never expose test controls
 V32qf: every CI job that runs `npm ci` ! validate the committed `node/package.json` and `node/package-lock.json` together from a clean checkout; adding a dependency requires its direct and transitive lock entries (B18qf)
 
 ## §T
@@ -136,6 +139,10 @@ T34cv|~|port current E2E interaction assertions + validation QoI guard; every sc
 T35pw|x|Strict pixel policy (GH-Copilot #665 aftermath): `toHaveScreenshot.maxDiffPixelRatio` 0.01→0.0 in `node/playwright.config.ts` — the 1% band let #664's missing editor header ship (B25); determinism comes from the pinned image (V12), not from tolerance; suite verified green at 0.0 against the #665-regenerated baselines before merge|V10,V12,V14,B25
 T36dk|x|Comparator floor pinned after the GH-Copilot #667 note: `toHaveScreenshot.threshold` set EXPLICITLY to 0.2 (was the implicit pixelmatch default) — `threshold: 0` was implemented and MEASURED in the pinned image: 2/7 baselines (moga-readonly-inspect-modal, sumo-readonly-inputs) fail reproducibly across runs, i.e. sub-0.2 color drift exists that the AA classifier does not absorb ⇒ 0.2 is the strictest STABLE per-pixel floor; AA-pixel exclusion remains inherent to pixelmatch (Playwright offers no byte-exact comparator)|V10,V12,B25
 T37hb|x|Floor honesty (GH-Copilot #671 round): probed the unexplored interval — `threshold: 0.1` passed 2/2 local pinned rounds but FAILED the CI runner (moga-readonly-inspect-modal, 5461 px at 0.1, same image tag ⇒ runner rendering ≠ host rendering), so the floor stays at 0.2 = strictest stable across BOTH environments; measured matrix 0.0/0.1/0.2 now recorded in the config comment; V10 re-worded to what the endpoint actually asserts — zero comparator-COUNTED pixels (AA pixels inherently uncounted, ⊥ byte-identity claim)|V10,V12,B25
+T35|.|e2e-negative: add route fault injection and mode×permission error companions; assert visible recovery and no unhandled console errors|V29qa,node/SPEC.md V26jt
+T36|.|e2e-write: add WRITE sampling, persistence reload, and backend-fault flows for UQ/SuMo/MOGA|V29qa
+T37|.|e2e-a11y: add `@axe-core/playwright`; fail serious/critical violations on setup/results/error views|V30rb
+T38|.|e2e-gate: keep fault controls behind `MMUX_E2E_MOCK_OSPARC` and test production-disabled behavior|V31sc
 
 ## §B
 id|date|cause|fix
