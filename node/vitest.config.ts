@@ -21,7 +21,7 @@ export default defineConfig({
       reporter: ["text", "cobertura"],
       reportsDirectory: "./coverage",
       include: ["src/**/*.{ts,tsx}"],
-      exclude: ["src/osparc-api-ts-client/**", "src/test/**", "src/utils/functionUtilsMockups.ts", "**/*.d.ts"],
+      exclude: ["src/osparc-api-ts-client/**", "src/test/**", "**/*.d.ts"],
       // Ratchet only upward (node SPEC §V27ku); next milestone is 60 for every metric.
       thresholds: {
         lines: 55,

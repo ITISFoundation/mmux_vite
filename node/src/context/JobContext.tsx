@@ -30,7 +30,7 @@ export interface JobContextType {
   setHasAutoSelectedJobs: (value: boolean) => void;
 }
 
-export const JobContext = createContext<JobContextType | undefined>(undefined);
+const JobContext = createContext<JobContextType | undefined>(undefined);
 
 type Props = {
   children: React.ReactNode;
