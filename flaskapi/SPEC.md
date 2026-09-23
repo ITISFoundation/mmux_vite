@@ -10,15 +10,15 @@ Caveman-encoded. Distilled from code 2026-05-28. Child of root spec.
 Flask API: relay frontend ↔ oSPARC (functions, jobs, collections, studies), generate samples (LHS / grid / single), run Dakota meta-modeling (SUMO surrogate, UQ propagation, MOGA optimization), persist state text files. Serve under `/flask/*`, port 5000.
 
 ## §C
-- Python 3.11, `flask==3.1.1`, `flask-cors==6.0.0`, `gevent==25.5.1`
+- Python `>=3.11,<3.14`; `flask==3.1.3`, `flask-cors==6.0.0`, `gevent==26.9.0`, `gunicorn==26.2.0`
 - run: dev `uv run python -m flask run` (entrypoint.sh), prod `uvx gunicorn main:app` (`main:app = create_flask_app()`)
-- oSPARC client `osparc==0.8.3.post0.dev30`; Dakota `itis-dakota==1.5.9`
-- numerics: `numpy==2.2.6`, `pandas==2.2.3`, `scipy==1.15.3`, `scikit-learn==1.6.1`
+- oSPARC client `osparc==0.8.4.post0.dev2`; Dakota `itis-dakota==1.5.11`
+- numerics: `numpy==2.4.6`, `pandas==2.2.3`, `scipy==1.15.3`, `scikit-learn==1.6.1`
 - `mmux_flaskapi.dakota` subpackage (inlined, own module namespace) → Dakota conf generation + result evaluation + `lhs()` — was vendored `mmux_python` dep, ported in-repo (§T15)
 - requests accept camelCase|snake_case (pydantic `populate_by_name`); responses camelCase
 - `DataPreprocessor` maps orig var names → `x1..xn`,`y1..yn` for Dakota, inverse on response
 - ≥5 completed jobs required for any surrogate/UQ/MOGA endpoint
-- ruff line-length 100, select E/F/I/UP; pytest markers slow/integration/unit; coverage aim ≥70% on modified code (soft)
+- dev tools: `prek==0.5.3`, `ruff==0.16.8`, `ty==0.0.83`; ruff line-length 100, select E/F/I/UP; pytest markers slow/integration/unit; coverage aim ≥70% on modified code (soft)
 - naming: Classes PascalCase | funcs/methods snake_case | constants CONSTANT_CASE | private `_`prefix
 - type hints + PEP257/NumPy docstrings on public APIs; raise ValueError/RuntimeError w/ descriptive msg; log via `utils/logger.py`
 - type checker: `ty` (astral-sh/ty), config via `[tool.ty]` in pyproject.toml; strictness/rule-level TBD in §T18
