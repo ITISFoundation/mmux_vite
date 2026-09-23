@@ -10,6 +10,8 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
+import { getResponseErrorMessage } from "../../utils/httpError";
+import { buildIsoSurfacePlotData } from "./isoSurfacePlotData";
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
@@ -28,6 +30,7 @@ function IsoSurface3DPlot() {
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [axis3, setAxis3] = useState(filteredInputVars[2]);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
+  const [errorMessage, setErrorMessage] = useState<string>();
   const lastFetchedKey = useRef<string | undefined>(undefined);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
@@ -124,24 +127,9 @@ function IsoSurface3DPlot() {
     }
   };
 
-  interface IsoSurfaceData extends Plotly.PlotData {
-    surface: { show: boolean; count: number }; // Just to make TypeScript happy. Edit if necessary.
-  }
   const reshapePlotData = (data: { [key: string]: number[] } | { [key: string]: number[][] } | { [key: string]: number }) => {
     if (data && selectedQoI) {
-      const newData: Partial<IsoSurfaceData>[] = [
-        {
-          type: "isosurface",
-          x: data[axis1] as number[],
-          y: data[axis2] as number[],
-          z: data[axis3] as number[],
-          value: data[selectedQoI] as number,
-          colorscale: "Electric",
-          showscale: true,
-          opacity: 0.5,
-          surface: { show: true, count: 10 },
-        },
-      ];
+      const newData: Partial<Plotly.IsosurfaceData>[] = [buildIsoSurfacePlotData(data, axis1, axis2, axis3, selectedQoI)];
       setPlotData(newData);
     } else {
       setPlotData([]);
@@ -158,6 +146,7 @@ function IsoSurface3DPlot() {
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
     setPropagating(true);
+    setErrorMessage(undefined);
     fetch(`/flask/dakota/sumo_grid_evaluation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -170,10 +159,10 @@ function IsoSurface3DPlot() {
         log: false,
       }),
     })
-      .then(response => {
+      .then(async response => {
         if (response && !response.ok) {
           console.warn("SuMo Surface plot error: ", response.body);
-          return Promise.reject(new Error(`Error running SuMo Surface plot: ${response.status}, ${response.statusText}`));
+          return Promise.reject(new Error(await getResponseErrorMessage(response)));
         }
         return response.json();
       })
@@ -183,6 +172,7 @@ function IsoSurface3DPlot() {
         // V18: cache key ONLY on success, so transient failures don't block retry
         lastFetchedKey.current = requestKey;
         setPropagating(false);
+        setErrorMessage(undefined);
       })
       .catch(error => {
         // V18: clear cache on error so same inputs can be retried
@@ -190,6 +180,7 @@ function IsoSurface3DPlot() {
         console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
+        setErrorMessage(error instanceof Error ? error.message : String(error));
       });
   };
 
@@ -252,6 +243,7 @@ function IsoSurface3DPlot() {
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}
           height={plotStyle.height}
+          errorMessage={errorMessage}
           numInputVars={inputVars.length}
         />
       )}

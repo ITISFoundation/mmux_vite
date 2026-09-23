@@ -51,7 +51,6 @@ const WhiskerPlot: React.FC<DataUQHistogramType> = (props: DataUQHistogramType) 
     {
       type: "box",
       x: [q1, q3, q3, q1, q1],
-      fill: "toself",
       fillcolor: theme.palette.primary.light,
       line: {
         color: theme.palette.primary.main,
