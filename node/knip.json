@@ -4,6 +4,7 @@
     "osparc-api-ts-client",
     "whatwg-fetch",
     "@types/react-plotly.js",
+    "@axe-core/playwright",
     "istanbul-lib-coverage",
     "istanbul-lib-report",
     "istanbul-reports",
