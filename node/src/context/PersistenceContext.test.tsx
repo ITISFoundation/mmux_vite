@@ -1,11 +1,13 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, waitFor, act, cleanup } from "@testing-library/react";
+import { toast } from "react-toastify";
 import { PersistenceContextProvider, usePersistenceContext } from "./PersistenceContext";
 import type { PersistenceType } from "./types";
 import samplePersistence from "./samplePersistence.test.json";
 import { fetchWithRetry } from "../utils/fetchRetry";
 
+vi.mock("react-toastify", () => ({ toast: { warn: vi.fn(), error: vi.fn() } }));
 // Mock fetch and fetchWithRetry
 vi.mock("../utils/fetchRetry", () => ({
   fetchWithRetry: vi.fn(),
@@ -253,5 +255,71 @@ describe("PersistenceContextProvider", () => {
       expect(functionValues.outputVars).toEqual([]);
       expect(functionValues.distribution).toEqual({});
     });
+  });
+
+  async function renderLoaded() {
+    const view = render(
+      <PersistenceContextProvider>
+        <TestComponent />
+      </PersistenceContextProvider>,
+    );
+    act(() => {
+      view.getByText("Set Health OK").click();
+    });
+    await waitFor(() => expect(view.getByTestId("loading").textContent).toBe("loaded"));
+    return view;
+  }
+
+  it("falls back to defaults without overwriting the server copy when loading fails", async () => {
+    mockFetchWithRetry.mockResolvedValueOnce(new Response("db down", { status: 500 }));
+    const post = vi.fn();
+    global.fetch = post;
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const { getByText, getByTestId } = await renderLoaded();
+
+    expect(JSON.parse(getByTestId("persistence").textContent!).currentView).toBe(0);
+    expect(toast.warn).toHaveBeenCalledWith("Failed to fetch user state, contact support.");
+    act(() => {
+      getByText("Save State").click();
+    });
+    await act(async () => undefined);
+    expect(post).not.toHaveBeenCalled();
+    vi.mocked(console.error).mockClear();
+  });
+
+  it("stops persisting after the server rejects a save and does not mark it saved (V17)", async () => {
+    mockFetchWithRetry.mockResolvedValueOnce(new Response(null, { status: 404 }));
+    const post = vi.fn().mockResolvedValue(new Response("quota exceeded", { status: 507 }));
+    global.fetch = post;
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const { getByText, getByTestId } = await renderLoaded();
+
+    act(() => {
+      getByText("Save State").click();
+    });
+    await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(getByTestId("persistence").textContent!).currentView).toBe(0);
+    expect(new Headers((post.mock.calls[0][1] as RequestInit).headers).get("Content-Type")).toBe("application/json");
+
+    act(() => {
+      getByText("Set Function Values").click();
+    });
+    await act(async () => undefined);
+    expect(post).toHaveBeenCalledTimes(1);
+  });
+
+  it("resets to defaults when the stored content is not valid JSON", async () => {
+    mockFetchWithRetry.mockResolvedValueOnce(
+      new Response(JSON.stringify({ content: "{truncated", filename: "persistence.json" }), { status: 200 }),
+    );
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const { getByTestId } = await renderLoaded();
+
+    expect(JSON.parse(getByTestId("persistence").textContent!).currentView).toBe(0);
+    expect(console.error).toHaveBeenCalledWith("Error parsing fetched data:", expect.any(SyntaxError));
+    vi.mocked(console.error).mockClear();
   });
 });
