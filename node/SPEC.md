@@ -88,7 +88,7 @@ V28kp: whisker IQR rectangle ! use a Plotly `scatter` polygon with explicit x/y 
 V29rt: 3D isosurface `x`,`y`,`z`,`value` arrays ! be nested or misaligned; ⊥ wrap a prediction array in an extra array, which renders an empty Plotly surface and emits `NaN` SVG dimensions
 V30ab: SuMo validation consumes fixed `{observed,predicted,predictedStd}` response fields independent of QoI spelling; missing observation/prediction arrays render a handled error state, ⊥ QoI-derived response-key guessing
 V30ez: every new interactive component (button/icon-button/toggle) ! carry a stable `mmux-testid` (V13) sufficient for a per-interaction e2e screenshot per root SPEC.md V36ez; ⊥ ship a click handler w/o one
-V31cv: shared `SuMoValidation` effect ! POST cross-validation only when `validationQoI` is a non-empty string; modal state initialization is asynchronous, so first render may have `undefined` QoI (root V37cv)
+V31cv: shared Inspect Model modal ! derive a non-empty QoI synchronously (`validationQoI` → `selectedQoI` → `outputVars[0]`) and `SuMoValidation` effect ! POST only when that value exists; ⊥ first-render 400 or permanently empty validation view (root V37cv)
 
 ## §T
 id|status|task|cites

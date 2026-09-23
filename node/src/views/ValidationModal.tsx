@@ -9,12 +9,13 @@ import { useMMUXContext } from "../context/MMUXContext";
 function ValidationModal({ open, setOpen }: { open: boolean; setOpen: (value: boolean) => void }) {
   const { outputVars } = useFunctionContext();
   const { selectedQoI, validationQoI, setValidationQoI } = useMMUXContext();
+  const effectiveValidationQoI = validationQoI ?? selectedQoI ?? outputVars[0];
 
   useEffect(() => {
     if (open && validationQoI === undefined) {
-      setValidationQoI(selectedQoI ?? outputVars[0]);
+      setValidationQoI(effectiveValidationQoI);
     }
-  }, [open, outputVars, selectedQoI, validationQoI, setValidationQoI]);
+  }, [open, effectiveValidationQoI, validationQoI, setValidationQoI]);
 
   return (
     <Modal
@@ -42,13 +43,13 @@ function ValidationModal({ open, setOpen }: { open: boolean; setOpen: (value: bo
           qoiSelector={
             <QoISelector
               outputVars={outputVars}
-              selectedQoI={validationQoI}
+              selectedQoI={effectiveValidationQoI}
               setSelectedQoI={setValidationQoI}
               testId="validation-qoi-select"
             />
           }
         />
-        <SuMoValidation validationQoIOverride={validationQoI} />
+        <SuMoValidation validationQoIOverride={effectiveValidationQoI} />
       </Box>
     </Modal>
   );
