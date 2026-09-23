@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import traceback
 from pathlib import Path
 from typing import NoReturn
@@ -49,9 +50,11 @@ from mmux_flaskapi.utils.json_serializer import parse_request_model
 _logger = logging.getLogger(__name__)
 dakota_bp = Blueprint("dakota", __name__)
 
-DAKOTA_RUNS_DIR = Path.cwd().parent.parent.parent / "runs_dakota"
+DAKOTA_RUNS_DIR = Path(
+    os.environ.get("DAKOTA_RUNS_DIR", Path(__file__).resolve().parents[3] / "runs_dakota")
+)
 _logger.info(f"Saving runs in {DAKOTA_RUNS_DIR}")
-DAKOTA_RUNS_DIR.mkdir(exist_ok=True)
+DAKOTA_RUNS_DIR.mkdir(parents=True, exist_ok=True)
 assert DAKOTA_RUNS_DIR.is_dir(), "Dakota Runs Dir does not exist!!"
 
 

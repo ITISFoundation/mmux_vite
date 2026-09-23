@@ -35,10 +35,11 @@ from mmux_flaskapi.utils.webserver_config import get_osparc_api
 
 #
 _logger = logging.getLogger(__name__)
-SAMPLING_RUNS_DIR = Path.cwd().parent.parent.parent / "runs_sampling"
-SAMPLING_RUNS_DIR.mkdir(exist_ok=True)
+SAMPLING_RUNS_DIR = Path(
+    os.environ.get("SAMPLING_RUNS_DIR", Path(__file__).resolve().parents[3] / "runs_sampling")
+)
 _logger.info(f"Saving runs in {SAMPLING_RUNS_DIR}")
-SAMPLING_RUNS_DIR.mkdir(exist_ok=True)
+SAMPLING_RUNS_DIR.mkdir(parents=True, exist_ok=True)
 assert SAMPLING_RUNS_DIR.is_dir(), "Sampling Runs Dir does not exist!!"
 
 sampling_bp = Blueprint("sampling", __name__)
