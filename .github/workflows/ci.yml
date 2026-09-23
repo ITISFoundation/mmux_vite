@@ -129,6 +129,17 @@ jobs:
       # a non-green pixel diff fails the job and (via branch protection) gates merge (§C).
       - name: Run Playwright e2e suite (pixel diff vs committed baselines)
         run: make test-e2e
+      - name: Assert E2E coverage report exists
+        run: test -s coverage/e2e/report/cobertura-coverage.xml
+      - name: Upload E2E coverage
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./coverage/e2e/report/cobertura-coverage.xml
+          flags: e2e
+          name: e2e-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       - name: Upload Playwright report + screenshots
         if: always()
         uses: actions/upload-artifact@v4
