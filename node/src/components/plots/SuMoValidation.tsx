@@ -11,8 +11,9 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { getErrorMessage, getResponseErrorMessage } from "../../utils/httpError";
 import { getValidationSeries } from "../../utils/sumoValidation";
+import { requestJson } from "../../api/client";
+import { getErrorMessage } from "../../utils/httpError";
 
 function SuMoValidation() {
   const theme = useTheme();
@@ -105,29 +106,21 @@ function SuMoValidation() {
     setPropagating(true);
     setErrorMessage(undefined);
 
-    fetch(`/flask/dakota/sumo_cross_validation`, {
+    requestJson<{ error?: string } | undefined>(`/flask/dakota/sumo_cross_validation`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: {
         inputVars,
         output: selectedQoI,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false,
-      }),
+      },
     })
-      .then(async response => {
-        if (response && !response.ok) {
-          return Promise.reject(new Error(await getResponseErrorMessage(response)));
-        }
-        return response.json();
-      })
       .then(response => {
-        if (!response || (response && response.error)) {
-          console.warn("SuMo Validation error: ", response.error);
-          throw new Error(`Error running SuMo Validation: ${response.error}`);
+        if (!response || response.error) {
+          console.warn("SuMo Validation error: ", response?.error);
+          throw new Error(`Error running SuMo Validation: ${response?.error}`);
         } else {
-          const data = response;
-          createDataAndMetrics(data);
+          createDataAndMetrics(response as unknown as { [key: string]: number[] });
           setPropagating(false);
           setErrorMessage(undefined);
         }
