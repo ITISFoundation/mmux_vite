@@ -95,6 +95,13 @@ export async function setDeployment(
   expect(body.permissions, "backend echoed permissions").toBe(permissions);
 }
 
+export async function setFault(request: APIRequestContext, baseURL: string, operation: string, enabled = true): Promise<void> {
+  const response = await request.post(`${baseURL}/flask/e2e/faults`, {
+    data: { operation, enabled },
+  });
+  expect(response.ok(), `set fault ${operation}/${enabled} → ${response.status()}`).toBeTruthy();
+}
+
 /**
  * Fill the uniform Min/Max parameter-range blocks (SuMo / MOGA setup).
  *
