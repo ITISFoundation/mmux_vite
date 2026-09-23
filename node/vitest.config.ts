@@ -15,5 +15,12 @@ export default defineConfig({
     //   // https://vitest.dev/guide/browser/playwright
     //   instances: [{ browser: "chromium" }],
     // },
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "cobertura"],
+      reportsDirectory: "./coverage",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/osparc-api-ts-client/**", "**/*.d.ts"],
+    },
   },
 });

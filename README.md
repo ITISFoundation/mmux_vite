@@ -1,8 +1,28 @@
 # MMUX Vite
 
+[![codecov](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
+
 This repository is under active development. It aims to bring up meta-modeling functionality in an interactive, user-friendly, guided step-by-step way.
 
 It uses Vite (and React) for the front-end, and Python (via Flask) for the backend. Additionally, it connects to the OSPARC backend through its API (which is actively being expanded with "Functions" and related content to allow for meta-modeling functionality).
+
+### Coverage
+
+CI uploads unit-test coverage to Codecov with separate `node` and `flaskapi` flags. Playwright tests remain an end-to-end snapshot gate and are not included in source coverage.
+
+Run Node coverage locally with:
+
+```shell
+cd node && npm ci && npm run test:coverage
+```
+
+Run backend coverage locally with:
+
+```shell
+make test-flaskapi
+```
+
+CI combines regular and analytical backend coverage before uploading it.
 
 ## Development
 
