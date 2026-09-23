@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreDependencies": [
+    "osparc-api-ts-client",
+    "whatwg-fetch",
+    "@types/react-plotly.js",
+    "istanbul-lib-coverage",
+    "istanbul-lib-report",
+    "istanbul-reports",
+    "v8-to-istanbul"
+  ]
+}

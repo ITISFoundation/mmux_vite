@@ -18,7 +18,7 @@ export interface SamplingContextType {
   clearSampling: () => void;
 }
 
-export const SamplingContext = createContext<SamplingContextType>(undefined!);
+const SamplingContext = createContext<SamplingContextType>(undefined!);
 
 type Props = {
   children: React.ReactNode;
