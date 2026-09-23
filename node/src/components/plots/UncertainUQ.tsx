@@ -4,7 +4,7 @@ import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { fetchWithRetry } from "../../utils/fetchRetry";
+import { requestJson } from "../../api/client";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
@@ -34,10 +34,10 @@ export default function UncertainUQ(props: LoadingPropsType) {
       try {
         console.info("Propagating UQ...");
         console.info("SelectedQoI: ", selectedQoI);
-        const response = await fetchWithRetry(`/flask/dakota/manual_uq_propagation_with_uncertainty`, {
+        const data = await requestJson<DataUQHistogramType>(`/flask/dakota/manual_uq_propagation_with_uncertainty`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          retry: true,
+          body: {
             inputVars,
             output: selectedQoI,
             distributions: distribution[selectedFunction?.uid || ""],
@@ -46,12 +46,8 @@ export default function UncertainUQ(props: LoadingPropsType) {
             log: false,
             nHistograms: 50,
             seed: 0,
-          }),
+          },
         });
-        if (!response.ok) {
-          throw new Error(`Error in UQ response: ${response.status}, ${response.statusText}`);
-        }
-        const data: DataUQHistogramType = await response.json();
         const newPlotData: Plotly.Data[] = [
           {
             x: Array.from(

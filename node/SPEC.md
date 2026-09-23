@@ -96,6 +96,7 @@ V36ar: `src/architecture.test.ts` (ArchUnitTS) ! stay green: no import cycles in
 V37mg: every settings modal ! disable Apply while ANY of its fields is flagged invalid, and every input ! carry a unique accessible name (B26mg)
 V38ap: `/flask/*` JSON calls ! go through `src/api/client.ts` `requestJson` (JSON bodies always sent with `Content-Type: application/json`; failures reject as `ApiError{kind: http|network|parse, status, body}`); remaining direct `fetch(` sites are migration debt tracked by V36ar's allowlist (B27ct)
 V39rt: `fetchWithRetry` retries only network errors, 5xx, 408, 429; other 4xx return at once; after exhausting retries it returns the last HTTP response (status preserved) and only throws for network failure (B28rt)
+V40ps: a rejected persistence save ! not update `lastSavedContent`/`persistence` and ! stop further saves for the session; a failed (non-404) persistence load ! fall back to in-memory defaults with a warning and ⊥ write anything back (B30ps, refines V17)
 
 ## §T
 id|status|task|cites
@@ -130,7 +131,7 @@ T28lw|x|fix B25rc test-first with a request-id guard in `Curves1DPlot`/`Surface2
 T29kn|x|add knip dead-code gate: deleted unused `WhiskerPlot.tsx` + `functionUtilsMockups.ts`, un-exported context objects/internal helpers, removed unused deps (`superagent`, `styled-components`, `@mui/styled-engine-sc`, `autoprefixer`, `postcss`, `ts-node`, `vitest-browser-react`, `globals`); verified with and without the generated client|V35kn
 T30ar|x|add ArchUnitTS architecture tests (`archunit` devDep, local `expect` shim since Vitest globals stay off) incl. a guard test proving a real violation is detected; enabling `globals: true` instead surfaced unwrapped-`act()` warnings in 3 suites (left for T23)|V36ar
 T31mg|x|fix B26mg test-first (`MOGAModal.test.tsx`: distinct labels, Apply/Discard, per-field invalid values, no function); `InputVariableDist.test.tsx` covers seeded defaults per mode, persisted values, every inline error message and the UQ form switch; deleted the never-rendered `LogNormalInputDistribution`|V37mg,B26mg,V33sv
-T32ap|~|centralize `/flask/*` calls in `src/api/client.ts` (test-first `client.test.ts`): LHS/grid/test-job (fixes B27ct), 1D/2D/3D plots + `SuMoValidation`, all `functionUtils` calls (fixes B29lr) migrated; `PersistenceContext` + MOGA/UQ `fetchWithRetry` callers pending, then tighten V36ar to `src/api/**` + `fetchRetry` only|V38ap,V39rt,B27ct,B28rt,B29lr,V36ar
+T32ap|x|centralize `/flask/*` calls in `src/api/client.ts` (test-first `client.test.ts`): LHS/grid/test-job (fixes B27ct), 1D/2D/3D plots + `SuMoValidation`, all `functionUtils` calls (fixes B29lr), `PersistenceContext` (fixes B30ps, posts to canonical `/flask/text-file/`), MOGA/UQ; V36ar allowlist now only `api/client.ts` + `utils/fetchRetry.ts`|V38ap,V39rt,B27ct,B28rt,B29lr,B30ps,V36ar
 
 ## §B
 id|date|cause|fix
@@ -159,3 +160,4 @@ B26mg|2026-09-23|negative-test audit: `MOGAModal` Apply ignored `seedError`/`num
 B27ct|2026-09-23|API-client audit: `LHSSampling`, `GridSearchSampling` and `runSingleJob` POSTed JSON strings without a `Content-Type` header (browser sends `text/plain`), while the backend's `parse_request_model` → `request.get_json()` (since #442) requires `application/json` → every WRITE-mode LHS/grid/test-job launch got 415 Unsupported Media Type; unseen because e2e only covers READ-ONLY and unit tests never asserted headers (reproduced with a Flask test client)|V38ap
 B28rt|2026-09-23|`fetchWithRetry` retried every non-OK except 404 (a 422 validation error was re-sent 5× with backoff) and, once retries ran out, threw a generic error that dropped the HTTP status the callers needed|V39rt
 B29lr|2026-09-23|`functionUtils` `list_*` helpers called `.json()` on `fetchWithRetry`'s response without checking `ok`; a 404 (returned without retry) or exhausted 5xx body like `{"error": ...}` was normalized and returned as the job/function list → downstream `.map` on a non-array|V38ap
+B30ps|2026-09-23|persistence negative tests: (a) `setFile` returned normally on non-OK, so `saveState` still set `lastSavedContent` + `persistence` (V17 regressed); (b) `avoidPersisting` was state read inside a `useCallback(..., [])`, so the stale `false` never stopped later saves; (c) a 5xx on load left `persistence` undefined → `loading` stuck `true` forever (app never leaves the loading state)|V40ps

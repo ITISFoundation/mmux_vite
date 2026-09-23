@@ -8,7 +8,7 @@ import { useJobContext } from "../../context/JobContext";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import MogaParetoTable from "./MOGAParetoTable";
-import { fetchWithRetry } from "../../utils/fetchRetry";
+import { requestJson } from "../../api/client";
 import { aggregateOutputValues } from "../../utils/functionUtils";
 import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
@@ -156,24 +156,22 @@ export function MOGAPareto(props: MOGAParetoProps) {
       // console.log("localOptVars: ", localOptVars)
       // console.log("weights: ", weights)
       // console.log("outputVarSelection: ", OVS)
-      const bodyData = JSON.stringify({
-        inputVars,
-        mogaSettings: localsettings,
-        distributions: distribution[selectedFunction?.uid || ""],
-        outputVarSelection: OVS,
-        FunctionJobs: jobs,
-      });
-      const response = await fetchWithRetry(`/flask/dakota/perform_moga_optimization`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: bodyData,
-      });
+      const rawResults = await requestJson<Parameters<typeof normalizeMogaResults>[0]>(
+        `/flask/dakota/perform_moga_optimization`,
+        {
+          method: "POST",
+          retry: true,
+          body: {
+            inputVars,
+            mogaSettings: localsettings,
+            distributions: distribution[selectedFunction?.uid || ""],
+            outputVarSelection: OVS,
+            FunctionJobs: jobs,
+          },
+        },
+      );
 
-      if (!response.ok) {
-        throw new Error(`Error in MOGA response: ${response.status}, ${response.statusText}`);
-      }
-
-      const results = normalizeMogaResults(await response.json());
+      const results = normalizeMogaResults(rawResults);
       const minMax = getMinMax(localOptVars, results);
       // console.info("MOGA results:", results);
       // console.log("localOptVars: ", localOptVars)
