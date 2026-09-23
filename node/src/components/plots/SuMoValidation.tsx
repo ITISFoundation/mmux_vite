@@ -200,9 +200,9 @@ function SuMoValidation() {
       {cvMetrics ? (
         <Box display="flex" flexDirection="row" flex={1} justifyContent="space-around" mt={4}>
           <MetricRow width={width}>
-            <Metric metricName="Mean" metricValue={cvMetrics.meanY} color="rgb(41, 146, 221)" />
-            <Metric metricName="Std" metricValue={cvMetrics.stdY} color="rgb(41, 146, 221)" />
-            {/* rgb(31, 119, 180) is the original; changed it slightly to improve visibility */}
+            <Metric metricName="Mean" metricValue={cvMetrics.meanY} color="rgb(66, 165, 235)" />
+            <Metric metricName="Std" metricValue={cvMetrics.stdY} color="rgb(66, 165, 235)" />
+            {/* rgb(31, 119, 180) is the original; lightened to reach WCAG AA 4.5:1 on the dark surface */}
           </MetricRow>
           <MetricRow width={width}>
             <Metric metricName="Mean" metricValue={cvMetrics.meanYHat} color="rgb(255, 127, 14)" />

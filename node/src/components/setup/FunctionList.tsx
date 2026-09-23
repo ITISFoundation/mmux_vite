@@ -132,6 +132,7 @@ export function FunctionList() {
 
       return (
         <IconButton
+          aria-label="Open function"
           size="small"
           onClick={handleInfoClick}
           sx={theme => ({
@@ -236,7 +237,7 @@ export function FunctionList() {
         <Typography variant="body1" fontFamily="inherit" fontSize="1.2em" fontWeight={300} display="inline" mr={1}>
           Error fetching functions from the server. Please try again after some time.
         </Typography>
-        <IconButton size="small" onClick={async () => fetchFunctions()}>
+        <IconButton aria-label="Refresh functions" size="small" onClick={async () => fetchFunctions()}>
           <Refresh color="primary" />
         </IconButton>
         <Box mt={1}>
@@ -329,6 +330,7 @@ export function FunctionList() {
             minWidth: 130,
             renderHeader: () => (
               <IconButton
+                aria-label="Refresh functions"
                 sx={theme => ({
                   flex: 1,
                   padding: "8px",

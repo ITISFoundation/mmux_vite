@@ -137,7 +137,7 @@ T33rz|.|FUTURE PR: Playwright + Plotly modernization → upgrade Playwright pack
 T34cv|~|port current E2E interaction assertions + validation QoI guard; every screenshot reference ! produce PNG after Docker regeneration; audit remaining interactive controls for `mmux-testid` + dedicated interaction screenshot|V36ez,V10,V12,V29
 T35|~|e2e-negative: `helpers.ts` `failRoute`/`trackPageErrors` + `negative-network.spec.ts` (SuMo READ-ONLY: persistence load 500, permissions 503, list_functions abort/malformed JSON, cross-validation 500 → visible recovery, no page errors); UQ/MOGA and WRITE companions pending|V29qa,node/SPEC.md V26jt
 T36|~|e2e-write: add WRITE sampling, persistence reload, and backend-fault flows for UQ/SuMo/MOGA. done: mock `map_function` + `/flask/e2e/reset`; `sumo-write.spec.ts` (LHS launch sends JSON → new collection in table; `map_function` fault → error toast + Run re-enabled; dblclick → one POST). todo: grid/test-run, UQ/MOGA write, persistence reload|V29qa
-T37|.|e2e-a11y: add `@axe-core/playwright`; fail serious/critical violations on setup/results/error views|V30rb
+T37|~|e2e-a11y: add `@axe-core/playwright`; fail serious/critical violations on setup/results/error views. done: `a11y.spec.ts` (SuMo setup, inputs, validation, function-list error; Plotly excluded) → fixed node B33ax. todo: UQ/MOGA results + modals|V30rb
 T38|x|e2e-gate: `flaskapi/tests/test_frontend_contract.py` asserts `/flask/e2e/*` is absent without `MMUX_E2E_MOCK_OSPARC`, and pins the JSON content-type contract behind node B27ct (sampling endpoints 415 on text/plain)|V31sc
 
 ## §B

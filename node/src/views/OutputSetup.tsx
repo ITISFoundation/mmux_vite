@@ -133,6 +133,7 @@ export function OutputSetup(props: UQSetupProps) {
           onChange={e => {
             handlesetLocalQoI(e.target.value);
           }}
+          inputProps={{ "aria-label": "Quantity of interest" }}
           mmux-testid="qoi-select"
         >
           {outputVars.map(qoi => (
