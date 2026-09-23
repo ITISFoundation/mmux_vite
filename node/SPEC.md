@@ -90,6 +90,7 @@ V30nx: permissions/health fetch failure defaults app to READ-ONLY with visible d
 V31rs: `runningSampling` = one-shot "launched, refresh pending" flag; `JobSelector` ! clear it after its post-launch `requestForceFetch` settles; ⊥ stay `true` after success (B22rs)
 V32ff: context async actions called from UI (e.g. `requestForceFetch`) ! return the Promise and own failure feedback (toast); ⊥ fire-and-forget async that leaks unhandled rejections (B23ff)
 V33sv: `stepValidator` step-0 gate ! reject every distribution the inline input errors flag (non-finite values, `std`/`scale`/exponential `mean` ≤ 0, uniform `min ≥ max`); ⊥ enable Next while an input shows an error (B24sv)
+V34lw: Dakota plot fetches (1D/2D/3D) ! let only the latest request update plot/loading state; an older response (success or failure) resolving later ⊥ overwrite newer slider/axis results (B25rc)
 
 ## §T
 id|status|task|cites
@@ -120,6 +121,7 @@ T24|.|testing-boundary: add ErrorBoundary + render-failure recovery test; wire a
 T25|.|testing-permissions: test health/permissions failures and READ-ONLY fallback; prevent unsafe WRITE enablement|V30nx
 T26|x|dead-code removal: delete unreachable `views/ParallelRunner.tsx`/`.css` (only mount path was Footer's `permissions === "WRITE" && false` Task Manager button) + Footer modal state; fix B22rs/B23ff test-first (`JobSelector.test.tsx`, `JobContext.test.tsx`)|V31rs,V32ff,B22rs,B23ff
 T27|x|fix B24sv test-first: table-driven `stepValidator.test.ts` (per-distribution valid/invalid, MOGA targets, step bounds); failure-path suites for `LHSSampling` (422 text surfaced, network reject, post-launch job lookup failure, clamped points) and `ReturnCurrentView` (unsupported mode)|V33sv,B24sv,V26jt
+T28lw|~|fix B25rc test-first with a request-id guard: `Curves1DPlot` done (`Curves1DPlot.test.tsx`: V16 dedup, V18 retry after 500/network/malformed JSON, missing predictions, <5 jobs, stale race); `Surface2DPlot`/`IsoSurface3DPlot` pending|V34lw,B25rc,V18,V16
 
 ## §B
 id|date|cause|fix
@@ -143,3 +145,4 @@ B21qn|2026-09-23|`MuiDataGrid` root dark-surface restoration did not cover `colu
 B22rs|2026-09-23|dead-code audit: only success-path `setRunningSampling(false)` lived in never-mounted `ParallelRunner` `Dashboard.checkIfFinished` → after any successful launch `runningSampling` stayed `true`, so every later `selectedFunction` change re-fired a forced job refresh + a spurious "Sampling started" toast|V31rs
 B23ff|2026-09-23|`JobContext.requestForceFetch` called async `updateJobCollections` without await/catch → failed job-collection refresh leaked an unhandled rejection with no user feedback, and callers' `await` resolved before the refresh finished|V32ff
 B24sv|2026-09-23|negative-test audit: `stepValidator` only checked `!isNaN`, so `std ≤ 0`, `±Infinity`, uniform `min = max`, `scale ≤ 0` and exponential `mean ≤ 0` passed the Next-step gate while `InputVariableDist` already showed "Out of range"/"Min >= Max" errors for the same values → invalid distributions reached the backend|V33sv
+B25rc|2026-09-23|negative-test audit: plot fetches had no ordering guard, so moving a slider twice quickly let the slower, older `sumo_along_axes` response overwrite the newer curve (wrong plot shown for the current slider values)|V34lw
