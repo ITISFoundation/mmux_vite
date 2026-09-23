@@ -1,8 +1,16 @@
 import React from "react";
-import { render, act, cleanup } from "@testing-library/react";
+import { render, act, cleanup, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
+import { toast } from "react-toastify";
 import { JobContextProvider, useJobContext } from "./JobContext";
+import { getFunctionJobCollections } from "../utils/functionUtils";
+
+vi.mock("react-toastify", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("../utils/functionUtils", async importOriginal => ({
+  ...(await importOriginal<typeof import("../utils/functionUtils")>()),
+  getFunctionJobCollections: vi.fn(),
+}));
 // Mock dependencies
 vi.mock("./PersistenceContext", () => ({
   usePersistenceContext: () => ({
@@ -263,5 +271,38 @@ describe("JobContextProvider", () => {
     }
     expect(() => render(<BadComponent />)).toThrow("useJobContext must be used within a JobContextProvider");
     spy.mockRestore();
+  });
+
+  it("surfaces a failed forced refresh without leaking an unhandled rejection", async () => {
+    vi.mocked(getFunctionJobCollections).mockRejectedValue(new Error("backend down"));
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const progress = vi.fn();
+    let settled = false;
+
+    function RefreshProbe() {
+      const { requestForceFetch } = useJobContext();
+      return (
+        <button
+          type="button"
+          data-testid="refresh"
+          onClick={async () => {
+            await requestForceFetch("function-1", progress);
+            settled = true;
+          }}
+        />
+      );
+    }
+
+    const { getByTestId } = render(
+      <JobContextProvider>
+        <RefreshProbe />
+      </JobContextProvider>,
+    );
+    act(() => {
+      getByTestId("refresh").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    await waitFor(() => expect(settled).toBe(true));
+    expect(toast.error).toHaveBeenCalledWith("Failed to refresh job collections. Please try again.");
   });
 });
