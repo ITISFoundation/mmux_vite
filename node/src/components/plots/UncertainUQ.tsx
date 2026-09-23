@@ -5,7 +5,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { fetchWithRetry } from "../../utils/fetchRetry";
-import { getResponseErrorMessage } from "../../utils/httpError";
+import { getErrorMessage, getResponseErrorMessage } from "../../utils/httpError";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
@@ -77,7 +77,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
         setPropagating(false);
       } catch (error) {
         console.warn("Error:", error);
-        setErrorMessage(error instanceof Error ? error.message : "Error during calculation, please contact support.");
+        setErrorMessage(getErrorMessage(error));
         setPropagating(false);
         setDataUQHistogram(undefined);
       }

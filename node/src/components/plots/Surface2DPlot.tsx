@@ -10,7 +10,7 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
-import { getResponseErrorMessage } from "../../utils/httpError";
+import { getErrorMessage, getResponseErrorMessage } from "../../utils/httpError";
 
 function Surface2DPlot() {
   const theme = useTheme();
@@ -123,7 +123,7 @@ function Surface2DPlot() {
           console.warn("Error:", error);
           setPropagating(false);
           setPlotData([]);
-          setErrorMessage(error instanceof Error ? error.message : String(error));
+          setErrorMessage(getErrorMessage(error));
         });
     },
     [inputVars, selectedQoI, otherAxis, reshapePlotData],
