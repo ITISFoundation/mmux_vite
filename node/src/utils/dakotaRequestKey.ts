@@ -22,7 +22,11 @@ export function buildAxisRanges(
 ): { [key: string]: [number, number] } | undefined {
   const entries = axes.flatMap(axis => {
     const range = distribution?.[axis];
-    return range?.min !== undefined && range.max !== undefined ? [[axis, [range.min, range.max] as [number, number]]] : [];
+    // V38rq: only include finite endpoints; non-uniform distributions compute ranges as mean ± 2.5σ,
+    // which yields NaN if mean/std are missing. Excluding incomplete ranges prevents stale-key caching.
+    return range?.min !== undefined && range.max !== undefined && Number.isFinite(range.min) && Number.isFinite(range.max)
+      ? [[axis, [range.min, range.max] as [number, number]]]
+      : [];
   });
   return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }

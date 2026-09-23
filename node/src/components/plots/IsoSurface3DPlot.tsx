@@ -42,6 +42,7 @@ function IsoSurface3DPlot() {
       return acc;
     }, {}),
   );
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleSetAxis1 = (newAxis: string) => {
     if (axis3 === newAxis || axis2 === newAxis) {
@@ -158,6 +159,8 @@ function IsoSurface3DPlot() {
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false,
       }),
+      // V36jg: cancel overlapping requests by passing abort signal
+      signal: abortControllerRef.current?.signal,
     })
       .then(async response => {
         if (response && !response.ok) {
@@ -175,6 +178,10 @@ function IsoSurface3DPlot() {
         setErrorMessage(undefined);
       })
       .catch(error => {
+        // V36jg: ignore AbortError from cancelled requests (new request already in progress)
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
         // V18: clear cache on error so same inputs can be retried
         lastFetchedKey.current = undefined;
         console.warn("Error:", error);
@@ -185,6 +192,12 @@ function IsoSurface3DPlot() {
   };
 
   useEffect(() => {
+    // V36jg: cancel any previous in-flight request before starting a new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     const run = async () => {
       const jobs = filteredJobList;
       // V16: dedup by stable logical request key; same key → no new fetch.

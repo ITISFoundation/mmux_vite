@@ -47,6 +47,7 @@ function Curves1DPlots() {
   const plotColor = "rgb(127, 199, 255)";
   const fillColor = "rgba(127, 199, 255, 0.3)";
   const lastFetchedKey = useRef<string | undefined>(undefined);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const createPlotData = (data: Record<string, GPPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
@@ -115,6 +116,8 @@ function Curves1DPlots() {
         FunctionJobs: jobs,
         log: false,
       }),
+      // V36jg: cancel overlapping requests by passing abort signal
+      signal: abortControllerRef.current?.signal,
     })
       .then(async response => {
         if (response && !response.ok) {
@@ -134,6 +137,10 @@ function Curves1DPlots() {
         setErrorMessage(undefined);
       })
       .catch(error => {
+        // V36jg: ignore AbortError from cancelled requests (new request already in progress)
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
         // V18: clear cache on error so same inputs can be retried
         lastFetchedKey.current = undefined;
         setPlotData([]);
@@ -143,6 +150,12 @@ function Curves1DPlots() {
   };
 
   useEffect(() => {
+    // V36jg: cancel any previous in-flight request before starting a new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     const run = async () => {
       const jobs = filteredJobList;
       if (jobs.length === 0) {
