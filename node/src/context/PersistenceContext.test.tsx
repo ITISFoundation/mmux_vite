@@ -322,4 +322,58 @@ describe("PersistenceContextProvider", () => {
     expect(console.error).toHaveBeenCalledWith("Error parsing fetched data:", expect.any(SyntaxError));
     vi.mocked(console.error).mockClear();
   });
+
+  const storedContent = (content: string) =>
+    mockFetchWithRetry.mockResolvedValueOnce(
+      new Response(JSON.stringify({ content, filename: "persistence.json" }), { status: 200 }),
+    );
+
+  it.each(["null", "0", "false", '""', "[]"])(
+    "resets to defaults when the stored content is the JSON value %s",
+    async content => {
+      storedContent(content);
+      vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+      const { getByTestId } = await renderLoaded();
+
+      expect(getByTestId("persistence").textContent).not.toBe("none");
+      expect(JSON.parse(getByTestId("persistence").textContent!).currentView).toBe(0);
+    },
+  );
+
+  it.each<[string, unknown]>([
+    ["inputVars", "x1"],
+    ["outputVars", null],
+    ["fetchedJobCollections", {}],
+    ["selectedJobUids", "job-1"],
+    ["gridSamplingConfig", 3],
+    ["distribution", []],
+    ["numSamples", null],
+    ["lhsSamplingConfig", "lhs"],
+    ["currentView", "2"],
+    ["isSuMoGenerated", "yes"],
+  ])("resets to defaults when %s has the wrong type (%j)", async (field, value) => {
+    storedContent(JSON.stringify({ ...mockPersistence, [field]: value }));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const { getByTestId } = await renderLoaded();
+
+    const persistence = JSON.parse(getByTestId("persistence").textContent!);
+    expect(persistence.currentView).toBe(0);
+    expect(persistence.inputVars).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(
+      "Persistence file structure has changed, resetting to defaults.",
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it("accepts a stored file missing only optional fields", async () => {
+    const { weights: _weights, sortModel: _sortModel, selectedQoI: _qoi, ...partial } = mockPersistence;
+    storedContent(JSON.stringify(partial));
+
+    const { getByTestId } = await renderLoaded();
+
+    expect(JSON.parse(getByTestId("persistence").textContent!).currentView).toBe(mockPersistence.currentView);
+  });
 });

@@ -97,6 +97,7 @@ V37mg: every settings modal ! disable Apply while ANY of its fields is flagged i
 V38ap: `/flask/*` JSON calls ! go through `src/api/client.ts` `requestJson` (JSON bodies always sent with `Content-Type: application/json`; failures reject as `ApiError{kind: http|network|parse, status, body}`); remaining direct `fetch(` sites are migration debt tracked by V36ar's allowlist (B27ct)
 V39rt: `fetchWithRetry` retries only network errors, 5xx, 408, 429; other 4xx return at once; after exhausting retries it returns the last HTTP response (status preserved) and only throws for network failure (B28rt)
 V40ps: a rejected persistence save ! not update `lastSavedContent`/`persistence` and ! stop further saves for the session; a failed (non-404) persistence load ! fall back to in-memory defaults with a warning and ⊥ write anything back (B30ps, refines V17)
+V41pv: a loaded persistence file ! be a plain object whose required keys carry the right JSON type (arrays/objects/number/boolean); anything else (JSON `null`/`0`/`""`, a string `inputVars`, ...) → defaults + warning, ⊥ reach contexts (B32pv)
 
 ## §T
 id|status|task|cites
@@ -132,6 +133,7 @@ T29kn|x|add knip dead-code gate: deleted unused `WhiskerPlot.tsx` + `functionUti
 T30ar|x|add ArchUnitTS architecture tests (`archunit` devDep, local `expect` shim since Vitest globals stay off) incl. a guard test proving a real violation is detected; enabling `globals: true` instead surfaced unwrapped-`act()` warnings in 3 suites (left for T23)|V36ar
 T31mg|x|fix B26mg test-first (`MOGAModal.test.tsx`: distinct labels, Apply/Discard, per-field invalid values, no function); `InputVariableDist.test.tsx` covers seeded defaults per mode, persisted values, every inline error message and the UQ form switch; deleted the never-rendered `LogNormalInputDistribution`|V37mg,B26mg,V33sv
 T32ap|x|centralize `/flask/*` calls in `src/api/client.ts` (test-first `client.test.ts`): LHS/grid/test-job (fixes B27ct), 1D/2D/3D plots + `SuMoValidation`, all `functionUtils` calls (fixes B29lr), `PersistenceContext` (fixes B30ps, posts to canonical `/flask/text-file/`), MOGA/UQ; V36ar allowlist now only `api/client.ts` + `utils/fetchRetry.ts`|V38ap,V39rt,B27ct,B28rt,B29lr,B30ps,V36ar
+T33pv|x|fix B32pv test-first (`PersistenceContext.test.tsx`: JSON scalars/array, 10 wrong-typed fields, optional fields missing); `RunSamplingButton` never launches for non-WRITE permissions; `dakotaRequestKey` boundary table; mutation spot-check (removing view `ErrorBoundary`, LHS error toast, or load-failure `avoidPersisting` each fails a unit test; dropping the JSON header fails the WRITE e2e)|V41pv,B32pv
 
 ## §B
 id|date|cause|fix
@@ -162,3 +164,4 @@ B28rt|2026-09-23|`fetchWithRetry` retried every non-OK except 404 (a 422 validat
 B29lr|2026-09-23|`functionUtils` `list_*` helpers called `.json()` on `fetchWithRetry`'s response without checking `ok`; a 404 (returned without retry) or exhausted 5xx body like `{"error": ...}` was normalized and returned as the job/function list → downstream `.map` on a non-array|V38ap
 B30ps|2026-09-23|persistence negative tests: (a) `setFile` returned normally on non-OK, so `saveState` still set `lastSavedContent` + `persistence` (V17 regressed); (b) `avoidPersisting` was state read inside a `useCallback(..., [])`, so the stale `false` never stopped later saves; (c) a 5xx on load left `persistence` undefined → `loading` stuck `true` forever (app never leaves the loading state)|V40ps
 B31hp|2026-09-23|`App` health poll checked the retry budget before the result, so a backend that became healthy exactly on the last attempt still raised "Failed to connect to the backend"; `ServiceContext` also cast any permissions string to the enum and gave no user feedback when the config request failed|V30nx
+B32pv|2026-09-23|persistence edge tests: `isValidPersistenceFile` returned `data && ...`, so stored JSON `null`/`0`/`""` yielded a falsy non-`false` value that slipped past the `=== false` check and became `persistence`; it also only checked key presence, so wrong-typed values (e.g. `inputVars: "x1"`) reached contexts that call `.map` on them|V41pv

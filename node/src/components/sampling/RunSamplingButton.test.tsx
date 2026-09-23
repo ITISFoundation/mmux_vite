@@ -63,8 +63,18 @@ describe("RunSamplingButton", () => {
     vi.mocked(console.error).mockClear();
   });
 
-  it("disables the button for read-only permissions and explicit disablement", () => {
-    mocks.permissions = "READ-ONLY";
+  it.each(["READ-ONLY", "write", ""])("disables the button and never launches for permissions %j", permissions => {
+    mocks.permissions = permissions;
+    const handleRunSampling = vi.fn().mockResolvedValue(undefined);
+    renderButton(handleRunSampling);
+
+    const button = screen.getByRole("button", { name: "Run" });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(handleRunSampling).not.toHaveBeenCalled();
+  });
+
+  it("disables the button when explicitly disabled even with WRITE permissions", () => {
     renderButton(undefined, true);
 
     expect(screen.getByRole("button", { name: "Run" })).toBeDisabled();
