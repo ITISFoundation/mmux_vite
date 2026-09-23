@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
@@ -35,6 +35,7 @@ function normalizeMogaResults(payload: unknown): MogaResults {
 export function MOGAPareto(props: MOGAParetoProps) {
   const { loading, jobProgress, setCalculating } = props;
   const theme = useTheme();
+  const ref = useRef<Plot>(null);
   const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const { mogaSettings } = useMOGASettingsContext();
@@ -455,7 +456,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
       )}
       {!propagating && selectedFunction && plotData.length !== 0 && (
         <>
-          <Plot data={plotData} layout={layout} style={plotStyle} />
+          <Plot ref={ref} data={plotData} layout={layout} style={plotStyle} />
           <MOGAPlotModal
             plotType={plotType}
             tableData={tableData}
