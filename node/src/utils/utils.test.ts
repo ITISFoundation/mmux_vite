@@ -65,6 +65,24 @@ describe("fetchWithRetry", () => {
     await expect(fetchWithRetry("https://example.com/api", {}, 3, 100)).rejects.toThrow("Network error");
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  it.each([400, 404, 422])("returns a %s client error immediately without retrying", async status => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response("nope", { status })));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await fetchWithRetry("https://example.com/api", {}, 3, 1);
+    expect(result.status).toBe(status);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([408, 429, 503])("retries a %s and returns the last response once retries are exhausted", async status => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response("busy", { status })));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await fetchWithRetry("https://example.com/api", {}, 3, 1);
+    expect(result.status).toBe(status);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
 });
 
 describe("Sampling Functions", () => {

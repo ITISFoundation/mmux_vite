@@ -1,5 +1,7 @@
 import { delay } from "./delay";
 
+const isRetryableStatus = (status: number) => status >= 500 || status === 408 || status === 429;
+
 export const fetchWithRetry = async (
   url: string,
   options: RequestInit = {},
@@ -17,8 +19,8 @@ export const fetchWithRetry = async (
     } catch (error: unknown) {
       ErrorToRetry = error instanceof Error ? error : new Error(String(error));
     }
-    if ((response && response.ok) || (response && response.status === 404)) {
-      return response; // If the response is successful or not found, return it immediately
+    if (response && !isRetryableStatus(response.status)) {
+      return response;
     }
 
     // Exponential backoff with jitter
@@ -27,6 +29,7 @@ export const fetchWithRetry = async (
     await delay(exponentialWait + jitter);
   }
 
-  // If we reach here, it means all retries failed
-  throw ErrorToRetry ?? new Error("fetchWithRetry: All retries failed and no error was captured."); // Re-throw the last error encountered
+  // Hand back the last HTTP failure so callers can report its status; only a network failure throws.
+  if (response) return response;
+  throw ErrorToRetry ?? new Error("fetchWithRetry: All retries failed and no error was captured.");
 };
