@@ -27,6 +27,7 @@ function TestComponent() {
     setSelectedJobUids,
     allJobsList,
     filteredJobList,
+    parseStatus,
     hasAutoSelectedJobs,
     setHasAutoSelectedJobs,
   } = useJobContext();
@@ -71,6 +72,12 @@ function TestComponent() {
       <div data-testid="running-job">{JSON.stringify(runningJobCollection)}</div>
       <div data-testid="fetched-jobs">{JSON.stringify(fetchedJobCollections)}</div>
       <div data-testid="has-auto-selected">{JSON.stringify(hasAutoSelectedJobs)}</div>
+      <div data-testid="status-success">{parseStatus("SUCCESS", { value: 1.234 })}</div>
+      <div data-testid="status-running">{parseStatus("STARTED", {})}</div>
+      <div data-testid="status-failed">{parseStatus("JOB_X_FAILURE", {})}</div>
+      <div data-testid="status-pending">{parseStatus("WAITING_FOR_RESOURCES", {})}</div>
+      <div data-testid="status-unknown">{parseStatus({ status: "SUCCESS" } as never, { value: 1.234 })}</div>
+      <div data-testid="status-invalid">{parseStatus("NOT_A_STATUS", {})}</div>
     </div>
   );
 }
@@ -180,6 +187,21 @@ describe("JobContextProvider", () => {
     });
     expect(getByTestId("selected-uids").textContent).toContain('"1"');
     expect(getByTestId("selected-uids").textContent).toContain('"3"');
+  });
+
+  it("renders all supported job status messages", () => {
+    const { getByTestId } = render(
+      <JobContextProvider>
+        <TestComponent />
+      </JobContextProvider>,
+    );
+
+    expect(getByTestId("status-success").textContent).toContain("value : 1.23");
+    expect(getByTestId("status-running").textContent).toContain("Running...");
+    expect(getByTestId("status-failed").textContent).toBe("Failed - no outputs");
+    expect(getByTestId("status-pending").textContent).toBe("Pending to run");
+    expect(getByTestId("status-unknown").textContent).toContain("value : 1.23");
+    expect(getByTestId("status-invalid").textContent).toBe("Unknown status, please contact support");
   });
 
   it("setRunningJobCollection updates runningJobCollection", () => {

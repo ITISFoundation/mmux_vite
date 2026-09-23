@@ -31,6 +31,12 @@ describe("CSV Functions", () => {
       ],
     });
   });
+
+  it("returns an empty row set for a header-only CSV", async () => {
+    const file = { text: () => Promise.resolve("name,age\n") } as unknown as File;
+
+    await expect(readCsvData(file)).resolves.toEqual({ headers: ["name", "age"], rows: [] });
+  });
 });
 
 describe("fetchWithRetry", () => {
