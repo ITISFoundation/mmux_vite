@@ -66,7 +66,9 @@ class _FunctionsApi:
 
 
 class _JobApi:
-    def list_function_jobs(self, limit: int | None = None, offset: int = 0, **_kw) -> _Page:
+    def list_function_jobs(
+        self, limit: int | None = None, offset: int = 0, **_kw
+    ) -> _Page:
         _raise_if_fault("list_function_jobs")
         return _Page(data.JOBS, limit=limit, offset=offset)
 
@@ -94,10 +96,14 @@ class _JobCollectionApi:
     ) -> _Page:
         collections = data.JOB_COLLECTIONS
         if has_function_id is not None:
-            collections = [c for c in collections if c["function_uid"] == has_function_id]
+            collections = [
+                c for c in collections if c["function_uid"] == has_function_id
+            ]
         return _Page(collections, limit=limit, offset=offset)
 
-    def get_function_job_collection(self, collection_uid: str, **_kw) -> SimpleNamespace:
+    def get_function_job_collection(
+        self, collection_uid: str, **_kw
+    ) -> SimpleNamespace:
         collection = next(c for c in data.JOB_COLLECTIONS if c["uid"] == collection_uid)
         return SimpleNamespace(job_ids=list(collection["job_ids"]))
 
