@@ -36,6 +36,7 @@ from mmux_flaskapi.blueprints.dakota_models import (
     SumoAlongAxesRequest,
     SumoAlongAxesResponse,
     SumoCrossValidationRequest,
+    SumoCrossValidationResponse,
     SumoCVAccuracyMetricsRequest,
     SumoCVAccuracyMetricsResponse,
     SumoGridEvaluationRequest,
@@ -148,15 +149,17 @@ def flask_sumo_cross_validation():
         samples = _jobs_to_df(jobs, input_vars, [output_var])
 
         result = sumo_cross_validate(samples, input_vars, output_var, workspace=run_dir)
+        if result.predicted_std is None:
+            raise ValueError("Cross-validation did not return prediction standard deviations")
 
-        response_data = {
-            output_var: result.observed,
-            f"{output_var}_hat": result.predicted,
-            f"{output_var}_std_hat": result.predicted_std,
-        }
+        response_data = SumoCrossValidationResponse(
+            observed=result.observed,
+            predicted=result.predicted,
+            predicted_std=result.predicted_std,
+        )
 
         _logger.debug("Cross-validation completed successfully!")
-        return jsonify(response_data)
+        return jsonify(response_data.model_dump())
     except ValidationError as e:
         handle_workflow_error(e, "flask_sumo_cross_validation", 422)
     except (ValueError, SumoInputError) as e:
