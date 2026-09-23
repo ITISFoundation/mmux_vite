@@ -41,6 +41,7 @@ validation/
 .coverage
 coverage.xml
 htmlcov/
+/coverage/
 .codex
 ph_context.json
 .mcp.json

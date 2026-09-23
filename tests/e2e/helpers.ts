@@ -102,6 +102,28 @@ export async function setFault(request: APIRequestContext, baseURL: string, oper
   expect(response.ok(), `set fault ${operation}/${enabled} → ${response.status()}`).toBeTruthy();
 }
 
+export type BrowserFault = { status: number; body?: string } | "abort" | "malformed";
+
+/** Answer matching browser requests with a failure instead of letting them reach the backend. */
+export async function failRoute(page: Page, pattern: string, fault: BrowserFault, times?: number): Promise<void> {
+  await page.route(
+    pattern,
+    async route => {
+      if (fault === "abort") return route.abort("failed");
+      if (fault === "malformed") return route.fulfill({ status: 200, contentType: "application/json", body: "{not json" });
+      return route.fulfill({ status: fault.status, contentType: "text/plain", body: fault.body ?? "injected failure" });
+    },
+    times === undefined ? undefined : { times },
+  );
+}
+
+/** Collect uncaught page exceptions; failure-path specs assert the list stays empty. */
+export function trackPageErrors(page: Page): string[] {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  return errors;
+}
+
 /**
  * Fill the uniform Min/Max parameter-range blocks (SuMo / MOGA setup).
  *
