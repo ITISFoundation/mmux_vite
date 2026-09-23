@@ -39,7 +39,7 @@ function getRowId(value: SelectedJobCollection) {
 
 export default function JobsSelector(props: JobSelectorPropsType) {
   const { selectedFunction } = useFunctionContext();
-  const { launchingSampling, runningSampling } = useSamplingContext();
+  const { launchingSampling, runningSampling, setRunningSampling } = useSamplingContext();
   const { setSelectedJobUids, fetchedJobCollections, requestForceFetch, hasAutoSelectedJobs, setHasAutoSelectedJobs } =
     useJobContext();
   const { setIsSuMoGenerated } = useMMUXContext();
@@ -268,6 +268,7 @@ export default function JobsSelector(props: JobSelectorPropsType) {
       (async () => {
         await requestForceFetch(selectedFunction?.uid ? selectedFunction.uid : "", setJobProgress);
         console.info("Updated JobCollections");
+        setRunningSampling(false);
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
