@@ -78,6 +78,7 @@ describe("GridSearchSampling", () => {
     expect(screen.getByText("x1:1-3")).toBeInTheDocument();
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("/flask/sampling/grid");
+    expect(new Headers(init.headers).get("Content-Type")).toBe("application/json");
     expect(JSON.parse(init.body as string)).toEqual({ funUid: "fn-1", config: [{ variable: "x1", start: 1, end: 3 }] });
     expect(mocks.setGridSamplingConfig).toHaveBeenCalledWith([{ variable: "x1", start: 1, end: 3 }]);
     expect(mocks.setRunningSampling).toHaveBeenCalledWith(true);
@@ -93,14 +94,14 @@ describe("GridSearchSampling", () => {
   it("rejects with the backend's status and text so the run button can report it", async () => {
     stubFetch(textResponse("too many points", 422));
 
-    expect(await run()).toBe("rejected: Error running Grid Sampling 422: too many points");
+    expect(await run()).toBe("rejected: POST /flask/sampling/grid failed with 422: too many points");
     expect(mocks.setRunningSampling).not.toHaveBeenCalled();
     expect(mocks.setRunningJobCollection).not.toHaveBeenCalled();
   });
 
   it("rejects on a network failure", async () => {
     stubFetch(networkError());
-    expect(await run()).toBe("rejected: Failed to fetch");
+    expect(await run()).toBe("rejected: POST /flask/sampling/grid failed: Failed to fetch");
     expect(mocks.setRunningSampling).not.toHaveBeenCalled();
   });
 });
