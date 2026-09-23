@@ -116,6 +116,42 @@ describe("jobCollectionCsv", () => {
         rows: [],
       });
     });
+
+    it("parses Windows CRLF line endings", () => {
+      const csv = "# source_function_uid,fn-9\r\ninput__x,output__y\r\n1,2\r\n5,6\r\n";
+      const result = parseJobCollectionCsv(csv);
+
+      expect(result.sourceFunctionUid).toBe("fn-9");
+      expect(result.rows.map(row => row.outputs.y)).toEqual([2, 6]);
+      expect(result.inputPresets.x).toMatchObject({ min: 1, max: 5 });
+    });
+
+    it.each([
+      ["non-numeric text", "abc"],
+      ["NaN literal", "NaN"],
+      ["Infinity literal", "Infinity"],
+      ["missing trailing cell", undefined],
+    ])("treats a %s cell as missing instead of a number", (_label, cell) => {
+      const row = cell === undefined ? "1" : `1,${cell}`;
+      const result = parseJobCollectionCsv(`input__x,output__y\n${row}\n2,3\n`);
+
+      expect(result.rows[0]).toEqual({ sourceJobUid: undefined, status: undefined, inputs: { x: 1 }, outputs: {} });
+      expect(result.rows[1].outputs).toEqual({ y: 3 });
+    });
+
+    it("drops an input column whose values are all unusable from the presets", () => {
+      const result = parseJobCollectionCsv("input__x,input__z,output__y\n1,n/a,2\n2,,3\n");
+
+      expect(result.inputVars).toEqual(["x", "z"]);
+      expect(Object.keys(result.inputPresets)).toEqual(["x"]);
+    });
+
+    it("does not throw on an unterminated quote and keeps earlier cells", () => {
+      const result = parseJobCollectionCsv('input__x,input__label,output__y\n1,"broken,2\n');
+
+      expect(result.rows[0].inputs).toEqual({ x: 1 });
+      expect(result.rows[0].outputs).toEqual({});
+    });
   });
 
   describe("pickSingleCsvFile", () => {
