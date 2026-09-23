@@ -87,6 +87,7 @@ V27mn: Sobol UI distinguishes unique order masses (`M1`,`M2`,`R`) from overlappi
 V28kp: whisker IQR rectangle ! use a Plotly `scatter` polygon with explicit x/y coordinates and `fill: "toself"`; ⊥ attach scatter-only fill properties to a `box` trace, so `tsc -b` and the e2e web server remain green
 V29rt: 3D isosurface `x`,`y`,`z`,`value` arrays ! be nested or misaligned; ⊥ wrap a prediction array in an extra array, which renders an empty Plotly surface and emits `NaN` SVG dimensions
 V30ab: SuMo validation consumes fixed `{observed,predicted,predictedStd}` response fields independent of QoI spelling; missing observation/prediction arrays render a handled error state, ⊥ QoI-derived response-key guessing
+V30ez: every new interactive component (button/icon-button/toggle) ! carry a stable `mmux-testid` (V13) sufficient for a per-interaction e2e screenshot per root SPEC.md V36ez; ⊥ ship a click handler w/o one
 
 ## §T
 id|status|task|cites

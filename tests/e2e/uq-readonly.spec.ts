@@ -21,7 +21,9 @@ import {
  * output schema, so the QoI dropdown stays unchanged).
  *
  * Also exercises the "Inspect Model" SuMo modal, which previously failed to open
- * because the MUI Modal child was a non-ref-forwarding function component.
+ * because the MUI Modal child was a non-ref-forwarding function component, and the
+ * "UQ Settings" icon button (§V36 — every interactive element gets its own
+ * e2e test + regression screenshot).
  *
  * Pixel baselines are regenerated only in the pinned Playwright docker image
  * (§V12); host-generated baselines must not be committed.
@@ -88,6 +90,20 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
 
   // Pixel baseline: the UQ histogram with the real (deterministic) Plotly render.
   await expect(page).toHaveScreenshot("uq-readonly-histogram.png");
+
+  // UQ Settings opens the sample/histogram/seed config modal (§V36 — every button
+  // gets an e2e test + regression screenshot).
+  const settingsButton = page.locator('[mmux-testid="uq-settings-button"]');
+  await expect(settingsButton).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await settingsButton.click();
+
+  const settingsModal = page.locator('[mmux-testid="uq-settings-modal"]');
+  await expect(settingsModal).toBeVisible({ timeout: VIEW_TIMEOUT });
+
+  // Pixel baseline: the UQ Settings modal.
+  await expect(page).toHaveScreenshot("uq-readonly-settings-modal.png");
+  await page.keyboard.press("Escape");
+  await expect(settingsModal).toBeHidden({ timeout: VIEW_TIMEOUT });
 
   // Inspect Model opens the SuMo cross-validation modal (regression guard: the
   // MUI Modal child must forward a ref, otherwise the modal never renders).
