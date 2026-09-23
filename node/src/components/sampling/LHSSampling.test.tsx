@@ -98,6 +98,7 @@ describe("LHSSampling", () => {
 
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("/flask/sampling/lhs");
+    expect(new Headers(init.headers).get("Content-Type")).toBe("application/json");
     expect(JSON.parse(init.body as string)).toEqual({
       funUid: "function-1",
       config: [
@@ -119,7 +120,7 @@ describe("LHSSampling", () => {
   it("surfaces the backend's error text and resets sampling flags on a non-OK response", async () => {
     stubFetch(textResponse("N must be <= 50", 422));
 
-    expect(await run()).toBe("rejected: Error running LHS sampling: 422: N must be <= 50");
+    expect(await run()).toBe("rejected: POST /flask/sampling/lhs failed with 422: N must be <= 50");
     expect(toast.error).toHaveBeenCalledWith("Error running LHS sampling: 422: N must be <= 50");
     expect(mocks.setLaunchingSampling).toHaveBeenLastCalledWith(false);
     expect(mocks.setRunningSampling).toHaveBeenLastCalledWith(false);
@@ -127,10 +128,12 @@ describe("LHSSampling", () => {
     expect(mocks.setFetchedJobCollections).not.toHaveBeenCalled();
   });
 
-  it("propagates a network failure so the run button can recover", async () => {
+  it("reports a network failure and resets sampling flags", async () => {
     stubFetch(networkError());
 
-    expect(await run()).toBe("rejected: Failed to fetch");
+    expect(await run()).toBe("rejected: POST /flask/sampling/lhs failed: Failed to fetch");
+    expect(toast.error).toHaveBeenCalledWith("Error running LHS sampling: POST /flask/sampling/lhs failed: Failed to fetch");
+    expect(mocks.setLaunchingSampling).toHaveBeenLastCalledWith(false);
     expect(mocks.setRunningSampling).not.toHaveBeenCalledWith(true);
     expect(mocks.setFetchedJobCollections).not.toHaveBeenCalled();
   });
