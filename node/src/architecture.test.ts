@@ -8,16 +8,14 @@ const TSCONFIG = "tsconfig.app.json";
 
 // Direct `fetch(` call sites that predate the planned central API client; this list may only shrink.
 const fetchAllowlist = [
+  "api/client.ts",
   "components/plots/Curves1DPlot.tsx",
   "components/plots/IsoSurface3DPlot.tsx",
   "components/plots/SuMoValidation.tsx",
   "components/plots/Surface2DPlot.tsx",
-  "components/sampling/GridSearchSampling.tsx",
-  "components/sampling/LHSSampling.tsx",
   "context/PersistenceContext.tsx",
   "utils/fetchRetry.ts",
   "utils/functionUtils.ts",
-  "utils/samplingUtils.ts",
 ];
 
 const isProductionSource = (path: string) =>

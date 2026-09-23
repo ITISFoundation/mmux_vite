@@ -2,6 +2,7 @@ import { toast } from "react-toastify";
 import { ProjectFunctionJob } from "osparc-api-ts-client";
 import { RegisteredFunction, OsparcFunctionJob } from "../context/types";
 import { createJobStudyCopy, openStudyUid } from "./functionUtils";
+import { requestJson } from "../api/client";
 
 export async function runSingleJob(
   selectedFunction: RegisteredFunction | undefined,
@@ -15,24 +16,12 @@ export async function runSingleJob(
   const fun = selectedFunction as RegisteredFunction;
   // send config to Python backend to create LHS
   setLaunchingSampling(true);
-  const job = await fetch(`/flask/sampling/test_job`, {
+  const job = await requestJson<OsparcFunctionJob>(`/flask/sampling/test_job`, {
     method: "POST",
-    body: JSON.stringify({
-      funUid: fun.uid,
-      config: jobInputs,
-    }),
-  })
-    .then(async response => {
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error running Single Job ${response.status}: ${errorText}`);
-      }
-      return response.json();
-    })
-    .then((k: OsparcFunctionJob) => k)
-    .catch(error => {
-      console.error("Error running single job: ", error);
-    });
+    body: { funUid: fun.uid, config: jobInputs },
+  }).catch(error => {
+    console.error("Error running single job: ", error);
+  });
   setLaunchingSampling(false);
   if (!job) {
     toast.warning("Test Job running failed! Please contact support");

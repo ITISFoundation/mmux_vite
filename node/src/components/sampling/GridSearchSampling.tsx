@@ -8,6 +8,7 @@ import VariableConfig from "../setup/VariableConfig";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
 import { useJobContext } from "../../context/JobContext";
+import { requestJson } from "../../api/client";
 
 // TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
 async function runGridSampling(
@@ -17,29 +18,15 @@ async function runGridSampling(
   config: GridSamplingConfig,
 ) {
   const fun = selectedFunction as RegisteredFunction;
-  // send config to Python backend to create LHS
   context.setLaunchingSampling(true);
-  const jc = await fetch(`/flask/sampling/grid`, {
+  const localJC = await requestJson<RegisteredFunctionJobCollection>(`/flask/sampling/grid`, {
     method: "POST",
-    body: JSON.stringify({
-      funUid: fun.uid,
-      config,
-    }),
-  })
-    .then(async response => {
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error running Grid Sampling ${response.status}: ${errorText}`);
-      }
-      return response.json();
-    })
-    .then((localJC: RegisteredFunctionJobCollection) => {
-      context.setLaunchingSampling(false);
-      context.setRunningSampling(true);
-      setRunningJobCollection(localJC || undefined);
-      return localJC;
-    });
-  return jc;
+    body: { funUid: fun.uid, config },
+  });
+  context.setLaunchingSampling(false);
+  context.setRunningSampling(true);
+  setRunningJobCollection(localJC || undefined);
+  return localJC;
 }
 
 function GridSearchSampling() {
