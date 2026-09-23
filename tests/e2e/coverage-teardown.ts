@@ -5,6 +5,7 @@ import { createCoverageMap } from "istanbul-lib-coverage";
 import { createContext } from "istanbul-lib-report";
 import reports from "istanbul-reports";
 
+// Playwright loads global teardown through its CommonJS loader.
 const repoRoot = resolve(__dirname, "../..");
 const coverageRoot = join(repoRoot, "coverage", "e2e");
 const rawCoverageDirectory = join(coverageRoot, "raw");
@@ -20,7 +21,9 @@ export default async function globalTeardown() {
     ) as Array<{
       url: string;
       source: string;
-      functions: Parameters<ReturnType<typeof v8ToIstanbul>["applyCoverage"]>[0];
+      functions: Parameters<
+        ReturnType<typeof v8ToIstanbul>["applyCoverage"]
+      >[0];
     }>;
 
     for (const entry of coverageEntries) {

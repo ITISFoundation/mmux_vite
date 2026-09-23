@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { test as base } from "@playwright/test";
 
+// Playwright loads root-level fixtures through its CommonJS loader.
 const repoRoot = resolve(__dirname, "../..");
 const coverageDirectory = join(repoRoot, "coverage", "e2e", "raw");
 

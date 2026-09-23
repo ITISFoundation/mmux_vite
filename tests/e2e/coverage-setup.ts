@@ -1,6 +1,7 @@
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 
+// Playwright loads global setup through its CommonJS loader.
 const repoRoot = join(__dirname, "../..");
 
 export default async function globalSetup() {
