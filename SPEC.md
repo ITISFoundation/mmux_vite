@@ -99,6 +99,7 @@ V35rx: ∀ Dependabot ecosystem entry in `.github/dependabot.yml` → weekly Mon
 V36ez: ∀ interactive UI element (button/icon-button/toggle) ! ship without ≥1 e2e test asserting it via `mmux-testid` ∧ ≥1 dedicated `toHaveScreenshot` baseline capturing its triggered state; ⊥ crash-free-only coverage
 V37hs: shared MUI `MuiTable` and `MuiDataGrid` roots ! use `theme.palette.background.default` for table surfaces; ⊥ inherit lighter card/paper background and change every table's visual baseline together
 V38gu: backend prod entrypoint ! launch Gunicorn via `uv run` from `flaskapi/uv.lock`, ⊥ isolated `uvx` tool env; guard `flaskapi/tests/test_main.py::test_v42gu_production_gunicorn_uses_project_lockfile` (B23gu, flaskapi/SPEC.md V42gu)
+V32qf: every CI job that runs `npm ci` ! validate the committed `node/package.json` and `node/package-lock.json` together from a clean checkout; adding a dependency requires its direct and transitive lock entries (B18qf)
 
 ## §T
 id|status|task|cites
@@ -155,3 +156,4 @@ B20lt|2026-08-30|PR #561 review-comment follow-up: commit `2df63a1` (addr. revie
 B21fk|2026-09-11|Dependabot entries used unspecified weekly timing and generic groups, so update timing defaulted to Thursday and dependency PR policy was not explicit|V35rx
 B22hs|2026-09-23|`MuiDataGrid` had no shared root background override while `MuiTable` used `theme.palette.background.default`; DataGrid inherited the lighter `background.paper` card surface, changing all function/job/MOGA tables together|V37hs
 B23gu|2026-09-23|backend prod entrypoint used `uvx gunicorn`, bypassing declared `gunicorn==26.2.0` in `flaskapi/uv.lock` → production could resolve a later drifting Gunicorn tool version|V38gu
+B18qf|2026-09-23|PR #622 CI `npm ci` rejected the committed coverage dependency addition as out of sync, so both `node-tests` and `prek` failed before their actual checks; a clean install against the pushed lockfile passed locally|V32qf
