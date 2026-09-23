@@ -259,7 +259,7 @@ test-e2e-update: clean-e2e-snapshots ## regenerate read-only e2e pixel baselines
 	cd ${NODE_DIR} && npm run test:e2e:update
 
 .PHONY: test-e2e-update-docker
-PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.61.0-noble
+PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.63.0-noble
 test-e2e-update-docker: ## regenerate e2e baselines INSIDE the pinned Playwright image (font-stable, see V12); keep tag == @playwright/test
 	docker run --rm --user root --network host \
 		-v "$(PWD)":/work -w /work -e HOME=/root \
@@ -280,5 +280,5 @@ ci: test-flaskapi test-node build-no-cache ## mimmicks the GitHub CI
 help: ## this colorful help
 	@echo "Recipes for '$(notdir $(CURDIR))':"
 	@echo ""
-	@awk --posix 'BEGIN {FS = ":.*?## "} /^[[:alpha:][:space:]_-]+:.*?## / {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk --posix 'BEGIN {FS = ":.*## "} /^[[:alnum:]_.-]+([[:space:]]+[[:alnum:]_.-]+)*:.*## / {count = split($$1, targets, /[[:space:]]+/); for (i = 1; i <= count; i++) printf "\033[36m%-20s\033[0m %s\n", targets[i], $$2}' $(MAKEFILE_LIST)
 	@echo ""
