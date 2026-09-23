@@ -22,11 +22,12 @@ export default defineConfig({
       reportsDirectory: "./coverage",
       include: ["src/**/*.{ts,tsx}"],
       exclude: ["src/osparc-api-ts-client/**", "src/test/**", "src/utils/functionUtilsMockups.ts", "**/*.d.ts"],
+      // Ratchet only upward (node SPEC §V27ku); next milestone is 60 for every metric.
       thresholds: {
-        lines: 40,
-        functions: 40,
-        branches: 40,
-        statements: 40,
+        lines: 55,
+        functions: 55,
+        branches: 45,
+        statements: 55,
       },
     },
   },
