@@ -10,8 +10,6 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
-import { getResponseErrorMessage } from "../../utils/httpError";
-import { buildIsoSurfacePlotData } from "./isoSurfacePlotData";
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
@@ -129,7 +127,19 @@ function IsoSurface3DPlot() {
 
   const reshapePlotData = (data: { [key: string]: number[] } | { [key: string]: number[][] } | { [key: string]: number }) => {
     if (data && selectedQoI) {
-      const newData: Partial<Plotly.IsosurfaceData>[] = [buildIsoSurfacePlotData(data, axis1, axis2, axis3, selectedQoI)];
+      const newData: Partial<Plotly.IsosurfaceData>[] = [
+        {
+          type: "isosurface",
+          x: data[axis1] as number[],
+          y: data[axis2] as number[],
+          z: data[axis3] as number[],
+          value: data[selectedQoI] as number[],
+          colorscale: "Electric",
+          showscale: true,
+          opacity: 0.5,
+          surface: { show: true, count: 10 },
+        },
+      ];
       setPlotData(newData);
     } else {
       setPlotData([]);
@@ -162,7 +172,7 @@ function IsoSurface3DPlot() {
       .then(async response => {
         if (response && !response.ok) {
           console.warn("SuMo Surface plot error: ", response.body);
-          return Promise.reject(new Error(await getResponseErrorMessage(response)));
+          return Promise.reject(new Error(`Error running SuMo Surface plot: ${response.status}, ${response.statusText}`));
         }
         return response.json();
       })

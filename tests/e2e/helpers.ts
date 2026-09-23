@@ -1,4 +1,4 @@
-import { expect, type Page, type APIRequestContext } from "@playwright/test";
+import { expect, type Locator, type Page, type APIRequestContext } from "@playwright/test";
 
 /**
  * Shared helpers for the MMUX e2e specs (SuMo / UQ / MOGA).
@@ -15,6 +15,23 @@ export const FUNCTION_UID = "func-sumo-readonly-e2e";
 
 export const VIEW_TIMEOUT = 30_000;
 export const MODEL_READY_TIMEOUT = 60_000;
+
+export async function expectPlotlyReady(container: Locator, timeout = MODEL_READY_TIMEOUT): Promise<Locator> {
+  const plot = container.locator(".js-plotly-plot");
+  await expect(plot).toHaveCount(1);
+  await expect(plot).toBeVisible({ timeout });
+  return plot;
+}
+
+export async function expectModelModalReady(
+  page: Page,
+  selector = '[mmux-testid="sumo-model-modal"]',
+): Promise<Locator> {
+  const modal = page.locator(selector);
+  await expect(modal).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expectPlotlyReady(modal);
+  return modal;
+}
 
 // Mirror of the frontend persistence shape so each run starts from a clean slate.
 export const DEFAULT_PERSISTENCE = {
