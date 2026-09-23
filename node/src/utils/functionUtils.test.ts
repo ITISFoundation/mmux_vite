@@ -145,6 +145,7 @@ describe("Function Utils", () => {
       "fetch",
       vi.fn(() =>
         Promise.resolve({
+          ok: true,
           json: () => Promise.resolve(mockResponse),
         }),
       ),
@@ -154,12 +155,22 @@ describe("Function Utils", () => {
     expect(permissions).toBe(mockResponse.permissions);
   });
 
+  it("should reject when permissions response is not OK", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve({ ok: false, status: 503, statusText: "Service Unavailable" })),
+    );
+
+    await expect(getPermissions()).rejects.toThrow("Permissions request failed: 503");
+  });
+
   it("should get service mode", async () => {
     const mockResponse = { service_mode: "production" };
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
         Promise.resolve({
+          ok: true,
           json: () => Promise.resolve(mockResponse),
         }),
       ),
@@ -167,6 +178,15 @@ describe("Function Utils", () => {
 
     const serviceMode = await getServiceMode();
     expect(serviceMode).toBe(mockResponse.service_mode);
+  });
+
+  it("should reject when service mode response is not OK", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve({ ok: false, status: 503, statusText: "Service Unavailable" })),
+    );
+
+    await expect(getServiceMode()).rejects.toThrow("Service mode request failed: 503");
   });
 
   it("should list functions", async () => {
@@ -181,17 +201,21 @@ describe("Function Utils", () => {
 
   it("should get function jobs from function UID", async () => {
     const mockJobData = [{ uid: "job1" }, { uid: "job2" }];
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() =>
-        Promise.resolve({
-          json: () => Promise.resolve(mockJobData),
-        }),
-      ),
-    );
+    vi.mocked(fetchWithRetry).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockJobData),
+    } as Response);
 
     const jobs = await getFunctionJobsFromFunctionUid("func1");
     expect(jobs).toEqual(mockJobData);
+  });
+
+  it("should retry function-job lookup failures", async () => {
+    const error = new Error("temporary failure");
+    vi.mocked(fetchWithRetry).mockRejectedValueOnce(error);
+
+    await expect(getFunctionJobsFromFunctionUid("func1")).rejects.toThrow("temporary failure");
+    expect(fetchWithRetry).toHaveBeenCalledWith("/flask/osparc/list_function_jobs_for_functionid?functionUid=func1");
   });
 
   it("should get function job collections", async () => {
@@ -243,6 +267,7 @@ describe("Function Utils", () => {
     await expect(uploadJobCollectionCsv({ csvContent: "csv-body", targetMode: "new" })).rejects.toThrow(
       "Incompatible function schema",
     );
+    vi.mocked(console.error).mockClear();
   });
 
   it("preserves snake_case variable identifiers in schema properties/defaultInputs (B18, V24)", async () => {
@@ -267,7 +292,6 @@ describe("Function Utils", () => {
         },
       },
     };
-    vi.mocked(console.error).mockClear();
     vi.mocked(fetchWithRetry).mockResolvedValueOnce({
       json: () => Promise.resolve([rawFunction]),
     } as Response);

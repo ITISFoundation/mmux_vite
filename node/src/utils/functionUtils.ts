@@ -80,12 +80,14 @@ export async function getHealth(): Promise<number> {
 
 export async function getPermissions(): Promise<string> {
   const result = await fetch(`/flask/deployment/permissions`);
+  if (!result.ok) throw new Error(`Permissions request failed: ${result.status}`);
   const permissionsPayload = (await result.json()) as { permissions: string };
   return permissionsPayload.permissions;
 }
 
 export async function getServiceMode(): Promise<string> {
   const result = await fetch(`/flask/deployment/service-mode`);
+  if (!result.ok) throw new Error(`Service mode request failed: ${result.status}`);
   const serviceModePayload = normalizePayloadToCamelCase<{ serviceMode?: string }>(await result.json());
   return serviceModePayload.serviceMode ?? "";
 }
@@ -102,7 +104,7 @@ export async function listJobs(): Promise<OsparcFunctionJob[]> {
 }
 
 export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<OsparcFunctionJob[]> {
-  return fetch(`/flask/osparc/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(async response =>
+  return fetchWithRetry(`/flask/osparc/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(async response =>
     normalizePayloadToCamelCase<OsparcFunctionJob[]>(await response.json()),
   );
 }
