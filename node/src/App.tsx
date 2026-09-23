@@ -18,6 +18,7 @@ import { JobContextProvider } from "./context/JobContext";
 import { usePersistenceContext } from "./context/PersistenceContext";
 import { MOGASettingsContextProvider } from "./context/MOGASettingsContext";
 import { MOGATableContextProvider } from "./context/MOGATableContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const AppRoot = styled("div")(
   ({ theme }) => `
@@ -126,7 +127,9 @@ function App() {
                         <PreviewWarning />
                         <Container sx={{ paddingBottom: 4 }}>
                           <Navigation steps={steps} activeStep={currentView} />
-                          <ReturnCurrentView currentView={currentView} />
+                          <ErrorBoundary key={currentView}>
+                            <ReturnCurrentView currentView={currentView} />
+                          </ErrorBoundary>
                           <Footer steps={steps} />
                         </Container>
                       </MMUXContextProvider>

@@ -123,7 +123,7 @@ T20|x|fix B19: `JobContext` gained `hasAutoSelectedJobs`/`setHasAutoSelectedJobs
 T21|.|testing-negative: add rejected/non-OK tests for every `/flask/*` utility/context call; fix each swallowed error minimally|V26jt
 T22|~|testing-ratchet: raise Vitest global thresholds 40→60→80 only after focused suites meet each gate (60/60/60/60 reached 2026-09-23; 80 pending)|V27ku
 T23|.|testing-safety: retain global console.error/unhandled-rejection guard; add explicit assertions for expected negative-path diagnostics|V28lv
-T24|.|testing-boundary: add ErrorBoundary + render-failure recovery test; wire app root|V29mw
+T24|x|testing-boundary: ErrorBoundary + recovery test at the app root, plus a step-keyed boundary around `ReturnCurrentView` so a crashing view keeps header/footer navigation usable and resets on step change (`App.test.tsx`)|V29mw
 T25|x|testing-permissions: `ServiceContext.test.tsx` (full/partial config failure → READ-ONLY + toast; unexpected permission strings → READ-ONLY) and `App.test.tsx` (health gate: recovery after 503/network, 300-attempt budget then toast, no further polls, B31hp)|V30nx,B31hp
 T26|x|dead-code removal: delete unreachable `views/ParallelRunner.tsx`/`.css` (only mount path was Footer's `permissions === "WRITE" && false` Task Manager button) + Footer modal state; fix B22rs/B23ff test-first (`JobSelector.test.tsx`, `JobContext.test.tsx`)|V31rs,V32ff,B22rs,B23ff
 T27|x|fix B24sv test-first: table-driven `stepValidator.test.ts` (per-distribution valid/invalid, MOGA targets, step bounds); failure-path suites for `LHSSampling` (422 text surfaced, network reject, post-launch job lookup failure, clamped points) and `ReturnCurrentView` (unsupported mode)|V33sv,B24sv,V26jt
