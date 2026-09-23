@@ -98,6 +98,9 @@ V34lt: ∀ dependency-change PR touching `flaskapi/uv.lock` or `node/package-loc
 V35rx: ∀ Dependabot ecosystem entry in `.github/dependabot.yml` → weekly Monday 03:00 Europe/Zurich schedule ∧ exactly one wildcard dependency group; ⊥ unspecified default schedule or one PR per dependency
 V36ez: ∀ interactive UI element (button/icon-button/toggle) ! ship without ≥1 e2e test asserting it via `mmux-testid` ∧ ≥1 dedicated `toHaveScreenshot` baseline capturing its triggered state; ⊥ crash-free-only coverage
 V37hs: shared MUI `MuiTable` and `MuiDataGrid` roots ! use `theme.palette.background.default` for table surfaces; ⊥ inherit lighter card/paper background and change every table's visual baseline together
+V29qa: each `{mode}×{perm}` e2e workflow has a negative companion covering backend/network fault injection, not only happy path
+V30rb: e2e accessibility checks fail on axe serious/critical violations for workflow-critical views
+V31sc: fault-injection endpoints exist only when `MMUX_E2E_MOCK_OSPARC` is set; production routes never expose test controls
 V32qf: every CI job that runs `npm ci` ! validate the committed `node/package.json` and `node/package-lock.json` together from a clean checkout; adding a dependency requires its direct and transitive lock entries (B18qf)
 
 ## §T
@@ -132,6 +135,10 @@ T31lm|.|high-priority Sobol validity: accurate arbitrary-`d` second-order backen
 T32qx|.|FUTURE PR: Python dependency modernization → upgrade `itis-dakota`→`itis-sumo`/Dakota 6.24 plus gevent, NumPy, SciPy, scikit-learn, oSPARC, gunicorn, uv-build, ruff, prek, related lockfile entries; regenerate `flaskapi/uv.lock` via `uv lock`; preserve Flask/Dakota behavior; verify `uv lock --check`, `make test-flaskapi`, `make test-flaskapi-analytical`, `make prek`, image build|V34lt,flaskapi/SPEC.md
 T33rz|.|FUTURE PR: Playwright + Plotly modernization → upgrade Playwright package/image + regenerate e2e snapshots inside pinned Playwright image; upgrade Plotly/`react-plotly.js` + adapt app typings/rendering; preserve deterministic mock fixtures + existing e2e behavior; verify `npm ci`, `npm test`, `npm run build`, `make test-e2e-docker`, CI e2e/image jobs; Vitest upgrade separate + intentional|V10,V12,V29
 T34cv|~|port current E2E interaction assertions + validation QoI guard; every screenshot reference ! produce PNG after Docker regeneration; audit remaining interactive controls for `mmux-testid` + dedicated interaction screenshot|V36ez,V10,V12,V29
+T35|.|e2e-negative: add route fault injection and mode×permission error companions; assert visible recovery and no unhandled console errors|V29qa,node/SPEC.md V26jt
+T36|.|e2e-write: add WRITE sampling, persistence reload, and backend-fault flows for UQ/SuMo/MOGA|V29qa
+T37|.|e2e-a11y: add `@axe-core/playwright`; fail serious/critical violations on setup/results/error views|V30rb
+T38|.|e2e-gate: keep fault controls behind `MMUX_E2E_MOCK_OSPARC` and test production-disabled behavior|V31sc
 
 ## §B
 id|date|cause|fix

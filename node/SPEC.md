@@ -82,6 +82,11 @@ V24: `normalizePayloadToCamelCase` ⊥ case-convert keys nested *inside* identif
 V25: `JobSelector`'s destructive auto-select-all-SUCCESS (`onToggleAll(true)`+`setIsSuMoGenerated(true)`) fires ≤1× per genuinely-fetched `fetchedJobCollections` (`JobContext.hasAutoSelectedJobs`, reset only on refetch); ⊥ retrigger on view remount (Setup↔Results nav unmounts/remounts MOGA/SuMo/UQ per `ReturnCurrentView`, clobbering manual job (de)selection each time). Clearing the view-local `loading` spinner stays decoupled — that still fires on every remount (B19, refines B11)
 V26hs: shared MUI `MuiTable`/`MuiDataGrid` roots ! use `theme.palette.background.default` as their surface; ⊥ table backgrounds inherit the lighter card/paper surface (root V37hs)
 V27qn: shared `MuiDataGrid.columnHeaders` ! use `theme.palette.background.default` as their surface; ⊥ table headers inherit the lighter card/paper surface; guard: `theme.test.ts`
+V26jt: every `/flask/*` frontend call has success + failure coverage; rejected/non-OK responses surface to caller or user (⊥ silent failure)
+V27ku: Vitest global coverage gate starts at 40% lines/statements/functions/branches; only ratchets upward → 60% → 80%
+V28lv: Vitest setup fails tests on unexpected `console.error` or unhandled rejection; intentional error-path tests explicitly consume/clear those signals
+V29mw: app render failures cross an ErrorBoundary → user-visible recovery state; ⊥ blank/crashed UI
+V30nx: permissions/health fetch failure defaults app to READ-ONLY with visible degraded-state feedback; ⊥ enable write actions on unknown permissions
 
 ## §T
 id|status|task|cites
@@ -105,10 +110,16 @@ T17|x|fix B17 (#475): restore `aria-labelledby`/`aria-describedby` on `SuMoModal
 T18|x|add e2e regression coverage for underscore-bearing variable names (e.g. `sigma_blood`) so B18-class bugs would be caught; shared `tests/e2e/mock_osparc/data.py` fixture (`x1..x4`/`y..y4`, underscore-free) backs 3 pixel-snapshot specs (sumo/uq/moga-readonly) so it isn't mutated for this. New `tests/e2e/case-preservation.spec.ts` instead intercepts `list_functions` via `page.route()` with a fabricated underscore-named function and asserts on the UQ-mode `input-var-${name}-distribution-selector` testid (InputVariableDist.tsx) rendering with the literal snake_case name — no new pixel baseline, isolated from the other specs. Verified as a real regression test (fails when V24's fix is reverted, passes when restored)|V24,B18
 T19|x|DROPPED (2026-07-02): outgoing-request `camelToSnakeCase`/`toBackendVarNames` FE utility deemed unnecessary — backend's T13 fix makes the write-path subtrees pass through untouched regardless of FE-held casing, so this would have been dead code with no caller|V14, ../flaskapi/SPEC.md T8,V13
 T20|x|fix B19: `JobContext` gained `hasAutoSelectedJobs`/`setHasAutoSelectedJobs`, reset only when `fetchedJobCollections` is reassigned (genuine refetch); `JobSelector`'s hydration effect now clears `loading` unconditionally but gates `onToggleAll(true)`/`setIsSuMoGenerated(true)` on the flag, so Setup↔Results remounts no longer reset manual job selection. Tests: `JobContext.test.tsx` (flag resets on refetch, survives unrelated `setSelectedJobUids`)|V25,B19,B11
+T21|.|testing-negative: add rejected/non-OK tests for every `/flask/*` utility/context call; fix each swallowed error minimally|V26jt
+T22|.|testing-ratchet: raise Vitest global thresholds 40→60→80 only after focused suites meet each gate|V27ku
+T23|.|testing-safety: retain global console.error/unhandled-rejection guard; add explicit assertions for expected negative-path diagnostics|V28lv
+T24|.|testing-boundary: add ErrorBoundary + render-failure recovery test; wire app root|V29mw
+T25|.|testing-permissions: test health/permissions failures and READ-ONLY fallback; prevent unsafe WRITE enablement|V30nx
 
 ## §B
 id|date|cause|fix
 B6|2026-06-16|#468 `PersistenceContext` sets `lastSavedContent` even when `setFile` returns non-OK (⊥ throw) → V15 equality-guard then skips retry of the failed save|V17
+B20|2026-09-23|`fetchWithRetry` checked `attempt >= retries` inside `attempt < retries`, so exhausted network failures discarded the actionable error and returned a generic fallback; regression test now requires original error propagation|V26jt
 B7|2026-06-16|#468 plots cache `lastFetchedKey` before fetch resolves → failed/rejected fetch blocks retry of same inputs (Curves1D/Surface2D/IsoSurface3D)|V18
 B8|2026-06-16|#469 FE `preserveSubtreeKeys` ≠ backend `_PRESERVE_SUBTREE_KEYS` (missing distribution(s)/output_var_selection/slider_values; extra default_inputs) → variable-name keys mangled, breaks V13/V14 one direction|V19
 B9|2026-06-16|#469 `functionUtils` preserve sets list camelCase `defaultInputs`/`gridData` but membership tested vs `camelToSnakeCase(rawKey)` (snake form) → unreachable dead entries|V19
