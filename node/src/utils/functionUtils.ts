@@ -1,7 +1,7 @@
 import { toast } from "react-toastify";
 import { ProjectFunctionJob, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { RegisteredFunction, OsparcFunctionJob } from "../context/types";
-import { fetchWithRetry } from "./fetchRetry";
+import { ApiError, requestJson } from "../api/client";
 import { UploadJobCollectionCsvResponse, UploadJobCollectionCsvParams } from "./types";
 
 function snakeToCamelCase(value: string): string {
@@ -74,66 +74,69 @@ export function createInputOutputSchema(vars: string[]) {
 }
 
 export async function getHealth(): Promise<number> {
-  const result = await fetch(`/flask/deployment/health`);
-  return result.status;
+  try {
+    await requestJson(`/flask/deployment/health`);
+    return 200;
+  } catch (error) {
+    if (error instanceof ApiError && error.status !== undefined) return error.status;
+    throw error;
+  }
 }
 
 export async function getPermissions(): Promise<string> {
-  const result = await fetch(`/flask/deployment/permissions`);
-  if (!result.ok) throw new Error(`Permissions request failed: ${result.status}`);
-  const permissionsPayload = (await result.json()) as { permissions: string };
-  return permissionsPayload.permissions;
+  const payload = await requestJson<{ permissions: string }>(`/flask/deployment/permissions`);
+  return payload.permissions;
 }
 
 export async function getServiceMode(): Promise<string> {
-  const result = await fetch(`/flask/deployment/service-mode`);
-  if (!result.ok) throw new Error(`Service mode request failed: ${result.status}`);
-  const serviceModePayload = normalizePayloadToCamelCase<{ serviceMode?: string }>(await result.json());
-  return serviceModePayload.serviceMode ?? "";
+  const payload = normalizePayloadToCamelCase<{ serviceMode?: string }>(await requestJson(`/flask/deployment/service-mode`));
+  return payload.serviceMode ?? "";
 }
 
 export async function listFunctions(): Promise<RegisteredFunction[]> {
-  const result = await fetchWithRetry(`/flask/osparc/list_functions`);
-  return normalizePayloadToCamelCase<RegisteredFunction[]>(await result.json());
+  return normalizePayloadToCamelCase<RegisteredFunction[]>(await requestJson(`/flask/osparc/list_functions`, { retry: true }));
 }
 
 export async function listJobs(): Promise<OsparcFunctionJob[]> {
-  return fetchWithRetry(`/flask/osparc/list_jobs`).then(async response =>
-    normalizePayloadToCamelCase<OsparcFunctionJob[]>(await response.json()),
-  );
+  return normalizePayloadToCamelCase<OsparcFunctionJob[]>(await requestJson(`/flask/osparc/list_jobs`, { retry: true }));
 }
 
 export async function getFunctionJobsFromFunctionUid(functionUid: string): Promise<OsparcFunctionJob[]> {
-  return fetchWithRetry(`/flask/osparc/list_function_jobs_for_functionid?functionUid=${functionUid}`).then(async response =>
-    normalizePayloadToCamelCase<OsparcFunctionJob[]>(await response.json()),
+  return normalizePayloadToCamelCase<OsparcFunctionJob[]>(
+    await requestJson(`/flask/osparc/list_function_jobs_for_functionid?functionUid=${functionUid}`, { retry: true }),
   );
 }
 
 export async function getFunctionJobCollections(functionUid: string): Promise<RegisteredFunctionJobCollection[]> {
-  return fetchWithRetry(`/flask/osparc/list_function_job_collections_for_functionid?functionUid=${functionUid}`).then(
-    async response => normalizePayloadToCamelCase<RegisteredFunctionJobCollection[]>(await response.json()),
+  return normalizePayloadToCamelCase<RegisteredFunctionJobCollection[]>(
+    await requestJson(`/flask/osparc/list_function_job_collections_for_functionid?functionUid=${functionUid}`, {
+      retry: true,
+    }),
   );
 }
 
 export async function getFunctionJobsFromFunctionJobCollection(jobCollectionUid: string): Promise<OsparcFunctionJob[]> {
-  return fetchWithRetry(`/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=${jobCollectionUid}`).then(
-    async response => normalizePayloadToCamelCase<OsparcFunctionJob[]>(await response.json()),
+  return normalizePayloadToCamelCase<OsparcFunctionJob[]>(
+    await requestJson(`/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=${jobCollectionUid}`, {
+      retry: true,
+    }),
   );
 }
 
 export async function uploadJobCollectionCsv(params: UploadJobCollectionCsvParams): Promise<UploadJobCollectionCsvResponse> {
-  const response = await fetch(`/flask/sampling/upload_job_collection_csv`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(errorData.error || "Failed to upload JobCollection CSV");
+  try {
+    return normalizePayloadToCamelCase<UploadJobCollectionCsvResponse>(
+      await requestJson(`/flask/sampling/upload_job_collection_csv`, { method: "POST", body: params }),
+    );
+  } catch (error) {
+    let backendMessage: string | undefined;
+    try {
+      backendMessage = (JSON.parse((error as ApiError).body ?? "") as { error?: string }).error;
+    } catch {
+      backendMessage = undefined;
+    }
+    throw new Error(backendMessage || "Failed to upload JobCollection CSV", { cause: error });
   }
-
-  return normalizePayloadToCamelCase<UploadJobCollectionCsvResponse>(await response.json());
 }
 
 export function getSimplifiedHost(): string {
@@ -173,19 +176,14 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
     const normalizedJob = normalizePayloadToCamelCase<ProjectFunctionJob>(job);
     const { projectJobId } = normalizedJob;
     const { inputs } = normalizedJob;
-    const response = await fetch(`/flask/sampling/clone_job`, {
+    const study = await requestJson<StudyType>(`/flask/sampling/clone_job`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: {
         functionName, //
         projectJobId,
         projectInputs: inputs,
-      }),
+      },
     });
-
-    if (!response.ok) throw new Error(`Failed to open job copy: ${response.statusText}`);
-
-    const study: StudyType = await response.json();
 
     if (study && study.uid) {
       return study.uid;
