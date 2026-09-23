@@ -13,7 +13,12 @@ describe("setupTheme table surfaces", () => {
     const dataGridColumnHeaders = components.MuiDataGrid?.styleOverrides?.columnHeaders;
 
     expect(tableRoot).toMatchObject({ backgroundColor: theme.palette.background.default });
-    expect(dataGridRoot).toMatchObject({ backgroundColor: theme.palette.background.default });
+    expect(dataGridRoot).toMatchObject({
+      backgroundColor: theme.palette.background.default,
+      "& .MuiDataGrid-columnHeaders, & .MuiDataGrid-columnHeader": {
+        backgroundColor: theme.palette.background.default,
+      },
+    });
     expect(dataGridColumnHeaders).toMatchObject({
       backgroundColor: theme.palette.background.default,
       color: theme.palette.text.primary,

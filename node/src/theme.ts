@@ -1,4 +1,5 @@
 import { createTheme } from "@mui/material";
+import type {} from "@mui/x-data-grid/themeAugmentation";
 
 export function setupTheme(mode: "light" | "dark") {
   const theme = createTheme({
@@ -19,6 +20,10 @@ export function setupTheme(mode: "light" | "dark") {
       background: {
         default: mode === "light" ? "#fff" : "#202426",
         paper: mode === "light" ? "#eee" : "#2e3437",
+      },
+      DataGrid: {
+        bg: mode === "light" ? "#fff" : "#202426",
+        headerBg: mode === "light" ? "#fff" : "#202426",
       },
       divider: mode === "light" ? "#bbb" : "#999",
       grey: {
@@ -151,6 +156,9 @@ export function setupTheme(mode: "light" | "dark") {
             backgroundColor: theme.palette.background.default,
             "& .MuiDataGrid-row": {
               // color: '#232D3F'
+            },
+            "& .MuiDataGrid-columnHeaders, & .MuiDataGrid-columnHeader": {
+              backgroundColor: theme.palette.background.default,
             },
             "& .MuiDataGrid-columnHeaderTitle": {
               fontSize: "15px",
