@@ -15,9 +15,7 @@ export const fetchWithRetry = async (
     try {
       response = await fetch(url, options);
     } catch (error: unknown) {
-      if (attempt >= retries) {
-        ErrorToRetry = error as Error; // Re-throw the error after all retries have failed
-      }
+      ErrorToRetry = error instanceof Error ? error : new Error(String(error));
     }
     if ((response && response.ok) || (response && response.status === 404)) {
       return response; // If the response is successful or not found, return it immediately
