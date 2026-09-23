@@ -28,6 +28,7 @@ COMPOSE_FILES = [
 
 VITE_CONFIG = REPO_ROOT / "node" / "vite.config.ts"
 RESOLVE_APP_PORT = REPO_ROOT / "scripts" / "resolve-app-port.sh"
+BACKEND_ENTRYPOINT = REPO_ROOT / "flaskapi" / "entrypoint.sh"
 
 
 def test_app_service_depends_on_healthy_upstreams():
@@ -73,6 +74,76 @@ def test_development_compose_passes_app_port_to_vite():
         "so Vite can advertise the same browser-facing port printed by the "
         "Makefile fallback logic (V17/B5)"
     )
+
+
+def test_development_backend_uses_writable_uv_cache():
+    content = (REPO_ROOT / "docker-compose-development.yml").read_text()
+
+    assert 'user: "${UID:-1000}:${GID:-1000}"' in content, (
+        "docker-compose-development.yml: mmux-vite-backend must run as the host UID/GID "
+        "from container start, not root (V31vr)"
+    )
+    assert "UV_CACHE_DIR=/app/.cache/uv" in content, (
+        "docker-compose-development.yml: non-root mmux-vite-backend must direct uv's "
+        "cache below the writable /app source mount, not its unwritable default /.cache/uv "
+        "(V36zn/B22zn)"
+    )
+
+
+def test_development_backend_and_web_never_run_as_root():
+    """Regression test: PR #613 briefly ran mmux-vite-backend as root (`user: "0:0"`)
+    with an entrypoint chown+gosu dance to drop privileges, which self-inflicted the
+    root-owned persistence-mount bug it was meant to fix. Both dev services must run
+    as the host UID/GID from container start (V31vr); no root, chown, or gosu.
+    """
+    compose_content = (REPO_ROOT / "docker-compose-development.yml").read_text()
+    entrypoint_content = BACKEND_ENTRYPOINT.read_text()
+    dockerfile_content = (REPO_ROOT / "flaskapi" / "Dockerfile").read_text()
+
+    assert 'user: "0:0"' not in compose_content
+    assert "gosu" not in entrypoint_content
+    assert "chown" not in entrypoint_content
+    assert "gosu" not in dockerfile_content
+
+
+def test_development_web_uses_production_image_with_runtime_install():
+    """Regression test: PR #613 introduced a second local-only image
+    (`mmux-vite-web-dev`, builder stage) with a prebuilt node_modules volume to
+    dodge a transient npm-install network failure. That never shipped as a real
+    oSPARC service and added chown/volume complexity for no lasting benefit —
+    dev must reuse the single published `mmux-vite-web` image and install at
+    container start, per the colleague's original design.
+    """
+    compose_content = (REPO_ROOT / "docker-compose-development.yml").read_text()
+    makefile_content = (REPO_ROOT / "Makefile").read_text()
+    dockerfile_content = (REPO_ROOT / "node" / "Dockerfile").read_text()
+
+    assert "image: simcore/services/dynamic/mmux-vite-web:1.6.1" in compose_content
+    assert "mmux-vite-web-dev" not in compose_content
+    assert "mmux-vite-web-node-modules" not in compose_content
+    assert (
+        'command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 8080"'
+        in compose_content
+    )
+    assert "mmux-vite-web-dev" not in makefile_content
+    assert "APP_UID" not in dockerfile_content
+    assert "APP_GID" not in dockerfile_content
+    assert "chown" not in dockerfile_content
+
+
+def test_development_backend_no_venv_volume_plain_uv_run():
+    """Regression test: PR #613 preserved the image-built /app/.venv in a named
+    volume + `uv run --no-sync` to skip resyncing on every start; the volume was
+    seeded root-owned by the image build, requiring the root/gosu/chown dance
+    reverted above. Dev backend runs `uv run` (resyncing at every start) with no
+    preserved venv volume, matching the colleague's original design.
+    """
+    compose_content = (REPO_ROOT / "docker-compose-development.yml").read_text()
+    entrypoint_content = BACKEND_ENTRYPOINT.read_text()
+
+    assert "mmux-vite-backend-venv" not in compose_content
+    assert "exec uv run python -m flask run" in entrypoint_content
+    assert "--no-sync" not in entrypoint_content
 
 
 def test_make_targets_reuse_running_compose_app_port():
