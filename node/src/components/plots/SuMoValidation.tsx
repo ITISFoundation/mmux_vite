@@ -11,7 +11,7 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { getResponseErrorMessage } from "../../utils/httpError";
+import { getErrorMessage, getResponseErrorMessage } from "../../utils/httpError";
 import { getValidationSeries } from "../../utils/sumoValidation";
 
 function SuMoValidation() {
@@ -137,7 +137,7 @@ function SuMoValidation() {
         setPropagating(false);
         setPlotData([]);
         setCvMetrics(undefined);
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        setErrorMessage(getErrorMessage(error));
       });
   };
 

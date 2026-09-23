@@ -1,5 +1,5 @@
 import { delay } from "./delay";
-import { getResponseErrorMessage } from "./httpError";
+import { getResponseErrorMessage, toError } from "./httpError";
 
 export const fetchWithRetry = async (
   url: string,
@@ -16,7 +16,7 @@ export const fetchWithRetry = async (
     try {
       response = await fetch(url, options);
     } catch (error: unknown) {
-      ErrorToRetry = error instanceof Error ? error : new Error(String(error));
+      ErrorToRetry = toError(error);
     }
     if ((response && response.ok) || (response && response.status === 404)) {
       return response; // If the response is successful or not found, return it immediately

@@ -13,6 +13,7 @@ import {
   type ScaleType,
 } from "../../utils/plotScale";
 import { buildSobolHeatmapData, fetchSobolIndices } from "../../utils/sobolIndices";
+import { getErrorMessage } from "../../utils/httpError";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
@@ -93,7 +94,7 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
         console.warn("Error computing Sobol' indices:", error);
         setComputing(false);
         setSobolData(null);
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        setErrorMessage(getErrorMessage(error));
       }
     })();
   }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction]);

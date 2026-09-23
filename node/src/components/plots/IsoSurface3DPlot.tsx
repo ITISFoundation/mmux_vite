@@ -10,7 +10,7 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
-import { getResponseErrorMessage } from "../../utils/httpError";
+import { getErrorMessage, getResponseErrorMessage } from "../../utils/httpError";
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
@@ -191,7 +191,7 @@ function IsoSurface3DPlot() {
         console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        setErrorMessage(getErrorMessage(error));
       });
   };
 
