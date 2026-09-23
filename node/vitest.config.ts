@@ -22,6 +22,12 @@ export default defineConfig({
       reportsDirectory: "./coverage",
       include: ["src/**/*.{ts,tsx}"],
       exclude: ["src/osparc-api-ts-client/**", "src/test/**", "src/utils/functionUtilsMockups.ts", "**/*.d.ts"],
+      thresholds: {
+        lines: 40,
+        functions: 40,
+        branches: 40,
+        statements: 40,
+      },
     },
   },
 });
