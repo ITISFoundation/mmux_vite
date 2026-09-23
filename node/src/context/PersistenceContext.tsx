@@ -43,6 +43,19 @@ const defaultPersistence: PersistenceType = {
   sortModel: [],
 };
 
+const arrayFields = [
+  "inputVars",
+  "outputVars",
+  "gridSamplingConfig",
+  "singleJobConfig",
+  "fetchedJobCollections",
+  "selectedJobUids",
+] as const;
+const objectFields = ["numSamples", "distribution", "outputTargets", "lhsSamplingConfig", "mogaSettings"] as const;
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 export function PersistenceContextProvider({ children }: Props) {
   const [loading, setLoading] = useState(true);
   const [healthOK, setHealthOK] = useState<boolean>(false);
@@ -54,26 +67,16 @@ export function PersistenceContextProvider({ children }: Props) {
   // (avoids duplicate Dakota/persistence fan-out).
   const lastSavedContent = useRef<string | undefined>(undefined);
 
-  // Validate persistence structure
+  // Validate persistence structure: required keys must exist with the right JSON type,
+  // otherwise downstream `.map`/property access crashes on a hand-edited or stale file (B32pv).
   const isValidPersistenceFile = (value: unknown): value is PersistenceType => {
-    const data = value as PersistenceType;
+    if (!isPlainObject(value)) return false;
     return (
-      data &&
-      typeof data === "object" &&
-      "currentView" in data &&
-      "numSamples" in data &&
-      "isSuMoGenerated" in data &&
-      "inputVars" in data &&
-      "outputVars" in data &&
-      "distribution" in data &&
-      "outputTargets" in data &&
-      "lhsSamplingConfig" in data &&
-      "gridSamplingConfig" in data &&
-      "singleJobConfig" in data &&
-      "fetchedJobCollections" in data &&
-      "selectedJobUids" in data &&
-      "mogaSettings" in data &&
-      Object.keys(data).length <= Object.keys(defaultPersistence).length
+      typeof value.currentView === "number" &&
+      typeof value.isSuMoGenerated === "boolean" &&
+      arrayFields.every(field => Array.isArray(value[field])) &&
+      objectFields.every(field => isPlainObject(value[field])) &&
+      Object.keys(value).length <= Object.keys(defaultPersistence).length
     );
   };
 
@@ -189,7 +192,7 @@ export function PersistenceContextProvider({ children }: Props) {
         } else if (isValidPersistenceFile(persistenceFile) === false) {
           console.warn(
             "Persistence file structure has changed, resetting to defaults.",
-            Object.keys(persistenceFile).length,
+            Object.keys(persistenceFile ?? {}).length,
             Object.keys(defaultPersistence).length,
           );
         } else {
