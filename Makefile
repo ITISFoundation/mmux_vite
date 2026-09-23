@@ -8,16 +8,16 @@ FLASKAPI_DIR := ./flaskapi
 NODE_DIR := ./node
 
 ## Front-end
-install-node:
+install-node: ## install Node.js dependencies
 # curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
 # nvm install 22 ## gets node v22 (latest)
 	cd ${NODE_DIR} && npm install # install all dependencies
 
-start-frontend:
+start-frontend: ## start the Vite development server
 	cd ${NODE_DIR} && npm run dev
 
-.PHONY: install-flaskapi-deps ## install Flask API Python dependencies
-install-flaskapi-deps:
+.PHONY: install-flaskapi-deps
+install-flaskapi-deps: ## install Flask API Python dependencies
 	cd ${FLASKAPI_DIR} && make install-flaskapi-deps
 
 .PHONY: check-types-flaskapi
@@ -228,7 +228,7 @@ pre-commit: prek ## backward-compatible alias for prek
 
 # TESTING
 .PHONY: test-node
-test-node: clean
+test-node: clean ## run Node.js tests
 	cd ${NODE_DIR} && \
 		npm ci && \
 		npm test
@@ -251,7 +251,7 @@ test-e2e: ## run the Playwright read-only pixel-snapshot e2e suite (SuMo/UQ/MOGA
 	cd ${NODE_DIR} && npm run test:e2e
 
 .PHONY: clean-e2e-snapshots
-clean-e2e-snapshots: ## delete all committed e2e pixel baselines before regeneration
+clean-e2e-snapshots: ## delete all committed e2e pixel baselines (run before regen so an unreached screenshot goes missing, not silently stale, see V36ez)
 	find tests/e2e/__snapshots__ -name '*.png' -delete
 
 .PHONY: test-e2e-update
@@ -259,7 +259,7 @@ test-e2e-update: clean-e2e-snapshots ## regenerate read-only e2e pixel baselines
 	cd ${NODE_DIR} && npm run test:e2e:update
 
 .PHONY: test-e2e-update-docker
-PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.63.0-noble
+PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.62.1-noble
 test-e2e-update-docker: ## regenerate e2e baselines INSIDE the pinned Playwright image (font-stable, see V12); keep tag == @playwright/test
 	docker run --rm --user root --network host \
 		-v "$(PWD)":/work -w /work -e HOME=/root \
