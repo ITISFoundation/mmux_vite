@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import { getPermissions, getServiceMode } from "../utils/functionUtils";
 
 type PermissionsEnum = "WRITE" | "READ-ONLY";
@@ -22,12 +23,18 @@ export function ServiceContextProvider({ children }: Props) {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const responsePermissions = (await getPermissions()) as PermissionsEnum;
+        const responsePermissions = await getPermissions();
         const responseServiceMode = (await getServiceMode()) as ServiceModeEnum;
-        setPermissions(responsePermissions);
+        if (responsePermissions !== "WRITE" && responsePermissions !== "READ-ONLY") {
+          console.warn("Unexpected permissions value, falling back to READ-ONLY:", responsePermissions);
+        }
+        setPermissions(responsePermissions === "WRITE" ? "WRITE" : "READ-ONLY");
         setServiceMode(responseServiceMode);
       } catch (error) {
         console.error("Backend is not responding with permissions:", error);
+        toast.error(
+          "Could not load the service configuration from the backend. Running read-only; please reload or contact support.",
+        );
       }
     };
 
