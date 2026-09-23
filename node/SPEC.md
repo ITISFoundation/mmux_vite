@@ -82,6 +82,11 @@ V24: `normalizePayloadToCamelCase` ⊥ case-convert keys nested *inside* identif
 V25: `JobSelector`'s destructive auto-select-all-SUCCESS (`onToggleAll(true)`+`setIsSuMoGenerated(true)`) fires ≤1× per genuinely-fetched `fetchedJobCollections` (`JobContext.hasAutoSelectedJobs`, reset only on refetch); ⊥ retrigger on view remount (Setup↔Results nav unmounts/remounts MOGA/SuMo/UQ per `ReturnCurrentView`, clobbering manual job (de)selection each time). Clearing the view-local `loading` spinner stays decoupled — that still fires on every remount (B19, refines B11)
 V26hs: shared MUI `MuiTable`/`MuiDataGrid` roots ! use `theme.palette.background.default` as their surface; ⊥ table backgrounds inherit the lighter card/paper surface (root V37hs)
 V27qn: shared `MuiDataGrid.columnHeaders` ! use `theme.palette.background.default` as their surface; ⊥ table headers inherit the lighter card/paper surface; guard: `theme.test.ts`
+V26jt: every `/flask/*` frontend call has success + failure coverage; rejected/non-OK responses surface to caller or user (⊥ silent failure)
+V27ku: Vitest global coverage gate starts at 40% lines/statements/functions/branches; only ratchets upward → 60% → 80%
+V28lv: Vitest setup fails tests on unexpected `console.error` or unhandled rejection; intentional error-path tests explicitly consume/clear those signals
+V29mw: app render failures cross an ErrorBoundary → user-visible recovery state; ⊥ blank/crashed UI
+V30nx: permissions/health fetch failure defaults app to READ-ONLY with visible degraded-state feedback; ⊥ enable write actions on unknown permissions
 
 ## §T
 id|status|task|cites
@@ -108,10 +113,16 @@ T20|x|fix B19: `JobContext` gained `hasAutoSelectedJobs`/`setHasAutoSelectedJobs
 T21gh|.|surface order-mass diagnostics on the LIVE response `sobolOrderContributions` (../flaskapi/SPEC.md §I, T31rb landed): `M1` first-order, `M2` second-order, `R` third+-order as variance fractions w/ bootstrap CIs; explain `M1+M2+R=1` by definition, `ΣS_Ti` ≠1 due interaction overlap, `R` CI containing 0 = unresolved from sampling noise, and heuristic noise comparison = rough only; distinguish unique order masses (`M1`,`M2`,`R`) from overlapping total indices (`S_Ti`,`S_T,G`), group values shown as approximations w/ truncation caveat visible; ⊥ imply negative finite-sample estimate is negative physical variance. Moved out of §V (was V28df/V29mn) — documented behavior that does not exist yet (B22fe); unblocked 2026-09-29: ../flaskapi T31rb landed, second-order pairs exact at any d (regression `tests/e2e/sobol-highdim.spec.ts`) — remaining scope is the order-mass UI surface|B22fe,../SPEC.md T31lm,../flaskapi/SPEC.md V42qa,V43pt,V44vw,V45xy,T31rb
 T28|.|incremental refactor of `react-hooks/set-state-in-effect` warnings (eslint-plugin-react-hooks v7 preset); measured baseline 31 warnings @ 2026-09-29, ratchet ceiling in `scripts/run-eslint-hook.sh` `max_warnings` intentionally set to 50 (deliberate headroom for in-flight refactors, per PR #647 author decision — this note is the tracking record the hook comment cites); lower the ceiling toward 0 as refactors land, ⊥ exceed 50 or raise it further without amending this note|-
 T29sw|.|generic stale-response guard for all fetch-on-dependency plots: shared helper (e.g. `useGuardedFetchEffect` — effect-scoped generation token or `AbortController` wrapper) so only the latest effect generation may commit state, then adopt in `SobolIndicesPlot`/`CorrelationIndicesPlot` and audit the other fetching plots (`Surface2DPlot`/`Curves1DPlot`/MOGA) for the same race; port the reverted PR #648 deferred-promise regression pattern (late resolve AND late reject must not clobber) once against the helper, reuse per site; ⊥ per-component `let current = true` duplication — interim per-plot guard was pulled from PR #648 precisely for this task|B23rv,https://github.com/ITISFoundation/mmux_vite/issues/650
+T21|.|testing-negative: add rejected/non-OK tests for every `/flask/*` utility/context call; fix each swallowed error minimally|V26jt
+T22|.|testing-ratchet: raise Vitest global thresholds 40→60→80 only after focused suites meet each gate|V27ku
+T23|.|testing-safety: retain global console.error/unhandled-rejection guard; add explicit assertions for expected negative-path diagnostics|V28lv
+T24|.|testing-boundary: add ErrorBoundary + render-failure recovery test; wire app root|V29mw
+T25|.|testing-permissions: test health/permissions failures and READ-ONLY fallback; prevent unsafe WRITE enablement|V30nx
 
 ## §B
 id|date|cause|fix
 B6|2026-06-16|#468 `PersistenceContext` sets `lastSavedContent` even when `setFile` returns non-OK (⊥ throw) → V15 equality-guard then skips retry of the failed save|V17
+B20|2026-09-23|`fetchWithRetry` checked `attempt >= retries` inside `attempt < retries`, so exhausted network failures discarded the actionable error and returned a generic fallback; regression test now requires original error propagation|V26jt
 B7|2026-06-16|#468 plots cache `lastFetchedKey` before fetch resolves → failed/rejected fetch blocks retry of same inputs (Curves1D/Surface2D/IsoSurface3D)|V18
 B8|2026-06-16|#469 FE `preserveSubtreeKeys` ≠ backend `_PRESERVE_SUBTREE_KEYS` (missing distribution(s)/output_var_selection/slider_values; extra default_inputs) → variable-name keys mangled, breaks V13/V14 one direction|V19
 B9|2026-06-16|#469 `functionUtils` preserve sets list camelCase `defaultInputs`/`gridData` but membership tested vs `camelToSnakeCase(rawKey)` (snake form) → unreachable dead entries|V19
