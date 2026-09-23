@@ -47,10 +47,8 @@ jobs:
         node-version: 24.x
         cache: 'npm'
         cache-dependency-path: '**/package-lock.json'
-    - name: Run node tests
-      run: make test-node
-    - name: Generate node coverage
-      run: cd node && npm run test:coverage
+    - name: Run node tests with coverage
+      run: cd node && npm ci && npm run test:coverage
     - name: Upload node coverage
       uses: codecov/codecov-action@v7
       with:
