@@ -1,8 +1,11 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
+import { toast } from "react-toastify";
 import { ServiceContextProvider, useServiceContext } from "./ServiceContext";
 import { getPermissions as getPermissionsImport, getServiceMode as getServiceModeImport } from "../utils/functionUtils";
+
+vi.mock("react-toastify", () => ({ toast: { error: vi.fn(), warning: vi.fn() } }));
 
 // Mock the utils
 vi.mock("../utils/functionUtils", () => ({
@@ -71,8 +74,42 @@ describe("ServiceContextProvider", () => {
       expect(getByTestId("permissions").textContent).toBe("READ-ONLY");
       expect(getByTestId("serviceMode").textContent).toBe("");
       expect(errorSpy).toHaveBeenCalled();
+      expect(toast.error).toHaveBeenCalledWith(
+        "Could not load the service configuration from the backend. Running read-only; please reload or contact support.",
+      );
     });
     errorSpy.mockRestore();
+  });
+
+  it("keeps READ-ONLY when only the service mode request fails", async () => {
+    getPermissions.mockResolvedValue("WRITE");
+    getServiceMode.mockRejectedValue(new Error("503"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { getByTestId } = render(
+      <ServiceContextProvider>
+        <TestComponent />
+      </ServiceContextProvider>,
+    );
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(getByTestId("permissions").textContent).toBe("READ-ONLY");
+    errorSpy.mockRestore();
+  });
+
+  it.each(["write", "ADMIN", "", undefined])("treats an unexpected permission value %j as READ-ONLY", async value => {
+    getPermissions.mockResolvedValue(value);
+    getServiceMode.mockResolvedValue("UQ");
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { getByTestId } = render(
+      <ServiceContextProvider>
+        <TestComponent />
+      </ServiceContextProvider>,
+    );
+    await waitFor(() => expect(getByTestId("serviceMode").textContent).toBe("UQ"));
+    expect(getByTestId("permissions").textContent).toBe("READ-ONLY");
+    expect(warnSpy).toHaveBeenCalledWith("Unexpected permissions value, falling back to READ-ONLY:", value);
+    warnSpy.mockRestore();
   });
 
   it("throws if useServiceContext is used outside provider", () => {
