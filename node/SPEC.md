@@ -118,7 +118,7 @@ T18|x|add e2e regression coverage for underscore-bearing variable names (e.g. `s
 T19|x|DROPPED (2026-07-02): outgoing-request `camelToSnakeCase`/`toBackendVarNames` FE utility deemed unnecessary — backend's T13 fix makes the write-path subtrees pass through untouched regardless of FE-held casing, so this would have been dead code with no caller|V14, ../flaskapi/SPEC.md T8,V13
 T20|x|fix B19: `JobContext` gained `hasAutoSelectedJobs`/`setHasAutoSelectedJobs`, reset only when `fetchedJobCollections` is reassigned (genuine refetch); `JobSelector`'s hydration effect now clears `loading` unconditionally but gates `onToggleAll(true)`/`setIsSuMoGenerated(true)` on the flag, so Setup↔Results remounts no longer reset manual job selection. Tests: `JobContext.test.tsx` (flag resets on refetch, survives unrelated `setSelectedJobUids`)|V25,B19,B11
 T21|.|testing-negative: add rejected/non-OK tests for every `/flask/*` utility/context call; fix each swallowed error minimally|V26jt
-T22|.|testing-ratchet: raise Vitest global thresholds 40→60→80 only after focused suites meet each gate|V27ku
+T22|~|testing-ratchet: raise Vitest global thresholds 40→60→80 only after focused suites meet each gate (60/60/60/60 reached 2026-09-23; 80 pending)|V27ku
 T23|.|testing-safety: retain global console.error/unhandled-rejection guard; add explicit assertions for expected negative-path diagnostics|V28lv
 T24|.|testing-boundary: add ErrorBoundary + render-failure recovery test; wire app root|V29mw
 T25|.|testing-permissions: test health/permissions failures and READ-ONLY fallback; prevent unsafe WRITE enablement|V30nx
