@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import LHSSampling from "./LHSSampling";
 import { getFunctionJobsFromFunctionJobCollection } from "../../utils/functionUtils";
+import { jsonResponse, networkError, stubFetch, textResponse } from "../../test/fetchStub";
 
 const mocks = vi.hoisted(() => ({
   permissions: "WRITE",
@@ -68,12 +69,6 @@ vi.mock("./RunSamplingButton", () => ({
 
 const jobCollection = { uid: "jc-1", title: "LHS run", jobIds: ["job-1"] };
 
-function stubFetch(response: Response | Error) {
-  const fetchMock = vi.fn(() => (response instanceof Error ? Promise.reject(response) : Promise.resolve(response)));
-  vi.stubGlobal("fetch", fetchMock);
-  return fetchMock;
-}
-
 async function run() {
   render(<LHSSampling />);
   fireEvent.click(await screen.findByRole("button", { name: "Run sampling" }));
@@ -96,7 +91,7 @@ describe("LHSSampling", () => {
   });
 
   it("posts the LHS config and appends the launched collection", async () => {
-    const fetchMock = stubFetch(new Response(JSON.stringify(jobCollection), { status: 200 }));
+    const fetchMock = stubFetch(jsonResponse(jobCollection));
     vi.mocked(getFunctionJobsFromFunctionJobCollection).mockResolvedValue([{ uid: "job-1", status: "PENDING" }] as never);
 
     await expect(await run()).toBe("resolved");
@@ -122,7 +117,7 @@ describe("LHSSampling", () => {
   });
 
   it("surfaces the backend's error text and resets sampling flags on a non-OK response", async () => {
-    stubFetch(new Response("N must be <= 50", { status: 422 }));
+    stubFetch(textResponse("N must be <= 50", 422));
 
     expect(await run()).toBe("rejected: Error running LHS sampling: 422: N must be <= 50");
     expect(toast.error).toHaveBeenCalledWith("Error running LHS sampling: 422: N must be <= 50");
@@ -133,7 +128,7 @@ describe("LHSSampling", () => {
   });
 
   it("propagates a network failure so the run button can recover", async () => {
-    stubFetch(new TypeError("Failed to fetch"));
+    stubFetch(networkError());
 
     expect(await run()).toBe("rejected: Failed to fetch");
     expect(mocks.setRunningSampling).not.toHaveBeenCalledWith(true);
@@ -141,7 +136,7 @@ describe("LHSSampling", () => {
   });
 
   it("reports a failed job lookup after a successful launch without corrupting the table", async () => {
-    stubFetch(new Response(JSON.stringify(jobCollection), { status: 200 }));
+    stubFetch(jsonResponse(jobCollection));
     vi.mocked(getFunctionJobsFromFunctionJobCollection).mockRejectedValue(new Error("list failed"));
 
     expect(await run()).toBe("resolved");
@@ -153,7 +148,7 @@ describe("LHSSampling", () => {
 
   it("warns when the run stays below the recommended sample count", async () => {
     mocks.fetchedJobCollections = [{ jobCollection, selected: true, subJobs: [{}] }] as never;
-    stubFetch(new Response(JSON.stringify(jobCollection), { status: 200 }));
+    stubFetch(jsonResponse(jobCollection));
     vi.mocked(getFunctionJobsFromFunctionJobCollection).mockResolvedValue([]);
 
     await run();
@@ -165,7 +160,7 @@ describe("LHSSampling", () => {
 
   it("does not nag READ-ONLY users with the sample-count warning", async () => {
     mocks.permissions = "READ-ONLY";
-    stubFetch(new Response(JSON.stringify(jobCollection), { status: 200 }));
+    stubFetch(jsonResponse(jobCollection));
     vi.mocked(getFunctionJobsFromFunctionJobCollection).mockResolvedValue([]);
 
     await run();
