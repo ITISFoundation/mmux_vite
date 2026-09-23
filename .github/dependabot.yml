@@ -5,9 +5,30 @@ updates:
     target-branch: develop
     schedule:
       interval: weekly
+      day: monday
+      time: "03:00"
+      timezone: Europe/Zurich
+    ignore:
+      - dependency-name: "@mui/material"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@mui/icons-material"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@mui/x-data-grid"
+        update-types: ["version-update:semver-major"]
+    groups:
+      javascript-dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: uv
     directory: /flaskapi
     target-branch: develop
     schedule:
       interval: weekly
+      day: monday
+      time: "03:00"
+      timezone: Europe/Zurich
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"

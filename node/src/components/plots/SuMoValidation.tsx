@@ -128,6 +128,10 @@ function SuMoValidation() {
   };
 
   useEffect(() => {
+    if (!selectedQoI) {
+      return;
+    }
+
     const run = async () => {
       const jobs = filteredJobList;
       return RunSuMoValidation(jobs);

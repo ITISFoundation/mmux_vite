@@ -7,6 +7,8 @@ import {
   resetPersistence,
   setDeployment,
   fillNormalDistributions,
+  expectModelModalReady,
+  expectPlotlyReady,
 } from "./helpers";
 
 /**
@@ -83,7 +85,7 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   await expect(inspectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
 
   // The UQ histogram renders once propagation over the mock jobs completes.
-  await expect(page.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expectPlotlyReady(page);
 
   // Pixel baseline: the UQ histogram with the real (deterministic) Plotly render.
   await expect(page).toHaveScreenshot("uq-readonly-histogram.png");
@@ -93,9 +95,7 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   await expect(inspectButton).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });
   await inspectButton.click();
 
-  const modal = page.locator('[mmux-testid="sumo-model-modal"]');
-  await expect(modal).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(modal.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expectModelModalReady(page);
 
   // Pixel baseline: the Inspect Model modal (cross-validation view).
   await expect(page).toHaveScreenshot("uq-readonly-inspect-modal.png");

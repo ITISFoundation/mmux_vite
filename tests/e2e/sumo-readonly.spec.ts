@@ -7,6 +7,7 @@ import {
   resetPersistence,
   setDeployment,
   fillUniformInputRanges,
+  expectPlotlyReady,
 } from "./helpers";
 
 /**
@@ -85,7 +86,7 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(validationView).toBeVisible({ timeout: VIEW_TIMEOUT });
   const qoiSelect = page.locator('[mmux-testid="qoi-select"]');
   await expect(qoiSelect).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(validationView.locator(".js-plotly-plot")).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expectPlotlyReady(validationView);
   await expect(validationView.getByText("MAE:")).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expect(validationView.getByText("RMSE:")).toBeVisible({ timeout: VIEW_TIMEOUT });
 
@@ -104,27 +105,25 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   // both reachable, and the input ranges match the training domain so each surrogate
   // renders a real (deterministic) Plotly figure rather than an extrapolation artifact.
   const plotNext = page.locator('[mmux-testid="sumo-plot-next"]');
-  const plotArea = page.locator(".js-plotly-plot");
-
   // Step 1 — 1D Curves.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("1D Curves", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expectPlotlyReady(page);
   await expect(page).toHaveScreenshot("sumo-readonly-plot-1d.png");
 
   // Step 2 — 2D Surface.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("2D Surface", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expectPlotlyReady(page);
   await expect(page).toHaveScreenshot("sumo-readonly-plot-2d.png");
 
   // Step 3 — 3D IsoSurface.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("3D IsoSurface", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expectPlotlyReady(page);
   await expect(page).toHaveScreenshot("sumo-readonly-plot-3d.png");
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));

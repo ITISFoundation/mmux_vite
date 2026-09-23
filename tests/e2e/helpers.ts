@@ -1,4 +1,4 @@
-import { expect, type Page, type APIRequestContext } from "@playwright/test";
+import { expect, type Locator, type Page, type APIRequestContext } from "@playwright/test";
 
 /**
  * Shared helpers for the MMUX e2e specs (SuMo / UQ / MOGA).
@@ -15,6 +15,23 @@ export const FUNCTION_UID = "func-sumo-readonly-e2e";
 
 export const VIEW_TIMEOUT = 30_000;
 export const MODEL_READY_TIMEOUT = 60_000;
+
+export async function expectPlotlyReady(container: Locator, timeout = MODEL_READY_TIMEOUT): Promise<Locator> {
+  const plot = container.locator(".js-plotly-plot");
+  await expect(plot).toHaveCount(1);
+  await expect(plot).toBeVisible({ timeout });
+  return plot;
+}
+
+export async function expectModelModalReady(
+  page: Page,
+  selector = '[mmux-testid="sumo-model-modal"]',
+): Promise<Locator> {
+  const modal = page.locator(selector);
+  await expect(modal).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expectPlotlyReady(modal);
+  return modal;
+}
 
 // Mirror of the frontend persistence shape so each run starts from a clean slate.
 export const DEFAULT_PERSISTENCE = {
@@ -95,20 +112,22 @@ const DATA_DOMAIN_RANGES: ReadonlyArray<readonly [number, number]> = [
 ];
 
 export async function fillUniformInputRanges(page: Page): Promise<void> {
-  const minInputs = page.locator('[mmux-testid="input-block-Min"] input');
-  const maxInputs = page.locator('[mmux-testid="input-block-Max"] input');
+  const minInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Min"] input');
+  const maxInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Max"] input');
 
   const minCount = await minInputs.count();
   const maxCount = await maxInputs.count();
   expect(minCount, "expected at least one Min input after selecting a function").toBeGreaterThan(0);
   expect(minCount, "expected matching Min/Max input pairs").toBe(maxCount);
 
-  for (let index = 0; index < minCount; index++) {
+  const minFields = await minInputs.all();
+  const maxFields = await maxInputs.all();
+  for (const [index, minField] of minFields.entries()) {
     const [min, max] = DATA_DOMAIN_RANGES[index] ?? [index + 1, (index + 1) * 10];
-    await minInputs.nth(index).fill(String(min));
-    await minInputs.nth(index).press("Tab");
-    await maxInputs.nth(index).fill(String(max));
-    await maxInputs.nth(index).press("Tab");
+    await minField.fill(String(min));
+    await minField.press("Tab");
+    await maxFields[index].fill(String(max));
+    await maxFields[index].press("Tab");
   }
 }
 
@@ -118,18 +137,20 @@ export async function fillUniformInputRanges(page: Page): Promise<void> {
  * and UQ propagation stay well-conditioned and the next-button enables.
  */
 export async function fillNormalDistributions(page: Page): Promise<void> {
-  const meanInputs = page.locator('[mmux-testid="input-block-Mean"] input');
-  const stdInputs = page.locator('[mmux-testid="input-block-Standard Deviation"] input');
+  const meanInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Mean"] input');
+  const stdInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Standard Deviation"] input');
 
   const meanCount = await meanInputs.count();
   const stdCount = await stdInputs.count();
   expect(meanCount, "expected at least one Mean input after selecting a function").toBeGreaterThan(0);
   expect(meanCount, "expected matching Mean/Std input pairs").toBe(stdCount);
 
-  for (let index = 0; index < meanCount; index++) {
-    await meanInputs.nth(index).fill("1");
-    await meanInputs.nth(index).press("Tab");
-    await stdInputs.nth(index).fill("1");
-    await stdInputs.nth(index).press("Tab");
+  const meanFields = await meanInputs.all();
+  const stdFields = await stdInputs.all();
+  for (const [index, meanField] of meanFields.entries()) {
+    await meanField.fill("1");
+    await meanField.press("Tab");
+    await stdFields[index].fill("1");
+    await stdFields[index].press("Tab");
   }
 }

@@ -28,7 +28,7 @@ check-types-flaskapi: install-flaskapi-deps ## run ty type checker against flask
 # Builds new service version ----------------------------------------------------------------------------
 define _bumpversion
 	# upgrades as $(subst $(1),,$@) version, commits and tags
-	@docker run -it --rm -v $(PWD):/ml-lab \
+	@docker run -i --rm -v $(PWD):/ml-lab \
 		-u $(shell id -u):$(shell id -g) \
 		itisfoundation/ci-service-integration-library:v2.1.23 \
 		sh -c "cd /ml-lab && bump2version --verbose --list --config-file $(1) $(subst $(2),,$@)"
@@ -43,7 +43,7 @@ version-patch version-minor version-major: .bumpversion.cfg ## increases service
 
 .PHONY: compose-spec
 compose-spec: ## runs ooil to assemble the docker-compose.yml file
-	@docker run -it --rm -v $(PWD):/ml-lab \
+	@docker run -i --rm -v $(PWD):/ml-lab \
 		-u $(shell id -u):$(shell id -g) \
 		itisfoundation/ci-service-integration-library:v2.1.23 \
 		sh -c "cd /ml-lab && ooil compose"
@@ -250,12 +250,16 @@ test-flaskapi-analytical: install-flaskapi-deps ## run real-Dakota analytical in
 test-e2e: ## run the Playwright read-only pixel-snapshot e2e suite (SuMo/UQ/MOGA; boots backend+web via webServer)
 	cd ${NODE_DIR} && npm run test:e2e
 
+.PHONY: clean-e2e-snapshots
+clean-e2e-snapshots: ## delete all committed e2e pixel baselines before regeneration
+	find tests/e2e/__snapshots__ -name '*.png' -delete
+
 .PHONY: test-e2e-update
-test-e2e-update: ## regenerate read-only e2e pixel baselines (SuMo/UQ/MOGA; run only in the pinned Playwright docker image, see V12)
+test-e2e-update: clean-e2e-snapshots ## regenerate read-only e2e pixel baselines (SuMo/UQ/MOGA; run only in the pinned Playwright docker image, see V12)
 	cd ${NODE_DIR} && npm run test:e2e:update
 
 .PHONY: test-e2e-update-docker
-PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.61.0-noble
+PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.63.0-noble
 test-e2e-update-docker: ## regenerate e2e baselines INSIDE the pinned Playwright image (font-stable, see V12); keep tag == @playwright/test
 	docker run --rm --user root --network host \
 		-v "$(PWD)":/work -w /work -e HOME=/root \
@@ -276,5 +280,5 @@ ci: test-flaskapi test-node build-no-cache ## mimmicks the GitHub CI
 help: ## this colorful help
 	@echo "Recipes for '$(notdir $(CURDIR))':"
 	@echo ""
-	@awk --posix 'BEGIN {FS = ":.*?## "} /^[[:alpha:][:space:]_-]+:.*?## / {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk --posix 'BEGIN {FS = ":.*## "} /^[[:alnum:]_.-]+([[:space:]]+[[:alnum:]_.-]+)*:.*## / {count = split($$1, targets, /[[:space:]]+/); for (i = 1; i <= count; i++) printf "\033[36m%-20s\033[0m %s\n", targets[i], $$2}' $(MAKEFILE_LIST)
 	@echo ""
