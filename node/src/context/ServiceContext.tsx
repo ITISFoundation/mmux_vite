@@ -4,12 +4,12 @@ import { getPermissions, getServiceMode } from "../utils/functionUtils";
 type PermissionsEnum = "WRITE" | "READ-ONLY";
 type ServiceModeEnum = "UQ" | "SUMO" | "MOGA" | ""; // this will need to be expanded as we include more flavours
 
-export interface ServiceContextType {
+interface ServiceContextType {
   permissions: PermissionsEnum;
   serviceMode: ServiceModeEnum;
 }
 
-export const ServiceContext = createContext<ServiceContextType>(undefined!);
+const ServiceContext = createContext<ServiceContextType>(undefined!);
 
 type Props = {
   children: React.ReactNode;
