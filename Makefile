@@ -250,8 +250,12 @@ test-flaskapi-analytical: install-flaskapi-deps ## run real-Dakota analytical in
 test-e2e: ## run the Playwright read-only pixel-snapshot e2e suite (SuMo/UQ/MOGA; boots backend+web via webServer)
 	cd ${NODE_DIR} && npm run test:e2e
 
+.PHONY: clean-e2e-snapshots
+clean-e2e-snapshots: ## delete all committed e2e pixel baselines before regeneration
+	find tests/e2e/__snapshots__ -name '*.png' -delete
+
 .PHONY: test-e2e-update
-test-e2e-update: ## regenerate read-only e2e pixel baselines (SuMo/UQ/MOGA; run only in the pinned Playwright docker image, see V12)
+test-e2e-update: clean-e2e-snapshots ## regenerate read-only e2e pixel baselines (SuMo/UQ/MOGA; run only in the pinned Playwright docker image, see V12)
 	cd ${NODE_DIR} && npm run test:e2e:update
 
 .PHONY: test-e2e-update-docker
