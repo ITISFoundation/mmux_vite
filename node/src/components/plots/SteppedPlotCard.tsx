@@ -7,7 +7,6 @@ export type SteppedStep = {
   title: string;
   infoText?: string;
   extendedInfoText?: React.ReactElement;
-  headerContent?: React.ReactNode;
   content: React.ReactNode;
 };
 
@@ -49,18 +48,14 @@ function SteppedPlotCard(props: SteppedPlotCardProps) {
           tabTitle={currentStep?.title}
           infoText={currentStep?.infoText}
           extendedInfoText={currentStep?.extendedInfoText}
-          qoiSelector={
-            <>
-              {qoiSelector}
-              {currentStep?.headerContent}
-            </>
-          }
+          qoiSelector={qoiSelector}
         />
       </Box>
       <CardContent
         sx={{
           padding: 0,
-          margin: "16px 0px",
+          marginTop: "16px",
+          marginBottom: "4px",
           borderRadius: theme.spacing(2),
           overflow: "hidden",
           minHeight: contentMinHeight,

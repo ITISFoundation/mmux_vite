@@ -87,6 +87,9 @@ V27mn: Sobol UI distinguishes unique order masses (`M1`,`M2`,`R`) from overlappi
 V28kp: whisker IQR rectangle ! use a Plotly `scatter` polygon with explicit x/y coordinates and `fill: "toself"`; ⊥ attach scatter-only fill properties to a `box` trace, so `tsc -b` and the e2e web server remain green
 V29rt: 3D isosurface `x`,`y`,`z`,`value` arrays ! be nested or misaligned; ⊥ wrap a prediction array in an extra array, which renders an empty Plotly surface and emits `NaN` SVG dimensions
 V30ab: SuMo validation consumes fixed `{observed,predicted,predictedStd}` response fields independent of QoI spelling; missing observation/prediction arrays render a handled error state, ⊥ QoI-derived response-key guessing
+V30ez: every new interactive component (button/icon-button/toggle) ! carry a stable `mmux-testid` (V13) sufficient for a per-interaction e2e screenshot per root SPEC.md V36ez; ⊥ ship a click handler w/o one
+V31cv: shared Inspect Model modal ! derive a non-empty QoI synchronously (`validationQoI` → `selectedQoI` → `outputVars[0]`) and `SuMoValidation` effect ! POST only when that value exists; ⊥ first-render 400 or permanently empty validation view (root V37cv)
+V32hs: shared MUI `MuiTable`/`MuiDataGrid` roots ! use `theme.palette.background.default` as their surface; ⊥ table backgrounds inherit the lighter card/paper surface (root V38hs)
 
 ## §T
 id|status|task|cites
@@ -111,6 +114,7 @@ T18|x|add e2e regression coverage for underscore-bearing variable names (e.g. `s
 T19|x|DROPPED (2026-07-02): outgoing-request `camelToSnakeCase`/`toBackendVarNames` FE utility deemed unnecessary — backend's T13 fix makes the write-path subtrees pass through untouched regardless of FE-held casing, so this would have been dead code with no caller|V14, ../flaskapi/SPEC.md T8,V13
 T20|x|fix B19: `JobContext` gained `hasAutoSelectedJobs`/`setHasAutoSelectedJobs`, reset only when `fetchedJobCollections` is reassigned (genuine refetch); `JobSelector`'s hydration effect now clears `loading` unconditionally but gates `onToggleAll(true)`/`setIsSuMoGenerated(true)` on the flag, so Setup↔Results remounts no longer reset manual job selection. Tests: `JobContext.test.tsx` (flag resets on refetch, survives unrelated `setSelectedJobUids`)|V25,B19,B11
 T21gh|.|add compact Sobol order-contribution summary near sensitivity results: `M1`,`M2`,`R`, percentile CIs, CI-vs-zero interpretation, rough heuristic noise-floor comparison, total-index overlap note, and group-approximation/truncation caveat; component/util tests incl. negative/noisy raw estimates and responsive layout|V26df,V27mn,../flaskapi/SPEC.md V42qa,V43pt,V44vw,V45xy,T31rb
+T22cv|x|fix shared Inspect Model race: guard `SuMoValidation` request effect until `validationQoI` initializes; SuMo/UQ/MOGA e2e regression now reaches validation Plotly view|V31cv,../SPEC.md B23cv
 
 ## §B
 id|date|cause|fix
@@ -131,3 +135,5 @@ B19|2026-08-04|PR #502 review (Alex, human, "additional note"): `JobSelector`'s 
 B20qs|2026-09-16|PR #596 restored the native `box` trace while retaining unsupported scatter `fill` properties; Plotly 4 rejected the trace during `tsc -b`, so the e2e web server exited before tests ran|V28kp
 B21rt|2026-09-16|3D SuMo plot wrapped the prediction array as `value: [data[selectedQoI]]`; Plotly received a nested value array, rendered an empty isosurface, and emitted `<rect> height: NaN`|V29rt
 B22ab|2026-09-22|`sumo_cross_validation` emitted QoI-derived top-level response keys and global serialization camelCased them, forcing frontend `getValidationSeries` to guess transformed identifiers|V30ab,../flaskapi/SPEC.md V46jk
+B22cv|2026-09-23|`ValidationModal` mounted `SuMoValidation` before its `useEffect` initialized `validationQoI`; the child posted `output: undefined`, Flask returned 400, and shared Inspect Model e2e tests observed no validation Plotly|V31cv,../SPEC.md B23cv
+B24hs|2026-09-23|`MuiDataGrid` lacked the `MuiTable` shared dark-surface override, so all DataGrid-backed tables inherited the lighter card/paper background|V32hs

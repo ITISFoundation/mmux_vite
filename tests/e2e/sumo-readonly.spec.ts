@@ -49,7 +49,7 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await page.goto(url, { timeout: MODEL_READY_TIMEOUT });
   await page.waitForLoadState("networkidle");
 
-  const functionGrid = page.locator('[role="grid"]').first();
+  const functionGrid = page.locator('[role="grid"]');
   await functionGrid.waitFor({ state: "visible", timeout: VIEW_TIMEOUT });
 
   // Pixel baseline: the function-selection setup grid (full 1920x1080 viewport).
@@ -60,7 +60,7 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await selectButton.click();
 
   // The input-range configuration opens once a function is selected.
-  await expect(page.locator('[mmux-testid="input-block-Min"] input').first()).toBeVisible({
+  await expect(page.locator('[mmux-testid="input-block-x1-Min"] input')).toBeVisible({
     timeout: VIEW_TIMEOUT,
   });
   await fillUniformInputRanges(page);
@@ -73,17 +73,21 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await nextButton.click();
 
   const jobsLoading = page.locator('[mmux-testid="jobs-loading"]');
-  if (await jobsLoading.first().isVisible().catch(() => false)) {
-    await jobsLoading.first().waitFor({ state: "hidden", timeout: MODEL_READY_TIMEOUT });
+  if (await jobsLoading.isVisible().catch(() => false)) {
+    await jobsLoading.waitFor({ state: "hidden", timeout: MODEL_READY_TIMEOUT });
   }
   const creatingModel = page.getByText("Creating AI model...");
-  if (await creatingModel.first().isVisible().catch(() => false)) {
-    await creatingModel.first().waitFor({ state: "hidden", timeout: MODEL_READY_TIMEOUT });
+  if (await creatingModel.isVisible().catch(() => false)) {
+    await creatingModel.waitFor({ state: "hidden", timeout: MODEL_READY_TIMEOUT });
   }
+
+  const inspectModelButton = page.locator('[mmux-testid="inspect-model-button"]');
+  await expect(inspectModelButton).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await inspectModelButton.click();
 
   const validationView = page.locator('[mmux-testid="sumo-validation-view"]');
   await expect(validationView).toBeVisible({ timeout: VIEW_TIMEOUT });
-  const qoiSelect = page.locator('[mmux-testid="qoi-select"]');
+  const qoiSelect = page.locator('[mmux-testid="sumo-plot-qoi-select"]');
   await expect(qoiSelect).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expect(validationView.locator(".js-plotly-plot")).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(validationView.getByText("MAE:")).toBeVisible({ timeout: VIEW_TIMEOUT });
@@ -110,21 +114,24 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("1D Curves", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(plotArea).toHaveCount(1);
+  await expect(plotArea).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("sumo-readonly-plot-1d.png");
 
   // Step 2 — 2D Surface.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("2D Surface", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(plotArea).toHaveCount(1);
+  await expect(plotArea).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("sumo-readonly-plot-2d.png");
 
   // Step 3 — 3D IsoSurface.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("3D IsoSurface", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(plotArea).toHaveCount(1);
+  await expect(plotArea).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("sumo-readonly-plot-3d.png");
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));

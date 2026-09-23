@@ -9,7 +9,7 @@ import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
+import { buildAxisRanges, buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 import { getResponseErrorMessage } from "../../utils/httpError";
 
 type GPPrediction = {
@@ -151,6 +151,10 @@ function Curves1DPlots() {
         return setPlotData([]);
       }
       // V16: dedup by stable logical request key; same key → no new fetch.
+      // V36 (#501): encode the plotted axis' sampling range so that widening an
+      // input's range invalidates the cache and the plot re-fetches with the new range.
+      const fnUid = selectedFunction?.uid || "";
+      const axisRanges = buildAxisRanges(distribution[fnUid], [axis]);
       const requestKey = buildDakotaRequestKey({
         axes: [axis],
         sliderValues: otherAxis,
@@ -158,6 +162,7 @@ function Curves1DPlots() {
         fn: selectedFunction?.uid,
         jobList: jobs.map(job => job.uid),
         logScale: false,
+        axisRanges,
       });
       if (requestKey === lastFetchedKey.current) {
         return undefined;
@@ -167,7 +172,7 @@ function Curves1DPlots() {
     run();
     // console.debug("axis: ", axis);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filteredJobList]);
+  }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filteredJobList, distribution]);
 
   const plotStyle = {
     height: 300,

@@ -22,6 +22,8 @@ export type CorrelationViewMode = "pearson" | "spearman";
 type CorrelationIndicesPlotProps = {
   viewMode: CorrelationViewMode;
   scaleType: CorrelationScaleType;
+  onViewModeChange?: CorrelationControlsProps["onViewModeChange"];
+  onScaleTypeChange?: CorrelationControlsProps["onScaleTypeChange"];
 };
 
 type CorrelationControlsProps = {
@@ -69,10 +71,15 @@ export function CorrelationControls({ viewMode, scaleType, onViewModeChange, onS
 // #470: single-plot sensitivity view — one bar per input variable, toggling between
 // Pearson and Spearman correlation strength to the selected QoI (beyond the current
 // 3-var 1D/2D/3D plot limit).
-export default function CorrelationIndicesPlot({ viewMode, scaleType }: CorrelationIndicesPlotProps) {
+export default function CorrelationIndicesPlot({
+  viewMode,
+  scaleType,
+  onViewModeChange,
+  onScaleTypeChange,
+}: CorrelationIndicesPlotProps) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const { numSamples, selectedQoI } = useMMUXContext();
+  const { uqSettings, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [correlations, setCorrelations] = useState<CorrelationIndicesResponse["correlations"] | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
@@ -96,8 +103,8 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
           output: selectedQoI,
           distributions: distribution[selectedFunction?.uid || ""],
           functionJobs: filteredJobList,
-          numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
-          seed: 0,
+          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
+          seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
         });
         setCorrelations(data.correlations);
         setErrorMessage(undefined);
@@ -109,7 +116,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     })();
-  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction]);
+  }, [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction]);
 
   useEffect(() => {
     if (!correlations) {
@@ -221,6 +228,16 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
 
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%">
+      {onViewModeChange && onScaleTypeChange && (
+        <Box display="flex" justifyContent="flex-end">
+          <CorrelationControls
+            viewMode={viewMode}
+            scaleType={scaleType}
+            onViewModeChange={onViewModeChange}
+            onScaleTypeChange={onScaleTypeChange}
+          />
+        </Box>
+      )}
       {computing && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
       {!computing && plotData.length === 0 && (
         <InsufficientDataWarning
