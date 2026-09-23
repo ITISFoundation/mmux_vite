@@ -349,7 +349,7 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
                 error={numberSeedsError}
                 value={Number.isNaN(numberSeeds) ? "" : numberSeeds}
                 onChange={e => setNumberSeeds(parseInt(e.target.value, 10))}
-                aria-label="Seed"
+                aria-label="Number of Seeds"
               />
             </InputLabel>
           </Box>
@@ -377,7 +377,7 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
               setOpen(false);
             }}
             sx={{ alignItems: "end" }}
-            disabled={popSizeError || iterError || !selectedFunction}
+            disabled={popSizeError || iterError || seedError || numberSeedsError || !selectedFunction}
           >
             Apply
           </Button>
