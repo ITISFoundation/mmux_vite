@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 
 let consoleError: ReturnType<typeof vi.spyOn>;
@@ -15,6 +16,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Unmounting cancels pending MUI transition timers that would otherwise fire after jsdom teardown.
+  cleanup();
   try {
     expect(consoleError).not.toHaveBeenCalled();
     expect(unhandledRejections).toEqual([]);
