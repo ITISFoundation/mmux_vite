@@ -116,6 +116,7 @@ describe("Function Utils", () => {
         cause: new Error("Request failed: 400 Bad Request"),
       }),
     );
+    vi.mocked(console.error).mockClear();
   });
 
   it("should get health status", async () => {
@@ -263,6 +264,7 @@ describe("Function Utils", () => {
         },
       },
     };
+    vi.mocked(console.error).mockClear();
     vi.mocked(fetchWithRetry).mockResolvedValueOnce({
       json: () => Promise.resolve([rawFunction]),
     } as Response);
