@@ -59,7 +59,7 @@ jobs:
         name: node-coverage
         fail_ci_if_error: false
       env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV }}
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   flaskapi-tests:
     runs-on: ubuntu-latest
