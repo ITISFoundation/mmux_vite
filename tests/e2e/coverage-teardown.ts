@@ -1,11 +1,12 @@
 import { mkdir, readFile, readdir } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import v8ToIstanbul from "v8-to-istanbul";
 import { createCoverageMap } from "istanbul-lib-coverage";
 import { createContext } from "istanbul-lib-report";
 import reports from "istanbul-reports";
 
-const repoRoot = resolve(__dirname, "../..");
+const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const coverageRoot = join(repoRoot, "coverage", "e2e");
 const rawCoverageDirectory = join(coverageRoot, "raw");
 const reportDirectory = join(coverageRoot, "report");
