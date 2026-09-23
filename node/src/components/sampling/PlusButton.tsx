@@ -8,7 +8,7 @@ import { useSamplingContext } from "../../context/SamplingContext";
 // - Allows to compute data on click, to be showed immediately (e.g. for SuMo plots)
 // - TODO allows to remove the element (or at least to hide it) -- this is not implemented yet
 type PlusButtonProps = {
-  onClickFun: CallableFunction; // This defines whether something has to be done in the backend prior to adding the element
+  onClickFun: () => void; // This defines whether something has to be done in the backend prior to adding the element
   plotFunComponent: (props: unknown) => JSX.Element;
   text: string;
   enabled: boolean;
