@@ -1,4 +1,5 @@
-import { Box, useTheme } from "@mui/material";
+import { Box, IconButton, Tooltip, useTheme } from "@mui/material";
+import { Tune } from "@mui/icons-material";
 import { useEffect, useState } from "react";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -10,8 +11,10 @@ import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
-export default function UncertainUQ(props: LoadingPropsType) {
-  const { loading, jobProgress } = props;
+type UncertainUQProps = LoadingPropsType & { onOpenSettings?: () => void };
+
+export default function UncertainUQ(props: UncertainUQProps) {
+  const { loading, jobProgress, onOpenSettings } = props;
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { uqSettings, selectedQoI } = useMMUXContext();
@@ -105,17 +108,39 @@ export default function UncertainUQ(props: LoadingPropsType) {
 
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%">
-      {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
-      {!propagating && plotData.length === 0 && (
-        <InsufficientDataWarning
-          fetchedJobCollections={fetchedJobCollections}
-          filteredJobList={filteredJobList}
-          height={plotStyle.height}
-          numInputVars={inputVars.length}
-          errorMessage={errorMessage}
-        />
-      )}
-      {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+      <Box sx={{ position: "relative", width: "100%" }}>
+        {onOpenSettings && (
+          <Tooltip title="UQ Settings" arrow>
+            <IconButton
+              size="small"
+              onClick={onOpenSettings}
+              aria-label="UQ Settings"
+              mmux-testid="uq-settings-button"
+              sx={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                zIndex: 1,
+                backgroundColor: theme.palette.background.paper,
+                "&:hover": { backgroundColor: theme.palette.background.paper },
+              }}
+            >
+              <Tune fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+        {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
+        {!propagating && plotData.length === 0 && (
+          <InsufficientDataWarning
+            fetchedJobCollections={fetchedJobCollections}
+            filteredJobList={filteredJobList}
+            height={plotStyle.height}
+            numInputVars={inputVars.length}
+            errorMessage={errorMessage}
+          />
+        )}
+        {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+      </Box>
       {dataUQHistogram !== undefined && <HistogramStats {...dataUQHistogram} />}
     </Box>
   );

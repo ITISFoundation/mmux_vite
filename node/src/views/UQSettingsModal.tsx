@@ -31,7 +31,12 @@ function UQSettingsModal({ open, setOpen }: { open: boolean; setOpen: (value: bo
   };
 
   return (
-    <Modal open={open} onClose={() => setOpen(false)} aria-labelledby="uq-settings-title">
+    <Modal
+      open={open}
+      onClose={() => setOpen(false)}
+      aria-labelledby="uq-settings-title"
+      aria-describedby="uq-settings-description"
+    >
       <Box
         sx={{
           position: "absolute",
@@ -45,6 +50,7 @@ function UQSettingsModal({ open, setOpen }: { open: boolean; setOpen: (value: bo
           flexDirection: "column",
           gap: 2,
         }}
+        mmux-testid="uq-settings-modal"
       >
         <Typography id="uq-settings-title" variant="h6">
           UQ Settings
