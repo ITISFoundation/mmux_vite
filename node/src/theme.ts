@@ -148,6 +148,7 @@ export function setupTheme(mode: "light" | "dark") {
       MuiDataGrid: {
         styleOverrides: {
           root: {
+            backgroundColor: theme.palette.background.default,
             "& .MuiDataGrid-row": {
               // color: '#232D3F'
             },
