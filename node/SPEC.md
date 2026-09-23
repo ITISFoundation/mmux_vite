@@ -93,6 +93,7 @@ V33sv: `stepValidator` step-0 gate ! reject every distribution the inline input 
 V34lw: Dakota plot fetches (1D/2D/3D) ! let only the latest request update plot/loading state; an older response (success or failure) resolving later ⊥ overwrite newer slider/axis results (B25rc)
 V35kn: CI `node-tests` ! pass `npm run knip` (⊥ unused files/exports/deps in `node/`); `knip.json` `ignoreDependencies` only for deps consumed outside knip's view (untracked generated client, ambient `@types/react-plotly.js`, `whatwg-fetch` in the generated client, Istanbul libs in `../tests/e2e/coverage-teardown.ts`)
 V36ar: `src/architecture.test.ts` (ArchUnitTS) ! stay green: no import cycles in `components|context|utils|views`; `utils`/`context` ⊥ import `components`/`views`; `components` ⊥ import `views`; direct `fetch(` only in the allow-listed modules, and that list only shrinks (utils → context *types* allowed)
+V37mg: every settings modal ! disable Apply while ANY of its fields is flagged invalid, and every input ! carry a unique accessible name (B26mg)
 
 ## §T
 id|status|task|cites
@@ -129,6 +130,7 @@ T27|x|fix B24sv test-first: table-driven `stepValidator.test.ts` (per-distributi
 T28lw|x|fix B25rc test-first with a request-id guard in `Curves1DPlot`/`Surface2DPlot`/`IsoSurface3DPlot`; per-plot suites cover V16 dedup, V18 retry after 4xx/5xx/network/malformed JSON, missing predictions, <5 jobs / <2 inputs, stale race, 3D axis de-duplication|V34lw,B25rc,V18,V16
 T29kn|x|add knip dead-code gate: deleted unused `WhiskerPlot.tsx` + `functionUtilsMockups.ts`, un-exported context objects/internal helpers, removed unused deps (`superagent`, `styled-components`, `@mui/styled-engine-sc`, `autoprefixer`, `postcss`, `ts-node`, `vitest-browser-react`, `globals`); verified with and without the generated client|V35kn
 T30ar|x|add ArchUnitTS architecture tests (`archunit` devDep, local `expect` shim since Vitest globals stay off) incl. a guard test proving a real violation is detected; enabling `globals: true` instead surfaced unwrapped-`act()` warnings in 3 suites (left for T23)|V36ar
+T31mg|x|fix B26mg test-first (`MOGAModal.test.tsx`: distinct labels, Apply/Discard, per-field invalid values, no function); `InputVariableDist.test.tsx` covers seeded defaults per mode, persisted values, every inline error message and the UQ form switch; deleted the never-rendered `LogNormalInputDistribution`|V37mg,B26mg,V33sv
 
 ## §B
 id|date|cause|fix
@@ -155,3 +157,4 @@ B24sv|2026-09-23|negative-test audit: `stepValidator` only checked `!isNaN`, so 
 B22fe|2026-09-29|PR #647 Copilot review: §V `V28df`/`V29mn` documented Sobol order-mass (`M1`/`M2`/`R`) surfacing as implemented invariants, but the `/compute_sobol_indices` response has no such fields (`api planned`, ../flaskapi T31rb open) — the spec asserted nonexistent behavior; claims moved to task §T `T21gh`|T21gh
 B23rv|2026-09-29|PR #647 Copilot review: fetch effects in `SobolIndicesPlot`/`CorrelationIndicesPlot` re-ran on dependency changes but neither cancelled nor identified prior requests, so a slower superseded response could commit state over the newer result (stale indices shown for the current QoI/jobs). Interim per-component generation-token guard shipped during PR #647 review was deliberately pulled from PR #648 — duplicating the same 14 lines in every plot ⊥; fix deferred to the generic wrapper|T29sw
 B25rc|2026-09-23|negative-test audit: plot fetches had no ordering guard, so moving a slider twice quickly let the slower, older `sumo_along_axes` response overwrite the newer curve (wrong plot shown for the current slider values)|V34lw
+B26mg|2026-09-23|negative-test audit: `MOGAModal` Apply ignored `seedError`/`numberSeedsError`, so seed 0 / empty / >1e6 and 0 or empty "Number of Seeds" (NaN) were saved and sent to MOGA; the "Number of Seeds" field was also `aria-label="Seed"`, duplicating the Initial Seed label|V37mg
