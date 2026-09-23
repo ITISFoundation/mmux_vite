@@ -102,6 +102,12 @@ export async function setFault(request: APIRequestContext, baseURL: string, oper
   expect(response.ok(), `set fault ${operation}/${enabled} → ${response.status()}`).toBeTruthy();
 }
 
+/** Clear injected faults and drop mock jobs/collections created by WRITE-mode specs. */
+export async function resetMockOsparc(request: APIRequestContext, baseURL: string): Promise<void> {
+  const response = await request.post(`${baseURL}/flask/e2e/reset`);
+  expect(response.ok(), `reset mock oSPARC → ${response.status()}`).toBeTruthy();
+}
+
 export type BrowserFault = { status: number; body?: string } | "abort" | "malformed";
 
 /** Answer matching browser requests with a failure instead of letting them reach the backend. */
