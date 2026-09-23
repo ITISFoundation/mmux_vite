@@ -199,7 +199,7 @@ describe("stepValidator", () => {
         throw new Error("Function not implemented.");
       },
       filteredJobList: [],
-      requestForceFetch: (): void => {
+      requestForceFetch: (): Promise<void> => {
         throw new Error("Function not implemented.");
       },
       parseStatus: (_jobStatus: string, _outputArray: Record<string, unknown>): string | JSX.Element[] => {

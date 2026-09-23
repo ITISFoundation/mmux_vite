@@ -87,6 +87,8 @@ V27ku: Vitest global coverage gate starts at 40% lines/statements/functions/bran
 V28lv: Vitest setup fails tests on unexpected `console.error` or unhandled rejection; intentional error-path tests explicitly consume/clear those signals
 V29mw: app render failures cross an ErrorBoundary → user-visible recovery state; ⊥ blank/crashed UI
 V30nx: permissions/health fetch failure defaults app to READ-ONLY with visible degraded-state feedback; ⊥ enable write actions on unknown permissions
+V31rs: `runningSampling` = one-shot "launched, refresh pending" flag; `JobSelector` ! clear it after its post-launch `requestForceFetch` settles; ⊥ stay `true` after success (B22rs)
+V32ff: context async actions called from UI (e.g. `requestForceFetch`) ! return the Promise and own failure feedback (toast); ⊥ fire-and-forget async that leaks unhandled rejections (B23ff)
 
 ## §T
 id|status|task|cites
@@ -115,6 +117,7 @@ T22|.|testing-ratchet: raise Vitest global thresholds 40→60→80 only after fo
 T23|.|testing-safety: retain global console.error/unhandled-rejection guard; add explicit assertions for expected negative-path diagnostics|V28lv
 T24|.|testing-boundary: add ErrorBoundary + render-failure recovery test; wire app root|V29mw
 T25|.|testing-permissions: test health/permissions failures and READ-ONLY fallback; prevent unsafe WRITE enablement|V30nx
+T26|x|dead-code removal: delete unreachable `views/ParallelRunner.tsx`/`.css` (only mount path was Footer's `permissions === "WRITE" && false` Task Manager button) + Footer modal state; fix B22rs/B23ff test-first (`JobSelector.test.tsx`, `JobContext.test.tsx`)|V31rs,V32ff,B22rs,B23ff
 
 ## §B
 id|date|cause|fix
@@ -135,3 +138,5 @@ B18|2026-07-01|prod oSPARC fn UID `ddfc5b42-...` ("Tissue Conductivity Uncertain
 B19|2026-08-04|PR #502 review (Alex, human, "additional note"): `JobSelector`'s hydration effect coupled clearing view-local `loading` with destructive `onToggleAll(true)`/`setIsSuMoGenerated(true)`, gated only on `loading===true`. Pre-existing `loading` initializer (`fetchedJobCollections===undefined`) usually skipped this on Setup↔Results remounts, so Alex flagged it "likely benign". A same-PR fix for a separate Copilot-flagged loading-flash bug changed the initializer to always `true` — turning the coupling into a guaranteed reset of the user's manual job (de)selection on every remount (`ReturnCurrentView` unmounts MOGA/SuMo/UQ per nav). Caught while following up on Alex's note, not by a failing test|V25
 B20hs|2026-09-23|`MuiDataGrid` lacked the `MuiTable` shared dark-surface override, so all DataGrid-backed tables inherited the lighter card/paper background|V26hs
 B21qn|2026-09-23|`MuiDataGrid` root dark-surface restoration did not cover `columnHeaders`, so function-selection table headers remained on the lighter card/paper surface|V27qn
+B22rs|2026-09-23|dead-code audit: only success-path `setRunningSampling(false)` lived in never-mounted `ParallelRunner` `Dashboard.checkIfFinished` → after any successful launch `runningSampling` stayed `true`, so every later `selectedFunction` change re-fired a forced job refresh + a spurious "Sampling started" toast|V31rs
+B23ff|2026-09-23|`JobContext.requestForceFetch` called async `updateJobCollections` without await/catch → failed job-collection refresh leaked an unhandled rejection with no user feedback, and callers' `await` resolved before the refresh finished|V32ff

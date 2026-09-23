@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   runningSampling: false,
   fetchedJobCollections: undefined as SelectedJobCollection[] | undefined,
   hasAutoSelectedJobs: false,
+  setRunningSampling: vi.fn(),
   setSelectedJobUids: vi.fn(),
   requestForceFetch: vi.fn().mockResolvedValue(undefined),
   setHasAutoSelectedJobs: vi.fn(),
@@ -17,7 +18,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../../context/FunctionContext", () => ({ useFunctionContext: () => ({ selectedFunction: mocks.selectedFunction }) }));
 vi.mock("../../context/SamplingContext", () => ({
-  useSamplingContext: () => ({ launchingSampling: mocks.launchingSampling, runningSampling: mocks.runningSampling }),
+  useSamplingContext: () => ({
+    launchingSampling: mocks.launchingSampling,
+    runningSampling: mocks.runningSampling,
+    setRunningSampling: mocks.setRunningSampling,
+  }),
 }));
 vi.mock("../../context/JobContext", () => ({
   useJobContext: () => ({
@@ -76,6 +81,8 @@ describe("JobsSelector", () => {
     vi.clearAllMocks();
     mocks.fetchedJobCollections = undefined;
     mocks.hasAutoSelectedJobs = false;
+    mocks.runningSampling = false;
+    mocks.requestForceFetch.mockResolvedValue(undefined);
     mocks.setHasAutoSelectedJobs.mockImplementation(value => {
       mocks.hasAutoSelectedJobs = value;
     });
@@ -108,5 +115,13 @@ describe("JobsSelector", () => {
     expect(refreshButton).not.toBeNull();
     fireEvent.click(refreshButton as Element);
     await waitFor(() => expect(mocks.requestForceFetch).toHaveBeenCalledWith("function-1", expect.any(Function)));
+  });
+
+  it("clears runningSampling after refreshing collections for a launched sampling", async () => {
+    mocks.runningSampling = true;
+    render(<JobsSelector loading={false} setLoading={vi.fn()} setJobProgress={vi.fn()} />);
+
+    await waitFor(() => expect(mocks.setRunningSampling).toHaveBeenCalledWith(false));
+    expect(mocks.requestForceFetch).toHaveBeenCalledWith("function-1", expect.any(Function));
   });
 });

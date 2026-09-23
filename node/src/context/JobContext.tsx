@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { createContext, JSX, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
+import { toast } from "react-toastify";
 import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType, OsparcFunctionJob } from "./types";
@@ -19,7 +20,7 @@ export interface JobContextType {
   setSelectedJobUids: (selectedJobs: string[]) => void;
   allJobsList: () => OsparcFunctionJob[];
   filteredJobList: OsparcFunctionJob[];
-  requestForceFetch: (functionUID: string, progress: (progress: number) => void) => void;
+  requestForceFetch: (functionUID: string, progress: (progress: number) => void) => Promise<void>;
   parseStatus: (jobStatus: string, outputArray: Record<string, unknown>) => string | JSX.Element[];
   // V25 (B19): tracks whether JobSelector already ran its one-time auto-select-all-SUCCESS
   // for the CURRENT fetchedJobCollections. Lives here (not a JobSelector-local ref) because
@@ -174,8 +175,13 @@ export function JobContextProvider({ children }: Props) {
     [fetchedJobCollections],
   );
 
-  const requestForceFetch = (functionUID: string, progress: (progress: number) => void) => {
-    updateJobCollections(functionUID, progress);
+  const requestForceFetch = async (functionUID: string, progress: (progress: number) => void) => {
+    try {
+      await updateJobCollections(functionUID, progress);
+    } catch (error) {
+      console.warn("Failed to refresh job collections:", error);
+      toast.error("Failed to refresh job collections. Please try again.");
+    }
   };
 
   // Update filteredJobList when selectedJobUids or fetchedJobCollections change
