@@ -1,6 +1,7 @@
 # MMUX Vite
 
 [![Build and check image](https://github.com/ITISFoundation/mmux_vite/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ITISFoundation/mmux_vite/actions/workflows/ci.yml)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://app.codspeed.io/ITISFoundation/mmux_vite?utm_source=badge)
 [![codecov](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
 [![codecov node](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?flag=node&token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
 [![codecov flaskapi](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?flag=flaskapi&token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
@@ -90,6 +91,20 @@ When done editing always validate the production build of the app with the below
 
 ```shell
 make run-prod-local-sumo-read
+```
+
+## Performance benchmarks
+
+Performance is measured continuously with [CodSpeed](https://app.codspeed.io/ITISFoundation/mmux_vite) in CPU simulation mode; every pull request gets a report through `.github/workflows/codspeed.yml`.
+
+- Frontend benchmarks: `node/src/**/*.bench.ts` (vitest bench) — job-collection CSV import and sampling bounds.
+- Backend benchmarks: `flaskapi/benchmarks/` (pytest-codspeed) — the Flask API boundary only (request/response case conversion, pydantic validation and the Flask JSON round trip). The Dakota data-processing internals are benchmarked where they live, in [itis-sumo](https://github.com/ITISFoundation/itis-sumo).
+
+Run them locally (requires the [CodSpeed CLI](https://codspeed.io/docs/cli)):
+
+```shell
+make bench-flaskapi
+make bench-node
 ```
 
 ## Updating the ospsarc package

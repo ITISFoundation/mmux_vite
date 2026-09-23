@@ -1,8 +1,12 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import codspeedPlugin from "@codspeed/vitest-plugin";
 
 export default defineConfig({
-  plugins: [react()],
+  // The CodSpeed plugin is a no-op unless the run is driven by the CodSpeed
+  // runner (`codspeed run` / the CodSpeed CI job), so `npm test`, `npm run
+  // bench` and a plain `npx vitest bench` are unaffected.
+  plugins: [react(), codspeedPlugin()],
   test: {
     setupFiles: ["./src/test/setup.ts"],
     // The current Vitest suite is a jsdom/unit-component suite. Real browser
@@ -21,7 +25,7 @@ export default defineConfig({
       reporter: ["text", "cobertura"],
       reportsDirectory: "./coverage",
       include: ["src/**/*.{ts,tsx}"],
-      exclude: ["src/osparc-api-ts-client/**", "src/test/**", "**/*.d.ts"],
+      exclude: ["src/osparc-api-ts-client/**", "src/test/**", "**/*.d.ts", "**/*.bench.ts"],
       // Ratchet only upward (node SPEC §V27ku); next milestone is 60 for every metric.
       thresholds: {
         lines: 60,
