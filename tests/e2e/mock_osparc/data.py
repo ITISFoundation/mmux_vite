@@ -143,3 +143,56 @@ JOB_COLLECTIONS: list[dict] = [
         "job_ids": [job["uid"] for job in JOBS],
     }
 ]
+
+_SEED_JOB_COUNT = len(JOBS)
+_SEED_COLLECTION_COUNT = len(JOB_COLLECTIONS)
+
+
+def add_job_collection(function_uid: str, samples: list[dict]) -> dict:
+    """Record a WRITE-mode sampling run: one SUCCESS job per sample, finished at once."""
+    index = len(JOB_COLLECTIONS) - _SEED_COLLECTION_COUNT + 1
+    uid = f"jc-e2e-created-{index}"
+    job_ids = []
+    for k, sample in enumerate(samples):
+        x1, x2, x3, x4 = (float(sample.get(name, 1.0)) for name in ("x1", "x2", "x3", "x4"))
+        y, y2, y3, y4 = _outputs(x1, x2, x3, x4)
+        s, s2, s3, s4 = _std_hats(x1, x2, x3, x4)
+        job = {
+            "uid": f"{uid}-job-{k + 1:02d}",
+            "function_uid": function_uid,
+            "title": f"E2E created job {index}.{k + 1}",
+            "description": "Job created by a WRITE-mode e2e run",
+            "created_at": "2025-02-01T12:00:00Z",
+            "inputs": dict(sample),
+            "outputs": {
+                "y": y,
+                "y2": y2,
+                "y3": y3,
+                "y4": y4,
+                "y_std_hat": s,
+                "y2_std_hat": s2,
+                "y3_std_hat": s3,
+                "y4_std_hat": s4,
+            },
+            "status": "SUCCESS",
+        }
+        JOBS.append(job)
+        JOBS_BY_UID[job["uid"]] = job
+        job_ids.append(job["uid"])
+    collection = {
+        "uid": uid,
+        "title": f"E2E created collection {index}",
+        "description": f"{len(samples)} jobs created by a WRITE-mode e2e run",
+        "function_uid": function_uid,
+        "job_ids": job_ids,
+    }
+    JOB_COLLECTIONS.append(collection)
+    return collection
+
+
+def reset() -> None:
+    """Drop everything created since boot so later specs see the seed dataset."""
+    for job in JOBS[_SEED_JOB_COUNT:]:
+        del JOBS_BY_UID[job["uid"]]
+    del JOBS[_SEED_JOB_COUNT:]
+    del JOB_COLLECTIONS[_SEED_COLLECTION_COUNT:]
