@@ -22,6 +22,8 @@ export type SobolViewMode = "first-order" | "total-order" | "second-order";
 type SobolIndicesPlotProps = {
   viewMode: SobolViewMode;
   scaleType: ScaleType;
+  onViewModeChange?: SobolControlsProps["onViewModeChange"];
+  onScaleTypeChange?: SobolControlsProps["onScaleTypeChange"];
 };
 
 type SobolControlsProps = {
@@ -57,7 +59,7 @@ export function SobolControls({ viewMode, scaleType, onViewModeChange, onScaleTy
   );
 }
 
-export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPlotProps) {
+export default function SobolIndicesPlot({ viewMode, scaleType, onViewModeChange, onScaleTypeChange }: SobolIndicesPlotProps) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { uqSettings, selectedQoI } = useMMUXContext();
@@ -215,6 +217,16 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
 
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%">
+      {onViewModeChange && onScaleTypeChange && (
+        <Box display="flex" justifyContent="flex-end">
+          <SobolControls
+            viewMode={viewMode}
+            scaleType={scaleType}
+            onViewModeChange={onViewModeChange}
+            onScaleTypeChange={onScaleTypeChange}
+          />
+        </Box>
+      )}
       {computing && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
       {!computing && plotData.length === 0 && !sobolData && (
         <InsufficientDataWarning
