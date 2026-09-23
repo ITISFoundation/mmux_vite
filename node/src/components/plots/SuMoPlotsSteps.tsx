@@ -120,6 +120,7 @@ function SuMoPlotsSteps() {
               onChange={e => {
                 setSelectedQoI(e.target.value);
               }}
+              inputProps={{ "aria-label": "Quantity of interest" }}
               mmux-testid="qoi-select"
             >
               {outputVars.map(qoi => (
