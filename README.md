@@ -8,12 +8,18 @@ It uses Vite (and React) for the front-end, and Python (via Flask) for the backe
 
 ### Coverage
 
-CI uploads unit-test coverage to Codecov with separate `node` and `flaskapi` flags. Playwright tests remain an end-to-end snapshot gate and are not included in source coverage.
+CI uploads unit-test coverage to Codecov with separate `node` and `flaskapi` flags, plus Chromium browser coverage from the Playwright suite under the `e2e` flag.
 
 Run Node coverage locally with:
 
 ```shell
 cd node && npm ci && npm run test:coverage
+```
+
+Run the Playwright browser coverage locally with:
+
+```bash
+make test-e2e
 ```
 
 Run backend coverage locally with:

@@ -14,3 +14,6 @@ flags:
   node:
     paths:
       - node/src/
+  e2e:
+    paths:
+      - node/src/

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./coverage";
 
 /**
  * Toolchain smoke test (§T8). Asserts the @playwright/test runner is wired and
