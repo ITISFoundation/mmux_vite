@@ -78,6 +78,7 @@ describe("UploadJobCollectionButton", () => {
 
     await waitFor(() => expect(toastErrorSpy).toHaveBeenCalledWith("Incompatible function schema"));
     expect(onUploadSuccess).not.toHaveBeenCalled();
+    vi.mocked(console.error).mockClear();
   });
 
   it("silently ignores a cancelled file picker (no file selected)", async () => {

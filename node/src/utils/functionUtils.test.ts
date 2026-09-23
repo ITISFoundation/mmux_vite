@@ -121,6 +121,7 @@ describe("Function Utils", () => {
         cause: new Error("Failed to open job copy: undefined"),
       }),
     );
+    vi.mocked(console.error).mockClear();
   });
 
   it("should get health status", async () => {
@@ -266,6 +267,7 @@ describe("Function Utils", () => {
         },
       },
     };
+    vi.mocked(console.error).mockClear();
     vi.mocked(fetchWithRetry).mockResolvedValueOnce({
       json: () => Promise.resolve([rawFunction]),
     } as Response);

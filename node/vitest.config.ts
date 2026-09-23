@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   test: {
+    setupFiles: ["./src/test/setup.ts"],
     // The current Vitest suite is a jsdom/unit-component suite. Real browser
     // coverage runs through the Playwright e2e suite.
     environment: "jsdom", // Use jsdom for testing React components
@@ -20,7 +21,7 @@ export default defineConfig({
       reporter: ["text", "cobertura"],
       reportsDirectory: "./coverage",
       include: ["src/**/*.{ts,tsx}"],
-      exclude: ["src/osparc-api-ts-client/**", "**/*.d.ts"],
+      exclude: ["src/osparc-api-ts-client/**", "src/test/**", "src/utils/functionUtilsMockups.ts", "**/*.d.ts"],
     },
   },
 });
