@@ -24,6 +24,12 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from . import data
+from .control import FAULTS
+
+
+def _raise_if_fault(operation: str) -> None:
+    if operation in FAULTS:
+        raise RuntimeError(f"e2e fault injected: {operation}")
 
 
 class _Item:
@@ -48,17 +54,20 @@ class _Page:
 
 class _FunctionsApi:
     def list_functions(self, limit: int | None = None, offset: int = 0, **_kw) -> _Page:
+        _raise_if_fault("list_functions")
         return _Page(data.FUNCTIONS, limit=limit, offset=offset)
 
     def list_function_jobs_for_functionid(
         self, function_uid: str, limit: int | None = None, offset: int = 0, **_kw
     ) -> _Page:
+        _raise_if_fault("list_function_jobs_for_functionid")
         jobs = [j for j in data.JOBS if j["function_uid"] == function_uid]
         return _Page(jobs, limit=limit, offset=offset)
 
 
 class _JobApi:
     def list_function_jobs(self, limit: int | None = None, offset: int = 0, **_kw) -> _Page:
+        _raise_if_fault("list_function_jobs")
         return _Page(data.JOBS, limit=limit, offset=offset)
 
     def function_job_status(self, job_uid: str, **_kw) -> SimpleNamespace:
