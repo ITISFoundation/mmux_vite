@@ -7,7 +7,7 @@ const { projectFiles } = await import("archunit");
 const TSCONFIG = "tsconfig.app.json";
 
 // Direct `fetch(` call sites that predate the planned central API client; this list may only shrink.
-const fetchAllowlist = ["api/client.ts", "context/PersistenceContext.tsx", "utils/fetchRetry.ts"];
+const fetchAllowlist = ["api/client.ts", "utils/fetchRetry.ts"];
 
 const isProductionSource = (path: string) =>
   !/\.test\.tsx?$/.test(path) && !path.includes("/src/test/") && !path.includes("osparc-api-ts-client");
