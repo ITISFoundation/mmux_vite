@@ -1,9 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 import { test as base } from "@playwright/test";
 
-const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
+const repoRoot = resolve(__dirname, "../..");
 const coverageDirectory = join(repoRoot, "coverage", "e2e", "raw");
 
 export const test = base.extend({
