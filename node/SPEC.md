@@ -121,7 +121,7 @@ T24|.|testing-boundary: add ErrorBoundary + render-failure recovery test; wire a
 T25|.|testing-permissions: test health/permissions failures and READ-ONLY fallback; prevent unsafe WRITE enablement|V30nx
 T26|x|dead-code removal: delete unreachable `views/ParallelRunner.tsx`/`.css` (only mount path was Footer's `permissions === "WRITE" && false` Task Manager button) + Footer modal state; fix B22rs/B23ff test-first (`JobSelector.test.tsx`, `JobContext.test.tsx`)|V31rs,V32ff,B22rs,B23ff
 T27|x|fix B24sv test-first: table-driven `stepValidator.test.ts` (per-distribution valid/invalid, MOGA targets, step bounds); failure-path suites for `LHSSampling` (422 text surfaced, network reject, post-launch job lookup failure, clamped points) and `ReturnCurrentView` (unsupported mode)|V33sv,B24sv,V26jt
-T28lw|~|fix B25rc test-first with a request-id guard: `Curves1DPlot` done (`Curves1DPlot.test.tsx`: V16 dedup, V18 retry after 500/network/malformed JSON, missing predictions, <5 jobs, stale race); `Surface2DPlot`/`IsoSurface3DPlot` pending|V34lw,B25rc,V18,V16
+T28lw|x|fix B25rc test-first with a request-id guard in `Curves1DPlot`/`Surface2DPlot`/`IsoSurface3DPlot`; per-plot suites cover V16 dedup, V18 retry after 4xx/5xx/network/malformed JSON, missing predictions, <5 jobs / <2 inputs, stale race, 3D axis de-duplication|V34lw,B25rc,V18,V16
 
 ## §B
 id|date|cause|fix

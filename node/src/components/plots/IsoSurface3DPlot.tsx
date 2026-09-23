@@ -30,6 +30,7 @@ function IsoSurface3DPlot() {
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
   const [errorMessage, setErrorMessage] = useState<string>();
   const lastFetchedKey = useRef<string | undefined>(undefined);
+  const latestRequestId = useRef(0);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
       acc[key] =
@@ -155,6 +156,9 @@ function IsoSurface3DPlot() {
     // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
+    latestRequestId.current += 1;
+    const requestId = latestRequestId.current;
+    const isStale = () => requestId !== latestRequestId.current;
     setPropagating(true);
     setErrorMessage(undefined);
     fetch(`/flask/dakota/sumo_grid_evaluation`, {
@@ -177,6 +181,7 @@ function IsoSurface3DPlot() {
         return response.json();
       })
       .then(d => {
+        if (isStale()) return;
         // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
         reshapePlotData(d?.gridData);
         // V18: cache key ONLY on success, so transient failures don't block retry
@@ -185,6 +190,7 @@ function IsoSurface3DPlot() {
         setErrorMessage(undefined);
       })
       .catch(error => {
+        if (isStale()) return;
         // V18: clear cache on error so same inputs can be retried
         lastFetchedKey.current = undefined;
         console.warn("Error:", error);
