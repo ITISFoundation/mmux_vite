@@ -133,51 +133,6 @@ const UniformInputDistribution = ({ inputVar, distribution, handleSetValue }: In
   );
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const LogNormalInputDistribution = ({ inputVar, distribution, handleSetValue }: InputDistProps) => {
-  const errorNaNLocation = !(distribution[inputVar].location !== undefined && !Number.isNaN(distribution[inputVar].location));
-  const errorNaNScale = !(distribution[inputVar].scale !== undefined && !Number.isNaN(distribution[inputVar].scale));
-  const errorBeyondRangeLocation =
-    distribution[inputVar] &&
-    ((typeof distribution[inputVar].location === "number" && distribution[inputVar].location < -1e9) ||
-      (typeof distribution[inputVar].location === "number" && distribution[inputVar].location > 1e9));
-  const errorBeyondRangeScale =
-    distribution[inputVar] &&
-    ((typeof distribution[inputVar].scale === "number" && distribution[inputVar].scale <= 0) ||
-      (typeof distribution[inputVar].scale === "number" && distribution[inputVar].scale > 1e9));
-
-  let errorText = "";
-  if (errorNaNLocation || errorNaNScale) {
-    errorText = "Empty value";
-  } else if (errorBeyondRangeLocation) {
-    errorText = "Out of range (-1e9, 1e9)";
-  } else if (errorBeyondRangeScale) {
-    errorText = "Out of range (>0, 1e9)";
-  }
-
-  const error = errorNaNLocation || errorNaNScale || errorBeyondRangeLocation || errorBeyondRangeScale;
-
-  return (
-    <>
-      <InputBlock
-        name="Log Location"
-        value={distribution[inputVar].location !== undefined ? distribution[inputVar].location : NaN}
-        minmax={{ min: -1e9, max: 1e9 }}
-        error={errorNaNLocation || errorBeyondRangeLocation}
-        onChange={value => handleSetValue(inputVar, "location", value as number)}
-      />
-      <InputBlock
-        name="Log Scale"
-        value={distribution[inputVar].scale !== undefined ? distribution[inputVar].scale : NaN}
-        minmax={{ min: 0.0000000001, max: 1e9 }}
-        error={errorNaNScale || errorBeyondRangeScale}
-        onChange={value => handleSetValue(inputVar, "scale", value as number)}
-      />
-      {error && <Typography color="error">{errorText}</Typography>}
-    </>
-  );
-};
-
 export function InputVariableDist() {
   const { selectedFunction, inputVars, distribution, setDistribution } = useFunctionContext();
   const { serviceMode } = useServiceContext();
