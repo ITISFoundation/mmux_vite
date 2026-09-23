@@ -10,6 +10,7 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
+import { requestJson } from "../../api/client";
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
@@ -161,25 +162,17 @@ function IsoSurface3DPlot() {
     const isStale = () => requestId !== latestRequestId.current;
     setPropagating(true);
     setErrorMessage(undefined);
-    fetch(`/flask/dakota/sumo_grid_evaluation`, {
+    requestJson<{ gridData: { [key: string]: number[] } }>(`/flask/dakota/sumo_grid_evaluation`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: {
         gridVars: [localAxis1, localAxis2, axis3],
         inputVars,
         output: selectedQoI,
         sliderValues: otherAxis,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false,
-      }),
+      },
     })
-      .then(async response => {
-        if (response && !response.ok) {
-          console.warn("SuMo Surface plot error: ", response.body);
-          return Promise.reject(new Error(`Error running SuMo Surface plot: ${response.status}, ${response.statusText}`));
-        }
-        return response.json();
-      })
       .then(d => {
         if (isStale()) return;
         // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
@@ -196,7 +189,7 @@ function IsoSurface3DPlot() {
         console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        setErrorMessage(`Error running SuMo 3D plot: ${error instanceof Error ? error.message : String(error)}`);
       });
   };
 

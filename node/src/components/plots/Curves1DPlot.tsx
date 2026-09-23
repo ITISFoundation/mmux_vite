@@ -10,6 +10,7 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
+import { requestJson } from "../../api/client";
 
 type GPPrediction = {
   x: number[];
@@ -105,27 +106,17 @@ function Curves1DPlots() {
     const isStale = () => requestId !== latestRequestId.current;
     setPropagating(true);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
-    fetch(`/flask/dakota/sumo_along_axes`, {
+    requestJson<{ predictions: Record<string, GPPrediction> }>(`/flask/dakota/sumo_along_axes`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: {
         inputs: inputVars,
         distribution,
         output: selectedQoI,
         sliderValues: otherAxis,
         FunctionJobs: jobs,
         log: false,
-      }),
+      },
     })
-      .then(response => {
-        if (response && !response.ok) {
-          console.warn("SuMo Curves plot error: ", response.body);
-          // V18: reject (⊥ return/resolve) so the .catch path clears lastFetchedKey and
-          // the identical inputs can be retried instead of caching a failed fetch.
-          return Promise.reject(new Error(`SuMo Curves plot response not ok: ${response.status}, ${response.statusText}`));
-        }
-        return response.json();
-      })
       .then(data => {
         if (isStale()) return;
         // Backend wraps the per-axis predictions under `predictions` (SumoAlongAxesResponse).
@@ -134,8 +125,9 @@ function Curves1DPlots() {
         lastFetchedKey.current = requestKey;
         setPropagating(false);
       })
-      .catch(_error => {
+      .catch(error => {
         if (isStale()) return;
+        console.warn("SuMo Curves plot error: ", error);
         // V18: clear cache on error so same inputs can be retried
         lastFetchedKey.current = undefined;
         setPlotData([]);

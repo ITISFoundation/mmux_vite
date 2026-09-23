@@ -10,6 +10,7 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
+import { requestJson } from "../../api/client";
 
 function Surface2DPlot() {
   const theme = useTheme();
@@ -88,28 +89,17 @@ function Surface2DPlot() {
       const requestId = latestRequestId.current;
       const isStale = () => requestId !== latestRequestId.current;
       setPropagating(true);
-      fetch(`/flask/dakota/sumo_grid_evaluation`, {
+      requestJson<{ gridData: { [key: string]: number[] } }>(`/flask/dakota/sumo_grid_evaluation`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           gridVars: [key1, key2],
           inputVars,
           output: selectedQoI,
           sliderValues: otherAxis,
           FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
           log: false, // FIXME not used atm
-        }),
+        },
       })
-        .then(response => {
-          if (response && !response.ok) {
-            console.warn("SuMo Surface plot error: ", response.body);
-            // V18: reject (⊥ return) so the .catch path clears lastFetchedKey and the
-            // identical inputs can be retried; a returned Error would resolve the chain
-            // and cache the key as if the fetch had succeeded.
-            return Promise.reject(new Error(`SuMo Surface plot response not ok: ${response.status}, ${response.statusText}`));
-          }
-          return response.json();
-        })
         .then(d => {
           if (isStale()) return;
           // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).

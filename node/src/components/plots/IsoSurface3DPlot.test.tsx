@@ -75,7 +75,7 @@ describe("IsoSurface3DPlot", () => {
   });
 
   it.each([
-    ["HTTP 500", () => textResponse("boom", 500), "Error running SuMo Surface plot: 500"],
+    ["HTTP 500", () => textResponse("boom", 500), "Error running SuMo 3D plot: .* failed with 500: boom"],
     ["network failure", () => networkError(), "Failed to fetch"],
     ["malformed JSON", () => malformedJsonResponse(), "JSON"],
   ])("shows the failure reason on %s and retries identical inputs afterwards", async (_label, failure, reason) => {
