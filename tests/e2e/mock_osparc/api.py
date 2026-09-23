@@ -8,6 +8,7 @@ SPEC.md §T9 / §V11.
 The duck-typed surface (derived from `blueprints/osparc.py`):
   get_functions_api().list_functions(limit, offset)            -> _Page
   get_functions_api().list_function_jobs_for_functionid(uid)   -> _Page
+  get_functions_api().map_function(function_id, request_body)  -> _Item (WRITE)
   get_job_api().list_function_jobs(limit, offset)              -> _Page
   get_job_api().function_job_status(uid)                       -> obj.status
   get_job_api().get_function_job(uid)                          -> obj.to_dict()
@@ -63,6 +64,10 @@ class _FunctionsApi:
         _raise_if_fault("list_function_jobs_for_functionid")
         jobs = [j for j in data.JOBS if j["function_uid"] == function_uid]
         return _Page(jobs, limit=limit, offset=offset)
+
+    def map_function(self, function_id: str, request_body: list[dict], **_kw) -> _Item:
+        _raise_if_fault("map_function")
+        return _Item(data.add_job_collection(function_id, request_body))
 
 
 class _JobApi:

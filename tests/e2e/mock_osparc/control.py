@@ -18,6 +18,8 @@ import os
 
 from flask import Blueprint, jsonify, request
 
+from . import data
+
 e2e_control_bp = Blueprint("e2e_control", __name__)
 
 _ALLOWED_SERVICE_MODES = {"SUMO", "UQ", "MOGA"}
@@ -75,3 +77,11 @@ def set_fault():
     else:
         FAULTS.discard(operation)
     return jsonify({"faults": sorted(FAULTS)}), 200
+
+
+@e2e_control_bp.route("/reset", methods=["POST"])
+def reset_mock():
+    """Clear faults and drop jobs/collections created by WRITE-mode specs."""
+    FAULTS.clear()
+    data.reset()
+    return jsonify({"jobCollections": len(data.JOB_COLLECTIONS)}), 200
