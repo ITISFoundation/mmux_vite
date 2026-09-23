@@ -66,12 +66,12 @@ function App() {
     const pollHealthStatus = async (retries: number) => {
       console.info("Fetching health status from backend...", retries);
       const result = await getHealthStatus();
+      if (result) return;
       if (retries <= 0) {
         console.error("Failed to get health status after multiple attempts.");
         toast.error("Failed to connect to the backend after multiple attempts. Please check the server status.");
         return;
       }
-      if (result) return;
       if (!healthStatus) {
         timeoutId = setTimeout(pollHealthStatus, 1000, retries - 1);
       }
