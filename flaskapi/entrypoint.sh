@@ -31,7 +31,7 @@ if [ "$DEVELOPMENT_MODE" = "true" ]; then
 else
     # Production mode - use gunicorn
     echo "$INFO" "Starting gunicorn production server on $HOST:$PORT"
-    exec uvx gunicorn --bind "$HOST:$PORT" \
+    exec uv run gunicorn --bind "$HOST:$PORT" \
         --workers=4 \
         --worker-class=gevent \
         --timeout=1200 \

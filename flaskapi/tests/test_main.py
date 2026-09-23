@@ -27,6 +27,16 @@ TEST_ENV = {
     "OSPARC_API_SECRET": "test_api_secret",
 }
 
+ENTRYPOINT = Path(__file__).resolve().parents[1] / "entrypoint.sh"
+
+
+def test_v42gu_production_gunicorn_uses_project_lockfile():
+    """Production Gunicorn must run from the project's locked environment."""
+    content = ENTRYPOINT.read_text()
+
+    assert "exec uv run gunicorn" in content
+    assert "exec uvx gunicorn" not in content
+
 
 class TestMainEntrypoint:
     """Test the main.py entrypoint functionality."""
