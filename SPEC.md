@@ -96,6 +96,7 @@ V32qt: ∀ pytest test case ∈ `flaskapi/tests/` → ≥1 marker ∈ {`unit`,`i
 V33mu: ∀ bump of `@mui/material` to a NEW MAJOR → `@mui/icons-material` & `@mui/x-data-grid` must bump to the SAME MAJOR in the same PR AND `tsc -b` (node build) must pass; ⊥ merge a single MUI package major in isolation (peer-ERESOLVE on icons-material + MUI v9 API breakage in source)
 V34lt: ∀ dependency-change PR touching `flaskapi/uv.lock` or `node/package-lock.json` → lockfile ! be valid TOML/JSON AND ⊥ contain unresolved git conflict markers (`<<<<<<<`/`>>>>>>>`/`=======`); regenerate via tool (`uv lock` / `npm install`), ⊥ hand-edit resolved dep blocks (B20lt)
 V35rx: ∀ Dependabot ecosystem entry in `.github/dependabot.yml` → weekly Monday 03:00 Europe/Zurich schedule ∧ exactly one wildcard dependency group; ⊥ unspecified default schedule or one PR per dependency
+V36ez: ∀ interactive UI element (button/icon-button/toggle) ! ship without ≥1 e2e test asserting it via `mmux-testid` ∧ ≥1 dedicated `toHaveScreenshot` baseline capturing its triggered state; ⊥ crash-free-only coverage
 
 ## §T
 id|status|task|cites
@@ -128,6 +129,7 @@ T30|x|e2e UQ sensitivity coverage: reuse deterministic synthetic mock fixture; a
 T31lm|.|high-priority Sobol validity: accurate arbitrary-`d` second-order backend + jointly bootstrapped `M1/M2/R`; surface order contributions/noise interpretation in frontend|V30jk,flaskapi/SPEC.md T31rb,node/SPEC.md T21gh
 T32qx|.|FUTURE PR: Python dependency modernization → upgrade `itis-dakota`→`itis-sumo`/Dakota 6.24 plus gevent, NumPy, SciPy, scikit-learn, oSPARC, gunicorn, uv-build, ruff, prek, related lockfile entries; regenerate `flaskapi/uv.lock` via `uv lock`; preserve Flask/Dakota behavior; verify `uv lock --check`, `make test-flaskapi`, `make test-flaskapi-analytical`, `make prek`, image build|V34lt,flaskapi/SPEC.md
 T33rz|.|FUTURE PR: Playwright + Plotly modernization → upgrade Playwright package/image + regenerate e2e snapshots inside pinned Playwright image; upgrade Plotly/`react-plotly.js` + adapt app typings/rendering; preserve deterministic mock fixtures + existing e2e behavior; verify `npm ci`, `npm test`, `npm run build`, `make test-e2e-docker`, CI e2e/image jobs; Vitest upgrade separate + intentional|V10,V12,V29
+T34cv|~|port current E2E interaction assertions + validation QoI guard; every screenshot reference ! produce PNG after Docker regeneration; audit remaining interactive controls for `mmux-testid` + dedicated interaction screenshot|V36ez,V10,V12,V29
 
 ## §B
 id|date|cause|fix

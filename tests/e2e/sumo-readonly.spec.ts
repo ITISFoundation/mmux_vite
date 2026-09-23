@@ -110,21 +110,24 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("1D Curves", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(plotArea).toHaveCount(1);
+  await expect(plotArea).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("sumo-readonly-plot-1d.png");
 
   // Step 2 — 2D Surface.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("2D Surface", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(plotArea).toHaveCount(1);
+  await expect(plotArea).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("sumo-readonly-plot-2d.png");
 
   // Step 3 — 3D IsoSurface.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("3D IsoSurface", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expect(plotArea.first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(plotArea).toHaveCount(1);
+  await expect(plotArea).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("sumo-readonly-plot-3d.png");
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
