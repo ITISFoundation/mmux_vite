@@ -89,6 +89,7 @@ V29rt: 3D isosurface `x`,`y`,`z`,`value` arrays ! be nested or misaligned; ⊥ w
 V30ab: SuMo validation consumes fixed `{observed,predicted,predictedStd}` response fields independent of QoI spelling; missing observation/prediction arrays render a handled error state, ⊥ QoI-derived response-key guessing
 V30ez: every new interactive component (button/icon-button/toggle) ! carry a stable `mmux-testid` (V13) sufficient for a per-interaction e2e screenshot per root SPEC.md V36ez; ⊥ ship a click handler w/o one
 V31cv: shared Inspect Model modal ! derive a non-empty QoI synchronously (`validationQoI` → `selectedQoI` → `outputVars[0]`) and `SuMoValidation` effect ! POST only when that value exists; ⊥ first-render 400 or permanently empty validation view (root V37cv)
+V32hs: shared MUI `MuiTable`/`MuiDataGrid` roots ! use `theme.palette.background.default` as their surface; ⊥ table backgrounds inherit the lighter card/paper surface (root V38hs)
 
 ## §T
 id|status|task|cites
@@ -135,3 +136,4 @@ B20qs|2026-09-16|PR #596 restored the native `box` trace while retaining unsuppo
 B21rt|2026-09-16|3D SuMo plot wrapped the prediction array as `value: [data[selectedQoI]]`; Plotly received a nested value array, rendered an empty isosurface, and emitted `<rect> height: NaN`|V29rt
 B22ab|2026-09-22|`sumo_cross_validation` emitted QoI-derived top-level response keys and global serialization camelCased them, forcing frontend `getValidationSeries` to guess transformed identifiers|V30ab,../flaskapi/SPEC.md V46jk
 B22cv|2026-09-23|`ValidationModal` mounted `SuMoValidation` before its `useEffect` initialized `validationQoI`; the child posted `output: undefined`, Flask returned 400, and shared Inspect Model e2e tests observed no validation Plotly|V31cv,../SPEC.md B23cv
+B24hs|2026-09-23|`MuiDataGrid` lacked the `MuiTable` shared dark-surface override, so all DataGrid-backed tables inherited the lighter card/paper background|V32hs
