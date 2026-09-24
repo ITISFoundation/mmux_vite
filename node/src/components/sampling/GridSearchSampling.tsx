@@ -8,6 +8,7 @@ import VariableConfig from "../setup/VariableConfig";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { SamplingContextType, useSamplingContext } from "../../context/SamplingContext";
 import { useJobContext } from "../../context/JobContext";
+import { getResponseErrorMessage } from "../../utils/httpError";
 
 // TODO update Grid Sampling with all the new features from LHS Sampling (error handling; adding JColl to list... Maybe refactor stuff to avoid code duplication)
 async function runGridSampling(
@@ -28,8 +29,7 @@ async function runGridSampling(
   })
     .then(async response => {
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error running Grid Sampling ${response.status}: ${errorText}`);
+        throw new Error(await getResponseErrorMessage(response));
       }
       return response.json();
     })

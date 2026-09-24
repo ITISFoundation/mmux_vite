@@ -9,6 +9,7 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import MogaParetoTable from "./MOGAParetoTable";
 import { fetchWithRetry } from "../../utils/fetchRetry";
+import { getResponseErrorMessage } from "../../utils/httpError";
 import { aggregateOutputValues } from "../../utils/functionUtils";
 import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
@@ -170,7 +171,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
       });
 
       if (!response.ok) {
-        throw new Error(`Error in MOGA response: ${response.status}, ${response.statusText}`);
+        throw new Error(await getResponseErrorMessage(response));
       }
 
       const results = normalizeMogaResults(await response.json());

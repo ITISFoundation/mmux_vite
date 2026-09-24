@@ -9,6 +9,7 @@ import { SamplingContextType, useSamplingContext } from "../../context/SamplingC
 import { useServiceContext } from "../../context/ServiceContext";
 import { getFunctionJobsFromFunctionJobCollection, getJobStatusCounts } from "../../utils/functionUtils";
 import { getSamplingEndValue, getSamplingStartValue } from "../../utils/sampling";
+import { getResponseErrorMessage } from "../../utils/httpError";
 import { filterInputVars } from "../plots/PlotTools";
 import VariableConfig from "../setup/VariableConfig";
 import { RunSamplingButton } from "./RunSamplingButton";
@@ -33,11 +34,11 @@ async function runLhsSampling(
   })
     .then(async response => {
       if (!response.ok || response.status !== 200) {
-        const errorText = await response.text();
-        toast.error(`Error running LHS sampling: ${response.status}: ${errorText}`);
+        const errorMessage = await getResponseErrorMessage(response);
+        toast.error(errorMessage);
         context.setLaunchingSampling(false);
         context.setRunningSampling(false);
-        throw new Error(`Error running LHS sampling: ${response.status}: ${errorText}`);
+        throw new Error(errorMessage);
       }
       return response.json();
     })
