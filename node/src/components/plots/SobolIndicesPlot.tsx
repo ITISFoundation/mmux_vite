@@ -174,10 +174,10 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
             hovertemplate: "%{x} ↔ %{y}: %{customdata:.4f}<extra></extra>",
             zmin: sobolLogRange[0],
             zmax: sobolLogRange[1],
-          },
+          } as Plotly.Data,
         ]);
       } else {
-        setPlotData([{ ...heatmap, zmin: sobolLinearRange[0], zmax: sobolLinearRange[1] }]);
+        setPlotData([{ ...heatmap, zmin: sobolLinearRange[0], zmax: sobolLinearRange[1] } as Plotly.Data]);
       }
     }
   }, [sobolData, viewMode, scaleType, inputVars, theme.palette.primary.main, theme.palette.secondary.main]);
@@ -215,7 +215,7 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%">
       {computing && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
-      {!computing && !sobolData && (
+      {!computing && plotData.length === 0 && !sobolData && (
         <InsufficientDataWarning
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}

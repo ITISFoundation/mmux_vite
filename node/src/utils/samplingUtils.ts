@@ -2,6 +2,7 @@ import { toast } from "react-toastify";
 import { ProjectFunctionJob } from "osparc-api-ts-client";
 import { RegisteredFunction, OsparcFunctionJob } from "../context/types";
 import { createJobStudyCopy, openStudyUid } from "./functionUtils";
+import { getResponseErrorMessage } from "./httpError";
 
 export async function runSingleJob(
   selectedFunction: RegisteredFunction | undefined,
@@ -24,8 +25,7 @@ export async function runSingleJob(
   })
     .then(async response => {
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error running Single Job ${response.status}: ${errorText}`);
+        throw new Error(await getResponseErrorMessage(response));
       }
       return response.json();
     })

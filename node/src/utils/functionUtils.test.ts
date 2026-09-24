@@ -109,16 +109,13 @@ describe("Function Utils", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
-        Promise.resolve({
-          status: 400,
-          json: () => Promise.resolve({}),
-        }),
+        Promise.resolve(new Response(null, { status: 400, statusText: "Bad Request" })),
       ),
     );
     const copy2 = await createJobStudyCopy("testJob", {} as ProjectFunctionJob);
     expect(copy2).toEqual(
       new Error("Error creating Job Copy for inspection", {
-        cause: new Error("Failed to open job copy: undefined"),
+        cause: new Error("Request failed: 400 Bad Request"),
       }),
     );
   });
@@ -231,11 +228,13 @@ describe("Function Utils", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
-        Promise.resolve({
-          ok: false,
-          statusText: "Bad Request",
-          json: () => Promise.resolve({ error: "Incompatible function schema" }),
-        }),
+        Promise.resolve(
+          new Response(JSON.stringify({ error: "Incompatible function schema" }), {
+            status: 400,
+            statusText: "Bad Request",
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
       ),
     );
 

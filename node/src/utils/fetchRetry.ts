@@ -1,4 +1,5 @@
 import { delay } from "./delay";
+import { getResponseErrorMessage } from "./httpError";
 
 export const fetchWithRetry = async (
   url: string,
@@ -30,7 +31,7 @@ export const fetchWithRetry = async (
   }
 
   if (response) {
-    return response;
+    throw new Error(await getResponseErrorMessage(response));
   }
 
   // If we reach here, it means all retries failed

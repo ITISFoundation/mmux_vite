@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { toast } from "react-toastify";
 import { PersistenceType } from "./types";
 import { fetchWithRetry } from "../utils/fetchRetry";
+import { getResponseErrorMessage } from "../utils/httpError";
 
 interface PersistenceContextType {
   persistence: PersistenceType | undefined;
@@ -87,7 +88,7 @@ export function PersistenceContextProvider({ children }: Props) {
     });
 
     if (!response.ok) {
-      console.warn(`⚠️ Server error when setting the persistency file, with status (${response.status}): ${response.statusText}`);
+      console.warn(`Server error when setting the persistency file: ${await getResponseErrorMessage(response)}`);
       setAvoidPersisting(true);
       return;
     }
@@ -112,10 +113,10 @@ export function PersistenceContextProvider({ children }: Props) {
 
     if (!response.ok) {
       if (response.status === 404) {
-        console.warn(`⚠️ Could not retrieve file (${response.status}): ${response.statusText}`);
+        console.warn(`Could not retrieve file: ${await getResponseErrorMessage(response)}`);
         return defaultPersistence; // Return default persistence if file not found
       }
-      throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+      throw new Error(await getResponseErrorMessage(response));
     }
 
     const envelope = (await response.json()) as {
