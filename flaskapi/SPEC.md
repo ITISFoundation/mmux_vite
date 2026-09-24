@@ -10,15 +10,15 @@ Caveman-encoded. Distilled from code 2026-05-28. Child of root spec.
 Flask API: relay frontend ↔ oSPARC (functions, jobs, collections, studies), generate samples (LHS / grid / single), run Dakota meta-modeling (SUMO surrogate, UQ propagation, MOGA optimization), persist state text files. Serve under `/flask/*`, port 5000.
 
 ## §C
-- Python 3.11, `flask==3.1.1`, `flask-cors==6.0.0`, `gevent==25.5.1`
-- run: dev `uv run python -m flask run` (entrypoint.sh), prod `uvx gunicorn main:app` (`main:app = create_flask_app()`)
-- oSPARC client `osparc==0.8.3.post0.dev30`; Dakota `itis-dakota==1.5.9`
-- numerics: `numpy==2.2.6`, `pandas==2.2.3`, `scipy==1.15.3`, `scikit-learn==1.6.1`
+- Python `>=3.11,<3.14`; `flask==3.1.3`, `flask-cors==6.0.0`, `gevent==26.9.0`, `gunicorn==26.2.0`
+- run: dev `uv run python -m flask run` (entrypoint.sh), prod `uv run gunicorn main:app` (`main:app = create_flask_app()`)
+- oSPARC client `osparc==0.8.4.post0.dev2`; Dakota `itis-dakota==1.5.11`
+- numerics: `numpy==2.4.6`, `pandas==2.2.3`, `scipy==1.15.3`, `scikit-learn==1.6.1`
 - `mmux_flaskapi.dakota` subpackage (inlined, own module namespace) → Dakota conf generation + result evaluation + `lhs()` — was vendored `mmux_python` dep, ported in-repo (§T15)
 - requests accept camelCase|snake_case (pydantic `populate_by_name`); responses camelCase
 - `DataPreprocessor` maps orig var names → `x1..xn`,`y1..yn` for Dakota, inverse on response
 - ≥5 completed jobs required for any surrogate/UQ/MOGA endpoint
-- ruff line-length 100, select E/F/I/UP; pytest markers slow/integration/unit; coverage aim ≥70% on modified code (soft)
+- dev tools: `prek==0.5.3`, `ruff==0.16.8`, `ty==0.0.83`; ruff line-length 100, select E/F/I/UP; pytest markers slow/integration/unit; coverage aim ≥70% on modified code (soft)
 - naming: Classes PascalCase | funcs/methods snake_case | constants CONSTANT_CASE | private `_`prefix
 - type hints + PEP257/NumPy docstrings on public APIs; raise ValueError/RuntimeError w/ descriptive msg; log via `utils/logger.py`
 - type checker: `ty` (astral-sh/ty), config via `[tool.ty]` in pyproject.toml; strictness/rule-level TBD in §T18
@@ -120,6 +120,7 @@ V38: osparc.py's local-merge (V15) + graceful-degradation (V31) behavior for fun
 V39: correlation indices sample every requested input distribution, evaluate the fitted surrogate once, and return Pearson/Spearman coefficients keyed by original variable names
 V40: Sobol indices use a fixed power-of-two base sample count, evaluate Saltelli A/B/AB samples in one surrogate batch, return first/total/second-order indices plus bootstrap confidence intervals, and accept seed `0` because computation is SciPy-based rather than Dakota NIDR
 V41: `evaluate_sobol_indices` ⊥ sanitize `input_vars`/`distributions` internally — unlike sibling `evaluate_*` functions (which receive already-`preprocessor`-mapped names from their blueprint call site), it receives original/unmapped names directly, so the `preprocessor.input_variables[var]` lookup and the response dict must both operate on/be keyed by those exact original names (closes B25)
+V42gu: prod `entrypoint.sh` ! launch `gunicorn` via `uv run`, ⊥ `uvx`, so deployed Gunicorn resolves from `flaskapi/uv.lock`; regression `test_v42gu_production_gunicorn_uses_project_lockfile` (B26gu)
 
 ## §T
 id|status|task|cites
@@ -177,3 +178,4 @@ B22|2026-07-04|`funs_evaluate.evaluate_sumo_crossvalidation` hardcoded `log_outp
 B23|2026-07-04|`funs_data_processing.sanitize_varnames` regex char-class `[^0-9a-zA-Z_*-+/]` placed `-` between `*` and `+`, forming an unintended range (matching only `*`/`+`) instead of a literal hyphen → real hyphens (e.g. default `get_results` key `-AFpeak`) were silently rewritten to `_`|V36
 B24|2026-07-10|B3/T12's `DEPLOYMENT_MODE=LOCAL` gate on local-store merging conflated two orthogonal concerns: "is the local_job_store visible" and "is the remote oSPARC backend reachable" — a live prod deployment with a fully working oSPARC connection still could not surface CSV-imported/local functions, and each of the 3 resource kinds (functions/job-collections/jobs) + get-by-id/list-all/list-for-parent shapes had the merge/degrade skeleton hand-duplicated in every endpoint, which is how the earlier local-uid gap in `get_function_job_status`/`get_function_job_outputs` (unlike `get_function_job`) went unnoticed|V15,V31,V38
 B25|2026-08-10|PR #509 Copilot review: `evaluate_sobol_indices` sanitized `input_vars`/`distributions` (spaces/parens etc. → `_`) at the top of the function, then did `preprocessor.input_variables[var]` lookups and built the response dict using those now-sanitized names; `preprocessor.input_variables` is keyed by the ORIGINAL unsanitized request names (unlike sibling `evaluate_*` functions in the same file, whose blueprint call sites in dakota.py map names to Dakota's `x1..` before calling in) — an input var name containing a sanitize-affecting character would `KeyError` on the lookup, and would otherwise have returned response keys the frontend never sent|V41
+B26gu|2026-09-23|prod `entrypoint.sh` launched `uvx gunicorn`, resolving an isolated tool environment instead of declared `gunicorn==26.2.0` from `uv.lock` → deployed Gunicorn could drift|V42gu

@@ -98,6 +98,7 @@ V34lt: ∀ dependency-change PR touching `flaskapi/uv.lock` or `node/package-loc
 V35rx: ∀ Dependabot ecosystem entry in `.github/dependabot.yml` → weekly Monday 03:00 Europe/Zurich schedule ∧ exactly one wildcard dependency group; ⊥ unspecified default schedule or one PR per dependency
 V36ez: ∀ interactive UI element (button/icon-button/toggle) ! ship without ≥1 e2e test asserting it via `mmux-testid` ∧ ≥1 dedicated `toHaveScreenshot` baseline capturing its triggered state; ⊥ crash-free-only coverage
 V37hs: shared MUI `MuiTable` and `MuiDataGrid` roots ! use `theme.palette.background.default` for table surfaces; ⊥ inherit lighter card/paper background and change every table's visual baseline together
+V38gu: backend prod entrypoint ! launch Gunicorn via `uv run` from `flaskapi/uv.lock`, ⊥ isolated `uvx` tool env; guard `flaskapi/tests/test_main.py::test_v42gu_production_gunicorn_uses_project_lockfile` (B23gu, flaskapi/SPEC.md V42gu)
 
 ## §T
 id|status|task|cites
@@ -153,3 +154,4 @@ B19mu|2026-08-28|dependabot PR #551 (`@mui/material` 7.3.2→9.3.1) failed node-
 B20lt|2026-08-30|PR #561 review-comment follow-up: commit `2df63a1` (addr. review comment #3 — bump gunicorn 23.0.0→26.2.0) resolved `flaskapi/uv.lock` `requires-dist` by hand-editing a cherry-pick/merge instead of re-running `uv lock`, leaving raw `<<<<<<< HEAD` conflict markers → `uv.lock` invalid TOML (`missing comma between array elements`) → `uv lock --check` fails → flaskapi CI breaks; also left a duplicate `V33mu` line in root SPEC.md §V|V34lt
 B21fk|2026-09-11|Dependabot entries used unspecified weekly timing and generic groups, so update timing defaulted to Thursday and dependency PR policy was not explicit|V35rx
 B22hs|2026-09-23|`MuiDataGrid` had no shared root background override while `MuiTable` used `theme.palette.background.default`; DataGrid inherited the lighter `background.paper` card surface, changing all function/job/MOGA tables together|V37hs
+B23gu|2026-09-23|backend prod entrypoint used `uvx gunicorn`, bypassing declared `gunicorn==26.2.0` in `flaskapi/uv.lock` → production could resolve a later drifting Gunicorn tool version|V38gu
