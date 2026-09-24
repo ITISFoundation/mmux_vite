@@ -108,9 +108,7 @@ describe("Function Utils", () => {
     expect(copy).toBe("jobUID");
     vi.stubGlobal(
       "fetch",
-      vi.fn(() =>
-        Promise.resolve(new Response(null, { status: 400, statusText: "Bad Request" })),
-      ),
+      vi.fn(() => Promise.resolve(new Response(null, { status: 400, statusText: "Bad Request" }))),
     );
     const copy2 = await createJobStudyCopy("testJob", {} as ProjectFunctionJob);
     expect(copy2).toEqual(
