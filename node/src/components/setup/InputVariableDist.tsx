@@ -335,6 +335,7 @@ export function InputVariableDist() {
                     variant="outlined"
                     size="small"
                     id={`${index}selector`}
+                    inputProps={{ "aria-label": `${inputVar} distribution` }}
                     value={localDistribution[inputVar]?.distribution || ""}
                     sx={{ minWidth: 132, width: "100%" }}
                     onChange={e => handleDistributionChange(inputVar, e.target.value as Distribution)}
