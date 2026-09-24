@@ -22,6 +22,9 @@ const appPort = process.env.APP_PORT ? Number(process.env.APP_PORT) : undefined;
 export default defineConfig({
   base: "/",
   plugins: [react(), tailwindcss()],
+  build: {
+    sourcemap: process.env.E2E_COVERAGE === "true",
+  },
   resolve: {
     alias: {
       "osparc-api-ts-client": fileURLToPath(

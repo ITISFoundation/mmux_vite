@@ -46,3 +46,4 @@ ph_context.json
 .mcp.json
 opencode.json
 flaskapi/runs_*
+coverage/

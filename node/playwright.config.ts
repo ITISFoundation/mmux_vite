@@ -22,6 +22,8 @@ const repoRoot = new URL("..", import.meta.url).pathname;
 
 export default defineConfig({
   testDir: "../tests/e2e",
+  globalSetup: "../tests/e2e/coverage-setup.ts",
+  globalTeardown: "../tests/e2e/coverage-teardown.ts",
   // Pixel baselines live next to the repo-level e2e tests, not under node/.
   snapshotPathTemplate: "../tests/e2e/__snapshots__/{testFilePath}/{arg}{ext}",
   fullyParallel: false,
@@ -77,7 +79,11 @@ export default defineConfig({
       command: "npm run build:e2e && npm run preview",
       url: BASE_URL,
       cwd: `${repoRoot}node`,
-      env: { E2E_BACKEND_PROXY: BACKEND_URL, E2E_WEB_PORT: WEB_PORT },
+      env: {
+        E2E_BACKEND_PROXY: BACKEND_URL,
+        E2E_COVERAGE: "true",
+        E2E_WEB_PORT: WEB_PORT,
+      },
       reuseExistingServer,
       timeout: 600_000,
       stdout: "pipe",

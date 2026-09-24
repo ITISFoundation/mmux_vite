@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./coverage";
 import { VIEW_TIMEOUT, resetPersistence, setDeployment } from "./helpers";
 
 /**
