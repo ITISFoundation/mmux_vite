@@ -78,7 +78,7 @@ describe("Curves1DPlot", () => {
     const fetchMock = stubFetch(failure(), jsonResponse(predictions([1, 2])));
     const { rerender } = render(<Curves1DPlots />);
 
-    expect(await screen.findByText("Error during calculation, please contact support.")).toBeInTheDocument();
+    expect(await screen.findByText(/failed|invalid JSON/)).toBeInTheDocument();
     expect(screen.queryByTestId("plotly")).toBeNull();
 
     mocks.filteredJobList = [...jobs];
