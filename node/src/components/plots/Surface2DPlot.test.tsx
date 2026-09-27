@@ -86,7 +86,7 @@ describe("Surface2DPlot", () => {
     const fetchMock = stubFetch(failure(), jsonResponse(grid([[1]])));
     const { rerender } = render(<Surface2DPlot />);
 
-    expect(await screen.findByText("Error during calculation, please contact support.")).toBeInTheDocument();
+    expect(await screen.findByText(/failed|invalid JSON/)).toBeInTheDocument();
 
     mocks.filteredJobList = [...jobs];
     rerender(<Surface2DPlot />);

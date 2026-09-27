@@ -67,7 +67,7 @@ describe("SuMoValidation", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({ result: [1, 2, 3, 4, 5], resultHat: [1, 3, 2, 5, 4] }),
+        json: () => Promise.resolve({ observed: [1, 2, 3, 4, 5], predicted: [1, 3, 2, 5, 4] }),
       }),
     );
     render(<SuMoValidation />);
