@@ -101,6 +101,7 @@ V39rt: `fetchWithRetry` retries only network errors, 5xx, 408, 429; other 4xx re
 V40ps: a rejected persistence save ! not update `lastSavedContent`/`persistence` and ! stop further saves for the session; a failed (non-404) persistence load ! fall back to in-memory defaults with a warning and ⊥ write anything back (B30ps, refines V17)
 V41pv: a loaded persistence file ! be a plain object whose required keys carry the right JSON type (arrays/objects/number/boolean); anything else (JSON `null`/`0`/`""`, a string `inputVars`, ...) → defaults + warning, ⊥ reach contexts (B32pv)
 V42ax: every interactive control (icon buttons, selects) ! have an accessible name, and text ! meet WCAG AA contrast (4.5:1) on its surface; enforced by `tests/e2e/a11y.spec.ts` (B33ax)
+V43qz: validation rendering ! use the resolved `validationQoI` identifier consistently across effects, requests, and plot labels; ⊥ reference the removed `selectedQoI` binding (B35qz)
 
 ## §T
 id|status|task|cites
@@ -170,3 +171,4 @@ B31hp|2026-09-23|`App` health poll checked the retry budget before the result, s
 B32pv|2026-09-23|persistence edge tests: `isValidPersistenceFile` returned `data && ...`, so stored JSON `null`/`0`/`""` yielded a falsy non-`false` value that slipped past the `=== false` check and became `persistence`; it also only checked key presence, so wrong-typed values (e.g. `inputVars: "x1"`) reached contexts that call `.map` on them|V41pv
 B34wq|2026-09-23|PR #600 (`jgo/fix-validation-qoi-499`) branched before the fixed `{observed,predicted}` validation response contract landed, so rebasing it required preserving `getValidationSeries` while layering the shared `validationQoIOverride` refactor on top|V30ab
 B33ax|2026-09-23|axe runs (root T37): 6 icon-only buttons had no accessible name (FunctionList open/refresh ×3, JobSelector refresh, add-output, MOGA performance edit), QoI `Select`s and UQ distribution comboboxes had no accessible name, `MetricRow` put `<p>` directly inside `<ul>`, and the SuMo validation blue metric text (#2992dd) had 3.75:1 contrast on #2e3437; named controls, corrected list markup, and lightened metric text to rgb(66,165,235)|V42ax
+B35qz|2026-09-23|the shared validation-QoI refactor renamed the context binding to `validationQoI` but left one effect guard reading removed `selectedQoI`, causing a runtime ReferenceError on modal render|V43qz

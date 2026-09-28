@@ -61,7 +61,7 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await selectButton.click();
 
   // The input-range configuration opens once a function is selected.
-  await expect(page.locator('[mmux-testid="input-block-Min"] input').first()).toBeVisible({
+  await expect(page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Min"] input').first()).toBeVisible({
     timeout: VIEW_TIMEOUT,
   });
   await fillUniformInputRanges(page);

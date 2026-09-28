@@ -136,7 +136,7 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
   };
 
   useEffect(() => {
-    if (!selectedQoI) {
+    if (!validationQoI) {
       return;
     }
 
