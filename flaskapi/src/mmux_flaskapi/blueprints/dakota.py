@@ -645,12 +645,12 @@ def flask_compute_sobol_indices():
     M1/M2/R (T31rb).
 
     Builds a surrogate from completed jobs via ``evaluate_sumo()``, then computes
-    Sobol' indices directly in Python: generates Saltelli A/B/AB sample matrices
+    Sobol' indices directly in Python: generates Saltelli A/B/C sample matrices
     locally (honouring per-input distributions via ``scipy.stats.rv_continuous.ppf``),
     evaluates all samples in ONE batch through ``evaluate_sumo()``, then applies
-    ``scipy.stats.sobol_indices`` for first/total order plus the exact joint-pair
-    second-order estimator (U/V mixed designs, arbitrary d - V42qa) and order
-    masses.  Response always includes ``sobolSecondOrder`` and
+    the saltelli_2010 algebra (identical to ``scipy.stats.sobol_indices``,
+    extended with the exact joint-pair second-order estimator - arbitrary d,
+    V42qa - and order masses).  Response always includes ``sobolSecondOrder`` and
     ``sobolOrderContributions`` (no opt-in flag; the latter is null only when the
     sample output variance is zero, where variance fractions are undefined).
     """

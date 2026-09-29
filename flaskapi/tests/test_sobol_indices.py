@@ -57,38 +57,20 @@ CONTRIB_KEYS_CAMEL = {
 
 
 def _build_sobol_designs(f, d: int, *, n: int = 2**12, seed: int = 42):
-    """Build Saltelli A/B/C + AB + pair(U/V) evaluations for analytic f.
+    """Saltelli A/B/C + AB + pair(U/V) evaluations for analytic f.
 
-    Mirrors the sampling pipeline of evaluate_sobol_indices (same Sobol' QMC
-    3*d stream, same design construction) so tests exercise the shipped math
-    without a surrogate.
-    """
+    Builds the designs with the PRODUCTION sampling/design helpers, so the
+    analytic benchmarks exercise the shipped pipeline, not a copy of it."""
     from scipy.stats import uniform
-    from scipy.stats.qmc import Sobol
 
-    sampler = Sobol(d=3 * d, seed=seed, scramble=True)
-    U = sampler.random(n)
+    from mmux_flaskapi.dakota.funs_evaluate import _saltelli_abc, _saltelli_pair_designs
+
     dists = [uniform(loc=-np.pi, scale=2 * np.pi) for _ in range(d)]
-    A = np.column_stack([dists[i].ppf(U[:, i]) for i in range(d)])
-    B = np.column_stack([dists[i].ppf(U[:, d + i]) for i in range(d)])
-    C = np.column_stack([dists[i].ppf(U[:, 2 * d + i]) for i in range(d)])
-    ii, jj = np.triu_indices(d, k=1)
-    pairs = np.column_stack([ii, jj])
-    K = len(ii)
-    f_AB = np.empty((d, n))
-    for i in range(d):
-        X = A.copy()
-        X[:, i] = B[:, i]
-        f_AB[i] = f(X)
-    f_UV = np.empty((2 * K, n))
-    for k in range(K):
-        i, j = int(ii[k]), int(jj[k])
-        Xu = B.copy()
-        Xu[:, [i, j]] = A[:, [i, j]]
-        Xv = C.copy()
-        Xv[:, [i, j]] = A[:, [i, j]]
-        f_UV[k] = f(Xu)
-        f_UV[K + k] = f(Xv)
+    A, B, C = _saltelli_abc(dists, n, seed)
+    AB, uv, pairs = _saltelli_pair_designs(A, B, C)
+    K = pairs.shape[0]
+    f_AB = np.stack([f(block) for block in AB])
+    f_UV = np.stack([f(block) for block in uv])
     return f(A), f(B), f_AB, f_UV[:K], f_UV[K:], pairs
 
 
@@ -379,8 +361,9 @@ class TestSobolEstimatorInvariants:
         assert algc["r"] == pytest.approx(alg0["r"], abs=1e-8)
 
     def test_algebra_matches_scipy_point_estimator(self):
-        """Bootstrap CIs must target the SAME estimator as the displayed scipy
-        first/total points (d>=2 path of evaluate_sobol_indices)."""
+        """The displayed points ARE the scipy estimator: _sobol_algebra is the
+        single runtime source (no scipy call remains), so this parity test is
+        what pins evaluate_sobol_indices output to scipy.stats.sobol_indices."""
         from scipy.stats import sobol_indices
 
         from mmux_flaskapi.dakota.funs_evaluate import _sobol_algebra

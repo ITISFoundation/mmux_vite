@@ -462,6 +462,52 @@ effectively free relative to the surrogate evaluation cost.
 SOBOL_BOOTSTRAP_CONFIDENCE = 0.95
 
 
+def _saltelli_abc(
+    ppfs_list: list[Any], n: int, seed: int | None
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Saltelli A/B/C sample blocks (n, d) from per-variable frozen scipy
+    distributions, drawn from one scrambled Sobol' QMC stream of dim 3*d.
+    C is an independent third stream feeding the exact pair designs (V42qa)."""
+    from scipy.stats.qmc import Sobol
+
+    d = len(ppfs_list)
+    U = Sobol(d=3 * d, seed=seed, scramble=True).random(n)  # (n, 3*d)
+    A = np.column_stack([p.ppf(U[:, i]) for i, p in enumerate(ppfs_list)])
+    B = np.column_stack([p.ppf(U[:, d + i]) for i, p in enumerate(ppfs_list)])
+    C = np.column_stack([p.ppf(U[:, 2 * d + i]) for i, p in enumerate(ppfs_list)])
+    return A, B, C
+
+
+def _saltelli_pair_designs(
+    A: np.ndarray, B: np.ndarray, C: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """AB_i and exact pair U/V design matrices for sample blocks (n, d).
+
+    Returns (AB, uv, pairs): AB (d, n, d), AB[i] = A with column i swapped to
+    B's (Saltelli 2010 convention); uv (2K, n, d) with row k = U^ij (B with
+    columns [i, j] from A) and row K+k = V^ij (C with columns [i, j] from A);
+    pairs (K, 2) in np.triu_indices order, aligned with uv (V42qa)."""
+    n, d = A.shape
+    AB = np.empty((d, n, d))
+    for i in range(d):
+        AB_i = A.copy()
+        AB_i[:, i] = B[:, i]
+        AB[i] = AB_i
+    pair_ii, pair_jj = np.triu_indices(d, k=1)
+    pairs = np.column_stack([pair_ii, pair_jj])
+    K = pairs.shape[0]
+    uv = np.empty((2 * K, n, d))
+    for k in range(K):
+        i, j = int(pairs[k, 0]), int(pairs[k, 1])
+        rest_b = B.copy()
+        rest_b[:, [i, j]] = A[:, [i, j]]
+        rest_c = C.copy()
+        rest_c[:, [i, j]] = A[:, [i, j]]
+        uv[k] = rest_b  # U^ij
+        uv[K + k] = rest_c  # V^ij
+    return AB, uv, pairs
+
+
 def _sobol_algebra(
     f_A: np.ndarray,
     f_B: np.ndarray,
@@ -633,30 +679,19 @@ def evaluate_sobol_indices(
 ) -> dict[str, Any]:
     """Compute Sobol' first-order, total-order, and second-order sensitivity indices.
 
-    Generates Saltelli A/B/AB sample matrices locally (honouring per-input
+    Generates Saltelli A/B/C sample matrices locally (honouring per-input
     distributions via ``scipy.stats.rv_continuous.ppf``), evaluates all samples
     in ONE batch through ``evaluate_sumo()`` (surrogate-only, Dakota does not run
-    ``variance_based_decomp`` itself), then applies ``scipy.stats.sobol_indices``
-    for first-order + total-order indices plus the exact joint-pair second-order
-    (pairwise interaction) estimator and order masses.
+    ``variance_based_decomp`` itself), then applies ``_sobol_algebra`` -- the
+    exact scipy.stats.sobol_indices saltelli_2010 algebra (pinned equal by the
+    estimator-parity test) -- for first/total order plus the exact joint-pair
+    second-order (pairwise interaction) estimator and order masses.
 
-    Second-order estimator (T31rb/V42qa): the EXACT arbitrary-d joint-pair
-    estimator S_ij = Var(E[Y|X_i,X_j])/V - S_i - S_j, where Var(E[Y|X_i,X_j])
-    is estimated from pair-specific mixed designs U^ij = f(A_i,A_j,B_rest) and
-    V^ij = f(A_i,A_j,C_rest) (C an independent third stream) - see
-    ``_sobol_algebra`` for the unbiasedness derivation. Exact for ANY number of
-    varying inputs (no truncation assumption: the ANOVA terms inside {i,j} are
-    only {i}, {j}, {i,j}), validated vs analytic additive d=8, pair-interaction
-    d=5, Ishigami and pair-quadratic d=10 benchmarks within bootstrap-scaled
-    tolerances. Replaces the old identity
-    V_ij = ((V_Ti - V_i) + (V_Tj - V_j) - Σ_{k≠i,j} (V_Tk - V_k)) / 2, which was
-    exact only for d=3 and provably degenerate (pair sums ≡ 0 at d=4, negative
-    beyond) for the typical 4-25 parameter studies (§B26nc). Surrogate cost
-    grows to n*(2 + d + d(d-1)) ~ n*d^2 - the O(d^2) pair-specific mixed
-    evaluation cost T31rb anticipated and documents as the price of exact pairs.
-    Saltelli reference: Saltelli, A. (2010). "Variance based sensitivity analysis
-    of model output. Design and estimator for the total sensitivity index."
-    Computer Physics Communications, 181(2), 259-270.
+    Second-order estimator (T31rb/V42qa): exact joint-pair designs,
+    S_ij = Var(E[Y|X_i,X_j])/V - S_i - S_j, exact for ANY d -- derivation,
+    B26nc history and analytic benchmarks in ``_sobol_algebra``. Surrogate cost
+    grows to n*(2 + d + d(d-1)) ~ n*d^2, the documented price of exact pairs
+    (Saltelli 2010, Comput.Phys.Commun. 181(2), 259-270).
 
     Base sample count is the fixed ``SOBOL_BASE_SAMPLES`` constant (V36), NOT
     the frontend's shared UQ ``numSamples`` -- Sobol' has fundamentally
@@ -693,8 +728,7 @@ def evaluate_sobol_indices(
     import math
 
     import pandas as pd
-    from scipy.stats import norm, sobol_indices, uniform
-    from scipy.stats.qmc import Sobol
+    from scipy.stats import norm, uniform
 
     # NOTE: input_vars/distributions are NOT sanitized here (unlike sibling
     # evaluate_* functions) - preprocessor.input_variables is keyed by the
@@ -751,50 +785,16 @@ def evaluate_sobol_indices(
 
     n = 2 ** math.ceil(math.log2(max(SOBOL_BASE_SAMPLES, 2)))
 
-    # --- 3. Generate Saltelli A/B/C sample matrices via Sobol' QMC ---
-    # C is an independent third stream feeding the pair designs (step 4b).
-    sampler = Sobol(d=3 * d_varying, seed=seed, scramble=True)
-    U = sampler.random(n)  # shape (n, 3*d_varying)
-    U_A = U[:, :d_varying]
-    U_B = U[:, d_varying : 2 * d_varying]
-    U_C = U[:, 2 * d_varying :]
-
-    # Map through ppf to get real-space A, B and C
-    A = np.column_stack([ppfs[var].ppf(U_A[:, i]) for i, var in enumerate(varying_vars)])
-    B = np.column_stack([ppfs[var].ppf(U_B[:, i]) for i, var in enumerate(varying_vars)])
-    C = np.column_stack([ppfs[var].ppf(U_C[:, i]) for i, var in enumerate(varying_vars)])
-
-    # --- 4. Build AB_i matrices: A with column i replaced by B's column i ---
-    # (Saltelli 2010 convention: AB_i uses B's values for variable i, A's for the rest)
-    AB = np.empty((d_varying, n, d_varying))
-    for i in range(d_varying):
-        AB_i = A.copy()
-        AB_i[:, i] = B[:, i]
-        AB[i] = AB_i
-
-    # --- 4b. Build the exact pair designs (V42qa, T31rb): for each unordered
-    # pair (i,j), U^ij = pair from A, rest from B; V^ij = pair from A, rest
-    # from C (C independent of B). f_U.f_V then estimates Var(E[Y|X_i,X_j])
-    # exactly for arbitrary d (derivation in _sobol_algebra). Rows follow
-    # np.triu_indices order so they line up with `pairs`.
-    pair_ii, pair_jj = np.triu_indices(d_varying, k=1)
-    pairs = np.column_stack([pair_ii, pair_jj])
+    # --- 3. Saltelli A/B/C sampling + AB_i + exact pair (U/V) designs ---
+    # Shared builders, also driven by the analytic benchmarks in
+    # tests/test_sobol_indices.py, so tests exercise the shipped pipeline.
+    A, B, C = _saltelli_abc([ppfs[var] for var in varying_vars], n, seed)
+    AB, uv, pairs = _saltelli_pair_designs(A, B, C)
     K = pairs.shape[0]
-    uv = np.empty((2 * K, n, d_varying))
-    for k in range(K):
-        i, j = int(pairs[k, 0]), int(pairs[k, 1])
-        rest_b = B.copy()
-        rest_b[:, [i, j]] = A[:, [i, j]]
-        rest_c = C.copy()
-        rest_c[:, [i, j]] = A[:, [i, j]]
-        uv[k] = rest_b  # U^ij
-        uv[K + k] = rest_c  # V^ij
 
-    # --- 5. Concatenate into one big sample matrix, restore constant columns ---
+    # --- 4. Concatenate into one big sample matrix, restore constant columns ---
     # Layout: A (n) + B (n) + AB_0..AB_{d-1} (d*n) + U^0..U^{K-1} (K*n) + V^0..V^{K-1} (K*n)
-    all_samples_varying = np.vstack(
-        [A, B] + [AB[i] for i in range(d_varying)] + [uv[k] for k in range(2 * K)]
-    )
+    all_samples_varying = np.vstack([A, B, AB.reshape(-1, d_varying), uv.reshape(-1, d_varying)])
 
     # Build DataFrame with varying variables only
     df_varying = pd.DataFrame(all_samples_varying, columns=pd.Index(varying_vars))
@@ -806,7 +806,7 @@ def evaluate_sobol_indices(
     # Reorder columns to match original input_vars order
     df_samples = df_varying[input_vars]
 
-    # --- 6. Transform and write processed samples, call evaluate_sumo ONCE ---
+    # --- 5. Transform and write processed samples, call evaluate_sumo ONCE ---
     SAMPLES_FILE = run_dir / "sobol_samples.csv"
     df_samples.to_csv(SAMPLES_FILE, index=False)
 
@@ -830,7 +830,7 @@ def evaluate_sobol_indices(
             f"Available keys: {list(results.keys())}."
         )
 
-    # --- 7. Split the single batch of predictions back into f_A, f_B, f_AB_i ---
+    # --- 6. Split the single batch of predictions back into f_A, f_B, f_AB_i ---
     all_preds = np.asarray(results[prediction_key])
     total_rows = n * (d_varying + 2 + 2 * K)
     if len(all_preds) != total_rows:
@@ -848,14 +848,11 @@ def evaluate_sobol_indices(
     for i in range(d_varying):
         f_AB[i] = all_preds[idx : idx + n].reshape(1, 1, n)
         idx += n
-    f_UV = np.empty((2 * K, n))
-    for k in range(2 * K):
-        f_UV[k] = all_preds[idx : idx + n]
-        idx += n
+    f_UV = all_preds[idx : idx + 2 * K * n].reshape(2 * K, n)
     f_U = f_UV[:K]
     f_V = f_UV[K:]
 
-    # --- 8. Point estimates + shared-row bootstrap CIs (V40, V44vw) ---
+    # --- 7. Point estimates + shared-row bootstrap CIs (V40, V44vw) ---
     # All CIs come from ONE bootstrap: one row-index resample per replicate
     # recomputes first/total/second AND the M1/M2/R masses (V44vw), resampling
     # the already-computed f_A/f_B/f_AB evaluations -- no extra evaluate_sumo()
@@ -875,24 +872,17 @@ def evaluate_sobol_indices(
         n_resamples=SOBOL_BOOTSTRAP_RESAMPLES,
         confidence=SOBOL_BOOTSTRAP_CONFIDENCE,
     )
-    if d_varying == 1:
-        # scipy.stats.sobol_indices squeezes to scalar when d=1 and s=1, causing
-        # an internal "item assignment" error; the Saltelli 2010 algebra is the
-        # exact closed form here anyway (AB_0 IS the full B sample at d=1).
-        # NOTE (fixes latent d=1 bug): the former branch estimated S_1 as
-        # Cov(f_A, f_AB_0)/Var(f_A) -- but f_AB_0 = f_B at d=1, the covariance of
-        # two INDEPENDENT copies, so S_1 always came out ~0 instead of ~1.
-        first_order = np.atleast_1d(alg["first"])
-        total_order = np.atleast_1d(alg["total"])
-    else:
-        si = sobol_indices(func={"f_A": f_A, "f_B": f_B, "f_AB": f_AB}, n=n)
-        # np.squeeze in scipy can collapse to scalar when d_varying=1; ensure 1-d
-        first_order = np.atleast_1d(si.first_order)  # shape (d_varying,)
-        total_order = np.atleast_1d(si.total_order)  # shape (d_varying,)
+    # Single estimator for every d (V42qa/B28pp): the algebra IS the scipy
+    # saltelli_2010 estimator (pinned by test_algebra_matches_scipy_point_estimator),
+    # so no scipy call and no d==1 special case: at d=1, AB_0 is the full B
+    # sample and the Saltelli form yields S_1 ~ 1 (the retired Cov(f_A,f_B)
+    # branch wrongly yielded ~0).
+    first_order = np.atleast_1d(alg["first"])  # shape (d_varying,)
+    total_order = np.atleast_1d(alg["total"])  # shape (d_varying,)
     first_order_ci = boot["first"]  # (d_varying, 2) percentile bounds
     total_order_ci = boot["total"]  # (d_varying, 2)
 
-    # --- 9. Second-order S_ij for every unordered pair (V42qa) ---
+    # --- 8. Second-order S_ij for every unordered pair (V42qa) ---
     # Exact joint-pair estimator S_ij = Var(E[Y|X_i,X_j])/V - S_i - S_j from the
     # U/V mixed designs (algebra + derivation in _sobol_algebra), replacing the
     # B26nc identity that inferred O(d^2) pairs from d first/total gaps and
@@ -986,11 +976,8 @@ def evaluate_sobol_indices(
             val = sobol_second_order[var_a][var_b]
             if not np.isfinite(val):
                 raise ValueError(f"Second-order Sobol' index {var_a}:{var_b} is not finite: {val}")
-    if order_contributions is not None:
-        for key, val in order_contributions.items():
-            if not np.isfinite(val):
-                raise ValueError(f"Sobol' order contribution {key} is not finite: {val}")
-
+    # (nan/inf in order_contributions are rejected downstream by
+    # SobolOrderContributions.validate_finite at the blueprint's model_validate.)
     return {
         "sobol": sobol,
         "sobolSecondOrder": sobol_second_order,

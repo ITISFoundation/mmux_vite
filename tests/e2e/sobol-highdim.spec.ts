@@ -21,8 +21,9 @@ import {
  * The real Flask backend still fits the surrogate and computes Sobol' indices
  * end-to-end over the request payload — only the oSPARC listing is intercepted.
  *
- * Behavioral assertions only (Plotly trace shape + response contract), so this
- * spec carries no pixel baseline and can run on a host (§V12 untouched).
+ * Behavioral assertions only (Plotly trace shape — the d=8 response contract
+ * lives in flaskapi route tests), so this spec carries no pixel baseline and
+ * can run on a host (§V12 untouched).
  */
 
 const HIGHDIM_FUNCTION_UID = "func-sobol-highdim-e2e";
@@ -172,17 +173,14 @@ test("second-order Sobol' heatmap works for 8 inputs (T31rb, arbitrary-d pairs)"
   await plotNext.click();
   await expect(page.getByText("Sensitivity / Correlation Indices")).toBeVisible({ timeout: VIEW_TIMEOUT });
 
-  // The Sobol' fetch fires when plot 3 mounts (view-independent); capture its
-  // contract before navigating so waitForResponse cannot race past it.
+  // The Sobol' fetch fires when plot 3 mounts (view-independent); capture it
+  // before navigating so waitForResponse cannot race past it. The d=8 response
+  // contract itself is covered by flaskapi/tests/test_sobol_indices.py route
+  // tests — this spec's new ground is purely the UI.
   const sobolResponse = page
     .waitForResponse(r => r.url().includes("/flask/dakota/compute_sobol_indices"), { timeout: MODEL_READY_TIMEOUT })
-    .then(async response => {
+    .then(response => {
       expect(response.status(), "compute_sobol_indices → 200").toBe(200);
-      return (await response.json()) as {
-        sobol: Record<string, Record<string, number>>;
-        sobolSecondOrder: Record<string, Record<string, number>>;
-        sobolOrderContributions: Record<string, number>;
-      };
     });
 
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
@@ -190,28 +188,8 @@ test("second-order Sobol' heatmap works for 8 inputs (T31rb, arbitrary-d pairs)"
   await expect(page.getByText("Sobol' Indices")).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expect(page.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
 
-  // Backend contract for d=8 (V42qa + the user's "8 inputs don't break it"):
-  const data = await sobolResponse;
+  await sobolResponse; // the d=8 computation completed successfully
   const vars = Array.from({ length: 8 }, (_, i) => `x${i + 1}`);
-  expect(Object.keys(data.sobol).sort()).toEqual([...vars].sort());
-  expect(Object.keys(data.sobolSecondOrder).sort()).toEqual([...vars].sort());
-  let entries = 0;
-  for (const varA of vars) {
-    const row = data.sobolSecondOrder[varA];
-    expect(Object.keys(row).sort()).toEqual([...vars].filter(v => v !== varA).sort());
-    for (const [varB, value] of Object.entries(row)) {
-      expect(Number.isFinite(value), `S(${varA},${varB}) finite`).toBe(true);
-      expect(row[varB]).toBe(data.sobolSecondOrder[varB][varA]); // symmetric
-      entries += 1;
-    }
-  }
-  expect(entries, "28 unordered pairs stored symmetrically").toBe(2 * 28);
-  const c = data.sobolOrderContributions;
-  expect(c.firstOrder + c.secondOrder + c.thirdAndHigher).toBeCloseTo(1, 9); // V43pt
-  expect(c.heuristicNoiseFloor).toBeGreaterThanOrEqual(0);
-  for (const key of ["firstOrder", "secondOrder", "thirdAndHigher"]) {
-    expect(c[`${key}CiLow`]).toBeLessThanOrEqual(c[`${key}CiHigh`]); // V44vw
-  }
 
   // UI contract: the second-order view renders the FULL 8x8 heatmap — the
   // retired ≤3-input gate (and its explanatory message) must be gone.
