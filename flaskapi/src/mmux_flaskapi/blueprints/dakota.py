@@ -641,15 +641,17 @@ def flask_compute_correlation_indices():
 def flask_compute_sobol_indices():
     """
     Compute per-input first-order (main effect), total-order, and second-order
-    (pairwise interaction) Sobol' indices (#470).
+    (pairwise interaction) Sobol' indices (#470) plus unique order masses
+    M1/M2/R (T31rb).
 
     Builds a surrogate from completed jobs via ``evaluate_sumo()``, then computes
     Sobol' indices directly in Python: generates Saltelli A/B/AB sample matrices
     locally (honouring per-input distributions via ``scipy.stats.rv_continuous.ppf``),
     evaluates all samples in ONE batch through ``evaluate_sumo()``, then applies
-    ``scipy.stats.sobol_indices`` for first/total order plus a closed-form second-order
-    (pairwise interaction) estimator.  Response always includes ``sobolSecondOrder``
-    (no opt-in flag).
+    ``scipy.stats.sobol_indices`` for first/total order plus the exact joint-pair
+    second-order estimator (U/V mixed designs, arbitrary d - V42qa) and order
+    masses.  Response always includes ``sobolSecondOrder`` and
+    ``sobolOrderContributions`` (no opt-in flag).
     """
     _logger.debug("Starting flask function: flask_compute_sobol_indices")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -697,6 +699,7 @@ def flask_compute_sobol_indices():
         response_data = {
             "sobol": results["sobol"],
             "sobol_second_order": results["sobolSecondOrder"],
+            "sobol_order_contributions": results["sobolOrderContributions"],
         }
         validated_response = SobolIndicesResponse.model_validate(response_data)
 

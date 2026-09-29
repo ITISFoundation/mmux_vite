@@ -1,10 +1,13 @@
 """
-Tests for Sobol' sensitivity indices (#470).
+Tests for Sobol' sensitivity indices (#470, T31rb).
 
 Covers the pure scipy-based computation (Saltelli sampling, power-of-2 rounding,
-constant-var handling, second-order indices) and the
-`/flask/dakota/compute_sobol_indices` endpoint.  The Ishigami analytical validation
-(`test_sobol_indices_ishigami_analytical`) is the acceptance gate per §R1.
+constant-var handling) and the `/flask/dakota/compute_sobol_indices` endpoint.
+The exact arbitrary-d pair estimator (V42qa) is validated against four analytic
+benchmarks - additive d=8, pair-interaction d=5, Ishigami, pair-quadratic d=10 -
+with tolerances scaled by the shared-bootstrap CI half-widths (V44vw), and the
+B26nc degeneracy regression proves the retired identity's mass-leak artifact is
+gone. Order masses M1/M2/R and the response contract are covered route-side.
 """
 
 import math
@@ -13,9 +16,7 @@ import numpy as np
 import pytest
 from flask import Flask
 
-# ---------------------------------------------------------------------------
-# Pure-function helpers (no Dakota/surrogate needed)
-# ---------------------------------------------------------------------------
+pytestmark = pytest.mark.unit
 
 
 def _ishigami(x: np.ndarray) -> np.ndarray:
@@ -24,6 +25,87 @@ def _ishigami(x: np.ndarray) -> np.ndarray:
     Uniform inputs on [-π, π] for all three variables.
     """
     return np.sin(x[:, 0]) + 7.0 * np.sin(x[:, 1]) ** 2 + 0.1 * x[:, 2] ** 4 * np.sin(x[:, 0])
+
+
+CONTRIB_KEYS = {
+    "first_order",
+    "second_order",
+    "third_and_higher",
+    "first_order_ci_low",
+    "first_order_ci_high",
+    "second_order_ci_low",
+    "second_order_ci_high",
+    "third_and_higher_ci_low",
+    "third_and_higher_ci_high",
+    "heuristic_noise_floor",
+}
+
+# After the global snake->camel response serializer (V13), the same fixed
+# fields arrive FE-side exactly in the flaskapi §I "api planned" camel shape.
+CONTRIB_KEYS_CAMEL = {
+    "firstOrder",
+    "secondOrder",
+    "thirdAndHigher",
+    "firstOrderCiLow",
+    "firstOrderCiHigh",
+    "secondOrderCiLow",
+    "secondOrderCiHigh",
+    "thirdAndHigherCiLow",
+    "thirdAndHigherCiHigh",
+    "heuristicNoiseFloor",
+}
+
+
+def _run_algebra_on_analytic(f, d: int, *, n: int = 2**12, seed: int = 42):
+    """Build Saltelli A/B/C + AB + pair(U/V) evaluations for analytic f and run
+    the PRODUCTION algebra/bootstrap helpers on them.
+
+    Mirrors the sampling pipeline of evaluate_sobol_indices (same Sobol' QMC
+    3*d stream, same design construction) so the analytic benchmarks exercise
+    the shipped math without a surrogate.
+    """
+    from scipy.stats import uniform
+    from scipy.stats.qmc import Sobol
+
+    from mmux_flaskapi.dakota.funs_evaluate import _sobol_algebra, _sobol_joint_bootstrap
+
+    sampler = Sobol(d=3 * d, seed=seed, scramble=True)
+    U = sampler.random(n)
+    dists = [uniform(loc=-np.pi, scale=2 * np.pi) for _ in range(d)]
+    A = np.column_stack([dists[i].ppf(U[:, i]) for i in range(d)])
+    B = np.column_stack([dists[i].ppf(U[:, d + i]) for i in range(d)])
+    C = np.column_stack([dists[i].ppf(U[:, 2 * d + i]) for i in range(d)])
+    ii, jj = np.triu_indices(d, k=1)
+    pairs = np.column_stack([ii, jj])
+    K = len(ii)
+    f_AB = np.empty((d, n))
+    for i in range(d):
+        X = A.copy()
+        X[:, i] = B[:, i]
+        f_AB[i] = f(X)
+    f_UV = np.empty((2 * K, n))
+    for k in range(K):
+        i, j = int(ii[k]), int(jj[k])
+        Xu = B.copy()
+        Xu[:, [i, j]] = A[:, [i, j]]
+        Xv = C.copy()
+        Xv[:, [i, j]] = A[:, [i, j]]
+        f_UV[k] = f(Xu)
+        f_UV[K + k] = f(Xv)
+    f_A, f_B = f(A), f(B)
+    alg = _sobol_algebra(f_A, f_B, f_AB, f_UV[:K], f_UV[K:], pairs)
+    boot = _sobol_joint_bootstrap(
+        f_A,
+        f_B,
+        f_AB,
+        f_UV[:K],
+        f_UV[K:],
+        pairs,
+        seed=seed,
+        n_resamples=200,
+        confidence=0.95,
+    )
+    return alg, boot
 
 
 class TestSobolSampling:
@@ -84,6 +166,7 @@ class TestSobolSampling:
                 }
             },
             sobol_second_order={},
+            sobol_order_contributions={key: 0.0 for key in CONTRIB_KEYS},
         )
         assert resp.sobol_second_order == {}
 
@@ -104,87 +187,156 @@ class TestSobolSampling:
                 "x2": {"main": 0.2, "total": 0.4, **ci},
             },
             sobol_second_order={"x1": {"x2": s12}, "x2": {"x1": s12}},
+            sobol_order_contributions={key: 0.0 for key in CONTRIB_KEYS},
         )
         assert resp.sobol_second_order["x1"]["x2"] == s12
         assert resp.sobol_second_order["x2"]["x1"] == s12
 
 
-class TestSobolIshigamiAnalytical:
-    """Validate the full sampling + scipy.stats.sobol_indices + second-order pipeline
-    against the Ishigami analytical reference values (§R1).
+class TestSobolArbitraryDPairEstimator:
+    """V42qa acceptance gates for the exact arbitrary-d pair estimator (T31rb).
 
-    This test calls ``evaluate_sobol_indices`` with a fabricated ``evaluate_sumo``
-    that evaluates the analytical Ishigami function directly on the Saltelli samples,
-    bypassing the surrogate entirely.  The purpose is to prove the *math* of the
-    pipeline (sampling → splitting → scipy call → closed-form second order) is correct.
+    All tolerances are scaled by the shared-bootstrap CI half-width (V44vw)
+    rather than hand-tuned absolute floors. The Ishigami test keeps the
+    `test_sobol_indices_ishigami_analytical` name (historic §R1 acceptance gate)
+    but now drives the PRODUCTION algebra helpers (⊥ inlined duplicate math).
     """
 
-    def test_sobol_indices_ishigami_analytical(self, tmp_path):
-        """§R1 acceptance gate: Ishigami indices match analytical references."""
+    def test_sobol_indices_ishigami_analytical(self):
+        """§R1 acceptance gate (production algebra): Ishigami indices match analytical."""
+        alg, boot = _run_algebra_on_analytic(_ishigami, d=3, n=2**14, seed=42)
 
-        from scipy.stats import uniform  # type: ignore
-        from scipy.stats.qmc import Sobol  # type: ignore
+        # first-order: S1≈0.314, S2≈0.442, S3≈0; total: 0.558/0.442/0.244
+        for i, expect in enumerate([0.314, 0.442, 0.0]):
+            assert alg["first"][i] == pytest.approx(expect, abs=0.05)
+        for i, expect in enumerate([0.558, 0.442, 0.244]):
+            assert alg["total"][i] == pytest.approx(expect, abs=0.05)
 
-        # --- Parameters ---
-        n = 2**14  # 16384 — low MC noise
-        seed = 42
-        d = 3
-        bounds = [(-np.pi, np.pi)] * d
-
-        # --- Generate Saltelli A/B/AB via Sobol' QMC ---
-        sampler = Sobol(d=2 * d, seed=seed, scramble=True)
-        U = sampler.random(n)
-        U_A, U_B = U[:, :d], U[:, d:]
-
-        dists = [uniform(loc=b[0], scale=b[1] - b[0]) for b in bounds]
-        A = np.column_stack([dists[i].ppf(U_A[:, i]) for i in range(d)])
-        B = np.column_stack([dists[i].ppf(U_B[:, i]) for i in range(d)])
-
-        AB = np.empty((d, n, d))
-        for i in range(d):
-            AB_i = A.copy()
-            AB_i[:, i] = B[:, i]
-            AB[i] = AB_i
-
-        # --- Evaluate Ishigami analytically on all sample matrices ---
-        f_A = _ishigami(A).reshape(1, n)  # shape (1, n)
-        f_B = _ishigami(B).reshape(1, n)
-        f_AB = np.empty((d, 1, n))
-        for i in range(d):
-            f_AB[i] = _ishigami(AB[i]).reshape(1, 1, n)
-
-        # --- Call scipy.stats.sobol_indices ---
-        from scipy.stats import sobol_indices  # type: ignore
-
-        si = sobol_indices(func={"f_A": f_A, "f_B": f_B, "f_AB": f_AB}, n=n)
-        first_order = si.first_order  # shape (d,)
-        total_order = si.total_order
-
-        # --- Compute second-order via Jansen/Saltelli 2010 formula ---
-        higher_order = total_order - first_order
-        S_ij = np.full((d, d), np.nan)
-        for ii in range(d):
-            for jj in range(ii + 1, d):
-                other_sum = float(np.sum(higher_order) - higher_order[ii] - higher_order[jj])
-                s_ij = (float(higher_order[ii] + higher_order[jj]) - other_sum) / 2.0
-                S_ij[ii, jj] = s_ij
-                S_ij[jj, ii] = s_ij
-
-        # --- §R1 reference values ---
-        # first-order: S1≈0.314, S2≈0.442, S3≈0
-        # total-order: S1_total≈0.558, S2_total≈0.442, S3_total≈0.244
         # second-order: S_12≈0, S_13≈0.244, S_23≈0
-        assert first_order[0] == pytest.approx(0.314, abs=0.05)  # S1
-        assert first_order[1] == pytest.approx(0.442, abs=0.05)  # S2
-        assert first_order[2] == pytest.approx(0.0, abs=0.05)  # S3
+        assert alg["second"][0, 1] == pytest.approx(0.0, abs=0.05)
+        assert alg["second"][0, 2] == pytest.approx(0.244, abs=0.05)
+        assert alg["second"][1, 2] == pytest.approx(0.0, abs=0.05)
 
-        assert total_order[0] == pytest.approx(0.558, abs=0.05)  # S_T1
-        assert total_order[1] == pytest.approx(0.442, abs=0.05)  # S_T2
-        assert total_order[2] == pytest.approx(0.244, abs=0.05)  # S_T3
+        # V43pt: masses over unique ANOVA terms, identity exact per replicate
+        assert alg["m1"] == pytest.approx(0.756, abs=0.05)
+        assert alg["m2"] == pytest.approx(0.244, abs=0.05)
+        assert alg["m1"] + alg["m2"] + alg["r"] == pytest.approx(1.0, abs=1e-12)
 
-        assert S_ij[0, 1] == pytest.approx(0.0, abs=0.05)  # S_12
-        assert S_ij[0, 2] == pytest.approx(0.244, abs=0.05)  # S_13
-        assert S_ij[1, 2] == pytest.approx(0.0, abs=0.05)  # S_23
+    def test_sobol_second_order_additive_d8(self):
+        """V42qa additive d=8 benchmark: every pair ≈ 0 within 3·bootstrap-CI."""
+
+        def f(x):
+            return (
+                np.sin(x[:, 0])
+                + np.abs(x[:, 1])
+                + np.tanh(x[:, 2])
+                + x[:, 3] ** 2
+                + np.cos(x[:, 4])
+                + np.exp(x[:, 5] / 4)
+                + np.sin(2 * x[:, 6])
+                + np.abs(x[:, 7]) ** 1.5
+            )
+
+        alg, boot = _run_algebra_on_analytic(f, d=8, seed=7)
+        ii, jj = np.triu_indices(8, k=1)
+        s_ij = alg["second"][ii, jj]
+        # V42qa: no real interactions -> every pair estimate sits inside 3x its
+        # own shared-bootstrap CI half-width (observed ~1e-4 at n=4096)
+        half_pair = (boot["second"][:, 1] - boot["second"][:, 0]) / 2.0
+        assert np.all(np.abs(s_ij) <= 3 * half_pair + 1e-9)
+        half_m2 = float(boot["m2"][1] - boot["m2"][0]) / 2.0
+        assert abs(alg["m2"]) <= 3 * half_m2 + 1e-9
+        assert alg["m1"] + alg["m2"] + alg["r"] == pytest.approx(1.0, abs=1e-12)
+
+    def test_sobol_second_order_pair_interaction_d5(self):
+        """V42qa pair-interaction d=5: S_12 recovers the analytic value exactly."""
+
+        def f(x):
+            return 2 * x[:, 0] * x[:, 1] + np.sin(x[:, 2]) + np.abs(x[:, 3]) + np.tanh(x[:, 4])
+
+        alg, boot = _run_algebra_on_analytic(f, d=5, seed=11)
+        # analytic: V_12/V with uniform[-pi,pi]: E[x^2]=pi^2/3
+        v12 = 4 * (np.pi**2 / 3) ** 2
+        others = [
+            np.var(np.sin(np.linspace(-np.pi, np.pi, 40001))),
+            np.var(np.abs(np.linspace(-np.pi, np.pi, 40001))),
+            np.var(np.tanh(np.linspace(-np.pi, np.pi, 40001))),
+        ]
+        s12_true = v12 / (v12 + sum(others))
+        # V42qa: tolerance = 3x THIS pair's bootstrap CI half-width (V44vw CIs)
+        half_pair = (boot["second"][:, 1] - boot["second"][:, 0]) / 2.0
+        ii, jj = np.triu_indices(5, k=1)
+        s_all = alg["second"][ii, jj]
+        assert s_all[0] == pytest.approx(s12_true, abs=max(0.01, 3 * float(half_pair[0])))
+        # all remaining pairs are truly zero -> within their own 3 CIs
+        assert np.all(np.abs(s_all[1:]) <= 3 * half_pair[1:] + 1e-9)
+
+    def test_sobol_second_order_pair_quadratic_d10(self):
+        """V42qa >=10-dim analytic benchmark: one known pair in d=10."""
+        rng = np.random.default_rng(3)
+        a = rng.uniform(0.5, 2.0, 10)
+        c0 = 1.5
+
+        def f(x):
+            return a @ x.T + c0 * x[:, 0] * x[:, 1]
+
+        alg, boot = _run_algebra_on_analytic(f, d=10, seed=5)
+        v12 = c0**2 * (np.pi**2 / 3) ** 2
+        vtot = float(np.sum(a**2) * (np.pi**2 / 3)) + v12
+        s01_true = v12 / vtot
+        half = float(boot["m2"][1] - boot["m2"][0]) / 2.0
+        assert alg["second"][0, 1] == pytest.approx(s01_true, abs=max(0.01, 3 * half))
+        # d=10 is inside the 4-25 target window: M2 captures the true mass
+        assert alg["m2"] == pytest.approx(s01_true, abs=max(0.01, 3 * half))
+        # the 44 zero pairs must each stay within 3x their OWN bootstrap CI -
+        # pairs touching a strong main effect carry visibly larger joint-index
+        # noise, which a flat absolute tolerance would misjudge as bias
+        half_pair = (boot["second"][:, 1] - boot["second"][:, 0]) / 2.0
+        ii, jj = np.triu_indices(10, k=1)
+        s_all = alg["second"][ii, jj]
+        assert np.all(np.abs(s_all[1:]) <= 3 * half_pair[1:] + 1e-9)
+        assert np.sum(s_all) == pytest.approx(s01_true, abs=max(0.01, 3 * half))
+
+    def test_sobol_second_order_not_degenerate_vs_b26nc(self):
+        """B26nc regression: the retired identity leaks mass as a NEGATIVE pair.
+
+        For f = Ishigami(x1,x2,x3) + additive(x4,x5) the old
+        ((U_i+U_j)-Σ_{k≠i,j} U_k)/2 estimator assigns S_45 = -S_13 ≈ -0.244
+        (pure artifact: x4,x5 are non-interacting). The T31rb estimator must
+        return S_45 ≈ 0 with no negative mass anywhere outside noise.
+        """
+
+        def f(x):
+            base = _ishigami(x[:, :3])
+            rest = np.abs(x[:, 3]) + np.tanh(x[:, 4])
+            return base + rest
+
+        alg, boot = _run_algebra_on_analytic(f, d=5, seed=13)
+        # true interaction: only S_13 ≈ 0.244 (diluted by the additive rest)
+        assert alg["second"][0, 2] > 0.1
+        half45 = float(boot["second"][9, 1] - boot["second"][9, 0]) / 2.0  # pair (3,4)
+        assert abs(alg["second"][3, 4]) <= max(0.01, 3 * half45), (
+            "non-interacting pair must not carry negative mass"
+        )
+        # what the OLD identity would have produced, from the same first/total:
+        u = alg["total"] - alg["first"]
+        old_s45 = (u[3] + u[4] - (u[0] + u[1] + u[2])) / 2.0
+        assert old_s45 < -0.1, "regression guard: old identity is provably degenerate here"
+        # new estimator's total pair mass stays physically sane
+        assert abs(alg["m2"] - alg["second"][0, 2]) <= 0.05
+
+    def test_order_mass_identity_any_d(self):
+        """V43pt: M1+M2+R=1 exactly (closure), for any d including d=2."""
+        for d, seed in [(2, 1), (4, 2), (8, 3)]:
+
+            def f(x, d=d):
+                main = np.sin(x[:, 0])
+                if d > 1:
+                    main = main + np.abs(x[:, 1] * x[:, min(2, x.shape[1] - 1)])
+                return main
+
+            alg, _ = _run_algebra_on_analytic(f, d=d, n=2**10, seed=seed)
+            assert alg["m1"] + alg["m2"] + alg["r"] == pytest.approx(1.0, abs=1e-12)
 
 
 # ---------------------------------------------------------------------------
@@ -431,3 +583,161 @@ class TestComputeSobolIndicesRoute:
         assert response.status_code == 500
         data = response.get_json()
         assert "Some error" in data["error"]
+
+
+class TestSobolOrderContributionsRoute:
+    """T31rb route contract: exact arbitrary-d pairs + M1/M2/R masses (V42qa-V46jk)."""
+
+    @pytest.fixture(autouse=True)
+    def _small_sobol_base_samples(self, monkeypatch):
+        """Keep the enlarged 8-var batch cheap; mirrors the 2-var route tests."""
+        monkeypatch.setattr("mmux_flaskapi.dakota.funs_evaluate.SOBOL_BASE_SAMPLES", 8)
+
+    def test_sobol_indices_success_eight_vars(self, test_client: Flask):
+        """V42qa target window: d=8 returns all C(8,2)=28 symmetric pairs."""
+        input_vars = [f"x{i}" for i in range(1, 9)]
+        output = "y"
+
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": _make_distributions(input_vars),
+            "numSamples": 10,
+            "seed": 42,
+            "FunctionJobs": _make_jobs(60, input_vars, output),
+        }
+
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+
+        pairs = data["sobolSecondOrder"]
+        assert set(pairs.keys()) == set(input_vars)
+        for var in input_vars:
+            assert len(pairs[var]) == 7, "every var must pair with all 7 others"
+            assert var not in pairs[var], "no self-pair"
+        n_pairs = sum(len(v) for v in pairs.values())
+        assert n_pairs == 2 * 28, "28 unordered pairs, stored symmetrically"
+        for var_a, row in pairs.items():
+            for var_b, val in row.items():
+                assert isinstance(val, (int, float))
+                assert math.isfinite(val)
+                assert pairs[var_b][var_a] == pytest.approx(val)
+
+    def test_sobol_order_contributions_consistency(self, test_client: Flask):
+        """V43pt/V44vw: M1+M2+R=1, CI bounds ordered, noise floor = median half-width."""
+        input_vars = [f"x{i}" for i in range(1, 9)]
+        output = "y"
+
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": _make_distributions(input_vars),
+            "numSamples": 10,
+            "seed": 7,
+            "FunctionJobs": _make_jobs(60, input_vars, output),
+        }
+
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+
+        c = data["sobolOrderContributions"]
+        assert set(c.keys()) == CONTRIB_KEYS_CAMEL
+        assert c["firstOrder"] + c["secondOrder"] + c["thirdAndHigher"] == pytest.approx(
+            1.0, abs=1e-9
+        )
+        assert c["firstOrderCiLow"] <= c["firstOrderCiHigh"]
+        assert c["secondOrderCiLow"] <= c["secondOrderCiHigh"]
+        assert c["thirdAndHigherCiLow"] <= c["thirdAndHigherCiHigh"]
+        assert c["heuristicNoiseFloor"] >= 0.0
+        # heuristic floor = median of per-variable first/total CI half-widths (V44vw)
+        half_widths = []
+        for var in input_vars:
+            e = data["sobol"][var]
+            half_widths.append((e["mainCiHigh"] - e["mainCiLow"]) / 2)
+            half_widths.append((e["totalCiHigh"] - e["totalCiLow"]) / 2)
+        assert c["heuristicNoiseFloor"] == pytest.approx(float(np.median(half_widths)), rel=1e-6)
+        # M2 equals the summed unique pairs actually returned
+        m2_from_pairs = sum(
+            val
+            for var_a, row in data["sobolSecondOrder"].items()
+            for var_b, val in row.items()
+            if var_a < var_b
+        )
+        assert c["secondOrder"] == pytest.approx(m2_from_pairs, abs=1e-9)
+
+    def test_sobol_response_fixed_fields(self, test_client: Flask):
+        """V46jk: top-level response keys are fixed schema fields, no interpolation."""
+        input_vars = ["x1", "x2"]
+        output = "AF_peak"
+
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": _make_distributions(input_vars),
+            "numSamples": 10,
+            "seed": 42,
+            "FunctionJobs": _make_jobs(50, input_vars, output),
+        }
+
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert set(data.keys()) == {"sobol", "sobolSecondOrder", "sobolOrderContributions"}
+
+    def test_second_order_reuses_single_batch(self, test_client: Flask, monkeypatch):
+        """V40: exact pairs come from ONE evaluate_sumo batch (no extra surrogate
+        calls per pair); row count = n * (2 + d + 2*C(d,2))."""
+        import mmux_flaskapi.dakota.funs_evaluate as fe
+
+        real_eval = fe.evaluate_sumo
+        calls: list[int] = []
+
+        def spy(*args, **kwargs):
+            result = real_eval(*args, **kwargs)
+            rows = {len(v) for k, v in result.items() if k.endswith("_hat")}
+            assert len(rows) == 1, f"expected one row count across _hat keys, got {rows}"
+            calls.append(rows.pop())
+            return result
+
+        monkeypatch.setattr(fe, "evaluate_sumo", spy)
+
+        input_vars = ["x1", "x2", "x3"]
+        output = "y"
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": _make_distributions(input_vars),
+            "numSamples": 10,
+            "seed": 42,
+            "FunctionJobs": _make_jobs(50, input_vars, output),
+        }
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 200
+        # n = 8 (monkeypatched), d = 3, K = 3 pairs -> 8 * (2 + 3 + 6) = 88 rows,
+        # returned in exactly ONE batch call.
+        assert calls == [8 * (2 + 3 + 2 * 3)]
+
+    def test_sobol_pair_keys_preserve_multi_word_variable_names(self, test_client: Flask):
+        """V41/B25: pair matrix keys are original variable names, untouched by
+        the response camelCase serializer (the FE heatmap looks them up verbatim)."""
+        input_vars = ["sigma_blood", "x2"]
+        output = "y"
+
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": _make_distributions(input_vars),
+            "numSamples": 10,
+            "seed": 42,
+            "FunctionJobs": _make_jobs(50, input_vars, output),
+        }
+
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        pairs = data["sobolSecondOrder"]
+        assert pairs["sigma_blood"]["x2"] == pytest.approx(pairs["x2"]["sigma_blood"])
+        assert "sigmaBlood" not in pairs
+        assert "sigma_blood" in data["sobol"]
