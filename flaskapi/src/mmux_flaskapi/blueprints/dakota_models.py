@@ -1201,11 +1201,14 @@ class SobolIndicesResponse(BaseModel):
             "pairs (no self-pair). Empty when fewer than 2 input vars."
         ),
     )
-    sobol_order_contributions: SobolOrderContributions = Field(
+    sobol_order_contributions: SobolOrderContributions | None = Field(
         ...,
         description=(
             "Unique order masses M1/M2/R with jointly bootstrapped CIs and heuristic "
-            "noise floor (fixed schema fields, V46jk; semantics V43pt/V44vw/V45xy)"
+            "noise floor (fixed schema fields, V46jk; semantics V43pt/V44vw/V45xy). "
+            "null when the sample output variance is zero (all-constant inputs or a "
+            "degenerate surrogate): variance fractions are undefined there, so the "
+            "response says so explicitly instead of asserting the M1+M2+R=1 closure"
         ),
     )
 

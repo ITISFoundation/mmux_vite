@@ -651,7 +651,8 @@ def flask_compute_sobol_indices():
     ``scipy.stats.sobol_indices`` for first/total order plus the exact joint-pair
     second-order estimator (U/V mixed designs, arbitrary d - V42qa) and order
     masses.  Response always includes ``sobolSecondOrder`` and
-    ``sobolOrderContributions`` (no opt-in flag).
+    ``sobolOrderContributions`` (no opt-in flag; the latter is null only when the
+    sample output variance is zero, where variance fractions are undefined).
     """
     _logger.debug("Starting flask function: flask_compute_sobol_indices")
     _logger.debug("Cwd: " + str(Path.cwd()))

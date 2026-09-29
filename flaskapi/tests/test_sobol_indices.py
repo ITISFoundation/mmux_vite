@@ -56,18 +56,15 @@ CONTRIB_KEYS_CAMEL = {
 }
 
 
-def _run_algebra_on_analytic(f, d: int, *, n: int = 2**12, seed: int = 42):
-    """Build Saltelli A/B/C + AB + pair(U/V) evaluations for analytic f and run
-    the PRODUCTION algebra/bootstrap helpers on them.
+def _build_sobol_designs(f, d: int, *, n: int = 2**12, seed: int = 42):
+    """Build Saltelli A/B/C + AB + pair(U/V) evaluations for analytic f.
 
     Mirrors the sampling pipeline of evaluate_sobol_indices (same Sobol' QMC
-    3*d stream, same design construction) so the analytic benchmarks exercise
-    the shipped math without a surrogate.
+    3*d stream, same design construction) so tests exercise the shipped math
+    without a surrogate.
     """
     from scipy.stats import uniform
     from scipy.stats.qmc import Sobol
-
-    from mmux_flaskapi.dakota.funs_evaluate import _sobol_algebra, _sobol_joint_bootstrap
 
     sampler = Sobol(d=3 * d, seed=seed, scramble=True)
     U = sampler.random(n)
@@ -92,14 +89,21 @@ def _run_algebra_on_analytic(f, d: int, *, n: int = 2**12, seed: int = 42):
         Xv[:, [i, j]] = A[:, [i, j]]
         f_UV[k] = f(Xu)
         f_UV[K + k] = f(Xv)
-    f_A, f_B = f(A), f(B)
-    alg = _sobol_algebra(f_A, f_B, f_AB, f_UV[:K], f_UV[K:], pairs)
+    return f(A), f(B), f_AB, f_UV[:K], f_UV[K:], pairs
+
+
+def _run_algebra_on_analytic(f, d: int, *, n: int = 2**12, seed: int = 42):
+    """Run the PRODUCTION algebra/bootstrap helpers on analytic designs."""
+    from mmux_flaskapi.dakota.funs_evaluate import _sobol_algebra, _sobol_joint_bootstrap
+
+    f_A, f_B, f_AB, f_U, f_V, pairs = _build_sobol_designs(f, d, n=n, seed=seed)
+    alg = _sobol_algebra(f_A, f_B, f_AB, f_U, f_V, pairs)
     boot = _sobol_joint_bootstrap(
         f_A,
         f_B,
         f_AB,
-        f_UV[:K],
-        f_UV[K:],
+        f_U,
+        f_V,
         pairs,
         seed=seed,
         n_resamples=200,
@@ -337,6 +341,83 @@ class TestSobolArbitraryDPairEstimator:
 
             alg, _ = _run_algebra_on_analytic(f, d=d, n=2**10, seed=seed)
             assert alg["m1"] + alg["m2"] + alg["r"] == pytest.approx(1.0, abs=1e-12)
+
+
+class TestSobolEstimatorInvariants:
+    """B28pp (PR #649 Copilot review): estimator-level invariants of V42qa.
+
+    The T31rb algebra originally used raw products anchored on ``f_A`` only
+    (``E[f_B.f_AB_i] - E[f_A]^2``, ``Var(f_A)``): NOT translation-invariant
+    under ``f -> f + c`` (drift ~ c whenever mean >> std), and a different
+    estimator than the scipy point estimates displayed alongside it. The algebra
+    now mirrors scipy.stats.sobol_indices' ``saltelli_2010`` exactly (pooled
+    A/B mean removal, pooled A/B variance, centered products)."""
+
+    @staticmethod
+    def _f(x):
+        return 2 * x[:, 0] * x[:, 1] + np.sin(x[:, 2]) + np.abs(x[:, 3])
+
+    def test_indices_invariant_under_output_translation(self):
+        """Adding a constant offset to EVERY model output moves NO index.
+
+        Raw-product estimators drift proportionally to the offset (units
+        effects, e.g. stress reported in Pa); centered products cannot."""
+        from mmux_flaskapi.dakota.funs_evaluate import _sobol_algebra
+
+        d = 4
+        f_A, f_B, f_AB, f_U, f_V, pairs = _build_sobol_designs(self._f, d=d, n=2**10, seed=21)
+        alg0 = _sobol_algebra(f_A, f_B, f_AB, f_U, f_V, pairs)
+        offset = 500.0  # ~100x the output std: the mean >> std regime
+        algc = _sobol_algebra(
+            f_A + offset, f_B + offset, f_AB + offset, f_U + offset, f_V + offset, pairs
+        )
+        np.testing.assert_allclose(algc["first"], alg0["first"], atol=1e-8)
+        np.testing.assert_allclose(algc["total"], alg0["total"], atol=1e-8)
+        np.testing.assert_allclose(algc["second"], alg0["second"], atol=1e-8)
+        assert algc["m1"] == pytest.approx(alg0["m1"], abs=1e-8)
+        assert algc["m2"] == pytest.approx(alg0["m2"], abs=1e-8)
+        assert algc["r"] == pytest.approx(alg0["r"], abs=1e-8)
+
+    def test_algebra_matches_scipy_point_estimator(self):
+        """Bootstrap CIs must target the SAME estimator as the displayed scipy
+        first/total points (d>=2 path of evaluate_sobol_indices)."""
+        from scipy.stats import sobol_indices
+
+        from mmux_flaskapi.dakota.funs_evaluate import _sobol_algebra
+
+        d, n = 4, 2**10
+        f_A, f_B, f_AB, f_U, f_V, pairs = _build_sobol_designs(self._f, d=d, n=n, seed=22)
+        si = sobol_indices(
+            func={
+                "f_A": f_A.reshape(1, n),
+                "f_B": f_B.reshape(1, n),
+                "f_AB": f_AB.reshape(d, 1, n),
+            },
+            n=n,
+        )
+        alg = _sobol_algebra(f_A, f_B, f_AB, f_U, f_V, pairs)
+        np.testing.assert_allclose(alg["first"], np.atleast_1d(si.first_order), atol=1e-9)
+        np.testing.assert_allclose(alg["total"], np.atleast_1d(si.total_order), atol=1e-9)
+
+    def test_zero_variance_sample_sets_var_zero(self):
+        """V43pt/B28pp algebra seam: constant samples flag var_zero (the response
+        layer turns that into null order contributions, not fake 0/0/0 masses)."""
+        from mmux_flaskapi.dakota.funs_evaluate import _sobol_algebra
+
+        n, d = 64, 3
+        alg = _sobol_algebra(
+            np.full(n, 2.0),
+            np.full(n, 2.0),
+            np.full((d, n), 2.0),
+            np.empty((0, n)),
+            np.empty((0, n)),
+            np.empty((0, 2), dtype=int),
+        )
+        assert alg["var_zero"] is True
+        assert alg["m1"] == 0.0 and alg["m2"] == 0.0 and alg["r"] == 0.0
+        # and a live sample does NOT set the flag
+        alg_live, _ = _run_algebra_on_analytic(self._f, d=4, n=2**8, seed=23)
+        assert alg_live["var_zero"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -741,3 +822,64 @@ class TestSobolOrderContributionsRoute:
         assert pairs["sigma_blood"]["x2"] == pytest.approx(pairs["x2"]["sigma_blood"])
         assert "sigmaBlood" not in pairs
         assert "sigma_blood" in data["sobol"]
+
+    def test_all_constant_inputs_unit_null_order_contributions(self):
+        """V43pt/B28pp unit path: evaluate_sobol_indices with all-constant
+        distributions returns null order contributions (the d_varying==0
+        contract: fractions undefined where there is no variance)."""
+        from pathlib import Path
+
+        from mmux_flaskapi.dakota.funs_evaluate import evaluate_sobol_indices
+
+        distributions = {
+            "x1": {"distribution": "constant", "value": 1.0},
+            "x2": {"distribution": "constant", "value": -2.0},
+        }
+        result = evaluate_sobol_indices(
+            Path("."),
+            Path("."),
+            ["x1", "x2"],
+            "y_hat",
+            distributions,
+            preprocessor=None,  # unused: d_varying==0 returns before sampling
+            seed=42,
+        )
+        assert result["sobolOrderContributions"] is None
+        assert result["sobolSecondOrder"] == {}
+        for entry in result["sobol"].values():
+            assert all(v == 0.0 for v in entry.values())
+
+    def test_degenerate_surrogate_nulls_order_contributions(self, test_client: Flask, monkeypatch):
+        """V43pt/B28pp over HTTP: a surrogate that predicts one constant value
+        (zero sample variance) -> sobolOrderContributions null, ⊥ (0,0,0) masses.
+        (Request schema only allows normal/uniform inputs, so this degenerate
+        surrogate is how zero-variance responses actually arise.)"""
+        import numpy as np
+
+        import mmux_flaskapi.dakota.funs_evaluate as fe
+
+        real_evaluate_sumo = fe.evaluate_sumo
+
+        def _constant_surrogate(*args, **kwargs):
+            results = real_evaluate_sumo(*args, **kwargs)
+            return {key: np.full_like(np.asarray(val), 42.0) for key, val in results.items()}
+
+        monkeypatch.setattr(fe, "evaluate_sumo", _constant_surrogate)
+
+        input_vars = ["x1", "x2", "x3"]
+        output = "y"
+        payload = {
+            "inputVars": input_vars,
+            "output": output,
+            "distributions": _make_distributions(input_vars),
+            "numSamples": 10,
+            "seed": 42,
+            "FunctionJobs": _make_jobs(50, input_vars, output),
+        }
+
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["sobolOrderContributions"] is None
+        for var in input_vars:
+            assert all(v == 0.0 for v in data["sobol"][var].values())

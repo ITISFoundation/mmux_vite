@@ -4,7 +4,7 @@ import re
 import shutil
 from collections.abc import Callable
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -461,19 +461,6 @@ effectively free relative to the surrogate evaluation cost.
 
 SOBOL_BOOTSTRAP_CONFIDENCE = 0.95
 
-_SOBOL_ORDER_CONTRIBUTION_KEYS = (
-    "first_order",
-    "second_order",
-    "third_and_higher",
-    "first_order_ci_low",
-    "first_order_ci_high",
-    "second_order_ci_low",
-    "second_order_ci_high",
-    "third_and_higher_ci_low",
-    "third_and_higher_ci_high",
-    "heuristic_noise_floor",
-)
-
 
 def _sobol_algebra(
     f_A: np.ndarray,
@@ -493,10 +480,17 @@ def _sobol_algebra(
     U^ij_n = f(A_i, A_j, B_rest) and V^ij_n = f(A_i, A_j, C_rest) with ``C`` an
     independent third sample stream.
 
-    Estimators (Saltelli et al., Comput.Phys.Commun. 181 (2010) 259-270):
-      first_i  = (E[f_B . f_AB_i] - E[f_A]^2) / Var(f_A)         (eq. 5)
-      total_i  = E[(f_A - f_AB_i)^2] / (2 Var(f_A))              (eq. 6-7)
-      S_(i,j)  = (E[f_U^ij . f_V^ij] - E[f_A]^2) / Var(f_A)      joint pair index
+    Estimators (Saltelli et al., Comput.Phys.Commun. 181 (2010) 259-270, in the
+    EXACT form scipy.stats.sobol_indices implements it - _sensitivity_analysis.py
+    ``saltelli_2010`` - including its Sobol' & Levitan (1999) pooled mean removal
+    and pooled A/B variance. Centering only through ``mu_hat``/``var_hat`` keeps
+    point estimates, pair subtraction and bootstrap replicates on ONE estimator
+    and makes every index translation-invariant under ``f -> f + c``: the raw
+    products below are mean-subtracted before averaging, so physically-offset
+    outputs (e.g. stress in Pa, mean >> std) cannot corrupt the ratios.
+      first_i  = E[(f_B - mu) . (f_AB_i - f_A)] / Var([f_A, f_B])  Table 2(b)
+      total_i  = E[(f_A - f_AB_i)^2] / (2 Var([f_A, f_B]))          Table 2(f)
+      S_(i,j)  = E[(f_U^ij - mu) . (f_V^ij - mu)] / Var([f_A, f_B]) joint pair
         EXACT for arbitrary d: conditional on the shared pair values (A_i, A_j),
         U and V differ only in fully independent rest columns, so
         E[f_U . f_V | pair] = g(pair)^2 with g = E[Y | X_i, X_j]; averaging rows
@@ -522,8 +516,14 @@ def _sobol_algebra(
     """
     n = f_A.shape[0]
     d = f_AB.shape[0]
-    e_hat = float(np.mean(f_A))
-    var_hat = float(np.var(f_A))
+    # Pooled mean/variance of A and B - exactly what scipy.stats.sobol_indices
+    # uses (Sobol' & Levitan 1999 mean removal; var of the independent A/B pool).
+    # All products are mean-subtracted before averaging, so every index is
+    # invariant under f -> f + c (a raw E[f.f'] - E[f_A]^2 form drifts with the
+    # output offset whenever mean >> std, e.g. physical units in Pa).
+    pooled = np.concatenate((f_A, f_B))
+    mu_hat = float(np.mean(pooled))
+    var_hat = float(np.var(pooled))
     if var_hat == 0.0:
         return {
             "first": np.zeros(d),
@@ -532,13 +532,18 @@ def _sobol_algebra(
             "m1": 0.0,
             "m2": 0.0,
             "r": 0.0,
+            "var_zero": True,
         }
-    first = (f_AB @ f_B / n - e_hat**2) / var_hat  # (d,)
+    # scipy saltelli_2010 Table 2(b): mean((f_B - mu) * (f_AB_i - f_A)) / var
+    # (the difference f_AB_i - f_A is centering-free).
+    first = np.mean((f_B - mu_hat)[None, :] * (f_AB - f_A[None, :]), axis=1) / var_hat  # (d,)
     total = 0.5 * np.mean((f_A[None, :] - f_AB) ** 2, axis=1) / var_hat  # (d,)
     second = np.zeros((d, d))
     if f_U.shape[0] > 0:
+        # Centered cross-product of the pair designs: E[g^2] - E[g]^2 = Var(g),
+        # estimated translation-invariantly (mu_hat absorbs any output offset).
         joint = (
-            np.einsum("kn,kn->k", f_U, f_V) / n - e_hat**2
+            np.einsum("kn,kn->k", f_U - mu_hat, f_V - mu_hat) / n
         ) / var_hat  # (K,) Var(E[Y|Xi,Xj])/V, exact
         ii = pairs[:, 0]
         jj = pairs[:, 1]
@@ -548,7 +553,15 @@ def _sobol_algebra(
     m1 = float(np.sum(first))
     m2 = float(np.sum(np.triu(second, k=1)))
     r = 1.0 - m1 - m2
-    return {"first": first, "total": total, "second": second, "m1": m1, "m2": m2, "r": r}
+    return {
+        "first": first,
+        "total": total,
+        "second": second,
+        "m1": m1,
+        "m2": m2,
+        "r": r,
+        "var_zero": False,
+    }
 
 
 def _sobol_joint_bootstrap(
@@ -617,7 +630,7 @@ def evaluate_sobol_indices(
     distributions: dict[str, dict],
     preprocessor,
     seed: int | None = None,
-) -> dict[str, dict]:
+) -> dict[str, Any]:
     """Compute Sobol' first-order, total-order, and second-order sensitivity indices.
 
     Generates Saltelli A/B/AB sample matrices locally (honouring per-input
@@ -674,7 +687,8 @@ def evaluate_sobol_indices(
         (``{varA: {varB: float}}`` symmetric over unordered pairs, no self-pair),
         and ``"sobolOrderContributions"`` (unique order masses ``first_order``=M1,
         ``second_order``=M2, ``third_and_higher``=R with bootstrap CIs and
-        ``heuristic_noise_floor``, per V43pt/V44vw).
+        ``heuristic_noise_floor``, per V43pt/V44vw; ``None`` when the sample
+        output variance is zero -- the fractions are undefined there, V43pt).
     """
     import math
 
@@ -713,9 +727,11 @@ def evaluate_sobol_indices(
 
     # --- 2. Fixed base sample count, rounded up to next power of 2 (V36) ---
     if d_varying == 0:
-        # All variables are constant — indices are trivially zero. The R mass is
-        # 0 (not the closure 1 - M1 - M2 = 1) because a zero-variance output has
-        # no variance to partition.
+        # All variables are constant — indices are trivially zero. Order masses
+        # are NOT reported as (0,0,0): a zero-variance output has no variance to
+        # partition, so the M1/M2/R fractions are undefined and the response
+        # states that explicitly with null (V43pt closure to 1 is a statement
+        # about real variance partitions, not this degenerate case).
         sobol = {
             var: {
                 "main": 0.0,
@@ -727,11 +743,10 @@ def evaluate_sobol_indices(
             }
             for var in input_vars
         }
-        zero_contributions = {key: 0.0 for key in _SOBOL_ORDER_CONTRIBUTION_KEYS}
         return {
             "sobol": sobol,
             "sobolSecondOrder": {},
-            "sobolOrderContributions": zero_contributions,
+            "sobolOrderContributions": None,
         }
 
     n = 2 ** math.ceil(math.log2(max(SOBOL_BASE_SAMPLES, 2)))
@@ -897,27 +912,34 @@ def evaluate_sobol_indices(
     # pair once; R = 1 - M1 - M2 closes the partition by construction (⊥ clamp;
     # R's bootstrap CI covering 0 means "unresolved from sampling noise", and the
     # noise floor below is an explicitly rough comparator, V44vw).
-    m1_mass = float(np.sum(first_order))
-    m2_mass = float(np.sum(np.triu(alg["second"], k=1)))
-    r_mass = 1.0 - m1_mass - m2_mass
-    ci_half_widths = np.concatenate(
-        [
-            (first_order_ci[:, 1] - first_order_ci[:, 0]) / 2.0,
-            (total_order_ci[:, 1] - total_order_ci[:, 0]) / 2.0,
-        ]
-    )
-    order_contributions = {
-        "first_order": m1_mass,
-        "second_order": m2_mass,
-        "third_and_higher": r_mass,
-        "first_order_ci_low": float(boot["m1"][0]),
-        "first_order_ci_high": float(boot["m1"][1]),
-        "second_order_ci_low": float(boot["m2"][0]),
-        "second_order_ci_high": float(boot["m2"][1]),
-        "third_and_higher_ci_low": float(boot["r"][0]),
-        "third_and_higher_ci_high": float(boot["r"][1]),
-        "heuristic_noise_floor": float(np.median(ci_half_widths)),
-    }
+    # Zero sample variance (degenerate surrogate on these samples): variance
+    # fractions are undefined -> report null, NOT silent (0,0,0) masses that
+    # contradict V43pt's closure-to-1 (same contract as the d_varying==0 path).
+    order_contributions: dict[str, float] | None
+    if alg["var_zero"]:
+        order_contributions = None
+    else:
+        m1_mass = float(np.sum(first_order))
+        m2_mass = float(np.sum(np.triu(alg["second"], k=1)))
+        r_mass = 1.0 - m1_mass - m2_mass
+        ci_half_widths = np.concatenate(
+            [
+                (first_order_ci[:, 1] - first_order_ci[:, 0]) / 2.0,
+                (total_order_ci[:, 1] - total_order_ci[:, 0]) / 2.0,
+            ]
+        )
+        order_contributions = {
+            "first_order": m1_mass,
+            "second_order": m2_mass,
+            "third_and_higher": r_mass,
+            "first_order_ci_low": float(boot["m1"][0]),
+            "first_order_ci_high": float(boot["m1"][1]),
+            "second_order_ci_low": float(boot["m2"][0]),
+            "second_order_ci_high": float(boot["m2"][1]),
+            "third_and_higher_ci_low": float(boot["r"][0]),
+            "third_and_higher_ci_high": float(boot["r"][1]),
+            "heuristic_noise_floor": float(np.median(ci_half_widths)),
+        }
 
     # --- 10. Assemble final response (all requested input_vars, constants as zeros) ---
     sobol: dict[str, dict[str, float]] = {}
@@ -964,9 +986,10 @@ def evaluate_sobol_indices(
             val = sobol_second_order[var_a][var_b]
             if not np.isfinite(val):
                 raise ValueError(f"Second-order Sobol' index {var_a}:{var_b} is not finite: {val}")
-    for key, val in order_contributions.items():
-        if not np.isfinite(val):
-            raise ValueError(f"Sobol' order contribution {key} is not finite: {val}")
+    if order_contributions is not None:
+        for key, val in order_contributions.items():
+            if not np.isfinite(val):
+                raise ValueError(f"Sobol' order contribution {key} is not finite: {val}")
 
     return {
         "sobol": sobol,
