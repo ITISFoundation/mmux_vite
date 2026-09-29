@@ -98,7 +98,7 @@ def test_development_backend_uses_writable_uv_cache():
 
 
 def test_development_compose_user_pin_is_launcher_supplied():
-    """V31vr/B19kp: the `user:` pin only holds if the HOST_UID/HOST_GID it
+    """V31vr/B24kp: the `user:` pin only holds if the HOST_UID/HOST_GID it
     interpolates are ACTUALLY supplied. Shell-builtin UID/GID never survive
     make + /bin/sh, so plain-UID pins silently degrade to 1000:1000 on
     non-1000 hosts while every placeholder-text assertion still passes."""
@@ -109,7 +109,7 @@ def test_development_compose_user_pin_is_launcher_supplied():
     assert content.count('user: "${HOST_UID:-1000}:${HOST_GID:-1000}"') == 2
     assert "${UID:" not in content and "${GID:" not in content, (
         "docker-compose-development.yml: UID/GID shell builtins are not exported "
-        "through make + /bin/sh (B19kp); use HOST_UID/HOST_GID instead"
+        "through make + /bin/sh (B24kp); use HOST_UID/HOST_GID instead"
     )
 
     # every development launch passes the real host identity through
@@ -119,7 +119,7 @@ def test_development_compose_user_pin_is_launcher_supplied():
     assert total > 0
     assert guarded == total, (
         "Makefile: every docker-compose-development.yml launcher must be prefixed with "
-        "$(HOST_ID_ENV) so compose receives the real host UID/GID (V31vr/B19kp)"
+        "$(HOST_ID_ENV) so compose receives the real host UID/GID (V31vr/B24kp)"
     )
     assert "HOST_UID=$$(id -u)" in makefile_content
     assert "HOST_GID=$$(id -g)" in makefile_content

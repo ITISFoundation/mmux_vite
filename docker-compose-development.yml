@@ -4,7 +4,7 @@ services:
     # V31vr: run as host UID/GID (like mmux-vite-web below) — the ./flaskapi:/app
     # bind mount means any root-run container write (.venv, runs_local, __pycache__)
     # lands root-owned on the host. HOST_UID/HOST_GID come from the Makefile dev
-    # launchers ($(HOST_ID_ENV)); ⊥ UID/GID shell builtins (B19kp).
+    # launchers ($(HOST_ID_ENV)); ⊥ UID/GID shell builtins (B24kp).
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     environment:
       - OSPARC_API_BASE_URL=${OSPARC_API_BASE_URL}

@@ -7,7 +7,7 @@ DOCKER_IMAGE_TAG := 1.6.1
 FLASKAPI_DIR := ./flaskapi
 NODE_DIR := ./node
 
-## V31vr/B19kp: explicit host identity forwarded to the development compose
+## V31vr/B24kp: explicit host identity forwarded to the development compose
 ## launchers. The compose `user:` lines interpolate HOST_UID/HOST_GID; shell
 ## builtin UID/GID are never exported through make + /bin/sh (they silently
 ## degrade the pin to 1000:1000 on non-1000 hosts), so each dev launcher must

@@ -74,7 +74,9 @@ type SobolIndexPair = {
 // T31rb: unique ANOVA order masses M1/M2/R (flaskapi V43pt/V44vw/V45xy),
 // jointly bootstrapped CIs + explicitly-rough heuristic noise floor.
 // `sobolOrderContributions` is null iff the sample output variance is zero
-// (variance fractions undefined, flaskapi V43pt/B28pp).
+// (variance fractions undefined, flaskapi V43pt/B28pp — B28pp registers in the
+// stacked #649). Optional so this head's type stays true standalone: the
+// emitting route ships in #649; responses here simply lack the key.
 type SobolOrderContributions = {
   firstOrder: number;
   secondOrder: number;
@@ -91,7 +93,7 @@ type SobolOrderContributions = {
 type SobolIndicesResponse = {
   sobol: { [inputVar: string]: SobolIndexPair };
   sobolSecondOrder: { [varA: string]: { [varB: string]: number } };
-  sobolOrderContributions: SobolOrderContributions | null;
+  sobolOrderContributions?: SobolOrderContributions | null;
 };
 
 type PlotConfig = {
