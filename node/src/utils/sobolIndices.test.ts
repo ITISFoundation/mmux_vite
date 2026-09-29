@@ -28,6 +28,18 @@ describe("fetchSobolIndices", () => {
         x1: { x2: 0.05 },
         x2: { x1: 0.05 },
       },
+      sobolOrderContributions: {
+        firstOrder: 0.8,
+        secondOrder: 0.1,
+        thirdAndHigher: 0.1,
+        firstOrderCiLow: 0.75,
+        firstOrderCiHigh: 0.85,
+        secondOrderCiLow: 0.0,
+        secondOrderCiHigh: 0.2,
+        thirdAndHigherCiLow: -0.1,
+        thirdAndHigherCiHigh: 0.3,
+        heuristicNoiseFloor: 0.02,
+      },
     };
     mockedFetchWithRetry.mockResolvedValueOnce({
       ok: true,

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { logColorbarTicks } from "../../utils/plotScale";
 import { buildSobolBarData, buildSobolHeatmapData } from "../../utils/sobolIndices";
 
 vi.mock("../../utils/sobolIndices", async importOriginal => {
@@ -44,5 +45,11 @@ describe("SobolIndicesPlot toggle helpers", () => {
     const trace = buildSobolHeatmapData(sobol, sobolSecondOrder, ["x1", "x2"]);
     expect(getZ(trace)[0][1]).toBe(0.1);
     expect(getZ(trace)[1][0]).toBe(0.1);
+  });
+
+  it("log colorbar ticks are back-transformed from log10 exponents to index values", () => {
+    const { tickvals, ticktext } = logColorbarTicks();
+    expect(tickvals).toEqual([-2, -1, 0]);
+    expect(ticktext).toEqual(["0.01", "0.1", "1"]);
   });
 });

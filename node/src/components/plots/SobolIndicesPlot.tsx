@@ -5,6 +5,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import {
+  logColorbarTicks,
   logDisplayValue,
   logErrorDeltas,
   sobolLinearRange,
@@ -174,6 +175,9 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
             hovertemplate: "%{x} ↔ %{y}: %{customdata:.4f}<extra></extra>",
             zmin: sobolLogRange[0],
             zmax: sobolLogRange[1],
+            // z is in log10 space → back-transform the colorbar labels so it does
+            // not report exponents (-2/-1/0) as if they were the indices (PR #647 review)
+            colorbar: { ...heatmap.colorbar, ...logColorbarTicks() },
           } as Plotly.Data,
         ]);
       } else {

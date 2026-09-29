@@ -1,6 +1,11 @@
 services:
   mmux-vite-backend:
     image: simcore/services/dynamic/mmux-vite-backend:1.6.1
+    # V31vr: run as host UID/GID (like mmux-vite-web below) — the ./flaskapi:/app
+    # bind mount means any root-run container write (.venv, runs_local, __pycache__)
+    # lands root-owned on the host. HOST_UID/HOST_GID come from the Makefile dev
+    # launchers ($(HOST_ID_ENV)); ⊥ UID/GID shell builtins (B24kp).
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     environment:
       - OSPARC_API_BASE_URL=${OSPARC_API_BASE_URL}
       - OSPARC_API_KEY=${OSPARC_API_KEY}
@@ -17,7 +22,7 @@ services:
   mmux-vite-web:
     image: simcore/services/dynamic/mmux-vite-web:1.6.1
     working_dir: /app
-    user: "${UID:-1000}:${GID:-1000}"
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     volumes:
       - ./node:/app
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 8080"
