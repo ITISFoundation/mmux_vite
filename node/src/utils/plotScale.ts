@@ -58,6 +58,18 @@ export function symlogTicks(): { tickvals: number[]; ticktext: string[] } {
   };
 }
 
+/**
+ * Back-transformed colorbar ticks for a heatmap whose z was log10-transformed
+ * (see toLogSafe): Plotly's default colorbar would label the exponent gridlines
+ * -2/-1/0 as if they were the indices themselves, when they represent
+ * 0.01/0.1/1.
+ */
+export function logColorbarTicks(): { tickvals: number[]; ticktext: string[] } {
+  const numDecades = Math.round(-logFloorExponent);
+  const tickvals = Array.from({ length: numDecades + 1 }, (_, i) => logFloorExponent + i);
+  return { tickvals, ticktext: tickvals.map(v => String(10 ** v)) };
+}
+
 /** Fixed axis ranges so plots for different QoIs stay visually comparable. */
 export const sobolLinearRange: [number, number] = [0, 1];
 // Plotly log-axis `range` is expressed in log10 units, so [1e-3, 1] → [-3, 0].
