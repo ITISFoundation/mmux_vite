@@ -95,7 +95,7 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   await expect(inspectButton).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });
   await inspectButton.click();
 
-  await expectModelModalReady(page);
+  const modal = await expectModelModalReady(page);
 
   // Pixel baseline: the Inspect Model modal (cross-validation view).
   await expect(page).toHaveScreenshot("uq-readonly-inspect-modal.png");

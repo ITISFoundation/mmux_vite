@@ -5,6 +5,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { fetchWithRetry } from "../../utils/fetchRetry";
+import { getResponseErrorMessage } from "../../utils/httpError";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
@@ -51,9 +52,7 @@ export default function UncertainUQ(props: LoadingPropsType) {
           }),
         });
         if (!response.ok) {
-          const errorPayload = await response.json().catch(() => undefined);
-          const serverMessage = errorPayload && typeof errorPayload.error === "string" ? errorPayload.error : undefined;
-          throw new Error(serverMessage || `Error in UQ response: ${response.status}, ${response.statusText}`);
+          throw new Error(await getResponseErrorMessage(response));
         }
         const data: DataUQHistogramType = await response.json();
         const newPlotData: Plotly.Data[] = [

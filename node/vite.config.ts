@@ -10,9 +10,7 @@ import tailwindcss from "@tailwindcss/vite";
 // /flask/text-file → /flask/text-file/) get an absolute Location on the backend
 // origin, which the browser then rejects via CORS. Caddy preserves Host the same way.
 const e2eBackendProxy = process.env.E2E_BACKEND_PROXY;
-const flaskProxy = e2eBackendProxy
-  ? { "/flask": { target: e2eBackendProxy, changeOrigin: false } }
-  : undefined;
+const flaskProxy = e2eBackendProxy ? { "/flask": { target: e2eBackendProxy, changeOrigin: false } } : undefined;
 
 // Dedicated e2e web port (avoids clashing with a running docker stack on 8080).
 const webPort = process.env.E2E_WEB_PORT ? Number(process.env.E2E_WEB_PORT) : 8080;
@@ -24,9 +22,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      "osparc-api-ts-client": fileURLToPath(
-        new URL("./src/osparc-api-ts-client", import.meta.url),
-      ),
+      "osparc-api-ts-client": fileURLToPath(new URL("./src/osparc-api-ts-client", import.meta.url)),
     },
   },
   preview: {

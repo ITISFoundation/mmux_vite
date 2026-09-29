@@ -1,4 +1,3 @@
-import { PlotData } from "plotly.js";
 import { OsparcFunctionJob } from "../context/types";
 import { fetchWithRetry } from "./fetchRetry";
 import { getResponseErrorMessage } from "./httpError";
@@ -49,7 +48,7 @@ export function buildCorrelationBarData(
   correlations: CorrelationIndicesResponse["correlations"],
   inputVars: string[],
   colors: { pearson: string; spearman: string },
-): Partial<PlotData>[] {
+): Partial<Plotly.BarData>[] {
   const pearsonValues = inputVars.map(inputVar => correlations[inputVar]?.pearson ?? 0);
   const spearmanValues = inputVars.map(inputVar => correlations[inputVar]?.spearman ?? 0);
 

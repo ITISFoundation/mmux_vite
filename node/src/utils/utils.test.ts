@@ -60,12 +60,12 @@ describe("fetchWithRetry", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it("should return the final HTTP response after non-OK retries", async () => {
+  it("should reject after non-OK retries", async () => {
     const response = { ok: false, status: 400, statusText: "Bad Request" };
     const fetchMock = vi.fn(() => Promise.resolve(response));
     global.fetch = fetchMock as unknown as typeof fetch;
 
-    await expect(fetchWithRetry("https://example.com/api", {}, 1, 0)).resolves.toBe(response);
+    await expect(fetchWithRetry("https://example.com/api", {}, 1, 0)).rejects.toThrow("Request failed: 400 Bad Request");
   });
 });
 
