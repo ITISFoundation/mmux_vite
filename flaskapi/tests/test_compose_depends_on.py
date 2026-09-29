@@ -86,7 +86,7 @@ def test_development_backend_uses_writable_uv_cache():
     web_idx = content.index("mmux-vite-web:")
     backend_block = content[backend_idx:web_idx]
 
-    assert 'user: "${UID:-1000}:${GID:-1000}"' in backend_block, (
+    assert 'user: "${HOST_UID:-1000}:${HOST_GID:-1000}"' in backend_block, (
         "docker-compose-development.yml: mmux-vite-backend must run as the host UID/GID "
         "from container start, not root (V31vr)"
     )
@@ -95,6 +95,34 @@ def test_development_backend_uses_writable_uv_cache():
         "cache below the writable /app source mount, not its unwritable default /.cache/uv "
         "(V36zn/B22zn)"
     )
+
+
+def test_development_compose_user_pin_is_launcher_supplied():
+    """V31vr/B19kp: the `user:` pin only holds if the HOST_UID/HOST_GID it
+    interpolates are ACTUALLY supplied. Shell-builtin UID/GID never survive
+    make + /bin/sh, so plain-UID pins silently degrade to 1000:1000 on
+    non-1000 hosts while every placeholder-text assertion still passes."""
+    content = (REPO_ROOT / "docker-compose-development.yml").read_text()
+    makefile_content = (REPO_ROOT / "Makefile").read_text()
+
+    # both bind-mounting services pin the launcher-provided identity
+    assert content.count('user: "${HOST_UID:-1000}:${HOST_GID:-1000}"') == 2
+    assert "${UID:" not in content and "${GID:" not in content, (
+        "docker-compose-development.yml: UID/GID shell builtins are not exported "
+        "through make + /bin/sh (B19kp); use HOST_UID/HOST_GID instead"
+    )
+
+    # every development launch passes the real host identity through
+    launch = "docker compose --file docker-compose-development.yml up"
+    total = makefile_content.count(launch)
+    guarded = makefile_content.count(f"$(HOST_ID_ENV) {launch}")
+    assert total > 0
+    assert guarded == total, (
+        "Makefile: every docker-compose-development.yml launcher must be prefixed with "
+        "$(HOST_ID_ENV) so compose receives the real host UID/GID (V31vr/B19kp)"
+    )
+    assert "HOST_UID=$$(id -u)" in makefile_content
+    assert "HOST_GID=$$(id -g)" in makefile_content
 
 
 def test_development_backend_and_web_never_run_as_root():
