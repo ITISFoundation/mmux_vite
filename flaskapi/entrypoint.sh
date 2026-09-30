@@ -6,7 +6,7 @@ INFO="INFO: [$(basename "$0")] "
 
 # BOOTING application ---------------------------------------------
 echo "$INFO" "Starting container ..."
-echo "$INFO" "  User    :$(id "$(whoami)")"
+echo "$INFO" "  User    :$(id)"
 echo "$INFO" "  Workdir :$(pwd)"
 
 # Default configuration

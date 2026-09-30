@@ -10,6 +10,7 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
+import { getResponseErrorMessage } from "../../utils/httpError";
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
@@ -172,7 +173,7 @@ function IsoSurface3DPlot() {
       .then(async response => {
         if (response && !response.ok) {
           console.warn("SuMo Surface plot error: ", response.body);
-          return Promise.reject(new Error(`Error running SuMo Surface plot: ${response.status}, ${response.statusText}`));
+          return Promise.reject(new Error(await getResponseErrorMessage(response)));
         }
         return response.json();
       })

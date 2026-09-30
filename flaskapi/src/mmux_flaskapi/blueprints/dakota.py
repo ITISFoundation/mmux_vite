@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import traceback
 from pathlib import Path
 from typing import NoReturn, cast
@@ -27,6 +28,7 @@ from mmux_flaskapi.blueprints.dakota_models import (
     SumoAlongAxesRequest,
     SumoAlongAxesResponse,
     SumoCrossValidationRequest,
+    SumoCrossValidationResponse,
     SumoCVAccuracyMetricsRequest,
     SumoCVAccuracyMetricsResponse,
     SumoGridEvaluationRequest,
@@ -58,9 +60,11 @@ from mmux_flaskapi.utils.json_serializer import parse_request_model
 _logger = logging.getLogger(__name__)
 dakota_bp = Blueprint("dakota", __name__)
 
-DAKOTA_RUNS_DIR = Path.cwd().parent.parent.parent / "runs_dakota"
+DAKOTA_RUNS_DIR = Path(
+    os.environ.get("DAKOTA_RUNS_DIR", Path(__file__).resolve().parents[3] / "runs_dakota")
+)
 _logger.info(f"Saving runs in {DAKOTA_RUNS_DIR}")
-DAKOTA_RUNS_DIR.mkdir(exist_ok=True)
+DAKOTA_RUNS_DIR.mkdir(parents=True, exist_ok=True)
 assert DAKOTA_RUNS_DIR.is_dir(), "Dakota Runs Dir does not exist!!"
 
 
@@ -322,7 +326,7 @@ def flask_sumo_cross_validation():
             mapped_output_var,
         )
 
-        # Validate that "results" contains the expected keys: estimate of output (_hat) and its std (_std_hat)
+        # Validate that "results" contains the expected prediction keys.
         expected_keys = [mapped_output_var + "_hat", mapped_output_var + "_std_hat"]
         missing_keys = [key for key in expected_keys if key not in results]
         if missing_keys:
@@ -336,8 +340,18 @@ def flask_sumo_cross_validation():
         # preserving prediction suffixes expected by the client.
         results_transformed = _inverse_transform_output_results(preprocessor, results)
 
+        predicted_std = results_transformed.get(output_var + "_std_hat")
+        if predicted_std is None:
+            raise ValueError("Cross-validation did not return prediction standard deviations")
+
+        response_data = SumoCrossValidationResponse(
+            observed=results_transformed[output_var],
+            predicted=results_transformed[output_var + "_hat"],
+            predicted_std=predicted_std,
+        )
+
         _logger.debug("Cross-validation completed successfully!")
-        return jsonify(results_transformed)
+        return jsonify(response_data.model_dump())
     except ValidationError as e:
         handle_workflow_error(e, "flask_sumo_cross_validation", 422)
     except ValueError as e:
@@ -627,15 +641,18 @@ def flask_compute_correlation_indices():
 def flask_compute_sobol_indices():
     """
     Compute per-input first-order (main effect), total-order, and second-order
-    (pairwise interaction) Sobol' indices (#470).
+    (pairwise interaction) Sobol' indices (#470) plus unique order masses
+    M1/M2/R (T31rb).
 
     Builds a surrogate from completed jobs via ``evaluate_sumo()``, then computes
-    Sobol' indices directly in Python: generates Saltelli A/B/AB sample matrices
+    Sobol' indices directly in Python: generates Saltelli A/B/C sample matrices
     locally (honouring per-input distributions via ``scipy.stats.rv_continuous.ppf``),
     evaluates all samples in ONE batch through ``evaluate_sumo()``, then applies
-    ``scipy.stats.sobol_indices`` for first/total order plus a closed-form second-order
-    (pairwise interaction) estimator.  Response always includes ``sobolSecondOrder``
-    (no opt-in flag).
+    the saltelli_2010 algebra (identical to ``scipy.stats.sobol_indices``,
+    extended with the exact joint-pair second-order estimator - arbitrary d,
+    V42qa - and order masses).  Response always includes ``sobolSecondOrder`` and
+    ``sobolOrderContributions`` (no opt-in flag; the latter is null only when the
+    sample output variance is zero, where variance fractions are undefined).
     """
     _logger.debug("Starting flask function: flask_compute_sobol_indices")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -683,6 +700,7 @@ def flask_compute_sobol_indices():
         response_data = {
             "sobol": results["sobol"],
             "sobol_second_order": results["sobolSecondOrder"],
+            "sobol_order_contributions": results["sobolOrderContributions"],
         }
         validated_response = SobolIndicesResponse.model_validate(response_data)
 

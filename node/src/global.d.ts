@@ -42,6 +42,60 @@ type DataUQHistogramType = {
   max: number;
 };
 
+// #470: per-input <-> output correlation strength ({pearson,spearman} coefficients),
+// one entry per requested input variable, from `/flask/dakota/compute_correlation_indices`.
+type CorrelationCoefficients = {
+  pearson: number;
+  spearman: number;
+};
+
+type CorrelationIndicesResponse = {
+  correlations: { [inputVar: string]: CorrelationCoefficients };
+};
+
+// #470/#T22/T25: per-input first-order (main effect) and total-order Sobol'
+// sensitivity indices, one entry per requested input variable, from
+// `/flask/dakota/compute_sobol_indices` (scipy-based, post-migration).
+// `*CiLow`/`*CiHigh`: bootstrap confidence interval bounds (95%, T25) --
+// always present (backend computes them for free alongside the point
+// estimates), displayed as error bars on the first/total-order bar charts.
+// sobolSecondOrder: symmetric pairwise second-order indices (no self-pairs),
+// diagonal filled on frontend from the corresponding first-order index; no
+// CI display on the second-order heatmap (out of scope).
+type SobolIndexPair = {
+  main: number;
+  total: number;
+  mainCiLow: number;
+  mainCiHigh: number;
+  totalCiLow: number;
+  totalCiHigh: number;
+};
+
+// T31rb: unique ANOVA order masses M1/M2/R (flaskapi V43pt/V44vw/V45xy),
+// jointly bootstrapped CIs + explicitly-rough heuristic noise floor.
+// `sobolOrderContributions` is null iff the sample output variance is zero
+// (variance fractions undefined, flaskapi V43pt/B28pp — B28pp registers in the
+// stacked #649). Optional so this head's type stays true standalone: the
+// emitting route ships in #649; responses here simply lack the key.
+type SobolOrderContributions = {
+  firstOrder: number;
+  secondOrder: number;
+  thirdAndHigher: number;
+  firstOrderCiLow: number;
+  firstOrderCiHigh: number;
+  secondOrderCiLow: number;
+  secondOrderCiHigh: number;
+  thirdAndHigherCiLow: number;
+  thirdAndHigherCiHigh: number;
+  heuristicNoiseFloor: number;
+};
+
+type SobolIndicesResponse = {
+  sobol: { [inputVar: string]: SobolIndexPair };
+  sobolSecondOrder: { [varA: string]: { [varB: string]: number } };
+  sobolOrderContributions?: SobolOrderContributions | null;
+};
+
 type PlotConfig = {
   dimensionType: "1D" | "2D" | "3D";
   scaleType: "linear" | "log";

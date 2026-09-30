@@ -10,6 +10,7 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
+import { getResponseErrorMessage } from "../../utils/httpError";
 
 type GPPrediction = {
   x: number[];
@@ -32,6 +33,7 @@ function Curves1DPlots() {
   const [plotData, setPlotData] = useState<Array<Data>>([]);
   const [axis, setAxis] = useState(filteredInputVars[0]);
   const [propagating, setPropagating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>();
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
       acc[key] =
@@ -100,6 +102,7 @@ function Curves1DPlots() {
 
   const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[], requestKey: string) => {
     setPropagating(true);
+    setErrorMessage(undefined);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
     fetch(`/flask/dakota/sumo_along_axes`, {
       method: "POST",
@@ -113,12 +116,12 @@ function Curves1DPlots() {
         log: false,
       }),
     })
-      .then(response => {
+      .then(async response => {
         if (response && !response.ok) {
           console.warn("SuMo Curves plot error: ", response.body);
           // V18: reject (⊥ return/resolve) so the .catch path clears lastFetchedKey and
           // the identical inputs can be retried instead of caching a failed fetch.
-          return Promise.reject(new Error(`SuMo Curves plot response not ok: ${response.status}, ${response.statusText}`));
+          return Promise.reject(new Error(await getResponseErrorMessage(response)));
         }
         return response.json();
       })
@@ -128,12 +131,14 @@ function Curves1DPlots() {
         // V18: cache key ONLY on success, so transient failures don't block retry
         lastFetchedKey.current = requestKey;
         setPropagating(false);
+        setErrorMessage(undefined);
       })
-      .catch(_error => {
+      .catch(error => {
         // V18: clear cache on error so same inputs can be retried
         lastFetchedKey.current = undefined;
         setPlotData([]);
         setPropagating(false);
+        setErrorMessage(error instanceof Error ? error.message : String(error));
       });
   };
 
@@ -199,6 +204,7 @@ function Curves1DPlots() {
             fetchedJobCollections={fetchedJobCollections}
             filteredJobList={filteredJobList}
             height={plotStyle.height}
+            errorMessage={errorMessage}
             numInputVars={inputVars.length}
           />
         )}

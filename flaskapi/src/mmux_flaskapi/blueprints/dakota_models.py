@@ -223,6 +223,30 @@ class SumoCrossValidationRequest(BaseModel):
         return self
 
 
+class SumoCrossValidationResponse(BaseModel):
+    """Fixed-field response for SuMo cross-validation."""
+
+    model_config = ConfigDict(frozen=True)
+
+    observed: list[float] = Field(..., description="Observed output values")
+    predicted: list[float] = Field(..., description="Cross-validated predictions")
+    predicted_std: list[float] = Field(..., description="Prediction standard deviations")
+
+    @field_validator("observed", "predicted", "predicted_std")
+    @classmethod
+    def validate_non_empty(cls, v: list[float]) -> list[float]:
+        if not v:
+            raise ValueError("Cross-validation arrays cannot be empty")
+        return v
+
+    @model_validator(mode="after")
+    def validate_array_lengths(self) -> "SumoCrossValidationResponse":
+        lengths = {len(self.observed), len(self.predicted), len(self.predicted_std)}
+        if len(lengths) != 1:
+            raise ValueError("Cross-validation arrays must have the same length")
+        return self
+
+
 class DistributionParams(BaseModel):
     """Model for distribution parameters."""
 
@@ -1103,6 +1127,63 @@ class SobolIndexPair(BaseModel):
         return v
 
 
+class SobolOrderContributions(BaseModel):
+    """Unique ANOVA order-mass fractions of output variance (V43pt, T31rb).
+
+    ``first_order`` = M1 = Σᵢ Sᵢ; ``second_order`` = M2 = Σ_{i<j} S_ij (each
+    unordered pair once); ``third_and_higher`` = R = 1 − M1 − M2 (closure
+    residual, not an independently observed quantity — V45xy). M1+M2+R=1 by
+    construction while Σᵢ S_Ti generally ≠1 because interaction terms repeat
+    across totals. Raw finite-sample estimates (incl. small negatives from
+    Monte-Carlo noise) are NEVER clamped (V43pt). CIs are 95% percentiles of the
+    shared-row bootstrap (V44vw); R's CI containing 0 means "unresolved from
+    sampling noise", and ``heuristic_noise_floor`` (median first/total CI
+    half-width) is an explicitly rough comparator only (V44vw).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    first_order: float = Field(..., description="M1: summed first-order variance fraction")
+    second_order: float = Field(
+        ..., description="M2: summed unique pairwise-interaction variance fraction"
+    )
+    third_and_higher: float = Field(
+        ..., description="R: closure residual 1 - M1 - M2 (third- and higher-order mass)"
+    )
+    first_order_ci_low: float
+    first_order_ci_high: float
+    second_order_ci_low: float
+    second_order_ci_high: float
+    third_and_higher_ci_low: float
+    third_and_higher_ci_high: float
+    heuristic_noise_floor: float = Field(
+        ...,
+        description=(
+            "Median first/total bootstrap CI half-width; rough reference scale for "
+            "judging whether mass values exceed sampling noise (explicitly imprecise, V44vw)"
+        ),
+    )
+
+    @field_validator(
+        "first_order",
+        "second_order",
+        "third_and_higher",
+        "first_order_ci_low",
+        "first_order_ci_high",
+        "second_order_ci_low",
+        "second_order_ci_high",
+        "third_and_higher_ci_low",
+        "third_and_higher_ci_high",
+        "heuristic_noise_floor",
+    )
+    @classmethod
+    def validate_finite(cls, v: float) -> float:
+        """Ensure order masses/CIs are finite numbers (⊥ nan/inf)."""
+        if not np.isfinite(v):
+            raise ValueError("Sobol' order contribution must be a finite number")
+        return v
+
+
 class SobolIndicesResponse(BaseModel):
     """Response model for the Sobol'-indices endpoint (#470)."""
 
@@ -1115,8 +1196,19 @@ class SobolIndicesResponse(BaseModel):
     sobol_second_order: dict[str, dict[str, float]] = Field(
         default_factory=dict,
         description=(
-            "Pairwise second-order Sobol' interaction indices, symmetric over all "
-            "unordered variable pairs (no self-pair). Empty when fewer than 2 input vars."
+            "Pairwise second-order Sobol' interaction indices (exact arbitrary-d "
+            "joint-pair estimator, V42qa), symmetric over all unordered variable "
+            "pairs (no self-pair). Empty when fewer than 2 input vars."
+        ),
+    )
+    sobol_order_contributions: SobolOrderContributions | None = Field(
+        ...,
+        description=(
+            "Unique order masses M1/M2/R with jointly bootstrapped CIs and heuristic "
+            "noise floor (fixed schema fields, V46jk; semantics V43pt/V44vw/V45xy). "
+            "null when the sample output variance is zero (all-constant inputs or a "
+            "degenerate surrogate): variance fractions are undefined there, so the "
+            "response says so explicitly instead of asserting the M1+M2+R=1 closure"
         ),
     )
 

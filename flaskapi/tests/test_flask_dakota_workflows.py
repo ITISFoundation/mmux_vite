@@ -68,18 +68,15 @@ class TestSumoCrossValidation:
         assert response.status_code == 200
         data = response.get_json()
         assert isinstance(data, dict)
-        # Should contain observations and prediction outputs in original names.
-        assert OUTPUT in data
-        assert f"{OUTPUT}Hat" in data
-        assert f"{OUTPUT}StdHat" in data
-        assert isinstance(data[OUTPUT], list)
-        assert isinstance(data[f"{OUTPUT}Hat"], list)
-        assert isinstance(data[f"{OUTPUT}StdHat"], list)
-        for v in data[OUTPUT]:
+        assert set(data) == {"observed", "predicted", "predictedStd"}
+        assert isinstance(data["observed"], list)
+        assert isinstance(data["predicted"], list)
+        assert isinstance(data["predictedStd"], list)
+        for v in data["observed"]:
             assert isinstance(v, (int, float))
-        for v in data[f"{OUTPUT}Hat"]:
+        for v in data["predicted"]:
             assert isinstance(v, (int, float))
-        for v in data[f"{OUTPUT}StdHat"]:
+        for v in data["predictedStd"]:
             assert isinstance(v, (int, float))
 
     def test_sumo_cross_validation_preserves_prediction_suffixes_for_original_output_name(
@@ -113,10 +110,42 @@ class TestSumoCrossValidation:
         assert response.status_code == 200
         data = response.get_json()
         assert data == {
-            "dragForce": [1.0, 2.0, 3.0],
-            "dragForceHat": [1.1, 2.1, 3.1],
-            "dragForceStdHat": [0.1, 0.2, 0.3],
+            "observed": [1.0, 2.0, 3.0],
+            "predicted": [1.1, 2.1, 3.1],
+            "predictedStd": [0.1, 0.2, 0.3],
         }
+
+    @pytest.mark.parametrize(
+        ("observed", "predicted", "predicted_std"),
+        [
+            ([], [1.0], [0.1]),
+            ([1.0, 2.0], [1.1], [0.1, 0.2]),
+            ([1.0], [1.1], None),
+        ],
+    )
+    def test_sumo_cross_validation_rejects_invalid_response_arrays(
+        self, test_client: Flask, monkeypatch, observed, predicted, predicted_std
+    ):
+        """The endpoint rejects incomplete or misaligned cross-validation results."""
+        result = {"y": observed, "y_hat": predicted}
+        if predicted_std is not None:
+            result["y_std_hat"] = predicted_std
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
+            lambda *args, **kwargs: result,
+        )
+
+        payload = {
+            "inputVars": ["x1"],
+            "output": "y",
+            "FunctionJobs": create_function_job_list(50),
+        }
+
+        response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
+
+        assert response.status_code in {400, 422}
+        assert "error" in response.get_json()
 
     def test_sumo_cross_validation_accepts_snake_case_payload(self, test_client: Flask):
         payload = {
@@ -488,8 +517,8 @@ class TestSnakeCaseDakotaRequestCompatibility:
         response = test_client.post("/flask/dakota/sumo_cross_validation", json=payload)
         assert response.status_code == 200
         data = response.get_json()
-        assert "y" in data
-        assert isinstance(data["y"], list)
+        assert set(data) == {"observed", "predicted", "predictedStd"}
+        assert isinstance(data["observed"], list)
 
     # Add more edge cases as needed
 

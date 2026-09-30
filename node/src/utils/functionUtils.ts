@@ -2,6 +2,7 @@ import { toast } from "react-toastify";
 import { ProjectFunctionJob, RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { RegisteredFunction, OsparcFunctionJob } from "../context/types";
 import { fetchWithRetry } from "./fetchRetry";
+import { getResponseErrorMessage } from "./httpError";
 import { UploadJobCollectionCsvResponse, UploadJobCollectionCsvParams } from "./types";
 
 function snakeToCamelCase(value: string): string {
@@ -127,8 +128,7 @@ export async function uploadJobCollectionCsv(params: UploadJobCollectionCsvParam
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(errorData.error || "Failed to upload JobCollection CSV");
+    throw new Error(await getResponseErrorMessage(response));
   }
 
   return normalizePayloadToCamelCase<UploadJobCollectionCsvResponse>(await response.json());
@@ -181,7 +181,7 @@ export const createJobStudyCopy = async (functionName: string, job: ProjectFunct
       }),
     });
 
-    if (!response.ok) throw new Error(`Failed to open job copy: ${response.statusText}`);
+    if (!response.ok) throw new Error(await getResponseErrorMessage(response));
 
     const study: StudyType = await response.json();
 

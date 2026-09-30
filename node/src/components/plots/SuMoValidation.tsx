@@ -11,6 +11,8 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
+import { getResponseErrorMessage } from "../../utils/httpError";
+import { getValidationSeries } from "../../utils/sumoValidation";
 
 function SuMoValidation() {
   const theme = useTheme();
@@ -20,6 +22,7 @@ function SuMoValidation() {
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
   const [propagating, setPropagating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>();
   const [width, setWidth] = useState(1080);
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -46,11 +49,14 @@ function SuMoValidation() {
 
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
     if (data && selectedQoI) {
-      const y = data[selectedQoI];
-      // The backend builds the prediction key as `<output>_hat`, but the global
-      // after_request serializer camelCases every response key, so the client
-      // receives `<selectedQoI>Hat` (e.g. `yHat`). Read the camelCase key.
-      const yHat = data[`${selectedQoI}Hat`];
+      const series = getValidationSeries(data);
+      if (!series) {
+        console.warn("SuMo Validation response is missing the selected QoI series.");
+        setPlotData([]);
+        setCvMetrics(undefined);
+        throw new Error("Validation response did not include observed and predicted series.");
+      }
+      const { observations: y, predictions: yHat } = series;
 
       // For violin plots, y should be the data and x should be the label
       const createViolinPlot = (
@@ -97,6 +103,7 @@ function SuMoValidation() {
     setCvMetrics(undefined);
     setPlotData([]);
     setPropagating(true);
+    setErrorMessage(undefined);
 
     fetch(`/flask/dakota/sumo_cross_validation`, {
       method: "POST",
@@ -108,7 +115,12 @@ function SuMoValidation() {
         log: false,
       }),
     })
-      .then(response => response.json())
+      .then(async response => {
+        if (response && !response.ok) {
+          return Promise.reject(new Error(await getResponseErrorMessage(response)));
+        }
+        return response.json();
+      })
       .then(response => {
         if (!response || (response && response.error)) {
           console.warn("SuMo Validation error: ", response.error);
@@ -117,6 +129,7 @@ function SuMoValidation() {
           const data = response;
           createDataAndMetrics(data);
           setPropagating(false);
+          setErrorMessage(undefined);
         }
       })
       .catch(error => {
@@ -124,6 +137,7 @@ function SuMoValidation() {
         setPropagating(false);
         setPlotData([]);
         setCvMetrics(undefined);
+        setErrorMessage(error instanceof Error ? error.message : String(error));
       });
   };
 
@@ -194,6 +208,7 @@ function SuMoValidation() {
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}
           height={plotStyle.height}
+          errorMessage={errorMessage}
           numInputVars={inputVars.length}
         />
       )}
