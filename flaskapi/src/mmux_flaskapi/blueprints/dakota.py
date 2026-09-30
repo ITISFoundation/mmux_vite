@@ -875,7 +875,17 @@ def flask_sumo_grid_evaluation():
         # Inverse transform results to return original variable names.
         mapped_to_orig = _mapped_to_original(preprocessor)
         grid_data_original = {}
+        # extract_predictions_gridpoints names the std series "<response>_std";
+        # that composite key is not in the inverse mapping, so map/inverse-transform
+        # it through the output variable itself (V47pk: original name + _std,
+        # ⊥ leaked Dakota-mapped name like "y1_std"/"y1Std" with un-inverted values).
+        mapped_std_key = mapped_output_var + "_std"
         for key, values in results.items():
+            if key == mapped_std_key:
+                grid_data_original[output_response + "_std"] = _inverse_transform_values(
+                    preprocessor, mapped_output_var, list(values), mapped_to_orig
+                )
+                continue
             orig_key = mapped_to_orig.get(key, key)
             if values and isinstance(values[0], list):
                 # 2D array (reshaped grid output) - flatten, inverse transform, reshape back
