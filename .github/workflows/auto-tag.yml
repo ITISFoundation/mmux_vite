@@ -1,0 +1,106 @@
+name: Tag and release
+
+# A merged develop/main commit supplies its own base version (single-sourced
+# in .bumpversion.cfg, SPEC.md §V5). On develop the bot appends/increments
+# the `.devN` counter and ships a GitHub prerelease; on main it strips
+# `.devN` (the release must already have been bumped), tags and publishes
+# the GitHub release. There is no package-index publication — GitHub
+# releases are the only artifact (see itis-sumo's auto-tag.yml for the
+# channel rules this mirrors).
+on:
+  push:
+    branches: [develop, main]
+    paths-ignore:
+      - "docs/**"
+      - "validation/**"
+      - "**/*.md"
+
+concurrency:
+  group: auto-tag-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  develop-dev-tag:
+    if: github.ref_name == 'develop' && !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v3
+
+      - name: Compute next dev version
+        id: next
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          version=$(uv run --no-project --with packaging python scripts/auto_version.py next-dev)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "next develop version: $version"
+
+      - name: Bump dev version across all versioned files
+        run: |
+          set -euo pipefail
+          version="${{ steps.next.outputs.version }}"
+          uv run --no-project --with packaging python scripts/auto_version.py apply --to "$version"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet; then
+            git commit -am "chore: bump dev version to $version [skip ci]"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
+
+      - name: Tag and publish GitHub prerelease
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="${{ steps.next.outputs.version }}"
+          git tag "v$version"
+          git push origin "v$version"
+          gh release create "v$version" --prerelease --generate-notes --title "v$version (dev)"
+
+  main-release:
+    if: github.ref_name == 'main' && !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v3
+
+      - name: Compute release version (strips .devN)
+        id: release
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          version=$(uv run --no-project --with packaging python scripts/auto_version.py strip-dev)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "release version: $version"
+
+      - name: Commit stripped version if needed
+        run: |
+          set -euo pipefail
+          version="${{ steps.release.outputs.version }}"
+          uv run --no-project --with packaging python scripts/auto_version.py apply --to "$version"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet; then
+            git commit -am "chore: release version $version [skip ci]"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
+
+      - name: Tag and publish GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="${{ steps.release.outputs.version }}"
+          git tag "v$version"
+          git push origin "v$version"
+          gh release create "v$version" --generate-notes --title "v$version"

@@ -57,6 +57,7 @@ cmd: `make ci` → `test-flaskapi` + `test-node` + `build-no-cache`
 cmd: `make test-e2e` → TS Playwright e2e suite (`tests/e2e/`) vs local stack w/ oSPARC mocked (delegates `npm run test:e2e`); run in pinned Playwright docker for snapshot determinism
 env (e2e): `SERVICE_MODE=SUMO` ∧ `PERMISSIONS=READ-ONLY` ∧ `DEPLOYMENT_MODE=LOCAL` ∧ `MMUX_E2E_MOCK_OSPARC=1` (→ in-backend test-double) ∧ `OSPARC_API_BASE_URL`=test sentinel (defense-in-depth, ⊥ real oSPARC)
 cmd: `make version-{patch|minor|major}` → `bump2version` (no auto-commit/tag)
+cmd: release automation: `.github/workflows/auto-tag.yml` (+ `scripts/auto_version.py`); `version-check.yml` gates versioned PRs
 cmd: `make clean` → rm `node_modules/`, `.venv/`
 file: `docker-compose.yml` (base, generated) ; `-development.yml` (dev mounts) ; `-local.yml` (prod-local validation)
 
@@ -99,6 +100,7 @@ V35rx: ∀ Dependabot ecosystem entry in `.github/dependabot.yml` → weekly Mon
 V36ez: ∀ interactive UI element (button/icon-button/toggle) ! ship without ≥1 e2e test asserting it via `mmux-testid` ∧ ≥1 dedicated `toHaveScreenshot` baseline capturing its triggered state; ⊥ crash-free-only coverage
 V37hs: shared MUI `MuiTable` and `MuiDataGrid` roots ! use `theme.palette.background.default` for table surfaces; ⊥ inherit lighter card/paper background and change every table's visual baseline together
 V38gu: backend prod entrypoint ! launch Gunicorn via `uv run` from `flaskapi/uv.lock`, ⊥ isolated `uvx` tool env; guard `flaskapi/tests/test_main.py::test_v42gu_production_gunicorn_uses_project_lockfile` (B23gu, flaskapi/SPEC.md V42gu)
+V39at: ∀ develop merge → auto-tag bot rewrites `.bumpversion.cfg` current to `X.Y.Z.devN` across all V5 fanout files, pushes tag `vX.Y.Z.devN` + GitHub prerelease; ∀ main merge → bot strips `.devN` (base ! ≤ highest tag, else ⊥ with bump hint), pushes `vX.Y.Z` tag + GitHub release; ⊥ package-index publication (GitHub releases only); `.devN` ∈ bot ONLY — human PRs change base versions alone (guard: `version-check.yml`)
 
 ## §T
 id|status|task|cites
