@@ -66,6 +66,16 @@ def dict_keys_snake_to_camel(d: dict) -> dict:
 # - read path (snake_to_camel, response serializer): "correlations", "sobol" -
 #   per-input-variable result dicts returned by compute_correlation_indices/
 #   compute_sobol_indices (flaskapi/SPEC.md V28/V32, B15).
+# - read path (response serializer): "predictions", "grid_data",
+#   "optimization_results", "metrics" - the dakota plot/CV response wrappers
+#   (sumo_along_axes / sumo_grid_evaluation / perform_moga_optimization /
+#   get_sumo_cv_accuracy_metrics) are keyed by USER variable names exactly like
+#   "correlations"/"sobol" are; the frontend looks them up with the original
+#   identifiers (Curves1DPlot predictions[varName], Surface2DPlot/IsoSurface3DPlot
+#   gridData[axis]/gridData[selectedQoI], MOGAPareto results[var][ndi]), so
+#   camelCasing those keys (grey_matter -> greyMatter) makes every lookup miss
+#   and the 1D/2D/3D plots render empty at HTTP 200 (flaskapi/SPEC.md V47pk/B29dr;
+#   same bug class as B15 and B27jk).
 _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
     {
         "properties",
@@ -79,6 +89,10 @@ _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
         "correlations",
         "sobol",
         "sobol_second_order",
+        "predictions",
+        "grid_data",
+        "optimization_results",
+        "metrics",
     }
 )
 
@@ -88,7 +102,13 @@ _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
 # field names and must still be camelCased (flaskapi/SPEC.md V37), unlike
 # "sobol_second_order" which nests a SECOND variable-name level
 # ({varA: {varB: float}}) that must be fully preserved instead.
-_FIELD_LEVEL_PRESERVE_KEYS = frozenset({"correlations", "sobol"})
+# "predictions" ({var: {x, y_hat, std_hat}}) and "metrics"
+# ({output: {root_mean_squared, ...}}) follow the "correlations"/"sobol" shape;
+# "grid_data"/"optimization_results" ({var: list}) have no inner field level, so
+# the field-level path is a no-op for them (values are lists, not dicts).
+_FIELD_LEVEL_PRESERVE_KEYS = frozenset(
+    {"correlations", "sobol", "predictions", "metrics", "grid_data", "optimization_results"}
+)
 
 
 def recursive_dict_keys_camel_to_snake(
