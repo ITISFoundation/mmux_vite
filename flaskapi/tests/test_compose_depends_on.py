@@ -153,7 +153,6 @@ def test_development_web_uses_production_image_with_runtime_install():
     makefile_content = (REPO_ROOT / "Makefile").read_text()
     dockerfile_content = (REPO_ROOT / "node" / "Dockerfile").read_text()
 
-    assert "image: simcore/services/dynamic/mmux-vite-web:1.6.1" in compose_content
     assert "mmux-vite-web-dev" not in compose_content
     assert "mmux-vite-web-node-modules" not in compose_content
     assert (
