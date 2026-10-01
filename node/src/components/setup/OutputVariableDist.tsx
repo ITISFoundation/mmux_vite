@@ -26,10 +26,16 @@ export function OutputVariableDist() {
   const theme = useTheme();
 
   const handleSetOutputLogScale = (outputVar: string, value: boolean) => {
-    const next = { ...localOutputLogScales, [outputVar]: value };
-    setLocalOutputLogScales(next);
+    setLocalOutputLogScales(prev => ({ ...prev, [outputVar]: value }));
     if (selectedFunction) {
-      setOutputLogScales({ ...outputLogScales, [selectedFunction.uid]: next });
+      // MERGE with the live per-uid map: a render-time snapshot could silently
+      // clobber an entry useAutoDetectQoiScale wrote for a sibling QoI while
+      // this render was stale (GH-Copilot #663 audit; the lock-map setter two
+      // lines below already used the functional pattern)
+      setOutputLogScales(prev => ({
+        ...prev,
+        [selectedFunction.uid]: { ...prev[selectedFunction.uid], [outputVar]: value },
+      }));
       // V27: manual toggle locks this (uid, QoI) pair so auto-detect never overrides it.
       setOutputLogScaleUserSet(prev => ({
         ...prev,

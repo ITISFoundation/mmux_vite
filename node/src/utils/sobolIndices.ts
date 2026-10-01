@@ -81,7 +81,18 @@ export function initialSobolDomain(
     } else if (selection.distribution === "normal") {
       const { mean, std } = selection;
       if (mean !== undefined && std !== undefined && std > 0) {
-        domains[inputVar] = { minimum: mean - 3 * std, maximum: mean + 3 * std };
+        const minimum = mean - 3 * std;
+        const maximum = mean + 3 * std;
+        // A log-flagged normal whose ±3σ box crosses zero CANNOT be seeded:
+        // the same request carries the log flag, so a non-positive lower
+        // bound fails the backend positivity guard on first load (GH-Copilot
+        // #664). Leave it unspecified instead — the auto-inferred box is
+        // built from observed values, which the UI's log-eligibility guard
+        // keeps strictly positive.
+        if (selection.scale === "log" && minimum <= 0) {
+          continue;
+        }
+        domains[inputVar] = { minimum, maximum };
       }
     } else if (selection.distribution === "constant") {
       const { value } = selection;
