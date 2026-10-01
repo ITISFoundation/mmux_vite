@@ -31,9 +31,14 @@ export default defineConfig({
   reporter: env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
   timeout: 120_000,
   expect: {
-    // Deterministic-ish UI; small tolerance for AA/font rasterization differences.
+    // STRICT zero tolerance (root SPEC V10): any pixel that moves must move
+    // on purpose. The 1% AA/font band we used until #665 swallowed a real UI
+    // diff (missing bounds-editor header, root §B B25) — determinism comes
+    // from the PINNED docker image (V12), not from tolerance, so ⊥ band here
+    // hides rasterization drift: if the pinned image drifts, we regenerate
+    // baselines in that same image instead of widening the band.
     toHaveScreenshot: {
-      maxDiffPixelRatio: 0.01,
+      maxDiffPixelRatio: 0.0,
       animations: "disabled",
       caret: "hide",
       // Plotly/DataGrid can take a few render frames to settle; the default 5s
