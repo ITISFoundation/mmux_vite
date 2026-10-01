@@ -191,10 +191,10 @@ def apply_version(parser: configparser.RawConfigParser, current: str, target: st
         if not path.is_file():
             raise SystemExit(f"versioned file missing: {path}")
         text = path.read_text()
-        # The (?!\.dev\d) guard stops a bare `X.Y.Z` search from matching
-        # inside an already-stamped `X.Y.Z.devN` (e.g. a CI re-run of apply
-        # after .bumpversion.cfg was rewritten but before files were).
-        pattern = re.compile(re.escape(search) + r"(?!\.dev\d)")
+        # (?![.\w]): only rewrite complete version tokens. Without the
+        # boundary, `1.6.3.dev1` would match inside `1.6.3.dev10` (producing
+        # `...dev20`) and `1.6.3` inside `1.6.30`.
+        pattern = re.compile(re.escape(search) + r"(?![.\w])")
         if pattern.search(text):
             updated = pattern.sub(lambda match: replace, text)
             if updated != text:
@@ -208,19 +208,43 @@ def apply_version(parser: configparser.RawConfigParser, current: str, target: st
     return changed
 
 
-def check_fanout(parser: configparser.RawConfigParser, current: str) -> None:
+# Field-scoped version sites per file type (§V5 gate): EVERY match must
+# carry exactly the current version, so a stale sibling (e.g. one compose
+# image left behind while its siblings were rewritten) fails the check.
+# File types without an entry fail closed rather than pass unchecked.
+FANOUT_FIELDS = (
+    (re.compile(r"\.osparc/.*/metadata\.yml$"), re.compile(r"^version:\s*(\S+)\s*$", re.MULTILINE)),
+    (re.compile(r"Makefile$"), re.compile(r"^DOCKER_IMAGE_TAG\s*:=\s*(\S+)\s*$", re.MULTILINE)),
+    (
+        re.compile(r"docker-compose-(?:local|development)\.yml$"),
+        re.compile(r"^\s*image:\s*.*:(\S+)\s*$", re.MULTILINE),
+    ),
+    (re.compile(r"flaskapi/pyproject\.toml$"), re.compile(r'^version\s*=\s*"([^"]+)"\s*$', re.MULTILINE)),
+)
+
+
+def check_fanout(current: str) -> None:
+    parser = config_from_text(read_config_text())
     stale = []
-    for path_text, search_tpl, _ in versioned_files(parser):
-        search = search_tpl.replace("{current_version}", current)
+    for path_text, _, _ in versioned_files(parser):
         path = Path(path_text)
-        pattern = re.compile(re.escape(search) + r"(?!\.dev\d)")
-        if not path.is_file() or pattern.search(path.read_text()) is None:
-            stale.append(str(path))
+        if not path.is_file():
+            stale.append(f"{path_text} (missing)")
+            continue
+        field = next((f for r, f in FANOUT_FIELDS if r.search(path_text)), None)
+        if field is None:
+            raise SystemExit(
+                f"{path_text}: no FANOUT_FIELDS entry for this file type; extend "
+                "scripts/auto_version.py so the §V5 gate can validate it"
+            )
+        values = field.findall(path.read_text())
+        if not values or any(value != current for value in values):
+            stale.append(f"{path_text} (fields: {sorted(set(values)) or 'none'})")
     if stale:
         raise SystemExit(
-            "version fanout drift (§V5): these files do not carry "
-            f"current_version {current!r}: {', '.join(stale)}. "
-            "Bump with `make version-{patch|minor|major}`, not per-file."
+            f"version fanout drift (§V5): {'. '.join(stale)}. Expected "
+            f"{current!r} in EVERY version field; bump with "
+            "`make version-{patch|minor|major}` or auto_version.py apply, not per-file."
         )
 
 
@@ -231,13 +255,16 @@ def cmd_next_dev(parser: configparser.RawConfigParser) -> None:
 def cmd_apply(parser: configparser.RawConfigParser, to: str) -> None:
     current = current_version(parser)
     changed = apply_version(parser, current, to)
+    # Validate EVERY version field across the fanout files (freshly
+    # re-read), not just one occurrence per file, before the caller commits.
+    check_fanout(to)
     print(f"applied {to} across {changed} file(s)", file=sys.stderr)
     print(to)
 
 
 def cmd_check_pr(parser: configparser.RawConfigParser, target: str) -> None:
     head = current_version(parser)
-    check_fanout(parser, head)
+    check_fanout(head)
     base_parser = config_from_text(read_config_text_from_ref(f"origin/{target}"))
     base = current_version(base_parser)
     if target == "develop":
@@ -274,6 +301,7 @@ def cmd_check_pr(parser: configparser.RawConfigParser, target: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("current-version", help="print .bumpversion.cfg current_version")
     sub.add_parser("next-dev", help="print the next develop .devN version")
     sub.add_parser("dev-tags", help="list same-base dev tags of the current base, oldest first")
     strip_p = sub.add_parser("strip-dev", help="print the stable version after stripping .devN")
@@ -291,7 +319,9 @@ def main() -> None:
     if not CONFIG_FILE.is_file():
         raise SystemExit(f"run from the repo root: {CONFIG_FILE} not found")
     config = config_from_text(read_config_text())
-    if args.command == "next-dev":
+    if args.command == "current-version":
+        print(current_version(config))
+    elif args.command == "next-dev":
         cmd_next_dev(config)
     elif args.command == "dev-tags":
         for tag in dev_tags():
