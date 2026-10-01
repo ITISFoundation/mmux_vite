@@ -139,6 +139,35 @@ class JobVariableSelection(BaseModel):
         return records
 
 
+def validate_output_log_scale_positivity(
+    output_log_scales: dict[str, bool],
+    completed_jobs: list[FunctionJob],
+    valid_output_vars: set[str] | None = None,
+) -> None:
+    """Reject (via ValueError, mapped to 422) any ``output_log_scales[var]=True``
+    unless every completed job's output for that var is strictly > 0 (log is
+    undefined for <= 0). Mirrors the package's boundary guard (itis-sumo V47st)
+    at the request layer so the frontend's auto-detect hook gets a clean,
+    actionable rejection instead of an engine error.
+    """
+    for var, flag in output_log_scales.items():
+        if not flag:
+            continue
+        if valid_output_vars is not None and var not in valid_output_vars:
+            continue  # unknown/unused var name - other validators handle that error
+        non_positive = [
+            job.outputs[var]
+            for job in completed_jobs
+            if var in job.outputs and job.outputs[var] <= 0
+        ]
+        if non_positive:
+            raise ValueError(
+                f"output_log_scales['{var}']=True requires all completed job outputs for "
+                f"'{var}' to be > 0 (log is undefined for values <= 0). Found non-positive "
+                f"value(s): {non_positive[:5]}"
+            )
+
+
 class SumoCrossValidationRequest(BaseModel):
     """Request model for SuMo cross-validation endpoint."""
 
@@ -155,6 +184,25 @@ class SumoCrossValidationRequest(BaseModel):
         min_length=5,
         description="List of function jobs (minimum 5 required)",
     )
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+
+    @model_validator(mode="after")
+    def validate_output_log_scales_positive(self) -> "SumoCrossValidationRequest":
+        """Log-fit an output only when every completed job's output is > 0 (V16)."""
+        completed_jobs = [
+            job for job in self.function_jobs if job.status in ["completed", "success"]
+        ]
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars={self.output}
+        )
+        return self
 
     @field_validator("input_vars")
     @classmethod
@@ -285,6 +333,25 @@ class ManualUQPropagationRequest(BaseModel):
     distributions: dict[str, DistributionParams]
     num_samples: int = Field(..., gt=0, description="Number of samples to generate")
     function_jobs: list[FunctionJob] = Field(..., min_length=5)
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+
+    @model_validator(mode="after")
+    def validate_output_log_scales_positive(self) -> "ManualUQPropagationRequest":
+        """Log-fit an output only when every completed job's output is > 0 (V16)."""
+        completed_jobs = [
+            job for job in self.function_jobs if job.status in ["completed", "success"]
+        ]
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars={self.output}
+        )
+        return self
 
     @field_validator("input_vars")
     @classmethod
@@ -377,6 +444,25 @@ class SumoAlongAxesRequest(BaseModel):
     slider_values: dict[str, float] | None = Field(
         default=None, description="Cut values for input variables"
     )
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+
+    @model_validator(mode="after")
+    def validate_output_log_scales_positive(self) -> "SumoAlongAxesRequest":
+        """Log-fit an output only when every completed job's output is > 0 (V16)."""
+        completed_jobs = [
+            job for job in self.function_jobs if job.status in ["completed", "success"]
+        ]
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars={self.output}
+        )
+        return self
 
     @field_validator("inputs")
     @classmethod
@@ -558,6 +644,25 @@ class SumoGridEvaluationRequest(BaseModel):
     slider_values: dict[str, float] | None = Field(
         default=None, description="Fixed values for non-grid input variables"
     )
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+
+    @model_validator(mode="after")
+    def validate_output_log_scales_positive(self) -> "SumoGridEvaluationRequest":
+        """Log-fit an output only when every completed job's output is > 0 (V16)."""
+        completed_jobs = [
+            job for job in self.function_jobs if job.status in ["completed", "success"]
+        ]
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars={self.output}
+        )
+        return self
 
     @field_validator("grid_vars")
     @classmethod
@@ -730,6 +835,27 @@ class MOGAOptimizationRequest(BaseModel):
         min_length=5,
         description="List of function jobs (minimum 5 required)",
     )
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+
+    @model_validator(mode="after")
+    def validate_output_log_scales_positive(self) -> "MOGAOptimizationRequest":
+        """Log-fit an objective only when every completed job's output is > 0 (V16)."""
+        completed_jobs = [
+            job for job in self.function_jobs if job.status in ["completed", "success"]
+        ]
+        validate_output_log_scale_positivity(
+            self.output_log_scales,
+            completed_jobs,
+            valid_output_vars=set(self.output_var_selection),
+        )
+        return self
 
     @field_validator("input_vars")
     @classmethod
