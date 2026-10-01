@@ -31,8 +31,11 @@ export default defineConfig({
   reporter: env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
   timeout: 120_000,
   expect: {
-    // STRICT zero tolerance (root SPEC V10): any pixel that moves must move
-    // on purpose. The 1% AA/font band we used until #665 swallowed a real UI
+    // STRICT zero tolerance for COUNTED pixel diffs (root SPEC V10): every
+    // pixel the comparator COUNTS must move on purpose — "counted" excludes
+    // anti-aliased pixels and sub-floor color distance (fine print below;
+    // ⊥ this banner implying byte-identity).
+    // The 1% AA/font band we used until #665 swallowed a real UI
     // diff (missing bounds-editor header, root §B B25) — determinism comes
     // from the PINNED docker image (V12), not from tolerance, so ⊥ band here
     // hides rasterization drift: if the pinned image drifts, we regenerate
