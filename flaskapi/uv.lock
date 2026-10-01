@@ -365,7 +365,7 @@ wheels = [
 
 [[package]]
 name = "itis-sumo"
-version = "0.1.0a4"
+version = "0.1.0a10"
 source = { registry = "https://test.pypi.org/simple/" }
 dependencies = [
     { name = "itis-dakota" },
@@ -375,9 +375,9 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "scipy" },
 ]
-sdist = { url = "https://test-files.pythonhosted.org/packages/84/a1/0844a9b0da8c9262bc4d018bb22c38e782e7e78208195ed7af44dd5bed99/itis_sumo-0.1.0a4.tar.gz", hash = "sha256:a543bc871af9c80cc8ceff827f6eedb65cea218304d58f6e69204c34b2687ca8", size = 57482, upload-time = "2026-08-28T09:20:49.211Z" }
+sdist = { url = "https://test-files.pythonhosted.org/packages/23/3e/2eed92b25cd27b11bb28139adac8f21512fea4f74bb1693e79832fe15faf/itis_sumo-0.1.0a10.tar.gz", hash = "sha256:bfe23e60061796a17f21c351ccc8a708d9341a87606b08dd3279d511d7594909", size = 69660, upload-time = "2026-10-01T07:58:27.887Z" }
 wheels = [
-    { url = "https://test-files.pythonhosted.org/packages/11/22/33356fa82eed78317e4c51e6e94a850ce099bfa2726bcf29f3b3abf5bd3b/itis_sumo-0.1.0a4-py3-none-any.whl", hash = "sha256:a0b242f94c318e224368979e97f2b65003af0a4d0fd96d61f9b739bb53efb34e", size = 67451, upload-time = "2026-08-28T09:20:48.028Z" },
+    { url = "https://test-files.pythonhosted.org/packages/1c/ea/5a96d8825b1b27eedb7080c413f92ac66d1fca00a52b741d884f0a7664d6/itis_sumo-0.1.0a10-py3-none-any.whl", hash = "sha256:87f318dfa6ade0280bf35d10c957292fec55abf1d460e32d0cd97560bcded86a", size = 79797, upload-time = "2026-10-01T07:58:26.608Z" },
 ]
 
 [[package]]
@@ -505,7 +505,7 @@ requires-dist = [
     { name = "flask-cors", specifier = "==6.0.0" },
     { name = "gevent", specifier = "==26.9.0" },
     { name = "gunicorn", specifier = "==26.2.0" },
-    { name = "itis-sumo", specifier = "==0.1.0a4", index = "https://test.pypi.org/simple/" },
+    { name = "itis-sumo", specifier = "==0.1.0a10", index = "https://test.pypi.org/simple/" },
     { name = "numpy", specifier = "==2.4.6" },
     { name = "osparc", specifier = "==0.8.4.post0.dev2" },
     { name = "pandas", specifier = "==2.2.3" },

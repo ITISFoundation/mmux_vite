@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import dataclasses
 import logging
+import os
 import traceback
 from pathlib import Path
 from typing import NoReturn
@@ -35,6 +37,7 @@ from mmux_flaskapi.blueprints.dakota_models import (
     SumoAlongAxesRequest,
     SumoAlongAxesResponse,
     SumoCrossValidationRequest,
+    SumoCrossValidationResponse,
     SumoCVAccuracyMetricsRequest,
     SumoCVAccuracyMetricsResponse,
     SumoGridEvaluationRequest,
@@ -48,9 +51,11 @@ from mmux_flaskapi.utils.json_serializer import parse_request_model
 _logger = logging.getLogger(__name__)
 dakota_bp = Blueprint("dakota", __name__)
 
-DAKOTA_RUNS_DIR = Path.cwd().parent.parent.parent / "runs_dakota"
+DAKOTA_RUNS_DIR = Path(
+    os.environ.get("DAKOTA_RUNS_DIR", Path(__file__).resolve().parents[3] / "runs_dakota")
+)
 _logger.info(f"Saving runs in {DAKOTA_RUNS_DIR}")
-DAKOTA_RUNS_DIR.mkdir(exist_ok=True)
+DAKOTA_RUNS_DIR.mkdir(parents=True, exist_ok=True)
 assert DAKOTA_RUNS_DIR.is_dir(), "Dakota Runs Dir does not exist!!"
 
 
@@ -146,14 +151,19 @@ def flask_sumo_cross_validation():
 
         result = sumo_cross_validate(samples, input_vars, output_var, workspace=run_dir)
 
-        response_data = {
-            output_var: result.observed,
-            f"{output_var}_hat": result.predicted,
-            f"{output_var}_std_hat": result.predicted_std,
-        }
+        # Fixed-field contract (FE sumoValidation.ts destructures
+        # {observed, predicted}): the response is NOT keyed by the QoI name;
+        # the model's validators reject empty/misaligned arrays.
+        if result.predicted_std is None:
+            raise ValueError("Cross-validation did not return prediction standard deviations")
+        validated_response = SumoCrossValidationResponse(
+            observed=result.observed,
+            predicted=result.predicted,
+            predicted_std=result.predicted_std,
+        )
 
         _logger.debug("Cross-validation completed successfully!")
-        return jsonify(response_data)
+        return jsonify(validated_response.model_dump())
     except ValidationError as e:
         handle_workflow_error(e, "flask_sumo_cross_validation", 422)
     except (ValueError, SumoInputError) as e:
@@ -290,12 +300,18 @@ def flask_compute_correlation_indices():
 def flask_compute_sobol_indices():
     """
     Compute per-input first-order (main effect), total-order, and second-order
-    (pairwise interaction) Sobol' indices (#470).
+    (pairwise interaction) Sobol' indices (#470) plus the M1/M2/R order-mass
+    partition.
 
-    Delegates to itis_sumo.api.evaluate_sobol, which fits a surrogate on the
-    completed-job samples and computes Sobol' indices from explicit per-input
-    distributions (SPEC V16qf). Response always includes ``sobolSecondOrder``
-    (no opt-in flag).
+    Delegates to itis_sumo.api.evaluate_sobol (SPEC V16qf). Since itis-sumo
+    0.1.0a8 the sampling box is DOMAIN vocabulary (V26dd): the FE's
+    distribution-shaped Sobol panel is translated, never forwarded --
+    uniform(min,max) becomes the explicit box; normal(mean,std) falls back to
+    the auto-inferred observed-bounds box because distribution shape is UQ-only
+    now (back-deriving a box from mean ± 3σ is retired; the FE bounds-editor
+    migration supersedes the normal choice). Response always includes
+    ``sobolSecondOrder`` and ``sobolOrderContributions`` (null exactly when the
+    sample output variance is zero).
     """
     _logger.debug("Starting flask function: flask_compute_sobol_indices")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -316,21 +332,28 @@ def flask_compute_sobol_indices():
 
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "sobol_indices")
         samples = _jobs_to_df(jobs, input_vars, [output_response])
-        distribution_specs = {
-            var: DistributionSpec(
-                distribution=dist.distribution,
-                mean=dist.mean,
-                std=dist.std,
-                minimum=dist.min,
-                maximum=dist.max,
-            )
-            for var, dist in distributions.items()
-        }
+
+        # V26dd translation: FE panel selection -> exploration-domain boxes.
+        domains: dict[str, DomainSpec] = {}
+        for var, dist in distributions.items():
+            if var not in input_vars:
+                continue
+            if dist.distribution == "uniform":
+                assert dist.min is not None and dist.max is not None
+                domains[var] = DomainSpec(minimum=dist.min, maximum=dist.max)
+            else:
+                _logger.warning(
+                    "Sobol' sampling for '%s' ignores normal-distribution "
+                    "parameters: sensitivity is taken over the observed domain "
+                    "(V26dd); distribution shape drives UQ propagation only.",
+                    var,
+                )
+
         result = sumo_evaluate_sobol(
             samples,
             input_vars,
             output_response,
-            distributions=distribution_specs,
+            domains=domains,
             seed=seed,
             workspace=run_dir,
         )
@@ -338,6 +361,11 @@ def flask_compute_sobol_indices():
         response_data = {
             "sobol": result.indices,
             "sobol_second_order": result.second_order,
+            "sobol_order_contributions": (
+                dataclasses.asdict(result.order_contributions)
+                if result.order_contributions is not None
+                else None
+            ),
         }
         validated_response = SobolIndicesResponse.model_validate(response_data)
 

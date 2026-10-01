@@ -136,13 +136,19 @@ class TestSumoCrossValidation:
         self, test_client: Flask, monkeypatch, observed, predicted, predicted_std
     ):
         """The endpoint rejects incomplete or misaligned cross-validation results."""
-        result = {"y": observed, "y_hat": predicted}
-        if predicted_std is not None:
-            result["y_std_hat"] = predicted_std
+        from itis_sumo.api import CrossValidationResult
 
         monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.evaluate_sumo_manual_crossvalidation",
-            lambda *args, **kwargs: result,
+            "mmux_flaskapi.blueprints.dakota.sumo_cross_validate",
+            lambda *args, **kwargs: CrossValidationResult(
+                response="y",
+                observed=observed,
+                predicted=predicted,
+                predicted_std=predicted_std,
+                warnings=[],
+                seed=1,
+                effective_config={},
+            ),
         )
 
         payload = {
