@@ -371,15 +371,14 @@ def flask_compute_sobol_indices():
     (pairwise interaction) Sobol' indices (#470) plus the M1/M2/R order-mass
     partition.
 
-    Delegates to itis_sumo.api.evaluate_sobol (SPEC V16qf). Since itis-sumo
-    0.1.0a8 the sampling box is DOMAIN vocabulary (V26dd): the FE's
-    distribution-shaped Sobol panel is translated, never forwarded --
-    uniform(min,max) becomes the explicit box; normal(mean,std) falls back to
-    the auto-inferred observed-bounds box because distribution shape is UQ-only
-    now (back-deriving a box from mean ± 3σ is retired; the FE bounds-editor
-    migration supersedes the normal choice). Response always includes
-    ``sobolSecondOrder`` and ``sobolOrderContributions`` (null exactly when the
-    sample output variance is zero).
+    Delegates to itis_sumo.api.evaluate_sobol (SPEC V16qf). The request speaks
+    DOMAIN vocabulary end-to-end (V26dd, bounds-editor shape): explicit per-
+    variable ``domains`` boxes + ``fixed`` pins (a9 — pinned factors leave the
+    sweep; this replaced the old distributions shape where `constant` 422'd).
+    Variables absent from both maps fall back to the package's auto-inferred
+    observed-bounds box. Response always includes ``sobolSecondOrder`` and
+    ``sobolOrderContributions`` (null exactly when the sample output variance
+    is zero).
     """
     _logger.debug("Starting flask function: flask_compute_sobol_indices")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -389,33 +388,18 @@ def flask_compute_sobol_indices():
     try:
         output_response = validated_request.output
         input_vars = validated_request.input_vars
-        distributions = validated_request.distributions
-        # NOTE (V36): `num_samples` is intentionally unused here -- Sobol' uses a
-        # fixed sample count internal to itis_sumo.api (decoupled from the shared UQ
-        # numSamples field, which SobolIndicesRequest still carries only for
-        # schema/validation compatibility with ManualUQPropagationRequest, e.g. the
-        # >=5-completed-jobs check).
+        # NOTE (V36): Sobol' sample count is fixed inside itis_sumo.api; the
+        # request carries no num_samples field anymore.
         jobs = validated_request.function_jobs
         seed = validated_request.seed
 
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "sobol_indices")
         samples = _jobs_to_df(jobs, input_vars, [output_response])
 
-        # V26dd translation: FE panel selection -> exploration-domain boxes.
-        domains: dict[str, DomainSpec] = {}
-        for var, dist in distributions.items():
-            if var not in input_vars:
-                continue
-            if dist.distribution == "uniform":
-                assert dist.min is not None and dist.max is not None
-                domains[var] = DomainSpec(minimum=dist.min, maximum=dist.max)
-            else:
-                _logger.warning(
-                    "Sobol' sampling for '%s' ignores normal-distribution "
-                    "parameters: sensitivity is taken over the observed domain "
-                    "(V26dd); distribution shape drives UQ propagation only.",
-                    var,
-                )
+        domains = {
+            var: DomainSpec(minimum=bounds.minimum, maximum=bounds.maximum)
+            for var, bounds in validated_request.domains.items()
+        }
 
         result = _run_engine(
             sumo_evaluate_sobol,
@@ -423,6 +407,7 @@ def flask_compute_sobol_indices():
             input_vars,
             output_response,
             domains=domains,
+            fixed=validated_request.fixed,
             seed=seed,
             preprocessing=_preprocessing_for_log_scales(
                 validated_request.input_log_scales, validated_request.output_log_scales

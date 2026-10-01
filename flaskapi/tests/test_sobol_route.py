@@ -1,19 +1,30 @@
 """
-Route tests for /flask/dakota/compute_sobol_indices (post itis-sumo migration).
+Route tests for /flask/dakota/compute_sobol_indices (bounds-editor shape).
 
 The estimator lives in itis_sumo.api (exact arbitrary-d pair estimator + order
-masses, V42qa-era math; domain-driven sampling since V26dd). These tests pin
-the HTTP contract around the delegation: the FE's distribution-shaped Sobol
-panel is TRANSLATED into exploration-domain boxes (uniform -> explicit box,
-normal -> auto-inferred observed box), the response carries the fixed
-camelCase contract (sobol / sobolSecondOrder / sobolOrderContributions),
-variable names survive the serializer untouched, and null order masses (zero
-sample output variance) round-trip as null, never as fake (0,0,0) masses.
+masses, V42qa-era math). Since the bounds-editor migration the request speaks
+DOMAIN vocabulary end-to-end (V26dd): explicit per-variable `domains` boxes +
+`fixed` pins (a9) are forwarded, never translated — the old distributions
+shape is gone from this contract. Variables absent from both maps fall back to
+the package's auto-inferred observed box. These tests pin the HTTP contract
+around the delegation: the request-level guards (⊥ boxed∧pinned overlap, ⊥
+keys outside inputVars, ⊥ degenerate boxes — all 400 via parse_request_model),
+the fixed camelCase response contract (sobol / sobolSecondOrder /
+sobolOrderContributions), variable-name survival through the serializer, and
+null order masses (zero sample output variance) round-tripping as null, never
+as fake (0,0,0) masses.
 """
 
 import pytest
 from flask import Flask
-from itis_sumo.api import DomainSpec, OrderMasses, SobolResult, SumoInputError
+from itis_sumo.api import (
+    DomainSpec,
+    OrderMasses,
+    PreprocessingSpec,
+    SobolResult,
+    SumoInputError,
+    VariableSpec,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -88,24 +99,36 @@ def _jobs(n: int, inputs: list[str], output: str) -> list[dict]:
     ]
 
 
+def _box(minimum: float, maximum: float) -> dict:
+    return {"minimum": minimum, "maximum": maximum}
+
+
 def _payload(
     inputs: list[str],
-    distributions: dict,
+    domains: dict | None = None,
+    fixed: dict | None = None,
     output: str = "y",
     seed: int = 7,
 ) -> dict:
     return {
         "inputVars": inputs,
         "output": output,
-        "distributions": distributions,
-        "numSamples": 100,
+        "domains": domains or {},
+        "fixed": fixed or {},
         "FunctionJobs": _jobs(50, inputs, output),
         "seed": seed,
     }
 
 
-def _uniform(minimum: float, maximum: float) -> dict:
-    return {"distribution": "uniform", "min": minimum, "max": maximum}
+def _capture_single_var(monkeypatch, captured: dict) -> None:
+    def fake_evaluate_sobol(*args, **kwargs):
+        captured.update(kwargs)
+        return _result({"x1": _index(0.5, 0.5)}, {}, _masses())
+
+    monkeypatch.setattr(
+        "mmux_flaskapi.blueprints.dakota.sumo_evaluate_sobol",
+        fake_evaluate_sobol,
+    )
 
 
 class TestComputeSobolIndicesRoute:
@@ -123,7 +146,7 @@ class TestComputeSobolIndicesRoute:
             "mmux_flaskapi.blueprints.dakota.sumo_evaluate_sobol",
             fake_evaluate_sobol,
         )
-        payload = _payload(["x1", "x2"], {"x1": _uniform(-1, 1), "x2": _uniform(-1, 1)})
+        payload = _payload(["x1", "x2"], {"x1": _box(-1, 1), "x2": _box(-1, 1)})
         response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
         assert response.status_code == 200
         data = response.get_json()
@@ -138,9 +161,10 @@ class TestComputeSobolIndicesRoute:
             "thirdAndHigher"
         ] == pytest.approx(1.0)
 
-    def test_uniform_panel_translates_to_domain_boxes(self, test_client: Flask, monkeypatch):
-        """V26dd: the FE uniform(min,max) selection becomes the EXPLORATION BOX
-        (domain vocabulary), forwarded as `domains` -- never as distributions."""
+    def test_explicit_domains_forwarded_as_domain_specs(self, test_client: Flask, monkeypatch):
+        """V26dd bounds-editor shape: request `domains` become DomainSpec boxes
+        forwarded verbatim — the route never translates shapes, and the old
+        distributions vocabulary is not part of the call."""
         captured: dict = {}
 
         def fake_evaluate_sobol(*args, **kwargs):
@@ -151,49 +175,77 @@ class TestComputeSobolIndicesRoute:
             "mmux_flaskapi.blueprints.dakota.sumo_evaluate_sobol",
             fake_evaluate_sobol,
         )
-        payload = _payload(
-            ["x1", "x2"],
-            {"x1": _uniform(1.0, 2.0), "x2": _uniform(-3.0, 3.0)},
-        )
+        payload = _payload(["x1", "x2"], {"x1": _box(1.0, 2.0), "x2": _box(-3.0, 3.0)})
         response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
         assert response.status_code == 200
         assert captured["domains"] == {
             "x1": DomainSpec(minimum=1.0, maximum=2.0),
             "x2": DomainSpec(minimum=-3.0, maximum=3.0),
         }
+        assert captured["fixed"] == {}
         assert "distributions" not in captured
 
-    def test_normal_panel_falls_back_to_auto_inferred_box(self, test_client: Flask, monkeypatch):
-        """V26dd: normal(mean,std) params are UQ-only -- the factor is sampled
-        over its observed box (omitted from domains) instead of erroring."""
+    def test_fixed_pins_forwarded_partial_domains_ok(self, test_client: Flask, monkeypatch):
+        """a9: a pinned factor is forwarded via `fixed` (leaves the sweep); a
+        boxed sibling still gets its explicit box."""
         captured: dict = {}
 
         def fake_evaluate_sobol(*args, **kwargs):
             captured.update(kwargs)
-            return _result(
-                {"x1": _index(0.5, 0.5), "x2": _index(0.5, 0.5)},
-                {"x1": {"x2": 0.0}, "x2": {"x1": 0.0}},
-                _masses(),
-            )
+            return _result({"x2": _index(0.5, 0.5)}, {}, _masses())
 
         monkeypatch.setattr(
             "mmux_flaskapi.blueprints.dakota.sumo_evaluate_sobol",
             fake_evaluate_sobol,
         )
-        payload = _payload(
-            ["x1", "x2"],
-            {
-                "x1": {"distribution": "normal", "mean": 0.0, "std": 1.0},
-                "x2": _uniform(-1.0, 1.0),
-            },
-        )
+        payload = _payload(["x1", "x2"], {"x2": _box(-1.0, 1.0)}, {"x1": 0.5})
         response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
         assert response.status_code == 200
+        assert captured["fixed"] == {"x1": 0.5}
         assert set(captured["domains"]) == {"x2"}
+
+    def test_unspecified_variables_fall_back_to_auto_inferred(
+        self, test_client: Flask, monkeypatch
+    ):
+        """V26dd fallback: variables absent from BOTH domains and fixed are
+        forwarded as unspecified — the package auto-infers the observed box."""
+        captured: dict = {}
+        _capture_single_var(monkeypatch, captured)
+        payload = _payload(["x1"], {})
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 200
+        assert captured["domains"] == {}
+        assert captured["fixed"] == {}
+
+    def test_boxed_and_pinned_overlap_rejected(self, test_client: Flask):
+        """a9 rule: ⊥ one variable both boxed and pinned (400 at the model)."""
+        payload = _payload(["x1"], {"x1": _box(-1.0, 1.0)}, {"x1": 0.0})
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 400
+        assert "both boxed and pinned" in response.get_json()["error"]
+
+    def test_domain_key_outside_input_vars_rejected(self, test_client: Flask):
+        payload = _payload(["x1"], {"x1": _box(-1.0, 1.0), "ghost": _box(0.0, 1.0)})
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 400
+        assert "unknown inputs" in response.get_json()["error"]
+
+    def test_fixed_key_outside_input_vars_rejected(self, test_client: Flask):
+        payload = _payload(["x1"], {}, {"ghost": 1.0})
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 400
+        assert "unknown inputs" in response.get_json()["error"]
+
+    def test_degenerate_box_rejected(self, test_client: Flask):
+        """minimum >= maximum is a request error, not an engine error."""
+        payload = _payload(["x1"], {"x1": _box(1.0, 1.0)})
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 400
+        assert "minimum < maximum" in response.get_json()["error"]
 
     def test_zero_variance_orders_round_trip_as_null(self, test_client: Flask, monkeypatch):
         """null order masses (undefined fractions at zero output variance)
-        arrive as null -- NOT as (0,0,0)."""
+        arrive as null — NOT as (0,0,0)."""
 
         def fake_evaluate_sobol(*args, **kwargs):
             return _result(
@@ -206,7 +258,7 @@ class TestComputeSobolIndicesRoute:
             "mmux_flaskapi.blueprints.dakota.sumo_evaluate_sobol",
             fake_evaluate_sobol,
         )
-        payload = _payload(["x1", "x2"], {"x1": _uniform(-1, 1), "x2": _uniform(-1, 1)})
+        payload = _payload(["x1", "x2"], {"x1": _box(-1, 1), "x2": _box(-1, 1)})
         response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
         assert response.status_code == 200
         data = response.get_json()
@@ -215,16 +267,8 @@ class TestComputeSobolIndicesRoute:
     def test_seed_zero_accepted(self, test_client: Flask, monkeypatch):
         """Seed 0 is valid (scipy/numpy RNGs accept it)."""
         captured: dict = {}
-
-        def fake_evaluate_sobol(*args, **kwargs):
-            captured.update(kwargs)
-            return _result({"x1": _index(0.5, 0.5)}, {}, _masses())
-
-        monkeypatch.setattr(
-            "mmux_flaskapi.blueprints.dakota.sumo_evaluate_sobol",
-            fake_evaluate_sobol,
-        )
-        payload = _payload(["x1"], {"x1": _uniform(-1, 1)}, seed=0)
+        _capture_single_var(monkeypatch, captured)
+        payload = _payload(["x1"], {"x1": _box(-1, 1)}, seed=0)
         response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
         assert response.status_code == 200
         assert captured["seed"] == 0
@@ -238,7 +282,7 @@ class TestComputeSobolIndicesRoute:
             "mmux_flaskapi.blueprints.dakota.sumo_evaluate_sobol",
             fake_evaluate_sobol,
         )
-        payload = _payload(["x1"], {"x1": _uniform(-1, 1)})
+        payload = _payload(["x1"], {"x1": _box(-1, 1)})
         response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
         assert response.status_code == 200
         assert response.get_json()["sobolSecondOrder"] == {}
@@ -260,7 +304,7 @@ class TestComputeSobolIndicesRoute:
         )
         payload = _payload(
             ["drag_force", "wing_area"],
-            {"drag_force": _uniform(-1, 1), "wing_area": _uniform(-1, 1)},
+            {"drag_force": _box(-1, 1), "wing_area": _box(-1, 1)},
             output="stress_max",
         )
         response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
@@ -268,6 +312,38 @@ class TestComputeSobolIndicesRoute:
         data = response.get_json()
         assert set(data["sobol"]) == {"drag_force", "wing_area"}
         assert set(data["sobolSecondOrder"]["drag_force"]) == {"wing_area"}
+
+    def test_irregular_variable_names_survive_request_transform(
+        self, test_client: Flask, monkeypatch
+    ):
+        """GH-Copilot #662 audit class (B15): camelCase variable names must pass
+        through the request transformer intact inside the variable-keyed maps —
+        domains, fixed and inputLogScales — else the engine gets mangled names
+        (mismatched df columns / rejected unused PreprocessingSpec overrides)."""
+        captured: dict = {}
+        boxed, pinned = "TissueConduc", "PinPoint"
+
+        def fake_evaluate_sobol(*args, **kwargs):
+            captured.update(kwargs)
+            return _result({boxed: _index(0.5, 0.5)}, {}, _masses())
+
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.dakota.sumo_evaluate_sobol",
+            fake_evaluate_sobol,
+        )
+        payload = _payload(
+            [boxed, pinned],
+            {boxed: _box(0.5, 2.0)},
+            {pinned: 3.0},
+        )
+        payload["inputLogScales"] = {boxed: True}
+        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
+        assert response.status_code == 200
+        assert captured["domains"] == {boxed: DomainSpec(minimum=0.5, maximum=2.0)}
+        assert captured["fixed"] == {pinned: 3.0}
+        assert captured["preprocessing"] == PreprocessingSpec(
+            overrides={boxed: VariableSpec(scale="log")}
+        )
 
     def test_input_error_maps_to_400(self, test_client: Flask, monkeypatch):
         """itis-sumo input rejection (SumoInputError) is a client error."""
@@ -279,12 +355,7 @@ class TestComputeSobolIndicesRoute:
             "mmux_flaskapi.blueprints.dakota.sumo_evaluate_sobol",
             fake_evaluate_sobol,
         )
-        payload = _payload(["x1"], {"x1": _uniform(-1, 1)})
+        payload = _payload(["x1"], {"x1": _box(-1, 1)})
         response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
         assert response.status_code == 400
         assert "not in play" in response.get_json()["error"]
-
-    def test_missing_distribution_for_input_var(self, test_client: Flask):
-        payload = _payload(["x1", "x2"], {"x1": _uniform(-1, 1)})
-        response = test_client.post("/flask/dakota/compute_sobol_indices", json=payload)
-        assert response.status_code == 400

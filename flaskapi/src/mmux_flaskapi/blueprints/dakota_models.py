@@ -1200,21 +1200,69 @@ class CorrelationIndicesResponse(BaseModel):
         return v
 
 
-class SobolIndicesRequest(ManualUQPropagationRequest):
-    """Request model for the Sobol'-indices endpoint (#470).
+class DomainBounds(BaseModel):
+    """One input variable's Sobol' exploration box, in ORIGINAL units (V26dd).
 
-    Mirrors `CorrelationIndicesRequest`'s shape (same Monte Carlo/UQ setup contract:
-    output, inputVars, distributions, numSamples, FunctionJobs), plus a `seed` for
-    reproducibility of the Sobol' QMC sampling.  Seed 0 is valid — scipy/numpy RNGs
-    accept it (the former Dakota NIDR constraint requiring seed ≥ 1 no longer applies
-    after the scipy migration, V34).
+    The FE bounds editor speaks domain vocabulary directly — it is NOT a
+    distribution shape. `minimum < maximum` is enforced at the request layer so
+    a degenerate box gets a clean 400 instead of an engine error; a variable
+    that is pinned (request `fixed`) must NOT also appear here (a9 rule).
     """
 
+    minimum: float = Field(..., description="Lower bound of the sampling box")
+    maximum: float = Field(..., description="Upper bound of the sampling box")
+
+    @model_validator(mode="after")
+    def minimum_below_maximum(self) -> "DomainBounds":
+        if not self.maximum > self.minimum:
+            raise ValueError(
+                f"domain box needs minimum < maximum, got [{self.minimum}, {self.maximum}]"
+            )
+        return self
+
+
+class SobolIndicesRequest(SumoCrossValidationRequest):
+    """Request model for the Sobol'-indices endpoint (#470, bounds-editor shape).
+
+    Domain-vocabulary since the FE bounds-editor migration: per-variable
+    exploration ``domains`` (explicit boxes) plus ``fixed`` pins for factors
+    held constant (a9 — a pinned factor leaves the sensitivity sweep entirely;
+    the pre-migration `constant` distribution 422'd here, which is what the pin
+    path replaces). Variables absent from BOTH maps fall back to the package's
+    auto-inferred observed-bounds box (V26dd). ``distributions``/``numSamples``
+    are GONE from this contract: Sobol' ignores distribution shape (V26dd) and
+    sample count is fixed inside itis_sumo.api (V36). Seed 0 is valid
+    (scipy/numpy RNGs accept it). The base supplies output/inputVars/
+    FunctionJobs consistency and the log-scale fields + positivity guard.
+    """
+
+    domains: dict[str, DomainBounds] = Field(
+        default_factory=dict,
+        description="Per-input exploration box; unlisted variables auto-infer from observed bounds",
+    )
+    fixed: dict[str, float] = Field(
+        default_factory=dict,
+        description="Input variables held at a constant value (excluded from the sweep)",
+    )
     seed: int = Field(
         ...,
         ge=0,
         description="Random seed for reproducibility (scipy/numpy RNGs accept 0)",
     )
+
+    @model_validator(mode="after")
+    def validate_domain_and_fixed_keys(self) -> "SobolIndicesRequest":
+        """⊥ a variable both boxed and pinned (a9); ⊥ keys outside inputVars."""
+        overlap = set(self.domains) & set(self.fixed)
+        if overlap:
+            raise ValueError(
+                "variables cannot be both boxed and pinned: "
+                f"{sorted(overlap)} appear in domains and fixed"
+            )
+        unknown = (set(self.domains) | set(self.fixed)) - set(self.input_vars)
+        if unknown:
+            raise ValueError(f"domains/fixed reference unknown inputs: {sorted(unknown)}")
+        return self
 
 
 class SobolIndexPair(BaseModel):
