@@ -39,7 +39,12 @@ describe("jobCollectionCsv", () => {
 
       const result = parseJobCollectionCsv(csv);
 
-      expect(result.inputPresets.x1).toEqual({ distribution: "uniform", min: 1.0, max: 5.0, logScale: false });
+      expect(result.inputPresets.x1).toEqual({
+        distribution: "uniform",
+        min: 1.0,
+        max: 5.0,
+        scale: "linear",
+      });
     });
 
     it("infers log-scale when values span >=2 orders of magnitude", () => {
@@ -52,7 +57,7 @@ describe("jobCollectionCsv", () => {
 
       const result = parseJobCollectionCsv(csv);
 
-      expect(result.inputPresets.x1.logScale).toBe(true);
+      expect(result.inputPresets.x1.scale).toBe("log");
     });
 
     it("does not infer log-scale when values are non-positive or narrow-range", () => {
@@ -64,8 +69,8 @@ describe("jobCollectionCsv", () => {
 
       const result = parseJobCollectionCsv(csv);
 
-      expect(result.inputPresets.x1.logScale).toBe(false);
-      expect(result.inputPresets.x2.logScale).toBe(false);
+      expect(result.inputPresets.x1.scale).toBe("linear");
+      expect(result.inputPresets.x2.scale).toBe("linear");
     });
 
     it("handles quoted CSV cells containing commas", () => {
@@ -90,7 +95,12 @@ describe("jobCollectionCsv", () => {
       expect(result.rows[0].inputs).toEqual({});
       expect(result.rows[0].outputs).toEqual({});
       // bounds inference must also ignore the missing cell rather than folding in a 0
-      expect(result.inputPresets.x1).toEqual({ distribution: "uniform", min: 2.0, max: 2.0, logScale: false });
+      expect(result.inputPresets.x1).toEqual({
+        distribution: "uniform",
+        min: 2.0,
+        max: 2.0,
+        scale: "linear",
+      });
     });
 
     it("B20/V28: parses a quoted preamble value containing a comma", () => {

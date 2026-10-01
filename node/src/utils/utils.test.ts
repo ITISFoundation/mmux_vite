@@ -94,17 +94,8 @@ describe("Sampling Functions", () => {
     expect(typeof startValue).toBe("number");
     expect(startValue).toBeLessThanOrEqual(0); // mean - 2.5 * std
 
-    distribution.X.distribution = "log-normal";
-    startValue = getSamplingStartValue(inputVar, distribution);
-    expect(startValue).toBeDefined();
-    expect(typeof startValue).toBe("string");
-    expect(startValue).toBe("Error. Please contact support");
-
-    distribution.X.distribution = "exponential";
-    startValue = getSamplingStartValue(inputVar, distribution);
-    expect(startValue).toBeDefined();
-    expect(typeof startValue).toBe("number");
-    expect(startValue).toBe(0);
+    // log-normal/exponential were removed from the Distribution union (B33/V40:
+    // log is now the orthogonal VarSelection.scale, not a shape).
   });
 
   it("should get the sampling end value", () => {
@@ -131,17 +122,8 @@ describe("Sampling Functions", () => {
     expect(typeof endValue).toBe("number");
     expect(endValue).toBeLessThanOrEqual(10); // mean + 2.5 * std
 
-    distribution.X.distribution = "log-normal";
-    endValue = getSamplingEndValue(inputVar, distribution);
-    expect(endValue).toBeDefined();
-    expect(typeof endValue).toBe("string");
-    expect(endValue).toBe("Error. Please contact support");
-
-    distribution.X.distribution = "exponential";
-    endValue = getSamplingEndValue(inputVar, distribution);
-    expect(endValue).toBeDefined();
-    expect(typeof endValue).toBe("string");
-    expect(endValue).toBe("Error. Please contact support");
+    // log-normal/exponential removed from the union (B33/V40); unsupported
+    // shapes fall through to the "Error..." sentinel.
   });
 });
 
@@ -165,6 +147,14 @@ describe("stepValidator", () => {
         },
       },
       outputTargets: {},
+      outputLogScales: {},
+      outputLogScaleUserSet: {},
+      setOutputLogScales: (): void => {
+        throw new Error("Function not implemented.");
+      },
+      setOutputLogScaleUserSet: (): void => {
+        throw new Error("Function not implemented.");
+      },
       setSelectedFunction: (_F: RegisteredFunction | undefined): void => {
         throw new Error("Function not implemented.");
       },

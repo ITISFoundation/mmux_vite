@@ -1,9 +1,10 @@
 import { Box, useTheme } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
+import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 import { fetchWithRetry } from "../../utils/fetchRetry";
 import { getResponseErrorMessage } from "../../utils/httpError";
 import { JobsLoading } from "../data/JobsLoading";
@@ -14,8 +15,24 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 export default function UncertainUQ(props: LoadingPropsType) {
   const { loading, jobProgress } = props;
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { numSamples, selectedQoI } = useMMUXContext();
+  // Per-variable log-scale flags (node SPEC V12), see Curves1DPlot for the pattern.
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
+  // V26/V27: propose linear-vs-log surrogate scale for the selected QoI from a
+  // CV RMSE comparison; a manual toggle in OutputVariableDist locks it (V27).
+  useAutoDetectQoiScale(selectedQoI ? [selectedQoI] : undefined);
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [dataUQHistogram, setDataUQHistogram] = useState<DataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
@@ -46,7 +63,8 @@ export default function UncertainUQ(props: LoadingPropsType) {
             distributions: distribution[selectedFunction?.uid || ""],
             FunctionJobs: filteredJobList,
             numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
-            log: false,
+            inputLogScales,
+            outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
             nHistograms: 50,
             seed: 0,
           }),
@@ -82,7 +100,17 @@ export default function UncertainUQ(props: LoadingPropsType) {
         setDataUQHistogram(undefined);
       }
     })();
-  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction, theme.palette.primary.main]);
+  }, [
+    filteredJobList,
+    selectedQoI,
+    numSamples,
+    inputVars,
+    distribution,
+    selectedFunction,
+    theme.palette.primary.main,
+    inputLogScales,
+    outputLogScaleForQoi,
+  ]);
   if (loading) {
     return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;
   }

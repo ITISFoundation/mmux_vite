@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
@@ -20,8 +20,24 @@ type GPPrediction = {
 
 function Curves1DPlots() {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
+  // Per-variable log-scale flags (node SPEC V12): input flags come from the
+  // distribution config (VarSelection.scale), the output flag from the
+  // per-function outputLogScales map (only meaningful for the selected QoI).
+  // The backend folds both into PreprocessingSpec overrides (flaskapi V16).
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
   const filteredInputVars = filterInputVars({
@@ -113,7 +129,8 @@ function Curves1DPlots() {
         output: selectedQoI,
         sliderValues: otherAxis,
         FunctionJobs: jobs,
-        log: false,
+        inputLogScales,
+        outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
       }),
     })
       .then(async response => {
@@ -157,7 +174,7 @@ function Curves1DPlots() {
         qoi: selectedQoI,
         fn: selectedFunction?.uid,
         jobList: jobs.map(job => job.uid),
-        logScale: false,
+        logScales: selectedQoI ? { ...inputLogScales, [selectedQoI]: outputLogScaleForQoi } : inputLogScales,
       });
       if (requestKey === lastFetchedKey.current) {
         return undefined;
@@ -167,7 +184,7 @@ function Curves1DPlots() {
     run();
     // console.debug("axis: ", axis);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filteredJobList]);
+  }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filteredJobList, inputLogScales, outputLogScaleForQoi]);
 
   const plotStyle = {
     height: 300,
@@ -188,10 +205,12 @@ function Curves1DPlots() {
     },
     xaxis: {
       title: { text: axis }, // FIXME axis is only showing for the first parameter in the list
+      type: inputLogScales[axis] ? "log" : undefined,
     },
     yaxis: {
       title: { text: selectedQoI },
       anchor: "x",
+      type: outputLogScaleForQoi ? "log" : undefined,
     },
     showlegend: true,
   };

@@ -2,9 +2,10 @@
 // V16 (INV-006): same logical request → no new fetch. The key is derived from the
 // inputs that actually change the backend response: the plotted axes, the fixed
 // slider values for the remaining inputs, the selected QoI, the function uid, the
-// list of jobs the model is built from, and the log-scale flag. Re-creation of the
-// surrounding objects (new array/object identity, key insertion order) must NOT
-// change the key, so every collection is serialized deterministically.
+// list of jobs the model is built from, and the per-variable log-scale flags
+// (inputLogScales + the QoI's output flag). Re-creation of the surrounding
+// objects (new array/object identity, key insertion order) must NOT change the
+// key, so every collection is serialized deterministically.
 
 export interface DakotaRequestKeyInput {
   axes: string[];
@@ -12,7 +13,7 @@ export interface DakotaRequestKeyInput {
   qoi: string | undefined;
   fn: string | undefined;
   jobList: string[];
-  logScale: boolean;
+  logScales: { [key: string]: boolean };
 }
 
 const sortedRecordEntries = (record: { [key: string]: number }): [string, number][] =>
@@ -20,15 +21,24 @@ const sortedRecordEntries = (record: { [key: string]: number }): [string, number
     .sort()
     .map(key => [key, record[key]] as [string, number]);
 
-export function buildDakotaRequestKey({ axes, sliderValues, qoi, fn, jobList, logScale }: DakotaRequestKeyInput): string {
+const sortedLogScales = (record: { [key: string]: boolean }): [string, boolean][] =>
+  // only flagged entries reach the backend meaningfully ({x:false} ≡ {}
+  // for PreprocessingSpec folding), so unflagged entries must not churn the key
+  Object.keys(record)
+    .filter(key => Boolean(record[key]))
+    .sort()
+    .map(key => [key, true] as [string, boolean]);
+
+export function buildDakotaRequestKey({ axes, sliderValues, qoi, fn, jobList, logScales }: DakotaRequestKeyInput): string {
   // axes are positional (axis1/axis2/axis3) so order is meaningful and preserved.
-  // sliderValues and jobList are order-independent, so they are sorted for stability.
+  // sliderValues, logScales and jobList are order-independent, so they are sorted
+  // for stability.
   return JSON.stringify({
     axes,
     sliderValues: sortedRecordEntries(sliderValues),
     qoi: qoi ?? null,
     fn: fn ?? null,
     jobList: [...jobList].sort(),
-    logScale,
+    logScales: sortedLogScales(logScales),
   });
 }
