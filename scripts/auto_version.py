@@ -45,9 +45,17 @@ def read_config_text(path: Path = CONFIG_FILE) -> str:
 
 
 def read_config_text_from_ref(ref: str) -> str:
-    return subprocess.check_output(
-        ["git", "show", f"{ref}:{CONFIG_FILE}"], text=True
-    )
+    try:
+        return subprocess.check_output(
+            ["git", "show", f"{ref}:{CONFIG_FILE}"], text=True, stderr=subprocess.DEVNULL
+        )
+    except subprocess.CalledProcessError:
+        # GitHub PR runners serve the base branch under origin/; dev clones
+        # (fork + upstream remotes) may only carry it under upstream/.
+        fallback = ref.replace("origin/", "upstream/", 1)
+        return subprocess.check_output(
+            ["git", "show", f"{fallback}:{CONFIG_FILE}"], text=True
+        )
 
 
 def current_version(parser: configparser.RawConfigParser) -> str:
