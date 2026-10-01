@@ -37,8 +37,16 @@ export default defineConfig({
     // from the PINNED docker image (V12), not from tolerance, so ⊥ band here
     // hides rasterization drift: if the pinned image drifts, we regenerate
     // baselines in that same image instead of widening the band.
+    // maxDiffPixelRatio 0.0 zeroes the QUOTA of differing pixels. The
+    // comparator floor is pinned EXPLICITLY (GH-Copilot #667 note): pixelmatch
+    // counts a pixel as different only past a color-distance threshold, and
+    // never counts anti-aliased pixels. threshold 0 was MEASURED (2026-10-01):
+    // 2/7 baselines fail reproducibly across runs (moga-readonly-inspect-modal,
+    // sumo-readonly-inputs — sub-0.2 color drift the AA classifier doesn't
+    // absorb), so 0.2 is the strictest stable floor, kept ON PURPOSE.
     toHaveScreenshot: {
       maxDiffPixelRatio: 0.0,
+      threshold: 0.2,
       animations: "disabled",
       caret: "hide",
       // Plotly/DataGrid can take a few render frames to settle; the default 5s
