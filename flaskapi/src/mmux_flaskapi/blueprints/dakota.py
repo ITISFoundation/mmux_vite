@@ -11,7 +11,14 @@ import pandas as pd
 
 #
 from flask import Blueprint, abort, jsonify, make_response
-from itis_sumo.api import DistributionSpec, DomainSpec, SumoInputError, SumoResultError
+from itis_sumo.api import (
+    DistributionSpec,
+    DomainSpec,
+    PreprocessingSpec,
+    SumoInputError,
+    SumoResultError,
+    VariableSpec,
+)
 from itis_sumo.api import compute_correlations as sumo_compute_correlations
 from itis_sumo.api import cross_validate as sumo_cross_validate
 from itis_sumo.api import evaluate_along_axes as sumo_evaluate_along_axes
@@ -119,6 +126,23 @@ def handle_workflow_error(e: Exception, workflow_name: str, status_code: int = 5
     abort(make_response(jsonify(response_payload), status_code))
 
 
+def _preprocessing_for_log_scales(
+    input_log_scales: dict[str, bool],
+    output_log_scales: dict[str, bool],
+) -> PreprocessingSpec | None:
+    """Fold the request's per-variable log flags into a itis-sumo spec (V16).
+
+    Flagged columns become ``VariableSpec(scale="log")`` overrides; the package
+    then owns everything downstream — log-space fit, log-uniform UQ draws,
+    log-uniform Sobol boxes, log search domains, delta-method std inverses
+    (its V44ls/V21pf). Returns None when nothing is flagged, keeping the
+    package's auto-derived defaults on the untouched columns.
+    """
+    log_scales = {**input_log_scales, **output_log_scales}
+    overrides = {var: VariableSpec(scale="log") for var, flag in log_scales.items() if flag}
+    return PreprocessingSpec(overrides=overrides) if overrides else None
+
+
 ########################################################
 # Flask Endpoints
 ########################################################
@@ -151,7 +175,15 @@ def flask_sumo_cross_validation():
 
         samples = _jobs_to_df(jobs, input_vars, [output_var])
 
-        result = sumo_cross_validate(samples, input_vars, output_var, workspace=run_dir)
+        result = sumo_cross_validate(
+            samples,
+            input_vars,
+            output_var,
+            preprocessing=_preprocessing_for_log_scales(
+                validated_request.input_log_scales, validated_request.output_log_scales
+            ),
+            workspace=run_dir,
+        )
 
         # Fixed-field contract (FE sumoValidation.ts destructures
         # {observed, predicted}): the response is NOT keyed by the QoI name;
@@ -228,6 +260,9 @@ def flask_manual_uq_propagation_with_uncertainty():
             num_samples=num_samples,
             n_histograms=n_histograms,
             seed=seed,
+            preprocessing=_preprocessing_for_log_scales(
+                validated_request.input_log_scales, validated_request.output_log_scales
+            ),
             workspace=run_dir,
         )
 
@@ -284,7 +319,14 @@ def flask_compute_correlation_indices():
         jobs = validated_request.function_jobs
 
         samples = _jobs_to_df(jobs, input_vars, [output_response])
-        result = sumo_compute_correlations(samples, input_vars, output_response)
+        result = sumo_compute_correlations(
+            samples,
+            input_vars,
+            output_response,
+            preprocessing=_preprocessing_for_log_scales(
+                validated_request.input_log_scales, validated_request.output_log_scales
+            ),
+        )
 
         response_data = {"correlations": result.coefficients}
         validated_response = CorrelationIndicesResponse.model_validate(response_data)
@@ -360,6 +402,9 @@ def flask_compute_sobol_indices():
             output_response,
             domains=domains,
             seed=seed,
+            preprocessing=_preprocessing_for_log_scales(
+                validated_request.input_log_scales, validated_request.output_log_scales
+            ),
             workspace=run_dir,
         )
 
@@ -415,6 +460,9 @@ def flask_evaluate_sumo_along_axes():
             input_vars,
             output_response,
             at=slider_values,
+            preprocessing=_preprocessing_for_log_scales(
+                validated_request.input_log_scales, validated_request.output_log_scales
+            ),
             workspace=run_dir,
         )
 
@@ -473,6 +521,9 @@ def flask_sumo_grid_evaluation():
             output_response,
             grid_variables=grid_vars,
             at=slider_values,
+            preprocessing=_preprocessing_for_log_scales(
+                validated_request.input_log_scales, validated_request.output_log_scales
+            ),
             workspace=run_dir,
         )
 
@@ -517,7 +568,14 @@ def flask_get_sumo_cv_accuracy_metrics():
 
         try:
             result = sumo_evaluate_cv_metrics(
-                samples, input_vars, output_response, workspace=run_dir
+                samples,
+                input_vars,
+                output_response,
+                preprocessing=_preprocessing_for_log_scales(
+                    {},
+                    {output_response: True} if validated_request.log else {},
+                ),
+                workspace=run_dir,
             )
             response_metrics = {
                 output_response: CVAccuracyMetrics(
@@ -581,7 +639,14 @@ def flask_perform_moga_optimization():
             domains[var] = DomainSpec(minimum=dist.min, maximum=dist.max)
 
         result = sumo_optimize(
-            samples, input_vars, output_var_selection, domains=domains, workspace=run_dir
+            samples,
+            input_vars,
+            output_var_selection,
+            domains=domains,
+            preprocessing=_preprocessing_for_log_scales(
+                validated_request.input_log_scales, validated_request.output_log_scales
+            ),
+            workspace=run_dir,
         )
 
         response_data = {"optimization_results": result.data}
