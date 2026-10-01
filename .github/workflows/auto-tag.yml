@@ -49,13 +49,29 @@ jobs:
 
       - uses: astral-sh/setup-uv@v10.2.0
 
-      - name: Recover prereleases stranded by a partial run
+      - name: Recover versions stranded by a partial run
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           git fetch --tags --force
-          uv run --no-project --with packaging python scripts/auto_version.py dev-tags \
+          script=(uv run --no-project --with packaging python scripts/auto_version.py)
+          # A .devN commit that landed but never got its tag+release (gh
+          # failed before creating them) must be published BEFORE the
+          # counter advances, or a rerun would silently skip it.
+          current=$("${script[@]}" current-version)
+          if [[ "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.dev[0-9]+$ ]] \
+             && ! git tag --list "v$current" | grep -qx "v$current" \
+             && ! gh release view "v$current" >/dev/null 2>&1; then
+            target=$(git log -1 --format=%H -G "current_version = ${current}" -- .bumpversion.cfg)
+            if [ -n "$target" ]; then
+              echo "publishing untagged dev version v$current from $target"
+              gh release create "v$current" --target "$target" \
+                --prerelease --generate-notes --title "v$current (dev)"
+            fi
+          fi
+          # Tags created by gh whose release creation then failed:
+          "${script[@]}" dev-tags \
             | while read -r tag; do
                 gh release view "$tag" >/dev/null 2>&1 && continue
                 echo "creating missing prerelease for stranded tag $tag"
