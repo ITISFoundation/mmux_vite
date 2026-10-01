@@ -3,9 +3,11 @@ from __future__ import annotations
 import dataclasses
 import logging
 import os
+import threading
 import traceback
+from collections.abc import Callable
 from pathlib import Path
-from typing import NoReturn
+from typing import Any, NoReturn, TypeVar
 
 import pandas as pd
 
@@ -64,6 +66,28 @@ DAKOTA_RUNS_DIR = Path(
 _logger.info(f"Saving runs in {DAKOTA_RUNS_DIR}")
 DAKOTA_RUNS_DIR.mkdir(parents=True, exist_ok=True)
 assert DAKOTA_RUNS_DIR.is_dir(), "Dakota Runs Dir does not exist!!"
+
+# V49ad: the itis-sumo Dakota runner executes inside `working_directory(...)`,
+# which mutates the PROCESS-WIDE cwd for the duration of a run. Two overlapping
+# Dakota-bound calls therefore corrupt each other's paths (observed as nested
+# run dirs and `predictions.dat does not exist` under concurrent CV + UQ). The
+# adapter serializes all Dakota-bound package calls on this lock; in-memory
+# helpers (compute_correlations, generate_lhs_samples) stay outside it.
+# ⊥ assume workspace paths alone make concurrent runs safe. The upstream fix
+# (cwd-independent execution, e.g. subprocess cwd=) would retire this lock.
+ENGINE_LOCK = threading.Lock()
+
+_T = TypeVar("_T")
+
+
+def _run_engine(fn: Callable[..., _T], *args: Any, **kwargs: Any) -> _T:
+    """Call an itis-sumo workflow under ENGINE_LOCK (V49ad).
+
+    One Dakota-bound run per process at a time: the package's runner chdirs
+    for the duration of a run, so overlapping calls corrupt each other.
+    """
+    with ENGINE_LOCK:
+        return fn(*args, **kwargs)
 
 
 ########################################################
@@ -173,7 +197,8 @@ def flask_sumo_cross_validation():
 
         samples = _jobs_to_df(jobs, input_vars, [output_var])
 
-        result = sumo_cross_validate(
+        result = _run_engine(
+            sumo_cross_validate,
             samples,
             input_vars,
             output_var,
@@ -249,7 +274,8 @@ def flask_manual_uq_propagation_with_uncertainty():
             for var, dist in distributions.items()
         }
 
-        result = sumo_evaluate_uncertainty(
+        result = _run_engine(
+            sumo_evaluate_uncertainty,
             samples,
             input_vars,
             output_response,
@@ -391,7 +417,8 @@ def flask_compute_sobol_indices():
                     var,
                 )
 
-        result = sumo_evaluate_sobol(
+        result = _run_engine(
+            sumo_evaluate_sobol,
             samples,
             input_vars,
             output_response,
@@ -449,7 +476,8 @@ def flask_evaluate_sumo_along_axes():
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "along_axes")
         samples = _jobs_to_df(jobs, input_vars, [output_response])
 
-        result = sumo_evaluate_along_axes(
+        result = _run_engine(
+            sumo_evaluate_along_axes,
             samples,
             input_vars,
             output_response,
@@ -508,7 +536,8 @@ def flask_sumo_grid_evaluation():
         run_dir = create_run_dir(DAKOTA_RUNS_DIR, "grid_evaluation")
         samples = _jobs_to_df(jobs, input_vars, [output_response])
 
-        result = sumo_evaluate_grid(
+        result = _run_engine(
+            sumo_evaluate_grid,
             samples,
             input_vars,
             output_response,
@@ -559,7 +588,8 @@ def flask_get_sumo_cv_accuracy_metrics():
         samples = _jobs_to_df(jobs, input_vars, [output_response])
 
         try:
-            result = sumo_evaluate_cv_metrics(
+            result = _run_engine(
+                sumo_evaluate_cv_metrics,
                 samples,
                 input_vars,
                 output_response,
@@ -629,7 +659,8 @@ def flask_perform_moga_optimization():
             )
             domains[var] = DomainSpec(minimum=dist.min, maximum=dist.max)
 
-        result = sumo_optimize(
+        result = _run_engine(
+            sumo_optimize,
             samples,
             input_vars,
             output_var_selection,

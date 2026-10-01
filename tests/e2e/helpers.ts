@@ -18,7 +18,10 @@ export const MODEL_READY_TIMEOUT = 60_000;
 
 export async function expectPlotlyReady(container: Locator, timeout = MODEL_READY_TIMEOUT): Promise<Locator> {
   const plot = container.locator(".js-plotly-plot");
-  await expect(plot).toHaveCount(1);
+  // The count must wait the full readiness budget too: a single-threaded e2e
+  // backend serializes Dakota runs (CV + its auto-detect pair + surrogates), so
+  // late-arriving plots are normal load, not a missing plot.
+  await expect(plot).toHaveCount(1, { timeout });
   await expect(plot).toBeVisible({ timeout });
   return plot;
 }
@@ -50,6 +53,8 @@ export const DEFAULT_PERSISTENCE = {
   fetchedJobCollections: [],
   selectedJobUids: [],
   outputTargets: {},
+  outputLogScales: {},
+  outputLogScaleUserSet: {},
   mogaSettings: {},
   weights: {},
   sortModel: [],
