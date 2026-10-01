@@ -181,4 +181,52 @@ describe("useAutoDetectQoiScale", () => {
       expect(fetchMock).toHaveBeenCalledTimes(4);
     });
   });
+
+  it("discards a superseded CV pair that resolves LAST (GH-Copilot #665 stale verdict)", async () => {
+    const jobs = [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)];
+    // pair 1 (linear inputs, SLOW) prefers LOG; pair 2 (log inputs, FAST) prefers
+    // LINEAR. If the stale pair 1 could still commit after pair 2 applied, the
+    // final state would flip to log=true.
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string);
+      const logInputs = Boolean(body.inputLogScales?.x);
+      const useLog = Boolean(body.outputLogScales?.qoi);
+      if (!logInputs) {
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
+      const perfect = [1, 2, 3, 4, 5];
+      const off = [2, 2, 2, 2, 2];
+      const data = logInputs
+        ? { observed: perfect, predicted: useLog ? off : perfect } // newer generation: linear wins
+        : { observed: perfect, predicted: useLog ? perfect : off }; // superseded: log wins
+      return { ok: true, json: async () => data } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const state: { [uid: string]: { [qoi: string]: boolean } } = {};
+    const setOutputLogScales = vi.fn((updater: unknown) => {
+      const next =
+        typeof updater === "function" ? (updater as (prev: typeof state) => typeof state)(state) : (updater as typeof state);
+      Object.assign(state, next);
+    });
+
+    setupContexts({ jobs, setOutputLogScales });
+    const { rerender } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2); // pair 1 in flight (slow)
+    });
+
+    setupContexts({ jobs, setOutputLogScales, distribution: { fn1: { x: { scale: "log" } } } });
+    rerender();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+    });
+    await waitFor(() => {
+      expect(state.fn1?.qoi).toBe(false); // pair 2's verdict applied
+    });
+
+    // let the stale pair 1 land AFTER the newer verdict, then confirm it stuck
+    await new Promise(resolve => setTimeout(resolve, 80));
+    expect(state.fn1?.qoi).toBe(false); // ⊥ flipped back by the superseded pair
+  });
 });
