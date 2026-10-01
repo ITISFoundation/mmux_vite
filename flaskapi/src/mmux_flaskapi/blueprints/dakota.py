@@ -21,9 +21,9 @@ from itis_sumo.api import (
     SumoResultError,
     VariableSpec,
 )
-from itis_sumo.api import compute_correlations as sumo_compute_correlations
 from itis_sumo.api import cross_validate as sumo_cross_validate
 from itis_sumo.api import evaluate_along_axes as sumo_evaluate_along_axes
+from itis_sumo.api import evaluate_correlations as sumo_evaluate_correlations
 from itis_sumo.api import evaluate_cv_metrics as sumo_evaluate_cv_metrics
 from itis_sumo.api import evaluate_grid as sumo_evaluate_grid
 from itis_sumo.api import evaluate_sobol as sumo_evaluate_sobol
@@ -325,10 +325,15 @@ def flask_compute_correlation_indices():
     """
     Compute per-input <-> output Pearson and Spearman correlation coefficients (#470).
 
-    Correlates each input variable's completed-job samples against the response's
-    observed values (SPEC V16qf). Returns one response covering all requested input
-    variables, so sensitivity of a QoI to every parameter can be inspected in a
-    single plot (beyond the current 3-var 1D/2D/3D plot limit).
+    V39 semantics (restored after the GH-Copilot #661-audit caught the silent
+    table-mode degradation): every requested input distribution is SAMPLED
+    (`distributions`/`numSamples`/`seed` are real inputs, ⊥ ignored), the
+    job-fitted surrogate is evaluated ONCE over that MC set, and each variable's
+    samples are correlated against those predictions (original units, original
+    names) — the same MC sample set the UQ histogram propagates. Delegates to
+    itis_sumo.api.evaluate_correlations, which is Dakota-bound and thus runs
+    under ENGINE_LOCK (V49ad); `compute_correlations` (table mode) stays
+    package-side for caller-owned tables and is no longer routed here.
     """
     _logger.debug("Starting flask function: flask_compute_correlation_indices")
     _logger.debug("Cwd: " + str(Path.cwd()))
@@ -340,14 +345,35 @@ def flask_compute_correlation_indices():
         input_vars = validated_request.input_vars
         jobs = validated_request.function_jobs
 
+        run_dir = create_run_dir(DAKOTA_RUNS_DIR, "correlation_indices")
         samples = _jobs_to_df(jobs, input_vars, [output_response])
-        result = sumo_compute_correlations(
+
+        # The request model guarantees exact coverage of input_vars; the filter
+        # just drops the tolerated extra keys (mirrors the Sobol route).
+        distribution_specs = {
+            var: DistributionSpec(
+                distribution=dist.distribution,
+                mean=dist.mean,
+                std=dist.std,
+                minimum=dist.min,
+                maximum=dist.max,
+            )
+            for var, dist in validated_request.distributions.items()
+            if var in input_vars
+        }
+
+        result = _run_engine(
+            sumo_evaluate_correlations,
             samples,
             input_vars,
             output_response,
+            distributions=distribution_specs,
+            num_samples=validated_request.num_samples,
+            seed=validated_request.seed,
             preprocessing=_preprocessing_for_log_scales(
                 validated_request.input_log_scales, validated_request.output_log_scales
             ),
+            workspace=run_dir,
         )
 
         response_data = {"correlations": result.coefficients}
@@ -639,9 +665,13 @@ def flask_perform_moga_optimization():
         for var, dist in distributions.items():
             if var not in input_vars:
                 continue
-            assert dist.min is not None and dist.max is not None, (
-                f"MOGA requires a uniform distribution with min/max for variable '{var}'"
-            )
+            # Unreachable after MOGAOptimizationRequest's uniform-only guard;
+            # a ValueError (→400) instead of an assert keeps the 500-class dead
+            # even if the model guard is ever relaxed (GH-Copilot #661 audit).
+            if dist.min is None or dist.max is None:
+                raise ValueError(
+                    f"MOGA requires a uniform distribution with min/max for variable '{var}'"
+                )
             domains[var] = DomainSpec(minimum=dist.min, maximum=dist.max)
 
         result = _run_engine(

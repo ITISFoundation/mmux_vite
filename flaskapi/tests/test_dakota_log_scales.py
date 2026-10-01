@@ -121,7 +121,7 @@ class TestPassthroughPerRoute:
             "sumo_evaluate_sobol",
             "sumo_evaluate_along_axes",
             "sumo_evaluate_grid",
-            "sumo_compute_correlations",
+            "sumo_evaluate_correlations",
             "sumo_optimize",
         ):
             monkeypatch.setattr(f"mmux_flaskapi.blueprints.dakota.{symbol}", fake)
@@ -156,7 +156,7 @@ class TestPassthroughPerRoute:
             ("/flask/dakota/compute_sobol_indices", {"preprocessing", "domains"}),
             ("/flask/dakota/sumo_along_axes", {"preprocessing"}),
             ("/flask/dakota/sumo_grid_evaluation", {"preprocessing"}),
-            ("/flask/dakota/compute_correlation_indices", {"preprocessing"}),
+            ("/flask/dakota/compute_correlation_indices", {"preprocessing", "distributions"}),
             ("/flask/dakota/perform_moga_optimization", {"preprocessing", "domains"}),
         ],
     )

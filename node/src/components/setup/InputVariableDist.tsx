@@ -193,8 +193,13 @@ export function InputVariableDist() {
       };
     }
     newInputVars[inputVar][type as Variables] = value;
-    // log scale is invalid for non-positive bounds; clear it if min becomes invalid
-    if (type === "min" && newInputVars[inputVar].scale === "log" && !(typeof value === "number" && value > 0)) {
+    // log scale is invalid for non-positive support: clear it when the
+    // uniform min (or a normal mean, which is what the log-normal box is
+    // anchored on) stops being positive (GH-Copilot #663 audit: the mean path
+    // was the hole — the payload builders read `scale` verbatim, so a surviving
+    // flag shipped an invalid log-normal that the backend V16 guard 400s).
+    const supportAnchor = type === "min" || (type === "mean" && newInputVars[inputVar].distribution === "normal");
+    if (supportAnchor && newInputVars[inputVar].scale === "log" && !(typeof value === "number" && value > 0)) {
       newInputVars[inputVar] = { ...newInputVars[inputVar], scale: "linear" };
     }
     handleSetLocalDistribution(newInputVars);

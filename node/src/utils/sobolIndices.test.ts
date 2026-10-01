@@ -164,6 +164,19 @@ describe("initialSobolDomain", () => {
   it("handles undefined selections entirely", () => {
     expect(initialSobolDomain(["x1"], undefined)).toEqual({ domains: {}, fixed: {} });
   });
+
+  it("leaves a log-flagged normal unspecified when its ±3σ box crosses zero (GH-Copilot #664)", () => {
+    // mean=1, std=1 -> box [-2, 4]; the same request carries the log flag, so
+    // seeding the crossing box would fail the backend positivity guard on load.
+    const { domains } = initialSobolDomain(["x1", "x2", "x3"], {
+      x1: { distribution: "normal", mean: 1, std: 1, scale: "log" },
+      x2: { distribution: "normal", mean: 5, std: 1, scale: "log" }, // box [2, 8]: strictly positive
+      x3: { distribution: "normal", mean: 1, std: 1 }, // no log flag: linear box may cross zero
+    });
+    expect(domains).not.toHaveProperty("x1"); // auto-inferred positive observed box
+    expect(domains.x2).toEqual({ minimum: 2, maximum: 8 });
+    expect(domains.x3).toEqual({ minimum: -2, maximum: 4 });
+  });
 });
 
 describe("buildSobolBarData", () => {

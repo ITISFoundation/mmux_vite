@@ -20,11 +20,13 @@ function setupContexts(overrides: {
   jobs: ReturnType<typeof makeJob>[];
   outputLogScaleUserSet?: { [uid: string]: { [qoi: string]: boolean } };
   setOutputLogScales?: ReturnType<typeof vi.fn>;
+  distribution?: { [uid: string]: { [inputVar: string]: { scale?: "linear" | "log" } } };
 }) {
   const setOutputLogScales = overrides.setOutputLogScales ?? vi.fn();
   useFunctionContextMock.mockReturnValue({
     selectedFunction: { uid: "fn1" },
     inputVars: ["x"],
+    distribution: overrides.distribution ?? {},
     setOutputLogScales,
     outputLogScaleUserSet: overrides.outputLogScaleUserSet ?? {},
   });
@@ -142,5 +144,41 @@ describe("useAutoDetectQoiScale", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(setOutputLogScales).toHaveBeenCalledTimes(1);
+  });
+
+  it("scores the CV pair under the CURRENT input log-scales (GH-Copilot #663 audit)", async () => {
+    const fetchMock = mockCvFetch();
+    vi.stubGlobal("fetch", fetchMock);
+    setupContexts({
+      jobs: [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)],
+      distribution: { fn1: { x: { scale: "log" } } },
+    });
+
+    renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+    for (const [, init] of fetchMock.mock.calls) {
+      const body = JSON.parse(init.body as string);
+      expect(body.inputLogScales).toEqual({ x: true }); // not an all-linear strawman
+    }
+  });
+
+  it("re-detects when an input's scale flag changes (cache key carries scale identity)", async () => {
+    const fetchMock = mockCvFetch();
+    vi.stubGlobal("fetch", fetchMock);
+    const jobs = [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)];
+    setupContexts({ jobs });
+
+    const { rerender } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    setupContexts({ jobs, distribution: { fn1: { x: { scale: "log" } } } });
+    rerender();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+    });
   });
 });

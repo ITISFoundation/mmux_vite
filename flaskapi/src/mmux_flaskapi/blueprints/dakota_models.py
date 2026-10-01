@@ -879,6 +879,17 @@ class MOGAOptimizationRequest(BaseModel):
                 f"Missing distributions for input variables: {sorted(missing_distributions)}"
             )
 
+        # MOGA explores the uniform(min,max) boxes; a schema-valid normal
+        # here previously fell through to an assert in the route -> 500
+        # (GH-Copilot #661 audit; reject cleanly as 400 instead).
+        non_uniform = sorted(
+            var for var in self.input_vars if self.distributions[var].distribution != "uniform"
+        )
+        if non_uniform:
+            raise ValueError(
+                f"MOGA requires uniform(min,max) search domains, not normal, for: {non_uniform}"
+            )
+
         # Check for sufficient completed jobs
         completed_jobs = [
             job for job in self.function_jobs if job.status in ["completed", "success"]

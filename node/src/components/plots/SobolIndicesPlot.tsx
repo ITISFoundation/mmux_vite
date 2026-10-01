@@ -163,6 +163,7 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
   }, [domainSeed, inputVars]);
 
   const parsedDraft = useMemo(() => parseSobolDomainDraft(inputVars, domainDraft), [inputVars, domainDraft]);
+  const draftError = "error" in parsedDraft ? parsedDraft.error : undefined;
   const canApplyDomain =
     !("error" in parsedDraft) &&
     JSON.stringify([parsedDraft.domains, parsedDraft.fixed]) !== JSON.stringify([appliedDomain.domains, appliedDomain.fixed]);
@@ -176,11 +177,14 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
     setAppliedDomain({ domains: parsedDraft.domains, fixed: parsedDraft.fixed });
   };
 
+  // The header describes what the DISPLAYED computation actually used — the
+  // applied domain, never the in-progress draft (GH-Copilot #664: a draft
+  // summary would advertise settings that were never computed with).
   const domainSummary = useMemo(() => {
-    const boxed = Object.keys("error" in parsedDraft ? {} : parsedDraft.domains).length;
-    const pinned = Object.keys("error" in parsedDraft ? {} : parsedDraft.fixed).length;
+    const boxed = Object.keys(appliedDomain.domains).length;
+    const pinned = Object.keys(appliedDomain.fixed).length;
     return `${boxed} boxed · ${pinned} pinned · ${inputVars.length - boxed - pinned} auto-inferred`;
-  }, [parsedDraft, inputVars]);
+  }, [appliedDomain, inputVars]);
 
   // Per-variable log-scale flags (node SPEC V12), see UncertainUQ for the pattern.
   const inputLogScales = useMemo(
@@ -368,6 +372,7 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
           </Button>
           <Typography variant="body2" color="text.secondary" mmux-testid="sobol-domain-summary">
             {domainSummary}
+            {(canApplyDomain || draftError) && " · unapplied edits"}
           </Typography>
         </Box>
         <Collapse in={domainOpen}>
@@ -432,9 +437,9 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
                 </Box>
               );
             })}
-            {domainError && (
+            {(domainError ?? draftError) && (
               <Typography variant="body2" color="error" mmux-testid="sobol-domain-error">
-                {domainError}
+                {domainError ?? draftError}
               </Typography>
             )}
             <Box display="flex" alignItems="center" gap={1}>
