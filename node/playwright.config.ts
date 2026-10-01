@@ -39,11 +39,19 @@ export default defineConfig({
     // baselines in that same image instead of widening the band.
     // maxDiffPixelRatio 0.0 zeroes the QUOTA of differing pixels. The
     // comparator floor is pinned EXPLICITLY (GH-Copilot #667 note): pixelmatch
-    // counts a pixel as different only past a color-distance threshold, and
-    // never counts anti-aliased pixels. threshold 0 was MEASURED (2026-10-01):
-    // 2/7 baselines fail reproducibly across runs (moga-readonly-inspect-modal,
-    // sumo-readonly-inputs — sub-0.2 color drift the AA classifier doesn't
-    // absorb), so 0.2 is the strictest stable floor, kept ON PURPOSE.
+    // counts a pixel as different only past this per-pixel color distance, and
+    // NEVER counts anti-aliased pixels — the gate asserts zero COUNTED pixels,
+    // not byte-identity (Playwright offers no byte-exact comparator; claiming
+    // "pixel diff = 0" without this caveat overstates the contract).
+    // MEASURED across BOTH pinned environments (local docker host + GitHub
+    // runner, 2026-10-01): 0.0 fails reproducibly locally (2/7 baselines:
+    // moga-readonly-inspect-modal, sumo-readonly-inputs); 0.1 passed 2/2 local
+    // rounds BUT failed on the CI runner (moga-readonly-inspect-modal, 5461px
+    // drift between 0.1 and 0.2 — runner rendering is not host rendering,
+    // same image tag notwithstanding); 0.2 has passed every round on both.
+    // Pinned at 0.2 = strictest STABLE-EVERYWHERE floor; below is measured
+    // unstable in ≥1 environment. Tightening requires fresh rounds on BOTH;
+    // a flake cluster reverts the floor one step, no ceremony.
     toHaveScreenshot: {
       maxDiffPixelRatio: 0.0,
       threshold: 0.2,
