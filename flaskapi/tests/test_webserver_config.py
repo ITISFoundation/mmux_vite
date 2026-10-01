@@ -16,6 +16,8 @@ from flask import Flask
 
 from mmux_flaskapi.utils.webserver_config import OsparcApi, OsparcApiException, get_osparc_api
 
+pytestmark = pytest.mark.unit
+
 
 class TestOsparcApiConfiguration:
     """Test OSPARC API configuration and setup."""
