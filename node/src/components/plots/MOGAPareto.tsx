@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
@@ -13,6 +13,7 @@ import { getResponseErrorMessage } from "../../utils/httpError";
 import { aggregateOutputValues } from "../../utils/functionUtils";
 import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
+import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 import { MOGAPlotModal } from "./MOGAPlotModal";
 import { plotMarginsNarrow, plotMarginsMedium } from "./PlotTools";
 
@@ -36,7 +37,21 @@ function normalizeMogaResults(payload: unknown): MogaResults {
 export function MOGAPareto(props: MOGAParetoProps) {
   const { loading, jobProgress, setCalculating } = props;
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution, outputTargets } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputTargets, outputLogScales } = useFunctionContext();
+  // Per-variable log-scale flags (node SPEC V12): MOGA optimizes every objective,
+  // so all objective keys are flagged from the per-function outputLogScales map.
+  useAutoDetectQoiScale(selectedFunction ? Object.keys(outputTargets[selectedFunction.uid] || {}) : undefined);
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const { mogaSettings } = useMOGASettingsContext();
   const { weights } = useMOGATableContext();
@@ -163,6 +178,10 @@ export function MOGAPareto(props: MOGAParetoProps) {
         distributions: distribution[selectedFunction?.uid || ""],
         outputVarSelection: OVS,
         FunctionJobs: jobs,
+        inputLogScales,
+        outputLogScales: Object.fromEntries(
+          localOptVars.map(varName => [varName, Boolean(outputLogScales[selectedFunction?.uid || ""]?.[varName])]),
+        ),
       });
       const response = await fetchWithRetry(`/flask/dakota/perform_moga_optimization`, {
         method: "POST",
@@ -202,7 +221,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
       setTableData(newTableData);
       return { newTableData, localOptVars };
     },
-    [mogaSettings, selectedFunction?.uid, distribution, inputVars, calculatePerformance],
+    [mogaSettings, selectedFunction?.uid, distribution, inputVars, calculatePerformance, inputLogScales, outputLogScales],
   );
 
   const updatePlot = useCallback(
@@ -394,7 +413,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
       run();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredJobList, mogaSettings]);
+  }, [filteredJobList, mogaSettings, inputLogScales, outputLogScales]);
 
   // When weights change, recalculate tableData (refresh table) but do NOT rerun runMOGA
   useEffect(() => {

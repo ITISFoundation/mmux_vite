@@ -42,16 +42,6 @@ export function stepValidator(
           dist.min <= dist.max
         );
       }
-      if (dist.distribution === "log-normal") {
-        return (
-          dist.location !== undefined && !Number.isNaN(dist.location) && dist.scale !== undefined && !Number.isNaN(dist.scale)
-        );
-      }
-      if (dist.distribution === "exponential") {
-        return (
-          dist.mean !== undefined && !Number.isNaN(dist.mean) // Exponential distribution typically uses mean
-        );
-      }
       return false; // If the distribution type is not recognized or is missing values
     });
     return functionContext?.selectedFunction !== undefined && correctDistributions;

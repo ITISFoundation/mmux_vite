@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
 import { Layout } from "plotly.js";
@@ -13,11 +13,28 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { getResponseErrorMessage } from "../../utils/httpError";
 import { getValidationSeries } from "../../utils/sumoValidation";
+import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 
 function SuMoValidation() {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
+  // Per-variable log-scale flags (node SPEC V12), see Curves1DPlot for the pattern.
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
+  // V26/V27: propose linear-vs-log surrogate scale for the selected QoI from a
+  // CV RMSE comparison; a manual toggle in OutputVariableDist locks it (V27).
+  useAutoDetectQoiScale(selectedQoI ? [selectedQoI] : undefined);
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
@@ -112,7 +129,8 @@ function SuMoValidation() {
         inputVars,
         output: selectedQoI,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
-        log: false,
+        inputLogScales,
+        outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
       }),
     })
       .then(async response => {
@@ -152,7 +170,7 @@ function SuMoValidation() {
     };
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
+  }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList, inputLogScales, outputLogScaleForQoi]);
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver(event => {

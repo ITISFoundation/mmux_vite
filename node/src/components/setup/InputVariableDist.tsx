@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useServiceContext } from "../../context/ServiceContext";
 import InputVariableDistDocument from "../documents/InputVariableDistDocument";
 import { InputBlock } from "../utils/InputBlock";
+import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import Header from "../navigation/Header";
 import { useFunctionContext } from "../../context/FunctionContext";
 
@@ -133,56 +134,42 @@ const UniformInputDistribution = ({ inputVar, distribution, handleSetValue }: In
   );
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const LogNormalInputDistribution = ({ inputVar, distribution, handleSetValue }: InputDistProps) => {
-  const errorNaNLocation = !(distribution[inputVar].location !== undefined && !Number.isNaN(distribution[inputVar].location));
-  const errorNaNScale = !(distribution[inputVar].scale !== undefined && !Number.isNaN(distribution[inputVar].scale));
-  const errorBeyondRangeLocation =
-    distribution[inputVar] &&
-    ((typeof distribution[inputVar].location === "number" && distribution[inputVar].location < -1e9) ||
-      (typeof distribution[inputVar].location === "number" && distribution[inputVar].location > 1e9));
-  const errorBeyondRangeScale =
-    distribution[inputVar] &&
-    ((typeof distribution[inputVar].scale === "number" && distribution[inputVar].scale <= 0) ||
-      (typeof distribution[inputVar].scale === "number" && distribution[inputVar].scale > 1e9));
-
-  let errorText = "";
-  if (errorNaNLocation || errorNaNScale) {
-    errorText = "Empty value";
-  } else if (errorBeyondRangeLocation) {
-    errorText = "Out of range (-1e9, 1e9)";
-  } else if (errorBeyondRangeScale) {
-    errorText = "Out of range (>0, 1e9)";
-  }
-
-  const error = errorNaNLocation || errorNaNScale || errorBeyondRangeLocation || errorBeyondRangeScale;
-
-  return (
-    <>
-      <InputBlock
-        name="Log Location"
-        value={distribution[inputVar].location !== undefined ? distribution[inputVar].location : NaN}
-        minmax={{ min: -1e9, max: 1e9 }}
-        error={errorNaNLocation || errorBeyondRangeLocation}
-        onChange={value => handleSetValue(inputVar, "location", value as number)}
-      />
-      <InputBlock
-        name="Log Scale"
-        value={distribution[inputVar].scale !== undefined ? distribution[inputVar].scale : NaN}
-        minmax={{ min: 0.0000000001, max: 1e9 }}
-        error={errorNaNScale || errorBeyondRangeScale}
-        onChange={value => handleSetValue(inputVar, "scale", value as number)}
-      />
-      {error && <Typography color="error">{errorText}</Typography>}
-    </>
-  );
-};
+// log-normal/exponential input forms were removed with the Distribution union
+// narrowing (B33/V40): log is now the orthogonal VarSelection.scale toggle below.
 
 export function InputVariableDist() {
   const { selectedFunction, inputVars, distribution, setDistribution } = useFunctionContext();
   const { serviceMode } = useServiceContext();
   const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
+
+  // B33/V40: transparent derived note for a log-scaled normal (log-normal). The user
+  // enters LINEAR mean/std; this shows what those map to so it's clear how the
+  // params are applied.
+  const logNormalDerivedNote = (mean: number | undefined, std: number | undefined): string => {
+    if (typeof mean !== "number" || typeof std !== "number" || !(mean > 0)) return "";
+    const variance = (std * std) / (mean * mean);
+    const sigma = Math.sqrt(Math.log(1 + variance));
+    const mu = Math.log(mean) - (sigma * sigma) / 2;
+    const fmt = (v: number) => String(Number(v.toPrecision(3)));
+    return `log-normal · median ≈ ${fmt(Math.exp(mu))}, 95% range ≈ [${fmt(Math.exp(mu - 2.5 * sigma))}, ${fmt(Math.exp(mu + 2.5 * sigma))}]`;
+  };
+
+  // log sampling needs strictly positive support: constant is never scalable,
+  // uniform needs min > 0, normal (lognormal draw) needs mean > 0.
+  const scaleDisabledFor = (entry: VarSelection | undefined): boolean =>
+    !entry ||
+    entry.distribution === "constant" ||
+    (entry.distribution === "uniform" && !(typeof entry.min === "number" && entry.min > 0)) ||
+    (entry.distribution === "normal" && !(typeof entry.mean === "number" && entry.mean > 0));
+
+  const derivedNoteFor = (entry: VarSelection | undefined): string => {
+    if (!entry || entry.scale !== "log") return "";
+    const fmt = (v: number | undefined) => (typeof v === "number" ? String(Number(v.toPrecision(3))) : "?");
+    if (entry.distribution === "normal") return logNormalDerivedNote(entry.mean, entry.std);
+    if (entry.distribution === "uniform") return `log-uniform in [${fmt(entry.min)}, ${fmt(entry.max)}]`;
+    return "";
+  };
 
   const handleSetLocalDistribution = useCallback(
     (newInputVars: typeof localDistribution) => {
@@ -206,6 +193,16 @@ export function InputVariableDist() {
       };
     }
     newInputVars[inputVar][type as Variables] = value;
+    // log scale is invalid for non-positive bounds; clear it if min becomes invalid
+    if (type === "min" && newInputVars[inputVar].scale === "log" && !(typeof value === "number" && value > 0)) {
+      newInputVars[inputVar] = { ...newInputVars[inputVar], scale: "linear" };
+    }
+    handleSetLocalDistribution(newInputVars);
+  };
+
+  const handleSetScale = (inputVar: string, scale: "linear" | "log") => {
+    const newInputVars = { ...localDistribution };
+    newInputVars[inputVar] = { ...newInputVars[inputVar], scale };
     handleSetLocalDistribution(newInputVars);
   };
 
@@ -389,15 +386,28 @@ export function InputVariableDist() {
                     <MenuItem value="constant">Constant</MenuItem>
                     <MenuItem value="normal">Normal (Gaussian)</MenuItem>
                     <MenuItem value="uniform">Uniform</MenuItem>
-                    <MenuItem value="log-normal" disabled>
-                      LogNormal
-                    </MenuItem>
-                    <MenuItem value="exponential" disabled>
-                      Exponential
-                    </MenuItem>
+                    {/* log-normal is NOT a shape here: it is uniform/normal shape +
+                        the orthogonal Scale=Log toggle below (B33/V40) */}
                   </Select>
                 </InputLabel>
               )}
+              {["UQ"].includes(serviceMode) &&
+                ["normal", "uniform"].includes(localDistribution[inputVar]?.distribution ?? "") && (
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <Typography sx={{ fontSize: "0.7em", color: theme.palette.text.secondary }}>Scale</Typography>
+                    <CustomAnimatedToggle
+                      data={["linear", "log"]}
+                      value={localDistribution[inputVar]?.scale === "log" ? 1 : 0}
+                      disabled={scaleDisabledFor(localDistribution[inputVar])}
+                      onChange={value => handleSetScale(inputVar, value === 1 ? "log" : "linear")}
+                    />
+                    {derivedNoteFor(localDistribution[inputVar]) && (
+                      <Typography sx={{ fontSize: "0.7em", color: theme.palette.text.secondary }}>
+                        {derivedNoteFor(localDistribution[inputVar])}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
               <>
                 {localDistribution[inputVar]?.distribution === "constant" && (
                   <ConstantInputDistribution
@@ -410,11 +420,31 @@ export function InputVariableDist() {
                   <NormalInputDistribution inputVar={inputVar} distribution={localDistribution} handleSetValue={handleSetValue} />
                 )}
                 {localDistribution[inputVar]?.distribution === "uniform" && (
-                  <UniformInputDistribution
-                    inputVar={inputVar}
-                    distribution={localDistribution}
-                    handleSetValue={handleSetValue}
-                  />
+                  <>
+                    <UniformInputDistribution
+                      inputVar={inputVar}
+                      distribution={localDistribution}
+                      handleSetValue={handleSetValue}
+                    />
+                    {["SUMO", "MOGA"].includes(serviceMode) && (
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <Typography sx={{ fontSize: "0.75em", fontWeight: 300, color: theme.palette.text.secondary }}>
+                          Sampling scale
+                        </Typography>
+                        <CustomAnimatedToggle
+                          data={["linear", "log"]}
+                          value={localDistribution[inputVar]?.scale === "log" ? 1 : 0}
+                          disabled={!(typeof localDistribution[inputVar].min === "number" && localDistribution[inputVar].min > 0)}
+                          onChange={value => handleSetScale(inputVar, value === 1 ? "log" : "linear")}
+                        />
+                        {derivedNoteFor(localDistribution[inputVar]) && (
+                          <Typography sx={{ fontSize: "0.7em", color: theme.palette.text.secondary }}>
+                            {derivedNoteFor(localDistribution[inputVar])}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </>
                 )}
                 {!localDistribution[inputVar]?.distribution && "not found"}
                 {/* For v9 release, removed log-normal and exponential input distributions
