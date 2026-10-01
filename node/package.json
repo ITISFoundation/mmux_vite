@@ -74,6 +74,6 @@
   },
   "proxy": "http://localhost:5000",
   "engines": {
-    "node": ">=24.0.0"
+    "node": "^24.15.0 || >=26.0.0"
   }
 }
