@@ -1,10 +1,54 @@
 import { describe, expect, it, vi } from "vitest";
 import { logColorbarTicks } from "../../utils/plotScale";
 import { buildSobolBarData, buildSobolHeatmapData } from "../../utils/sobolIndices";
+import { parseSobolDomainDraft, seedSobolDomainDraft, type SobolDomainDraft } from "./SobolIndicesPlot";
 
 vi.mock("../../utils/sobolIndices", async importOriginal => {
   const mod = await importOriginal<typeof import("../../utils/sobolIndices")>();
   return mod;
+});
+
+// the component module pulls react-plotly.js at import time; helpers here are
+// pure, no plot rendering needed (mirrors how UQPlotsSteps.test keeps plotly out)
+vi.mock("react-plotly.js", () => ({ default: () => null }));
+
+describe("Sobol bounds editor draft helpers", () => {
+  it("seeds editable rows from the initial domain mapping", () => {
+    const draft = seedSobolDomainDraft(["x1", "x2", "x3"], {
+      domains: { x1: { minimum: -1, maximum: 2 } },
+      fixed: { x2: 0.5 },
+    });
+    expect(draft.x1).toEqual({ mode: "range", min: "-1", max: "2", pin: "" });
+    expect(draft.x2).toEqual({ mode: "pin", min: "", max: "", pin: "0.5" });
+    expect(draft.x3).toEqual({ mode: "range", min: "", max: "", pin: "" });
+  });
+
+  it("parses filled rows into request maps; blank rows are omitted (auto-infer)", () => {
+    const draft: SobolDomainDraft = {
+      x1: { mode: "range", min: " 0 ", max: "1e3", pin: "" },
+      x2: { mode: "pin", min: "", max: "", pin: "2.5" },
+      x3: { mode: "range", min: "", max: "", pin: "" },
+    };
+    expect(parseSobolDomainDraft(["x1", "x2", "x3"], draft)).toEqual({
+      domains: { x1: { minimum: 0, maximum: 1000 } },
+      fixed: { x2: 2.5 },
+    });
+  });
+
+  it("rejects half-filled ranges, non-numbers and inverted boxes", () => {
+    const half: SobolDomainDraft = { x1: { mode: "range", min: "0", max: "", pin: "" } };
+    expect(parseSobolDomainDraft(["x1"], half)).toEqual({ error: expect.stringMatching(/both bounds/) });
+    const nan: SobolDomainDraft = { x1: { mode: "range", min: "abc", max: "1", pin: "" } };
+    expect(parseSobolDomainDraft(["x1"], nan)).toEqual({ error: expect.stringMatching(/numbers/) });
+    const inverted: SobolDomainDraft = { x1: { mode: "range", min: "2", max: "2", pin: "" } };
+    expect(parseSobolDomainDraft(["x1"], inverted)).toEqual({
+      error: expect.stringMatching(/maximum must exceed minimum/),
+    });
+    const badPin: SobolDomainDraft = { x1: { mode: "pin", min: "", max: "", pin: "nope" } };
+    expect(parseSobolDomainDraft(["x1"], badPin)).toEqual({
+      error: expect.stringMatching(/pinned value/),
+    });
+  });
 });
 
 describe("SobolIndicesPlot toggle helpers", () => {
