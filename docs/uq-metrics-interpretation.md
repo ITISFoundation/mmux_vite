@@ -15,7 +15,7 @@ was accidentally *shipped* once (§B B36, flaskapi) and resurfaced as a design q
 | Population | the completed jobs (the campaign) | draws from *your declared* input distributions |
 | Target | the **observed** job outputs | the **surrogate's** predictions, one per draw |
 | Question answered | "In the data I collected, what co-moved?" | "Under my stated uncertainty, what drives the model's response?" |
-| Confounders | the experimental design (space-filling grids co-vary inputs) + measurement scatter attenuated/blurred | surrogate error + whatever the declared distributions encode |
+| Confounders | the experimental design (its ranges + pairing fix which co-movements are even visible; designs that correlate inputs make it worse) + measurement scatter attenuated/blurred | surrogate error + whatever the declared distributions encode |
 | Where it belongs | data-quality / campaign diagnostics | the UQ story, next to the UQ histogram |
 
 **Pearson/Spearman exist in both modes.** Sobol' indices are defined **only with respect
@@ -24,10 +24,12 @@ uses is the *declared* (expert) one ⇒ model mode. "Sobol' on raw data" does ex
 take the campaign's empirical distribution as the measure — but it answers
 "what moved the response in **this** experiment", i.e. *campaign history*, not
 sensitivity: change the sampling campaign and the number changes without any physics
-changing. And the classical independent-input decomposition does not even apply cleanly
-to an empirical measure — campaign joints typically correlate inputs (space-filling
-designs are built that way); what you get there is an extended (Sobol-GS-style)
-decomposition, not the familiar S1.
+changing. An empirical measure is a legitimate Sobol measure either way: when the design
+factorizes (a product measure — e.g. §2's full-factorial grid), the classical
+independent-input decomposition applies directly and the answer is simply *campaign
+history*; when the design correlates inputs (many space-filling designs induce some
+pairwise dependence), what you get is an extended (Sobol-GS-style) decomposition, not
+the familiar S1 — so always check the design before trusting "empirical Sobol".
 
 ## 2. A toy where the two modes disagree violently
 
