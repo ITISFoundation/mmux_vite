@@ -15,26 +15,38 @@ was accidentally *shipped* once (§B B36, flaskapi) and resurfaced as a design q
 | Population | the completed jobs (the campaign) | draws from *your declared* input distributions |
 | Target | the **observed** job outputs | the **surrogate's** predictions, one per draw |
 | Question answered | "In the data I collected, what co-moved?" | "Under my stated uncertainty, what drives the model's response?" |
-| Confounders | the experimental design (space-filling grids co-vary inputs) + measurement scatter attenuated/blurred | surrogate error + whatever the declared distributions encode |
+| Confounders | the experimental design (its ranges + pairing fix which co-movements are even visible; designs that correlate inputs make it worse) + measurement scatter attenuated/blurred | surrogate error + whatever the declared distributions encode |
 | Where it belongs | data-quality / campaign diagnostics | the UQ story, next to the UQ histogram |
 
-**Pearson/Spearman exist in both modes.** Sobol' indices **only exist in model mode**:
-they decompose `Var[f(X)]` and require a probability measure on the inputs. "Sobol on
-the raw data" can only mean *using the campaign's empirical distribution as the measure*
-— legitimate math, but then the answer is "what moved the response in **this**
-experiment", not "what drives the model". Changing your sampling campaign changes that
-number without changing any physics.
+**Pearson/Spearman exist in both modes.** Sobol' indices are defined **only with respect
+to a probability measure on the inputs** (they decompose `Var[f(X)]`); the measure *this UI*
+uses is the *declared* (expert) one ⇒ model mode. "Sobol' on raw data" does exist as math —
+take the campaign's empirical distribution as the measure — but it answers
+"what moved the response in **this** experiment", i.e. *campaign history*, not
+sensitivity: change the sampling campaign and the number changes without any physics
+changing. An empirical measure is a legitimate Sobol measure either way: when the design
+factorizes (a product measure — e.g. §2's full-factorial grid), the classical
+independent-input decomposition applies directly and the answer is simply *campaign
+history*; when the design correlates inputs (many space-filling designs induce some
+pairwise dependence), what you get is an extended (Sobol-GS-style) decomposition, not
+the familiar S1 — so always check the design before trusting "empirical Sobol".
 
 ## 2. A toy where the two modes disagree violently
 
-Model truth: `y = 2·x1 + 0.1·x3` — **x1 is the driver**, x3 is nearly irrelevant.
+Model: `y = 2·x1 + 0.1·x3`. Even "x1 is the driver" is measure-relative — it is true
+under the expert's declaration in step 2 below and **false** under the campaign's own
+measure. That is what this example demonstrates, not what it assumes.
 
-Your campaign swept `x1 ∈ [1.0, 1.1]` (narrow) and `x3 ∈ [0, 100]` (wide):
+Campaign: a full-factorial sweep of a `101 × 101` grid over `x1 ∈ [1.0, 1.1]`,
+`x3 ∈ [0, 100]` (every combination ⇒ grid `Cov(x1, x3) = 0`; grid population SDs
+`σ(x1) = 0.1/101·√((101²−1)/12) ≈ 0.0289`, `σ(x3) ≈ 28.87` — the marginal ranges alone
+do NOT determine these statistics; the pairing is part of the example):
 
-- Spread in `y` from x1: `2 · 0.029 ≈ 0.06`
-- Spread in `y` from x3: `0.1 · 28.9 ≈ 2.9`
+- Contribution to `y`-spread: x1 → `2·0.0289 ≈ 0.058`; x3 → `0.1·28.87 ≈ 2.9`
 
-→ **Data-mode** bars attribute ≈ 100 % to **x3**. True about the campaign.
+→ **Data-mode** bars attribute ≈ 100 % to **x3** (for this additive model on this
+orthogonal design, data-mode Pearson and empirical-measure variance attribution
+separate term-by-term). True about the campaign.
 
 An expert then declares `x1 ~ N(1, 0.3)`, `x3 ~ N(50, 1)`:
 
@@ -72,9 +84,12 @@ different questions, and **one of them is silently misleading if labeled as the 
   adjacency *is* the meaning; labels are a thin defense in a dense dashboard,
   and B36 is the existence proof that mode confusion survives review.
 - **D. Promote the *trust* metric next to the histogram** —
-  `corr(observed, predicted)` and/or CV RMSE as the histogram's neighbor: the
-  one data-derived number that legitimately licenses every model-mode number
-  above it. Compatible with B.
+  `corr(observed, predicted)` and/or CV RMSE as the histogram's neighbor: *bounded*
+  validation evidence, not a license — in-sample `corr(observed, predicted)` stays near
+  1 for an overfit surrogate, and CV RMSE certifies only the campaign's support; neither
+  covers a declared UQ measure that extrapolates beyond it. Still the most useful
+  data-derived number to surface (frame it as "evidence", ⊥ "licenses everything
+  above"). Compatible with B.
 
 **Recommendation to react to:** keep the UQ panels as-is (A), discuss B+D as one
 increment ("understand my data / trust my model" side by side, both clearly
@@ -92,5 +107,8 @@ non-UQ-branded), reject C on the record.
    Sobol/histogram calls do (FE currently sends distributions + seed; scales
    ride on other panels' payloads)?
 
-*Provenance: written after the GH-Copilot audit of #661–#665; the numbers in §2
-are exact for a uniform grid sweep (σ = width/√12).*
+*Provenance: written after the GH-Copilot audit of #661–#665. §2's spreads use the
+population SD of a finite endpoint-inclusive `n`-point grid,
+`(b−a)/n·√((n²−1)/12)` — `width/√12` is only its `n→∞` limit (at n=101 the
+difference is < 0.01 %). The ≈ 100 %/≈ 0.97 attributions are exact for the stated
+full-factorial design.*
