@@ -131,23 +131,39 @@ def next_dev_version(current: str) -> str:
     return str(candidate)
 
 
-def stripped_version(current: str) -> str:
+def stripped_version(current: str, allow_taken: bool = False) -> str:
     base, dev = parse_form(current, source="version on main")
-    if dev is None:
-        candidate = Version(base)
+    candidate = Version(base)
+    if not allow_taken:
         hint = (
             "main carries no dev suffix and this version is already tagged; "
             "the base must be bumped on develop (`make version-patch`) before "
             "the next release."
+            if dev is None
+            else (
+                "the base was not bumped past the last release; bump it on develop "
+                "(`make version-patch`) and re-open the release PR."
+            )
         )
-    else:
-        candidate = Version(base)
-        hint = (
-            "the base was not bumped past the last release; bump it on develop "
-            "(`make version-patch`) and re-open the release PR."
-        )
-    ensure_newer(candidate, "release version", release_hint=hint)
+        ensure_newer(candidate, "release version", release_hint=hint)
     return str(candidate)
+
+
+def dev_tags() -> list[str]:
+    """Same-base `.devN` tags of the current version, oldest first.
+
+    Lets the workflow recover prereleases stranded by a partial run (tag
+    created server-side but release failed). Once the base moves on, older
+    cycles' stranded tags are out of scope by design.
+    """
+    base, _ = parse_form(current_version(config_from_text(read_config_text())))
+    parsed = Version(base)
+    same_base = [
+        tag
+        for tag in existing_tags()
+        if tag.release == parsed.release and tag.dev is not None
+    ]
+    return [f"v{tag}" for tag in sorted(same_base)]
 
 
 def apply_version(parser: configparser.RawConfigParser, current: str, target: str) -> int:
@@ -212,10 +228,6 @@ def cmd_next_dev(parser: configparser.RawConfigParser) -> None:
     print(next_dev_version(current_version(parser)))
 
 
-def cmd_strip_dev(parser: configparser.RawConfigParser) -> None:
-    print(stripped_version(current_version(parser)))
-
-
 def cmd_apply(parser: configparser.RawConfigParser, to: str) -> None:
     current = current_version(parser)
     changed = apply_version(parser, current, to)
@@ -238,6 +250,14 @@ def cmd_check_pr(parser: configparser.RawConfigParser, target: str) -> None:
                 f"the .devN suffix belongs to the auto-tag bot; a PR may only "
                 f"change the base version (found {head})"
             )
+        base_clean, _ = parse_form(base, source=f"origin/{target} version")
+        if Version(stable_base) <= Version(base_clean):
+            raise SystemExit(
+                f"PR base {head} must exceed {target}'s current base "
+                f"{base_clean}; the branch state is stale — rebase on {target} "
+                "and bump again (removing the bot's .devN suffix by hand is "
+                "never valid)"
+            )
         ensure_newer(
             Version(stable_base),
             "PR base version",
@@ -255,7 +275,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("next-dev", help="print the next develop .devN version")
-    sub.add_parser("strip-dev", help="print the stable version after stripping .devN")
+    sub.add_parser("dev-tags", help="list same-base dev tags of the current base, oldest first")
+    strip_p = sub.add_parser("strip-dev", help="print the stable version after stripping .devN")
+    strip_p.add_argument(
+        "--allow-taken",
+        action="store_true",
+        help="skip the newer-than-tags assertion (workflow resume detection)",
+    )
     apply_p = sub.add_parser("apply", help="rewrite current_version across all files")
     apply_p.add_argument("--to", required=True, help="target version (X.Y.Z[.devN])")
     check_p = sub.add_parser("check-pr", help="validate a PR's version for its target")
@@ -267,8 +293,11 @@ def main() -> None:
     config = config_from_text(read_config_text())
     if args.command == "next-dev":
         cmd_next_dev(config)
+    elif args.command == "dev-tags":
+        for tag in dev_tags():
+            print(tag)
     elif args.command == "strip-dev":
-        cmd_strip_dev(config)
+        print(stripped_version(current_version(config), allow_taken=args.allow_taken))
     elif args.command == "apply":
         cmd_apply(config, args.to)
     elif args.command == "check-pr":
