@@ -40,3 +40,13 @@ repos:
         language: system
         entry: bash node/scripts/run-eslint-hook.sh
         files: ^node/src/.*\.(ts|tsx|js|jsx)$
+
+  # Docker: dev-mount services must not run as root (V31vr)
+  - repo: local
+    hooks:
+      - id: no-root-dev-containers
+        name: dev containers pin host UID (docker-compose-development.yml)
+        language: system
+        entry: bash scripts/check-compose-users.sh
+        files: ^docker-compose-development\.yml$
+        pass_filenames: false
