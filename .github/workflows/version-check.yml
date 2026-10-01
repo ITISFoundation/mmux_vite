@@ -1,0 +1,35 @@
+name: Check release version
+
+# PR-time backstop for the auto-tag flow: a PR changing the base version
+# must bump to a clean X.Y.Z that clears every existing tag (the `.devN`
+# suffix is owned by the auto-tag bot), and the §V5 fanout must stay
+# consistent so a release never ships with drifted metadata.
+on:
+  pull_request:
+    branches: [develop, main]
+    paths-ignore:
+      - "docs/**"
+      - "validation/**"
+      - "**/*.md"
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: astral-sh/setup-uv@v10.2.0
+
+      - name: Validate PR version for its target branch
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          uv run --no-project --with packaging python scripts/auto_version.py check-pr --target "$BASE_REF"
