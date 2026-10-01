@@ -1,6 +1,6 @@
 import { InputLabel, Typography, Select, MenuItem, TextField, styled, Slider } from "@mui/material";
 import { useState } from "react";
-import { RegisteredFunction, OsparcFunctionJob } from "src/context/types";
+import { RegisteredFunction, OsparcFunctionJob } from "../../context/types";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { JobContextType, useJobContext } from "../../context/JobContext";
 
