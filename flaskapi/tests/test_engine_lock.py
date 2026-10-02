@@ -7,9 +7,15 @@ corrupt each other's paths — the e2e CV auto-detect pair firing alongside the
 view's own propagation run reproduced it as nested run dirs and a missing
 ``predictions.dat``. These tests pin the adapter-side serialization contract:
 
-* every Dakota-bound route invokes its package call while ENGINE_LOCK is held;
+* every Dakota-bound route invokes its package call while ENGINE_LOCK is held
+  (correlation joined this list when the route regained its MC-through-surrogate
+  semantics — `evaluate_correlations` is engine-bound, unlike table-mode
+  `compute_correlations`);
 * in-memory helpers stay outside the lock (no needless serialization);
-* ``_run_engine`` itself serializes concurrent callers (never overlapping).
+* ``_run_engine`` itself serializes concurrent callers. The overlap detector
+  compares wall-clock intervals from OUTSIDE the lock — a barrier INSIDE the
+  lock can never observe overlap and passes vacuously (GH-Copilot #663 audit);
+  a control test proves the detector is sensitive.
 """
 
 import threading
@@ -19,6 +25,7 @@ from typing import Any
 import pytest
 from flask import Flask
 from itis_sumo.api import SumoInputError
+from pandas import DataFrame
 
 from mmux_flaskapi.blueprints import dakota
 
@@ -50,6 +57,7 @@ class TestRoutesHoldEngineLock:
         for symbol in (
             "sumo_cross_validate",
             "sumo_evaluate_uncertainty",
+            "sumo_evaluate_correlations",
             "sumo_evaluate_sobol",
             "sumo_evaluate_along_axes",
             "sumo_evaluate_grid",
@@ -81,6 +89,7 @@ class TestRoutesHoldEngineLock:
         [
             "/flask/dakota/sumo_cross_validation",
             "/flask/dakota/manual_uq_propagation_with_uncertainty",
+            "/flask/dakota/compute_correlation_indices",
             "/flask/dakota/compute_sobol_indices",
             "/flask/dakota/sumo_along_axes",
             "/flask/dakota/sumo_grid_evaluation",
@@ -97,51 +106,93 @@ class TestRoutesHoldEngineLock:
 
 
 class TestInMemoryHelpersUnlockNotRequired:
-    """compute_correlations is scipy-only: it must NOT be dragged through the lock."""
+    """scipy-only helpers must NOT be dragged through the lock. Correlation
+    used to live here; it left when the route regained MC-through-surrogate
+    semantics (evaluate_correlations is engine-bound, V49ad)."""
 
-    def test_correlation_runs_without_lock(
+    def test_lhs_generation_runs_without_lock(
         self, test_client: Flask, monkeypatch: pytest.MonkeyPatch
     ):
         locked: list[bool] = []
 
         def fake(*args: Any, **kwargs: Any):
             locked.append(dakota.ENGINE_LOCK.locked())
-            raise SumoInputError("stop-after-capture")
+            return DataFrame({"x1": [0.1, 0.2, 0.3]})
 
-        monkeypatch.setattr("mmux_flaskapi.blueprints.dakota.sumo_compute_correlations", fake)
-        payload = {
-            "inputVars": ["x1"],
-            "inputs": ["x1"],
-            "output": "y",
-            "numSamples": 32,
-            "seed": 3,
-            "distributions": {"x1": {"distribution": "uniform", "min": 1.0, "max": 99.0}},
-            "FunctionJobs": _jobs(10, ["x1"], ["y"]),
-        }
-        response = test_client.post("/flask/dakota/compute_correlation_indices", json=payload)
-        assert response.status_code == 400
+        monkeypatch.setattr("mmux_flaskapi.blueprints.sampling.generate_lhs_samples", fake)
+        # the oSPARC sampling-map leg is orthogonal to the lock question
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.sampling._run_sampling_map",
+            lambda function_uid, samples: {"jobId": "local"},
+        )
+        response = test_client.post(
+            "/flask/sampling/lhs",
+            json={
+                "config": [{"variable": "x1", "start": 0.0, "end": 1.0}],
+                "seed": 1,
+                "n": 3,
+                "funUid": "func-1",
+            },
+        )
+        assert response.status_code == 200
         assert locked == [False]
 
 
+def _overlapping_pairs(spans: list[tuple[float, float]]) -> int:
+    """Count pairwise-overlapping [start, end) intervals."""
+    overlaps = 0
+    for i in range(len(spans)):
+        for j in range(i + 1, len(spans)):
+            a_start, a_end = spans[i]
+            b_start, b_end = spans[j]
+            if a_start < b_end and b_start < a_end:
+                overlaps += 1
+    return overlaps
+
+
 class TestRunEngineSerializes:
-    def test_concurrent_callers_never_overlap(self):
-        active = 0
-        overlaps = 0
-        gate = threading.Barrier(4, timeout=5)
+    """Overlap must be detected from OUTSIDE the lock. The original test
+    synchronized on a barrier *inside* the protected body: with the lock held,
+    threads 2-4 queue at the entry, the barrier times out, and the assertion
+    passes without ever exercising overlap (GH-Copilot #663 audit). Wall-clock
+    intervals recorded per call answer the actual question — and the control
+    test below proves the same detector goes RED when the lock is bypassed.
+    """
+
+    N = 4
+    HOLD = 0.05
+
+    def _spans(self, target: Any, gate: threading.Barrier | None) -> list[tuple[float, float]]:
+        spans: list[tuple[float, float]] = []
+        spans_lock = threading.Lock()
 
         def body() -> None:
-            nonlocal active, overlaps
-            gate.wait()  # maximize the chance of overlap
-            with dakota.ENGINE_LOCK:
-                active += 1
-                if active > 1:
-                    overlaps += 1
-                time.sleep(0.02)
-                active -= 1
+            if gate is not None:
+                gate.wait(timeout=5)
+            start = time.monotonic()
+            time.sleep(self.HOLD)  # hold long enough for overlap to be measurable
+            with spans_lock:
+                spans.append((start, time.monotonic()))
 
-        threads = [threading.Thread(target=dakota._run_engine, args=(body,)) for _ in range(4)]
+        threads = [threading.Thread(target=target, args=(body,)) for _ in range(self.N)]
         for t in threads:
             t.start()
         for t in threads:
             t.join()
-        assert overlaps == 0
+        return spans
+
+    def test_concurrent_callers_never_overlap(self):
+        # No gate: staggering is irrelevant — with HOLD long enough, ANY
+        # unlocked interleaving of 4 threads over 50ms windows overlaps.
+        spans = self._spans(dakota._run_engine, gate=None)
+        assert len(spans) == self.N
+        assert _overlapping_pairs(spans) == 0
+
+    def test_detector_is_sensitive_without_the_lock(self):
+        """Control: the SAME bodies + detector must report overlap when the
+        lock is bypassed (⊥ a test that can only pass). The gate maximizes
+        simultaneity here, outside any lock."""
+        gate = threading.Barrier(self.N, timeout=5)
+        spans = self._spans(lambda body: body(), gate=gate)
+        assert len(spans) == self.N
+        assert _overlapping_pairs(spans) > 0
