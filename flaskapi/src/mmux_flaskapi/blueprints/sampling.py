@@ -35,6 +35,9 @@ from mmux_flaskapi.utils.local_job_store import (
 from mmux_flaskapi.utils.webserver_config import get_osparc_api
 
 #
+from .dakota import _run_engine  # V49ad: engine serialization (package runner chdirs)
+
+#
 _logger = logging.getLogger(__name__)
 SAMPLING_RUNS_DIR = Path(
     os.environ.get("SAMPLING_RUNS_DIR", Path(__file__).resolve().parents[3] / "runs_sampling")
@@ -174,7 +177,10 @@ def flask_grid_sampling():
         domains = {vc.variable: DomainSpec(minimum=vc.start, maximum=vc.end) for vc in config}
         points_per_variable = {vc.variable: vc.steps for vc in config}
 
-        grid = generate_grid_samples(domains, points_per_variable, workspace=SAMPLING_RUNS_DIR)
+        # V49ad: grid generation runs Dakota (cwd-mutating) -> serialized.
+        grid = _run_engine(
+            generate_grid_samples, domains, points_per_variable, workspace=SAMPLING_RUNS_DIR
+        )
         samples = [
             {name: float(value) for name, value in row.items()}
             for row in grid.to_dict(orient="records")
