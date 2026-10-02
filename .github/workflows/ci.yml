@@ -49,8 +49,15 @@ jobs:
         node-version: 24.x
         cache: 'npm'
         cache-dependency-path: '**/package-lock.json'
+    - name: Install node dependencies
+      run: cd node && npm ci
+    - name: Generate oSPARC TypeScript client
+      # src/osparc-api-ts-client/ is build-generated and NOT committed (§B16);
+      # both knip and the vitest import graph resolve through it, so it must
+      # exist before the first static check runs on a fresh checkout.
+      run: cd node && npm run generate-osparc-cli
     - name: Check for dead code (knip)
-      run: cd node && npm ci && npm run knip
+      run: cd node && npm run knip
     - name: Run node tests with coverage
       run: cd node && npm run test:coverage
     - name: Upload node coverage
