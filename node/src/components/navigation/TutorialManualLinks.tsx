@@ -4,7 +4,7 @@ import StyledHyperLink from "../utils/HyperLink";
 export const manualDocsUrl = "https://zurichmedtech.github.io/model-intelligence/manual/hypertool-creation/";
 export const tutorialDocsUrl = "https://zurichmedtech.github.io/model-intelligence/tutorials/overview/";
 
-export function getTutorialLink(): React.ReactNode {
+function getTutorialLink(): React.ReactNode {
   return <StyledHyperLink text="Tutorials" link={tutorialDocsUrl} />;
 }
 

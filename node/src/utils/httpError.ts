@@ -2,10 +2,6 @@ export function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function toError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(getErrorMessage(error));
-}
-
 export async function getResponseErrorMessage(response: Response): Promise<string> {
   try {
     const payload: unknown = await response.clone().json();
