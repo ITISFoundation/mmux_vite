@@ -77,7 +77,14 @@ test("a failed surrogate cross-validation shows an error instead of a blank view
 
   const validationView = page.locator('[mmux-testid="sumo-validation-view"]');
   await expect(validationView).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
-  await expect(validationView.getByText("Error during calculation, please contact support.")).toBeVisible({
+  // v1.6.2-base honest error surfacing: the API client surfaces the real
+  // backend failure (method path failed with status: body) instead of the
+  // legacy static "Error during calculation, please contact support." text.
+  await expect(
+    validationView.getByText("POST /flask/dakota/sumo_cross_validation failed with 500: dakota crashed", {
+      exact: false,
+    }),
+  ).toBeVisible({
     timeout: MODEL_READY_TIMEOUT,
   });
   await expect(validationView.locator(".js-plotly-plot")).toHaveCount(0);
