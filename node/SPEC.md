@@ -10,8 +10,8 @@ Caveman-encoded. Distilled from code 2026-05-28. Child of root spec.
 Vite + React 19 + TS frontend: guided 2-step meta-modeling UX (Setup → Results). Renders one of {UQ|SuMo|MOGA} results view per backend `service-mode`. Drives oSPARC functions/jobs & Dakota studies through Flask backend under `/flask/*`.
 
 ## §C
-- React `^19.0.0`, Vite `^6.3.1`, TS `^5.7.2` (strict), MUI `^7` + `@mui/x-data-grid ^8`, Plotly `plotly.js ^3` / `react-plotly.js ^2.6`, HTTP via `superagent ^10.2`
-- Node ≥24, ESM (`"type":"module"`)
+- React `^19.3.0`, Vite `^8.3.1`, TS `^6.0.3` (strict), MUI `^7.3.11` + `@mui/x-data-grid ^9.14.0`, Plotly `plotly.js ^4.1.1` / `react-plotly.js ^4.1.0`, HTTP via `superagent ^10.3`
+- Node engines `^24.15.0 || >=26.0.0`, ESM (`"type":"module"`)
 - dev server port 8080 `strictPort`, host `0.0.0.0`; dev proxy `"proxy":"http://localhost:5000"` → backend
 - `src/osparc-api-ts-client/` generated (oSPARC API client) → ⊥ hand-edit, ∉ eslint
 - global state in React contexts; persisted to backend via `/flask/text-file`
