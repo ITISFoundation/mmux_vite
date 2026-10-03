@@ -73,7 +73,7 @@ test("MOGA read-only optimization flow renders pareto front and inspect-model mo
   await selectButton.click();
 
   // MOGA uses uniform parameter ranges (Min/Max) like SuMo.
-  await expect(page.locator('[mmux-testid="input-block-Min"] input').first()).toBeVisible({
+  await expect(page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Min"] input').first()).toBeVisible({
     timeout: VIEW_TIMEOUT,
   });
   await fillUniformInputRanges(page);
