@@ -51,7 +51,7 @@ export function MMUXContextProvider({ children }: Props) {
       console.info("Loading MMUX context from persistence...");
       setNumSamples(persistence.numSamples);
       setSelectedQoI(persistence.selectedQoI);
-      setValidationQoI(persistence.validationQoI ?? persistence.selectedQoI);
+      setValidationQoI(persistence.validationQoI ?? persistence.selectedQoI ?? undefined);
       setUQSettings(persistence.uqSettings ?? {});
       setIsSuMoGenerated(persistence.isSuMoGenerated);
       setLocalLoading(false);
