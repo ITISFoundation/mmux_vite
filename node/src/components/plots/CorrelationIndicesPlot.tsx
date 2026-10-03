@@ -34,7 +34,7 @@ type CorrelationControlsProps = {
   onScaleTypeChange: (_event: React.MouseEvent<HTMLElement>, newScale: CorrelationScaleType | null) => void;
 };
 
-export function CorrelationControls({ viewMode, scaleType, onViewModeChange, onScaleTypeChange }: CorrelationControlsProps) {
+function CorrelationControls({ viewMode, scaleType, onViewModeChange, onScaleTypeChange }: CorrelationControlsProps) {
   return (
     <Box display="flex" gap={1}>
       <ToggleButtonGroup

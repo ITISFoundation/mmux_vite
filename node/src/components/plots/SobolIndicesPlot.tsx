@@ -34,7 +34,7 @@ type SobolControlsProps = {
   onScaleTypeChange: (_event: React.MouseEvent<HTMLElement>, newScale: ScaleType | null) => void;
 };
 
-export function SobolControls({ viewMode, scaleType, onViewModeChange, onScaleTypeChange }: SobolControlsProps) {
+function SobolControls({ viewMode, scaleType, onViewModeChange, onScaleTypeChange }: SobolControlsProps) {
   return (
     <Box display="flex" gap={1}>
       <ToggleButtonGroup value={viewMode} exclusive onChange={onViewModeChange} size="small" mmux-testid="sobol-view-toggle">
