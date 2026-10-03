@@ -50,6 +50,7 @@ export function QoISelector({ outputVars, selectedQoI, setSelectedQoI, testId = 
         sx={{ minWidth: 120 }}
         value={selectedQoI || ""}
         onChange={event => setSelectedQoI(event.target.value)}
+        inputProps={{ "aria-label": "Quantity of Interest" }}
         mmux-testid={testId}
       >
         {outputVars.map(qoi => (
