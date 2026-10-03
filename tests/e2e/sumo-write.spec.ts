@@ -42,7 +42,7 @@ async function openLhsCampaign(page: Page, baseURL: string) {
 
   // Validation moved into the Inspect Model modal; the WRITE-mode sampling
   // controls (extend campaign → LHS) live at the results view footer.
-  await expect(page.getByText("1D Curves", { exact: true })).first().toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  await expect(page.getByText("1D Curves", { exact: true }).first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   const extendSampling = page.locator('[mmux-testid="extend-sampling-btn"]');
   await expect(extendSampling).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });
   await extendSampling.click();
