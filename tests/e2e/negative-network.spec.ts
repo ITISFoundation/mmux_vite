@@ -4,7 +4,6 @@ import {
   MODEL_READY_TIMEOUT,
   VIEW_TIMEOUT,
   failRoute,
-  expectModelModalReady,
   fillUniformInputRanges,
   resetPersistence,
   setDeployment,
@@ -83,7 +82,7 @@ test("a failed surrogate cross-validation shows an error instead of a blank view
   const inspectButton = page.locator('[mmux-testid="inspect-model-button"]');
   await expect(inspectButton).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });
   await inspectButton.click();
-  await expectModelModalReady(page);
+  await expect(page.locator('[mmux-testid="validation-modal"]')).toBeVisible({ timeout: VIEW_TIMEOUT });
 
   const validationView = page.locator('[mmux-testid="sumo-validation-view"]');
   await expect(validationView).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
