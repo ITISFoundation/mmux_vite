@@ -4,6 +4,7 @@ import {
   MODEL_READY_TIMEOUT,
   VIEW_TIMEOUT,
   failRoute,
+  expectModelModalReady,
   fillUniformInputRanges,
   resetPersistence,
   setDeployment,
@@ -71,9 +72,18 @@ test("a failed surrogate cross-validation shows an error instead of a blank view
   const selectButton = page.locator(`[mmux-testid="select-function-btn-${FUNCTION_UID}"]`);
   await expect(selectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
   await selectButton.click();
-  await expect(page.locator('[mmux-testid="input-block-Min"] input').first()).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expect(page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Min"] input').first()).toBeVisible({
+    timeout: VIEW_TIMEOUT,
+  });
   await fillUniformInputRanges(page);
   await page.locator('[mmux-testid="next-button"]').click();
+
+  // Validation (and thus cross-validation) now renders inside the Inspect Model
+  // modal; the modal mounting is what fires the dakota CV request.
+  const inspectButton = page.locator('[mmux-testid="inspect-model-button"]');
+  await expect(inspectButton).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });
+  await inspectButton.click();
+  await expectModelModalReady(page);
 
   const validationView = page.locator('[mmux-testid="sumo-validation-view"]');
   await expect(validationView).toBeVisible({ timeout: MODEL_READY_TIMEOUT });

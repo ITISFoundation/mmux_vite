@@ -45,6 +45,10 @@ test("setup and validation views have no serious accessibility violations", asyn
   await expectNoSeriousViolations(page);
 
   await page.locator('[mmux-testid="next-button"]').click();
+  await expectPlotlyReady(page);
+  const inspectButton = page.locator('[mmux-testid="inspect-model-button"]');
+  await expect(inspectButton).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });
+  await inspectButton.click();
   await expect(page.locator('[mmux-testid="sumo-validation-view"]').getByText("MAE:")).toBeVisible({
     timeout: MODEL_READY_TIMEOUT,
   });

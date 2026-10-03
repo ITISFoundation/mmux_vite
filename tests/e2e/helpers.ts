@@ -25,7 +25,7 @@ export async function expectPlotlyReady(container: Locator, timeout = MODEL_READ
 
 export async function expectModelModalReady(
   page: Page,
-  selector = '[mmux-testid="sumo-model-modal"]',
+  selector = '[mmux-testid="validation-modal"]',
 ): Promise<Locator> {
   const modal = page.locator(selector);
   await expect(modal).toBeVisible({ timeout: VIEW_TIMEOUT });

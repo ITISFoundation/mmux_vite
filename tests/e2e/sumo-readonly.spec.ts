@@ -6,6 +6,7 @@ import {
   fetchJson,
   resetPersistence,
   setDeployment,
+  expectModelModalReady,
   fillUniformInputRanges,
   expectPlotlyReady,
 } from "./helpers";
@@ -82,11 +83,25 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
     await creatingModel.first().waitFor({ state: "hidden", timeout: MODEL_READY_TIMEOUT });
   }
 
-  const validationView = page.locator('[mmux-testid="sumo-validation-view"]');
-  await expect(validationView).toBeVisible({ timeout: VIEW_TIMEOUT });
+  // Post-QoI-refactor flow: the response-surface stepper starts at 1D Curves,
+  // validation lives in the Inspect Model modal, and the adapt/extend sampling
+  // control sits at the view footer.
   const qoiSelect = page.locator('[mmux-testid="sumo-plot-qoi-select"]');
   await expect(qoiSelect).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expectPlotlyReady(validationView);
+  await expect(page.getByText("1D Curves", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expectPlotlyReady(page);
+
+  // Pixel baseline: the 1D Curves plot with the real Plotly render (deterministic
+  // mock surrogate, unmasked).
+  await expect(page).toHaveScreenshot("sumo-readonly-plot-1d.png");
+
+  // Inspect Model opens the cross-validation modal. Pixel baseline captures the
+  // modal over the results view (full viewport, unmasked).
+  const inspectButton = page.locator('[mmux-testid="inspect-model-button"]');
+  await expect(inspectButton).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });
+  await inspectButton.click();
+  const modal = await expectModelModalReady(page);
+  const validationView = page.locator('[mmux-testid="sumo-validation-view"]');
   await expect(validationView.getByText("MAE:")).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expect(validationView.getByText("RMSE:")).toBeVisible({ timeout: VIEW_TIMEOUT });
 
@@ -95,22 +110,16 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(extendSampling).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expect(extendSampling).toBeDisabled();
 
-  // Pixel baseline: the cross-validation view with the real Plotly render
-  // (full 1920x1080 viewport, unmasked — deterministic in the pinned image).
   await expect(page).toHaveScreenshot("sumo-readonly-validation.png");
+  await page.keyboard.press("Escape");
+  await expect(modal).toBeHidden({ timeout: VIEW_TIMEOUT });
 
-  // Walk the SuMo response-surface stepper (Validation → 1D → 2D → 3D), capturing
-  // each plot. The MobileStepper's Next button carries mmux-testid="sumo-plot-next".
+  // Walk the remaining SuMo response-surface stepper (1D → 2D → 3D). The
+  // MobileStepper's Next button carries mmux-testid="sumo-plot-next".
   // The mock exposes 4 inputs, so the 2D (≥2 inputs) and 3D (≥3 inputs) steps are
   // both reachable, and the input ranges match the training domain so each surrogate
   // renders a real (deterministic) Plotly figure rather than an extrapolation artifact.
   const plotNext = page.locator('[mmux-testid="sumo-plot-next"]');
-  // Step 1 — 1D Curves.
-  await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
-  await plotNext.click();
-  await expect(page.getByText("1D Curves", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
-  await expectPlotlyReady(page);
-  await expect(page).toHaveScreenshot("sumo-readonly-plot-1d.png");
 
   // Step 2 — 2D Surface.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
