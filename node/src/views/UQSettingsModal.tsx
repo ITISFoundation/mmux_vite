@@ -4,7 +4,7 @@ import { useFunctionContext } from "../context/FunctionContext";
 import { useMMUXContext } from "../context/MMUXContext";
 import { UQSettings } from "../context/types";
 
-export const defaultUQSettings: UQSettings = {
+const defaultUQSettings: UQSettings = {
   numSamples: 10000,
   nHistograms: 50,
   seed: 0,
