@@ -32,6 +32,7 @@ const ConstantInputDistribution = ({ inputVar, distribution, handleSetValue }: I
     <>
       <InputBlock
         name="Value"
+        testId={`input-block-${inputVar}-Value`}
         value={distribution[inputVar].value !== undefined ? distribution[inputVar].value : NaN}
         minmax={{ min: -1e9, max: 1e9 }}
         error={errorNaNValue || errorBeyondRange}
@@ -69,6 +70,7 @@ const NormalInputDistribution = ({ inputVar, distribution, handleSetValue }: Inp
     <>
       <InputBlock
         name="Mean"
+        testId={`input-block-${inputVar}-Mean`}
         // TODO remove default values; just for development speed
         value={distribution[inputVar].mean !== undefined ? distribution[inputVar].mean : 0.0}
         minmax={{ min: -1e9, max: 1e9 }}
@@ -77,6 +79,7 @@ const NormalInputDistribution = ({ inputVar, distribution, handleSetValue }: Inp
       />
       <InputBlock
         name="Standard Deviation"
+        testId={`input-block-${inputVar}-Standard-Deviation`}
         // TODO remove default values; just for development speed
         value={distribution[inputVar].std !== undefined ? distribution[inputVar].std : 1.0}
         minmax={{ min: 0.0000000001, max: 1e9 }}
@@ -116,6 +119,7 @@ const UniformInputDistribution = ({ inputVar, distribution, handleSetValue }: In
     <>
       <InputBlock
         name="Min"
+        testId={`input-block-${inputVar}-Min`}
         value={distribution[inputVar].min !== undefined ? distribution[inputVar].min : NaN}
         onChange={value => handleSetValue(inputVar, "min", value as number)}
         minmax={{ min: -1e9, max: 1e9 }}
@@ -123,6 +127,7 @@ const UniformInputDistribution = ({ inputVar, distribution, handleSetValue }: In
       />
       <InputBlock
         name="Max"
+        testId={`input-block-${inputVar}-Max`}
         value={distribution[inputVar].max !== undefined ? distribution[inputVar].max : NaN}
         onChange={value => handleSetValue(inputVar, "max", value as number)}
         minmax={{ min: -1e9, max: 1e9 }}

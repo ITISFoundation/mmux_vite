@@ -25,7 +25,7 @@ export async function expectPlotlyReady(container: Locator, timeout = MODEL_READ
 
 export async function expectModelModalReady(
   page: Page,
-  selector = '[mmux-testid="sumo-model-modal"]',
+  selector = '[mmux-testid="validation-modal"]',
 ): Promise<Locator> {
   const modal = page.locator(selector);
   await expect(modal).toBeVisible({ timeout: VIEW_TIMEOUT });
@@ -173,7 +173,7 @@ export async function fillUniformInputRanges(page: Page): Promise<void> {
  */
 export async function fillNormalDistributions(page: Page): Promise<void> {
   const meanInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Mean"] input');
-  const stdInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Standard Deviation"] input');
+  const stdInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Standard-Deviation"] input');
 
   const meanCount = await meanInputs.count();
   const stdCount = await stdInputs.count();

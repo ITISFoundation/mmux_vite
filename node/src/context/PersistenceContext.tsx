@@ -22,6 +22,8 @@ const defaultPersistence: PersistenceType = {
   currentView: 0,
   numSamples: {},
   selectedQoI: undefined,
+  validationQoI: undefined,
+  uqSettings: {},
   isSuMoGenerated: false,
   selectedFunction: undefined,
   inputVars: [],
