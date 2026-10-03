@@ -61,7 +61,7 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
 
   // UQ uses a normal distribution: Mean / Standard Deviation blocks open once a
   // function is selected.
-  await expect(page.locator('[mmux-testid="input-block-Mean"] input').first()).toBeVisible({
+  await expect(page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Mean"] input').first()).toBeVisible({
     timeout: VIEW_TIMEOUT,
   });
   await fillNormalDistributions(page);
@@ -79,7 +79,7 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   }
 
   // UQ output setup: QoI selector + Inspect Model button.
-  const qoiSelect = page.locator('[mmux-testid="qoi-select"]').first();
+  const qoiSelect = page.locator('[mmux-testid="uq-plot-qoi-select"]');
   await expect(qoiSelect).toBeVisible({ timeout: VIEW_TIMEOUT });
   const inspectButton = page.locator('[mmux-testid="inspect-model-button"]');
   await expect(inspectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
