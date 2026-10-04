@@ -23,6 +23,7 @@ from mmux_flaskapi.blueprints.sampling_models import (
     LHSSamplingRequest,
     TestJobRequest,
 )
+from mmux_flaskapi.utils.api_endpoint import api_endpoint
 from mmux_flaskapi.utils.helpers import create_run_dir, dict_keys_snake_to_camel
 from mmux_flaskapi.utils.json_serializer import parse_request_model
 from mmux_flaskapi.utils.local_job_store import (
@@ -104,6 +105,7 @@ def _run_sampling_map(function_uid, samples):
 
 
 @sampling_bp.route("/lhs", methods=["POST"])
+@api_endpoint
 def flask_lhs():
     """
     Perform Latin Hypercube Sampling with validated request data.
@@ -155,6 +157,7 @@ def flask_lhs():
 
 
 @sampling_bp.route("/grid", methods=["POST"])
+@api_endpoint
 def flask_grid_sampling():
     """
     Perform Grid Sampling with validated request data.
@@ -211,6 +214,7 @@ def flask_grid_sampling():
 
 
 @sampling_bp.route("/test_job", methods=["POST"])
+@api_endpoint
 def flask_test_job():
     """
     Test a job with validated request data.
@@ -271,6 +275,7 @@ def flask_test_job():
 
 
 @sampling_bp.route("/clone_job", methods=["POST"])
+@api_endpoint
 def flask_clone_job():
     """
     Clone a job with validated request data.
@@ -425,6 +430,7 @@ def _parse_uploaded_job_collection_csv(csv_content: str) -> dict[str, Any]:
 
 
 @sampling_bp.route("/upload_job_collection_csv", methods=["POST"])
+@api_endpoint
 def flask_upload_job_collection_csv():
     """
     Import a job-collection CSV and attach the samples to either a new local
