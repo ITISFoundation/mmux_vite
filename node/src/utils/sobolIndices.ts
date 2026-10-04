@@ -1,6 +1,5 @@
 import { OsparcFunctionJob } from "../context/types";
-import { fetchWithRetry } from "./fetchRetry";
-import { getResponseErrorMessage } from "./httpError";
+import { requestJson } from "../api/client";
 
 export type FetchSobolIndicesParams = {
   inputVars: string[];
@@ -19,26 +18,21 @@ export type FetchSobolIndicesParams = {
 export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promise<SobolIndicesResponse> {
   const { inputVars, output, distributions, functionJobs, numSamples, seed = 0 } = params;
 
-  const response = await fetchWithRetry(`/flask/dakota/compute_sobol_indices`, {
+  // V44eh: single dialect via requestJson. It still rejects (⊥ resolve) on
+  // failure so callers' .catch/try-catch can clear fetch-dedup state (V18) and
+  // surfaces the BE {"error": <str>} payload verbatim as the ApiError message.
+  return requestJson<SobolIndicesResponse>(`/flask/dakota/compute_sobol_indices`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+    retry: true,
+    body: {
       inputVars,
       output,
       distributions,
       numSamples,
       FunctionJobs: functionJobs,
       seed,
-    }),
+    },
   });
-
-  if (!response.ok) {
-    // V23-style: reject (⊥ resolve) on non-OK so callers' .catch/try-catch can clear
-    // any cached fetch-dedup state instead of treating the failure as a success.
-    throw new Error(await getResponseErrorMessage(response));
-  }
-
-  return response.json();
 }
 
 /**

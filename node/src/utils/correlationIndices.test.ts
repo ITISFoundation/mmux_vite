@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OsparcFunctionJob } from "../context/types";
+import { jsonResponse } from "../test/fetchStub";
 import { fetchWithRetry } from "./fetchRetry";
 import { buildCorrelationBarData, fetchCorrelationIndices } from "./correlationIndices";
 
@@ -79,17 +80,7 @@ describe("fetchCorrelationIndices", () => {
   });
 
   it("throws (⊥ resolves) on a non-OK response", async () => {
-    mockedFetchWithRetry.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-      json: () => Promise.resolve({ error: "Correlation model failed" }),
-      clone: () =>
-        ({
-          json: () => Promise.resolve({ error: "Correlation model failed" }),
-          text: () => Promise.resolve(""),
-        }) as Response,
-    } as Response);
+    mockedFetchWithRetry.mockResolvedValueOnce(jsonResponse({ error: "Correlation model failed" }, 500));
 
     await expect(
       fetchCorrelationIndices({

@@ -42,12 +42,20 @@ export async function requestJson<T>(url: string, { method = "GET", body, retry 
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new ApiError(
-      "http",
-      `${method} ${url} failed with ${response.status}${text ? `: ${text}` : ""}`,
-      response.status,
-      text,
-    );
+    // V44eh: the BE error surface is always JSON {"error": <str>} (flaskapi's
+    // api_endpoint + JSON error handlers); surface it verbatim, fall back to the
+    // generic dialect message only for bodies that are not that shape.
+    let userMessage = "";
+    try {
+      const payload = JSON.parse(text) as { error?: unknown };
+      if (typeof payload?.error === "string" && payload.error.trim()) {
+        userMessage = payload.error;
+      }
+    } catch {
+      // not JSON; fall back below
+    }
+    const message = userMessage || `${method} ${url} failed with ${response.status}${text ? `: ${text}` : ""}`;
+    throw new ApiError("http", message, response.status, text);
   }
 
   try {
