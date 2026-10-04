@@ -1,5 +1,6 @@
 import { OsparcFunctionJob } from "../context/types";
 import { requestJson } from "../api/client";
+import { getCachedOrFetch } from "../api/sessionResponseCache";
 
 export type FetchSobolIndicesParams = {
   inputVars: string[];
@@ -21,18 +22,18 @@ export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promis
   // V44eh: single dialect via requestJson. It still rejects (⊥ resolve) on
   // failure so callers' .catch/try-catch can clear fetch-dedup state (V18) and
   // surfaces the BE {"error": <str>} payload verbatim as the ApiError message.
-  return requestJson<SobolIndicesResponse>(`/flask/dakota/compute_sobol_indices`, {
-    method: "POST",
-    retry: true,
-    body: {
-      inputVars,
-      output,
-      distributions,
-      numSamples,
-      FunctionJobs: functionJobs,
-      seed,
-    },
-  });
+  const body = {
+    inputVars,
+    output,
+    distributions,
+    numSamples,
+    FunctionJobs: functionJobs,
+    seed,
+  };
+  // V46sc: every sent parameter is in the cache key by construction.
+  return getCachedOrFetch<SobolIndicesResponse>(`/flask/dakota/compute_sobol_indices`, body, () =>
+    requestJson<SobolIndicesResponse>(`/flask/dakota/compute_sobol_indices`, { method: "POST", retry: true, body }),
+  );
 }
 
 /**

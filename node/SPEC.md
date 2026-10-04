@@ -69,7 +69,7 @@ V12: per-variable metadata (e.g. log-scale) ! flow end-to-end UI→context→pay
 V13: CSV upload → 1 authoritative parsed result drives 4 effects atomically {add fn, select fn, prefill bounds, infer dist/log}; ⊥ partial update (INV-003, §T6)
 V14: FE↔BE payload field contracts changed together (⊥ opportunistic rename one side) (INV-004, ../flaskapi V13/V14)
 V15: context-derived setters guard w/ equality check before set; ⊥ object-recreation-only retrigger → duplicate Dakota/persistence fan-out (INV-005, §T5)
-V16: Dakota plot fetches (1D/2D/3D) deduped by stable logical request key {axes,sliderValues,QoI,fn,jobList,logScale}; same key → ⊥ new fetch (INV-006, §T5)
+V16: Dakota plot fetches (2D/3D) deduped by stable logical request key {axes,sliderValues,QoI,fn,jobList,logScale}; same key → ⊥ new fetch (INV-006, §T5; 1D dedup now owned by the V46sc session cache, which subsumes the lastFetchedKey success slot)
 --- review-backprop invariants (Copilot review on #468/#469; bugs §B6-B9, fixes §T11-T13) ---
 V17: persist success-marker (`lastSavedContent`) set ONLY after confirmed OK `setFile` response; failed/non-OK save ⊥ mark content saved (else V15 equality-guard suppresses retry of the failed write) (B6, refines V15)
 V18: Dakota plot dedup key (`lastFetchedKey`) cached ONLY on fetch success (or cleared on error); transient/rejected fetch ⊥ block retry of identical inputs (B7, refines V16)
@@ -146,7 +146,7 @@ T32ap|x|centralize `/flask/*` calls in `src/api/client.ts` (test-first `client.t
 T33pv|x|fix B32pv test-first (`PersistenceContext.test.tsx`: JSON scalars/array, 10 wrong-typed fields, optional fields missing); `RunSamplingButton` never launches for non-WRITE permissions; `dakotaRequestKey` boundary table; mutation spot-check (removing view `ErrorBoundary`, LHS error toast, or load-failure `avoidPersisting` each fails a unit test; dropping the JSON header fails the WRITE e2e)|V41pv,B32pv
 T34mk|x|shared guarded-fetch helper (T29sw design: effect-scoped generation token; late resolve AND late reject ⊥ clobber) adopted in `SobolIndicesPlot`/`CorrelationIndicesPlot`/`UncertainUQ` + the CV fetch in `SuMoValidation`; replaces the per-plot request-id guards in 1D/2D/3D; test-first per site: two quick input changes ⇒ only the newest commits|V45gd,T29sw,V34lw
 T35uv|x|fold FE error dialect: `sobolIndices`/`correlationIndices` call `requestJson`; `client.ts` extracts the BE {"error"} payload for http ApiError messages; `getResponseErrorMessage` deleted (folded into client); client.test.ts + sobol/correlation suites assert payload extraction + honest fallback text|V44eh,V38ap
-T36wx|.|session response cache module (LRU-capped Map keyed by buildRequestCacheKey, read-only hits) adopted at the 5 surrogate fetch sites; test-first (fetch spy): hit ⇒ ⊥ network incl. after remount; range widening / seed / numSamples / nHistograms / distribution / new jobs ⇒ miss; 4xx/5xx/malformed ⇒ ⊥ cached ⊥ retry-blocked; guard interplay: a stale generation never commits, even on a cache hit|V46sc,V45gd,V18,V16,root-V39xk
+T36wx|x|session response cache module (LRU-capped Map keyed by buildRequestCacheKey, read-only hits) adopted at the 5 surrogate fetch sites; test-first (fetch spy): hit ⇒ ⊥ network incl. after remount; range widening / seed / numSamples / nHistograms / distribution / new jobs ⇒ miss; 4xx/5xx/malformed ⇒ ⊥ cached ⊥ retry-blocked; guard interplay: a stale generation never commits, even on a cache hit|V46sc,V45gd,V18,V16,root-V39xk
 
 ## §B
 id|date|cause|fix

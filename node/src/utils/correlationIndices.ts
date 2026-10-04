@@ -1,5 +1,6 @@
 import { OsparcFunctionJob } from "../context/types";
 import { requestJson } from "../api/client";
+import { getCachedOrFetch } from "../api/sessionResponseCache";
 
 export type FetchCorrelationIndicesParams = {
   inputVars: string[];
@@ -20,18 +21,18 @@ export async function fetchCorrelationIndices(params: FetchCorrelationIndicesPar
   // V44eh: single dialect via requestJson. It still rejects (⊥ resolve) on
   // failure so callers' .catch/try-catch can clear fetch-dedup state (V18) and
   // surfaces the BE {"error": <str>} payload verbatim as the ApiError message.
-  return requestJson<CorrelationIndicesResponse>(`/flask/dakota/compute_correlation_indices`, {
-    method: "POST",
-    retry: true,
-    body: {
-      inputVars,
-      output,
-      distributions,
-      numSamples,
-      FunctionJobs: functionJobs,
-      seed,
-    },
-  });
+  const body = {
+    inputVars,
+    output,
+    distributions,
+    numSamples,
+    FunctionJobs: functionJobs,
+    seed,
+  };
+  // V46sc: every sent parameter is in the cache key by construction.
+  return getCachedOrFetch<CorrelationIndicesResponse>(`/flask/dakota/compute_correlation_indices`, body, () =>
+    requestJson<CorrelationIndicesResponse>(`/flask/dakota/compute_correlation_indices`, { method: "POST", retry: true, body }),
+  );
 }
 
 /**
