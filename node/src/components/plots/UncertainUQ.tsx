@@ -1,6 +1,7 @@
 import { Box, IconButton, Tooltip, useTheme } from "@mui/material";
 import { Tune } from "@mui/icons-material";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
@@ -25,8 +26,8 @@ export default function UncertainUQ(props: UncertainUQProps) {
   const [propagating, setPropagating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
 
-  useEffect(() => {
-    (async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
       console.log("running job collections: ", filteredJobList);
       setDataUQHistogram(undefined);
       setPlotData([]);
@@ -54,6 +55,7 @@ export default function UncertainUQ(props: UncertainUQProps) {
             seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
           },
         });
+        if (isStale()) return;
         const newPlotData: Plotly.Data[] = [
           {
             x: Array.from(
@@ -75,13 +77,15 @@ export default function UncertainUQ(props: UncertainUQProps) {
         setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
         setPropagating(false);
       } catch (error) {
+        if (isStale()) return;
         console.warn("Error:", error);
         setErrorMessage(getErrorMessage(error));
         setPropagating(false);
         setDataUQHistogram(undefined);
       }
-    })();
-  }, [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction, theme.palette.primary.main]);
+    },
+    [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction, theme.palette.primary.main],
+  );
   if (loading) {
     return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;
   }

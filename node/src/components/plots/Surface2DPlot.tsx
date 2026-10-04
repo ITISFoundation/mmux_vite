@@ -1,5 +1,6 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
@@ -26,7 +27,6 @@ function Surface2DPlot() {
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
   const [errorMessage, setErrorMessage] = useState<string>();
   const lastFetchedKey = useRef<string | undefined>(undefined);
-  const latestRequestId = useRef(0);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
       acc[key] =
@@ -83,13 +83,10 @@ function Surface2DPlot() {
   );
 
   const RunSuMo2DInterpolation = useCallback(
-    async (jobs: OsparcFunctionJob[], key1: string, key2: string, requestKey: string) => {
+    async (jobs: OsparcFunctionJob[], key1: string, key2: string, requestKey: string, isStale: () => boolean) => {
       // This should create the "data" state variable to be plotted
       console.info("Evaluating SuMo for 2D surface...");
       console.info("Jobs to build SuMo: ", jobs);
-      latestRequestId.current += 1;
-      const requestId = latestRequestId.current;
-      const isStale = () => requestId !== latestRequestId.current;
       setPropagating(true);
       setErrorMessage(undefined);
       requestJson<{ gridData: { [key: string]: number[] } }>(`/flask/dakota/sumo_grid_evaluation`, {
@@ -125,8 +122,8 @@ function Surface2DPlot() {
     [inputVars, selectedQoI, otherAxis, reshapePlotData],
   );
 
-  useEffect(() => {
-    const run = async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
       const jobs = filteredJobList;
       // V16: dedup by stable logical request key; same key → no new fetch.
       const axisRanges = buildAxisRanges(distribution[selectedFunction?.uid || ""], [axis1, axis2]);
@@ -140,12 +137,12 @@ function Surface2DPlot() {
         axisRanges,
       });
       if (requestKey === lastFetchedKey.current) {
-        return undefined;
+        return;
       }
-      return RunSuMo2DInterpolation(jobs, axis1, axis2, requestKey);
-    };
-    run();
-  }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, distribution, otherAxis, filteredJobList, RunSuMo2DInterpolation]);
+      return RunSuMo2DInterpolation(jobs, axis1, axis2, requestKey, isStale);
+    },
+    [axis1, axis2, inputVars, selectedQoI, selectedFunction, distribution, otherAxis, filteredJobList, RunSuMo2DInterpolation],
+  );
 
   const layout: Partial<Layout> = {
     title: {

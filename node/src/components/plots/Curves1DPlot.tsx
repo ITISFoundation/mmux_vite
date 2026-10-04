@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
@@ -48,7 +49,6 @@ function Curves1DPlots() {
   const plotColor = "rgb(127, 199, 255)";
   const fillColor = "rgba(127, 199, 255, 0.3)";
   const lastFetchedKey = useRef<string | undefined>(undefined);
-  const latestRequestId = useRef(0);
 
   const createPlotData = (data: Record<string, GPPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
@@ -102,10 +102,7 @@ function Curves1DPlots() {
     }
   };
 
-  const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[], requestKey: string) => {
-    latestRequestId.current += 1;
-    const requestId = latestRequestId.current;
-    const isStale = () => requestId !== latestRequestId.current;
+  const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[], requestKey: string, isStale: () => boolean) => {
     setPropagating(true);
     setErrorMessage(undefined);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
@@ -140,13 +137,14 @@ function Curves1DPlots() {
       });
   };
 
-  useEffect(() => {
-    const run = async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
       const jobs = filteredJobList;
       if (jobs.length === 0) {
         // Not enough jobs to build model - then returns empty list
         lastFetchedKey.current = undefined;
-        return setPlotData([]);
+        setPlotData([]);
+        return;
       }
       // V16: dedup by stable logical request key; same key → no new fetch.
       // V36 (#501): encode the plotted axis' sampling range so that widening an
@@ -163,14 +161,12 @@ function Curves1DPlots() {
         axisRanges,
       });
       if (requestKey === lastFetchedKey.current) {
-        return undefined;
+        return;
       }
-      return RunCentralSuMoInterpolations(jobs, requestKey);
-    };
-    run();
-    // console.debug("axis: ", axis);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filteredJobList, distribution]);
+      return RunCentralSuMoInterpolations(jobs, requestKey, isStale);
+    },
+    [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filteredJobList, distribution],
+  );
 
   const plotStyle = {
     height: 300,

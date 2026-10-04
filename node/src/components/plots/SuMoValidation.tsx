@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
 import { Layout } from "plotly.js";
@@ -92,7 +93,7 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
     }
   };
 
-  const RunSuMoValidation = async (jobs: OsparcFunctionJob[]) => {
+  const RunSuMoValidation = async (jobs: OsparcFunctionJob[], isStale: () => boolean) => {
     console.info("Evaluating SuMo Validation for jobs: ", jobs);
 
     if (!jobs || jobs.length < 5) {
@@ -117,6 +118,7 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
       },
     })
       .then(response => {
+        if (isStale()) return;
         if (!response || response.error) {
           console.warn("SuMo Validation error: ", response?.error);
           throw new Error(`Error running SuMo Validation: ${response?.error}`);
@@ -127,6 +129,7 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
         }
       })
       .catch(error => {
+        if (isStale()) return;
         console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
@@ -135,18 +138,16 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
       });
   };
 
-  useEffect(() => {
-    if (!validationQoI) {
-      return;
-    }
-
-    const run = async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
+      if (!validationQoI) {
+        return;
+      }
       const jobs = filteredJobList;
-      return RunSuMoValidation(jobs);
-    };
-    run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validationQoI, inputVars, selectedFunction, distribution, filteredJobList]);
+      return RunSuMoValidation(jobs, isStale);
+    },
+    [validationQoI, inputVars, selectedFunction, distribution, filteredJobList],
+  );
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver(event => {
