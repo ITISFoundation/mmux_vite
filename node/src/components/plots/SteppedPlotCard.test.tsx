@@ -65,6 +65,36 @@ describe("SteppedPlotCard", () => {
     expect(screen.getByTestId("qoi-selector")).toBeDefined();
   });
 
+  it("renders the active step's headerContent", () => {
+    const steps: SteppedStep[] = [
+      { title: "One", headerContent: <div data-testid="controls-1">Controls 1</div>, content: <div data-testid="content-1" /> },
+      { title: "Two", headerContent: <div data-testid="controls-2">Controls 2</div>, content: <div data-testid="content-2" /> },
+    ];
+    const { rerender } = render(<SteppedPlotCard steps={steps} activeStep={0} maxSteps={2} onNext={vi.fn()} onBack={vi.fn()} />);
+    expect(screen.getByTestId("controls-1")).toBeDefined();
+    expect(screen.queryByTestId("controls-2")).toBeNull();
+
+    rerender(<SteppedPlotCard steps={steps} activeStep={1} maxSteps={2} onNext={vi.fn()} onBack={vi.fn()} />);
+    expect(screen.getByTestId("controls-2")).toBeDefined();
+    expect(screen.queryByTestId("controls-1")).toBeNull();
+  });
+
+  it("V47hd renders headerContent left of qoiSelector in header order", () => {
+    render(
+      <SteppedPlotCard
+        steps={[{ title: "One", headerContent: <div data-testid="step-controls">Controls</div>, content: <div /> }]}
+        activeStep={0}
+        maxSteps={1}
+        onNext={vi.fn()}
+        onBack={vi.fn()}
+        qoiSelector={<div data-testid="qoi-selector">QoI Selector</div>}
+      />,
+    );
+    const controls = screen.getByTestId("step-controls");
+    const selector = screen.getByTestId("qoi-selector");
+    expect(controls.compareDocumentPosition(selector) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("updates title and content when activeStep changes", () => {
     const { rerender } = render(
       <SteppedPlotCard

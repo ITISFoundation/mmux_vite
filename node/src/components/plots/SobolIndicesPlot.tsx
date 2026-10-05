@@ -23,8 +23,6 @@ export type SobolViewMode = "first-order" | "total-order" | "second-order";
 type SobolIndicesPlotProps = {
   viewMode: SobolViewMode;
   scaleType: ScaleType;
-  onViewModeChange?: SobolControlsProps["onViewModeChange"];
-  onScaleTypeChange?: SobolControlsProps["onScaleTypeChange"];
 };
 
 type SobolControlsProps = {
@@ -34,7 +32,7 @@ type SobolControlsProps = {
   onScaleTypeChange: (_event: React.MouseEvent<HTMLElement>, newScale: ScaleType | null) => void;
 };
 
-function SobolControls({ viewMode, scaleType, onViewModeChange, onScaleTypeChange }: SobolControlsProps) {
+export function SobolControls({ viewMode, scaleType, onViewModeChange, onScaleTypeChange }: SobolControlsProps) {
   return (
     <Box display="flex" gap={1}>
       <ToggleButtonGroup value={viewMode} exclusive onChange={onViewModeChange} size="small" mmux-testid="sobol-view-toggle">
@@ -60,7 +58,7 @@ function SobolControls({ viewMode, scaleType, onViewModeChange, onScaleTypeChang
   );
 }
 
-export default function SobolIndicesPlot({ viewMode, scaleType, onViewModeChange, onScaleTypeChange }: SobolIndicesPlotProps) {
+export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPlotProps) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   const { uqSettings, selectedQoI } = useMMUXContext();
@@ -221,16 +219,6 @@ export default function SobolIndicesPlot({ viewMode, scaleType, onViewModeChange
 
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%">
-      {onViewModeChange && onScaleTypeChange && (
-        <Box display="flex" justifyContent="flex-end">
-          <SobolControls
-            viewMode={viewMode}
-            scaleType={scaleType}
-            onViewModeChange={onViewModeChange}
-            onScaleTypeChange={onScaleTypeChange}
-          />
-        </Box>
-      )}
       {computing && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
       {!computing && plotData.length === 0 && !sobolData && (
         <InsufficientDataWarning

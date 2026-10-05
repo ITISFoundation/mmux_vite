@@ -100,6 +100,8 @@ V40ps: a rejected persistence save ! not update `lastSavedContent`/`persistence`
 V41pv: a loaded persistence file ! be a plain object whose required keys carry the right JSON type (arrays/objects/number/boolean); anything else (JSON `null`/`0`/`""`, a string `inputVars`, ...) → defaults + warning, ⊥ reach contexts (B32pv)
 V42ax: every interactive control (icon buttons, selects) ! have an accessible name, and text ! meet WCAG AA contrast (4.5:1) on its surface; enforced by `tests/e2e/a11y.spec.ts` (B33ax)
 V43qz: validation rendering ! use the resolved `validationQoI` identifier consistently across effects, requests, and plot labels; ⊥ reference the removed `selectedQoI` binding (B35qz)
+V47hd: a plot-card header ! order left→right as step controls (`headerContent`) → QoI selector → action buttons; Inspect Model ! stay rightmost and ⊥ be routed through `headerContent` (enforced by `SteppedPlotCard` slot order `{headerContent}{qoiSelector}`; UQ review 2026-10-05)
+V48hz: the Inspect Model validation view ! present as a modal wrapping a `SteppedPlotCard` (box + Back/Next + dots), ⊥ a bare header-and-plot box, so future validation steps inherit the chrome (V47hd header order holds inside it)
 
 ## §T
 id|status|task|cites

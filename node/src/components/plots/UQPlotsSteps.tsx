@@ -1,8 +1,8 @@
 import React from "react";
 import SteppedPlotCard, { type SteppedStep } from "./SteppedPlotCard";
 import UncertainUQ from "./UncertainUQ";
-import CorrelationIndicesPlot, { type CorrelationViewMode } from "./CorrelationIndicesPlot";
-import SobolIndicesPlot, { type SobolViewMode } from "./SobolIndicesPlot";
+import CorrelationIndicesPlot, { CorrelationControls, type CorrelationViewMode } from "./CorrelationIndicesPlot";
+import SobolIndicesPlot, { SobolControls, type SobolViewMode } from "./SobolIndicesPlot";
 import { type CorrelationScaleType, type ScaleType } from "../../utils/plotScale";
 
 const uqStepTitles = ["Histogram", "Correlation", "Sobol' Indices"];
@@ -46,8 +46,8 @@ function UQPlotsSteps(props: UQPlotsStepsProps) {
     {
       title: uqStepTitles[1],
       infoText: uqStepInfoTexts[uqStepTitles[1]],
-      content: (
-        <CorrelationIndicesPlot
+      headerContent: (
+        <CorrelationControls
           viewMode={correlationViewMode}
           scaleType={correlationScaleType}
           onViewModeChange={(_event, newMode) => {
@@ -58,12 +58,13 @@ function UQPlotsSteps(props: UQPlotsStepsProps) {
           }}
         />
       ),
+      content: <CorrelationIndicesPlot viewMode={correlationViewMode} scaleType={correlationScaleType} />,
     },
     {
       title: uqStepTitles[2],
       infoText: uqStepInfoTexts[uqStepTitles[2]],
-      content: (
-        <SobolIndicesPlot
+      headerContent: (
+        <SobolControls
           viewMode={sobolViewMode}
           scaleType={sobolScaleType}
           onViewModeChange={(_event, newMode) => {
@@ -74,6 +75,7 @@ function UQPlotsSteps(props: UQPlotsStepsProps) {
           }}
         />
       ),
+      content: <SobolIndicesPlot viewMode={sobolViewMode} scaleType={sobolScaleType} />,
     },
   ];
 

@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Box, Modal } from "@mui/material";
-import Header from "../components/navigation/Header";
 import { QoISelector } from "../components/plots/QoISelector";
+import SteppedPlotCard, { type SteppedStep } from "../components/plots/SteppedPlotCard";
 import SuMoValidation from "../components/plots/SuMoValidation";
 import { useFunctionContext } from "../context/FunctionContext";
 import { useMMUXContext } from "../context/MMUXContext";
@@ -9,6 +9,7 @@ import { useMMUXContext } from "../context/MMUXContext";
 function ValidationModal({ open, setOpen }: { open: boolean; setOpen: (value: boolean) => void }) {
   const { outputVars } = useFunctionContext();
   const { selectedQoI, validationQoI, setValidationQoI } = useMMUXContext();
+  const [activeStep] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -23,6 +24,18 @@ function ValidationModal({ open, setOpen }: { open: boolean; setOpen: (value: bo
       setValidationQoI(next);
     }
   }, [open, outputVars, selectedQoI, validationQoI, setValidationQoI]);
+
+  // One step today; further validation views plug in here and inherit the
+  // card chrome (box + Back/Next + dots) for free. V47hd keeps the header
+  // order controls → QoI selector, and the modal itself carries no action
+  // buttons, so the selector sits rightmost inside this header.
+  const steps: SteppedStep[] = [
+    {
+      title: "Validation",
+      infoText: "Assessment of model quality through Cross-Validation",
+      content: <SuMoValidation validationQoIOverride={validationQoI} />,
+    },
+  ];
 
   return (
     <Modal open={open} onClose={() => setOpen(false)} aria-label="Model validation">
@@ -39,9 +52,12 @@ function ValidationModal({ open, setOpen }: { open: boolean; setOpen: (value: bo
           overflow: "auto",
         }}
       >
-        <Header
-          headerType="titleNoMargin"
-          tabTitle="Validation"
+        <SteppedPlotCard
+          steps={steps}
+          activeStep={activeStep}
+          maxSteps={steps.length}
+          onNext={() => undefined}
+          onBack={() => undefined}
           qoiSelector={
             <QoISelector
               outputVars={outputVars}
@@ -50,8 +66,10 @@ function ValidationModal({ open, setOpen }: { open: boolean; setOpen: (value: bo
               testId="validation-qoi-select"
             />
           }
+          nextTestId="validation-plot-next"
+          backTestId="validation-plot-back"
+          contentMinHeight={500}
         />
-        <SuMoValidation validationQoIOverride={validationQoI} />
       </Box>
     </Modal>
   );

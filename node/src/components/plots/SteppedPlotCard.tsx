@@ -7,6 +7,12 @@ export type SteppedStep = {
   title: string;
   infoText?: string;
   extendedInfoText?: React.ReactElement;
+  /**
+   * Per-step plot controls (e.g. Sobol order/scale toggles). Rendered in the card
+   * header LEFT of the qoiSelector slot: header order stays
+   * controls → QoI selector → action buttons (Inspect Model rightmost, V47hd).
+   */
+  headerContent?: React.ReactNode;
   content: React.ReactNode;
 };
 
@@ -48,7 +54,12 @@ function SteppedPlotCard(props: SteppedPlotCardProps) {
           tabTitle={currentStep?.title}
           infoText={currentStep?.infoText}
           extendedInfoText={currentStep?.extendedInfoText}
-          qoiSelector={qoiSelector}
+          qoiSelector={
+            <>
+              {currentStep?.headerContent}
+              {qoiSelector}
+            </>
+          }
         />
       </Box>
       <CardContent
