@@ -31,9 +31,33 @@ export default defineConfig({
   reporter: env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
   timeout: 120_000,
   expect: {
-    // Deterministic-ish UI; small tolerance for AA/font rasterization differences.
+    // STRICT zero tolerance for COUNTED pixel diffs (root SPEC V10): every
+    // pixel the comparator COUNTS must move on purpose — "counted" excludes
+    // anti-aliased pixels and sub-floor color distance (fine print below;
+    // ⊥ this banner implying byte-identity).
+    // The 1% AA/font band we used until #665 swallowed a real UI
+    // diff (missing bounds-editor header, root §B B25) — determinism comes
+    // from the PINNED docker image (V12), not from tolerance, so ⊥ band here
+    // hides rasterization drift: if the pinned image drifts, we regenerate
+    // baselines in that same image instead of widening the band.
+    // maxDiffPixelRatio 0.0 zeroes the QUOTA of differing pixels. The
+    // comparator floor is pinned EXPLICITLY (GH-Copilot #667 note): pixelmatch
+    // counts a pixel as different only past this per-pixel color distance, and
+    // NEVER counts anti-aliased pixels — the gate asserts zero COUNTED pixels,
+    // not byte-identity (Playwright offers no byte-exact comparator; claiming
+    // "pixel diff = 0" without this caveat overstates the contract).
+    // MEASURED across BOTH pinned environments (local docker host + GitHub
+    // runner, 2026-10-01): 0.0 fails reproducibly locally (2/7 baselines:
+    // moga-readonly-inspect-modal, sumo-readonly-inputs); 0.1 passed 2/2 local
+    // rounds BUT failed on the CI runner (moga-readonly-inspect-modal, 5461px
+    // drift between 0.1 and 0.2 — runner rendering is not host rendering,
+    // same image tag notwithstanding); 0.2 has passed every round on both.
+    // Pinned at 0.2 = strictest STABLE-EVERYWHERE floor; below is measured
+    // unstable in ≥1 environment. Tightening requires fresh rounds on BOTH;
+    // a flake cluster reverts the floor one step, no ceremony.
     toHaveScreenshot: {
-      maxDiffPixelRatio: 0.01,
+      maxDiffPixelRatio: 0.0,
+      threshold: 0.2,
       animations: "disabled",
       caret: "hide",
       // Plotly/DataGrid can take a few render frames to settle; the default 5s
