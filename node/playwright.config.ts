@@ -22,6 +22,8 @@ const repoRoot = new URL("..", import.meta.url).pathname;
 
 export default defineConfig({
   testDir: "../tests/e2e",
+  globalSetup: "../tests/e2e/coverage-setup.ts",
+  globalTeardown: "../tests/e2e/coverage-teardown.ts",
   // Pixel baselines live next to the repo-level e2e tests, not under node/.
   snapshotPathTemplate: "../tests/e2e/__snapshots__/{testFilePath}/{arg}{ext}",
   fullyParallel: false,
@@ -101,8 +103,16 @@ export default defineConfig({
       command: "npm run build:e2e && npm run preview",
       url: BASE_URL,
       cwd: `${repoRoot}node`,
-      env: { E2E_BACKEND_PROXY: BACKEND_URL, E2E_WEB_PORT: WEB_PORT },
-      reuseExistingServer,
+      env: {
+        E2E_BACKEND_PROXY: BACKEND_URL,
+        E2E_COVERAGE: "true",
+        E2E_WEB_PORT: WEB_PORT,
+      },
+      reuseExistingServer: false,
+      // Never reuse here: this entry hard-codes E2E_COVERAGE=true and the
+      // sourcemapped `build:e2e` it serves, which only a freshly built,
+      // Playwright-managed server guarantees. A reused dev server (/src/ URLs)
+      // or stale preview build yields empty/unmapped coverage.
       timeout: 600_000,
       stdout: "pipe",
       stderr: "pipe",
