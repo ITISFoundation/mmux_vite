@@ -1,6 +1,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SuMoValidation from "./SuMoValidation";
+import { jsonResponse, stubFetch } from "../../test/fetchStub";
 
 const mocks = vi.hoisted(() => ({
   selectedFunction: { uid: "function-1" },
@@ -26,7 +27,11 @@ vi.mock("react-plotly.js", () => ({ default: () => <div>Plot output</div> }));
 vi.mock("./Metric", () => ({ default: ({ metricName }: { metricName: string }) => <span>{metricName}</span> }));
 vi.mock("./MetricRow", () => ({ default: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
 vi.mock("./CalculatingWarning", () => ({ default: () => <div>Calculating</div> }));
-vi.mock("./InsufficientDataWarning", () => ({ default: () => <div>Insufficient data</div> }));
+vi.mock("./InsufficientDataWarning", () => ({
+  default: (props: { errorMessage?: string }) => (
+    <div>{`Insufficient data${props.errorMessage ? `: ${props.errorMessage}` : ""}`}</div>
+  ),
+}));
 
 const jobs = Array.from({ length: 5 }, (_, index) => ({ uid: `job-${index}` }));
 
@@ -54,10 +59,13 @@ describe("SuMoValidation", () => {
 
   it("recovers from a validation backend failure", async () => {
     mocks.filteredJobList = jobs;
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, json: () => Promise.resolve({ error: "failed" }) }));
+    // real 500 Response: requestJson must surface its status through ApiError
+    // (a mock without text() would throw a TypeError instead and mask the
+    // http-error path behind a generic message)
+    stubFetch(jsonResponse({ error: "failed" }, 500));
     render(<SuMoValidation />);
 
-    await waitFor(() => expect(screen.getByText("Insufficient data")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/failed with 500/)).toBeInTheDocument());
     expect(screen.queryByText("Plot output")).not.toBeInTheDocument();
   });
 

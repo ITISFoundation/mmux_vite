@@ -99,7 +99,7 @@ V35rx: ∀ Dependabot ecosystem entry in `.github/dependabot.yml` → weekly Mon
 V36ez: ∀ interactive UI element (button/icon-button/toggle) ! ship without ≥1 e2e test asserting it via `mmux-testid` ∧ ≥1 dedicated `toHaveScreenshot` baseline capturing its triggered state; ⊥ crash-free-only coverage
 V37hs: shared MUI `MuiTable` and `MuiDataGrid` roots ! use `theme.palette.background.default` for table surfaces; ⊥ inherit lighter card/paper background and change every table's visual baseline together
 V38gu: backend prod entrypoint ! launch Gunicorn via `uv run` from `flaskapi/uv.lock`, ⊥ isolated `uvx` tool env; guard `flaskapi/tests/test_main.py::test_v42gu_production_gunicorn_uses_project_lockfile` (B23gu, flaskapi/SPEC.md V42gu)
-V29qa: each `{mode}×{perm}` e2e workflow has a negative companion covering backend/network fault injection, not only happy path
+V29qa: each `{mode}×{perm}` e2e workflow covered TODAY has a negative companion covering backend/network fault injection, not only happy path; not-yet-covered companions (UQ/MOGA negative, WRITE flows) are open work tracked in §T35/§T36, not satisfied invariants
 V30rb: e2e accessibility checks fail on axe serious/critical violations for workflow-critical views
 V31sc: fault-injection endpoints exist only when `MMUX_E2E_MOCK_OSPARC` is set; production routes never expose test controls
 V32qf: every CI job that runs `npm ci` ! validate the committed `node/package.json` and `node/package-lock.json` together from a clean checkout; adding a dependency requires its direct and transitive lock entries (B18qf)
