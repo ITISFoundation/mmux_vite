@@ -11,7 +11,7 @@ Vite + React 19 + TS frontend: guided 2-step meta-modeling UX (Setup → Results
 
 ## §C
 - React `^19.3.0`, Vite `^8.3.1`, TS `^6.0.3` (strict), MUI `^7.3.11` + `@mui/x-data-grid ^9.14.0`, Plotly `plotly.js ^4.1.1` / `react-plotly.js ^4.1.0`, HTTP via `superagent ^10.3`
-- Node engines `^24.15.0 || >=26.0.0`, ESM (`"type":"module"`)
+- Node engines `^24.15.0 || >=26.0.0`, ESM (`"type":"module"`) - Node 25 excluded on purpose (odd-numbered line, already EOL)
 - dev server port 8080 `strictPort`, host `0.0.0.0`; dev proxy `"proxy":"http://localhost:5000"` → backend
 - `src/osparc-api-ts-client/` generated (oSPARC API client) → ⊥ hand-edit, ∉ eslint
 - global state in React contexts; persisted to backend via `/flask/text-file`

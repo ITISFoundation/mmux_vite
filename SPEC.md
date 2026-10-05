@@ -18,7 +18,7 @@ Domain: scientific UQ & sensitivity analysis; documented use-case = TI (Temporal
 ## §C
 - orchestration ! docker compose; final `docker-compose.yml` assembled by `ooil compose` (target `compose-spec`)
 - ship as oSPARC dynamic svc keys `simcore/services/dynamic/mmux-vite-*`
-- Node engines `^24.15.0 || >=26.0.0` (frontend), Python 3.11 (backend)
+- Node engines `^24.15.0 || >=26.0.0` (frontend; Node 25 excluded on purpose - odd-numbered line, already EOL), Python 3.11 (backend)
 - runtime behavior env-driven: `SERVICE_MODE`, `PERMISSIONS`, `DEPLOYMENT_MODE`
 - version single-sourced `.bumpversion.cfg` current=`1.5.18`; bumped across 8 `.osparc/*/metadata.yml` + `Makefile` + `docker-compose-local.yml` + `docker-compose-development.yml` via `bump2version`
 - secrets via `.env` (`make .env` clones `.env-devel`); `.env` ∉ git
