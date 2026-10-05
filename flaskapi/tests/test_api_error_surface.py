@@ -30,7 +30,10 @@ class TestV48jdErrorSurface:
         assert_error_json(test_client.get("/flask/nope/missing"), 404)
 
     def test_method_not_allowed_405_is_json(self, test_client: Any) -> None:
-        assert_error_json(test_client.delete("/flask/deployment/health"), 405)
+        response = test_client.delete("/flask/deployment/health")
+        assert_error_json(response, 405)
+        # JSON-ifying the body must not drop the status-mandated Allow header.
+        assert "Allow" in response.headers
 
     def test_unhandled_exception_degrades_to_json_500(self, test_app: Any) -> None:
         # Anything outside the views (a crash no try/except sees) must not

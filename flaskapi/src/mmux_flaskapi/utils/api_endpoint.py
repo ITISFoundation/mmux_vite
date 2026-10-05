@@ -11,6 +11,7 @@ catches everything they let through, and `register_json_error_handlers` covers
 errors raised outside any view (404/405/unhandled).
 """
 
+import json
 import logging
 from collections.abc import Callable
 from functools import wraps
@@ -89,13 +90,16 @@ def register_json_error_handlers(app: Flask) -> None:
         if error.response is not None:
             # abort(response) carries its own JSON body; do not re-wrap it.
             return error.response
-        status = error.code or 500
-        return (
-            jsonify(
-                ErrorResponse(error=f"{error.code} {error.name}: {error.description}").model_dump()
-            ),
-            status,
-        )
+        # error.get_response() (not a fresh jsonify response) carries the headers the
+        # status REQUIRES: 405 Allow, 429 Retry-After, ... Only the body is swapped
+        # for the {"error": <str>} JSON contract (V48jd).
+        response = error.get_response()
+        payload = ErrorResponse(
+            error=f"{error.code} {error.name}: {error.description}"
+        ).model_dump()
+        response.set_data(json.dumps(payload))
+        response.headers["Content-Type"] = "application/json"
+        return response
 
     @app.errorhandler(Exception)
     def _unhandled(error: Exception) -> ResponseReturnValue:

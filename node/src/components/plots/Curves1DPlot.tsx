@@ -144,6 +144,9 @@ function Curves1DPlots() {
         // Not enough jobs to build model - then returns empty list
         lastFetchedKey.current = undefined;
         setPlotData([]);
+        // V45gd: this generation owns the commits and starts no request -
+        // release loading a superseded generation left running.
+        setPropagating(false);
         return;
       }
       // V16: dedup by stable logical request key; same key → no new fetch.
@@ -161,6 +164,9 @@ function Curves1DPlots() {
         axisRanges,
       });
       if (requestKey === lastFetchedKey.current) {
+        // V45gd: reuse of the successful result must release any loading the
+        // invalidated in-between request left running.
+        setPropagating(false);
         return;
       }
       return RunCentralSuMoInterpolations(jobs, requestKey, isStale);

@@ -207,6 +207,9 @@ function IsoSurface3DPlot() {
         axisRanges,
       });
       if (requestKey === lastFetchedKey.current) {
+        // V45gd: reuse of the successful result must release any loading the
+        // invalidated in-between request left running.
+        setPropagating(false);
         return;
       }
       return RunSuMo3DInterpolation(jobs, axis1, axis2, requestKey, isStale);

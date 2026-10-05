@@ -196,8 +196,9 @@ export function MOGAPareto(props: MOGAParetoProps) {
           ndi,
         })),
       };
-      setSelectedOptVars(localOptVars);
-      setTableData(newTableData);
+      // V45gd: runMOGA pure-returns; the table/vars state commits happen in
+      // the effect AFTER its staleness check, so a stale generation cannot
+      // overwrite a newer table + selected vars.
       return { newTableData, localOptVars };
     },
     [mogaSettings, selectedFunction?.uid, distribution, inputVars, calculatePerformance],
@@ -366,6 +367,9 @@ export function MOGAPareto(props: MOGAParetoProps) {
     async isStale => {
       if (!selectedFunction) {
         console.warn("No function selected!!");
+        // V45gd: release loading a superseded request left running.
+        setPropagating(false);
+        if (setCalculating) setCalculating(false);
         return;
       }
       console.debug("Information about optimization vars fetched");
@@ -374,6 +378,9 @@ export function MOGAPareto(props: MOGAParetoProps) {
       const jobs = filteredJobList;
       if (jobs.length === 0) {
         console.warn("No jobs selected for MOGA Pareto plot.");
+        // V45gd: release loading a superseded request left running.
+        setPropagating(false);
+        if (setCalculating) setCalculating(false);
         return;
       }
       try {
@@ -382,6 +389,8 @@ export function MOGAPareto(props: MOGAParetoProps) {
         console.info("Fetching MOGA Pareto data...");
         const { newTableData, localOptVars } = await runMOGA(jobs, outputTargets[selectedFunction.uid]);
         if (isStale()) return;
+        setSelectedOptVars(localOptVars);
+        setTableData(newTableData);
         await updatePlot(jobs, newTableData, plotType, localOptVars);
         setPropagating(false);
         if (setCalculating) setCalculating(false);

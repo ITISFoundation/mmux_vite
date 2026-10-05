@@ -141,6 +141,8 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
   useGuardedAsyncEffect(
     async isStale => {
       if (!validationQoI) {
+        // V45gd: release loading a superseded CV request left running.
+        setPropagating(false);
         return;
       }
       const jobs = filteredJobList;
