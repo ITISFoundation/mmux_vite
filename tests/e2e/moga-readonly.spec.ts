@@ -1,4 +1,7 @@
-import { expect, test, type Page } from "./coverage";
+import { expect, test } from "./coverage";
+// Type-only from the runner itself: ./coverage exports the configured `test`
+// and `expect`, not the runner's types (same pattern as helpers.ts).
+import type { Page } from "@playwright/test";
 import {
   FUNCTION_UID,
   VIEW_TIMEOUT,

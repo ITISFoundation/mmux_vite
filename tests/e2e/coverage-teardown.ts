@@ -38,6 +38,18 @@ export default async function globalTeardown() {
     }
   }
 
+  // Collected nothing means every raw entry got filtered out (reused dev server
+  // serving /src/ URLs, missing sourcemapped build). Writing a header-only
+  // cobertura would satisfy the CI `test -s` gate and ship an empty report to
+  // Codecov, so fail here instead - before report generation.
+  if (coverageMap.files().length === 0) {
+    throw new Error(
+      `e2e coverage collected zero application files from ` +
+        `${rawCoverageFiles.length} raw dump(s): no /assets/ scripts matched - ` +
+        "was the frontend served without the sourcemapped production build?",
+    );
+  }
+
   await mkdir(reportDirectory, { recursive: true });
   const context = createContext({
     dir: reportDirectory,

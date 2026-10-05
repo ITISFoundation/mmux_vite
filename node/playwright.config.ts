@@ -108,7 +108,11 @@ export default defineConfig({
         E2E_COVERAGE: "true",
         E2E_WEB_PORT: WEB_PORT,
       },
-      reuseExistingServer,
+      reuseExistingServer: false,
+      // Never reuse here: this entry hard-codes E2E_COVERAGE=true and the
+      // sourcemapped `build:e2e` it serves, which only a freshly built,
+      // Playwright-managed server guarantees. A reused dev server (/src/ URLs)
+      // or stale preview build yields empty/unmapped coverage.
       timeout: 600_000,
       stdout: "pipe",
       stderr: "pipe",
