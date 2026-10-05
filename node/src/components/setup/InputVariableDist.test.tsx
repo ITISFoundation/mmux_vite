@@ -28,7 +28,11 @@ function setup(serviceMode: string, inputVars: string[], persisted?: InputVarSel
 }
 
 function field(name: string) {
-  return document.querySelector(`[mmux-testid="input-block-${name}"] input`) as HTMLInputElement;
+  // per-variable test ids (input-block-<var>-<Name>, hyphenated) from the
+  // validation-QoI selector port; single-variable renderings make suffix
+  // matching unambiguous
+  const norm = name.replace(/ /g, "-");
+  return document.querySelector(`[mmux-testid^="input-block-"][mmux-testid$="-${norm}"] input`) as HTMLInputElement;
 }
 
 function commit(name: string, value: string) {

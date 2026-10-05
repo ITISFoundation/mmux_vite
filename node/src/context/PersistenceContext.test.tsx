@@ -376,4 +376,63 @@ describe("PersistenceContextProvider", () => {
 
     expect(JSON.parse(getByTestId("persistence").textContent!).currentView).toBe(mockPersistence.currentView);
   });
+  it("resets when uqSettings is present but malformed", async () => {
+    mockFetchWithRetry.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          content: JSON.stringify({ ...mockPersistence, uqSettings: ["nope"] }),
+          filename: "persistence.json",
+        }),
+        { status: 200, statusText: "OK", headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const { getByText, getByTestId } = render(
+      <PersistenceContextProvider>
+        <TestComponent />
+      </PersistenceContextProvider>,
+    );
+
+    act(() => {
+      getByText("Set Health OK").click();
+    });
+
+    await waitFor(() => {
+      expect(getByTestId("loading").textContent).toBe("loaded");
+    });
+
+    const persistence = JSON.parse(getByTestId("persistence").textContent!);
+    expect(persistence.currentView).toBe(0);
+    expect(persistence.uqSettings).toEqual({});
+  });
+
+  it("resets when validationQoI is not a string", async () => {
+    mockFetchWithRetry.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          content: JSON.stringify({ ...mockPersistence, validationQoI: 42 }),
+          filename: "persistence.json",
+        }),
+        { status: 200, statusText: "OK", headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const { getByText, getByTestId } = render(
+      <PersistenceContextProvider>
+        <TestComponent />
+      </PersistenceContextProvider>,
+    );
+
+    act(() => {
+      getByText("Set Health OK").click();
+    });
+
+    await waitFor(() => {
+      expect(getByTestId("loading").textContent).toBe("loaded");
+    });
+
+    const persistence = JSON.parse(getByTestId("persistence").textContent!);
+    expect(persistence.currentView).toBe(0);
+    expect(persistence.validationQoI).toBeUndefined();
+  });
 });

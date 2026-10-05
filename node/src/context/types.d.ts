@@ -51,8 +51,16 @@ interface PersistenceType {
   fetchedJobCollections: SelectedJobCollection[] | undefined;
   selectedJobUids: string[];
   selectedQoI: string | undefined;
+  validationQoI: string | undefined;
+  uqSettings: { [key: string]: UQSettings };
   isSuMoGenerated: boolean;
   mogaSettings: MOGASettings;
   weights: { [key: string]: number };
   sortModel: GridSortModel;
+}
+
+export interface UQSettings {
+  numSamples: number;
+  nHistograms: number;
+  seed: number;
 }

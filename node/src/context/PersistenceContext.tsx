@@ -22,6 +22,8 @@ const defaultPersistence: PersistenceType = {
   currentView: 0,
   numSamples: {},
   selectedQoI: undefined,
+  validationQoI: undefined,
+  uqSettings: {},
   isSuMoGenerated: false,
   selectedFunction: undefined,
   inputVars: [],
@@ -71,11 +73,27 @@ export function PersistenceContextProvider({ children }: Props) {
   // otherwise downstream `.map`/property access crashes on a hand-edited or stale file (B32pv).
   const isValidPersistenceFile = (value: unknown): value is PersistenceType => {
     if (!isPlainObject(value)) return false;
+    // uqSettings/validationQoI stay optional so LEGACY files remain valid
+    // (migration happens in MMUXContext), but when present they must carry
+    // the right runtime type or wrong-typed values reach request payloads (B32pv class).
+    const uqSettingsOK =
+      value.uqSettings === undefined ||
+      (isPlainObject(value.uqSettings) &&
+        Object.values(value.uqSettings).every(
+          setting =>
+            isPlainObject(setting) &&
+            typeof setting.numSamples === "number" &&
+            typeof setting.nHistograms === "number" &&
+            typeof setting.seed === "number",
+        ));
+    const validationQoIOK = value.validationQoI === undefined || typeof value.validationQoI === "string";
     return (
       typeof value.currentView === "number" &&
       typeof value.isSuMoGenerated === "boolean" &&
       arrayFields.every(field => Array.isArray(value[field])) &&
       objectFields.every(field => isPlainObject(value[field])) &&
+      uqSettingsOK &&
+      validationQoIOK &&
       Object.keys(value).length <= Object.keys(defaultPersistence).length
     );
   };

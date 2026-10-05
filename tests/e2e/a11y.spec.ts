@@ -40,11 +40,15 @@ test("setup and validation views have no serious accessibility violations", asyn
   await expectNoSeriousViolations(page);
 
   await selectButton.click();
-  await expect(page.locator('[mmux-testid="input-block-Min"] input').first()).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expect(page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Min"] input').first()).toBeVisible({ timeout: VIEW_TIMEOUT });
   await fillUniformInputRanges(page);
   await expectNoSeriousViolations(page);
 
   await page.locator('[mmux-testid="next-button"]').click();
+  await expectPlotlyReady(page);
+  const inspectButton = page.locator('[mmux-testid="inspect-model-button"]');
+  await expect(inspectButton).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });
+  await inspectButton.click();
   await expect(page.locator('[mmux-testid="sumo-validation-view"]').getByText("MAE:")).toBeVisible({
     timeout: MODEL_READY_TIMEOUT,
   });
@@ -66,7 +70,7 @@ test("UQ setup, histogram and inspect-model modal have no serious violations", a
   const selectButton = page.locator(`[mmux-testid="select-function-btn-${FUNCTION_UID}"]`);
   await expect(selectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
   await selectButton.click();
-  await expect(page.locator('[mmux-testid="input-block-Mean"] input').first()).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expect(page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Mean"] input').first()).toBeVisible({ timeout: VIEW_TIMEOUT });
   await fillNormalDistributions(page);
   await expectNoSeriousViolations(page);
 
@@ -86,7 +90,7 @@ test("MOGA setup, pareto view and inspect-model modal have no serious violations
   const selectButton = page.locator(`[mmux-testid="select-function-btn-${FUNCTION_UID}"]`);
   await expect(selectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
   await selectButton.click();
-  await expect(page.locator('[mmux-testid="input-block-Min"] input').first()).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expect(page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Min"] input').first()).toBeVisible({ timeout: VIEW_TIMEOUT });
   await fillUniformInputRanges(page);
   const addOutputButton = page.locator('[mmux-testid="add-output-var-btn"]');
   await expect(addOutputButton).toBeVisible({ timeout: VIEW_TIMEOUT });
