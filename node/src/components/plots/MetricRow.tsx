@@ -7,7 +7,7 @@ type SuMoMetricRowPropsType = {
 function MetricRow(props: SuMoMetricRowPropsType) {
   const { children, width } = props;
   return (
-    <ul
+    <div
       style={{
         listStyle: "none",
         padding: 1,
@@ -20,7 +20,7 @@ function MetricRow(props: SuMoMetricRowPropsType) {
       }}
     >
       {children}
-    </ul>
+    </div>
   );
 }
 export default MetricRow;

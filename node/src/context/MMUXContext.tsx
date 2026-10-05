@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType } from "./types";
 
-export interface MMUXContextType {
+interface MMUXContextType {
   numSamples: { [key: string]: number };
   setNumSamples: (ns: { [key: string]: number }) => void;
   selectedQoI: string | undefined;
@@ -12,7 +12,7 @@ export interface MMUXContextType {
   setIsSuMoGenerated: (is: boolean) => void;
 }
 
-export const MMUXContext = createContext<MMUXContextType | undefined>(undefined);
+const MMUXContext = createContext<MMUXContextType | undefined>(undefined);
 
 type Props = {
   children: React.ReactNode;

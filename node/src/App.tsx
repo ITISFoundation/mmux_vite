@@ -18,6 +18,7 @@ import { JobContextProvider } from "./context/JobContext";
 import { usePersistenceContext } from "./context/PersistenceContext";
 import { MOGASettingsContextProvider } from "./context/MOGASettingsContext";
 import { MOGATableContextProvider } from "./context/MOGATableContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const AppRoot = styled("div")(
   ({ theme }) => `
@@ -66,12 +67,12 @@ function App() {
     const pollHealthStatus = async (retries: number) => {
       console.info("Fetching health status from backend...", retries);
       const result = await getHealthStatus();
+      if (result) return;
       if (retries <= 0) {
         console.error("Failed to get health status after multiple attempts.");
         toast.error("Failed to connect to the backend after multiple attempts. Please check the server status.");
         return;
       }
-      if (result) return;
       if (!healthStatus) {
         timeoutId = setTimeout(pollHealthStatus, 1000, retries - 1);
       }
@@ -126,7 +127,9 @@ function App() {
                         <PreviewWarning />
                         <Container sx={{ paddingBottom: 4 }}>
                           <Navigation steps={steps} activeStep={currentView} />
-                          <ReturnCurrentView currentView={currentView} />
+                          <ErrorBoundary key={currentView}>
+                            <ReturnCurrentView currentView={currentView} />
+                          </ErrorBoundary>
                           <Footer steps={steps} />
                         </Container>
                       </MMUXContextProvider>

@@ -10,7 +10,8 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
-import { getResponseErrorMessage } from "../../utils/httpError";
+import { requestJson } from "../../api/client";
+import { getErrorMessage } from "../../utils/httpError";
 
 function Surface2DPlot() {
   const theme = useTheme();
@@ -25,6 +26,7 @@ function Surface2DPlot() {
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
   const [errorMessage, setErrorMessage] = useState<string>();
   const lastFetchedKey = useRef<string | undefined>(undefined);
+  const latestRequestId = useRef(0);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
       acc[key] =
@@ -85,31 +87,24 @@ function Surface2DPlot() {
       // This should create the "data" state variable to be plotted
       console.info("Evaluating SuMo for 2D surface...");
       console.info("Jobs to build SuMo: ", jobs);
+      latestRequestId.current += 1;
+      const requestId = latestRequestId.current;
+      const isStale = () => requestId !== latestRequestId.current;
       setPropagating(true);
       setErrorMessage(undefined);
-      fetch(`/flask/dakota/sumo_grid_evaluation`, {
+      requestJson<{ gridData: { [key: string]: number[] } }>(`/flask/dakota/sumo_grid_evaluation`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           gridVars: [key1, key2],
           inputVars,
           output: selectedQoI,
           sliderValues: otherAxis,
           FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
           log: false, // FIXME not used atm
-        }),
+        },
       })
-        .then(async response => {
-          if (response && !response.ok) {
-            console.warn("SuMo Surface plot error: ", response.body);
-            // V18: reject (⊥ return) so the .catch path clears lastFetchedKey and the
-            // identical inputs can be retried; a returned Error would resolve the chain
-            // and cache the key as if the fetch had succeeded.
-            return Promise.reject(new Error(await getResponseErrorMessage(response)));
-          }
-          return response.json();
-        })
         .then(d => {
+          if (isStale()) return;
           // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
           reshapePlotData(d?.gridData);
           // V18: cache key ONLY on success, so transient failures don't block retry
@@ -118,12 +113,13 @@ function Surface2DPlot() {
           setErrorMessage(undefined);
         })
         .catch(error => {
+          if (isStale()) return;
           // V18: clear cache on error so same inputs can be retried
           lastFetchedKey.current = undefined;
           console.warn("Error:", error);
           setPropagating(false);
           setPlotData([]);
-          setErrorMessage(error instanceof Error ? error.message : String(error));
+          setErrorMessage(getErrorMessage(error));
         });
     },
     [inputVars, selectedQoI, otherAxis, reshapePlotData],

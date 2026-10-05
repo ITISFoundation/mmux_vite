@@ -18,10 +18,13 @@ import os
 
 from flask import Blueprint, jsonify, request
 
+from . import data
+
 e2e_control_bp = Blueprint("e2e_control", __name__)
 
 _ALLOWED_SERVICE_MODES = {"SUMO", "UQ", "MOGA"}
 _ALLOWED_PERMISSIONS = {"READ-ONLY", "WRITE"}
+FAULTS: set[str] = set()
 
 
 @e2e_control_bp.route("/deployment", methods=["POST"])
@@ -60,3 +63,25 @@ def set_deployment():
         ),
         200,
     )
+
+
+@e2e_control_bp.route("/faults", methods=["POST"])
+def set_fault():
+    """Enable or clear a named mock oSPARC operation failure."""
+    payload = request.get_json(silent=True) or {}
+    operation = payload.get("operation")
+    if not isinstance(operation, str) or not operation:
+        return jsonify({"error": "operation is required"}), 400
+    if payload.get("enabled", True):
+        FAULTS.add(operation)
+    else:
+        FAULTS.discard(operation)
+    return jsonify({"faults": sorted(FAULTS)}), 200
+
+
+@e2e_control_bp.route("/reset", methods=["POST"])
+def reset_mock():
+    """Clear faults and drop jobs/collections created by WRITE-mode specs."""
+    FAULTS.clear()
+    data.reset()
+    return jsonify({"jobCollections": len(data.JOB_COLLECTIONS)}), 200
