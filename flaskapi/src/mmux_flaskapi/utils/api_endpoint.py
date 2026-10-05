@@ -103,5 +103,8 @@ def register_json_error_handlers(app: Flask) -> None:
 
     @app.errorhandler(Exception)
     def _unhandled(error: Exception) -> ResponseReturnValue:
-        _logger.error(f"Unhandled exception: {error}")
-        return jsonify(ErrorResponse(error=str(error)).model_dump()), 500
+        # V48jd: the detail goes to the server log, NOT the wire - an unhandled
+        # exception can carry internal paths / service configuration, which would
+        # otherwise be rendered verbatim by the UI (V44eh shows BE text as-is).
+        _logger.exception("Unhandled exception")
+        return jsonify(ErrorResponse(error="Internal server error").model_dump()), 500

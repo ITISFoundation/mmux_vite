@@ -37,9 +37,12 @@ class TestV48jdErrorSurface:
 
     def test_unhandled_exception_degrades_to_json_500(self, test_app: Any) -> None:
         # Anything outside the views (a crash no try/except sees) must not
-        # surface Werkzeug's HTML page.
+        # surface Werkzeug's HTML page, and must not leak exception detail
+        # (internal paths/config) to the wire - that stays in the server log.
         test_app.route("/flask/__boom", endpoint="__boom_for_v48jd")(_boom)
-        assert_error_json(test_app.test_client().get("/flask/__boom"), 500)
+        payload = assert_error_json(test_app.test_client().get("/flask/__boom"), 500)
+        assert "stack/deeply/internal" not in payload["error"]
+        assert "forced unhandled failure" not in payload["error"]
 
     def test_dakota_validation_failure_is_json(self, test_client: Any) -> None:
         # garbage body → parse_request_model's pinned 400 contract (JSON always)
@@ -52,4 +55,4 @@ class TestV48jdErrorSurface:
 
 
 def _boom() -> str:
-    raise RuntimeError("forced unhandled failure for V48jd")
+    raise RuntimeError("/opt/stack/deeply/internal/config.ini forced unhandled failure for V48jd")
