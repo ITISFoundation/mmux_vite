@@ -3,12 +3,7 @@ import { Box, Button, Modal, TextField, Typography } from "@mui/material";
 import { useFunctionContext } from "../context/FunctionContext";
 import { useMMUXContext } from "../context/MMUXContext";
 import { UQSettings } from "../context/types";
-
-const defaultUQSettings: UQSettings = {
-  numSamples: 10000,
-  nHistograms: 50,
-  seed: 0,
-};
+import { clampUQSettings, defaultUQSettings } from "../utils/uqSettings";
 
 function UQSettingsModal({ open, setOpen }: { open: boolean; setOpen: (value: boolean) => void }) {
   const { selectedFunction } = useFunctionContext();
@@ -26,17 +21,14 @@ function UQSettingsModal({ open, setOpen }: { open: boolean; setOpen: (value: bo
   };
 
   const save = () => {
-    setUQSettings({ ...uqSettings, [functionId]: settings });
+    // HTML min/max do not clamp typed input; enforce the declared
+    // ranges before anything is persisted or hits backend computation.
+    setUQSettings({ ...uqSettings, [functionId]: clampUQSettings(settings) });
     setOpen(false);
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={() => setOpen(false)}
-      aria-labelledby="uq-settings-title"
-      aria-describedby="uq-settings-description"
-    >
+    <Modal open={open} onClose={() => setOpen(false)} aria-labelledby="uq-settings-title">
       <Box
         sx={{
           position: "absolute",

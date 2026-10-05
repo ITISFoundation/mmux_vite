@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { usePersistenceContext } from "./PersistenceContext";
 import { PersistenceType, UQSettings } from "./types";
+import { migrateLegacyUQSettings } from "../utils/uqSettings";
 
 interface MMUXContextType {
   numSamples: { [key: string]: number };
@@ -52,7 +53,7 @@ export function MMUXContextProvider({ children }: Props) {
       setNumSamples(persistence.numSamples);
       setSelectedQoI(persistence.selectedQoI);
       setValidationQoI(persistence.validationQoI ?? persistence.selectedQoI ?? undefined);
-      setUQSettings(persistence.uqSettings ?? {});
+      setUQSettings(migrateLegacyUQSettings(persistence.numSamples, persistence.uqSettings));
       setIsSuMoGenerated(persistence.isSuMoGenerated);
       setLocalLoading(false);
     }

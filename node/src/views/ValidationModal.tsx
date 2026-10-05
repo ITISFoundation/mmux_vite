@@ -11,18 +11,21 @@ function ValidationModal({ open, setOpen }: { open: boolean; setOpen: (value: bo
   const { selectedQoI, validationQoI, setValidationQoI } = useMMUXContext();
 
   useEffect(() => {
-    if (open && validationQoI === undefined) {
-      setValidationQoI(selectedQoI ?? outputVars[0]);
+    if (!open) return;
+    // A persisted QoI from a DIFFERENT function is defined but absent from
+    // this function's outputs: the selector would render blank and CV would
+    // post an invalid output name. Re-resolve whenever the current value is
+    // not available for the selected function.
+    const stale = validationQoI === undefined || !outputVars.includes(validationQoI);
+    if (!stale) return;
+    const next = selectedQoI && outputVars.includes(selectedQoI) ? selectedQoI : outputVars[0];
+    if (next !== undefined) {
+      setValidationQoI(next);
     }
   }, [open, outputVars, selectedQoI, validationQoI, setValidationQoI]);
 
   return (
-    <Modal
-      open={open}
-      onClose={() => setOpen(false)}
-      aria-labelledby="validation-modal-title"
-      aria-describedby="validation-modal-description"
-    >
+    <Modal open={open} onClose={() => setOpen(false)} aria-label="Model validation">
       <Box
         mmux-testid="validation-modal"
         sx={{

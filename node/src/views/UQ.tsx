@@ -40,7 +40,13 @@ export default function UQ() {
               setSelectedQoI={setSelectedQoI}
               testId="uq-plot-qoi-select"
             />
-            <Button variant="contained" size="small" onClick={() => setValidationModal(true)} mmux-testid="inspect-model-button">
+            <Button
+              variant="contained"
+              size="small"
+              disabled={loading || !selectedFunction}
+              onClick={() => setValidationModal(true)}
+              mmux-testid="inspect-model-button"
+            >
               Inspect Model
             </Button>
           </>

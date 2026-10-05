@@ -91,18 +91,3 @@ describe("buildAxisRanges", () => {
     expect(buildAxisRanges(undefined, ["x"])).toBeUndefined();
   });
 });
-
-describe("buildAxisRanges", () => {
-  it("extracts only complete ranges for the requested axes", () => {
-    const distribution = {
-      x: { distribution: "uniform" as Distribution, min: 0, max: 1 },
-      y: { distribution: "uniform" as Distribution, min: -1 },
-    };
-
-    expect(buildAxisRanges(distribution, ["x", "y", "z"])).toEqual({ x: [0, 1] });
-  });
-
-  it("returns undefined when no requested axis has a complete range", () => {
-    expect(buildAxisRanges(undefined, ["x"])).toBeUndefined();
-  });
-});
