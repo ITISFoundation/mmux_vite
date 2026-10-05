@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildDakotaRequestKey, DakotaRequestKeyInput } from "./dakotaRequestKey";
+import { buildAxisRanges, buildDakotaRequestKey, DakotaRequestKeyInput } from "./dakotaRequestKey";
 
 const base: DakotaRequestKeyInput = {
   axes: ["x"],
@@ -74,5 +74,20 @@ describe("buildDakotaRequestKey (V16 dedup)", () => {
     const jobList = ["job-b", "job-a"];
     buildDakotaRequestKey({ ...base, jobList });
     expect(jobList).toEqual(["job-b", "job-a"]);
+  });
+});
+
+describe("buildAxisRanges", () => {
+  it("extracts only complete ranges for the requested axes", () => {
+    const distribution = {
+      x: { distribution: "uniform" as Distribution, min: 0, max: 1 },
+      y: { distribution: "uniform" as Distribution, min: -1 },
+    };
+
+    expect(buildAxisRanges(distribution, ["x", "y", "z"])).toEqual({ x: [0, 1] });
+  });
+
+  it("returns undefined when no requested axis has a complete range", () => {
+    expect(buildAxisRanges(undefined, ["x"])).toBeUndefined();
   });
 });

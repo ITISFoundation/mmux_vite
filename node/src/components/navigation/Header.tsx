@@ -78,7 +78,9 @@ function Header(props: HeaderProps) {
           </Typography>
         )}
       </Box>
-      {qoiSelector}
+      <Box display="flex" alignItems="center" gap={2}>
+        {qoiSelector}
+      </Box>
       {helpContents && (
         <CustomTooltip title={helpContents} placement="right" arrow>
           <HelpOutline

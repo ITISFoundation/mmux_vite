@@ -34,15 +34,17 @@ async function openLhsCampaign(page: Page, baseURL: string) {
   const selectButton = page.locator(`[mmux-testid="select-function-btn-${FUNCTION_UID}"]`);
   await expect(selectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
   await selectButton.click();
-  await expect(page.locator('[mmux-testid="input-block-Min"] input').first()).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expect(page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Min"] input').first()).toBeVisible({
+    timeout: VIEW_TIMEOUT,
+  });
   await fillUniformInputRanges(page);
   await page.locator('[mmux-testid="next-button"]').click();
 
-  await expect(page.locator('[mmux-testid="sumo-validation-view"]').getByText("MAE:")).toBeVisible({
-    timeout: MODEL_READY_TIMEOUT,
-  });
+  // Validation moved into the Inspect Model modal; the WRITE-mode sampling
+  // controls (extend campaign → LHS) live at the results view footer.
+  await expect(page.getByText("1D Curves", { exact: true }).first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   const extendSampling = page.locator('[mmux-testid="extend-sampling-btn"]');
-  await expect(extendSampling).toBeEnabled({ timeout: VIEW_TIMEOUT });
+  await expect(extendSampling).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });
   await extendSampling.click();
   await page.locator('[mmux-testid="new-sampling-campaign-btn"]').click();
   await expect(page.getByText("Latin Hypercube Sampling")).toBeVisible({ timeout: VIEW_TIMEOUT });
