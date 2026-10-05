@@ -11,7 +11,7 @@ export type SteppedStep = {
   content: React.ReactNode;
 };
 
-export type SteppedPlotCardProps = {
+type SteppedPlotCardProps = {
   steps: SteppedStep[];
   activeStep: number;
   maxSteps: number;

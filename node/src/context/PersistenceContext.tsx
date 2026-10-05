@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { PersistenceType } from "./types";
-import { fetchWithRetry } from "../utils/fetchRetry";
-import { getResponseErrorMessage } from "../utils/httpError";
+import { ApiError, requestJson } from "../api/client";
 
 interface PersistenceContextType {
   persistence: PersistenceType | undefined;
@@ -13,7 +12,7 @@ interface PersistenceContextType {
   loading: boolean;
 }
 
-export const PersistenceContext = createContext<PersistenceContextType>(undefined!);
+const PersistenceContext = createContext<PersistenceContextType>(undefined!);
 
 type Props = {
   children: React.ReactNode;
@@ -44,85 +43,72 @@ const defaultPersistence: PersistenceType = {
   sortModel: [],
 };
 
+const arrayFields = [
+  "inputVars",
+  "outputVars",
+  "gridSamplingConfig",
+  "singleJobConfig",
+  "fetchedJobCollections",
+  "selectedJobUids",
+] as const;
+const objectFields = ["numSamples", "distribution", "outputTargets", "lhsSamplingConfig", "mogaSettings"] as const;
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 export function PersistenceContextProvider({ children }: Props) {
   const [loading, setLoading] = useState(true);
   const [healthOK, setHealthOK] = useState<boolean>(false);
   const [persistence, setPersistence] = useState<PersistenceType | undefined>(undefined);
-  const [avoidPersisting, setAvoidPersisting] = useState<boolean>(false);
+  // A ref (not state) so the memoized saveState always sees the latest value.
+  const avoidPersisting = useRef<boolean>(false);
   // V15 (INV-005): track the last serialized state actually persisted so that
   // setters re-invoked with a recreated-but-equal object do not retrigger a save
   // (avoids duplicate Dakota/persistence fan-out).
   const lastSavedContent = useRef<string | undefined>(undefined);
 
-  // Validate persistence structure
+  // Validate persistence structure: required keys must exist with the right JSON type,
+  // otherwise downstream `.map`/property access crashes on a hand-edited or stale file (B32pv).
   const isValidPersistenceFile = (value: unknown): value is PersistenceType => {
-    const data = value as PersistenceType;
+    if (!isPlainObject(value)) return false;
     return (
-      data &&
-      typeof data === "object" &&
-      "currentView" in data &&
-      "numSamples" in data &&
-      "isSuMoGenerated" in data &&
-      "inputVars" in data &&
-      "outputVars" in data &&
-      "distribution" in data &&
-      "outputTargets" in data &&
-      "lhsSamplingConfig" in data &&
-      "gridSamplingConfig" in data &&
-      "singleJobConfig" in data &&
-      "fetchedJobCollections" in data &&
-      "selectedJobUids" in data &&
-      "mogaSettings" in data &&
-      Object.keys(data).length <= Object.keys(defaultPersistence).length
+      typeof value.currentView === "number" &&
+      typeof value.isSuMoGenerated === "boolean" &&
+      arrayFields.every(field => Array.isArray(value[field])) &&
+      objectFields.every(field => isPlainObject(value[field])) &&
+      Object.keys(value).length <= Object.keys(defaultPersistence).length
     );
   };
 
-  const getHeaders = (contentType = true): HeadersInit => (contentType ? { "Content-Type": "application/json" } : {});
-
-  const setFile = async (filename: string, content: string) => {
-    const response = await fetch("/flask/text-file", {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify({ filename, content }),
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      console.warn(`Server error when setting the persistency file: ${await getResponseErrorMessage(response)}`);
-      setAvoidPersisting(true);
-      return;
+  const setFile = async (filename: string, content: string): Promise<boolean> => {
+    let data: { filename: string; status: string };
+    try {
+      data = await requestJson("/flask/text-file/", { method: "POST", body: { filename, content } });
+    } catch (error) {
+      if (!(error instanceof ApiError && error.kind === "http")) throw error;
+      console.warn(`⚠️ Server error when setting the persistency file, with status (${error.status}): ${error.body}`);
+      avoidPersisting.current = true;
+      return false;
     }
-
-    const data = (await response.json()) as {
-      filename: string;
-      status: string;
-    };
     if (data.status !== "success" || data.filename !== filename) {
       throw new Error(`Failed to set file: ${data.status}`);
     }
 
     console.info(`File ${data.filename} saved successfully.`);
+    return true;
   };
 
   const getFile = async (filename: string): Promise<PersistenceType | undefined> => {
-    const response = await fetchWithRetry(`/flask/text-file/${encodeURIComponent(filename)}`, {
-      method: "GET",
-      headers: getHeaders(false),
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.warn(`Could not retrieve file: ${await getResponseErrorMessage(response)}`);
-        return defaultPersistence; // Return default persistence if file not found
+    let envelope: { content: string; filename: string };
+    try {
+      envelope = await requestJson(`/flask/text-file/${encodeURIComponent(filename)}`, { retry: true });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        console.warn(`⚠️ Could not retrieve file (404): ${filename}`);
+        return defaultPersistence;
       }
-      throw new Error(await getResponseErrorMessage(response));
+      throw error;
     }
-
-    const envelope = (await response.json()) as {
-      content: string;
-      filename: string;
-    };
     try {
       // console.debug("Fetched persistence:", envelope.content);
       const data = JSON.parse(envelope.content) as PersistenceType;
@@ -137,7 +123,7 @@ export function PersistenceContextProvider({ children }: Props) {
   const saveState = useCallback(async (state: PersistenceType) => {
     const content = JSON.stringify(state, null, 2);
     // console.debug("Saving state to persistence file:", state);
-    if (avoidPersisting) {
+    if (avoidPersisting.current) {
       console.warn("⚠️ Skipping persistence due to avoidPersisting flag.");
       return;
     }
@@ -147,13 +133,12 @@ export function PersistenceContextProvider({ children }: Props) {
       return;
     }
     try {
-      await setFile("persistence.json", content);
+      if (!(await setFile("persistence.json", content))) return;
       lastSavedContent.current = content;
       setPersistence(state);
     } catch (error) {
       console.error("Error saving state:", error);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getFunctionValues = useCallback((): Partial<PersistenceType> | undefined => {
@@ -207,7 +192,7 @@ export function PersistenceContextProvider({ children }: Props) {
         } else if (isValidPersistenceFile(persistenceFile) === false) {
           console.warn(
             "Persistence file structure has changed, resetting to defaults.",
-            Object.keys(persistenceFile).length,
+            Object.keys(persistenceFile ?? {}).length,
             Object.keys(defaultPersistence).length,
           );
         } else {
@@ -220,12 +205,14 @@ export function PersistenceContextProvider({ children }: Props) {
       } catch (error) {
         console.error("Error when fetching persistence file:", error);
         toast.warn("Failed to fetch user state, contact support.");
+        // Keep the app usable, but never overwrite a server copy we could not read.
+        avoidPersisting.current = true;
+        setPersistence(defaultPersistence);
       }
     };
     if (healthOK) {
       fetchFile();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [healthOK]);
 
   const memo = React.useMemo(

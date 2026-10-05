@@ -57,4 +57,22 @@ describe("buildDakotaRequestKey (V16 dedup)", () => {
     expect(a).toBe(b);
     expect(a).not.toBe(buildDakotaRequestKey(base));
   });
+
+  it.each<[string, Partial<DakotaRequestKeyInput>]>([
+    ["a tiny slider change", { sliderValues: { y: 1 + 1e-12, z: 2 } }],
+    ["an extra slider", { sliderValues: { y: 1, z: 2, w: 0 } }],
+    ["a dropped slider", { sliderValues: { y: 1 } }],
+    ["a slider variable moved onto an axis", { axes: ["x", "y"], sliderValues: { z: 2 } }],
+    ["an empty job list", { jobList: [] }],
+    ["a duplicated job uid", { jobList: ["job-a", "job-b", "job-b"] }],
+    ["a QoI that differs only in case", { qoi: "OUT" }],
+  ])("changes the key for %s", (_label, change) => {
+    expect(buildDakotaRequestKey({ ...base, ...change })).not.toBe(buildDakotaRequestKey(base));
+  });
+
+  it("does not reorder the caller's job list", () => {
+    const jobList = ["job-b", "job-a"];
+    buildDakotaRequestKey({ ...base, jobList });
+    expect(jobList).toEqual(["job-b", "job-a"]);
+  });
 });

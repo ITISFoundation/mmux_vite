@@ -14,6 +14,7 @@ import {
   type CorrelationScaleType,
 } from "../../utils/plotScale";
 import { fetchCorrelationIndices } from "../../utils/correlationIndices";
+import { getErrorMessage } from "../../utils/httpError";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
@@ -106,7 +107,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
         console.warn("Error computing correlation indices:", error);
         setComputing(false);
         setCorrelations(null);
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        setErrorMessage(getErrorMessage(error));
       }
     })();
   }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction]);

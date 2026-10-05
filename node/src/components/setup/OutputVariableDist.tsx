@@ -166,6 +166,7 @@ export function OutputVariableDist() {
               }}
               disableRipple
               onClick={() => setOpenModal(!openModal)}
+              aria-label="Add output variable"
               mmux-testid="add-output-var-btn"
             >
               <Add sx={{ fontSize: "2em" }} />

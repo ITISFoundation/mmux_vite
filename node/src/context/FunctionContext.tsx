@@ -16,7 +16,7 @@ export interface FunctionContextType {
   setOutputTargets: (d: { [key: string]: OutputVarSelection }) => void;
 }
 
-export const FunctionContext = createContext<FunctionContextType>(undefined!);
+const FunctionContext = createContext<FunctionContextType>(undefined!);
 
 interface Props {
   children: React.ReactNode;
