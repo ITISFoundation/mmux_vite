@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { Box, useTheme } from "@mui/material";
@@ -9,8 +10,9 @@ import { CreateSelect, CreateSlider, filterInputVars } from "./PlotTools";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
-import { getResponseErrorMessage } from "../../utils/httpError";
+import { requestJson } from "../../api/client";
+import { getCachedOrFetch } from "../../api/sessionResponseCache";
+import { getErrorMessage } from "../../utils/httpError";
 
 type GPPrediction = {
   x: number[];
@@ -46,7 +48,6 @@ function Curves1DPlots() {
   );
   const plotColor = "rgb(127, 199, 255)";
   const fillColor = "rgba(127, 199, 255, 0.3)";
-  const lastFetchedKey = useRef<string | undefined>(undefined);
 
   const createPlotData = (data: Record<string, GPPrediction>) => {
     if (!data || Object.keys(data).length === 0) {
@@ -100,74 +101,62 @@ function Curves1DPlots() {
     }
   };
 
-  const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[], requestKey: string) => {
+  const RunCentralSuMoInterpolations = async (jobs: OsparcFunctionJob[], isStale: () => boolean) => {
     setPropagating(true);
     setErrorMessage(undefined);
     // NB do NOT set plotData to [] to allow "interactive" slider movement wo the "Calculating" word flashing
-    fetch(`/flask/dakota/sumo_along_axes`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        inputs: inputVars,
-        distribution,
-        output: selectedQoI,
-        sliderValues: otherAxis,
-        FunctionJobs: jobs,
-        log: false,
+    const requestBody = {
+      inputs: inputVars,
+      distribution,
+      output: selectedQoI,
+      sliderValues: otherAxis,
+      FunctionJobs: jobs,
+      log: false,
+    };
+    // V46sc: the V16/V18 lastFetchedKey success slot is subsumed by the session
+    // cache - the same (url, body) answers with zero network and survives
+    // unmount, failures stay uncached (retry stays possible). The plotted
+    // axis' sampling range that the hand-curated key encoded for #501 lives
+    // inside `distribution` in the body, so it keys the entry by construction.
+    getCachedOrFetch<{ predictions: Record<string, GPPrediction> }>(`/flask/dakota/sumo_along_axes`, requestBody, () =>
+      requestJson<{ predictions: Record<string, GPPrediction> }>(`/flask/dakota/sumo_along_axes`, {
+        method: "POST",
+        body: requestBody,
       }),
-    })
-      .then(async response => {
-        if (response && !response.ok) {
-          console.warn("SuMo Curves plot error: ", response.body);
-          // V18: reject (⊥ return/resolve) so the .catch path clears lastFetchedKey and
-          // the identical inputs can be retried instead of caching a failed fetch.
-          return Promise.reject(new Error(await getResponseErrorMessage(response)));
-        }
-        return response.json();
-      })
+    )
       .then(data => {
+        if (isStale()) return;
         // Backend wraps the per-axis predictions under `predictions` (SumoAlongAxesResponse).
         createPlotData(data?.predictions);
-        // V18: cache key ONLY on success, so transient failures don't block retry
-        lastFetchedKey.current = requestKey;
         setPropagating(false);
         setErrorMessage(undefined);
       })
       .catch(error => {
-        // V18: clear cache on error so same inputs can be retried
-        lastFetchedKey.current = undefined;
+        if (isStale()) return;
+        console.warn("SuMo Curves plot error: ", error);
         setPlotData([]);
         setPropagating(false);
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        setErrorMessage(getErrorMessage(error));
       });
   };
 
-  useEffect(() => {
-    const run = async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
       const jobs = filteredJobList;
       if (jobs.length === 0) {
         // Not enough jobs to build model - then returns empty list
-        lastFetchedKey.current = undefined;
-        return setPlotData([]);
+        setPlotData([]);
+        // V45gd: this generation owns the commits and starts no request -
+        // release loading a superseded generation left running.
+        setPropagating(false);
+        return;
       }
-      // V16: dedup by stable logical request key; same key → no new fetch.
-      const requestKey = buildDakotaRequestKey({
-        axes: [axis],
-        sliderValues: otherAxis,
-        qoi: selectedQoI,
-        fn: selectedFunction?.uid,
-        jobList: jobs.map(job => job.uid),
-        logScale: false,
-      });
-      if (requestKey === lastFetchedKey.current) {
-        return undefined;
-      }
-      return RunCentralSuMoInterpolations(jobs, requestKey);
-    };
-    run();
-    // console.debug("axis: ", axis);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filteredJobList]);
+      // V16 dedup (same logical request -> no new fetch) now lives in the
+      // session response cache (V46sc): a repeated (url, body) is a hit.
+      return RunCentralSuMoInterpolations(jobs, isStale);
+    },
+    [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filteredJobList, distribution],
+  );
 
   const plotStyle = {
     height: 300,

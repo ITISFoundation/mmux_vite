@@ -83,4 +83,39 @@ describe("UQPlotsSteps", () => {
     const nextButton = screen.getByText("Next").closest("button");
     expect(nextButton).toHaveProperty("disabled", true);
   });
+
+  it("renders step controls in the header only on their own step", async () => {
+    render(<UQPlotsSteps {...defaultProps} />);
+    expect(screen.queryByTestId("correlation-controls")).toBeNull();
+    expect(screen.queryByTestId("sobol-controls")).toBeNull();
+
+    await userEvent.click(screen.getByText("Next"));
+    expect(screen.getByTestId("correlation-controls")).toBeDefined();
+    expect(screen.queryByTestId("sobol-controls")).toBeNull();
+
+    await userEvent.click(screen.getByText("Next"));
+    expect(screen.getByTestId("sobol-controls")).toBeDefined();
+    expect(screen.queryByTestId("correlation-controls")).toBeNull();
+  });
+
+  it("V47hd orders the header controls → QoI selector → action buttons", async () => {
+    render(
+      <UQPlotsSteps
+        {...defaultProps}
+        qoiSelector={
+          <>
+            <div data-testid="qoi-selector">QoI Selector</div>
+            <button type="button">Inspect Model</button>
+          </>
+        }
+      />,
+    );
+    await userEvent.click(screen.getByText("Next"));
+    await userEvent.click(screen.getByText("Next"));
+    const controls = screen.getByTestId("sobol-controls");
+    const selector = screen.getByTestId("qoi-selector");
+    const action = screen.getByText("Inspect Model");
+    expect(controls.compareDocumentPosition(selector) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(selector.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

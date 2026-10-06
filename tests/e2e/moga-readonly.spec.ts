@@ -1,4 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, test } from "./coverage";
+// Type-only from the runner itself: ./coverage exports the configured `test`
+// and `expect`, not the runner's types (same pattern as helpers.ts).
+import type { Page } from "@playwright/test";
 import {
   FUNCTION_UID,
   VIEW_TIMEOUT,
@@ -70,7 +73,7 @@ test("MOGA read-only optimization flow renders pareto front and inspect-model mo
   await selectButton.click();
 
   // MOGA uses uniform parameter ranges (Min/Max) like SuMo.
-  await expect(page.locator('[mmux-testid="input-block-Min"] input').first()).toBeVisible({
+  await expect(page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Min"] input').first()).toBeVisible({
     timeout: VIEW_TIMEOUT,
   });
   await fillUniformInputRanges(page);

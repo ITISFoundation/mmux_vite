@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
@@ -8,8 +9,7 @@ import { useJobContext } from "../../context/JobContext";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import MogaParetoTable from "./MOGAParetoTable";
-import { fetchWithRetry } from "../../utils/fetchRetry";
-import { getResponseErrorMessage } from "../../utils/httpError";
+import { requestJson } from "../../api/client";
 import { aggregateOutputValues } from "../../utils/functionUtils";
 import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
@@ -157,24 +157,22 @@ export function MOGAPareto(props: MOGAParetoProps) {
       // console.log("localOptVars: ", localOptVars)
       // console.log("weights: ", weights)
       // console.log("outputVarSelection: ", OVS)
-      const bodyData = JSON.stringify({
-        inputVars,
-        mogaSettings: localsettings,
-        distributions: distribution[selectedFunction?.uid || ""],
-        outputVarSelection: OVS,
-        FunctionJobs: jobs,
-      });
-      const response = await fetchWithRetry(`/flask/dakota/perform_moga_optimization`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: bodyData,
-      });
+      const rawResults = await requestJson<Parameters<typeof normalizeMogaResults>[0]>(
+        `/flask/dakota/perform_moga_optimization`,
+        {
+          method: "POST",
+          retry: true,
+          body: {
+            inputVars,
+            mogaSettings: localsettings,
+            distributions: distribution[selectedFunction?.uid || ""],
+            outputVarSelection: OVS,
+            FunctionJobs: jobs,
+          },
+        },
+      );
 
-      if (!response.ok) {
-        throw new Error(await getResponseErrorMessage(response));
-      }
-
-      const results = normalizeMogaResults(await response.json());
+      const results = normalizeMogaResults(rawResults);
       const minMax = getMinMax(localOptVars, results);
       // console.info("MOGA results:", results);
       // console.log("localOptVars: ", localOptVars)
@@ -198,8 +196,9 @@ export function MOGAPareto(props: MOGAParetoProps) {
           ndi,
         })),
       };
-      setSelectedOptVars(localOptVars);
-      setTableData(newTableData);
+      // V45gd: runMOGA pure-returns; the table/vars state commits happen in
+      // the effect AFTER its staleness check, so a stale generation cannot
+      // overwrite a newer table + selected vars.
       return { newTableData, localOptVars };
     },
     [mogaSettings, selectedFunction?.uid, distribution, inputVars, calculatePerformance],
@@ -364,37 +363,46 @@ export function MOGAPareto(props: MOGAParetoProps) {
     [mogaSettings, selectedFunction, selectedOptVars, theme],
   );
 
-  useEffect(() => {
-    if (!selectedFunction) {
-      console.warn("No function selected!!");
-    } else {
+  useGuardedAsyncEffect(
+    async isStale => {
+      if (!selectedFunction) {
+        console.warn("No function selected!!");
+        // V45gd: release loading a superseded request left running.
+        setPropagating(false);
+        if (setCalculating) setCalculating(false);
+        return;
+      }
       console.debug("Information about optimization vars fetched");
       setPlotData([]);
 
-      const run = async () => {
-        const jobs = filteredJobList;
-        if (jobs.length === 0) {
-          console.warn("No jobs selected for MOGA Pareto plot.");
-          return;
-        }
-        try {
-          setPropagating(true);
-          if (setCalculating) setCalculating(true);
-          console.info("Fetching MOGA Pareto data...");
-          const { newTableData, localOptVars } = await runMOGA(jobs, outputTargets[selectedFunction.uid]);
-          await updatePlot(jobs, newTableData, plotType, localOptVars);
-          setPropagating(false);
-          if (setCalculating) setCalculating(false);
-        } catch (error) {
-          setPropagating(false);
-          if (setCalculating) setCalculating(false);
-          console.error("Error fetching MOGA Pareto data:", error);
-        }
-      };
-      run();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredJobList, mogaSettings]);
+      const jobs = filteredJobList;
+      if (jobs.length === 0) {
+        console.warn("No jobs selected for MOGA Pareto plot.");
+        // V45gd: release loading a superseded request left running.
+        setPropagating(false);
+        if (setCalculating) setCalculating(false);
+        return;
+      }
+      try {
+        setPropagating(true);
+        if (setCalculating) setCalculating(true);
+        console.info("Fetching MOGA Pareto data...");
+        const { newTableData, localOptVars } = await runMOGA(jobs, outputTargets[selectedFunction.uid]);
+        if (isStale()) return;
+        setSelectedOptVars(localOptVars);
+        setTableData(newTableData);
+        await updatePlot(jobs, newTableData, plotType, localOptVars);
+        setPropagating(false);
+        if (setCalculating) setCalculating(false);
+      } catch (error) {
+        if (isStale()) return;
+        setPropagating(false);
+        if (setCalculating) setCalculating(false);
+        console.error("Error fetching MOGA Pareto data:", error);
+      }
+    },
+    [filteredJobList, mogaSettings],
+  );
 
   // When weights change, recalculate tableData (refresh table) but do NOT rerun runMOGA
   useEffect(() => {

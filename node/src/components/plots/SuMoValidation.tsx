@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
 import { Layout } from "plotly.js";
@@ -11,13 +12,16 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { getResponseErrorMessage } from "../../utils/httpError";
 import { getValidationSeries } from "../../utils/sumoValidation";
+import { requestJson } from "../../api/client";
+import { getCachedOrFetch } from "../../api/sessionResponseCache";
+import { getErrorMessage } from "../../utils/httpError";
 
-function SuMoValidation() {
+function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: string }) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const { selectedQoI } = useMMUXContext();
+  const { validationQoI: contextValidationQoI } = useMMUXContext();
+  const validationQoI = validationQoIOverride ?? contextValidationQoI;
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
@@ -48,7 +52,7 @@ function SuMoValidation() {
   }
 
   const createDataAndMetrics = (data: { [key: string]: number[] }) => {
-    if (data && selectedQoI) {
+    if (data && validationQoI) {
       const series = getValidationSeries(data);
       if (!series) {
         console.warn("SuMo Validation response is missing the selected QoI series.");
@@ -90,7 +94,7 @@ function SuMoValidation() {
     }
   };
 
-  const RunSuMoValidation = async (jobs: OsparcFunctionJob[]) => {
+  const RunSuMoValidation = async (jobs: OsparcFunctionJob[], isStale: () => boolean) => {
     console.info("Evaluating SuMo Validation for jobs: ", jobs);
 
     if (!jobs || jobs.length < 5) {
@@ -105,54 +109,53 @@ function SuMoValidation() {
     setPropagating(true);
     setErrorMessage(undefined);
 
-    fetch(`/flask/dakota/sumo_cross_validation`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        inputVars,
-        output: selectedQoI,
-        FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
-        log: false,
+    const cvBody = {
+      inputVars,
+      output: validationQoI,
+      FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
+      log: false,
+    };
+    // V46sc: session response cache - identical (url, body) is served with zero
+    // network, including after unmount/remount; failures are never cached.
+    getCachedOrFetch(`/flask/dakota/sumo_cross_validation`, cvBody, () =>
+      requestJson<{ error?: string } | undefined>(`/flask/dakota/sumo_cross_validation`, {
+        method: "POST",
+        body: cvBody,
       }),
-    })
-      .then(async response => {
-        if (response && !response.ok) {
-          return Promise.reject(new Error(await getResponseErrorMessage(response)));
-        }
-        return response.json();
-      })
+    )
       .then(response => {
-        if (!response || (response && response.error)) {
-          console.warn("SuMo Validation error: ", response.error);
-          throw new Error(`Error running SuMo Validation: ${response.error}`);
+        if (isStale()) return;
+        if (!response || response.error) {
+          console.warn("SuMo Validation error: ", response?.error);
+          throw new Error(`Error running SuMo Validation: ${response?.error}`);
         } else {
-          const data = response;
-          createDataAndMetrics(data);
+          createDataAndMetrics(response as unknown as { [key: string]: number[] });
           setPropagating(false);
           setErrorMessage(undefined);
         }
       })
       .catch(error => {
+        if (isStale()) return;
         console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
         setCvMetrics(undefined);
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        setErrorMessage(getErrorMessage(error));
       });
   };
 
-  useEffect(() => {
-    if (!selectedQoI) {
-      return;
-    }
-
-    const run = async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
+      if (!validationQoI) {
+        // V45gd: release loading a superseded CV request left running.
+        setPropagating(false);
+        return;
+      }
       const jobs = filteredJobList;
-      return RunSuMoValidation(jobs);
-    };
-    run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedQoI, inputVars, selectedFunction, distribution, filteredJobList]);
+      return RunSuMoValidation(jobs, isStale);
+    },
+    [validationQoI, inputVars, selectedFunction, distribution, filteredJobList],
+  );
 
   useEffect(() => {
     const resizeObserver = new ResizeObserver(event => {
@@ -171,7 +174,7 @@ function SuMoValidation() {
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
     title: {
-      text: `${selectedQoI || "Quantity of Interest"} Sample Distribution`,
+      text: `${validationQoI || "Quantity of Interest"} Sample Distribution`,
     },
     margin: plotMarginsNarrow,
     width,
@@ -217,9 +220,9 @@ function SuMoValidation() {
       {cvMetrics ? (
         <Box display="flex" flexDirection="row" flex={1} justifyContent="space-around" mt={4}>
           <MetricRow width={width}>
-            <Metric metricName="Mean" metricValue={cvMetrics.meanY} color="rgb(41, 146, 221)" />
-            <Metric metricName="Std" metricValue={cvMetrics.stdY} color="rgb(41, 146, 221)" />
-            {/* rgb(31, 119, 180) is the original; changed it slightly to improve visibility */}
+            <Metric metricName="Mean" metricValue={cvMetrics.meanY} color="rgb(66, 165, 235)" />
+            <Metric metricName="Std" metricValue={cvMetrics.stdY} color="rgb(66, 165, 235)" />
+            {/* rgb(31, 119, 180) is the original; lightened to reach WCAG AA 4.5:1 on the dark surface */}
           </MetricRow>
           <MetricRow width={width}>
             <Metric metricName="Mean" metricValue={cvMetrics.meanYHat} color="rgb(255, 127, 14)" />

@@ -1,5 +1,6 @@
 import { Box, ToggleButton, ToggleButtonGroup, useTheme } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
@@ -14,6 +15,7 @@ import {
   type CorrelationScaleType,
 } from "../../utils/plotScale";
 import { fetchCorrelationIndices } from "../../utils/correlationIndices";
+import { getErrorMessage } from "../../utils/httpError";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
@@ -72,15 +74,15 @@ export function CorrelationControls({ viewMode, scaleType, onViewModeChange, onS
 export default function CorrelationIndicesPlot({ viewMode, scaleType }: CorrelationIndicesPlotProps) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const { numSamples, selectedQoI } = useMMUXContext();
+  const { uqSettings, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [correlations, setCorrelations] = useState<CorrelationIndicesResponse["correlations"] | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>();
   const [computing, setComputing] = useState(false);
 
-  useEffect(() => {
-    (async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
       setCorrelations(null);
       setPlotData([]);
       setErrorMessage(undefined);
@@ -96,20 +98,23 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
           output: selectedQoI,
           distributions: distribution[selectedFunction?.uid || ""],
           functionJobs: filteredJobList,
-          numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
-          seed: 0,
+          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
+          seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
         });
+        if (isStale()) return;
         setCorrelations(data.correlations);
         setErrorMessage(undefined);
         setComputing(false);
       } catch (error) {
+        if (isStale()) return;
         console.warn("Error computing correlation indices:", error);
         setComputing(false);
         setCorrelations(null);
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        setErrorMessage(getErrorMessage(error));
       }
-    })();
-  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction]);
+    },
+    [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction],
+  );
 
   useEffect(() => {
     if (!correlations) {

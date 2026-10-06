@@ -21,9 +21,8 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "baseUrl": "./",
     "paths": {
-      "osparc-api-ts-client": ["src/osparc-api-ts-client"]
+      "osparc-api-ts-client": ["./src/osparc-api-ts-client"]
     }
   },
   "include": ["src/**/*", "src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "tailwind.config.js", "vite.config.ts"]

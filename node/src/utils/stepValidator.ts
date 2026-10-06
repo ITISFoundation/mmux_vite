@@ -26,31 +26,22 @@ export function stepValidator(
         return false;
       }
     }
+    const finite = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
     const correctDistributions = Object.values(selectedDistribution).every(dist => {
       if (dist.distribution === "constant") {
-        return dist.value !== undefined && !Number.isNaN(dist.value);
+        return finite(dist.value);
       }
       if (dist.distribution === "normal") {
-        return dist.mean !== undefined && !Number.isNaN(dist.mean) && dist.std !== undefined && !Number.isNaN(dist.std);
+        return finite(dist.mean) && finite(dist.std) && dist.std > 0;
       }
       if (dist.distribution === "uniform") {
-        return (
-          dist.min !== undefined &&
-          !Number.isNaN(dist.min) &&
-          dist.max !== undefined &&
-          !Number.isNaN(dist.max) &&
-          dist.min <= dist.max
-        );
+        return finite(dist.min) && finite(dist.max) && dist.min < dist.max;
       }
       if (dist.distribution === "log-normal") {
-        return (
-          dist.location !== undefined && !Number.isNaN(dist.location) && dist.scale !== undefined && !Number.isNaN(dist.scale)
-        );
+        return finite(dist.location) && finite(dist.scale) && dist.scale > 0;
       }
       if (dist.distribution === "exponential") {
-        return (
-          dist.mean !== undefined && !Number.isNaN(dist.mean) // Exponential distribution typically uses mean
-        );
+        return finite(dist.mean) && dist.mean > 0;
       }
       return false; // If the distribution type is not recognized or is missing values
     });

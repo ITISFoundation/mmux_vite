@@ -1,0 +1,282 @@
+name: Tag and release
+
+# A merged develop/main commit supplies its own base version (single-sourced
+# in .bumpversion.cfg, SPEC.md §V5). On develop the bot appends/increments
+# the `.devN` counter and ships a GitHub prerelease; on main it strips
+# `.devN` (the release must already have been bumped), tags and publishes
+# the GitHub release. There is no package-index publication — GitHub
+# releases are the only artifact (see itis-sumo's auto-tag.yml for the
+# channel rules this mirrors).
+#
+# Docs/validation/Markdown-only merges are excluded: they carry no version
+# intent (SPEC.md §V39at is scoped to non-ignored changes).
+#
+# Publishing robustness:
+# * Tags are never pushed standalone. `gh release create --target <sha>`
+#   creates the tag and the release together, so a failed run cannot leave
+#   a tag without its release; the recovery steps additionally create any
+#   release that a partial gh failure orphaned from its tag.
+# * `concurrency` queues one run per branch (never cancels mid-publish).
+#   If a human merge advanced the branch mid-run, the bot push is rejected
+#   as non-fast-forward and the bump loop refetches the new tip, recomputes
+#   the version against fresh tags, and retries.
+# * The branch push uses the AUTOTAG_PUSH_TOKEN secret when set: the
+#   Protected Branches ruleset over develop and main (PR + verify-image-build
+#   + merge queue) admits only its Admin bypass, and GitHub rejects
+#   GITHUB_TOKEN as a bypass actor for a non-installed integration (API 422).
+#   A ruleset rejection fails fast with the remote's own message instead of
+#   burning the race retries, which exist only for genuine non-fast-forward
+#   races (learned the hard way on 2026-10-06).
+on:
+  push:
+    branches: [develop, main]
+    paths-ignore:
+      - "docs/**"
+      - "validation/**"
+      - "**/*.md"
+
+concurrency:
+  group: auto-tag-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  GH_BRANCH: ${{ github.ref_name }}
+
+jobs:
+  develop-dev-tag:
+    if: github.ref_name == 'develop' && !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v10.2.0
+
+      - name: Recover versions stranded by a partial run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Work on the CURRENT develop tip, not the push event's checkout:
+          # a rerun of a failed workflow still sees the pre-bump SHA, and
+          # recovery targeting it would skip the stranded commit the previous
+          # run already pushed ([skip ci] pushes trigger no workflow).
+          git fetch --tags --force
+          git fetch origin "$GH_BRANCH"
+          git reset --hard "origin/$GH_BRANCH"
+          script=(uv run --no-project --with packaging python scripts/auto_version.py)
+          # A .devN commit that landed but never got its tag+release (gh
+          # failed before creating them) must be published BEFORE the
+          # counter advances, or a rerun would silently skip it. Locating it
+          # by `git log -G` on the cfg's history is sound only because the
+          # bot's [skip ci] commits are the ONLY writers of .devN lines —
+          # anyone changing that ownership must revisit this lookup.
+          current=$("${script[@]}" current-version)
+          if [[ "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.dev[0-9]+$ ]] \
+             && ! git tag --list "v$current" | grep -qx "v$current" \
+             && ! gh release view "v$current" >/dev/null 2>&1; then
+            target=$(git log -1 --format=%H -G "current_version = ${current}" -- .bumpversion.cfg)
+            if [ -n "$target" ]; then
+              echo "publishing untagged dev version v$current from $target"
+              gh release create "v$current" --target "$target" \
+                --prerelease --generate-notes --title "v$current (dev)"
+            fi
+          fi
+          # Tags created by gh whose release creation then failed:
+          "${script[@]}" dev-tags \
+            | while read -r tag; do
+                gh release view "$tag" >/dev/null 2>&1 && continue
+                echo "creating missing prerelease for stranded tag $tag"
+                gh release create "$tag" --prerelease --generate-notes --title "$tag (dev)"
+              done
+
+      - name: Bump dev version, fast-forward push with recompute retries
+        id: bump
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTOTAG_PUSH_TOKEN: ${{ secrets.AUTOTAG_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # develop/main carry the Protected Branches ruleset (PR + required
+          # checks + merge queue), whose only bypass is the Admin repository
+          # role; GitHub refuses GITHUB_TOKEN as a bypass actor (an Actions
+          # integration is not installable, API 422). When an Admin-scoped
+          # repo PAT is configured, push as that identity (commits stay
+          # authored by the bot); gh release calls keep GITHUB_TOKEN.
+          if [ -n "$AUTOTAG_PUSH_TOKEN" ]; then
+            # actions/checkout@v5 persists GITHUB_TOKEN as an extraheader for
+            # https://github.com/, whose Authorization header overrides the
+            # URL credentials below and would silently re-authenticate this
+            # push as GITHUB_TOKEN (same GH013). Drop it for the PAT path
+            # only; the origin fallback still needs it.
+            git config --local --unset-all "http.https://github.com/.extraheader" 2>/dev/null || true
+            push_remote="https://x-access-token:${AUTOTAG_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}"
+          else
+            push_remote="origin"
+          fi
+          for attempt in 1 2 3; do
+            git fetch --tags --force
+            git fetch origin "$GH_BRANCH"
+            git reset --hard "origin/$GH_BRANCH"
+            version=$(uv run --no-project --with packaging python scripts/auto_version.py next-dev)
+            uv run --no-project --with packaging python scripts/auto_version.py apply --to "$version"
+            # Nothing to apply means the tip already sits at the next dev
+            # version: a no-op, not a failure (the old `break` fell through
+            # to the after-3-attempts exit 1).
+            git diff --quiet && { echo "nothing to bump at $version"; exit 0; }
+            git commit -am "chore: bump dev version to $version [skip ci]"
+            # A non-fast-forward race clears on retry; a GH006/GH013 policy
+            # rejection never does. 2026-10-06: three "push raced with
+            # another merge" messages hid a ruleset rejection - tell the two
+            # apart from the captured push output.
+            if push_output=$(git push "$push_remote" "HEAD:$GH_BRANCH" 2>&1); then
+              printf '%s\n' "$push_output"
+              echo "version=$version" >> "$GITHUB_OUTPUT"
+              echo "target=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            printf '%s\n' "$push_output" >&2
+            if grep -qE "GH006|GH013|protected branch|repository rule violation" <<<"$push_output"; then
+              echo "::error::push to $GH_BRANCH rejected by branch rules, not a race: configure the AUTOTAG_PUSH_TOKEN secret (a PAT whose owner holds the ruleset's Admin bypass)" >&2
+              exit 1
+            fi
+            echo "push raced with another merge (attempt $attempt); recomputing"
+          done
+          echo "could not land the dev bump after 3 attempts" >&2
+          exit 1
+
+      - name: Publish GitHub prerelease (tag + release atomically)
+        if: steps.bump.outputs.version != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="${{ steps.bump.outputs.version }}"
+          gh release view "v$version" >/dev/null 2>&1 && exit 0
+          gh release create "v$version" \
+            --target "${{ steps.bump.outputs.target }}" \
+            --prerelease --generate-notes --title "v$version (dev)"
+
+  main-release:
+    if: github.ref_name == 'main' && !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v10.2.0
+
+      - name: Compute release version (strips .devN) with resume detection
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          git fetch origin "$GH_BRANCH"
+          git reset --hard "origin/$GH_BRANCH"
+          script=(uv run --no-project --with packaging python scripts/auto_version.py)
+          if version=$("${script[@]}" strip-dev 2>strip-dev.err); then
+            echo "action=full" >> "$GITHUB_OUTPUT"
+          else
+            # Rerun after a partial publish? Tolerate the candidate being
+            # tagged, but only to resume: existing tag without release ->
+            # release-only; tag + release -> done; no tag -> real failure.
+            version=$("${script[@]}" strip-dev --allow-taken)
+            if git tag --list "v$version" | grep -qx "v$version"; then
+              if gh release view "v$version" >/dev/null 2>&1; then
+                echo "v$version already published; nothing to do"
+                echo "action=done" >> "$GITHUB_OUTPUT"
+              else
+                echo "resuming: tag v$version exists without its release"
+                echo "action=release-only" >> "$GITHUB_OUTPUT"
+              fi
+            else
+              cat strip-dev.err >&2
+              exit 1
+            fi
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Commit stripped version (full path, fast-forward retries)
+        id: commit
+        if: steps.release.outputs.action == 'full'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTOTAG_PUSH_TOKEN: ${{ secrets.AUTOTAG_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          script=(uv run --no-project --with packaging python scripts/auto_version.py)
+          version="${{ steps.release.outputs.version }}"
+          # Same Admin-PAT push path as the develop job: main sits under the
+          # same ruleset and GITHUB_TOKEN pushes cannot bypass it.
+          if [ -n "$AUTOTAG_PUSH_TOKEN" ]; then
+            # actions/checkout@v5 persists GITHUB_TOKEN as an extraheader for
+            # https://github.com/, whose Authorization header overrides the
+            # URL credentials below and would silently re-authenticate this
+            # push as GITHUB_TOKEN (same GH013). Drop it for the PAT path
+            # only; the origin fallback still needs it.
+            git config --local --unset-all "http.https://github.com/.extraheader" 2>/dev/null || true
+            push_remote="https://x-access-token:${AUTOTAG_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}"
+          else
+            push_remote="origin"
+          fi
+          for attempt in 1 2 3; do
+            "${script[@]}" apply --to "$version"
+            if git diff --quiet; then
+              echo "version=$version" >> "$GITHUB_OUTPUT"
+              echo "target=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            git commit -am "chore: release version $version [skip ci]"
+            # Race-vs-policy discrimination, as in the develop job.
+            if push_output=$(git push "$push_remote" "HEAD:$GH_BRANCH" 2>&1); then
+              printf '%s\n' "$push_output"
+              echo "version=$version" >> "$GITHUB_OUTPUT"
+              echo "target=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            printf '%s\n' "$push_output" >&2
+            if grep -qE "GH006|GH013|protected branch|repository rule violation" <<<"$push_output"; then
+              echo "::error::push to $GH_BRANCH rejected by branch rules, not a race: configure the AUTOTAG_PUSH_TOKEN secret (a PAT whose owner holds the ruleset's Admin bypass)" >&2
+              exit 1
+            fi
+            echo "push raced with another merge (attempt $attempt); recomputing"
+            git fetch --tags --force
+            git fetch origin "$GH_BRANCH"
+            git reset --hard "origin/$GH_BRANCH"
+            # Recompute against the tip we just adopted: the intervening
+            # merge may have advanced the base, and re-applying the
+            # pre-race candidate would commit a downgrade.
+            version=$("${script[@]}" strip-dev)
+          done
+          echo "could not land the release version after 3 attempts" >&2
+          exit 1
+
+      - name: Publish GitHub release (tag + release atomically)
+        if: steps.release.outputs.action != 'done'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # On the full path this is the recomputed-and-pushed version, not
+          # the pre-race candidate; the fallback covers resume paths where
+          # the commit step is skipped.
+          version="${{ steps.commit.outputs.version || steps.release.outputs.version }}"
+          gh release view "v$version" >/dev/null 2>&1 && exit 0
+          if [ "${{ steps.release.outputs.action }}" = "full" ]; then
+            gh release create "v$version" \
+              --target "${{ steps.commit.outputs.target }}" \
+              --generate-notes --title "v$version"
+          else
+            gh release create "v$version" --generate-notes --title "v$version"
+          fi

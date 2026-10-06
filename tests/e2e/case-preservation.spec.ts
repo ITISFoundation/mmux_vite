@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./coverage";
 import { VIEW_TIMEOUT, resetPersistence, setDeployment } from "./helpers";
 
 /**
@@ -66,7 +66,7 @@ test("preserves underscore variable-name identifiers through function selection 
   await page.goto(url, { timeout: VIEW_TIMEOUT });
   await page.waitForLoadState("networkidle");
 
-  const functionGrid = page.locator('[role="grid"]').first();
+  const functionGrid = page.locator('[role="grid"]');
   await functionGrid.waitFor({ state: "visible", timeout: VIEW_TIMEOUT });
 
   const selectButton = page.locator(`[mmux-testid="select-function-btn-${MOCK_FUNCTION_UID}"]`);

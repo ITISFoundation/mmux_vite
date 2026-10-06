@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreDependencies": [
+    "whatwg-fetch",
+    "@types/react-plotly.js",
+    "@axe-core/playwright",
+    "istanbul-lib-coverage",
+    "istanbul-lib-report",
+    "istanbul-reports",
+    "v8-to-istanbul"
+  ]
+}

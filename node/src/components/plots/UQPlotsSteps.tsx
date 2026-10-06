@@ -1,10 +1,8 @@
 import React from "react";
 import SteppedPlotCard, { type SteppedStep } from "./SteppedPlotCard";
 import UncertainUQ from "./UncertainUQ";
-import CorrelationIndicesPlot from "./CorrelationIndicesPlot";
-import { CorrelationControls, type CorrelationViewMode } from "./CorrelationIndicesPlot";
-import SobolIndicesPlot from "./SobolIndicesPlot";
-import { SobolControls, type SobolViewMode } from "./SobolIndicesPlot";
+import CorrelationIndicesPlot, { CorrelationControls, type CorrelationViewMode } from "./CorrelationIndicesPlot";
+import SobolIndicesPlot, { SobolControls, type SobolViewMode } from "./SobolIndicesPlot";
 import { type CorrelationScaleType, type ScaleType } from "../../utils/plotScale";
 
 const uqStepTitles = ["Histogram", "Correlation", "Sobol' Indices"];
@@ -15,10 +13,10 @@ const uqStepInfoTexts: Record<string, string | undefined> = {
   "Sobol' Indices": undefined,
 };
 
-type UQPlotsStepsProps = LoadingPropsType;
+type UQPlotsStepsProps = LoadingPropsType & { qoiSelector?: React.ReactNode; onOpenSettings?: () => void };
 
 function UQPlotsSteps(props: UQPlotsStepsProps) {
-  const { loading, jobProgress, colsFetched, jobsFetched } = props;
+  const { loading, jobProgress, colsFetched, jobsFetched, qoiSelector, onOpenSettings } = props;
   const [activeStep, setActiveStep] = React.useState(0);
   const [sobolViewMode, setSobolViewMode] = React.useState<SobolViewMode>("first-order");
   const [sobolScaleType, setSobolScaleType] = React.useState<ScaleType>("log");
@@ -35,7 +33,15 @@ function UQPlotsSteps(props: UQPlotsStepsProps) {
     {
       title: uqStepTitles[0],
       infoText: uqStepInfoTexts[uqStepTitles[0]],
-      content: <UncertainUQ colsFetched={colsFetched} jobProgress={jobProgress} jobsFetched={jobsFetched} loading={loading} />,
+      content: (
+        <UncertainUQ
+          colsFetched={colsFetched}
+          jobProgress={jobProgress}
+          jobsFetched={jobsFetched}
+          loading={loading}
+          onOpenSettings={onOpenSettings}
+        />
+      ),
     },
     {
       title: uqStepTitles[1],
@@ -83,6 +89,7 @@ function UQPlotsSteps(props: UQPlotsStepsProps) {
       contentMinHeight={500}
       nextTestId="uq-plot-next"
       backTestId="uq-plot-back"
+      qoiSelector={qoiSelector}
     />
   );
 }

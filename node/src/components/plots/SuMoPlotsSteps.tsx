@@ -1,25 +1,18 @@
 import React from "react";
-import { Box, InputLabel, MenuItem, Select, useTheme } from "@mui/material";
-import { InfoOutline } from "@mui/icons-material";
+import { Button } from "@mui/material";
 import IsoSurface3DPlot from "./IsoSurface3DPlot";
 import Curves1DPlots from "./Curves1DPlot";
-import SuMoValidation from "./SuMoValidation";
 import Surface2DPlot from "./Surface2DPlot";
 import SteppedPlotCard, { type SteppedStep } from "./SteppedPlotCard";
 import { filterInputVars } from "./PlotTools";
-import CrossValidationDocument from "../documents/CrossValidationDocument";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
-import SelectQoIDocument from "../documents/SelectQoIDocument";
-import CustomTooltip from "../utils/CustomTooltip";
-import { useServiceContext } from "../../context/ServiceContext";
+import { QoISelector } from "./QoISelector";
 
-function SuMoPlotsSteps() {
-  const theme = useTheme();
+function SuMoPlotsSteps({ onInspectModel }: { onInspectModel?: () => void }) {
   const { inputVars, selectedFunction, distribution, outputVars } = useFunctionContext();
   const { selectedQoI, setSelectedQoI } = useMMUXContext();
-  const { serviceMode } = useServiceContext();
   const context = useJobContext();
   const { filteredJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);
@@ -34,12 +27,6 @@ function SuMoPlotsSteps() {
   };
 
   const stepDefinitions: SteppedStep[] = [
-    {
-      title: "Validation",
-      infoText: "Assessment of model quality through Cross-Validation",
-      extendedInfoText: CrossValidationDocument,
-      content: <SuMoValidation />,
-    },
     { title: "1D Curves", content: <Curves1DPlots /> },
     { title: "2D Surface", content: <Surface2DPlot /> },
     { title: "3D IsoSurface", content: <IsoSurface3DPlot /> },
@@ -49,7 +36,7 @@ function SuMoPlotsSteps() {
     const jobs = filteredJobList;
     const nextFilteredInputVars =
       jobs.length === 0 ? inputVars : filterInputVars({ ...context, selectedFunction, inputVars, distribution });
-    const nextMaxSteps = Math.min(nextFilteredInputVars.length + 1, stepDefinitions.length);
+    const nextMaxSteps = Math.min(nextFilteredInputVars.length, stepDefinitions.length);
     setFilteredInputVars(nextFilteredInputVars);
     setMaxSteps(nextMaxSteps);
     setActiveStep(prevActiveStep => Math.min(prevActiveStep, Math.max(0, nextMaxSteps - 1)));
@@ -59,7 +46,7 @@ function SuMoPlotsSteps() {
   const visibleSteps = stepDefinitions.slice(0, maxSteps);
   const gatedContent = (() => {
     if (filteredInputVars.length === 0) return undefined;
-    const minVars = activeStep <= 1 ? 0 : activeStep - 1;
+    const minVars = activeStep;
     if (filteredInputVars.length <= minVars) return undefined;
     return visibleSteps[activeStep]?.content;
   })();
@@ -79,57 +66,19 @@ function SuMoPlotsSteps() {
       nextTestId="sumo-plot-next"
       backTestId="sumo-plot-back"
       qoiSelector={
-        (serviceMode === "MOGA" || serviceMode === "UQ") && (
-          <InputLabel
-            size="small"
-            sx={{
-              display: "flex",
-              flex: 1,
-              transform: "none",
-              alignItems: "baseline",
-              gap: "8px",
-              fontFamily: "inherit",
-              fontWeight: 300,
-              fontSize: "1.2em",
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              Select Quantity of Interest
-              <CustomTooltip
-                title="Choose the simulation output to analyze"
-                extendedTooltip={SelectQoIDocument}
-                placement="right"
-                arrow
-              >
-                <InfoOutline
-                  sx={{
-                    color: theme.palette.primary.light,
-                    backgroundColor: theme.palette.background.default,
-                    borderRadius: "50%",
-                    padding: "2px",
-                    marginLeft: "4px",
-                  }}
-                />
-              </CustomTooltip>
-            </Box>
-            <Select
-              size="small"
-              variant="outlined"
-              sx={{ flex: 1 }}
-              value={selectedQoI || ""}
-              onChange={e => {
-                setSelectedQoI(e.target.value);
-              }}
-              mmux-testid="qoi-select"
-            >
-              {outputVars.map(qoi => (
-                <MenuItem key={`qoi-${qoi}`} value={qoi}>
-                  {qoi}
-                </MenuItem>
-              ))}
-            </Select>
-          </InputLabel>
-        )
+        <>
+          <QoISelector
+            outputVars={outputVars}
+            selectedQoI={selectedQoI}
+            setSelectedQoI={setSelectedQoI}
+            testId="sumo-plot-qoi-select"
+          />
+          {onInspectModel && (
+            <Button variant="contained" size="small" onClick={onInspectModel} mmux-testid="inspect-model-button">
+              Inspect Model
+            </Button>
+          )}
+        </>
       }
     />
   );

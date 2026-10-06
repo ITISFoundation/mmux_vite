@@ -15,6 +15,15 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@mui/x-data-grid"
         update-types: ["version-update:semver-major"]
+      # eslint 10: @typescript-eslint 8, eslint-plugin-import and
+      # eslint-plugin-react cap their peer ranges below 10; revisit once
+      # they declare support.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      # TypeScript 7: @typescript-eslint requires typescript <6.1, so lint
+      # breaks on 7.x; revisit once it declares support.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       javascript-dependencies:
         patterns:

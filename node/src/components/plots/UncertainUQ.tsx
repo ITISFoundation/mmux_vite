@@ -1,29 +1,34 @@
-import { Box, useTheme } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Box, IconButton, Tooltip, useTheme } from "@mui/material";
+import { Tune } from "@mui/icons-material";
+import { useState } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { fetchWithRetry } from "../../utils/fetchRetry";
-import { getResponseErrorMessage } from "../../utils/httpError";
+import { requestJson } from "../../api/client";
+import { getCachedOrFetch } from "../../api/sessionResponseCache";
+import { getErrorMessage } from "../../utils/httpError";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
-export default function UncertainUQ(props: LoadingPropsType) {
-  const { loading, jobProgress } = props;
+type UncertainUQProps = LoadingPropsType & { onOpenSettings?: () => void };
+
+export default function UncertainUQ(props: UncertainUQProps) {
+  const { loading, jobProgress, onOpenSettings } = props;
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const { numSamples, selectedQoI } = useMMUXContext();
+  const { uqSettings, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [dataUQHistogram, setDataUQHistogram] = useState<DataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [propagating, setPropagating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
 
-  useEffect(() => {
-    (async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
       console.log("running job collections: ", filteredJobList);
       setDataUQHistogram(undefined);
       setPlotData([]);
@@ -37,24 +42,29 @@ export default function UncertainUQ(props: LoadingPropsType) {
       try {
         console.info("Propagating UQ...");
         console.info("SelectedQoI: ", selectedQoI);
-        const response = await fetchWithRetry(`/flask/dakota/manual_uq_propagation_with_uncertainty`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            inputVars,
-            output: selectedQoI,
-            distributions: distribution[selectedFunction?.uid || ""],
-            FunctionJobs: filteredJobList,
-            numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
-            log: false,
-            nHistograms: 50,
-            seed: 0,
-          }),
-        });
-        if (!response.ok) {
-          throw new Error(await getResponseErrorMessage(response));
-        }
-        const data: DataUQHistogramType = await response.json();
+        const uqBody = {
+          inputVars,
+          output: selectedQoI,
+          distributions: distribution[selectedFunction?.uid || ""],
+          FunctionJobs: filteredJobList,
+          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
+          log: false,
+          nHistograms: uqSettings[selectedFunction?.uid || ""]?.nHistograms || 50,
+          seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
+        };
+        // V46sc: seed/numSamples/nHistograms/distributions are ALL in the cache
+        // key by construction - changing any of them misses and refetches.
+        const data = await getCachedOrFetch<DataUQHistogramType>(
+          `/flask/dakota/manual_uq_propagation_with_uncertainty`,
+          uqBody,
+          () =>
+            requestJson<DataUQHistogramType>(`/flask/dakota/manual_uq_propagation_with_uncertainty`, {
+              method: "POST",
+              retry: true,
+              body: uqBody,
+            }),
+        );
+        if (isStale()) return;
         const newPlotData: Plotly.Data[] = [
           {
             x: Array.from(
@@ -76,13 +86,15 @@ export default function UncertainUQ(props: LoadingPropsType) {
         setDataUQHistogram(data); // now this is a dict w "mean_histogram" and "std_histogram" keys
         setPropagating(false);
       } catch (error) {
+        if (isStale()) return;
         console.warn("Error:", error);
-        setErrorMessage(error instanceof Error ? error.message : "Error during calculation, please contact support.");
+        setErrorMessage(getErrorMessage(error));
         setPropagating(false);
         setDataUQHistogram(undefined);
       }
-    })();
-  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction, theme.palette.primary.main]);
+    },
+    [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction, theme.palette.primary.main],
+  );
   if (loading) {
     return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;
   }
@@ -104,17 +116,39 @@ export default function UncertainUQ(props: LoadingPropsType) {
 
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%">
-      {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
-      {!propagating && plotData.length === 0 && (
-        <InsufficientDataWarning
-          fetchedJobCollections={fetchedJobCollections}
-          filteredJobList={filteredJobList}
-          height={plotStyle.height}
-          numInputVars={inputVars.length}
-          errorMessage={errorMessage}
-        />
-      )}
-      {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+      <Box sx={{ position: "relative", width: "100%" }}>
+        {onOpenSettings && (
+          <Tooltip title="UQ Settings" arrow>
+            <IconButton
+              size="small"
+              onClick={onOpenSettings}
+              aria-label="UQ Settings"
+              mmux-testid="uq-settings-button"
+              sx={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                zIndex: 1,
+                backgroundColor: theme.palette.background.paper,
+                "&:hover": { backgroundColor: theme.palette.background.paper },
+              }}
+            >
+              <Tune fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+        {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
+        {!propagating && plotData.length === 0 && (
+          <InsufficientDataWarning
+            fetchedJobCollections={fetchedJobCollections}
+            filteredJobList={filteredJobList}
+            height={plotStyle.height}
+            numInputVars={inputVars.length}
+            errorMessage={errorMessage}
+          />
+        )}
+        {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+      </Box>
       {dataUQHistogram !== undefined && <HistogramStats {...dataUQHistogram} />}
     </Box>
   );

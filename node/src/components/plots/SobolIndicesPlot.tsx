@@ -1,5 +1,6 @@
 import { Box, ToggleButton, ToggleButtonGroup, useTheme } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
@@ -14,6 +15,7 @@ import {
   type ScaleType,
 } from "../../utils/plotScale";
 import { buildSobolHeatmapData, fetchSobolIndices } from "../../utils/sobolIndices";
+import { getErrorMessage } from "../../utils/httpError";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 
@@ -60,15 +62,15 @@ export function SobolControls({ viewMode, scaleType, onViewModeChange, onScaleTy
 export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPlotProps) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
-  const { numSamples, selectedQoI } = useMMUXContext();
+  const { uqSettings, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [sobolData, setSobolData] = useState<SobolIndicesResponse | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>();
   const [computing, setComputing] = useState(false);
 
-  useEffect(() => {
-    (async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
       setSobolData(null);
       setPlotData([]);
       setErrorMessage(undefined);
@@ -84,20 +86,23 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
           output: selectedQoI,
           distributions: distribution[selectedFunction?.uid || ""],
           functionJobs: filteredJobList,
-          numSamples: numSamples[selectedFunction?.uid || ""] || 10000,
-          seed: 0,
+          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
+          seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
         });
+        if (isStale()) return;
         setSobolData(data);
         setErrorMessage(undefined);
         setComputing(false);
       } catch (error) {
+        if (isStale()) return;
         console.warn("Error computing Sobol' indices:", error);
         setComputing(false);
         setSobolData(null);
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        setErrorMessage(getErrorMessage(error));
       }
-    })();
-  }, [filteredJobList, selectedQoI, numSamples, inputVars, distribution, selectedFunction]);
+    },
+    [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction],
+  );
 
   useEffect(() => {
     if (!sobolData) {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { setupTheme } from "./theme";
 
 describe("setupTheme table surfaces", () => {
-  it("V26hs keeps MUI tables on the darker default surface", () => {
+  it("V32hs keeps MUI tables on the darker default surface", () => {
     const theme = setupTheme("dark");
     const tableRoot = theme.components?.MuiTable?.styleOverrides?.root;
     const components = theme.components as Record<
@@ -13,6 +13,8 @@ describe("setupTheme table surfaces", () => {
     const dataGridColumnHeaders = components.MuiDataGrid?.styleOverrides?.columnHeaders;
 
     expect(tableRoot).toMatchObject({ backgroundColor: theme.palette.background.default });
+    // V27qn: the header surface is guarded HERE - a root-only assertion passes
+    // even when headers regress to the lighter paper surface.
     expect(dataGridRoot).toMatchObject({
       backgroundColor: theme.palette.background.default,
       "& .MuiDataGrid-columnHeaders, & .MuiDataGrid-columnHeader": {

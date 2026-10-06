@@ -25,7 +25,7 @@ export async function expectPlotlyReady(container: Locator, timeout = MODEL_READ
 
 export async function expectModelModalReady(
   page: Page,
-  selector = '[mmux-testid="sumo-model-modal"]',
+  selector = '[mmux-testid="validation-modal"]',
 ): Promise<Locator> {
   const modal = page.locator(selector);
   await expect(modal).toBeVisible({ timeout: VIEW_TIMEOUT });
@@ -95,6 +95,41 @@ export async function setDeployment(
   expect(body.permissions, "backend echoed permissions").toBe(permissions);
 }
 
+export async function setFault(request: APIRequestContext, baseURL: string, operation: string, enabled = true): Promise<void> {
+  const response = await request.post(`${baseURL}/flask/e2e/faults`, {
+    data: { operation, enabled },
+  });
+  expect(response.ok(), `set fault ${operation}/${enabled} → ${response.status()}`).toBeTruthy();
+}
+
+/** Clear injected faults and drop mock jobs/collections created by WRITE-mode specs. */
+export async function resetMockOsparc(request: APIRequestContext, baseURL: string): Promise<void> {
+  const response = await request.post(`${baseURL}/flask/e2e/reset`);
+  expect(response.ok(), `reset mock oSPARC → ${response.status()}`).toBeTruthy();
+}
+
+export type BrowserFault = { status: number; body?: string } | "abort" | "malformed";
+
+/** Answer matching browser requests with a failure instead of letting them reach the backend. */
+export async function failRoute(page: Page, pattern: string, fault: BrowserFault, times?: number): Promise<void> {
+  await page.route(
+    pattern,
+    async route => {
+      if (fault === "abort") return route.abort("failed");
+      if (fault === "malformed") return route.fulfill({ status: 200, contentType: "application/json", body: "{not json" });
+      return route.fulfill({ status: fault.status, contentType: "text/plain", body: fault.body ?? "injected failure" });
+    },
+    times === undefined ? undefined : { times },
+  );
+}
+
+/** Collect uncaught page exceptions; failure-path specs assert the list stays empty. */
+export function trackPageErrors(page: Page): string[] {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  return errors;
+}
+
 /**
  * Fill the uniform Min/Max parameter-range blocks (SuMo / MOGA setup).
  *
@@ -138,7 +173,7 @@ export async function fillUniformInputRanges(page: Page): Promise<void> {
  */
 export async function fillNormalDistributions(page: Page): Promise<void> {
   const meanInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Mean"] input');
-  const stdInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Standard Deviation"] input');
+  const stdInputs = page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Standard-Deviation"] input');
 
   const meanCount = await meanInputs.count();
   const stdCount = await stdInputs.count();

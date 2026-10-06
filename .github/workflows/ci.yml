@@ -20,9 +20,11 @@ jobs:
     - name: Checkout repo content
       uses: actions/checkout@v5
     - name: Set up uv
-      uses: astral-sh/setup-uv@v3
+      # Full-version pin: astral-sh/setup-uv no longer publishes bare major
+      # tags (no `v10` ref exists), so `@v10` would fail to resolve.
+      uses: astral-sh/setup-uv@v10.2.0
     - name: Use Node.js 24
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: 24.x
         cache: 'npm'
@@ -42,13 +44,22 @@ jobs:
     - name: Checkout repo content
       uses: actions/checkout@v5
     - name: Use Node.js 24
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: 24.x
         cache: 'npm'
         cache-dependency-path: '**/package-lock.json'
+    - name: Install node dependencies
+      run: cd node && npm ci
+    - name: Generate oSPARC TypeScript client
+      # src/osparc-api-ts-client/ is build-generated and NOT committed (§B16);
+      # both knip and the vitest import graph resolve through it, so it must
+      # exist before the first static check runs on a fresh checkout.
+      run: cd node && npm run generate-osparc-cli
+    - name: Check for dead code (knip)
+      run: cd node && npm run knip
     - name: Run node tests with coverage
-      run: cd node && npm ci && npm run test:coverage
+      run: cd node && npm run test:coverage
     - name: Upload node coverage
       uses: codecov/codecov-action@v7
       with:
@@ -65,7 +76,7 @@ jobs:
     - name: Checkout repo content
       uses: actions/checkout@v5
     - name: Set up uv
-      uses: astral-sh/setup-uv@v3
+      uses: astral-sh/setup-uv@v10.2.0
     - name: Install Flask API dependencies
       run: make install-flaskapi-deps
     - name: Run flaskapi tests
@@ -119,7 +130,7 @@ jobs:
         run: apt-get update && apt-get install -y --no-install-recommends openjdk-21-jre-headless
       # uv drives the Flask backend the webServer boots (tests/e2e/scripts/run-e2e-backend.sh).
       - name: Set up uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v10.2.0
       - name: Install node dependencies
         run: cd node && npm ci
       - name: Install Flask API dependencies
@@ -129,9 +140,20 @@ jobs:
       # a non-green pixel diff fails the job and (via branch protection) gates merge (§C).
       - name: Run Playwright e2e suite (pixel diff vs committed baselines)
         run: make test-e2e
+      - name: Assert E2E coverage report exists
+        run: test -s coverage/e2e/report/cobertura-coverage.xml
+      - name: Upload E2E coverage
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./coverage/e2e/report/cobertura-coverage.xml
+          flags: e2e
+          name: e2e-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       - name: Upload Playwright report + screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |

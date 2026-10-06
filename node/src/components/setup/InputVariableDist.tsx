@@ -32,6 +32,7 @@ const ConstantInputDistribution = ({ inputVar, distribution, handleSetValue }: I
     <>
       <InputBlock
         name="Value"
+        testId={`input-block-${inputVar}-Value`}
         value={distribution[inputVar].value !== undefined ? distribution[inputVar].value : NaN}
         minmax={{ min: -1e9, max: 1e9 }}
         error={errorNaNValue || errorBeyondRange}
@@ -69,6 +70,7 @@ const NormalInputDistribution = ({ inputVar, distribution, handleSetValue }: Inp
     <>
       <InputBlock
         name="Mean"
+        testId={`input-block-${inputVar}-Mean`}
         // TODO remove default values; just for development speed
         value={distribution[inputVar].mean !== undefined ? distribution[inputVar].mean : 0.0}
         minmax={{ min: -1e9, max: 1e9 }}
@@ -77,6 +79,7 @@ const NormalInputDistribution = ({ inputVar, distribution, handleSetValue }: Inp
       />
       <InputBlock
         name="Standard Deviation"
+        testId={`input-block-${inputVar}-Standard-Deviation`}
         // TODO remove default values; just for development speed
         value={distribution[inputVar].std !== undefined ? distribution[inputVar].std : 1.0}
         minmax={{ min: 0.0000000001, max: 1e9 }}
@@ -116,6 +119,7 @@ const UniformInputDistribution = ({ inputVar, distribution, handleSetValue }: In
     <>
       <InputBlock
         name="Min"
+        testId={`input-block-${inputVar}-Min`}
         value={distribution[inputVar].min !== undefined ? distribution[inputVar].min : NaN}
         onChange={value => handleSetValue(inputVar, "min", value as number)}
         minmax={{ min: -1e9, max: 1e9 }}
@@ -123,55 +127,11 @@ const UniformInputDistribution = ({ inputVar, distribution, handleSetValue }: In
       />
       <InputBlock
         name="Max"
+        testId={`input-block-${inputVar}-Max`}
         value={distribution[inputVar].max !== undefined ? distribution[inputVar].max : NaN}
         onChange={value => handleSetValue(inputVar, "max", value as number)}
         minmax={{ min: -1e9, max: 1e9 }}
         error={errorNaNMax || errorMinMax}
-      />
-      {error && <Typography color="error">{errorText}</Typography>}
-    </>
-  );
-};
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const LogNormalInputDistribution = ({ inputVar, distribution, handleSetValue }: InputDistProps) => {
-  const errorNaNLocation = !(distribution[inputVar].location !== undefined && !Number.isNaN(distribution[inputVar].location));
-  const errorNaNScale = !(distribution[inputVar].scale !== undefined && !Number.isNaN(distribution[inputVar].scale));
-  const errorBeyondRangeLocation =
-    distribution[inputVar] &&
-    ((typeof distribution[inputVar].location === "number" && distribution[inputVar].location < -1e9) ||
-      (typeof distribution[inputVar].location === "number" && distribution[inputVar].location > 1e9));
-  const errorBeyondRangeScale =
-    distribution[inputVar] &&
-    ((typeof distribution[inputVar].scale === "number" && distribution[inputVar].scale <= 0) ||
-      (typeof distribution[inputVar].scale === "number" && distribution[inputVar].scale > 1e9));
-
-  let errorText = "";
-  if (errorNaNLocation || errorNaNScale) {
-    errorText = "Empty value";
-  } else if (errorBeyondRangeLocation) {
-    errorText = "Out of range (-1e9, 1e9)";
-  } else if (errorBeyondRangeScale) {
-    errorText = "Out of range (>0, 1e9)";
-  }
-
-  const error = errorNaNLocation || errorNaNScale || errorBeyondRangeLocation || errorBeyondRangeScale;
-
-  return (
-    <>
-      <InputBlock
-        name="Log Location"
-        value={distribution[inputVar].location !== undefined ? distribution[inputVar].location : NaN}
-        minmax={{ min: -1e9, max: 1e9 }}
-        error={errorNaNLocation || errorBeyondRangeLocation}
-        onChange={value => handleSetValue(inputVar, "location", value as number)}
-      />
-      <InputBlock
-        name="Log Scale"
-        value={distribution[inputVar].scale !== undefined ? distribution[inputVar].scale : NaN}
-        minmax={{ min: 0.0000000001, max: 1e9 }}
-        error={errorNaNScale || errorBeyondRangeScale}
-        onChange={value => handleSetValue(inputVar, "scale", value as number)}
       />
       {error && <Typography color="error">{errorText}</Typography>}
     </>
@@ -380,6 +340,7 @@ export function InputVariableDist() {
                     variant="outlined"
                     size="small"
                     id={`${index}selector`}
+                    inputProps={{ "aria-label": `${inputVar} distribution` }}
                     value={localDistribution[inputVar]?.distribution || ""}
                     sx={{ minWidth: 132, width: "100%" }}
                     onChange={e => handleDistributionChange(inputVar, e.target.value as Distribution)}

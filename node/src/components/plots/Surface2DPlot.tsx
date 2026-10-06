@@ -1,5 +1,6 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
@@ -9,8 +10,9 @@ import Header from "../navigation/Header";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
-import { getResponseErrorMessage } from "../../utils/httpError";
+import { requestJson } from "../../api/client";
+import { getErrorMessage } from "../../utils/httpError";
+import { buildAxisRanges, buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 
 function Surface2DPlot() {
   const theme = useTheme();
@@ -81,35 +83,25 @@ function Surface2DPlot() {
   );
 
   const RunSuMo2DInterpolation = useCallback(
-    async (jobs: OsparcFunctionJob[], key1: string, key2: string, requestKey: string) => {
+    async (jobs: OsparcFunctionJob[], key1: string, key2: string, requestKey: string, isStale: () => boolean) => {
       // This should create the "data" state variable to be plotted
       console.info("Evaluating SuMo for 2D surface...");
       console.info("Jobs to build SuMo: ", jobs);
       setPropagating(true);
       setErrorMessage(undefined);
-      fetch(`/flask/dakota/sumo_grid_evaluation`, {
+      requestJson<{ gridData: { [key: string]: number[] } }>(`/flask/dakota/sumo_grid_evaluation`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           gridVars: [key1, key2],
           inputVars,
           output: selectedQoI,
           sliderValues: otherAxis,
           FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
           log: false, // FIXME not used atm
-        }),
+        },
       })
-        .then(async response => {
-          if (response && !response.ok) {
-            console.warn("SuMo Surface plot error: ", response.body);
-            // V18: reject (⊥ return) so the .catch path clears lastFetchedKey and the
-            // identical inputs can be retried; a returned Error would resolve the chain
-            // and cache the key as if the fetch had succeeded.
-            return Promise.reject(new Error(await getResponseErrorMessage(response)));
-          }
-          return response.json();
-        })
         .then(d => {
+          if (isStale()) return;
           // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
           reshapePlotData(d?.gridData);
           // V18: cache key ONLY on success, so transient failures don't block retry
@@ -118,21 +110,23 @@ function Surface2DPlot() {
           setErrorMessage(undefined);
         })
         .catch(error => {
+          if (isStale()) return;
           // V18: clear cache on error so same inputs can be retried
           lastFetchedKey.current = undefined;
           console.warn("Error:", error);
           setPropagating(false);
           setPlotData([]);
-          setErrorMessage(error instanceof Error ? error.message : String(error));
+          setErrorMessage(getErrorMessage(error));
         });
     },
     [inputVars, selectedQoI, otherAxis, reshapePlotData],
   );
 
-  useEffect(() => {
-    const run = async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
       const jobs = filteredJobList;
       // V16: dedup by stable logical request key; same key → no new fetch.
+      const axisRanges = buildAxisRanges(distribution[selectedFunction?.uid || ""], [axis1, axis2]);
       const requestKey = buildDakotaRequestKey({
         axes: [axis1, axis2],
         sliderValues: otherAxis,
@@ -140,14 +134,18 @@ function Surface2DPlot() {
         fn: selectedFunction?.uid,
         jobList: jobs.map(job => job.uid),
         logScale: false,
+        axisRanges,
       });
       if (requestKey === lastFetchedKey.current) {
-        return undefined;
+        // V45gd: reuse of the successful result must release any loading the
+        // invalidated in-between request left running.
+        setPropagating(false);
+        return;
       }
-      return RunSuMo2DInterpolation(jobs, axis1, axis2, requestKey);
-    };
-    run();
-  }, [axis1, axis2, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList, RunSuMo2DInterpolation]);
+      return RunSuMo2DInterpolation(jobs, axis1, axis2, requestKey, isStale);
+    },
+    [axis1, axis2, inputVars, selectedQoI, selectedFunction, distribution, otherAxis, filteredJobList, RunSuMo2DInterpolation],
+  );
 
   const layout: Partial<Layout> = {
     title: {

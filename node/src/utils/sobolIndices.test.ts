@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OsparcFunctionJob } from "../context/types";
+import { jsonResponse } from "../test/fetchStub";
 import { fetchWithRetry } from "./fetchRetry";
 import { buildSobolBarData, buildSobolHeatmapData, fetchSobolIndices } from "./sobolIndices";
 
@@ -95,17 +96,7 @@ describe("fetchSobolIndices", () => {
   });
 
   it("throws (⊥ resolves) on a non-OK response", async () => {
-    mockedFetchWithRetry.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-      json: () => Promise.resolve({ error: "Sobol model failed" }),
-      clone: () =>
-        ({
-          json: () => Promise.resolve({ error: "Sobol model failed" }),
-          text: () => Promise.resolve(""),
-        }) as Response,
-    } as Response);
+    mockedFetchWithRetry.mockResolvedValueOnce(jsonResponse({ error: "Sobol model failed" }, 500));
 
     await expect(
       fetchSobolIndices({

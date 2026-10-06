@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./coverage";
 import {
   VIEW_TIMEOUT,
   MODEL_READY_TIMEOUT,
@@ -151,7 +151,7 @@ test("second-order Sobol' heatmap works for 8 inputs (T31rb, arbitrary-d pairs)"
   await expect(selectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
   await selectButton.click();
 
-  await expect(page.locator('[mmux-testid="input-block-Mean"] input').first()).toBeVisible({
+  await expect(page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Mean"] input').first()).toBeVisible({
     timeout: VIEW_TIMEOUT,
   });
   await fillNormalDistributions(page);
@@ -164,7 +164,7 @@ test("second-order Sobol' heatmap works for 8 inputs (T31rb, arbitrary-d pairs)"
   if (await creatingModel.first().isVisible().catch(() => false)) {
     await creatingModel.first().waitFor({ state: "hidden", timeout: MODEL_READY_TIMEOUT });
   }
-  await expect(page.locator('[mmux-testid="qoi-select"]').first()).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expect(page.locator('[mmux-testid="uq-plot-qoi-select"]').first()).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expectPlotlyReady(page); // UQ histogram over the 8-input jobs
 
   // Plot 2: correlation indices; Plot 3: Sobol' indices.

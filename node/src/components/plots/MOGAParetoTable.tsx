@@ -146,7 +146,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
       cellClassName: "performance-cols",
       renderHeader: () => (
         <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 0.5 }}>
-          <IconButton onClick={() => setOpenPerformanceModal(true)} size="small">
+          <IconButton aria-label="Edit performance settings" onClick={() => setOpenPerformanceModal(true)} size="small">
             <EditAttributes />
           </IconButton>
           <Typography variant="body2" sx={{ padding: "8px" }}>

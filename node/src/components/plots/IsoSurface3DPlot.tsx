@@ -1,5 +1,6 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
@@ -9,8 +10,9 @@ import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
-import { buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
-import { getResponseErrorMessage } from "../../utils/httpError";
+import { requestJson } from "../../api/client";
+import { getErrorMessage } from "../../utils/httpError";
+import { buildAxisRanges, buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
@@ -152,32 +154,26 @@ function IsoSurface3DPlot() {
     localAxis1: string,
     localAxis2: string,
     requestKey: string,
+    isStale: () => boolean,
   ) => {
     // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
     setPropagating(true);
     setErrorMessage(undefined);
-    fetch(`/flask/dakota/sumo_grid_evaluation`, {
+    requestJson<{ gridData: { [key: string]: number[] } }>(`/flask/dakota/sumo_grid_evaluation`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: {
         gridVars: [localAxis1, localAxis2, axis3],
         inputVars,
         output: selectedQoI,
         sliderValues: otherAxis,
         FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
         log: false,
-      }),
+      },
     })
-      .then(async response => {
-        if (response && !response.ok) {
-          console.warn("SuMo Surface plot error: ", response.body);
-          return Promise.reject(new Error(await getResponseErrorMessage(response)));
-        }
-        return response.json();
-      })
       .then(d => {
+        if (isStale()) return;
         // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
         reshapePlotData(d?.gridData);
         // V18: cache key ONLY on success, so transient failures don't block retry
@@ -186,19 +182,21 @@ function IsoSurface3DPlot() {
         setErrorMessage(undefined);
       })
       .catch(error => {
+        if (isStale()) return;
         // V18: clear cache on error so same inputs can be retried
         lastFetchedKey.current = undefined;
         console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
-        setErrorMessage(error instanceof Error ? error.message : String(error));
+        setErrorMessage(getErrorMessage(error));
       });
   };
 
-  useEffect(() => {
-    const run = async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
       const jobs = filteredJobList;
       // V16: dedup by stable logical request key; same key → no new fetch.
+      const axisRanges = buildAxisRanges(distribution[selectedFunction?.uid || ""], [axis1, axis2, axis3]);
       const requestKey = buildDakotaRequestKey({
         axes: [axis1, axis2, axis3],
         sliderValues: otherAxis,
@@ -206,15 +204,18 @@ function IsoSurface3DPlot() {
         fn: selectedFunction?.uid,
         jobList: jobs.map(job => job.uid),
         logScale: false,
+        axisRanges,
       });
       if (requestKey === lastFetchedKey.current) {
-        return undefined;
+        // V45gd: reuse of the successful result must release any loading the
+        // invalidated in-between request left running.
+        setPropagating(false);
+        return;
       }
-      return RunSuMo3DInterpolation(jobs, axis1, axis2, requestKey);
-    };
-    run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [axis1, axis2, axis3, inputVars, selectedQoI, selectedFunction, otherAxis, filteredJobList]);
+      return RunSuMo3DInterpolation(jobs, axis1, axis2, requestKey, isStale);
+    },
+    [axis1, axis2, axis3, inputVars, selectedQoI, selectedFunction, distribution, otherAxis, filteredJobList],
+  );
 
   const layout = {
     title: {

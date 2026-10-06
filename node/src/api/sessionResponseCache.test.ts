@@ -1,0 +1,115 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { buildRequestCacheKey, clearSessionResponseCacheForTests, getCachedOrFetch } from "./sessionResponseCache";
+
+const jobs = (uids: string[]) => uids.map(uid => ({ uid, extra: { heavy: true } }));
+
+describe("buildRequestCacheKey (V46sc, B37rv)", () => {
+  it("is invariant to key insertion order and job-array order", () => {
+    const a = buildRequestCacheKey("/flask/x", { seed: 3, numSamples: 100, FunctionJobs: jobs(["b", "a"]) });
+    const b = buildRequestCacheKey("/flask/x", { numSamples: 100, FunctionJobs: jobs(["a", "b"]), seed: 3 });
+    expect(a).toBe(b);
+  });
+
+  it("changes when ANY sent parameter changes", () => {
+    const base = {
+      url: "/flask/dakota/manual_uq_propagation_with_uncertainty",
+      body: {
+        output: "y",
+        numSamples: 10000,
+        seed: 0,
+        nHistograms: 50,
+        distributions: { x1: { distribution: "uniform", min: 0, max: 1 } },
+        FunctionJobs: jobs(["j1", "j2"]),
+      },
+    };
+    const baseKey = buildRequestCacheKey(base.url, base.body);
+    expect(buildRequestCacheKey("/flask/dakota/other", base.body)).not.toBe(baseKey);
+    expect(buildRequestCacheKey(base.url, { ...base.body, seed: 1 })).not.toBe(baseKey);
+    expect(buildRequestCacheKey(base.url, { ...base.body, numSamples: 10001 })).not.toBe(baseKey);
+    expect(buildRequestCacheKey(base.url, { ...base.body, nHistograms: 51 })).not.toBe(baseKey);
+    expect(
+      buildRequestCacheKey(base.url, {
+        ...base.body,
+        distributions: { x1: { distribution: "uniform", min: 0, max: 2 } },
+      }),
+    ).not.toBe(baseKey);
+    expect(buildRequestCacheKey(base.url, { ...base.body, FunctionJobs: jobs(["j1", "j2", "j3"]) })).not.toBe(baseKey);
+  });
+
+  it("distinguishes widened axis ranges carried in the distribution", () => {
+    const narrow = buildRequestCacheKey("/flask/x", { distribution: { x1: { min: 0, max: 1 } } });
+    const wide = buildRequestCacheKey("/flask/x", { distribution: { x1: { min: -5, max: 1 } } });
+    expect(narrow).not.toBe(wide);
+  });
+});
+
+describe("getCachedOrFetch (V46sc)", () => {
+  afterEach(() => {
+    clearSessionResponseCacheForTests();
+  });
+
+  it("a second identical fetch is served with ZERO network, incl. from a fresh caller", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ value: 1 });
+    await expect(getCachedOrFetch("/flask/x", { a: 1 }, fetchSpy)).resolves.toEqual({ value: 1 });
+    await expect(getCachedOrFetch("/flask/x", { a: 1 }, fetchSpy)).resolves.toEqual({ value: 1 });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("concurrent identical fetches share one request (in-flight dedup)", async () => {
+    let release: (v: { done: boolean }) => void = () => undefined;
+    const fetchSpy = vi.fn().mockReturnValue(new Promise(resolve => (release = resolve)));
+    const first = getCachedOrFetch("/flask/x", { a: 1 }, fetchSpy);
+    const second = getCachedOrFetch("/flask/x", { a: 1 }, fetchSpy);
+    release({ done: true });
+    await expect(first).resolves.toEqual({ done: true });
+    await expect(second).resolves.toEqual({ done: true });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("first caller and in-flight joiner receive distinct uncorrupted copies", async () => {
+    let release: (v: { list: number[] }) => void = () => undefined;
+    const fetchSpy = vi.fn().mockReturnValue(new Promise(resolve => (release = resolve)));
+    const first = getCachedOrFetch<{ list: number[] }>("/flask/x", {}, fetchSpy);
+    const joined = getCachedOrFetch<{ list: number[] }>("/flask/x", {}, fetchSpy);
+    release({ list: [1] });
+    const a = await first;
+    a.list.push(2); // first consumer mutates its own copy...
+    const b = await joined;
+    expect(b).toEqual({ list: [1] }); // ...joiner's copy stays pristine
+    expect(a).not.toBe(b);
+    const later = await getCachedOrFetch<{ list: number[] }>("/flask/x", {}, fetchSpy);
+    expect(later).toEqual({ list: [1] }); // and the cached copy was never reachable
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("failures are NOT cached and do not block the next retry", async () => {
+    const fetchSpy = vi.fn().mockRejectedValueOnce(new Error("500 boom")).mockResolvedValueOnce({ ok: true });
+    await expect(getCachedOrFetch("/flask/x", { a: 1 }, fetchSpy)).rejects.toThrow("500 boom");
+    await expect(getCachedOrFetch("/flask/x", { a: 1 }, fetchSpy)).resolves.toEqual({ ok: true });
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("mutating a fetched payload cannot poison the cache", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({ list: [1, 2, 3] });
+    const first = await getCachedOrFetch<{ list: number[] }>("/flask/x", {}, fetchSpy);
+    first.list.push(999);
+    first.list[0] = 42;
+    await expect(getCachedOrFetch("/flask/x", {}, fetchSpy)).resolves.toEqual({ list: [1, 2, 3] });
+  });
+
+  it("V46sc LRU: a hit bumps recency and eviction takes the true LRU, not the oldest insertion", async () => {
+    const fetchSpy = vi.fn((n: number) => Promise.resolve({ n }));
+    const fill = (keyBody: number) => getCachedOrFetch("/flask/lru", { keyBody }, () => fetchSpy(keyBody));
+    for (let n = 1; n <= 60; n += 1) {
+      await fill(n); // exactly at the cap; nothing evicted yet
+    }
+    expect(fetchSpy).toHaveBeenCalledTimes(60);
+    await fill(1); // zero-network hit must bump key 1 to most-recently-used
+    expect(fetchSpy).toHaveBeenCalledTimes(60);
+    await fill(61); // over the cap → the LRU victim is key 2, not the oldest insertion key 1
+    await expect(fill(1)).resolves.toEqual({ n: 1 });
+    expect(fetchSpy).toHaveBeenCalledTimes(61); // only fill(61)'s own fetch: key 1 survived the eviction
+    await expect(fill(2)).resolves.toEqual({ n: 2 });
+    expect(fetchSpy).toHaveBeenCalledTimes(62); // key 2 was the one evicted
+  });
+});

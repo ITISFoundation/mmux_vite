@@ -1,8 +1,16 @@
 import React from "react";
-import { render, act, cleanup } from "@testing-library/react";
+import { render, act, cleanup, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
+import { toast } from "react-toastify";
 import { JobContextProvider, useJobContext } from "./JobContext";
+import { getFunctionJobCollections } from "../utils/functionUtils";
+
+vi.mock("react-toastify", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("../utils/functionUtils", async importOriginal => ({
+  ...(await importOriginal<typeof import("../utils/functionUtils")>()),
+  getFunctionJobCollections: vi.fn(),
+}));
 // Mock dependencies
 vi.mock("./PersistenceContext", () => ({
   usePersistenceContext: () => ({
@@ -27,6 +35,7 @@ function TestComponent() {
     setSelectedJobUids,
     allJobsList,
     filteredJobList,
+    parseStatus,
     hasAutoSelectedJobs,
     setHasAutoSelectedJobs,
   } = useJobContext();
@@ -71,6 +80,12 @@ function TestComponent() {
       <div data-testid="running-job">{JSON.stringify(runningJobCollection)}</div>
       <div data-testid="fetched-jobs">{JSON.stringify(fetchedJobCollections)}</div>
       <div data-testid="has-auto-selected">{JSON.stringify(hasAutoSelectedJobs)}</div>
+      <div data-testid="status-success">{parseStatus("SUCCESS", { value: 1.234 })}</div>
+      <div data-testid="status-running">{parseStatus("STARTED", {})}</div>
+      <div data-testid="status-failed">{parseStatus("JOB_X_FAILURE", {})}</div>
+      <div data-testid="status-pending">{parseStatus("WAITING_FOR_RESOURCES", {})}</div>
+      <div data-testid="status-unknown">{parseStatus({ status: "SUCCESS" } as never, { value: 1.234 })}</div>
+      <div data-testid="status-invalid">{parseStatus("NOT_A_STATUS", {})}</div>
     </div>
   );
 }
@@ -182,6 +197,21 @@ describe("JobContextProvider", () => {
     expect(getByTestId("selected-uids").textContent).toContain('"3"');
   });
 
+  it("renders all supported job status messages", () => {
+    const { getByTestId } = render(
+      <JobContextProvider>
+        <TestComponent />
+      </JobContextProvider>,
+    );
+
+    expect(getByTestId("status-success").textContent).toContain("value : 1.23");
+    expect(getByTestId("status-running").textContent).toContain("Running...");
+    expect(getByTestId("status-failed").textContent).toBe("Failed - no outputs");
+    expect(getByTestId("status-pending").textContent).toBe("Pending to run");
+    expect(getByTestId("status-unknown").textContent).toContain("value : 1.23");
+    expect(getByTestId("status-invalid").textContent).toBe("Unknown status, please contact support");
+  });
+
   it("setRunningJobCollection updates runningJobCollection", () => {
     const { getByTestId } = render(
       <JobContextProvider>
@@ -241,5 +271,38 @@ describe("JobContextProvider", () => {
     }
     expect(() => render(<BadComponent />)).toThrow("useJobContext must be used within a JobContextProvider");
     spy.mockRestore();
+  });
+
+  it("surfaces a failed forced refresh without leaking an unhandled rejection", async () => {
+    vi.mocked(getFunctionJobCollections).mockRejectedValue(new Error("backend down"));
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const progress = vi.fn();
+    let settled = false;
+
+    function RefreshProbe() {
+      const { requestForceFetch } = useJobContext();
+      return (
+        <button
+          type="button"
+          data-testid="refresh"
+          onClick={async () => {
+            await requestForceFetch("function-1", progress);
+            settled = true;
+          }}
+        />
+      );
+    }
+
+    const { getByTestId } = render(
+      <JobContextProvider>
+        <RefreshProbe />
+      </JobContextProvider>,
+    );
+    act(() => {
+      getByTestId("refresh").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    await waitFor(() => expect(settled).toBe(true));
+    expect(toast.error).toHaveBeenCalledWith("Failed to refresh job collections. Please try again.");
   });
 });
