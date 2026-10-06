@@ -15,7 +15,16 @@ vi.mock("../../context/MMUXContext", () => ({
   useMMUXContext: () => ({ uqSettings: mocks.uqSettings, selectedQoI: mocks.selectedQoI }),
 }));
 vi.mock("../../context/FunctionContext", () => {
-  const value = { selectedFunction: { uid: "fn-1" }, inputVars: ["x1", "x2"], distribution: {} };
+  const value = {
+    selectedFunction: { uid: "fn-1" },
+    inputVars: ["x1", "x2"],
+    distribution: {},
+    // #663 replay: context contract grows the log-scale maps + setter consumed
+    // by the auto-detect hook (stub jobs carry no outputs, so it stays inert).
+    outputLogScales: {},
+    outputLogScaleUserSet: {},
+    setOutputLogScales: () => undefined,
+  };
   return { useFunctionContext: () => value };
 });
 vi.mock("../../context/JobContext", () => ({

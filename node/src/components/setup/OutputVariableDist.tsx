@@ -8,11 +8,39 @@ import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import { AddOutputModal } from "./AddOutputModal";
 
 export function OutputVariableDist() {
-  const { selectedFunction, outputVars, outputTargets, setOutputTargets } = useFunctionContext();
+  const {
+    selectedFunction,
+    outputVars,
+    outputTargets,
+    setOutputTargets,
+    outputLogScales,
+    setOutputLogScales,
+    setOutputLogScaleUserSet,
+  } = useFunctionContext();
   // const { ServiceMode } = useServiceContext();
   const [openModal, setOpenModal] = useState(false);
   const [configuredOutputs, setConfiguredOutputs] = useState(outputTargets[selectedFunction?.uid || ""] || {});
+  const [localOutputLogScales, setLocalOutputLogScales] = useState<{ [varName: string]: boolean }>(
+    outputLogScales[selectedFunction?.uid || ""] || {},
+  );
   const theme = useTheme();
+
+  const handleSetOutputLogScale = (outputVar: string, value: boolean) => {
+    const next = { ...localOutputLogScales, [outputVar]: value };
+    setLocalOutputLogScales(next);
+    if (selectedFunction) {
+      setOutputLogScales({ ...outputLogScales, [selectedFunction.uid]: next });
+      // V27: manual toggle locks this (uid, QoI) pair so auto-detect never overrides it.
+      setOutputLogScaleUserSet(prev => ({
+        ...prev,
+        [selectedFunction.uid]: { ...prev[selectedFunction.uid], [outputVar]: true },
+      }));
+    }
+  };
+
+  useEffect(() => {
+    setLocalOutputLogScales(outputLogScales[selectedFunction?.uid || ""] || {});
+  }, [outputLogScales, selectedFunction]);
 
   const handlesetConfiguredOutputs = useCallback(
     (newOutputVars: typeof configuredOutputs) => {
@@ -135,6 +163,17 @@ export function OutputVariableDist() {
                   });
                 }}
               />
+              <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <Typography sx={{ fontSize: "0.75em", fontWeight: 300, color: theme.palette.text.secondary }}>
+                  Surrogate scale
+                </Typography>
+                <CustomAnimatedToggle
+                  data={["linear", "log"]}
+                  value={localOutputLogScales[outputVar] ? 1 : 0}
+                  disabled={false}
+                  onChange={value => handleSetOutputLogScale(outputVar, value === 1)}
+                />
+              </Box>
             </Box>
           </Box>
         ))}

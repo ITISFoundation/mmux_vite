@@ -15,6 +15,11 @@ vi.mock("../../context/FunctionContext", () => ({
     selectedFunction,
     inputVars,
     distribution,
+    // #663 replay: context contract grows the log-scale maps + setter consumed
+    // by the auto-detect hook (stub jobs carry no outputs, so it stays inert).
+    outputLogScales: {},
+    outputLogScaleUserSet: {},
+    setOutputLogScales: () => undefined,
   }),
 }));
 

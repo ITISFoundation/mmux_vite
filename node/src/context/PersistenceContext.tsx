@@ -40,6 +40,8 @@ const defaultPersistence: PersistenceType = {
   fetchedJobCollections: [],
   selectedJobUids: [],
   outputTargets: {},
+  outputLogScales: {},
+  outputLogScaleUserSet: {},
   mogaSettings: {},
   weights: {},
   sortModel: [],
@@ -167,13 +169,23 @@ export function PersistenceContextProvider({ children }: Props) {
         outputVars: persistence.outputVars,
         distribution: persistence.distribution,
         outputTargets: persistence.outputTargets,
+        outputLogScales: persistence.outputLogScales,
+        outputLogScaleUserSet: persistence.outputLogScaleUserSet,
       };
     }
     return undefined;
   }, [persistence]);
 
   const setFunctionValues = useCallback(
-    ({ selectedFunction, inputVars, outputVars, distribution, outputTargets }: Partial<PersistenceType>) => {
+    ({
+      selectedFunction,
+      inputVars,
+      outputVars,
+      distribution,
+      outputTargets,
+      outputLogScales,
+      outputLogScaleUserSet,
+    }: Partial<PersistenceType>) => {
       if (persistence !== undefined) {
         console.info("Persisting Function context state...");
         const newPersistence: PersistenceType = {
@@ -183,6 +195,8 @@ export function PersistenceContextProvider({ children }: Props) {
           outputVars: outputVars || [],
           distribution: distribution || {},
           outputTargets: outputTargets || {},
+          outputLogScales: outputLogScales || {},
+          outputLogScaleUserSet: outputLogScaleUserSet || {},
         };
         saveState(newPersistence);
       }

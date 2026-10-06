@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
@@ -22,8 +22,24 @@ type GPPrediction = {
 
 function Curves1DPlots() {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
+  // Per-variable log-scale flags (node SPEC V12): input flags come from the
+  // distribution config (VarSelection.scale), the output flag from the
+  // per-function outputLogScales map (only meaningful for the selected QoI).
+  // The backend folds both into PreprocessingSpec overrides (flaskapi V16).
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
   const filteredInputVars = filterInputVars({
@@ -111,13 +127,17 @@ function Curves1DPlots() {
       output: selectedQoI,
       sliderValues: otherAxis,
       FunctionJobs: jobs,
-      log: false,
+      inputLogScales,
+      outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
     };
     // V46sc: the V16/V18 lastFetchedKey success slot is subsumed by the session
     // cache - the same (url, body) answers with zero network and survives
     // unmount, failures stay uncached (retry stays possible). The plotted
     // axis' sampling range that the hand-curated key encoded for #501 lives
     // inside `distribution` in the body, so it keys the entry by construction.
+    // The replayed #663 log-scale fields ride the same guarantee: toggling a
+    // scale changes the body, hence the key (the fork-side buildDakotaRequestKey
+    // logScales term is dead under V46sc).
     getCachedOrFetch<{ predictions: Record<string, GPPrediction> }>(`/flask/dakota/sumo_along_axes`, requestBody, () =>
       requestJson<{ predictions: Record<string, GPPrediction> }>(`/flask/dakota/sumo_along_axes`, {
         method: "POST",
@@ -155,7 +175,19 @@ function Curves1DPlots() {
       // session response cache (V46sc): a repeated (url, body) is a hit.
       return RunCentralSuMoInterpolations(jobs, isStale);
     },
-    [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filteredJobList, distribution],
+    // #663 log-scale deps added to the union: flipping either flag must
+    // re-trigger; identity changes ride distribution/outputLogScales maps.
+    [
+      inputVars,
+      selectedQoI,
+      selectedFunction,
+      axis,
+      otherAxis,
+      filteredJobList,
+      distribution,
+      inputLogScales,
+      outputLogScaleForQoi,
+    ],
   );
 
   const plotStyle = {
@@ -177,10 +209,12 @@ function Curves1DPlots() {
     },
     xaxis: {
       title: { text: axis }, // FIXME axis is only showing for the first parameter in the list
+      type: inputLogScales[axis] ? "log" : undefined,
     },
     yaxis: {
       title: { text: selectedQoI },
       anchor: "x",
+      type: outputLogScaleForQoi ? "log" : undefined,
     },
     showlegend: true,
   };

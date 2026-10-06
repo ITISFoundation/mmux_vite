@@ -14,6 +14,15 @@ export interface FunctionContextType {
   setDistribution: React.Dispatch<React.SetStateAction<{ [key: string]: InputVarSelection }>>;
   outputTargets: { [key: string]: OutputVarSelection };
   setOutputTargets: (d: { [key: string]: OutputVarSelection }) => void;
+  // Per-function, per-QoI "fit the surrogate on log(QoI)" flag consumed by the
+  // dakota payloads (outputLogScales). V26/V27 (branch lineage): auto-detection
+  // (useAutoDetectQoiScale) may SET it, but a manual toggle in
+  // OutputVariableDist locks the pair via outputLogScaleUserSet and detection
+  // never overrides a locked pair again.
+  outputLogScales: { [key: string]: { [varName: string]: boolean } };
+  setOutputLogScales: React.Dispatch<React.SetStateAction<{ [key: string]: { [varName: string]: boolean } }>>;
+  outputLogScaleUserSet: { [key: string]: { [varName: string]: boolean } };
+  setOutputLogScaleUserSet: React.Dispatch<React.SetStateAction<{ [key: string]: { [varName: string]: boolean } }>>;
 }
 
 const FunctionContext = createContext<FunctionContextType>(undefined!);
@@ -31,6 +40,8 @@ export function FunctionContextProvider({ children }: Props) {
     outputVars: iov,
     distribution: id,
     outputTargets: od,
+    outputLogScales: iols,
+    outputLogScaleUserSet: iolsUserSet,
   } = functionValues as Partial<PersistenceType>;
   const [selectedFunction, setSelectedFunction] = useState<RegisteredFunction | undefined>(isf);
   const [distribution, setDistribution] = useState<{
@@ -41,6 +52,12 @@ export function FunctionContextProvider({ children }: Props) {
   const [outputTargets, setOutputTargets] = useState<{
     [key: string]: OutputVarSelection;
   }>(od || {});
+  const [outputLogScales, setOutputLogScales] = useState<{
+    [key: string]: { [varName: string]: boolean };
+  }>(iols || {});
+  const [outputLogScaleUserSet, setOutputLogScaleUserSet] = useState<{
+    [key: string]: { [varName: string]: boolean };
+  }>(iolsUserSet || {});
 
   useEffect(() => {
     if (loading === false) {
@@ -50,9 +67,11 @@ export function FunctionContextProvider({ children }: Props) {
         outputVars,
         distribution,
         outputTargets,
+        outputLogScales,
+        outputLogScaleUserSet,
       });
     }
-  }, [selectedFunction, inputVars, outputVars, distribution, outputTargets]);
+  }, [selectedFunction, inputVars, outputVars, distribution, outputTargets, outputLogScales, outputLogScaleUserSet]);
 
   const memo = React.useMemo(
     () => ({
@@ -66,6 +85,10 @@ export function FunctionContextProvider({ children }: Props) {
       setDistribution,
       outputTargets,
       setOutputTargets,
+      outputLogScales,
+      setOutputLogScales,
+      outputLogScaleUserSet,
+      setOutputLogScaleUserSet,
     }),
     [
       selectedFunction,
@@ -78,6 +101,10 @@ export function FunctionContextProvider({ children }: Props) {
       setDistribution,
       outputTargets,
       setOutputTargets,
+      outputLogScales,
+      setOutputLogScales,
+      outputLogScaleUserSet,
+      setOutputLogScaleUserSet,
     ],
   );
 
