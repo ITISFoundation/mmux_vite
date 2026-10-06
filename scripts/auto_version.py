@@ -13,6 +13,11 @@ index (GitHub releases only):
   highest tag), commits the stable version, tags `vX.Y.Z` and creates the
   GitHub release.
 
+Fanout entries flagged `semver-only = true` in `.bumpversion.cfg` (the
+`.osparc/*/metadata.yml` services) carry the semver BASE on both channels:
+the oSPARC metadata schema validates versions as strict semver and rejects
+PEP440 `.devN` (issue #695); compose image tags keep the full dev version.
+
 Subcommands print the resulting version on stdout; failures exit 1 with an
 actionable message on stderr.
 """
@@ -72,13 +77,21 @@ def parse_form(version: str, *, source: str = "current version") -> tuple[str, i
     return match["base"], None if dev is None else int(dev)
 
 
-def versioned_files(parser: configparser.RawConfigParser) -> list[tuple[str, str, str]]:
+def versioned_files(parser: configparser.RawConfigParser) -> list[tuple[str, str, str, bool]]:
+    """(path, search-template, replace-template, semver-only) per fanout entry.
+
+    `semver-only = true` marks files whose version field must carry the semver
+    BASE (`.devN` stripped) because their schema validates strict semver —
+    oSPARC `metadata.yml` (MetadataConfig) is the case that forced #695; the
+    compose image tags and pyproject keep the full dev version.
+    """
     files = []
     for section in parser.sections():
         if not section.startswith("bumpversion:file:"):
             continue
         path = section.removeprefix("bumpversion:file:")
-        files.append((path, parser[section]["search"], parser[section]["replace"]))
+        semver_only = parser[section].get("semver-only", "false").strip().lower() == "true"
+        files.append((path, parser[section]["search"], parser[section]["replace"], semver_only))
     if not files:
         raise SystemExit(f"no [bumpversion:file:*] sections found in {CONFIG_FILE}")
     return files
@@ -167,7 +180,7 @@ def dev_tags() -> list[str]:
 
 
 def apply_version(parser: configparser.RawConfigParser, current: str, target: str) -> int:
-    parse_form(target, source="--to target")
+    target_base, _ = parse_form(target, source="--to target")
     changed = 0
     # bump2version owns `current_version` in the config itself, so it never
     # appears as a [bumpversion:file:*] entry; rewrite it explicitly.
@@ -184,9 +197,12 @@ def apply_version(parser: configparser.RawConfigParser, current: str, target: st
     if updated_config != config_text:
         CONFIG_FILE.write_text(updated_config)
         changed += 1
-    for path_text, search_tpl, replace_tpl in versioned_files(parser):
+    for path_text, search_tpl, replace_tpl, semver_only in versioned_files(parser):
         search = search_tpl.replace("{current_version}", current)
-        replace = replace_tpl.replace("{new_version}", target)
+        # semver-only files (oSPARC metadata.yml) never see the .devN suffix,
+        # so a dev stamp self-heals any such file left stamped with the dev
+        # version by the pre-#695 flow.
+        replace = replace_tpl.replace("{new_version}", target_base if semver_only else target)
         path = Path(path_text)
         if not path.is_file():
             raise SystemExit(f"versioned file missing: {path}")
@@ -209,8 +225,9 @@ def apply_version(parser: configparser.RawConfigParser, current: str, target: st
 
 
 # Field-scoped version sites per file type (§V5 gate): EVERY match must
-# carry exactly the current version, so a stale sibling (e.g. one compose
-# image left behind while its siblings were rewritten) fails the check.
+# carry exactly the expected version (full current, or the semver BASE for
+# `semver-only` files), so a stale sibling (e.g. one compose image left
+# behind while its siblings were rewritten) fails the check.
 # File types without an entry fail closed rather than pass unchecked.
 FANOUT_FIELDS = (
     (re.compile(r"\.osparc/.*/metadata\.yml$"), re.compile(r"^version:\s*(\S+)\s*$", re.MULTILINE)),
@@ -225,8 +242,10 @@ FANOUT_FIELDS = (
 
 def check_fanout(current: str) -> None:
     parser = config_from_text(read_config_text())
+    base, _ = parse_form(current)
     stale = []
-    for path_text, _, _ in versioned_files(parser):
+    for path_text, _, _, semver_only in versioned_files(parser):
+        expected = base if semver_only else current
         path = Path(path_text)
         if not path.is_file():
             stale.append(f"{path_text} (missing)")
@@ -238,8 +257,8 @@ def check_fanout(current: str) -> None:
                 "scripts/auto_version.py so the §V5 gate can validate it"
             )
         values = field.findall(path.read_text())
-        if not values or any(value != current for value in values):
-            stale.append(f"{path_text} (fields: {sorted(set(values)) or 'none'})")
+        if not values or any(value != expected for value in values):
+            stale.append(f"{path_text} (fields: {sorted(set(values)) or 'none'}, expected {expected!r})")
     if stale:
         raise SystemExit(
             f"version fanout drift (§V5): {'. '.join(stale)}. Expected "
