@@ -66,6 +66,22 @@ describe("getCachedOrFetch (V46sc)", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("first caller and in-flight joiner receive distinct uncorrupted copies", async () => {
+    let release: (v: { list: number[] }) => void = () => undefined;
+    const fetchSpy = vi.fn().mockReturnValue(new Promise(resolve => (release = resolve)));
+    const first = getCachedOrFetch<{ list: number[] }>("/flask/x", {}, fetchSpy);
+    const joined = getCachedOrFetch<{ list: number[] }>("/flask/x", {}, fetchSpy);
+    release({ list: [1] });
+    const a = await first;
+    a.list.push(2); // first consumer mutates its own copy...
+    const b = await joined;
+    expect(b).toEqual({ list: [1] }); // ...joiner's copy stays pristine
+    expect(a).not.toBe(b);
+    const later = await getCachedOrFetch<{ list: number[] }>("/flask/x", {}, fetchSpy);
+    expect(later).toEqual({ list: [1] }); // and the cached copy was never reachable
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("failures are NOT cached and do not block the next retry", async () => {
     const fetchSpy = vi.fn().mockRejectedValueOnce(new Error("500 boom")).mockResolvedValueOnce({ ok: true });
     await expect(getCachedOrFetch("/flask/x", { a: 1 }, fetchSpy)).rejects.toThrow("500 boom");

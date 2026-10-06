@@ -8,8 +8,9 @@
 //
 // Holds successes only (V18-aligned: a failure must neither be cached nor block
 // the next identical retry). In-flight requests are deduplicated by the same
-// key. Cached payloads are never handed out by reference: hits and stored
-// copies are clones, so a plot mutating its data can never poison the cache.
+// key. Cached payloads are never handed out by reference: EVERY consumer —
+// cache hit, first caller, and in-flight joiner — receives its own clone, so a
+// plot mutating its data can poison neither the cache nor a concurrent sibling.
 //
 // Lives at module scope: the Map survives component unmount and is dropped when
 // the tab closes (root V39xk). Entries beyond a fixed LRU cap evict least
@@ -61,7 +62,10 @@ export function getCachedOrFetch<T>(url: string, body: unknown, fetcher: () => P
 
   const live = inFlight.get(key);
   if (live) {
-    return live as Promise<T>;
+    // Joiners clone too: the shared promise resolves with the stored canonical
+    // copy, and handing that out by reference would let one plot's mutation
+    // corrupt the cache and every sibling consumer.
+    return (live as Promise<T>).then(joined => structuredClone(joined) as T);
   }
 
   const request = fetcher()
@@ -72,13 +76,15 @@ export function getCachedOrFetch<T>(url: string, body: unknown, fetcher: () => P
         const oldest = cache.keys().next().value as string | undefined;
         if (oldest !== undefined) cache.delete(oldest);
       }
-      return payload;
+      return stored;
     })
     .finally(() => {
       inFlight.delete(key);
     });
   inFlight.set(key, request);
-  return request;
+  // Every handout is a clone of the stored copy, so no consumer can reach the
+  // cache's object no matter when its continuation runs.
+  return request.then(stored => structuredClone(stored) as T);
 }
 
 /** Test seam: drop all cached/in-flight state so suites stay independent. */
