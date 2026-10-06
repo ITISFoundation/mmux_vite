@@ -97,20 +97,19 @@ describe("getCachedOrFetch (V46sc)", () => {
     await expect(getCachedOrFetch("/flask/x", {}, fetchSpy)).resolves.toEqual({ list: [1, 2, 3] });
   });
 
-  it("evicts the least recently used entry beyond the cap", async () => {
+  it("V46sc LRU: a hit bumps recency and eviction takes the true LRU, not the oldest insertion", async () => {
     const fetchSpy = vi.fn((n: number) => Promise.resolve({ n }));
     const fill = (keyBody: number) => getCachedOrFetch("/flask/lru", { keyBody }, () => fetchSpy(keyBody));
-    // touch keyBody 0 last so it survives as most recently used
-    await fill(0);
-    for (let n = 1; n <= 70; n += 1) {
-      await fill(n);
+    for (let n = 1; n <= 60; n += 1) {
+      await fill(n); // exactly at the cap; nothing evicted yet
     }
-    await fill(0); // re-hit → recency bump, evicts oldest
-    await expect(fill(0)).resolves.toEqual({ n: 0 });
-    expect(fetchSpy.mock.calls.length).toBeLessThanOrEqual(72);
-    // keyBody=1 was the oldest untouched entry: it must have been evicted (refetch)
-    const before = fetchSpy.mock.calls.length;
-    await fill(1);
-    expect(fetchSpy.mock.calls.length).toBe(before + 1);
+    expect(fetchSpy).toHaveBeenCalledTimes(60);
+    await fill(1); // zero-network hit must bump key 1 to most-recently-used
+    expect(fetchSpy).toHaveBeenCalledTimes(60);
+    await fill(61); // over the cap → the LRU victim is key 2, not the oldest insertion key 1
+    await expect(fill(1)).resolves.toEqual({ n: 1 });
+    expect(fetchSpy).toHaveBeenCalledTimes(61); // only fill(61)'s own fetch: key 1 survived the eviction
+    await expect(fill(2)).resolves.toEqual({ n: 2 });
+    expect(fetchSpy).toHaveBeenCalledTimes(62); // key 2 was the one evicted
   });
 });
