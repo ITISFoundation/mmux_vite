@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { requestJson } from "../api/client";
 import { useFunctionContext } from "../context/FunctionContext";
@@ -29,7 +29,13 @@ function computeRmse(actual: number[], predicted: number[]): number | undefined 
   return Math.sqrt(sumSquaredError / actual.length);
 }
 
-async function fetchCvRmse(inputVars: string[], qoi: string, jobs: unknown[], logScale: boolean): Promise<number | undefined> {
+async function fetchCvRmse(
+  inputVars: string[],
+  qoi: string,
+  jobs: unknown[],
+  logScale: boolean,
+  inputLogScales: { [inputVar: string]: boolean },
+): Promise<number | undefined> {
   try {
     // V44eh re-port: the fork-era raw call site predates the shared client and
     // is rejected by the architecture guard's fetch allowlist; requestJson
@@ -42,6 +48,9 @@ async function fetchCvRmse(inputVars: string[], qoi: string, jobs: unknown[], lo
           inputVars,
           output: qoi,
           FunctionJobs: jobs,
+          // #665: score the surrogate under the CURRENT input scales, not an
+          // all-linear strawman the user never asked for (GH-Copilot #663 audit)
+          inputLogScales,
           outputLogScales: { [qoi]: logScale },
         },
       },
@@ -65,7 +74,7 @@ async function fetchCvRmse(inputVars: string[], qoi: string, jobs: unknown[], lo
  * `outputLogScales[uid][qoi]` value — unless the user already locked that QoI manually.
  */
 export function useAutoDetectQoiScale(qois: string[] | undefined) {
-  const { selectedFunction, inputVars, setOutputLogScales, outputLogScaleUserSet } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, setOutputLogScales, outputLogScaleUserSet } = useFunctionContext();
   const { filteredJobList } = useJobContext();
   // Kept in sync after every render (effect, not render-phase mutation, to
   // satisfy the lint rules) so in-flight async callbacks (below) always
@@ -78,6 +87,26 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
   // (uid, qoi, sorted job-uid list) keys already attempted, so an unchanged job-set for
   // a QoI never re-fires the CV pair.
   const resolvedKeys = useRef<Set<string>>(new Set());
+
+  // Current per-input log flags — the CV pair must score the surrogate the
+  // user's input scales actually imply, and a change to any flag invalidates
+  // the cached verdict (GH-Copilot #663 audit: stale all-linear comparisons
+  // could pick the wrong output scale and never re-detect).
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const inputScaleSignature = useMemo(
+    () => inputVars.map(v => (inputLogScales[v] ? "1" : "0")).join(""),
+    [inputVars, inputLogScales],
+  );
 
   useEffect(() => {
     const uid = selectedFunction?.uid;
@@ -92,7 +121,7 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
     qois.forEach(qoi => {
       if (outputLogScaleUserSetRef.current[uid]?.[qoi]) return; // locked by manual toggle (V27)
 
-      const cacheKey = `${uid}::${qoi}::${sortedJobUids}`;
+      const cacheKey = `${uid}::${qoi}::${sortedJobUids}::${inputScaleSignature}`;
       if (resolvedKeys.current.has(cacheKey)) return;
 
       const outputValues = outputsByVar[qoi] || [];
@@ -103,8 +132,8 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
 
       (async () => {
         const [rmseLinear, rmseLog] = await Promise.all([
-          fetchCvRmse(inputVars, qoi, filteredJobList, false),
-          fetchCvRmse(inputVars, qoi, filteredJobList, true),
+          fetchCvRmse(inputVars, qoi, filteredJobList, false, inputLogScales),
+          fetchCvRmse(inputVars, qoi, filteredJobList, true, inputLogScales),
         ]);
         if (rmseLinear === undefined || rmseLog === undefined) return;
         if (outputLogScaleUserSetRef.current[uid]?.[qoi]) return; // re-check: may have been locked mid-flight
@@ -117,5 +146,5 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
       })();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qois?.join(","), filteredJobList, selectedFunction?.uid, inputVars.join(",")]);
+  }, [qois?.join(","), filteredJobList, selectedFunction?.uid, inputVars.join(","), inputScaleSignature]);
 }
