@@ -293,7 +293,19 @@ def cmd_check_pr(parser: configparser.RawConfigParser, target: str) -> None:
         print(f"develop: PR bumps base {base} -> {head}, ok")
     elif target == "main":
         candidate = stripped_version(head)
-        print(f"main: release {candidate} (from {head}) clears all tags, ok")
+        # Clearing all tags is not enough: the old manual flow never tagged
+        # some released bases (highest existing tag can trail main's cfg), so
+        # stripping .devN back to main's own base would "re-release" it. A
+        # release must also exceed main's current base - which only a human
+        # base-bump PR (via develop) can introduce.
+        main_base, _ = parse_form(base, source="origin/main version")
+        if Version(candidate) <= Version(main_base):
+            raise SystemExit(
+                f"main release candidate {candidate} must exceed main's "
+                f"current base {main_base}; land a base bump on develop "
+                "first (`make version-patch`), then merge develop -> main."
+            )
+        print(f"main: release {candidate} (from {head}) exceeds main base {main_base} and clears all tags, ok")
     else:
         raise SystemExit(f"unsupported PR target: {target}")
 

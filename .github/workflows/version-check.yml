@@ -2,8 +2,10 @@ name: Check release version
 
 # PR-time backstop for the auto-tag flow: a PR changing the base version
 # must bump to a clean X.Y.Z that clears every existing tag (the `.devN`
-# suffix is owned by the auto-tag bot), and the §V5 fanout must stay
-# consistent so a release never ships with drifted metadata.
+# suffix is owned by the auto-tag bot) AND exceeds its target branch's own
+# base — for main that means a human base bump landed on develop first —
+# and the §V5 fanout must stay consistent so a release never ships with
+# drifted metadata.
 on:
   pull_request:
     branches: [develop, main]
