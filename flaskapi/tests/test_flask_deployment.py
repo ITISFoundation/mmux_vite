@@ -13,6 +13,10 @@ This module tests all deployment-related functionality including:
 import os
 from unittest.mock import patch
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 
 class TestDeploymentEndpoints:
     """Test class for deployment configuration endpoints."""

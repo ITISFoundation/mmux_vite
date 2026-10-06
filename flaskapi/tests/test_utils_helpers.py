@@ -32,6 +32,8 @@ from mmux_flaskapi.utils.helpers import (
     snake_to_camel,
 )
 
+pytestmark = pytest.mark.unit
+
 
 class TestEnvironmentDetection:
     """Test environment detection functionality."""
@@ -329,6 +331,27 @@ class TestPreserveNestedKeysForVariableNames:
             result = recursive_dict_keys_camel_to_snake(input_dict)
             expected_field = camel_to_snake(field)
             assert result == {expected_field: {key: 1.0}}, f"field={field}"
+
+    @pytest.mark.parametrize("key", IRREGULAR_NAMES)
+    def test_camel_to_snake_preserves_sobol_domain_and_log_scale_keys(self, key):
+        """Bounds-editor maps (V26dd domains/fixed) and the V16 log-scale flag
+        maps (GH-Copilot #662 audit) are variable-keyed: a mangled key would
+        either drop a box/pin or make itis-sumo reject the override as unused
+        (HTTP 400 on valid payloads)."""
+        result = recursive_dict_keys_camel_to_snake(
+            {
+                "domains": {key: {"minimum": 0.5, "maximum": 2.0}},
+                "fixed": {key: 3.0},
+                "inputLogScales": {key: True},
+                "outputLogScales": {key: False},
+            }
+        )
+        assert result == {
+            "domains": {key: {"minimum": 0.5, "maximum": 2.0}},
+            "fixed": {key: 3.0},
+            "input_log_scales": {key: True},
+            "output_log_scales": {key: False},
+        }
 
     @pytest.mark.parametrize("key", IRREGULAR_NAMES)
     def test_snake_to_camel_preserves_response_variable_names(self, key):

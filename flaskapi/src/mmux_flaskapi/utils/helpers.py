@@ -76,6 +76,13 @@ def dict_keys_snake_to_camel(d: dict) -> dict:
 #   camelCasing those keys (grey_matter -> greyMatter) makes every lookup miss
 #   and the 1D/2D/3D plots render empty at HTTP 200 (flaskapi/SPEC.md V47pk/B29dr;
 #   same bug class as B15 and B27jk).
+# - write path (camel_to_snake, request parser): "domains", "fixed" - the
+#   Sobol' bounds-editor request maps (V26dd, a9 pins), keyed by variable names
+#   like "distributions" is. - "input_log_scales", "output_log_scales" - the
+#   per-variable log-scale flag maps (V16); a snake_cased flag key ("TissueConduc"
+#   -> "tissue_conduc") folds a wrong name into PreprocessingSpec overrides and
+#   itis-sumo rejects the unused override, 400ing valid payloads for every
+#   irregular variable name (GH-Copilot audit of #662, same B15 class).
 _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
     {
         "properties",
@@ -86,6 +93,10 @@ _DEFAULT_PRESERVE_NESTED_KEYS = frozenset(
         "distributions",
         "output_var_selection",
         "project_inputs",
+        "domains",
+        "fixed",
+        "input_log_scales",
+        "output_log_scales",
         "correlations",
         "sobol",
         "sobol_second_order",
