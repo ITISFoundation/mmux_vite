@@ -28,6 +28,13 @@ export const clampUQSettings = (settings: UQSettings): UQSettings => {
 // in `numSamples` and have no `uqSettings`. Without migration those functions
 // silently drop to defaultUQSettings.numSamples (10 000). Explicit
 // `uqSettings` entries win over the migrated ones.
+//
+// Load-boundary enforcement (Copilot #687): clampUQSettings runs at modal
+// SAVE, but persisted files predate it or were written around it, and
+// consumers post loaded settings straight to the UQ/Sobol/correlation
+// endpoints (a negative seed violates the backend's seed >= 0). This is the
+// only load path (MMUXContext), so EVERY entry leaving here — migrated and
+// explicit alike — is clamped to the modal's ranges.
 export const migrateLegacyUQSettings = (
   legacyNumSamples: { [key: string]: unknown } | undefined,
   uqSettings: { [key: string]: UQSettings } | undefined,
@@ -38,5 +45,9 @@ export const migrateLegacyUQSettings = (
       migrated[uid] = { ...defaultUQSettings, numSamples: value };
     }
   }
-  return { ...migrated, ...(uqSettings ?? {}) };
+  const loaded = { ...migrated, ...(uqSettings ?? {}) };
+  for (const uid of Object.keys(loaded)) {
+    loaded[uid] = clampUQSettings(loaded[uid]);
+  }
+  return loaded;
 };
