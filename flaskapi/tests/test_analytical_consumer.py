@@ -63,11 +63,10 @@ class TestAnalyticalSobolStack:
         payload = {
             "inputVars": ["x1", "x2"],
             "output": "y",
-            "distributions": {
-                "x1": {"distribution": "uniform", "min": -1.0, "max": 1.0},
-                "x2": {"distribution": "uniform", "min": -1.0, "max": 1.0},
+            "domains": {
+                "x1": {"minimum": -1.0, "maximum": 1.0},
+                "x2": {"minimum": -1.0, "maximum": 1.0},
             },
-            "numSamples": 256,
             "FunctionJobs": _jobs(points, ["x1", "x2"], "y", lambda x1, x2: x1 * x2),
             "seed": 13,
         }
