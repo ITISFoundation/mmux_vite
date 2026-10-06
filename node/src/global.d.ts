@@ -96,6 +96,14 @@ type SobolIndicesResponse = {
   sobolOrderContributions?: SobolOrderContributions | null;
 };
 
+// Sobol' bounds editor request vocabulary (flaskapi SPEC V26dd): explicit
+// exploration boxes + pinned constants, in ORIGINAL units. A variable absent
+// from BOTH maps falls back to the backend's auto-inferred observed box.
+// Pinned ∉ boxed (a9) — the backend rejects the overlap with a 400.
+type SobolDomainBounds = { minimum: number; maximum: number };
+type SobolDomainMap = { [inputVar: string]: SobolDomainBounds };
+type SobolFixedMap = { [inputVar: string]: number };
+
 type PlotConfig = {
   dimensionType: "1D" | "2D" | "3D";
   scaleType: "linear" | "log";

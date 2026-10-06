@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OsparcFunctionJob } from "../context/types";
 import { jsonResponse } from "../test/fetchStub";
 import { fetchWithRetry } from "./fetchRetry";
-import { buildSobolBarData, buildSobolHeatmapData, fetchSobolIndices } from "./sobolIndices";
+import { buildSobolBarData, buildSobolHeatmapData, fetchSobolIndices, initialSobolDomain } from "./sobolIndices";
 
 vi.mock("./fetchRetry", () => ({
   fetchWithRetry: vi.fn(),
@@ -50,9 +50,11 @@ describe("fetchSobolIndices", () => {
     const result = await fetchSobolIndices({
       inputVars: ["x1", "x2"],
       output: "y",
-      distributions: { x1: { distribution: "uniform", min: 0, max: 1 } },
+      domains: { x1: { minimum: 0, maximum: 1 } },
+      fixed: { x2: 0.25 },
+      inputLogScales: { x1: true },
+      outputLogScales: { y: false },
       functionJobs: mockJobs,
-      numSamples: 500,
       seed: 42,
     });
 
@@ -66,17 +68,20 @@ describe("fetchSobolIndices", () => {
     );
     const [, options] = mockedFetchWithRetry.mock.calls[0];
     const body = JSON.parse((options as RequestInit).body as string);
+    // bounds-editor contract (V26dd): domains + fixed, NO distributions/numSamples
     expect(body).toEqual({
       inputVars: ["x1", "x2"],
       output: "y",
-      distributions: { x1: { distribution: "uniform", min: 0, max: 1 } },
-      numSamples: 500,
+      domains: { x1: { minimum: 0, maximum: 1 } },
+      fixed: { x2: 0.25 },
+      inputLogScales: { x1: true },
+      outputLogScales: { y: false },
       FunctionJobs: mockJobs,
       seed: 42,
     });
   });
 
-  it("defaults seed to 0 when not provided (backend scipy accepts seed >= 0)", async () => {
+  it("defaults seed to 0 and scale maps to {} when not provided", async () => {
     mockedFetchWithRetry.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({ sobol: {}, sobolSecondOrder: {} }),
@@ -85,14 +90,16 @@ describe("fetchSobolIndices", () => {
     await fetchSobolIndices({
       inputVars: ["x1"],
       output: "y",
-      distributions: {},
+      domains: {},
+      fixed: {},
       functionJobs: mockJobs,
-      numSamples: 100,
     });
 
     const [, options] = mockedFetchWithRetry.mock.calls[0];
     const body = JSON.parse((options as RequestInit).body as string);
     expect(body.seed).toBe(0);
+    expect(body.inputLogScales).toEqual({});
+    expect(body.outputLogScales).toEqual({});
   });
 
   it("throws (⊥ resolves) on a non-OK response", async () => {
@@ -102,11 +109,51 @@ describe("fetchSobolIndices", () => {
       fetchSobolIndices({
         inputVars: ["x1"],
         output: "y",
-        distributions: {},
+        domains: {},
+        fixed: {},
         functionJobs: mockJobs,
-        numSamples: 100,
       }),
     ).rejects.toThrow("Sobol model failed");
+  });
+});
+
+describe("initialSobolDomain", () => {
+  it("maps uniform selections to explicit boxes", () => {
+    const { domains, fixed } = initialSobolDomain(["x1"], {
+      x1: { distribution: "uniform", min: -2, max: 4 },
+    });
+    expect(domains).toEqual({ x1: { minimum: -2, maximum: 4 } });
+    expect(fixed).toEqual({});
+  });
+
+  it("maps normal selections to the mean ± 3σ box (FE-owned choice, V26dd)", () => {
+    const { domains } = initialSobolDomain(["x1"], {
+      x1: { distribution: "normal", mean: 0.5, std: 0.1 },
+    });
+    expect(domains.x1.minimum).toBeCloseTo(0.2);
+    expect(domains.x1.maximum).toBeCloseTo(0.8);
+  });
+
+  it("maps constant selections to pins (a9; this path used to 422)", () => {
+    const { domains, fixed } = initialSobolDomain(["x1"], {
+      x1: { distribution: "constant", value: 3.5 },
+    });
+    expect(domains).toEqual({});
+    expect(fixed).toEqual({ x1: 3.5 });
+  });
+
+  it("leaves missing/ill-formed entries unspecified (backend auto-infers)", () => {
+    const { domains, fixed } = initialSobolDomain(["x1", "x2", "x3"], {
+      x1: { distribution: "uniform", min: 1 }, // degenerate: missing max
+      x2: { distribution: "normal", mean: 0 }, // no std
+      // x3 has no entry at all
+    });
+    expect(domains).toEqual({});
+    expect(fixed).toEqual({});
+  });
+
+  it("handles undefined selections entirely", () => {
+    expect(initialSobolDomain(["x1"], undefined)).toEqual({ domains: {}, fixed: {} });
   });
 });
 

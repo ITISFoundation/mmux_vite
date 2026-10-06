@@ -1,5 +1,5 @@
-import { Box, ToggleButton, ToggleButtonGroup, useTheme } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Box, Button, Collapse, TextField, ToggleButton, ToggleButtonGroup, Typography, useTheme } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
 import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -14,7 +14,7 @@ import {
   toLogSafe,
   type ScaleType,
 } from "../../utils/plotScale";
-import { buildSobolHeatmapData, fetchSobolIndices } from "../../utils/sobolIndices";
+import { buildSobolHeatmapData, fetchSobolIndices, initialSobolDomain } from "../../utils/sobolIndices";
 import { getErrorMessage } from "../../utils/httpError";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
@@ -59,15 +59,144 @@ export function SobolControls({ viewMode, scaleType, onViewModeChange, onScaleTy
   );
 }
 
+export type SobolDomainMode = "range" | "pin";
+
+/** Editable draft row per input variable; empty strings mean "unlisted"
+ * (backend auto-infers the observed box, V26dd fallback). */
+export type SobolDomainDraftRow = { mode: SobolDomainMode; min: string; max: string; pin: string };
+export type SobolDomainDraft = { [inputVar: string]: SobolDomainDraftRow };
+
+export type SobolDomainDraftResult = { error: string } | { domains: SobolDomainMap; fixed: SobolFixedMap };
+
+const toNumber = (value: string): number | undefined => {
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return undefined;
+  }
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
+/** Seed the editable draft from the initialSobolDomain mapping. */
+export function seedSobolDomainDraft(
+  inputVars: string[],
+  seed: { domains: SobolDomainMap; fixed: SobolFixedMap },
+): SobolDomainDraft {
+  const draft: SobolDomainDraft = {};
+  for (const inputVar of inputVars) {
+    const box = seed.domains[inputVar];
+    const pin = seed.fixed[inputVar];
+    if (box) {
+      draft[inputVar] = { mode: "range", min: String(box.minimum), max: String(box.maximum), pin: "" };
+    } else if (pin !== undefined) {
+      draft[inputVar] = { mode: "pin", min: "", max: "", pin: String(pin) };
+    } else {
+      draft[inputVar] = { mode: "range", min: "", max: "", pin: "" };
+    }
+  }
+  return draft;
+}
+
+/** Validate the draft into the request maps; ⊥ half-filled ranges, ⊥
+ * non-numeric values and ⊥ inverted/degenerate boxes (min >= max). Fully
+ * blank rows are omitted (auto-infer), mirroring the backend's partial shape. */
+export function parseSobolDomainDraft(inputVars: string[], draft: SobolDomainDraft): SobolDomainDraftResult {
+  const domains: SobolDomainMap = {};
+  const fixed: SobolFixedMap = {};
+  for (const inputVar of inputVars) {
+    const row = draft[inputVar] ?? { mode: "range" as SobolDomainMode, min: "", max: "", pin: "" };
+    if (row.mode === "range") {
+      const min = toNumber(row.min);
+      const max = toNumber(row.max);
+      if (min === undefined && max === undefined) {
+        continue;
+      }
+      if (min === undefined || max === undefined) {
+        return { error: `${inputVar}: a range needs both bounds (or leave both blank)` };
+      }
+      if (Number.isNaN(min) || Number.isNaN(max)) {
+        return { error: `${inputVar}: bounds must be numbers` };
+      }
+      if (!(max > min)) {
+        return { error: `${inputVar}: maximum must exceed minimum` };
+      }
+      domains[inputVar] = { minimum: min, maximum: max };
+    } else {
+      const pin = toNumber(row.pin);
+      if (pin === undefined) {
+        continue;
+      }
+      if (Number.isNaN(pin)) {
+        return { error: `${inputVar}: pinned value must be a number` };
+      }
+      fixed[inputVar] = pin;
+    }
+  }
+  return { domains, fixed };
+}
+
 export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPlotProps) {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { uqSettings, selectedQoI } = useMMUXContext();
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [sobolData, setSobolData] = useState<SobolIndicesResponse | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>();
   const [computing, setComputing] = useState(false);
+
+  // --- bounds editor state (V26dd domain vocabulary + a9 pins) --------------
+  // Seeded from the UQ selections (uniform -> box, normal -> mean +/- 3 sigma,
+  // constant -> pin); every variable starts blank when no selection exists
+  // (backend auto-infers). Edits only reach the request via "Recompute".
+  const domainSeed = useMemo(
+    () => initialSobolDomain(inputVars, distribution[selectedFunction?.uid || ""]),
+    [inputVars, distribution, selectedFunction],
+  );
+  const [domainDraft, setDomainDraft] = useState<SobolDomainDraft>(() => seedSobolDomainDraft(inputVars, domainSeed));
+  const [appliedDomain, setAppliedDomain] = useState<{ domains: SobolDomainMap; fixed: SobolFixedMap }>(domainSeed);
+  const [domainError, setDomainError] = useState<string>();
+  const [domainOpen, setDomainOpen] = useState(false);
+
+  useEffect(() => {
+    setDomainDraft(seedSobolDomainDraft(inputVars, domainSeed));
+    setAppliedDomain(domainSeed);
+    setDomainError(undefined);
+  }, [domainSeed, inputVars]);
+
+  const parsedDraft = useMemo(() => parseSobolDomainDraft(inputVars, domainDraft), [inputVars, domainDraft]);
+  const canApplyDomain =
+    !("error" in parsedDraft) &&
+    JSON.stringify([parsedDraft.domains, parsedDraft.fixed]) !== JSON.stringify([appliedDomain.domains, appliedDomain.fixed]);
+
+  const handleApplyDomain = () => {
+    if ("error" in parsedDraft) {
+      setDomainError(parsedDraft.error);
+      return;
+    }
+    setDomainError(undefined);
+    setAppliedDomain({ domains: parsedDraft.domains, fixed: parsedDraft.fixed });
+  };
+
+  const domainSummary = useMemo(() => {
+    const boxed = Object.keys("error" in parsedDraft ? {} : parsedDraft.domains).length;
+    const pinned = Object.keys("error" in parsedDraft ? {} : parsedDraft.fixed).length;
+    return `${boxed} boxed · ${pinned} pinned · ${inputVars.length - boxed - pinned} auto-inferred`;
+  }, [parsedDraft, inputVars]);
+
+  // Per-variable log-scale flags (node SPEC V12), see UncertainUQ for the pattern.
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
 
   useGuardedAsyncEffect(
     async isStale => {
@@ -84,9 +213,13 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
         const data = await fetchSobolIndices({
           inputVars,
           output: selectedQoI,
-          distributions: distribution[selectedFunction?.uid || ""],
+          domains: appliedDomain.domains,
+          fixed: appliedDomain.fixed,
+          inputLogScales,
+          outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
           functionJobs: filteredJobList,
-          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
+          // #664 contract: distributions/numSamples are gone (sample count is
+          // fixed inside itis_sumo.api, V36); the seed stays the persisted one.
           seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
         });
         if (isStale()) return;
@@ -101,7 +234,18 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
         setErrorMessage(getErrorMessage(error));
       }
     },
-    [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction],
+    // #664 deps: appliedDomain is the "Recompute" trigger; scales ride the union
+    [
+      filteredJobList,
+      selectedQoI,
+      uqSettings,
+      inputVars,
+      distribution,
+      selectedFunction,
+      appliedDomain,
+      inputLogScales,
+      outputLogScaleForQoi,
+    ],
   );
 
   useEffect(() => {
@@ -221,8 +365,114 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
     overflow: "hidden",
   };
 
+  const setDraftRow = (inputVar: string, patch: Partial<SobolDomainDraftRow>) =>
+    setDomainDraft(draft => ({
+      ...draft,
+      [inputVar]: { ...draft[inputVar], mode: draft[inputVar]?.mode ?? "range", ...patch },
+    }));
+
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%">
+      <Box display="flex" flexDirection="column" gap={1} mmux-testid="sobol-domain-panel">
+        <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+          <Button
+            size="small"
+            variant="outlined"
+            sx={{ textTransform: "none" }}
+            onClick={() => setDomainOpen(open => !open)}
+            mmux-testid="sobol-domain-toggle"
+          >
+            {domainOpen ? "Hide" : "Edit"} sampling domain
+          </Button>
+          <Typography variant="body2" color="text.secondary" mmux-testid="sobol-domain-summary">
+            {domainSummary}
+          </Typography>
+        </Box>
+        <Collapse in={domainOpen}>
+          <Box display="flex" flexDirection="column" gap={1} pb={1}>
+            {inputVars.map(inputVar => {
+              const row = domainDraft[inputVar] ?? { mode: "range" as SobolDomainMode, min: "", max: "", pin: "" };
+              return (
+                <Box
+                  key={inputVar}
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
+                  flexWrap="wrap"
+                  mmux-testid={`sobol-domain-row-${inputVar}`}
+                >
+                  <Typography sx={{ minWidth: 120, fontWeight: 600 }} noWrap>
+                    {inputVar}
+                  </Typography>
+                  <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    value={row.mode}
+                    onChange={(_event, mode) => mode && setDraftRow(inputVar, { mode: mode as SobolDomainMode })}
+                    mmux-testid={`sobol-domain-mode-${inputVar}`}
+                  >
+                    <ToggleButton value="range" sx={{ textTransform: "none" }}>
+                      Range
+                    </ToggleButton>
+                    <ToggleButton value="pin" sx={{ textTransform: "none" }}>
+                      Pin
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                  {row.mode === "range" ? (
+                    <>
+                      <TextField
+                        size="small"
+                        label="min"
+                        value={row.min}
+                        onChange={event => setDraftRow(inputVar, { min: event.target.value })}
+                        sx={{ width: 120 }}
+                        mmux-testid={`sobol-domain-min-${inputVar}`}
+                      />
+                      <TextField
+                        size="small"
+                        label="max"
+                        value={row.max}
+                        onChange={event => setDraftRow(inputVar, { max: event.target.value })}
+                        sx={{ width: 120 }}
+                        mmux-testid={`sobol-domain-max-${inputVar}`}
+                      />
+                    </>
+                  ) : (
+                    <TextField
+                      size="small"
+                      label="pinned value"
+                      value={row.pin}
+                      onChange={event => setDraftRow(inputVar, { pin: event.target.value })}
+                      sx={{ width: 150 }}
+                      mmux-testid={`sobol-domain-pin-${inputVar}`}
+                    />
+                  )}
+                </Box>
+              );
+            })}
+            {domainError && (
+              <Typography variant="body2" color="error" mmux-testid="sobol-domain-error">
+                {domainError}
+              </Typography>
+            )}
+            <Box display="flex" alignItems="center" gap={1}>
+              <Button
+                size="small"
+                variant="contained"
+                sx={{ textTransform: "none" }}
+                disabled={!canApplyDomain}
+                onClick={handleApplyDomain}
+                mmux-testid="sobol-domain-apply"
+              >
+                Recompute
+              </Button>
+              <Typography variant="caption" color="text.secondary">
+                Blank rows fall back to the observed range; Pin holds a factor constant.
+              </Typography>
+            </Box>
+          </Box>
+        </Collapse>
+      </Box>
       {computing && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
       {!computing && plotData.length === 0 && !sobolData && (
         <InsufficientDataWarning
