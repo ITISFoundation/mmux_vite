@@ -8,5 +8,7 @@ cd "$flaskapi_dir"
 
 # ty type-checks the whole src/ tree (not incrementally per changed file) since
 # cross-module inference can surface errors outside the changed files. `uv run`
-# syncs the environment as needed, so no separate venv presence check is required.
-exec uv run ty check src/mmux_flaskapi
+# syncs the environment as needed -- but --frozen: the auto-version bot stamps
+# pyproject with PEP440 dev versions that uv would mirror into uv.lock, and the
+# image build requires the lock's semver form. Never let the hook rewrite the lock.
+exec uv run --frozen ty check src/mmux_flaskapi
