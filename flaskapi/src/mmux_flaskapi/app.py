@@ -7,6 +7,7 @@ from mmux_flaskapi.blueprints.deployment import deployment_bp
 from mmux_flaskapi.blueprints.osparc import osparc_bp
 from mmux_flaskapi.blueprints.sampling import sampling_bp
 from mmux_flaskapi.blueprints.textfile import textfile_bp
+from mmux_flaskapi.utils.api_endpoint import register_json_error_handlers
 from mmux_flaskapi.utils.json_serializer import register_json_transformers
 from mmux_flaskapi.utils.webserver_config import OsparcApi
 
@@ -42,6 +43,8 @@ def create_flask_app() -> MMUXFlask:
     app.register_blueprint(textfile_bp, url_prefix="/flask/text-file")
     app.register_blueprint(sampling_bp, url_prefix="/flask/sampling")
     app.register_blueprint(dakota_bp, url_prefix="/flask/dakota")
+    register_json_error_handlers(app)
+
     if os.environ.get("MMUX_E2E_MOCK_OSPARC"):
         # Test-only runtime control endpoint (lets a single backend boot serve
         # every service mode); never registered on the production path. §T9/§V11.

@@ -1,5 +1,6 @@
 import { Box, ToggleButton, ToggleButtonGroup, useTheme } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
@@ -68,8 +69,8 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
   const [errorMessage, setErrorMessage] = useState<string>();
   const [computing, setComputing] = useState(false);
 
-  useEffect(() => {
-    (async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
       setSobolData(null);
       setPlotData([]);
       setErrorMessage(undefined);
@@ -88,17 +89,20 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
           numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
           seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
         });
+        if (isStale()) return;
         setSobolData(data);
         setErrorMessage(undefined);
         setComputing(false);
       } catch (error) {
+        if (isStale()) return;
         console.warn("Error computing Sobol' indices:", error);
         setComputing(false);
         setSobolData(null);
         setErrorMessage(getErrorMessage(error));
       }
-    })();
-  }, [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction]);
+    },
+    [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction],
+  );
 
   useEffect(() => {
     if (!sobolData) {

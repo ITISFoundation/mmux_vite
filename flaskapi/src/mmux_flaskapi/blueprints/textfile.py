@@ -6,6 +6,8 @@ from typing import Final
 #
 from flask import Blueprint, jsonify
 
+from mmux_flaskapi.blueprints.sampling_models import ErrorResponse
+from mmux_flaskapi.utils.api_endpoint import api_endpoint
 from mmux_flaskapi.utils.json_serializer import get_request
 
 #
@@ -22,6 +24,7 @@ FILES_STORAGE_DIR: Final[Path] = Path(os.environ.get("TEXT_FILES_DIR", "/text-fi
 
 
 @textfile_bp.route("/", methods=["POST"])
+@api_endpoint
 def save_file():
     """Create or update a text file in the FILES_STORAGE_DIR folder.
     Request body should be JSON with 'filename' and 'content' fields."""
@@ -30,14 +33,20 @@ def save_file():
         _logger.debug(f"Request data: {request_data}")
 
         if "filename" not in request_data or "content" not in request_data:
-            return jsonify({"error": "Request must include both filename and content"}), 400
+            return jsonify(
+                ErrorResponse(error="Request must include both filename and content").model_dump()
+            ), 400
 
         filename = request_data["filename"]
         content = request_data["content"]
 
         # Basic filename validation - prevent path traversal
         if "/" in filename or "\\" in filename:
-            return jsonify({"error": "Invalid filename. Must not contain path separators"}), 400
+            return jsonify(
+                ErrorResponse(
+                    error="Invalid filename. Must not contain path separators"
+                ).model_dump()
+            ), 400
 
         file_path = FILES_STORAGE_DIR / filename
 
@@ -49,21 +58,26 @@ def save_file():
 
     except Exception as e:
         _logger.error(f"Error saving file: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify(ErrorResponse(error=str(e)).model_dump()), 500
 
 
 @textfile_bp.route("/<filename>", methods=["GET"])
+@api_endpoint
 def get_file(filename):
     """Retrieve the content of a text file from the FILES_STORAGE_DIR folder."""
     try:
         # Basic filename validation - prevent path traversal
         if "/" in filename or "\\" in filename:
-            return jsonify({"error": "Invalid filename. Must not contain path separators"}), 400
+            return jsonify(
+                ErrorResponse(
+                    error="Invalid filename. Must not contain path separators"
+                ).model_dump()
+            ), 400
 
         file_path = FILES_STORAGE_DIR / filename
 
         if not file_path.exists():
-            return jsonify({"error": f"File {filename} not found"}), 404
+            return jsonify(ErrorResponse(error=f"File {filename} not found").model_dump()), 404
 
         with open(file_path, encoding="utf-8") as f:
             content = f.read()
@@ -72,4 +86,4 @@ def get_file(filename):
 
     except Exception as e:
         _logger.error(f"Error retrieving file {filename}: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify(ErrorResponse(error=str(e)).model_dump()), 500

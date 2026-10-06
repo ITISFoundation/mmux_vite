@@ -40,6 +40,19 @@ describe("requestJson", () => {
     expect(error.message).toBe("POST /flask/sampling/lhs failed with 422: N must be <= 50");
   });
 
+  it('V44eh surfaces the BE {"error": <str>} payload verbatim as the http error message', async () => {
+    stubFetch(jsonResponse({ error: "Workflow failed at step 3" }, 422));
+    const error = await caught(requestJson("/flask/dakota/manual_uq_propagation", { method: "POST", body: {} }));
+    expect(error).toMatchObject({ kind: "http", status: 422 });
+    expect(error.message).toBe("Workflow failed at step 3");
+  });
+
+  it("V44eh keeps the dialect fallback when a JSON body carries no usable error string", async () => {
+    stubFetch(jsonResponse({ detail: "unexpected" }, 400));
+    const error = await caught(requestJson("/flask/x", { method: "POST", body: {} }));
+    expect(error.message).toBe('POST /flask/x failed with 400: {"detail":"unexpected"}');
+  });
+
   it("maps a rejected fetch to a network error", async () => {
     stubFetch(networkError());
     const error = await caught(requestJson("/flask/x"));

@@ -2,17 +2,16 @@
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from functools import wraps
-from pathlib import Path
 from typing import Any, cast
 from uuid import UUID
 
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, request
 
 #
 from osparc_client.models.function_job_status import FunctionJobStatus
 
 #
+from mmux_flaskapi.utils.api_endpoint import api_endpoint
 from mmux_flaskapi.utils.helpers import _get_all_items
 from mmux_flaskapi.utils.local_job_store import (
     get_local_function,
@@ -30,7 +29,6 @@ from mmux_flaskapi.utils.local_job_store import (
 )
 from mmux_flaskapi.utils.webserver_config import (
     OsparcApi,
-    OsparcApiException,
     get_osparc_api_if_configured,
     get_osparc_api_if_connected,
 )
@@ -196,47 +194,6 @@ def _get_query_arg(*names: str) -> str:
         if name in request.args:
             return request.args[name]
     raise KeyError(names[0])
-
-
-#####################################################################################
-# Decorators for error handling and logging
-#####################################################################################
-def api_endpoint(func: Callable[..., Any]) -> Callable[..., Any]:
-    """
-    Decorator for API endpoints to handle errors, logging, and return proper HTTP status codes.
-    Propagates downstream OsparcApiException errors with their status code and message.
-    """
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        func_name = getattr(func, "__name__", str(func))
-        _logger.debug(f"Starting flask function: {func_name}")
-        _logger.debug(f"Cwd: {Path.cwd()}")
-        try:
-            result = func(*args, **kwargs)
-            # If the endpoint returns a tuple (data, status), use it directly
-            if isinstance(result, tuple) and len(result) == 2:
-                data, status = result
-                return make_response(jsonify(data), status)
-            # If the endpoint returns a Flask response, return as is
-            return jsonify(result)
-        except KeyError as e:
-            _logger.error(f"Missing required parameter: {e}")
-            return make_response(jsonify({"error": f"Missing required parameter: {e}"}), 400)
-        except ValueError as e:
-            _logger.error(f"Invalid value: {e}")
-            return make_response(jsonify({"error": str(e)}), 422)
-        except OsparcApiException as e:
-            # Propagate downstream API error with its status code and message
-            status_code = getattr(e, "status", getattr(e, "status_code", 500))
-            error_msg = getattr(e, "body", str(e))
-            _logger.error(f"Downstream API error: {status_code} - {error_msg}")
-            return make_response(jsonify({"error": error_msg}), status_code)
-        except Exception as e:
-            _logger.error(f"Internal server error: {e}")
-            return make_response(jsonify({"error": str(e)}), 500)
-
-    return wrapper
 
 
 #####################################################################################
