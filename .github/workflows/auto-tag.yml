@@ -110,6 +110,12 @@ jobs:
           # repo PAT is configured, push as that identity (commits stay
           # authored by the bot); gh release calls keep GITHUB_TOKEN.
           if [ -n "$AUTOTAG_PUSH_TOKEN" ]; then
+            # actions/checkout@v5 persists GITHUB_TOKEN as an extraheader for
+            # https://github.com/, whose Authorization header overrides the
+            # URL credentials below and would silently re-authenticate this
+            # push as GITHUB_TOKEN (same GH013). Drop it for the PAT path
+            # only; the origin fallback still needs it.
+            git config --local --unset-all "http.https://github.com/.extraheader" 2>/dev/null || true
             push_remote="https://x-access-token:${AUTOTAG_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}"
           else
             push_remote="origin"
@@ -214,6 +220,12 @@ jobs:
           # Same Admin-PAT push path as the develop job: main sits under the
           # same ruleset and GITHUB_TOKEN pushes cannot bypass it.
           if [ -n "$AUTOTAG_PUSH_TOKEN" ]; then
+            # actions/checkout@v5 persists GITHUB_TOKEN as an extraheader for
+            # https://github.com/, whose Authorization header overrides the
+            # URL credentials below and would silently re-authenticate this
+            # push as GITHUB_TOKEN (same GH013). Drop it for the PAT path
+            # only; the origin fallback still needs it.
+            git config --local --unset-all "http.https://github.com/.extraheader" 2>/dev/null || true
             push_remote="https://x-access-token:${AUTOTAG_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}"
           else
             push_remote="origin"
