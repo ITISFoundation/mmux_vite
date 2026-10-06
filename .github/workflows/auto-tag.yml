@@ -20,6 +20,13 @@ name: Tag and release
 #   If a human merge advanced the branch mid-run, the bot push is rejected
 #   as non-fast-forward and the bump loop refetches the new tip, recomputes
 #   the version against fresh tags, and retries.
+# * The branch push uses the AUTOTAG_PUSH_TOKEN secret when set: the
+#   Protected Branches ruleset over develop and main (PR + verify-image-build
+#   + merge queue) admits only its Admin bypass, and GitHub rejects
+#   GITHUB_TOKEN as a bypass actor for a non-installed integration (API 422).
+#   A ruleset rejection fails fast with the remote's own message instead of
+#   burning the race retries, which exist only for genuine non-fast-forward
+#   races (learned the hard way on 2026-10-06).
 on:
   push:
     branches: [develop, main]
@@ -91,22 +98,53 @@ jobs:
         id: bump
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTOTAG_PUSH_TOKEN: ${{ secrets.AUTOTAG_PUSH_TOKEN }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # develop/main carry the Protected Branches ruleset (PR + required
+          # checks + merge queue), whose only bypass is the Admin repository
+          # role; GitHub refuses GITHUB_TOKEN as a bypass actor (an Actions
+          # integration is not installable, API 422). When an Admin-scoped
+          # repo PAT is configured, push as that identity (commits stay
+          # authored by the bot); gh release calls keep GITHUB_TOKEN.
+          if [ -n "$AUTOTAG_PUSH_TOKEN" ]; then
+            # actions/checkout@v5 persists GITHUB_TOKEN as an extraheader for
+            # https://github.com/, whose Authorization header overrides the
+            # URL credentials below and would silently re-authenticate this
+            # push as GITHUB_TOKEN (same GH013). Drop it for the PAT path
+            # only; the origin fallback still needs it.
+            git config --local --unset-all "http.https://github.com/.extraheader" 2>/dev/null || true
+            push_remote="https://x-access-token:${AUTOTAG_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}"
+          else
+            push_remote="origin"
+          fi
           for attempt in 1 2 3; do
             git fetch --tags --force
             git fetch origin "$GH_BRANCH"
             git reset --hard "origin/$GH_BRANCH"
             version=$(uv run --no-project --with packaging python scripts/auto_version.py next-dev)
             uv run --no-project --with packaging python scripts/auto_version.py apply --to "$version"
-            git diff --quiet && { echo "nothing to bump at $version"; break; }
+            # Nothing to apply means the tip already sits at the next dev
+            # version: a no-op, not a failure (the old `break` fell through
+            # to the after-3-attempts exit 1).
+            git diff --quiet && { echo "nothing to bump at $version"; exit 0; }
             git commit -am "chore: bump dev version to $version [skip ci]"
-            if git push origin "HEAD:$GH_BRANCH"; then
+            # A non-fast-forward race clears on retry; a GH006/GH013 policy
+            # rejection never does. 2026-10-06: three "push raced with
+            # another merge" messages hid a ruleset rejection - tell the two
+            # apart from the captured push output.
+            if push_output=$(git push "$push_remote" "HEAD:$GH_BRANCH" 2>&1); then
+              printf '%s\n' "$push_output"
               echo "version=$version" >> "$GITHUB_OUTPUT"
               echo "target=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
               exit 0
+            fi
+            printf '%s\n' "$push_output" >&2
+            if grep -qE "GH006|GH013|protected branch|repository rule violation" <<<"$push_output"; then
+              echo "::error::push to $GH_BRANCH rejected by branch rules, not a race: configure the AUTOTAG_PUSH_TOKEN secret (a PAT whose owner holds the ruleset's Admin bypass)" >&2
+              exit 1
             fi
             echo "push raced with another merge (attempt $attempt); recomputing"
           done
@@ -172,12 +210,26 @@ jobs:
         if: steps.release.outputs.action == 'full'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTOTAG_PUSH_TOKEN: ${{ secrets.AUTOTAG_PUSH_TOKEN }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           script=(uv run --no-project --with packaging python scripts/auto_version.py)
           version="${{ steps.release.outputs.version }}"
+          # Same Admin-PAT push path as the develop job: main sits under the
+          # same ruleset and GITHUB_TOKEN pushes cannot bypass it.
+          if [ -n "$AUTOTAG_PUSH_TOKEN" ]; then
+            # actions/checkout@v5 persists GITHUB_TOKEN as an extraheader for
+            # https://github.com/, whose Authorization header overrides the
+            # URL credentials below and would silently re-authenticate this
+            # push as GITHUB_TOKEN (same GH013). Drop it for the PAT path
+            # only; the origin fallback still needs it.
+            git config --local --unset-all "http.https://github.com/.extraheader" 2>/dev/null || true
+            push_remote="https://x-access-token:${AUTOTAG_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}"
+          else
+            push_remote="origin"
+          fi
           for attempt in 1 2 3; do
             "${script[@]}" apply --to "$version"
             if git diff --quiet; then
@@ -186,10 +238,17 @@ jobs:
               exit 0
             fi
             git commit -am "chore: release version $version [skip ci]"
-            if git push origin "HEAD:$GH_BRANCH"; then
+            # Race-vs-policy discrimination, as in the develop job.
+            if push_output=$(git push "$push_remote" "HEAD:$GH_BRANCH" 2>&1); then
+              printf '%s\n' "$push_output"
               echo "version=$version" >> "$GITHUB_OUTPUT"
               echo "target=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
               exit 0
+            fi
+            printf '%s\n' "$push_output" >&2
+            if grep -qE "GH006|GH013|protected branch|repository rule violation" <<<"$push_output"; then
+              echo "::error::push to $GH_BRANCH rejected by branch rules, not a race: configure the AUTOTAG_PUSH_TOKEN secret (a PAT whose owner holds the ruleset's Admin bypass)" >&2
+              exit 1
             fi
             echo "push raced with another merge (attempt $attempt); recomputing"
             git fetch --tags --force
