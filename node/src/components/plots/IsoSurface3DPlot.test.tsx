@@ -104,6 +104,29 @@ describe("IsoSurface3DPlot", () => {
     expect(isosurface().value).toEqual([9]);
   });
 
+  it("V45gd releases loading when a key reuse supersedes an in-flight request", async () => {
+    let resolveSlow: (r: Response) => void = () => undefined;
+    const slow = () => new Promise<Response>(resolve => (resolveSlow = resolve));
+    const fetchMock = stubFetch(jsonResponse(grid([1])), slow);
+
+    render(<IsoSurface3DPlot />);
+    await waitFor(() => expect(isosurface().value).toEqual([1])); // A committed under key K1
+
+    await waitFor(() => expect(mocks.setOtherAxis).toBeDefined());
+    act(() => mocks.setOtherAxis?.({ x1: 0, x2: 0, x3: 0, x4: 7.5 })); // B in flight
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(/Calculating/)).toBeInTheDocument(); // A's isosurface hidden while computing
+
+    act(() => mocks.setOtherAxis?.({ x1: 0, x2: 0, x3: 0, x4: 7 })); // back to K1: dedup exit must release loading
+
+    await waitFor(() => expect(screen.queryByText(/Calculating/)).toBeNull());
+    expect(isosurface().value).toEqual([1]);
+
+    await act(async () => resolveSlow(jsonResponse(grid([9])))); // stale B, gated
+    expect(screen.queryByText(/Calculating/)).toBeNull();
+    expect(isosurface().value).toEqual([1]);
+  });
+
   it.each([
     [1, "x2", { 1: "x2", 2: "x1", 3: "x3" }],
     [1, "x4", { 1: "x4", 2: "x2", 3: "x3" }],

@@ -27,8 +27,10 @@ vi.mock("../../context/JobContext", () => ({
   }),
 }));
 
+const mocks = vi.hoisted(() => ({ validationQoI: "y" }));
+
 vi.mock("../../context/MMUXContext", () => ({
-  useMMUXContext: () => ({ validationQoI: "y" }),
+  useMMUXContext: () => ({ validationQoI: mocks.validationQoI }),
 }));
 
 describe("SuMoValidation", () => {
@@ -60,5 +62,41 @@ describe("SuMoValidation", () => {
     // observed=[1,2,3], predicted=[1.1,1.9,3.2] -> MAE = mean(|diffs|) = 0.1333
     await waitFor(() => expect(screen.getByText("0.1333")).toBeDefined());
     expect(screen.getByTestId("plot-stub")).toBeDefined();
+  });
+
+  it("V45gd ignores a stale CV response that resolves after a newer QoI request", async () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    let resolveStale: (r: unknown) => void = () => undefined;
+    const stale = new Promise<unknown>(resolve => (resolveStale = resolve));
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockImplementationOnce(() => stale)
+        .mockImplementationOnce(() =>
+          Promise.resolve({ ok: true, json: async () => ({ observed: [1, 2, 3], predicted: [1, 2.5, 5] }) }),
+        ),
+    );
+
+    const { rerender } = render(<SuMoValidation />);
+    mocks.validationQoI = "z";
+    rerender(<SuMoValidation />);
+
+    // newest request (diffs [0, 0.5, 2]) commits first: MAE = 0.8333 (toPrecision(4))
+    await waitFor(() => expect(screen.getByText("0.8333")).toBeDefined());
+
+    resolveStale({ ok: true, json: async () => ({ observed: [1, 2, 3], predicted: [1.1, 1.9, 3.2] }) });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // the stale generation's MAE (0.1333) must never overwrite the newest result
+    expect(screen.queryByText("0.1333")).toBeNull();
+    expect(screen.getByText("0.8333")).toBeDefined();
   });
 });

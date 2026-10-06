@@ -1,11 +1,33 @@
-import { describe, expect, it, vi } from "vitest";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { logColorbarTicks } from "../../utils/plotScale";
 import { buildSobolBarData, buildSobolHeatmapData } from "../../utils/sobolIndices";
+import SobolIndicesPlot from "./SobolIndicesPlot";
+import { jsonResponse, stubFetch } from "../../test/fetchStub";
 
 vi.mock("../../utils/sobolIndices", async importOriginal => {
   const mod = await importOriginal<typeof import("../../utils/sobolIndices")>();
   return mod;
 });
+
+const mocks = vi.hoisted(() => ({
+  filteredJobList: [] as Array<{ uid: string }>,
+  selectedQoI: "y" as string | undefined,
+  uqSettings: {},
+  fetchedJobCollections: [{}],
+}));
+
+vi.mock("react-plotly.js", () => import("../../test/plotlyMock"));
+vi.mock("../../context/MMUXContext", () => ({
+  useMMUXContext: () => ({ uqSettings: mocks.uqSettings, selectedQoI: mocks.selectedQoI }),
+}));
+vi.mock("../../context/FunctionContext", () => {
+  const value = { selectedFunction: { uid: "fn-1" }, inputVars: ["x1", "x2"], distribution: {} };
+  return { useFunctionContext: () => value };
+});
+vi.mock("../../context/JobContext", () => ({
+  useJobContext: () => ({ filteredJobList: mocks.filteredJobList, fetchedJobCollections: mocks.fetchedJobCollections }),
+}));
 
 describe("SobolIndicesPlot toggle helpers", () => {
   const getZ = (trace: ReturnType<typeof buildSobolHeatmapData>): number[][] => trace.z as number[][];
@@ -94,5 +116,45 @@ describe("SobolIndicesPlot toggle helpers", () => {
     const { tickvals, ticktext } = logColorbarTicks();
     expect(tickvals).toEqual([-2, -1, 0]);
     expect(ticktext).toEqual(["0.01", "0.1", "1"]);
+  });
+});
+
+const sobolPayload = (main: number[], total: number[]) => ({
+  sobol: Object.fromEntries(
+    ["x1", "x2"].map((v, i) => [
+      v,
+      { main: main[i], total: total[i], mainCiLow: main[i], mainCiHigh: main[i], totalCiLow: total[i], totalCiHigh: total[i] },
+    ]),
+  ),
+  sobolSecondOrder: {},
+});
+
+function firstOrderY(): number[] {
+  const plot = screen.getByTestId("plotly");
+  return (JSON.parse(plot.getAttribute("data-traces") as string) as Array<{ y: number[] }>)[0].y;
+}
+
+describe("SobolIndicesPlot fetch freshness (V45gd)", () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps the newest QoI result when an older request resolves last", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `job-${i}` }));
+    mocks.selectedQoI = "y";
+    let resolveStale: (r: Response) => void = () => undefined;
+    const stale = () => new Promise<Response>(resolve => (resolveStale = resolve));
+    stubFetch(stale, jsonResponse(sobolPayload([0.6, 0.4], [0.9, 0.7])));
+
+    const { rerender } = render(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+    mocks.selectedQoI = "z";
+    rerender(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+
+    await waitFor(() => expect(firstOrderY()).toEqual([0.6, 0.4]));
+
+    await act(async () => resolveStale(jsonResponse(sobolPayload([0.1, 0.2], [0.3, 0.4]))));
+    expect(firstOrderY()).toEqual([0.6, 0.4]);
   });
 });

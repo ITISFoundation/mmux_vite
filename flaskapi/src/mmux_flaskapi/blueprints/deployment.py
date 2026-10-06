@@ -3,6 +3,9 @@ import os
 
 from flask import Blueprint, jsonify
 
+from mmux_flaskapi.blueprints.sampling_models import ErrorResponse
+from mmux_flaskapi.utils.api_endpoint import api_endpoint
+
 _logger = logging.getLogger(__name__)
 
 deployment_bp = Blueprint("deployment", __name__)
@@ -31,33 +34,37 @@ def get_deployment_mode_value() -> str:
 
 
 @deployment_bp.route("/health")
+@api_endpoint
 def health_check():
     """Used by docker to check the health of the Flask app."""
     return jsonify({"status": "healthy"}), 200
 
 
 @deployment_bp.route("/service-mode")
+@api_endpoint
 def service_mode():
     """Used to check the environment variable SERVICE_MODE."""
     try:
         return jsonify({"service_mode": get_service_mode_value()}), 200
     except KeyError as exc:
-        return jsonify({"error": exc.args[0]}), 500
+        return jsonify(ErrorResponse(error=str(exc.args[0])).model_dump()), 500
 
 
 @deployment_bp.route("/permissions")
+@api_endpoint
 def permissions():
     """Used to check the environment variable PERMISSIONS."""
     try:
         return jsonify({"permissions": get_permissions_value()}), 200
     except KeyError as exc:
-        return jsonify({"error": exc.args[0]}), 500
+        return jsonify(ErrorResponse(error=str(exc.args[0])).model_dump()), 500
 
 
 @deployment_bp.route("/mode")
+@api_endpoint
 def deployment_mode():
     """Used to check the environment variable DEPLOYMENT_MODE."""
     try:
         return jsonify({"deployment_mode": get_deployment_mode_value()}), 200
     except KeyError as exc:
-        return jsonify({"error": exc.args[0]}), 500
+        return jsonify(ErrorResponse(error=str(exc.args[0])).model_dump()), 500

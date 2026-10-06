@@ -117,4 +117,26 @@ describe("Curves1DPlot", () => {
     await act(async () => resolveStale(jsonResponse(predictions([1, 2]))));
     expect(traces()[0].y).toEqual([7, 8]);
   });
+
+  it("V45gd releases loading when jobs are deselected during a pending request", async () => {
+    let resolveStale: (r: Response) => void = () => undefined;
+    const stale = () => new Promise<Response>(resolve => (resolveStale = resolve));
+    const fetchMock = stubFetch(stale);
+
+    const { rerender } = render(<Curves1DPlots />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/You need at least 5 samples/)).toBeNull(); // blank while computing
+
+    act(() => {
+      mocks.filteredJobList = [];
+    });
+    rerender(<Curves1DPlots />);
+
+    // the deselection supersedes the pending request; the new (empty) generation
+    // must release loading so the sample-count explanation replaces the blank plot
+    expect(await screen.findByText(/You need at least 5 samples/)).toBeInTheDocument();
+    await act(async () => resolveStale(jsonResponse(predictions([1, 2]))));
+    expect(screen.getByText(/You need at least 5 samples/)).toBeInTheDocument();
+    expect(screen.queryByTestId("plotly")).toBeNull(); // stale result gated
+  });
 });

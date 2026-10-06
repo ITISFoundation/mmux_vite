@@ -1,5 +1,6 @@
 import { Box, ToggleButton, ToggleButtonGroup, useTheme } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
@@ -80,8 +81,8 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
   const [errorMessage, setErrorMessage] = useState<string>();
   const [computing, setComputing] = useState(false);
 
-  useEffect(() => {
-    (async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
       setCorrelations(null);
       setPlotData([]);
       setErrorMessage(undefined);
@@ -100,17 +101,20 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
           numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
           seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
         });
+        if (isStale()) return;
         setCorrelations(data.correlations);
         setErrorMessage(undefined);
         setComputing(false);
       } catch (error) {
+        if (isStale()) return;
         console.warn("Error computing correlation indices:", error);
         setComputing(false);
         setCorrelations(null);
         setErrorMessage(getErrorMessage(error));
       }
-    })();
-  }, [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction]);
+    },
+    [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction],
+  );
 
   useEffect(() => {
     if (!correlations) {

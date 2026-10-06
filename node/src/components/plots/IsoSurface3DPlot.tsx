@@ -1,5 +1,6 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
+import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
@@ -32,7 +33,6 @@ function IsoSurface3DPlot() {
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
   const [errorMessage, setErrorMessage] = useState<string>();
   const lastFetchedKey = useRef<string | undefined>(undefined);
-  const latestRequestId = useRef(0);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
       acc[key] =
@@ -154,13 +154,11 @@ function IsoSurface3DPlot() {
     localAxis1: string,
     localAxis2: string,
     requestKey: string,
+    isStale: () => boolean,
   ) => {
     // This should create the "data" state variable to be plotted
     console.info("Evaluating SuMo for 2D surface...");
     console.info("Jobs to build SuMo: ", jobs);
-    latestRequestId.current += 1;
-    const requestId = latestRequestId.current;
-    const isStale = () => requestId !== latestRequestId.current;
     setPropagating(true);
     setErrorMessage(undefined);
     requestJson<{ gridData: { [key: string]: number[] } }>(`/flask/dakota/sumo_grid_evaluation`, {
@@ -194,8 +192,8 @@ function IsoSurface3DPlot() {
       });
   };
 
-  useEffect(() => {
-    const run = async () => {
+  useGuardedAsyncEffect(
+    async isStale => {
       const jobs = filteredJobList;
       // V16: dedup by stable logical request key; same key → no new fetch.
       const axisRanges = buildAxisRanges(distribution[selectedFunction?.uid || ""], [axis1, axis2, axis3]);
@@ -209,13 +207,15 @@ function IsoSurface3DPlot() {
         axisRanges,
       });
       if (requestKey === lastFetchedKey.current) {
-        return undefined;
+        // V45gd: reuse of the successful result must release any loading the
+        // invalidated in-between request left running.
+        setPropagating(false);
+        return;
       }
-      return RunSuMo3DInterpolation(jobs, axis1, axis2, requestKey);
-    };
-    run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [axis1, axis2, axis3, inputVars, selectedQoI, selectedFunction, distribution, otherAxis, filteredJobList]);
+      return RunSuMo3DInterpolation(jobs, axis1, axis2, requestKey, isStale);
+    },
+    [axis1, axis2, axis3, inputVars, selectedQoI, selectedFunction, distribution, otherAxis, filteredJobList],
+  );
 
   const layout = {
     title: {

@@ -36,6 +36,7 @@ from mmux_flaskapi.blueprints.dakota_models import (
     UQWithUncertaintyResponse,
     required_completed_jobs,
 )
+from mmux_flaskapi.blueprints.sampling_models import ErrorResponse
 from mmux_flaskapi.dakota.funs_data_processing import (
     compute_correlation_indices,
     create_manual_uq_samples,
@@ -52,6 +53,7 @@ from mmux_flaskapi.dakota.funs_evaluate import (
     perform_moga_optimization,
 )
 from mmux_flaskapi.data_preprocessor import DataPreprocessor
+from mmux_flaskapi.utils.api_endpoint import api_endpoint
 
 #
 from mmux_flaskapi.utils.helpers import create_run_dir
@@ -289,6 +291,7 @@ def _bounds_from_distributions(
 
 
 @dakota_bp.route("/sumo_cross_validation", methods=["POST"])
+@api_endpoint
 def flask_sumo_cross_validation():
     """
     Perform SUMO cross-validation to assess surrogate model accuracy.
@@ -332,7 +335,11 @@ def flask_sumo_cross_validation():
         if missing_keys:
             _logger.error(f"Missing expected keys in results: {missing_keys}")
             return (
-                jsonify({"error": f"Missing expected keys in results: {missing_keys}"}),
+                jsonify(
+                    ErrorResponse(
+                        error=f"Missing expected keys in results: {missing_keys}"
+                    ).model_dump()
+                ),
                 422,
             )  # Unprocessable Entity
 
@@ -361,6 +368,7 @@ def flask_sumo_cross_validation():
 
 
 @dakota_bp.route("/manual_uq_propagation_with_uncertainty", methods=["POST"])
+@api_endpoint
 def flask_manual_uq_propagation_with_uncertainty():
     """
     Perform manual UQ propagation with uncertainty quantification.
@@ -550,6 +558,7 @@ def flask_manual_uq_propagation_with_uncertainty():
 
 
 @dakota_bp.route("/compute_correlation_indices", methods=["POST"])
+@api_endpoint
 def flask_compute_correlation_indices():
     """
     Compute per-input <-> output Pearson and Spearman correlation coefficients (#470).
@@ -638,6 +647,7 @@ def flask_compute_correlation_indices():
 
 
 @dakota_bp.route("/compute_sobol_indices", methods=["POST"])
+@api_endpoint
 def flask_compute_sobol_indices():
     """
     Compute per-input first-order (main effect), total-order, and second-order
@@ -716,6 +726,7 @@ def flask_compute_sobol_indices():
 
 
 @dakota_bp.route("/sumo_along_axes", methods=["POST"])
+@api_endpoint
 def flask_evaluate_sumo_along_axes():
     """
     SuMo model evaluation along each input axis with optional fixed values.
@@ -813,6 +824,7 @@ def flask_evaluate_sumo_along_axes():
 
 ## This method could probably be generic for N-D (thus not needing the 1D version above)
 @dakota_bp.route("/sumo_grid_evaluation", methods=["POST"])
+@api_endpoint
 def flask_sumo_grid_evaluation():
     """
     SUMO model evaluation on a grid with optional fixed values for non-grid variables.
@@ -925,6 +937,7 @@ def flask_sumo_grid_evaluation():
 
 
 @dakota_bp.route("/get_sumo_cv_accuracy_metrics", methods=["POST"])
+@api_endpoint
 def flask_get_sumo_cv_accuracy_metrics():
     """
     Get SUMO cross-validation accuracy metrics for model evaluation.
@@ -994,6 +1007,7 @@ def flask_get_sumo_cv_accuracy_metrics():
 
 
 @dakota_bp.route("/perform_moga_optimization", methods=["POST"])
+@api_endpoint
 def flask_perform_moga_optimization():
     """
     Perform Multi-Objective Genetic Algorithm (MOGA) optimization.
