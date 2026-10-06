@@ -14,8 +14,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pandas as pd
 import pytest
-from conftest import TEST_RUNS_DIR
 from osparc_client.exceptions import ApiException as OsparcApiException
+
+pytestmark = pytest.mark.integration
 
 
 # Define the mocks directly in this file for simplicity
@@ -775,23 +776,11 @@ class TestGridSamplingWithMocks:
     @pytest.fixture
     def mock_grid_dependencies(self):
         """Mock the grid sampling dependencies."""
-        with patch("mmux_flaskapi.dakota.funs_evaluate.create_grid_samples") as mock_create_grid:
-            with patch("mmux_flaskapi.dakota.funs_data_processing.load_data") as mock_load_data:
-                with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
-                    # Mock create_grid_samples to return a file path
-                    run_dir = TEST_RUNS_DIR / "test_run"
-                    mock_create_run_dir.return_value = run_dir
-                    mock_create_grid.return_value = run_dir / "grid_samples.csv"
+        with patch("mmux_flaskapi.blueprints.sampling.generate_grid_samples") as mock_generate_grid:
+            sample_df = pd.DataFrame({"x1": [1.0, 2.0, 3.0], "x2": [10.0, 20.0, 30.0]})
+            mock_generate_grid.return_value = sample_df
 
-                    # Mock load_data to return sample data
-                    sample_df = pd.DataFrame({"x1": [1.0, 2.0, 3.0], "x2": [10.0, 20.0, 30.0]})
-                    mock_load_data.return_value = sample_df
-
-                    yield {
-                        "create_grid": mock_create_grid,
-                        "load_data": mock_load_data,
-                        "create_run_dir": mock_create_run_dir,
-                    }
+            yield {"generate_grid": mock_generate_grid}
 
     def test_grid_sampling_success(self, test_client, mock_grid_dependencies):
         """Test successful grid sampling with mocked OSPARC API."""
@@ -1030,60 +1019,48 @@ class TestSamplingIntegrationWithOsparcAPI:
                 }
             )
 
-        with patch("mmux_flaskapi.dakota.funs_evaluate.create_grid_samples") as mock_create_grid:
-            with patch("mmux_flaskapi.dakota.funs_data_processing.load_data") as mock_load_data:
-                with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
+        with patch("mmux_flaskapi.blueprints.sampling.generate_grid_samples") as mock_generate_grid:
+            with patch(
+                "osparc_client.api.functions_api.FunctionsApi.map_function",
+                side_effect=mock_engineering_map_function,
+            ):
+                with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
                     with patch(
-                        "osparc_client.api.functions_api.FunctionsApi.map_function",
-                        side_effect=mock_engineering_map_function,
-                    ):
-                        with patch(
-                            "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-                        ) as mock_parent_ids:
-                            with patch(
-                                "mmux_flaskapi.blueprints.sampling._get_functions_api"
-                            ) as mock_get_api:
-                                # Set up grid dependencies mocks
-                                run_dir = TEST_RUNS_DIR / "test_run"
-                                mock_create_run_dir.return_value = run_dir
-                                mock_create_grid.return_value = run_dir / "grid_samples.csv"
-                                sample_df = pd.DataFrame(
-                                    {
-                                        "inlet_velocity": [1.0, 2.5, 4.0],
-                                        "outlet_pressure": [0.8, 1.0, 1.2],
-                                    }
-                                )
-                                mock_load_data.return_value = sample_df
-                                mock_parent_ids.return_value.parent_node_id = "cfd-node-xyz789"
-                                mock_parent_ids.return_value.parent_project_id = (
-                                    "cfd-project-uvw012"
-                                )
+                        "mmux_flaskapi.blueprints.sampling._get_functions_api"
+                    ) as mock_get_api:
+                        sample_df = pd.DataFrame(
+                            {
+                                "inlet_velocity": [1.0, 2.5, 4.0],
+                                "outlet_pressure": [0.8, 1.0, 1.2],
+                            }
+                        )
+                        mock_generate_grid.return_value = sample_df
+                        mock_parent_ids.return_value.parent_node_id = "cfd-node-xyz789"
+                        mock_parent_ids.return_value.parent_project_id = "cfd-project-uvw012"
 
-                                mock_api = Mock()
-                                mock_api.map_function = Mock(
-                                    side_effect=mock_engineering_map_function
-                                )
-                                mock_get_api.return_value = mock_api
+                        mock_api = Mock()
+                        mock_api.map_function = Mock(side_effect=mock_engineering_map_function)
+                        mock_get_api.return_value = mock_api
 
-                                response = test_client.post("/flask/sampling/grid", json=payload)
+                        response = test_client.post("/flask/sampling/grid", json=payload)
 
-                                assert response.status_code == 200
-                                data = response.get_json()
+                        assert response.status_code == 200
+                        data = response.get_json()
 
-                                # Verify engineering-specific response
-                                assert "cfd" in data["jobId"]
-                                assert data["functionId"] == "fluid-dynamics-cfd-v3.0"
-                                assert "meshQuality" in data
-                                assert "solverSettings" in data
+                        # Verify engineering-specific response
+                        assert "cfd" in data["jobId"]
+                        assert data["functionId"] == "fluid-dynamics-cfd-v3.0"
+                        assert "meshQuality" in data
+                        assert "solverSettings" in data
 
-                                # Verify samples were processed
-                                call_kwargs = mock_api.map_function.call_args[1]
-                                samples = call_kwargs["request_body"]
-                                assert len(samples) == 3  # From mocked DataFrame
+                        # Verify samples were processed
+                        call_kwargs = mock_api.map_function.call_args[1]
+                        samples = call_kwargs["request_body"]
+                        assert len(samples) == 3  # From mocked DataFrame
 
-                                for sample in samples:
-                                    assert "inlet_velocity" in sample  # From mock grid dependencies
-                                    assert "outlet_pressure" in sample
+                        for sample in samples:
+                            assert "inlet_velocity" in sample  # From mock grid dependencies
+                            assert "outlet_pressure" in sample
 
 
 class TestCloneJobWithMocks:
@@ -1944,9 +1921,9 @@ class TestSamplingErrorHandlingMissingCoverage:
             "funUid": "test-function",
         }
 
-        # Mock import error for create_grid_samples
-        with patch("mmux_flaskapi.dakota.funs_evaluate.create_grid_samples") as mock_create_grid:
-            mock_create_grid.side_effect = ImportError("Cannot import create_grid_samples")
+        # Mock import error for generate_grid_samples
+        with patch("mmux_flaskapi.blueprints.sampling.generate_grid_samples") as mock_generate_grid:
+            mock_generate_grid.side_effect = ImportError("Cannot import create_grid_samples")
 
             response = test_client.post("/flask/sampling/grid", json=payload)
 
@@ -2088,43 +2065,36 @@ class TestSamplingErrorHandlingMissingCoverage:
         }
 
         # Mock grid dependencies
-        with patch("mmux_flaskapi.dakota.funs_evaluate.create_grid_samples") as mock_create_grid:
-            with patch("mmux_flaskapi.dakota.funs_data_processing.load_data") as mock_load_data:
-                with patch("mmux_flaskapi.utils.helpers.create_run_dir") as mock_create_run_dir:
-                    run_dir = TEST_RUNS_DIR / "test_run"
-                    mock_create_run_dir.return_value = run_dir
-                    mock_create_grid.return_value = run_dir / "grid_samples.csv"
-                    sample_df = pd.DataFrame({"x": [0.0, 1.0]})
-                    mock_load_data.return_value = sample_df
+        with patch("mmux_flaskapi.blueprints.sampling.generate_grid_samples") as mock_grid:
+            sample_df = pd.DataFrame({"x": [0.0, 1.0]})
+            mock_grid.return_value = sample_df
 
-                    # Mock a generic exception in map_function
-                    def mock_generic_exception(*args, **kwargs):
-                        raise TimeoutError("Request timed out")
+            # Mock a generic exception in map_function
+            def mock_generic_exception(*args, **kwargs):
+                raise TimeoutError("Request timed out")
 
+            with patch(
+                "osparc_client.api.functions_api.FunctionsApi.map_function",
+                side_effect=mock_generic_exception,
+            ):
+                with patch("mmux_flaskapi.blueprints.sampling._get_parent_ids") as mock_parent_ids:
                     with patch(
-                        "osparc_client.api.functions_api.FunctionsApi.map_function",
-                        side_effect=mock_generic_exception,
-                    ):
-                        with patch(
-                            "mmux_flaskapi.blueprints.sampling._get_parent_ids"
-                        ) as mock_parent_ids:
-                            with patch(
-                                "mmux_flaskapi.blueprints.sampling._get_functions_api"
-                            ) as mock_get_api:
-                                mock_parent_ids.return_value.parent_node_id = "test-node"
-                                mock_parent_ids.return_value.parent_project_id = "test-project"
+                        "mmux_flaskapi.blueprints.sampling._get_functions_api"
+                    ) as mock_get_api:
+                        mock_parent_ids.return_value.parent_node_id = "test-node"
+                        mock_parent_ids.return_value.parent_project_id = "test-project"
 
-                                mock_api = Mock()
-                                mock_api.map_function = Mock(side_effect=mock_generic_exception)
-                                mock_get_api.return_value = mock_api
+                        mock_api = Mock()
+                        mock_api.map_function = Mock(side_effect=mock_generic_exception)
+                        mock_get_api.return_value = mock_api
 
-                                response = test_client.post("/flask/sampling/grid", json=payload)
+                        response = test_client.post("/flask/sampling/grid", json=payload)
 
-                                assert response.status_code == 500
-                                data = response.get_json()
-                                assert "error" in data
-                                assert "Error while creating Grid Sampling" in data["error"]
-                                assert "Request timed out" in data["error"]
+                        assert response.status_code == 500
+                        data = response.get_json()
+                        assert "error" in data
+                        assert "Error while creating Grid Sampling" in data["error"]
+                        assert "Request timed out" in data["error"]
 
     def test_test_job_osparc_api_generic_exception(self, test_client):
         """Test test_job when OSPARC API raises a generic exception."""

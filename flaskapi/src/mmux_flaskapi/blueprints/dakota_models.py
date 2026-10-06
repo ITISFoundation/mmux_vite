@@ -139,6 +139,35 @@ class JobVariableSelection(BaseModel):
         return records
 
 
+def validate_output_log_scale_positivity(
+    output_log_scales: dict[str, bool],
+    completed_jobs: list[FunctionJob],
+    valid_output_vars: set[str] | None = None,
+) -> None:
+    """Reject (via ValueError, mapped to 422) any ``output_log_scales[var]=True``
+    unless every completed job's output for that var is strictly > 0 (log is
+    undefined for <= 0). Mirrors the package's boundary guard (itis-sumo V47st)
+    at the request layer so the frontend's auto-detect hook gets a clean,
+    actionable rejection instead of an engine error.
+    """
+    for var, flag in output_log_scales.items():
+        if not flag:
+            continue
+        if valid_output_vars is not None and var not in valid_output_vars:
+            continue  # unknown/unused var name - other validators handle that error
+        non_positive = [
+            job.outputs[var]
+            for job in completed_jobs
+            if var in job.outputs and job.outputs[var] <= 0
+        ]
+        if non_positive:
+            raise ValueError(
+                f"output_log_scales['{var}']=True requires all completed job outputs for "
+                f"'{var}' to be > 0 (log is undefined for values <= 0). Found non-positive "
+                f"value(s): {non_positive[:5]}"
+            )
+
+
 class SumoCrossValidationRequest(BaseModel):
     """Request model for SuMo cross-validation endpoint."""
 
@@ -155,6 +184,25 @@ class SumoCrossValidationRequest(BaseModel):
         min_length=5,
         description="List of function jobs (minimum 5 required)",
     )
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+
+    @model_validator(mode="after")
+    def validate_output_log_scales_positive(self) -> "SumoCrossValidationRequest":
+        """Log-fit an output only when every completed job's output is > 0 (V16)."""
+        completed_jobs = [
+            job for job in self.function_jobs if job.status in ["completed", "success"]
+        ]
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars={self.output}
+        )
+        return self
 
     @field_validator("input_vars")
     @classmethod
@@ -285,6 +333,25 @@ class ManualUQPropagationRequest(BaseModel):
     distributions: dict[str, DistributionParams]
     num_samples: int = Field(..., gt=0, description="Number of samples to generate")
     function_jobs: list[FunctionJob] = Field(..., min_length=5)
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+
+    @model_validator(mode="after")
+    def validate_output_log_scales_positive(self) -> "ManualUQPropagationRequest":
+        """Log-fit an output only when every completed job's output is > 0 (V16)."""
+        completed_jobs = [
+            job for job in self.function_jobs if job.status in ["completed", "success"]
+        ]
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars={self.output}
+        )
+        return self
 
     @field_validator("input_vars")
     @classmethod
@@ -377,6 +444,25 @@ class SumoAlongAxesRequest(BaseModel):
     slider_values: dict[str, float] | None = Field(
         default=None, description="Cut values for input variables"
     )
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+
+    @model_validator(mode="after")
+    def validate_output_log_scales_positive(self) -> "SumoAlongAxesRequest":
+        """Log-fit an output only when every completed job's output is > 0 (V16)."""
+        completed_jobs = [
+            job for job in self.function_jobs if job.status in ["completed", "success"]
+        ]
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars={self.output}
+        )
+        return self
 
     @field_validator("inputs")
     @classmethod
@@ -558,6 +644,25 @@ class SumoGridEvaluationRequest(BaseModel):
     slider_values: dict[str, float] | None = Field(
         default=None, description="Fixed values for non-grid input variables"
     )
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+
+    @model_validator(mode="after")
+    def validate_output_log_scales_positive(self) -> "SumoGridEvaluationRequest":
+        """Log-fit an output only when every completed job's output is > 0 (V16)."""
+        completed_jobs = [
+            job for job in self.function_jobs if job.status in ["completed", "success"]
+        ]
+        validate_output_log_scale_positivity(
+            self.output_log_scales, completed_jobs, valid_output_vars={self.output}
+        )
+        return self
 
     @field_validator("grid_vars")
     @classmethod
@@ -730,6 +835,27 @@ class MOGAOptimizationRequest(BaseModel):
         min_length=5,
         description="List of function jobs (minimum 5 required)",
     )
+    input_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-input-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+    output_log_scales: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-output-variable flag: fit the surrogate on log(value) for this variable.",
+    )
+
+    @model_validator(mode="after")
+    def validate_output_log_scales_positive(self) -> "MOGAOptimizationRequest":
+        """Log-fit an objective only when every completed job's output is > 0 (V16)."""
+        completed_jobs = [
+            job for job in self.function_jobs if job.status in ["completed", "success"]
+        ]
+        validate_output_log_scale_positivity(
+            self.output_log_scales,
+            completed_jobs,
+            valid_output_vars=set(self.output_var_selection),
+        )
+        return self
 
     @field_validator("input_vars")
     @classmethod
@@ -751,6 +877,17 @@ class MOGAOptimizationRequest(BaseModel):
         if missing_distributions:
             raise ValueError(
                 f"Missing distributions for input variables: {sorted(missing_distributions)}"
+            )
+
+        # MOGA explores the uniform(min,max) boxes; a schema-valid normal
+        # here previously fell through to an assert in the route -> 500
+        # (GH-Copilot #661 audit; reject cleanly as 400 instead).
+        non_uniform = sorted(
+            var for var in self.input_vars if self.distributions[var].distribution != "uniform"
+        )
+        if non_uniform:
+            raise ValueError(
+                f"MOGA requires uniform(min,max) search domains, not normal, for: {non_uniform}"
             )
 
         # Check for sufficient completed jobs
@@ -1074,21 +1211,69 @@ class CorrelationIndicesResponse(BaseModel):
         return v
 
 
-class SobolIndicesRequest(ManualUQPropagationRequest):
-    """Request model for the Sobol'-indices endpoint (#470).
+class DomainBounds(BaseModel):
+    """One input variable's Sobol' exploration box, in ORIGINAL units (V26dd).
 
-    Mirrors `CorrelationIndicesRequest`'s shape (same Monte Carlo/UQ setup contract:
-    output, inputVars, distributions, numSamples, FunctionJobs), plus a `seed` for
-    reproducibility of the Sobol' QMC sampling.  Seed 0 is valid — scipy/numpy RNGs
-    accept it (the former Dakota NIDR constraint requiring seed ≥ 1 no longer applies
-    after the scipy migration, V34).
+    The FE bounds editor speaks domain vocabulary directly — it is NOT a
+    distribution shape. `minimum < maximum` is enforced at the request layer so
+    a degenerate box gets a clean 400 instead of an engine error; a variable
+    that is pinned (request `fixed`) must NOT also appear here (a9 rule).
     """
 
+    minimum: float = Field(..., description="Lower bound of the sampling box")
+    maximum: float = Field(..., description="Upper bound of the sampling box")
+
+    @model_validator(mode="after")
+    def minimum_below_maximum(self) -> "DomainBounds":
+        if not self.maximum > self.minimum:
+            raise ValueError(
+                f"domain box needs minimum < maximum, got [{self.minimum}, {self.maximum}]"
+            )
+        return self
+
+
+class SobolIndicesRequest(SumoCrossValidationRequest):
+    """Request model for the Sobol'-indices endpoint (#470, bounds-editor shape).
+
+    Domain-vocabulary since the FE bounds-editor migration: per-variable
+    exploration ``domains`` (explicit boxes) plus ``fixed`` pins for factors
+    held constant (a9 — a pinned factor leaves the sensitivity sweep entirely;
+    the pre-migration `constant` distribution 422'd here, which is what the pin
+    path replaces). Variables absent from BOTH maps fall back to the package's
+    auto-inferred observed-bounds box (V26dd). ``distributions``/``numSamples``
+    are GONE from this contract: Sobol' ignores distribution shape (V26dd) and
+    sample count is fixed inside itis_sumo.api (V36). Seed 0 is valid
+    (scipy/numpy RNGs accept it). The base supplies output/inputVars/
+    FunctionJobs consistency and the log-scale fields + positivity guard.
+    """
+
+    domains: dict[str, DomainBounds] = Field(
+        default_factory=dict,
+        description="Per-input exploration box; unlisted variables auto-infer from observed bounds",
+    )
+    fixed: dict[str, float] = Field(
+        default_factory=dict,
+        description="Input variables held at a constant value (excluded from the sweep)",
+    )
     seed: int = Field(
         ...,
         ge=0,
         description="Random seed for reproducibility (scipy/numpy RNGs accept 0)",
     )
+
+    @model_validator(mode="after")
+    def validate_domain_and_fixed_keys(self) -> "SobolIndicesRequest":
+        """⊥ a variable both boxed and pinned (a9); ⊥ keys outside inputVars."""
+        overlap = set(self.domains) & set(self.fixed)
+        if overlap:
+            raise ValueError(
+                "variables cannot be both boxed and pinned: "
+                f"{sorted(overlap)} appear in domains and fixed"
+            )
+        unknown = (set(self.domains) | set(self.fixed)) - set(self.input_vars)
+        if unknown:
+            raise ValueError(f"domains/fixed reference unknown inputs: {sorted(unknown)}")
+        return self
 
 
 class SobolIndexPair(BaseModel):
