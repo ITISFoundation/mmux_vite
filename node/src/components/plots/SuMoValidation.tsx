@@ -14,6 +14,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { getValidationSeries } from "../../utils/sumoValidation";
 import { requestJson } from "../../api/client";
+import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
 
 function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: string }) {
@@ -108,15 +109,20 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
     setPropagating(true);
     setErrorMessage(undefined);
 
-    requestJson<{ error?: string } | undefined>(`/flask/dakota/sumo_cross_validation`, {
-      method: "POST",
-      body: {
-        inputVars,
-        output: validationQoI,
-        FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
-        log: false,
-      },
-    })
+    const cvBody = {
+      inputVars,
+      output: validationQoI,
+      FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
+      log: false,
+    };
+    // V46sc: session response cache - identical (url, body) is served with zero
+    // network, including after unmount/remount; failures are never cached.
+    getCachedOrFetch(`/flask/dakota/sumo_cross_validation`, cvBody, () =>
+      requestJson<{ error?: string } | undefined>(`/flask/dakota/sumo_cross_validation`, {
+        method: "POST",
+        body: cvBody,
+      }),
+    )
       .then(response => {
         if (isStale()) return;
         if (!response || response.error) {
