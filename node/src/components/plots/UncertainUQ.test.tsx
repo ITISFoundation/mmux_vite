@@ -73,4 +73,48 @@ describe("UncertainUQ fetch freshness (V45gd)", () => {
     await act(async () => resolveStale(jsonResponse(histogramPayload([1, 2]))));
     expect(firstBarY()).toEqual([5, 6]);
   });
+
+  it("V46sc serves a remount from the session cache with ZERO network", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `job-${i}` }));
+    mocks.selectedQoI = "y";
+    const fetchMock = stubFetch(jsonResponse(histogramPayload([5, 6])));
+
+    const props = {
+      loading: false,
+      jobProgress: 0,
+      colsFetched: { current: 1 },
+      jobsFetched: { current: 3 },
+    };
+    const { unmount } = render(<UncertainUQ {...props} />);
+    await waitFor(() => expect(firstBarY()).toEqual([5, 6]));
+
+    unmount();
+    render(<UncertainUQ {...props} />);
+
+    // cached success answers synchronously: same histogram, no second request
+    await waitFor(() => expect(firstBarY()).toEqual([5, 6]));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("V46sc misses when numSamples changes (every sent parameter keys the entry)", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `job-${i}` }));
+    mocks.selectedQoI = "y";
+    const fetchMock = stubFetch(jsonResponse(histogramPayload([5, 6])), jsonResponse(histogramPayload([7, 8])));
+
+    const props = {
+      loading: false,
+      jobProgress: 0,
+      colsFetched: { current: 1 },
+      jobsFetched: { current: 3 },
+    };
+    const { rerender } = render(<UncertainUQ {...props} />);
+    await waitFor(() => expect(firstBarY()).toEqual([5, 6]));
+
+    mocks.uqSettings = { "fn-1": { numSamples: 101 } };
+    rerender(<UncertainUQ {...props} />);
+
+    await waitFor(() => expect(firstBarY()).toEqual([7, 8]));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    mocks.uqSettings = {};
+  });
 });

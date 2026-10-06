@@ -7,6 +7,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { requestJson } from "../../api/client";
+import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
@@ -41,20 +42,28 @@ export default function UncertainUQ(props: UncertainUQProps) {
       try {
         console.info("Propagating UQ...");
         console.info("SelectedQoI: ", selectedQoI);
-        const data = await requestJson<DataUQHistogramType>(`/flask/dakota/manual_uq_propagation_with_uncertainty`, {
-          method: "POST",
-          retry: true,
-          body: {
-            inputVars,
-            output: selectedQoI,
-            distributions: distribution[selectedFunction?.uid || ""],
-            FunctionJobs: filteredJobList,
-            numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
-            log: false,
-            nHistograms: uqSettings[selectedFunction?.uid || ""]?.nHistograms || 50,
-            seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
-          },
-        });
+        const uqBody = {
+          inputVars,
+          output: selectedQoI,
+          distributions: distribution[selectedFunction?.uid || ""],
+          FunctionJobs: filteredJobList,
+          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
+          log: false,
+          nHistograms: uqSettings[selectedFunction?.uid || ""]?.nHistograms || 50,
+          seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
+        };
+        // V46sc: seed/numSamples/nHistograms/distributions are ALL in the cache
+        // key by construction - changing any of them misses and refetches.
+        const data = await getCachedOrFetch<DataUQHistogramType>(
+          `/flask/dakota/manual_uq_propagation_with_uncertainty`,
+          uqBody,
+          () =>
+            requestJson<DataUQHistogramType>(`/flask/dakota/manual_uq_propagation_with_uncertainty`, {
+              method: "POST",
+              retry: true,
+              body: uqBody,
+            }),
+        );
         if (isStale()) return;
         const newPlotData: Plotly.Data[] = [
           {
