@@ -12,7 +12,7 @@ Flask API: relay frontend ↔ oSPARC (functions, jobs, collections, studies), ge
 ## §C
 - Python `>=3.11,<3.14`; `flask==3.1.3`, `flask-cors==6.0.5`, `gevent==26.9.0`, `gunicorn==26.2.0`
 - run: dev `uv run python -m flask run` (entrypoint.sh), prod `uv run gunicorn main:app` (`main:app = create_flask_app()`)
-- oSPARC client `osparc==0.8.4.post0.dev2`; compute `itis-sumo==0.1.0a10` (TestPyPI index; owns the Dakota engine behind `itis_sumo.api`, parent SPEC T32qx)
+- oSPARC client `osparc==0.8.4.post0.dev2`; compute `itis-sumo==0.1.0a11` (TestPyPI index; owns the Dakota engine behind `itis_sumo.api`, parent SPEC T32qx)
 - numerics: `numpy==2.4.6`, `pandas==2.2.3`, `scipy==1.17.1`, `scikit-learn==1.9.1`
 - ⊥ in-repo compute: `mmux_flaskapi.dakota` subpackage + `mmux_flaskapi.data_preprocessor` DELETED (former §T15 inlining of vendored `mmux_python`); dakota/sampling blueprints delegate to `itis_sumo.api` (§V48ad)
 - requests accept camelCase|snake_case (pydantic `populate_by_name`); responses camelCase

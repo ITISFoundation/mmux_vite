@@ -365,7 +365,7 @@ wheels = [
 
 [[package]]
 name = "itis-sumo"
-version = "0.1.0a10"
+version = "0.1.0a11"
 source = { registry = "https://test.pypi.org/simple/" }
 dependencies = [
     { name = "itis-dakota" },
@@ -375,9 +375,9 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "scipy" },
 ]
-sdist = { url = "https://test-files.pythonhosted.org/packages/23/3e/2eed92b25cd27b11bb28139adac8f21512fea4f74bb1693e79832fe15faf/itis_sumo-0.1.0a10.tar.gz", hash = "sha256:bfe23e60061796a17f21c351ccc8a708d9341a87606b08dd3279d511d7594909", size = 69660, upload-time = "2026-10-01T07:58:27.887Z" }
+sdist = { url = "https://test-files.pythonhosted.org/packages/d8/b3/337a30cbb83c4fe4891384660e2034ae56eba39d82d7df06de7ac629aa6a/itis_sumo-0.1.0a11.tar.gz", hash = "sha256:f6fdec8aed91252090989e3541081369cedf92ce13d17979cdd7501f05b03b94", size = 78378, upload-time = "2026-10-01T15:47:03.417Z" }
 wheels = [
-    { url = "https://test-files.pythonhosted.org/packages/1c/ea/5a96d8825b1b27eedb7080c413f92ac66d1fca00a52b741d884f0a7664d6/itis_sumo-0.1.0a10-py3-none-any.whl", hash = "sha256:87f318dfa6ade0280bf35d10c957292fec55abf1d460e32d0cd97560bcded86a", size = 79797, upload-time = "2026-10-01T07:58:26.608Z" },
+    { url = "https://test-files.pythonhosted.org/packages/a9/76/f4862070658c7277fa2bbb31597a51bca1659f333747095ffac65ad74bbc/itis_sumo-0.1.0a11-py3-none-any.whl", hash = "sha256:d01a97224ac6a20838d326f0269038840150ace068a00b4102c5393b9aacffa6", size = 89026, upload-time = "2026-10-01T15:47:02.117Z" },
 ]
 
 [[package]]
@@ -464,7 +464,7 @@ wheels = [
 
 [[package]]
 name = "mmux-flaskapi"
-version = "1.6.3"
+version = "1.6.3.dev2"
 source = { editable = "." }
 dependencies = [
     { name = "flask" },
@@ -505,7 +505,7 @@ requires-dist = [
     { name = "flask-cors", specifier = "==6.0.5" },
     { name = "gevent", specifier = "==26.9.0" },
     { name = "gunicorn", specifier = "==26.2.0" },
-    { name = "itis-sumo", specifier = "==0.1.0a10", index = "https://test.pypi.org/simple/" },
+    { name = "itis-sumo", specifier = "==0.1.0a11", index = "https://test.pypi.org/simple/" },
     { name = "numpy", specifier = "==2.4.6" },
     { name = "osparc", specifier = "==0.8.4.post0.dev2" },
     { name = "pandas", specifier = "==2.2.3" },
