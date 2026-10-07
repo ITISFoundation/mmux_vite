@@ -87,6 +87,12 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
   // (uid, qoi, sorted job-uid list) keys already attempted, so an unchanged job-set for
   // a QoI never re-fires the CV pair.
   const resolvedKeys = useRef<Set<string>>(new Set());
+  // The key the LATEST effect generation believes is current per (uid, qoi).
+  // A scale-flag change starts a SECOND CV pair while the first is still in
+  // flight; whichever pair is captured under a key that is no longer current
+  // must NOT commit its verdict (GH-Copilot #665 review — the same
+  // stale-response class as node B23rv/T29sw, narrowed to this hook).
+  const latestKeyByQoi = useRef<{ [uidQoi: string]: string }>({});
 
   // Current per-input log flags — the CV pair must score the surrogate the
   // user's input scales actually imply, and a change to any flag invalidates
@@ -122,6 +128,10 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
       if (outputLogScaleUserSetRef.current[uid]?.[qoi]) return; // locked by manual toggle (V27)
 
       const cacheKey = `${uid}::${qoi}::${sortedJobUids}::${inputScaleSignature}`;
+      // EVERY generation (even cached/skipped ones) marks this key current, so
+      // a still-in-flight pair whose key equals the latest key stays valid,
+      // while any pair superseded by a scale change is discarded on resolve.
+      latestKeyByQoi.current[`${uid}::${qoi}`] = cacheKey;
       if (resolvedKeys.current.has(cacheKey)) return;
 
       const outputValues = outputsByVar[qoi] || [];
@@ -137,6 +147,7 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
         ]);
         if (rmseLinear === undefined || rmseLog === undefined) return;
         if (outputLogScaleUserSetRef.current[uid]?.[qoi]) return; // re-check: may have been locked mid-flight
+        if (latestKeyByQoi.current[`${uid}::${qoi}`] !== cacheKey) return; // superseded by a newer scale generation (GH-Copilot #665)
 
         const preferLog = rmseLog < rmseLinear;
         setOutputLogScales(prev => {
