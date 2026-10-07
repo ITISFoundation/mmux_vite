@@ -19,6 +19,8 @@ vi.mock("../../context/FunctionContext", () => {
     distribution: {
       "fn-1": { x1: { distribution: "uniform", min: 0, max: 1 }, x2: { distribution: "uniform", min: 2, max: 3 } },
     },
+    // #663 replay: FunctionContext now carries the per-function QoI log-scale map.
+    outputLogScales: {},
   };
   return { useFunctionContext: () => value };
 });
@@ -62,7 +64,15 @@ describe("Curves1DPlot", () => {
     await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
     expect(traces().map(t => t.name)).toEqual(["Model prediction", "x1+2σ", "x1+/-2σ (95% Confidence Interval)"]);
     const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
-    expect(body).toMatchObject({ inputs: ["x1", "x2"], output: "y", sliderValues: { x1: 0, x2: 2 }, log: false });
+    // #663 replay: the legacy single `log` flag is replaced by the per-variable
+    // maps (all-false defaults here; the session-cache key rides the body).
+    expect(body).toMatchObject({
+      inputs: ["x1", "x2"],
+      output: "y",
+      sliderValues: { x1: 0, x2: 2 },
+      inputLogScales: { x1: false, x2: false },
+      outputLogScales: { y: false },
+    });
 
     mocks.filteredJobList = [...jobs];
     rerender(<Curves1DPlots />);
