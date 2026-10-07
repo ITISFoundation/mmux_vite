@@ -23,6 +23,23 @@ export interface FunctionContextType {
   setOutputLogScales: React.Dispatch<React.SetStateAction<{ [key: string]: { [varName: string]: boolean } }>>;
   outputLogScaleUserSet: { [key: string]: { [varName: string]: boolean } };
   setOutputLogScaleUserSet: React.Dispatch<React.SetStateAction<{ [key: string]: { [varName: string]: boolean } }>>;
+  // What the auto-detect CV pair actually measured, so the UI can show WHY a QoI
+  // scale is what it is (OutputVariableDist provenance chip + error tooltip).
+  // Session-only by design: NOT in PersistenceType — a receipt goes stale the
+  // moment the job-set or an input flag changes, and useAutoDetectQoiScale
+  // re-derives it per cache key anyway.
+  qoiScaleEvidence: { [key: string]: { [varName: string]: QoiScaleEvidence } };
+  setQoiScaleEvidence: React.Dispatch<React.SetStateAction<{ [key: string]: { [varName: string]: QoiScaleEvidence } }>>;
+}
+
+export interface QoiScaleEvidence {
+  rmseLinear: number;
+  rmseLog: number;
+  jobs: number;
+  // The exact cache key (uid::qoi::jobUids::inputScaleSignature) the pair was
+  // computed under — the receipt doubles as a cross-remount dedup key: a fresh
+  // hook mount skips a QoI whose current key already has evidence.
+  key: string;
 }
 
 const FunctionContext = createContext<FunctionContextType>(undefined!);
@@ -58,6 +75,11 @@ export function FunctionContextProvider({ children }: Props) {
   const [outputLogScaleUserSet, setOutputLogScaleUserSet] = useState<{
     [key: string]: { [varName: string]: boolean };
   }>(iolsUserSet || {});
+  // Session-only (see FunctionContextType.qoiScaleEvidence): deliberately NOT
+  // wired into the persistence fan-out effect below.
+  const [qoiScaleEvidence, setQoiScaleEvidence] = useState<{
+    [key: string]: { [varName: string]: QoiScaleEvidence };
+  }>({});
 
   useEffect(() => {
     if (loading === false) {
@@ -89,6 +111,8 @@ export function FunctionContextProvider({ children }: Props) {
       setOutputLogScales,
       outputLogScaleUserSet,
       setOutputLogScaleUserSet,
+      qoiScaleEvidence,
+      setQoiScaleEvidence,
     }),
     [
       selectedFunction,
@@ -105,6 +129,8 @@ export function FunctionContextProvider({ children }: Props) {
       setOutputLogScales,
       outputLogScaleUserSet,
       setOutputLogScaleUserSet,
+      qoiScaleEvidence,
+      setQoiScaleEvidence,
     ],
   );
 

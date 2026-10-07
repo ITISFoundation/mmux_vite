@@ -1,11 +1,17 @@
-import { Box, Chip, IconButton, Typography, useTheme } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { Box, Chip, IconButton, Tooltip, Typography, useTheme } from "@mui/material";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Add, Cancel } from "@mui/icons-material";
 // import { useServiceContext } from "../../context/ServiceContext";
 import Header from "../navigation/Header";
 import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
 import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import { AddOutputModal } from "./AddOutputModal";
+import { minCompletedJobs, useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
+import { aggregateOutputValues } from "../../utils/functionUtils";
+
+// 3 significant digits keeps RMSE comparisons readable without false precision.
+const fmtRmse = (v: number) => String(Number(v.toPrecision(3)));
 
 export function OutputVariableDist() {
   const {
@@ -15,8 +21,11 @@ export function OutputVariableDist() {
     setOutputTargets,
     outputLogScales,
     setOutputLogScales,
+    outputLogScaleUserSet,
     setOutputLogScaleUserSet,
+    qoiScaleEvidence,
   } = useFunctionContext();
+  const { filteredJobList } = useJobContext();
   // const { ServiceMode } = useServiceContext();
   const [openModal, setOpenModal] = useState(false);
   const [configuredOutputs, setConfiguredOutputs] = useState(outputTargets[selectedFunction?.uid || ""] || {});
@@ -24,12 +33,28 @@ export function OutputVariableDist() {
     outputLogScales[selectedFunction?.uid || ""] || {},
   );
   const theme = useTheme();
+  const uid = selectedFunction?.uid || "";
+
+  // The QoI scale is only meaningful if the user can see WHY it is what it is:
+  // this view owns the toggles, so it drives auto-detection itself (not only
+  // the results views). Cross-mount duplicate work is impossible — the results
+  // hooks and this panel are never mounted on the same screen — and any
+  // verdict already in qoiScaleEvidence for the current key short-circuits the
+  // pair anyway.
+  useAutoDetectQoiScale(selectedFunction ? Object.keys(outputTargets[uid] || {}) : undefined);
+  const outputsByVar = useMemo(() => aggregateOutputValues(filteredJobList), [filteredJobList]);
 
   const handleSetOutputLogScale = (outputVar: string, value: boolean) => {
-    const next = { ...localOutputLogScales, [outputVar]: value };
-    setLocalOutputLogScales(next);
+    setLocalOutputLogScales(prev => ({ ...prev, [outputVar]: value }));
     if (selectedFunction) {
-      setOutputLogScales({ ...outputLogScales, [selectedFunction.uid]: next });
+      // MERGE with the live per-uid map: a render-time snapshot could silently
+      // clobber an entry useAutoDetectQoiScale wrote for a sibling QoI while
+      // this render was stale (GH-Copilot #663 audit; the lock-map setter two
+      // lines below already used the functional pattern)
+      setOutputLogScales(prev => ({
+        ...prev,
+        [selectedFunction.uid]: { ...prev[selectedFunction.uid], [outputVar]: value },
+      }));
       // V27: manual toggle locks this (uid, QoI) pair so auto-detect never overrides it.
       setOutputLogScaleUserSet(prev => ({
         ...prev,
@@ -84,99 +109,151 @@ export function OutputVariableDist() {
         }
       />
       <Box sx={{ display: "flex", overflowX: "auto" }}>
-        {Object.keys(configuredOutputs).map(outputVar => (
-          <Box
-            key={`output-var-${outputVar}`}
-            sx={{
-              display: "flex",
-              position: "relative",
-              flexDirection: "column",
-              flex: 1,
-              maxWidth: "240px",
-              minWidth: "240px",
-              padding: "8px",
-              marginRight: "16px",
-              backgroundColor: theme.palette.background.default,
-              gap: "16px",
-              borderRadius: "8px",
-            }}
-          >
-            <Typography
-              variant="h6"
+        {Object.keys(configuredOutputs).map(outputVar => {
+          // WHY is this scale what it is: locked by manual toggle, or the
+          // auto-detect CV pair's verdict (and its measured errors)?
+          const locked = !!outputLogScaleUserSet[uid]?.[outputVar];
+          const evidence = qoiScaleEvidence[uid]?.[outputVar];
+          const outputs = outputsByVar[outputVar] || [];
+          const detectable = outputs.length >= minCompletedJobs && outputs.every(v => v > 0);
+          return (
+            <Box
+              key={`output-var-${outputVar}`}
               sx={{
-                fontSize: "1.2em",
                 display: "flex",
-                gap: "4px",
-                "&:hover": {
-                  "& .MuiButtonBase-root": {
-                    display: "block",
-                    backgroundColor: "transparent",
-                  },
-                },
+                position: "relative",
+                flexDirection: "column",
+                flex: 1,
+                maxWidth: "240px",
+                minWidth: "240px",
+                padding: "8px",
+                marginRight: "16px",
+                backgroundColor: theme.palette.background.default,
+                gap: "16px",
+                borderRadius: "8px",
               }}
             >
-              <Chip
-                label={outputVar}
+              <Typography
+                variant="h6"
                 sx={{
-                  width: "100%",
-                  fontSize: "0.8em",
-                  fontWeight: "100",
-                  textTransform: "uppercase",
-                  borderRadius: "8px",
-                  backgroundColor: theme.palette.primary.main,
-                }}
-              />
-              <IconButton
-                aria-label="remove"
-                onClick={() => {
-                  const newOutputs = { ...configuredOutputs };
-                  delete newOutputs[outputVar];
-                  handlesetConfiguredOutputs(newOutputs);
-                }}
-                sx={{
-                  position: "absolute",
-                  zIndex: 10,
-                  right: "8px",
-                  display: "block",
-                  fontSize: "1em",
-                  lineHeight: "1.1em",
-                  fontWeight: "100",
-                  textTransform: "uppercase",
-                  borderRadius: "8px",
-                  padding: "4px",
-                  backgroundColor: "transparent",
-                  color: theme.palette.text.primary,
+                  fontSize: "1.2em",
+                  display: "flex",
+                  gap: "4px",
+                  "&:hover": {
+                    "& .MuiButtonBase-root": {
+                      display: "block",
+                      backgroundColor: "transparent",
+                    },
+                  },
                 }}
               >
-                <Cancel sx={{ fontSize: "1.1em", lineHeight: "1.1em" }} />
-              </IconButton>
-            </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <CustomAnimatedToggle
-                data={["minimize", "maximize"]}
-                value={configuredOutputs[outputVar] === "minimize" ? 0 : 1}
-                disabled={false}
-                onChange={value => {
-                  handlesetConfiguredOutputs({
-                    ...configuredOutputs,
-                    [outputVar]: value === 0 ? "minimize" : "maximize",
-                  });
-                }}
-              />
-              <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <Typography sx={{ fontSize: "0.75em", fontWeight: 300, color: theme.palette.text.secondary }}>
-                  Surrogate scale
-                </Typography>
-                <CustomAnimatedToggle
-                  data={["linear", "log"]}
-                  value={localOutputLogScales[outputVar] ? 1 : 0}
-                  disabled={false}
-                  onChange={value => handleSetOutputLogScale(outputVar, value === 1)}
+                <Chip
+                  label={outputVar}
+                  sx={{
+                    width: "100%",
+                    fontSize: "0.8em",
+                    fontWeight: "100",
+                    textTransform: "uppercase",
+                    borderRadius: "8px",
+                    backgroundColor: theme.palette.primary.main,
+                  }}
                 />
+                <IconButton
+                  aria-label="remove"
+                  onClick={() => {
+                    const newOutputs = { ...configuredOutputs };
+                    delete newOutputs[outputVar];
+                    handlesetConfiguredOutputs(newOutputs);
+                  }}
+                  sx={{
+                    position: "absolute",
+                    zIndex: 10,
+                    right: "8px",
+                    display: "block",
+                    fontSize: "1em",
+                    lineHeight: "1.1em",
+                    fontWeight: "100",
+                    textTransform: "uppercase",
+                    borderRadius: "8px",
+                    padding: "4px",
+                    backgroundColor: "transparent",
+                    color: theme.palette.text.primary,
+                  }}
+                >
+                  <Cancel sx={{ fontSize: "1.1em", lineHeight: "1.1em" }} />
+                </IconButton>
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <CustomAnimatedToggle
+                  data={["minimize", "maximize"]}
+                  value={configuredOutputs[outputVar] === "minimize" ? 0 : 1}
+                  disabled={false}
+                  onChange={value => {
+                    handlesetConfiguredOutputs({
+                      ...configuredOutputs,
+                      [outputVar]: value === 0 ? "minimize" : "maximize",
+                    });
+                  }}
+                />
+                <Tooltip
+                  placement="top"
+                  title={
+                    <Box sx={{ maxWidth: "260px" }}>
+                      {evidence && (
+                        <Typography component="div" variant="caption">
+                          CV error · {evidence.jobs} jobs —{" "}
+                          <Box component="span" sx={{ fontWeight: evidence.rmseLinear <= evidence.rmseLog ? 700 : 400 }}>
+                            linear {fmtRmse(evidence.rmseLinear)}
+                          </Box>
+                          {" · "}
+                          <Box component="span" sx={{ fontWeight: evidence.rmseLog < evidence.rmseLinear ? 700 : 400 }}>
+                            log {fmtRmse(evidence.rmseLog)}
+                          </Box>
+                        </Typography>
+                      )}
+                      <Typography component="div" variant="caption">
+                        {locked
+                          ? "Set manually — auto-detection will not override it."
+                          : evidence
+                            ? "Auto-selected: lower CV error wins. Toggling locks your choice."
+                            : detectable
+                              ? "Comparing linear and log cross-validation errors…"
+                              : outputs.length < minCompletedJobs
+                                ? `Auto-detection starts once this output has ${minCompletedJobs}+ completed jobs.`
+                                : "Auto-detection needs all values of this output to be positive."}
+                      </Typography>
+                    </Box>
+                  }
+                >
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }} mmux-testid={`surrogate-scale-${outputVar}`}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <Typography sx={{ fontSize: "0.75em", fontWeight: 300, color: theme.palette.text.secondary }}>
+                        Surrogate scale
+                      </Typography>
+                      {(locked || evidence) && (
+                        <Chip
+                          label={locked ? "manual" : "auto"}
+                          size="small"
+                          mmux-testid={`surrogate-scale-provenance-${outputVar}`}
+                          sx={{
+                            height: "16px",
+                            "& .MuiChip-label": { paddingLeft: "4px", paddingRight: "4px", fontSize: "0.6em" },
+                          }}
+                        />
+                      )}
+                    </Box>
+                    <CustomAnimatedToggle
+                      data={["linear", "log"]}
+                      value={localOutputLogScales[outputVar] ? 1 : 0}
+                      disabled={false}
+                      onChange={value => handleSetOutputLogScale(outputVar, value === 1)}
+                    />
+                  </Box>
+                </Tooltip>
               </Box>
             </Box>
-          </Box>
-        ))}
+          );
+        })}
         {Object.keys(configuredOutputs).length < outputVars.length && (
           <Box
             key="add-output"

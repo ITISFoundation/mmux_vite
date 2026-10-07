@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { requestJson } from "../api/client";
 import { useFunctionContext } from "../context/FunctionContext";
@@ -22,14 +22,22 @@ import { aggregateOutputValues } from "./functionUtils";
 // Cached by (function uid, QoI, sorted job-uid list) (INV-006 pattern) so an
 // unchanged job-set never re-fires the CV pair for a QoI it already resolved.
 
-const minCompletedJobs = 5;
+// Exported so the provenance UI (OutputVariableDist) phrases its pending state
+// against the SAME eligibility bar the detection uses.
+export const minCompletedJobs = 5;
 
 function computeRmse(actual: number[], predicted: number[]): number | undefined {
   const sumSquaredError = actual.reduce((sum, value, index) => sum + (value - predicted[index]) ** 2, 0);
   return Math.sqrt(sumSquaredError / actual.length);
 }
 
-async function fetchCvRmse(inputVars: string[], qoi: string, jobs: unknown[], logScale: boolean): Promise<number | undefined> {
+async function fetchCvRmse(
+  inputVars: string[],
+  qoi: string,
+  jobs: unknown[],
+  logScale: boolean,
+  inputLogScales: { [inputVar: string]: boolean },
+): Promise<number | undefined> {
   try {
     // V44eh re-port: the fork-era raw call site predates the shared client and
     // is rejected by the architecture guard's fetch allowlist; requestJson
@@ -42,6 +50,9 @@ async function fetchCvRmse(inputVars: string[], qoi: string, jobs: unknown[], lo
           inputVars,
           output: qoi,
           FunctionJobs: jobs,
+          // #665: score the surrogate under the CURRENT input scales, not an
+          // all-linear strawman the user never asked for (GH-Copilot #663 audit)
+          inputLogScales,
           outputLogScales: { [qoi]: logScale },
         },
       },
@@ -65,7 +76,15 @@ async function fetchCvRmse(inputVars: string[], qoi: string, jobs: unknown[], lo
  * `outputLogScales[uid][qoi]` value — unless the user already locked that QoI manually.
  */
 export function useAutoDetectQoiScale(qois: string[] | undefined) {
-  const { selectedFunction, inputVars, setOutputLogScales, outputLogScaleUserSet } = useFunctionContext();
+  const {
+    selectedFunction,
+    inputVars,
+    distribution,
+    setOutputLogScales,
+    outputLogScaleUserSet,
+    qoiScaleEvidence,
+    setQoiScaleEvidence,
+  } = useFunctionContext();
   const { filteredJobList } = useJobContext();
   // Kept in sync after every render (effect, not render-phase mutation, to
   // satisfy the lint rules) so in-flight async callbacks (below) always
@@ -75,9 +94,41 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
   useEffect(() => {
     outputLogScaleUserSetRef.current = outputLogScaleUserSet;
   });
+  // Same pattern for the session evidence: read through a ref so writing a
+  // receipt never re-triggers this effect.
+  const qoiScaleEvidenceRef = useRef(qoiScaleEvidence);
+  useEffect(() => {
+    qoiScaleEvidenceRef.current = qoiScaleEvidence;
+  });
   // (uid, qoi, sorted job-uid list) keys already attempted, so an unchanged job-set for
   // a QoI never re-fires the CV pair.
   const resolvedKeys = useRef<Set<string>>(new Set());
+  // The key the LATEST effect generation believes is current per (uid, qoi).
+  // A scale-flag change starts a SECOND CV pair while the first is still in
+  // flight; whichever pair is captured under a key that is no longer current
+  // must NOT commit its verdict (GH-Copilot #665 review — the same
+  // stale-response class as node B23rv/T29sw, narrowed to this hook).
+  const latestKeyByQoi = useRef<{ [uidQoi: string]: string }>({});
+
+  // Current per-input log flags — the CV pair must score the surrogate the
+  // user's input scales actually imply, and a change to any flag invalidates
+  // the cached verdict (GH-Copilot #663 audit: stale all-linear comparisons
+  // could pick the wrong output scale and never re-detect).
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const inputScaleSignature = useMemo(
+    () => inputVars.map(v => (inputLogScales[v] ? "1" : "0")).join(""),
+    [inputVars, inputLogScales],
+  );
 
   useEffect(() => {
     const uid = selectedFunction?.uid;
@@ -92,8 +143,19 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
     qois.forEach(qoi => {
       if (outputLogScaleUserSetRef.current[uid]?.[qoi]) return; // locked by manual toggle (V27)
 
-      const cacheKey = `${uid}::${qoi}::${sortedJobUids}`;
+      const cacheKey = `${uid}::${qoi}::${sortedJobUids}::${inputScaleSignature}`;
+      // EVERY generation (even cached/skipped ones) marks this key current, so
+      // a still-in-flight pair whose key equals the latest key stays valid,
+      // while any pair superseded by a scale change is discarded on resolve.
+      latestKeyByQoi.current[`${uid}::${qoi}`] = cacheKey;
       if (resolvedKeys.current.has(cacheKey)) return;
+      // A receipt from an EARLIER mount (tab switch, sibling view) for exactly
+      // this parameter set: the verdict stands — adopt it into this instance's
+      // resolved set and do NOT re-fire the CV pair.
+      if (qoiScaleEvidenceRef.current[uid]?.[qoi]?.key === cacheKey) {
+        resolvedKeys.current.add(cacheKey);
+        return;
+      }
 
       const outputValues = outputsByVar[qoi] || [];
       if (outputValues.length < minCompletedJobs) return;
@@ -103,13 +165,31 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
 
       (async () => {
         const [rmseLinear, rmseLog] = await Promise.all([
-          fetchCvRmse(inputVars, qoi, filteredJobList, false),
-          fetchCvRmse(inputVars, qoi, filteredJobList, true),
+          fetchCvRmse(inputVars, qoi, filteredJobList, false, inputLogScales),
+          fetchCvRmse(inputVars, qoi, filteredJobList, true, inputLogScales),
         ]);
         if (rmseLinear === undefined || rmseLog === undefined) return;
         if (outputLogScaleUserSetRef.current[uid]?.[qoi]) return; // re-check: may have been locked mid-flight
+        if (latestKeyByQoi.current[`${uid}::${qoi}`] !== cacheKey) {
+          // Superseded by a newer scale generation (GH-Copilot #665). UNCACHE the
+          // discarded key: resolvedKeys is marked at KICK time, and this pair was
+          // the only verdict attempt for that exact parameter set — without the
+          // un-cache an A→B→A flip-flop leaves the A key permanently "resolved"
+          // while nothing was ever committed for it (permanent silence; the
+          // same-key pair that finally lands while latest==key commits, so this
+          // refund cannot resurrect a genuinely superseded verdict).
+          resolvedKeys.current.delete(cacheKey);
+          return;
+        }
 
         const preferLog = rmseLog < rmseLinear;
+        // Receipt of WHAT this verdict measured, surfaced at the QoI toggle
+        // (provenance chip + both CV errors). Written only after every guard
+        // above passed — it describes exactly what is being committed.
+        setQoiScaleEvidence(prev => ({
+          ...prev,
+          [uid]: { ...prev[uid], [qoi]: { rmseLinear, rmseLog, jobs: outputValues.length, key: cacheKey } },
+        }));
         setOutputLogScales(prev => {
           if (prev[uid]?.[qoi] === preferLog) return prev; // no-op: avoid extra renders/persistence writes
           return { ...prev, [uid]: { ...prev[uid], [qoi]: preferLog } };
@@ -117,5 +197,5 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
       })();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qois?.join(","), filteredJobList, selectedFunction?.uid, inputVars.join(",")]);
+  }, [qois?.join(","), filteredJobList, selectedFunction?.uid, inputVars.join(","), inputScaleSignature]);
 }

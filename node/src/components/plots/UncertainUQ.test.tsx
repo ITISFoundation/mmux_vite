@@ -24,6 +24,8 @@ vi.mock("../../context/FunctionContext", () => {
     outputLogScales: {},
     outputLogScaleUserSet: {},
     setOutputLogScales: () => undefined,
+    qoiScaleEvidence: {},
+    setQoiScaleEvidence: () => undefined,
   };
   return { useFunctionContext: () => value };
 });

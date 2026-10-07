@@ -20,18 +20,34 @@ function setupContexts(overrides: {
   jobs: ReturnType<typeof makeJob>[];
   outputLogScaleUserSet?: { [uid: string]: { [qoi: string]: boolean } };
   setOutputLogScales?: ReturnType<typeof vi.fn>;
+  distribution?: { [uid: string]: { [inputVar: string]: { scale?: "linear" | "log" } } };
+  evidence?: { [uid: string]: { [qoi: string]: { rmseLinear: number; rmseLog: number; jobs: number; key: string } } };
 }) {
   const setOutputLogScales = overrides.setOutputLogScales ?? vi.fn();
+  // Evidence behaves like the real state: the setter applies functional
+  // updaters into a shared mutable map that context reads expose — so tests
+  // can observe receipts AND pre-seed them (cross-mount skip).
+  const evidence = overrides.evidence ?? {};
+  const setQoiScaleEvidence = vi.fn((updater: unknown) => {
+    const next =
+      typeof updater === "function"
+        ? (updater as (prev: typeof evidence) => typeof evidence)(evidence)
+        : (updater as typeof evidence);
+    Object.assign(evidence, next);
+  });
   useFunctionContextMock.mockReturnValue({
     selectedFunction: { uid: "fn1" },
     inputVars: ["x"],
+    distribution: overrides.distribution ?? {},
     setOutputLogScales,
+    setQoiScaleEvidence,
     outputLogScaleUserSet: overrides.outputLogScaleUserSet ?? {},
+    qoiScaleEvidence: evidence,
   });
   useJobContextMock.mockReturnValue({
     filteredJobList: overrides.jobs,
   });
-  return { setOutputLogScales };
+  return { setOutputLogScales, setQoiScaleEvidence, evidence };
 }
 
 // Mock response for /flask/dakota/sumo_cross_validation (fixed observed/predicted
@@ -142,5 +158,236 @@ describe("useAutoDetectQoiScale", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(setOutputLogScales).toHaveBeenCalledTimes(1);
+  });
+
+  it("scores the CV pair under the CURRENT input log-scales (GH-Copilot #663 audit)", async () => {
+    const fetchMock = mockCvFetch();
+    vi.stubGlobal("fetch", fetchMock);
+    setupContexts({
+      jobs: [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)],
+      distribution: { fn1: { x: { scale: "log" } } },
+    });
+
+    renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+    for (const [, init] of fetchMock.mock.calls) {
+      const body = JSON.parse(init.body as string);
+      expect(body.inputLogScales).toEqual({ x: true }); // not an all-linear strawman
+    }
+  });
+
+  it("re-detects when an input's scale flag changes (cache key carries scale identity)", async () => {
+    const fetchMock = mockCvFetch();
+    vi.stubGlobal("fetch", fetchMock);
+    const jobs = [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)];
+    setupContexts({ jobs });
+
+    const { rerender } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    setupContexts({ jobs, distribution: { fn1: { x: { scale: "log" } } } });
+    rerender();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+    });
+  });
+
+  it("discards a superseded CV pair that resolves LAST (GH-Copilot #665 stale verdict)", async () => {
+    const jobs = [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)];
+    // pair 1 (linear inputs, SLOW) prefers LOG; pair 2 (log inputs, FAST) prefers
+    // LINEAR. If the stale pair 1 could still commit after pair 2 applied, the
+    // final state would flip to log=true.
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string);
+      const logInputs = Boolean(body.inputLogScales?.x);
+      const useLog = Boolean(body.outputLogScales?.qoi);
+      if (!logInputs) {
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
+      const perfect = [1, 2, 3, 4, 5];
+      const off = [2, 2, 2, 2, 2];
+      const data = logInputs
+        ? { observed: perfect, predicted: useLog ? off : perfect } // newer generation: linear wins
+        : { observed: perfect, predicted: useLog ? perfect : off }; // superseded: log wins
+      return { ok: true, json: async () => data } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const state: { [uid: string]: { [qoi: string]: boolean } } = {};
+    const setOutputLogScales = vi.fn((updater: unknown) => {
+      const next =
+        typeof updater === "function" ? (updater as (prev: typeof state) => typeof state)(state) : (updater as typeof state);
+      Object.assign(state, next);
+    });
+
+    setupContexts({ jobs, setOutputLogScales });
+    const { rerender } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2); // pair 1 in flight (slow)
+    });
+
+    setupContexts({ jobs, setOutputLogScales, distribution: { fn1: { x: { scale: "log" } } } });
+    rerender();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+    });
+    await waitFor(() => {
+      expect(state.fn1?.qoi).toBe(false); // pair 2's verdict applied
+    });
+
+    // let the stale pair 1 land AFTER the newer verdict, then confirm it stuck
+    await new Promise(resolve => setTimeout(resolve, 80));
+    expect(state.fn1?.qoi).toBe(false); // ⊥ flipped back by the superseded pair
+  });
+
+  it("re-detects after a discarded verdict when the scale flips back A→B→A (GH-Copilot #666 follow-up)", async () => {
+    const jobs = [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)];
+    // A-generations prefer LOG (slow), B prefers LINEAR (fast).
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string);
+      const logInputs = Boolean(body.inputLogScales?.x);
+      const useLog = Boolean(body.outputLogScales?.qoi);
+      if (!logInputs) {
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
+      const perfect = [1, 2, 3, 4, 5];
+      const off = [2, 2, 2, 2, 2];
+      const data = logInputs
+        ? { observed: perfect, predicted: useLog ? off : perfect } // B: linear wins
+        : { observed: perfect, predicted: useLog ? perfect : off }; // A: log wins
+      return { ok: true, json: async () => data } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const state: { [uid: string]: { [qoi: string]: boolean } } = {};
+    const setOutputLogScales = vi.fn((updater: unknown) => {
+      const next =
+        typeof updater === "function" ? (updater as (prev: typeof state) => typeof state)(state) : (updater as typeof state);
+      Object.assign(state, next);
+    });
+
+    setupContexts({ jobs, setOutputLogScales });
+    const { rerender } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2); // pair 1 (A) in flight, slow
+    });
+
+    // B starts while A is pending; B's fast verdict lands, A's is discarded mid-B.
+    setupContexts({ jobs, setOutputLogScales, distribution: { fn1: { x: { scale: "log" } } } });
+    rerender();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+    });
+    await waitFor(() => {
+      expect(state.fn1?.qoi).toBe(false); // B's verdict applied
+    });
+    await new Promise(resolve => setTimeout(resolve, 60)); // pair 1 resolves + discarded
+    expect(fetchMock).toHaveBeenCalledTimes(4); // discarded verdict stayed silent
+    expect(state.fn1?.qoi).toBe(false);
+
+    // Flip back to A: the discarded attempt must NOT have consumed the cache slot.
+    setupContexts({ jobs, setOutputLogScales });
+    rerender();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(6); // ⊥ permanently silent (B28wx)
+    });
+    await waitFor(() => {
+      expect(state.fn1?.qoi).toBe(true); // fresh A pair's verdict commits
+    });
+  });
+
+  it("writes a session evidence receipt (both errors + job count + key) alongside a committed verdict", async () => {
+    const fetchMock = mockCvFetch();
+    vi.stubGlobal("fetch", fetchMock);
+    const { setQoiScaleEvidence, evidence } = setupContexts({
+      jobs: [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)],
+    });
+
+    renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(setQoiScaleEvidence).toHaveBeenCalled();
+    });
+
+    // linear rmse = sqrt(3) (predicted all-2s), log rmse = 0 (perfect fit), 5 jobs,
+    // key = uid::qoi::sortedJobUids::inputScaleSignature
+    expect(evidence.fn1?.qoi).toEqual({
+      rmseLinear: Math.sqrt(3),
+      rmseLog: 0,
+      jobs: 5,
+      key: "fn1::qoi::j1,j2,j3,j4,j5::0",
+    });
+  });
+
+  it("a superseded (discarded) pair writes NO evidence", async () => {
+    const jobs = [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)];
+    // Same race as the B27vb test: stale A pair (slow, linear inputs) vs
+    // current B pair (fast, log inputs). Only B's verdict may leave a receipt.
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string);
+      const logInputs = Boolean(body.inputLogScales?.x);
+      const useLog = Boolean(body.outputLogScales?.qoi);
+      if (!logInputs) {
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
+      const perfect = [1, 2, 3, 4, 5];
+      const off = [2, 2, 2, 2, 2];
+      const data = logInputs
+        ? { observed: perfect, predicted: useLog ? off : perfect }
+        : { observed: perfect, predicted: useLog ? perfect : off };
+      return { ok: true, json: async () => data } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const state: { [uid: string]: { [qoi: string]: boolean } } = {};
+    const setOutputLogScales = vi.fn((updater: unknown) => {
+      const next =
+        typeof updater === "function" ? (updater as (prev: typeof state) => typeof state)(state) : (updater as typeof state);
+      Object.assign(state, next);
+    });
+
+    const { evidence } = setupContexts({ jobs, setOutputLogScales });
+    const { rerender } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+    const current = setupContexts({ jobs, setOutputLogScales, evidence, distribution: { fn1: { x: { scale: "log" } } } });
+    rerender();
+    await waitFor(() => {
+      expect(state.fn1?.qoi).toBe(false); // B's verdict applied
+    });
+    await new Promise(resolve => setTimeout(resolve, 80)); // stale A lands + discarded
+
+    // Only the CURRENT generation leaves a receipt (the second setup's setter is
+    // the one wired into the context when the verdict commits). The discarded A
+    // pair must have written nothing ⊥ overwritten the slot.
+    expect(current.setQoiScaleEvidence).toHaveBeenCalledTimes(1);
+    expect(evidence.fn1?.qoi?.key).toBe("fn1::qoi::j1,j2,j3,j4,j5::1");
+  });
+
+  it("a fresh mount skips the CV pair when the current key already has a receipt (cross-mount dedup)", async () => {
+    const fetchMock = mockCvFetch();
+    vi.stubGlobal("fetch", fetchMock);
+    const jobs = [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)];
+    const first = setupContexts({ jobs });
+    const { unmount } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(first.setOutputLogScales).toHaveBeenCalled();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(first.evidence.fn1?.qoi).toBeDefined();
+    unmount();
+
+    // Second mount (tab switch): fresh resolvedKeys/latestKey refs, SAME
+    // context state — the receipt must short-circuit the pair.
+    setupContexts({ jobs, evidence: first.evidence });
+    renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2); // ⊥ re-fired
   });
 });

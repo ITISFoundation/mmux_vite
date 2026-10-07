@@ -52,6 +52,8 @@ function LHSSampling() {
   const { selectedFunction, inputVars, distribution } = useFunctionContext();
   // B33: log scale is display-only (not wired into LHS/Dakota sampling). Warn once when the
   // LHS sampling screen is selected and any variable is configured for log scale.
+  // Real fix (sampling in log space) tracked as ITISFoundation/mmux_vite#703; remove this
+  // toast when that lands.
   useEffect(() => {
     if (!selectedFunction) return;
     const dists = distribution[selectedFunction.uid];
