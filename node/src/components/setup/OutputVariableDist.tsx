@@ -7,7 +7,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import { AddOutputModal } from "./AddOutputModal";
-import { minCompletedJobs, useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
+import { buildQoiScaleKey, minCvJobs, useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 import { aggregateOutputValues } from "../../utils/functionUtils";
 
 // 3 significant digits keeps RMSE comparisons readable without false precision.
@@ -16,6 +16,8 @@ const fmtRmse = (v: number) => String(Number(v.toPrecision(3)));
 export function OutputVariableDist() {
   const {
     selectedFunction,
+    inputVars,
+    distribution,
     outputVars,
     outputTargets,
     setOutputTargets,
@@ -43,6 +45,22 @@ export function OutputVariableDist() {
   // pair anyway.
   useAutoDetectQoiScale(selectedFunction ? Object.keys(outputTargets[uid] || {}) : undefined);
   const outputsByVar = useMemo(() => aggregateOutputValues(filteredJobList), [filteredJobList]);
+  // Same primitives the hook hashes into its cache key, so "is this receipt
+  // about the CURRENT jobs/scales?" is answerable at the card (GH-Copilot
+  // #696 re-review: a stale receipt must never render as the live verdict).
+  const sortedJobUids = useMemo(
+    () =>
+      filteredJobList
+        .map(job => job.uid)
+        .sort()
+        .join(","),
+    [filteredJobList],
+  );
+  const inputScaleSignature = useMemo(
+    () => inputVars.map(v => (distribution[uid]?.[v]?.scale === "log" ? "1" : "0")).join(""),
+    [inputVars, distribution, uid],
+  );
+  const minJobs = minCvJobs(inputVars.length);
 
   const handleSetOutputLogScale = (outputVar: string, value: boolean) => {
     setLocalOutputLogScales(prev => ({ ...prev, [outputVar]: value }));
@@ -113,9 +131,15 @@ export function OutputVariableDist() {
           // WHY is this scale what it is: locked by manual toggle, or the
           // auto-detect CV pair's verdict (and its measured errors)?
           const locked = !!outputLogScaleUserSet[uid]?.[outputVar];
-          const evidence = qoiScaleEvidence[uid]?.[outputVar];
+          // A stored receipt only describes reality while its key is current —
+          // after a job-set or input-scale change it is stale until a fresh
+          // pair commits (GH-Copilot #696 re-review).
+          const stored = qoiScaleEvidence[uid]?.[outputVar];
+          const evidence =
+            stored && stored.key === buildQoiScaleKey(uid, outputVar, sortedJobUids, inputScaleSignature) ? stored : undefined;
           const outputs = outputsByVar[outputVar] || [];
-          const detectable = outputs.length >= minCompletedJobs && outputs.every(v => v > 0);
+          const hasNonPositive = outputs.some(v => v <= 0);
+          const detectable = outputs.length >= minJobs && outputs.every(v => v > 0);
           return (
             <Box
               key={`output-var-${outputVar}`}
@@ -218,10 +242,16 @@ export function OutputVariableDist() {
                             ? "Auto-selected: lower CV error wins. Toggling locks your choice."
                             : detectable
                               ? "Comparing linear and log cross-validation errors…"
-                              : outputs.length < minCompletedJobs
-                                ? `Auto-detection starts once this output has ${minCompletedJobs}+ completed jobs.`
+                              : outputs.length < minJobs
+                                ? `Auto-detection starts once this output has ${minJobs}+ completed jobs.`
                                 : "Auto-detection needs all values of this output to be positive."}
                       </Typography>
+                      {hasNonPositive && (
+                        <Typography component="div" variant="caption" sx={{ color: "warning.main" }}>
+                          Current jobs include outputs ≤ 0 — a log fit is invalid for them and the backend will reject log
+                          requests on this output.
+                        </Typography>
+                      )}
                     </Box>
                   }
                 >

@@ -22,9 +22,18 @@ import { aggregateOutputValues } from "./functionUtils";
 // Cached by (function uid, QoI, sorted job-uid list) (INV-006 pattern) so an
 // unchanged job-set never re-fires the CV pair for a QoI it already resolved.
 
-// Exported so the provenance UI (OutputVariableDist) phrases its pending state
-// against the SAME eligibility bar the detection uses.
-export const minCompletedJobs = 5;
+// Matches the flaskapi SumoCrossValidationRequest job validator and the FE's
+// InsufficientDataWarning: completed jobs must number at least
+// max(5, n_inputs + 1). A fixed 5 would fire the pair early for ≥5-input
+// functions and get 422 on both CV calls (GH-Copilot #696 re-review).
+export const minCvJobs = (numInputVars: number): number => Math.max(5, numInputVars + 1);
+
+// Single definition of the CV pair's cache key — the hook and the provenance
+// UI both compute it, so "is this receipt current?" is a shared predicate
+// rather than a re-implementation (GH-Copilot #696 re-review: a stale receipt
+// must not render as the live verdict).
+export const buildQoiScaleKey = (uid: string, qoi: string, sortedJobUids: string, inputScaleSignature: string): string =>
+  `${uid}::${qoi}::${sortedJobUids}::${inputScaleSignature}`;
 
 function computeRmse(actual: number[], predicted: number[]): number | undefined {
   const sumSquaredError = actual.reduce((sum, value, index) => sum + (value - predicted[index]) ** 2, 0);
@@ -37,6 +46,7 @@ async function fetchCvRmse(
   jobs: unknown[],
   logScale: boolean,
   inputLogScales: { [inputVar: string]: boolean },
+  minJobs: number,
 ): Promise<number | undefined> {
   try {
     // V44eh re-port: the fork-era raw call site predates the shared client and
@@ -62,7 +72,7 @@ async function fetchCvRmse(
     const actual = data.observed;
     const predicted = data.predicted;
     if (!Array.isArray(actual) || !Array.isArray(predicted)) return undefined;
-    if (actual.length < minCompletedJobs || actual.length !== predicted.length) return undefined;
+    if (actual.length < minJobs || actual.length !== predicted.length) return undefined;
     return computeRmse(actual, predicted);
   } catch (error) {
     console.warn(`useAutoDetectQoiScale: CV fetch failed for "${qoi}" (log=${logScale})`, error);
@@ -143,7 +153,7 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
     qois.forEach(qoi => {
       if (outputLogScaleUserSetRef.current[uid]?.[qoi]) return; // locked by manual toggle (V27)
 
-      const cacheKey = `${uid}::${qoi}::${sortedJobUids}::${inputScaleSignature}`;
+      const cacheKey = buildQoiScaleKey(uid, qoi, sortedJobUids, inputScaleSignature);
       // EVERY generation (even cached/skipped ones) marks this key current, so
       // a still-in-flight pair whose key equals the latest key stays valid,
       // while any pair superseded by a scale change is discarded on resolve.
@@ -157,18 +167,43 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
         return;
       }
 
+      const minJobs = minCvJobs(inputVars.length);
       const outputValues = outputsByVar[qoi] || [];
-      if (outputValues.length < minCompletedJobs) return;
-      if (!outputValues.every(value => value > 0)) return; // mirrors flaskapi SPEC V16
+      // Positivity is checked BEFORE count: any ≤0 output makes an unlocked log
+      // verdict actively invalid — the backend positivity guard rejects every
+      // log(QoI) request — so invalidate it now instead of leaving it until a
+      // pair this job-set can never score (GH-Copilot #696 re-review). Manual
+      // locks are user data: leave them, the toggle tooltip footnotes instead.
+      if (!outputValues.every(value => value > 0)) {
+        setQoiScaleEvidence(prev => {
+          if (prev[uid]?.[qoi] === undefined) return prev;
+          const kept = Object.fromEntries(Object.entries(prev[uid]).filter(([name]) => name !== qoi));
+          return { ...prev, [uid]: kept };
+        });
+        setOutputLogScales(prev => {
+          if (prev[uid]?.[qoi] !== true) return prev; // linear/unset: nothing to invalidate
+          return { ...prev, [uid]: { ...prev[uid], [qoi]: false } };
+        });
+        return;
+      }
+      if (outputValues.length < minJobs) return;
 
       resolvedKeys.current.add(cacheKey);
 
       (async () => {
         const [rmseLinear, rmseLog] = await Promise.all([
-          fetchCvRmse(inputVars, qoi, filteredJobList, false, inputLogScales),
-          fetchCvRmse(inputVars, qoi, filteredJobList, true, inputLogScales),
+          fetchCvRmse(inputVars, qoi, filteredJobList, false, inputLogScales, minJobs),
+          fetchCvRmse(inputVars, qoi, filteredJobList, true, inputLogScales, minJobs),
         ]);
-        if (rmseLinear === undefined || rmseLog === undefined) return;
+        if (rmseLinear === undefined || rmseLog === undefined) {
+          // A failed/malformed pair has nothing to commit, so it must not have
+          // consumed its key: refund like the stale-discard path, or a
+          // transient error pins this key for the instance's lifetime and the
+          // tooltip says "Comparing…" forever with no possible retry
+          // (GH-Copilot #696 re-review).
+          resolvedKeys.current.delete(cacheKey);
+          return;
+        }
         if (outputLogScaleUserSetRef.current[uid]?.[qoi]) return; // re-check: may have been locked mid-flight
         if (latestKeyByQoi.current[`${uid}::${qoi}`] !== cacheKey) {
           // Superseded by a newer scale generation (GH-Copilot #665). UNCACHE the

@@ -18,6 +18,7 @@ const makeJob = (uid: string, qoiValue: number) => ({
 
 function setupContexts(overrides: {
   jobs: ReturnType<typeof makeJob>[];
+  inputVars?: string[];
   outputLogScaleUserSet?: { [uid: string]: { [qoi: string]: boolean } };
   setOutputLogScales?: ReturnType<typeof vi.fn>;
   distribution?: { [uid: string]: { [inputVar: string]: { scale?: "linear" | "log" } } };
@@ -37,7 +38,7 @@ function setupContexts(overrides: {
   });
   useFunctionContextMock.mockReturnValue({
     selectedFunction: { uid: "fn1" },
-    inputVars: ["x"],
+    inputVars: overrides.inputVars ?? ["x"],
     distribution: overrides.distribution ?? {},
     setOutputLogScales,
     setQoiScaleEvidence,
@@ -389,5 +390,94 @@ describe("useAutoDetectQoiScale", () => {
       setTimeout(resolve, 0);
     });
     expect(fetchMock).toHaveBeenCalledTimes(2); // ⊥ re-fired
+  });
+
+  it("requires max(5, n_inputs + 1) completed jobs — the backend's CV contract", async () => {
+    const fetchMock = mockCvFetch();
+    vi.stubGlobal("fetch", fetchMock);
+    const inputVars = ["x1", "x2", "x3", "x4", "x5", "x6"]; // → min is 7, not 5
+    const sixJobs = [10, 20, 30, 40, 50, 60].map((v, i) => makeJob(`j${i + 1}`, v));
+    setupContexts({ jobs: sixJobs, inputVars });
+
+    const { rerender } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
+    expect(fetchMock).not.toHaveBeenCalled(); // 6 jobs < max(5, 7): ⊥ firing into a 422
+
+    setupContexts({ jobs: [...sixJobs, makeJob("j7", 70)], inputVars });
+    rerender();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2); // 7 jobs: fires
+    });
+  });
+
+  it("invalidates an UNLOCKED auto log-verdict when the job-set turns non-positive", async () => {
+    vi.stubGlobal("fetch", mockCvFetch());
+    const staleKey = "fn1::qoi::j1,j2,j3,j4::0"; // computed under the OLD 4-job set
+    const evidence = { fn1: { qoi: { rmseLinear: 1, rmseLog: 0.5, jobs: 4, key: staleKey } } };
+    const scaleUpdates: { [uid: string]: { [qoi: string]: boolean } }[] = [];
+    const setOutputLogScales = vi.fn((updater: unknown) => {
+      scaleUpdates.push(
+        typeof updater === "function"
+          ? (updater as (prev: { [uid: string]: { [qoi: string]: boolean } }) => { fn1: { qoi: boolean } })(
+              { fn1: { qoi: true } }, // the prior auto verdict in live state
+            )
+          : (updater as { [uid: string]: { [qoi: string]: boolean } }),
+      );
+    });
+    setupContexts({
+      jobs: [makeJob("j1", 10), makeJob("j2", -5), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)],
+      setOutputLogScales,
+      evidence,
+    });
+
+    renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
+
+    // the ≤0 output (j2) forces the invalidation branch (current key ≠ stale receipt,
+    // so the cross-mount skip cannot shield it)
+    expect(setOutputLogScales).toHaveBeenCalled();
+    expect(scaleUpdates.at(-1)).toEqual({ fn1: { qoi: false } }); // verdict reset to linear
+    expect(evidence.fn1).toEqual({}); // receipt dropped (the harness setter is functional)
+  });
+
+  it("never invalidates a MANUALLY LOCKED verdict on non-positive outputs (user data)", async () => {
+    const fetchMock = mockCvFetch();
+    vi.stubGlobal("fetch", fetchMock);
+    const { setOutputLogScales } = setupContexts({
+      jobs: [makeJob("j1", 10), makeJob("j2", -5), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)],
+      outputLogScaleUserSet: { fn1: { qoi: true } },
+    });
+
+    renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
+    expect(setOutputLogScales).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("refunds the cache key when a CV pair fails, so a later generation can retry it", async () => {
+    // every CV call answers without the observed/predicted arrays → both rmse undefined
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ error: "boom" }) }) as unknown as Response);
+    vi.stubGlobal("fetch", fetchMock);
+    const jobs = [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)];
+    setupContexts({ jobs });
+
+    const { rerender } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    // Same key (identical job UIDs / scales) via a fresh deps identity: the
+    // failed pair must NOT have consumed the key (GH-Copilot #696 re-review).
+    setupContexts({ jobs: [...jobs] });
+    rerender();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(4); // retry happened
+    });
   });
 });

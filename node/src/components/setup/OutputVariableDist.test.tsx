@@ -50,7 +50,8 @@ const hoverScaleRow = () => {
 describe("OutputVariableDist surrogate-scale provenance (V12 receipts)", () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
   beforeEach(() => {
-    fetchSpy = vi.fn();
+    // Never resolving: pending-detection UI stays stable for tooltip assertions.
+    fetchSpy = vi.fn(() => new Promise<Response>(() => undefined));
     vi.stubGlobal("fetch", fetchSpy);
   });
   afterEach(() => {
@@ -104,5 +105,44 @@ describe("OutputVariableDist surrogate-scale provenance (V12 receipts)", () => {
     await waitFor(() => {
       expect(setOutputLogScaleUserSet).toHaveBeenCalled();
     });
+  });
+
+  it("a receipt computed under a STALE key is not shown as the live verdict (re-review B39xk)", async () => {
+    setup({
+      evidence: { fn1: { qoi: { ...evidence.fn1.qoi, key: "fn1::qoi::old-jobs::0" } } },
+    });
+    render(<OutputVariableDist />);
+
+    expect(screen.queryByText("auto")).toBeNull(); // stale chip ⊥ rendered
+    expect(screen.queryByText("manual")).toBeNull();
+
+    hoverScaleRow();
+    // key mismatch ⇒ the hook re-fires for the current key: honest pending state
+    expect(await screen.findByText("Comparing linear and log cross-validation errors…")).toBeDefined();
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("footnotes the toggle when current jobs carry non-positive outputs for the QoI", async () => {
+    setup();
+    useJobContextMock.mockReturnValue({
+      filteredJobList: [
+        { uid: "j1", status: "SUCCESS", outputs: { qoi: 10 } },
+        { uid: "j2", status: "SUCCESS", outputs: { qoi: 20 } },
+        { uid: "j3", status: "SUCCESS", outputs: { qoi: -5 } },
+        { uid: "j4", status: "SUCCESS", outputs: { qoi: 40 } },
+        { uid: "j5", status: "SUCCESS", outputs: { qoi: 50 } },
+      ],
+    });
+    render(<OutputVariableDist />);
+
+    hoverScaleRow();
+    expect(
+      await screen.findByText(
+        "Current jobs include outputs ≤ 0 — a log fit is invalid for them and the backend will reject log requests on this output.",
+      ),
+    ).toBeDefined();
+    expect(fetchSpy).not.toHaveBeenCalled(); // ineligible: ⊥ CV pair, invalidation branch only
   });
 });
