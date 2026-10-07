@@ -229,4 +229,60 @@ describe("useAutoDetectQoiScale", () => {
     await new Promise(resolve => setTimeout(resolve, 80));
     expect(state.fn1?.qoi).toBe(false); // ⊥ flipped back by the superseded pair
   });
+
+  it("re-detects after a discarded verdict when the scale flips back A→B→A (GH-Copilot #666 follow-up)", async () => {
+    const jobs = [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)];
+    // A-generations prefer LOG (slow), B prefers LINEAR (fast).
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string);
+      const logInputs = Boolean(body.inputLogScales?.x);
+      const useLog = Boolean(body.outputLogScales?.qoi);
+      if (!logInputs) {
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
+      const perfect = [1, 2, 3, 4, 5];
+      const off = [2, 2, 2, 2, 2];
+      const data = logInputs
+        ? { observed: perfect, predicted: useLog ? off : perfect } // B: linear wins
+        : { observed: perfect, predicted: useLog ? perfect : off }; // A: log wins
+      return { ok: true, json: async () => data } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const state: { [uid: string]: { [qoi: string]: boolean } } = {};
+    const setOutputLogScales = vi.fn((updater: unknown) => {
+      const next =
+        typeof updater === "function" ? (updater as (prev: typeof state) => typeof state)(state) : (updater as typeof state);
+      Object.assign(state, next);
+    });
+
+    setupContexts({ jobs, setOutputLogScales });
+    const { rerender } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2); // pair 1 (A) in flight, slow
+    });
+
+    // B starts while A is pending; B's fast verdict lands, A's is discarded mid-B.
+    setupContexts({ jobs, setOutputLogScales, distribution: { fn1: { x: { scale: "log" } } } });
+    rerender();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+    });
+    await waitFor(() => {
+      expect(state.fn1?.qoi).toBe(false); // B's verdict applied
+    });
+    await new Promise(resolve => setTimeout(resolve, 60)); // pair 1 resolves + discarded
+    expect(fetchMock).toHaveBeenCalledTimes(4); // discarded verdict stayed silent
+    expect(state.fn1?.qoi).toBe(false);
+
+    // Flip back to A: the discarded attempt must NOT have consumed the cache slot.
+    setupContexts({ jobs, setOutputLogScales });
+    rerender();
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(6); // ⊥ permanently silent (B28wx)
+    });
+    await waitFor(() => {
+      expect(state.fn1?.qoi).toBe(true); // fresh A pair's verdict commits
+    });
+  });
 });

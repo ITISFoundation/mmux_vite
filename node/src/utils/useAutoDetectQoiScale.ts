@@ -147,7 +147,17 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
         ]);
         if (rmseLinear === undefined || rmseLog === undefined) return;
         if (outputLogScaleUserSetRef.current[uid]?.[qoi]) return; // re-check: may have been locked mid-flight
-        if (latestKeyByQoi.current[`${uid}::${qoi}`] !== cacheKey) return; // superseded by a newer scale generation (GH-Copilot #665)
+        if (latestKeyByQoi.current[`${uid}::${qoi}`] !== cacheKey) {
+          // Superseded by a newer scale generation (GH-Copilot #665). UNCACHE the
+          // discarded key: resolvedKeys is marked at KICK time, and this pair was
+          // the only verdict attempt for that exact parameter set — without the
+          // un-cache an A→B→A flip-flop leaves the A key permanently "resolved"
+          // while nothing was ever committed for it (permanent silence; the
+          // same-key pair that finally lands while latest==key commits, so this
+          // refund cannot resurrect a genuinely superseded verdict).
+          resolvedKeys.current.delete(cacheKey);
+          return;
+        }
 
         const preferLog = rmseLog < rmseLinear;
         setOutputLogScales(prev => {
