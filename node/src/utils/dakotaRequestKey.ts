@@ -13,7 +13,8 @@ export interface DakotaRequestKeyInput {
   qoi: string | undefined;
   fn: string | undefined;
   jobList: string[];
-  logScales: { [key: string]: boolean };
+  inputLogScales: { [key: string]: boolean };
+  outputLogScaled: boolean;
   axisRanges?: { [key: string]: [number, number] };
 }
 
@@ -52,19 +53,25 @@ export function buildDakotaRequestKey({
   qoi,
   fn,
   jobList,
-  logScales,
+  inputLogScales,
+  outputLogScaled,
   axisRanges,
 }: DakotaRequestKeyInput): string {
   // axes are positional (axis1/axis2/axis3) so order is meaningful and preserved.
-  // sliderValues, logScales and jobList are order-independent, so they are sorted
-  // for stability.
+  // sliderValues, inputLogScales and jobList are order-independent, so they are
+  // sorted for stability. The input and output scale flags are NEVER merged into
+  // one name-keyed map: a backend input and the QoI may share a name, and a
+  // spread would let one flag silently mask the other's change, suppressing a
+  // refetch the backend response does depend on. The QoI's own name already
+  // rides in `qoi`, so its flag alone is the discriminator.
   return JSON.stringify({
     axes,
     sliderValues: sortedRecordEntries(sliderValues),
     qoi: qoi ?? null,
     fn: fn ?? null,
     jobList: [...jobList].sort(),
-    logScales: sortedLogScales(logScales),
+    inputLogScales: sortedLogScales(inputLogScales),
+    outputLogScaled,
     axisRanges: sortedRangeEntries(axisRanges),
   });
 }

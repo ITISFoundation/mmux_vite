@@ -147,7 +147,8 @@ function Surface2DPlot() {
         qoi: selectedQoI,
         fn: selectedFunction?.uid,
         jobList: jobs.map(job => job.uid),
-        logScales: selectedQoI ? { ...inputLogScales, [selectedQoI]: outputLogScaleForQoi } : inputLogScales,
+        inputLogScales,
+        outputLogScaled: outputLogScaleForQoi,
         axisRanges,
       });
       if (requestKey === lastFetchedKey.current) {

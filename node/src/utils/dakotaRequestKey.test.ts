@@ -7,7 +7,8 @@ const base: DakotaRequestKeyInput = {
   qoi: "out",
   fn: "fn-uid",
   jobList: ["job-a", "job-b"],
-  logScales: {},
+  inputLogScales: {},
+  outputLogScaled: false,
 };
 
 describe("buildDakotaRequestKey (V16 dedup)", () => {
@@ -20,7 +21,8 @@ describe("buildDakotaRequestKey (V16 dedup)", () => {
       qoi: "out",
       fn: "fn-uid",
       jobList: ["job-b", "job-a"],
-      logScales: { x: false },
+      inputLogScales: { x: false },
+      outputLogScaled: false,
     });
     expect(key2).toBe(key1);
   });
@@ -42,11 +44,24 @@ describe("buildDakotaRequestKey (V16 dedup)", () => {
   });
 
   it("changes the key when a log-scale flag changes", () => {
-    expect(buildDakotaRequestKey({ ...base, logScales: { x: true } })).not.toBe(buildDakotaRequestKey(base));
+    expect(buildDakotaRequestKey({ ...base, inputLogScales: { x: true } })).not.toBe(buildDakotaRequestKey(base));
     // key insertion order must not matter
-    expect(buildDakotaRequestKey({ ...base, logScales: { a: true, b: false } })).toBe(
-      buildDakotaRequestKey({ ...base, logScales: { b: false, a: true } }),
+    expect(buildDakotaRequestKey({ ...base, inputLogScales: { a: true, b: false } })).toBe(
+      buildDakotaRequestKey({ ...base, inputLogScales: { b: false, a: true } }),
     );
+    // the QoI's output flag must move the key on its own
+    expect(buildDakotaRequestKey({ ...base, outputLogScaled: true })).not.toBe(buildDakotaRequestKey(base));
+  });
+
+  it("keeps input and output scale flags namespaced when an input shares the QoI's name", () => {
+    // a merged { ...inputLogScales, [qoi]: flag } map would let one flag mask
+    // the other's change here (same name, e.g. "out" as input AND QoI)
+    const qoiNamed = { ...base, qoi: "out", inputLogScales: { out: false }, outputLogScaled: true };
+    // input flag flips false -> true while the QoI flag is already true:
+    expect(buildDakotaRequestKey({ ...qoiNamed, inputLogScales: { out: true } })).not.toBe(buildDakotaRequestKey(qoiNamed));
+    // and the mirrored case: output flag flips while the input flag stays true
+    const inputNamed = { ...base, qoi: "out", inputLogScales: { out: true }, outputLogScaled: false };
+    expect(buildDakotaRequestKey({ ...inputNamed, outputLogScaled: true })).not.toBe(buildDakotaRequestKey(inputNamed));
   });
 
   it("treats axes as positional (order matters)", () => {

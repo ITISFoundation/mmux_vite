@@ -60,6 +60,46 @@ const objectFields = ["numSamples", "distribution", "outputTargets", "lhsSamplin
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+// Validate persistence structure: required keys must exist with the right JSON type,
+// otherwise downstream `.map`/property access crashes on a hand-edited or stale file
+// (B32pv). Exported for the malformed-persistence unit tests.
+export function isValidPersistenceFile(value: unknown): value is PersistenceType {
+  if (!isPlainObject(value)) return false;
+  // uqSettings/validationQoI stay optional so LEGACY files remain valid
+  // (migration happens in MMUXContext), but when present they must carry
+  // the right runtime type or wrong-typed values reach request payloads (B32pv class).
+  const uqSettingsOK =
+    value.uqSettings === undefined ||
+    (isPlainObject(value.uqSettings) &&
+      Object.values(value.uqSettings).every(
+        setting =>
+          isPlainObject(setting) &&
+          typeof setting.numSamples === "number" &&
+          typeof setting.nHistograms === "number" &&
+          typeof setting.seed === "number",
+      ));
+  const validationQoIOK = value.validationQoI === undefined || typeof value.validationQoI === "string";
+  // The per-uid log-scale maps (uid -> varName -> boolean) added with the V26/V27
+  // flow stay optional for the same LEGACY reason, but a present-but-malformed
+  // value (string/array, or non-boolean leaves) must not be handed through
+  // FunctionContext as if it satisfied the map type.
+  const scaleMapsOK = (maps: unknown): boolean =>
+    maps === undefined ||
+    (isPlainObject(maps) &&
+      Object.values(maps).every(inner => isPlainObject(inner) && Object.values(inner).every(flag => typeof flag === "boolean")));
+  return (
+    typeof value.currentView === "number" &&
+    typeof value.isSuMoGenerated === "boolean" &&
+    arrayFields.every(field => Array.isArray(value[field])) &&
+    objectFields.every(field => isPlainObject(value[field])) &&
+    uqSettingsOK &&
+    validationQoIOK &&
+    scaleMapsOK(value.outputLogScales) &&
+    scaleMapsOK(value.outputLogScaleUserSet) &&
+    Object.keys(value).length <= Object.keys(defaultPersistence).length
+  );
+}
+
 export function PersistenceContextProvider({ children }: Props) {
   const [loading, setLoading] = useState(true);
   const [healthOK, setHealthOK] = useState<boolean>(false);
@@ -70,35 +110,6 @@ export function PersistenceContextProvider({ children }: Props) {
   // setters re-invoked with a recreated-but-equal object do not retrigger a save
   // (avoids duplicate Dakota/persistence fan-out).
   const lastSavedContent = useRef<string | undefined>(undefined);
-
-  // Validate persistence structure: required keys must exist with the right JSON type,
-  // otherwise downstream `.map`/property access crashes on a hand-edited or stale file (B32pv).
-  const isValidPersistenceFile = (value: unknown): value is PersistenceType => {
-    if (!isPlainObject(value)) return false;
-    // uqSettings/validationQoI stay optional so LEGACY files remain valid
-    // (migration happens in MMUXContext), but when present they must carry
-    // the right runtime type or wrong-typed values reach request payloads (B32pv class).
-    const uqSettingsOK =
-      value.uqSettings === undefined ||
-      (isPlainObject(value.uqSettings) &&
-        Object.values(value.uqSettings).every(
-          setting =>
-            isPlainObject(setting) &&
-            typeof setting.numSamples === "number" &&
-            typeof setting.nHistograms === "number" &&
-            typeof setting.seed === "number",
-        ));
-    const validationQoIOK = value.validationQoI === undefined || typeof value.validationQoI === "string";
-    return (
-      typeof value.currentView === "number" &&
-      typeof value.isSuMoGenerated === "boolean" &&
-      arrayFields.every(field => Array.isArray(value[field])) &&
-      objectFields.every(field => isPlainObject(value[field])) &&
-      uqSettingsOK &&
-      validationQoIOK &&
-      Object.keys(value).length <= Object.keys(defaultPersistence).length
-    );
-  };
 
   const setFile = async (filename: string, content: string): Promise<boolean> => {
     let data: { filename: string; status: string };

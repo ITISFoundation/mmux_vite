@@ -157,7 +157,9 @@ export function InputVariableDist() {
     const sigma = Math.sqrt(Math.log(1 + variance));
     const mu = Math.log(mean) - (sigma * sigma) / 2;
     const fmt = (v: number) => String(Number(v.toPrecision(3)));
-    return `log-normal · median ≈ ${fmt(Math.exp(mu))}, 95% range ≈ [${fmt(Math.exp(mu - 2.5 * sigma))}, ${fmt(Math.exp(mu + 2.5 * sigma))}]`;
+    // 1.96 sigma is the central 95% interval of the normal in log space; the
+    // previous 2.5 sigma covered 98.8% while the label claimed 95%.
+    return `log-normal · median ≈ ${fmt(Math.exp(mu))}, 95% range ≈ [${fmt(Math.exp(mu - 1.96 * sigma))}, ${fmt(Math.exp(mu + 1.96 * sigma))}]`;
   };
 
   // log sampling needs strictly positive support: constant is never scalable,
