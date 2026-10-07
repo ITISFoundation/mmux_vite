@@ -132,11 +132,13 @@ describe("InputVariableDist", () => {
 
     const selector = document.querySelector('[mmux-testid="input-var-x-distribution-selector"]') as HTMLElement;
     fireEvent.mouseDown(within(selector).getByRole("combobox"));
+    // #663 replay (B33/V40): log-normal is no longer a form in the menu; the
+    // orthogonal Scale toggle carries it (uniform/normal only).
+    expect(screen.queryByRole("option", { name: "LogNormal" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("option", { name: "Constant" }));
 
     expect(lastSaved()).toEqual({ x: { distribution: "constant" } });
     expect(screen.getByText("Empty value")).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "LogNormal", hidden: true })).toHaveAttribute("aria-disabled", "true");
   });
 
   it("shows a placeholder for an entry without a distribution form", () => {

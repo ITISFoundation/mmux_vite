@@ -9,7 +9,7 @@ export interface UploadedInputPreset {
   distribution: "uniform";
   min: number;
   max: number;
-  logScale: boolean;
+  scale: "linear" | "log";
 }
 
 export interface ParsedJobCollectionRow {

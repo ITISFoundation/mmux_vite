@@ -38,11 +38,9 @@ describe("stepValidator step 0", () => {
     ["uniform equal bounds", { distribution: "uniform", min: 1, max: 1 }, false],
     ["uniform missing max", { distribution: "uniform", min: 0 }, false],
     ["uniform infinite max", { distribution: "uniform", min: 0, max: Number.POSITIVE_INFINITY }, false],
-    ["log-normal", { distribution: "log-normal", location: 0, scale: 1 }, true],
-    ["log-normal zero scale", { distribution: "log-normal", location: 0, scale: 0 }, false],
-    ["log-normal NaN location", { distribution: "log-normal", location: Number.NaN, scale: 1 }, false],
-    ["exponential", { distribution: "exponential", mean: 2 }, true],
-    ["exponential non-positive mean", { distribution: "exponential", mean: 0 }, false],
+    // log-normal/exponential were removed from the Distribution union with the
+    // #663 replay (B33/V40): log is the orthogonal VarSelection.scale, so the
+    // validator no longer carries their branches (unknown forms → false).
     ["unknown distribution", { distribution: "beta", alpha: 1 }, false],
   ])("%s → %s", (_label, dist, expected) => {
     expect(stepValidator(functionContext({ x: dist }), jobContext([]), "UQ", 0)).toBe(expected);

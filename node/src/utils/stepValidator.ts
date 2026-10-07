@@ -37,12 +37,7 @@ export function stepValidator(
       if (dist.distribution === "uniform") {
         return finite(dist.min) && finite(dist.max) && dist.min < dist.max;
       }
-      if (dist.distribution === "log-normal") {
-        return finite(dist.location) && finite(dist.scale) && dist.scale > 0;
-      }
-      if (dist.distribution === "exponential") {
-        return finite(dist.mean) && dist.mean > 0;
-      }
+
       return false; // If the distribution type is not recognized or is missing values
     });
     return functionContext?.selectedFunction !== undefined && correctDistributions;

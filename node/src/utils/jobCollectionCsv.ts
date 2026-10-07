@@ -156,7 +156,9 @@ export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCs
       distribution: "uniform",
       min,
       max,
-      logScale: shouldUseLogScale(values),
+      // Orthogonal scale tag (VarSelection.scale): CSV columns spanning >=2
+      // orders of magnitude default to log sampling/fitting.
+      scale: shouldUseLogScale(values) ? "log" : "linear",
     };
   });
 

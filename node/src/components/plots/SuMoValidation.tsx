@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import { Box, useTheme } from "@mui/material";
 import Plot from "react-plotly.js";
@@ -16,12 +16,32 @@ import { getValidationSeries } from "../../utils/sumoValidation";
 import { requestJson } from "../../api/client";
 import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
+import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 
 function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: string }) {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { validationQoI: contextValidationQoI } = useMMUXContext();
   const validationQoI = validationQoIOverride ?? contextValidationQoI;
+  // Per-variable log-scale flags (node SPEC V12), see Curves1DPlot for the
+  // pattern. Re-port note: keyed off validationQoI, NOT selectedQoI -- since
+  // #681 this view can render a modal-selected QoI; scale must follow what
+  // is actually being validated.
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const outputLogScaleForQoi = validationQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[validationQoI]) : false;
+  // V26/V27: propose linear-vs-log surrogate scale for the validated QoI from a
+  // CV RMSE comparison; a manual toggle in OutputVariableDist locks it (V27).
+  useAutoDetectQoiScale(validationQoI ? [validationQoI] : undefined);
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
@@ -113,7 +133,8 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
       inputVars,
       output: validationQoI,
       FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
-      log: false,
+      inputLogScales,
+      outputLogScales: validationQoI ? { [validationQoI]: outputLogScaleForQoi } : {},
     };
     // V46sc: session response cache - identical (url, body) is served with zero
     // network, including after unmount/remount; failures are never cached.
@@ -154,7 +175,8 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
       const jobs = filteredJobList;
       return RunSuMoValidation(jobs, isStale);
     },
-    [validationQoI, inputVars, selectedFunction, distribution, filteredJobList],
+    // #663 log-scale deps ride the union (validationQoI already replaces selectedQoI here)
+    [validationQoI, inputVars, selectedFunction, distribution, filteredJobList, inputLogScales, outputLogScaleForQoi],
   );
 
   useEffect(() => {

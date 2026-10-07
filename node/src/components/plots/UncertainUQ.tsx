@@ -1,6 +1,6 @@
 import { Box, IconButton, Tooltip, useTheme } from "@mui/material";
 import { Tune } from "@mui/icons-material";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -9,6 +9,7 @@ import { useMMUXContext } from "../../context/MMUXContext";
 import { requestJson } from "../../api/client";
 import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
+import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
@@ -19,8 +20,24 @@ type UncertainUQProps = LoadingPropsType & { onOpenSettings?: () => void };
 export default function UncertainUQ(props: UncertainUQProps) {
   const { loading, jobProgress, onOpenSettings } = props;
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { uqSettings, selectedQoI } = useMMUXContext();
+  // Per-variable log-scale flags (node SPEC V12), see Curves1DPlot for the pattern.
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
+  // V26/V27: propose linear-vs-log surrogate scale for the selected QoI from a
+  // CV RMSE comparison; a manual toggle in OutputVariableDist locks it (V27).
+  useAutoDetectQoiScale(selectedQoI ? [selectedQoI] : undefined);
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [dataUQHistogram, setDataUQHistogram] = useState<DataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
@@ -48,12 +65,14 @@ export default function UncertainUQ(props: UncertainUQProps) {
           distributions: distribution[selectedFunction?.uid || ""],
           FunctionJobs: filteredJobList,
           numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
-          log: false,
+          inputLogScales,
+          outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
           nHistograms: uqSettings[selectedFunction?.uid || ""]?.nHistograms || 50,
           seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
         };
-        // V46sc: seed/numSamples/nHistograms/distributions are ALL in the cache
-        // key by construction - changing any of them misses and refetches.
+        // V46sc: seed/numSamples/nHistograms/distributions (and the #663
+        // log-scale maps) are ALL in the cache key by construction - changing
+        // any of them misses and refetches.
         const data = await getCachedOrFetch<DataUQHistogramType>(
           `/flask/dakota/manual_uq_propagation_with_uncertainty`,
           uqBody,
@@ -93,7 +112,18 @@ export default function UncertainUQ(props: UncertainUQProps) {
         setDataUQHistogram(undefined);
       }
     },
-    [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction, theme.palette.primary.main],
+    // #663 log-scale deps ride the union (uqSettings already replaces numSamples here)
+    [
+      filteredJobList,
+      selectedQoI,
+      uqSettings,
+      inputVars,
+      distribution,
+      selectedFunction,
+      theme.palette.primary.main,
+      inputLogScales,
+      outputLogScaleForQoi,
+    ],
   );
   if (loading) {
     return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;

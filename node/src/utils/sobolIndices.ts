@@ -9,6 +9,8 @@ export type FetchSobolIndicesParams = {
   functionJobs: OsparcFunctionJob[];
   numSamples: number;
   seed?: number;
+  inputLogScales?: { [varName: string]: boolean };
+  outputLogScale?: boolean;
 };
 
 /**
@@ -17,7 +19,16 @@ export type FetchSobolIndicesParams = {
  * scipy on a surrogate model built from the completed jobs.
  */
 export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promise<SobolIndicesResponse> {
-  const { inputVars, output, distributions, functionJobs, numSamples, seed = 0 } = params;
+  const {
+    inputVars,
+    output,
+    distributions,
+    functionJobs,
+    numSamples,
+    seed = 0,
+    inputLogScales = {},
+    outputLogScale = false,
+  } = params;
 
   // V44eh: single dialect via requestJson. It still rejects (⊥ resolve) on
   // failure so callers' .catch/try-catch can clear fetch-dedup state (V18) and
@@ -29,6 +40,12 @@ export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promis
     numSamples,
     FunctionJobs: functionJobs,
     seed,
+    // V12: scales ride EVERY surrogate request — the backend
+    // SobolIndicesRequest inherits the scale maps, so omitting them here let
+    // the panel score an all-linear surrogate whose cache key ignored scale
+    // toggles entirely (GH-Copilot #696 re-review).
+    inputLogScales,
+    outputLogScales: output ? { [output]: outputLogScale } : {},
   };
   // V46sc: every sent parameter is in the cache key by construction.
   return getCachedOrFetch<SobolIndicesResponse>(`/flask/dakota/compute_sobol_indices`, body, () =>
