@@ -1,5 +1,5 @@
 import { Box, useTheme } from "@mui/material";
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
@@ -11,8 +11,8 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { requestJson } from "../../api/client";
+import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
-import { buildAxisRanges, buildDakotaRequestKey } from "../../utils/dakotaRequestKey";
 
 function Surface2DPlot() {
   const theme = useTheme();
@@ -39,7 +39,6 @@ function Surface2DPlot() {
   const [propagating, setPropagating] = useState(false);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
   const [errorMessage, setErrorMessage] = useState<string>();
-  const lastFetchedKey = useRef<string | undefined>(undefined);
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
       acc[key] =
@@ -96,37 +95,42 @@ function Surface2DPlot() {
   );
 
   const RunSuMo2DInterpolation = useCallback(
-    async (jobs: OsparcFunctionJob[], key1: string, key2: string, requestKey: string, isStale: () => boolean) => {
+    async (jobs: OsparcFunctionJob[], key1: string, key2: string, isStale: () => boolean) => {
       // This should create the "data" state variable to be plotted
       console.info("Evaluating SuMo for 2D surface...");
       console.info("Jobs to build SuMo: ", jobs);
       setPropagating(true);
       setErrorMessage(undefined);
-      requestJson<{ gridData: { [key: string]: number[] } }>(`/flask/dakota/sumo_grid_evaluation`, {
-        method: "POST",
-        body: {
-          gridVars: [key1, key2],
-          inputVars,
-          output: selectedQoI,
-          sliderValues: otherAxis,
-          FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
-          inputLogScales,
-          outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
-        },
-      })
+      const requestBody = {
+        gridVars: [key1, key2],
+        inputVars,
+        output: selectedQoI,
+        sliderValues: otherAxis,
+        FunctionJobs: jobs, // TODO bfr this was UIDs, now it is the full job info
+        inputLogScales,
+        outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
+      };
+      // V46sc (T39ab): session cache subsumes the V16/V18 lastFetchedKey slot -
+      // the same (url, body) answers with zero network and survives unmount,
+      // failures stay uncached (retry stays possible). The grid endpoint derives
+      // everything from this body (jobs + slider values + log flags; the FE-side
+      // axis ranges the old hand-curated key carried never reached the backend),
+      // so the body-derived key is complete by construction (B37rv).
+      getCachedOrFetch<{ gridData: { [key: string]: number[] } }>(`/flask/dakota/sumo_grid_evaluation`, requestBody, () =>
+        requestJson<{ gridData: { [key: string]: number[] } }>(`/flask/dakota/sumo_grid_evaluation`, {
+          method: "POST",
+          body: requestBody,
+        }),
+      )
         .then(d => {
           if (isStale()) return;
           // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
           reshapePlotData(d?.gridData);
-          // V18: cache key ONLY on success, so transient failures don't block retry
-          lastFetchedKey.current = requestKey;
           setPropagating(false);
           setErrorMessage(undefined);
         })
         .catch(error => {
           if (isStale()) return;
-          // V18: clear cache on error so same inputs can be retried
-          lastFetchedKey.current = undefined;
           console.warn("Error:", error);
           setPropagating(false);
           setPlotData([]);
@@ -139,25 +143,9 @@ function Surface2DPlot() {
   useGuardedAsyncEffect(
     async isStale => {
       const jobs = filteredJobList;
-      // V16: dedup by stable logical request key; same key → no new fetch.
-      const axisRanges = buildAxisRanges(distribution[selectedFunction?.uid || ""], [axis1, axis2]);
-      const requestKey = buildDakotaRequestKey({
-        axes: [axis1, axis2],
-        sliderValues: otherAxis,
-        qoi: selectedQoI,
-        fn: selectedFunction?.uid,
-        jobList: jobs.map(job => job.uid),
-        inputLogScales,
-        outputLogScaled: outputLogScaleForQoi,
-        axisRanges,
-      });
-      if (requestKey === lastFetchedKey.current) {
-        // V45gd: reuse of the successful result must release any loading the
-        // invalidated in-between request left running.
-        setPropagating(false);
-        return;
-      }
-      return RunSuMo2DInterpolation(jobs, axis1, axis2, requestKey, isStale);
+      // V16 dedup (same logical request -> no new fetch) now lives in the
+      // session response cache (V46sc): a repeated (url, body) is a hit.
+      return RunSuMo2DInterpolation(jobs, axis1, axis2, isStale);
     },
     // #663 log-scale deps ride the union: flipping a flag must re-trigger
     [
