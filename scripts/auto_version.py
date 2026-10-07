@@ -13,6 +13,17 @@ index (GitHub releases only):
   highest tag), commits the stable version, tags `vX.Y.Z` and creates the
   GitHub release.
 
+Fanout entries flagged `semver-only = true` in `.bumpversion.cfg` (the
+`.osparc/*/metadata.yml` services) carry the semver BASE on both channels:
+the oSPARC metadata schema validates versions as strict semver and rejects
+PEP440 `.devN` (issue #695); compose image tags keep the full dev version.
+
+Because the fanout no longer shares one searchable token, EVERY bump runs
+through this module: the dev bot applies via `apply --to`, and the human
+`make version-{patch|minor|major}` path routes to `bump --part` (a base
+bump that drops the dev counter). bump2version's single
+`search = {current_version}` cannot match split entries, so it is retired.
+
 Subcommands print the resulting version on stdout; failures exit 1 with an
 actionable message on stderr.
 """
@@ -72,13 +83,21 @@ def parse_form(version: str, *, source: str = "current version") -> tuple[str, i
     return match["base"], None if dev is None else int(dev)
 
 
-def versioned_files(parser: configparser.RawConfigParser) -> list[tuple[str, str, str]]:
+def versioned_files(parser: configparser.RawConfigParser) -> list[tuple[str, str, str, bool]]:
+    """(path, search-template, replace-template, semver-only) per fanout entry.
+
+    `semver-only = true` marks files whose version field must carry the semver
+    BASE (`.devN` stripped) because their schema validates strict semver —
+    oSPARC `metadata.yml` (MetadataConfig) is the case that forced #695; the
+    compose image tags and pyproject keep the full dev version.
+    """
     files = []
     for section in parser.sections():
         if not section.startswith("bumpversion:file:"):
             continue
         path = section.removeprefix("bumpversion:file:")
-        files.append((path, parser[section]["search"], parser[section]["replace"]))
+        semver_only = parser[section].get("semver-only", "false").strip().lower() == "true"
+        files.append((path, parser[section]["search"], parser[section]["replace"], semver_only))
     if not files:
         raise SystemExit(f"no [bumpversion:file:*] sections found in {CONFIG_FILE}")
     return files
@@ -167,7 +186,8 @@ def dev_tags() -> list[str]:
 
 
 def apply_version(parser: configparser.RawConfigParser, current: str, target: str) -> int:
-    parse_form(target, source="--to target")
+    target_base, _ = parse_form(target, source="--to target")
+    current_base, _ = parse_form(current)
     changed = 0
     # bump2version owns `current_version` in the config itself, so it never
     # appears as a [bumpversion:file:*] entry; rewrite it explicitly.
@@ -184,33 +204,46 @@ def apply_version(parser: configparser.RawConfigParser, current: str, target: st
     if updated_config != config_text:
         CONFIG_FILE.write_text(updated_config)
         changed += 1
-    for path_text, search_tpl, replace_tpl in versioned_files(parser):
-        search = search_tpl.replace("{current_version}", current)
-        replace = replace_tpl.replace("{new_version}", target)
+    for path_text, search_tpl, replace_tpl, semver_only in versioned_files(parser):
+        # A semver-only file's "before" token is whichever shape it legally
+        # holds: the full current version (a pre-#695 dev-stamp, which this
+        # self-heals) or the current BASE (the normal post-#695 state, e.g.
+        # `1.6.3` while current is `1.6.3.dev2`). Other files only ever hold
+        # the full current version.
+        searches = [current]
+        if semver_only and current_base != current:
+            searches.append(current_base)
+        replace = replace_tpl.replace("{new_version}", target_base if semver_only else target)
         path = Path(path_text)
         if not path.is_file():
             raise SystemExit(f"versioned file missing: {path}")
         text = path.read_text()
-        # (?![.\w]): only rewrite complete version tokens. Without the
-        # boundary, `1.6.3.dev1` would match inside `1.6.3.dev10` (producing
-        # `...dev20`) and `1.6.3` inside `1.6.30`.
-        pattern = re.compile(re.escape(search) + r"(?![.\w])")
-        if pattern.search(text):
-            updated = pattern.sub(lambda match: replace, text)
-            if updated != text:
-                path.write_text(updated)
-                changed += 1
+        updated = text
+        for source_version in searches:
+            search = search_tpl.replace("{current_version}", source_version)
+            # (?![.\w]): only rewrite complete version tokens. Without the
+            # boundary, `1.6.3.dev1` would match inside `1.6.3.dev10` (producing
+            # `...dev20`) and `1.6.3` inside `1.6.30`.
+            pattern = re.compile(re.escape(search) + r"(?![.\w])")
+            updated = pattern.sub(lambda match: replace, updated)
+        if updated != text:
+            path.write_text(updated)
+            changed += 1
         elif replace not in text:
+            accepted = f"{current!r}" + (
+                f" or its base {current_base!r}" if len(searches) > 1 else ""
+            )
             raise SystemExit(
-                f"{path}: expected {search!r} per [bumpversion:file:{path}] "
+                f"{path}: expected {accepted} per [bumpversion:file:{path}] "
                 "but found neither it nor the target string (version drift?)"
             )
     return changed
 
 
 # Field-scoped version sites per file type (§V5 gate): EVERY match must
-# carry exactly the current version, so a stale sibling (e.g. one compose
-# image left behind while its siblings were rewritten) fails the check.
+# carry exactly the expected version (full current, or the semver BASE for
+# `semver-only` files), so a stale sibling (e.g. one compose image left
+# behind while its siblings were rewritten) fails the check.
 # File types without an entry fail closed rather than pass unchecked.
 FANOUT_FIELDS = (
     (re.compile(r"\.osparc/.*/metadata\.yml$"), re.compile(r"^version:\s*(\S+)\s*$", re.MULTILINE)),
@@ -225,8 +258,10 @@ FANOUT_FIELDS = (
 
 def check_fanout(current: str) -> None:
     parser = config_from_text(read_config_text())
+    base, _ = parse_form(current)
     stale = []
-    for path_text, _, _ in versioned_files(parser):
+    for path_text, _, _, semver_only in versioned_files(parser):
+        expected = base if semver_only else current
         path = Path(path_text)
         if not path.is_file():
             stale.append(f"{path_text} (missing)")
@@ -238,8 +273,8 @@ def check_fanout(current: str) -> None:
                 "scripts/auto_version.py so the §V5 gate can validate it"
             )
         values = field.findall(path.read_text())
-        if not values or any(value != current for value in values):
-            stale.append(f"{path_text} (fields: {sorted(set(values)) or 'none'})")
+        if not values or any(value != expected for value in values):
+            stale.append(f"{path_text} (fields: {sorted(set(values)) or 'none'}, expected {expected!r})")
     if stale:
         raise SystemExit(
             f"version fanout drift (§V5): {'. '.join(stale)}. Expected "
@@ -252,6 +287,34 @@ def cmd_next_dev(parser: configparser.RawConfigParser) -> None:
     print(next_dev_version(current_version(parser)))
 
 
+def bump_base(current: str, part: str) -> str:
+    """Human base bump: raise the X.Y.Z part and drop any .devN counter.
+
+    Replaces the direct-bump2version path (`make version-*`): with
+    semver-only entries the fanout files no longer share one searchable
+    token, so the bump must run through apply_version's dual-shape logic.
+    """
+    base, _ = parse_form(current)
+    major, minor, patch = (int(n) for n in base.split("."))
+    if part == "major":
+        major, minor, patch = major + 1, 0, 0
+    elif part == "minor":
+        minor, patch = minor + 1, 0
+    else:
+        patch += 1
+    candidate = Version(f"{major}.{minor}.{patch}")
+    ensure_newer(
+        candidate,
+        "human base bump",
+        release_hint=(
+            "the new base must exceed every published tag; if it does not, "
+            "this branch is stale - rebase on the updated develop and bump "
+            "again."
+        ),
+    )
+    return str(candidate)
+
+
 def cmd_apply(parser: configparser.RawConfigParser, to: str) -> None:
     current = current_version(parser)
     changed = apply_version(parser, current, to)
@@ -260,6 +323,15 @@ def cmd_apply(parser: configparser.RawConfigParser, to: str) -> None:
     check_fanout(to)
     print(f"applied {to} across {changed} file(s)", file=sys.stderr)
     print(to)
+
+
+def cmd_bump(parser: configparser.RawConfigParser, part: str) -> None:
+    current = current_version(parser)
+    target = bump_base(current, part)
+    changed = apply_version(parser, current, target)
+    check_fanout(target)
+    print(f"bumped base {current} -> {target} across {changed} file(s)", file=sys.stderr)
+    print(target)
 
 
 def cmd_check_pr(parser: configparser.RawConfigParser, target: str) -> None:
@@ -324,6 +396,11 @@ def main() -> None:
     )
     apply_p = sub.add_parser("apply", help="rewrite current_version across all files")
     apply_p.add_argument("--to", required=True, help="target version (X.Y.Z[.devN])")
+    bump_p = sub.add_parser(
+        "bump",
+        help="human base bump: raise X.Y.Z by the part, drop .devN, rewrite all files",
+    )
+    bump_p.add_argument("--part", required=True, choices=("patch", "minor", "major"))
     check_p = sub.add_parser("check-pr", help="validate a PR's version for its target")
     check_p.add_argument("--target", required=True, help="PR base branch")
     args = parser.parse_args()
@@ -342,6 +419,8 @@ def main() -> None:
         print(stripped_version(current_version(config), allow_taken=args.allow_taken))
     elif args.command == "apply":
         cmd_apply(config, args.to)
+    elif args.command == "bump":
+        cmd_bump(config, args.part)
     elif args.command == "check-pr":
         cmd_check_pr(config, args.target)
 
