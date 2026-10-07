@@ -33,18 +33,19 @@ check-types-flaskapi: install-flaskapi-deps ## run ty type checker against flask
 
 
 # Builds new service version ----------------------------------------------------------------------------
-define _bumpversion
-	# upgrades as $(subst $(1),,$@) version, commits and tags
-	@docker run -i --rm -v $(PWD):/ml-lab \
+# Human base bumps run scripts/auto_version.py, NOT bump2version: the
+# semver-only fanout entries (.osparc/*/metadata.yml, issue #695) carry the
+# BASE while current_version may carry .devN, so bump2version's single
+# `search = {current_version}` token no longer matches every file. `bump
+# --part` raises the base across all entries (dev counter dropped) and
+# re-checks the §V5 fanout; ensure_newer still refuses stale bases.
+.PHONY: version-patch version-minor version-major
+version-patch version-minor version-major: .bumpversion.cfg ## increases service's base version (semver-aware fanout)
+	@make compose-spec
+	@docker run -i --rm -v $(PWD):/ml-lab -e HOME=/tmp \
 		-u $(shell id -u):$(shell id -g) \
 		itisfoundation/ci-service-integration-library:v2.1.23 \
-		sh -c "cd /ml-lab && bump2version --verbose --list --config-file $(1) $(subst $(2),,$@)"
-endef
-
-.PHONY: version-patch version-minor version-major
-version-patch version-minor version-major: .bumpversion.cfg ## increases service's version
-	@make compose-spec
-	@$(call _bumpversion,$<,version-)
+		sh -c "cd /ml-lab && python3 scripts/auto_version.py bump --part $(subst version-,,$@)"
 	@make compose-spec
 
 
