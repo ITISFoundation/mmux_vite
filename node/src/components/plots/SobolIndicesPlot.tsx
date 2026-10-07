@@ -59,7 +59,7 @@ export function SobolControls({ viewMode, scaleType, onViewModeChange, onScaleTy
   );
 }
 
-export type SobolDomainMode = "range" | "pin";
+type SobolDomainMode = "range" | "pin";
 
 /** Editable draft row per input variable; empty strings mean "unlisted"
  * (backend auto-infers the observed box, V26dd fallback). */
