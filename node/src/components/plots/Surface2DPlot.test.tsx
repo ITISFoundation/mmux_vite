@@ -23,7 +23,8 @@ vi.mock("../../context/FunctionContext", () => {
   };
   const selectedFunction = { uid: "fn-1" };
   return {
-    useFunctionContext: () => ({ selectedFunction, inputVars: mocks.inputVars, distribution }),
+    // #663 replay: FunctionContext now carries the per-function QoI log-scale map.
+    useFunctionContext: () => ({ selectedFunction, inputVars: mocks.inputVars, distribution, outputLogScales: {} }),
   };
 });
 vi.mock("../../context/JobContext", () => ({

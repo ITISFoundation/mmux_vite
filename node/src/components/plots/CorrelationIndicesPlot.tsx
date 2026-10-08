@@ -1,5 +1,5 @@
 import { Box, ToggleButton, ToggleButtonGroup, useTheme } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -73,8 +73,21 @@ export function CorrelationControls({ viewMode, scaleType, onViewModeChange, onS
 // 3-var 1D/2D/3D plot limit).
 export default function CorrelationIndicesPlot({ viewMode, scaleType }: CorrelationIndicesPlotProps) {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { uqSettings, selectedQoI } = useMMUXContext();
+  // Per-variable log-scale flags (node SPEC V12), see UncertainUQ for the pattern.
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [correlations, setCorrelations] = useState<CorrelationIndicesResponse["correlations"] | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
@@ -100,6 +113,8 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
           functionJobs: filteredJobList,
           numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
           seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
+          inputLogScales,
+          outputLogScale: outputLogScaleForQoi,
         });
         if (isStale()) return;
         setCorrelations(data.correlations);

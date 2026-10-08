@@ -11,7 +11,7 @@ import {
 } from "./helpers";
 
 /**
- * Browser-side failure injection (root SPEC §V29qa / §T35): `page.route` answers selected
+ * Browser-side failure injection (root SPEC §V41qa / §T35): `page.route` answers selected
  * `/flask/*` calls with HTTP errors, network aborts or malformed JSON, and each spec asserts
  * a visible recovery state and no uncaught page exceptions. No pixel baselines here.
  */

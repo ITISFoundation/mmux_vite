@@ -1,7 +1,7 @@
 SHELL 				 			:= /bin/sh
 .DEFAULT_GOAL 		 			:= help
 
-DOCKER_IMAGE_TAG := 1.6.3
+DOCKER_IMAGE_TAG := 1.6.4.dev3
 
 
 FLASKAPI_DIR := ./flaskapi
@@ -33,18 +33,19 @@ check-types-flaskapi: install-flaskapi-deps ## run ty type checker against flask
 
 
 # Builds new service version ----------------------------------------------------------------------------
-define _bumpversion
-	# upgrades as $(subst $(1),,$@) version, commits and tags
-	@docker run -i --rm -v $(PWD):/ml-lab \
+# Human base bumps run scripts/auto_version.py, NOT bump2version: the
+# semver-only fanout entries (.osparc/*/metadata.yml, issue #695) carry the
+# BASE while current_version may carry .devN, so bump2version's single
+# `search = {current_version}` token no longer matches every file. `bump
+# --part` raises the base across all entries (dev counter dropped) and
+# re-checks the §V5 fanout; ensure_newer still refuses stale bases.
+.PHONY: version-patch version-minor version-major
+version-patch version-minor version-major: .bumpversion.cfg ## increases service's base version (semver-aware fanout)
+	@make compose-spec
+	@docker run -i --rm -v $(PWD):/ml-lab -e HOME=/tmp \
 		-u $(shell id -u):$(shell id -g) \
 		itisfoundation/ci-service-integration-library:v2.1.23 \
-		sh -c "cd /ml-lab && bump2version --verbose --list --config-file $(1) $(subst $(2),,$@)"
-endef
-
-.PHONY: version-patch version-minor version-major
-version-patch version-minor version-major: .bumpversion.cfg ## increases service's version
-	@make compose-spec
-	@$(call _bumpversion,$<,version-)
+		sh -c "cd /ml-lab && python3 scripts/auto_version.py bump --part $(subst version-,,$@)"
 	@make compose-spec
 
 
@@ -170,8 +171,8 @@ run-prod-local-uq-write: ## runs for validation as it would be in production UQ/
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-local.yml up
 
-.PHONY: run-prod-moga-read
-run-prod-moga-read: ## runs for validation as it would be in production MOGA/READ-ONLY
+.PHONY: run-prod-local-moga-read
+run-prod-local-moga-read: ## runs for validation as it would be in production MOGA/READ-ONLY
 	export SERVICE_MODE=MOGA && \
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -180,8 +181,8 @@ run-prod-moga-read: ## runs for validation as it would be in production MOGA/REA
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-local.yml up
 
-.PHONY: run-prod-moga-write
-run-prod-moga-write: ## runs for validation as it would be in production MOGA/WRITE
+.PHONY: run-prod-local-moga-write
+run-prod-local-moga-write: ## runs for validation as it would be in production MOGA/WRITE
 	export SERVICE_MODE=MOGA && \
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \

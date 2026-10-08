@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useServiceContext } from "../../context/ServiceContext";
 import InputVariableDistDocument from "../documents/InputVariableDistDocument";
 import { InputBlock } from "../utils/InputBlock";
+import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import Header from "../navigation/Header";
 import { useFunctionContext } from "../../context/FunctionContext";
 
@@ -138,11 +139,44 @@ const UniformInputDistribution = ({ inputVar, distribution, handleSetValue }: In
   );
 };
 
+// log-normal/exponential input forms were removed with the Distribution union
+// narrowing (B33/V40): log is now the orthogonal VarSelection.scale toggle below.
+
 export function InputVariableDist() {
   const { selectedFunction, inputVars, distribution, setDistribution } = useFunctionContext();
   const { serviceMode } = useServiceContext();
   const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
+
+  // B33/V40: transparent derived note for a log-scaled normal (log-normal). The user
+  // enters LINEAR mean/std; this shows what those map to so it's clear how the
+  // params are applied.
+  const logNormalDerivedNote = (mean: number | undefined, std: number | undefined): string => {
+    if (typeof mean !== "number" || typeof std !== "number" || !(mean > 0)) return "";
+    const variance = (std * std) / (mean * mean);
+    const sigma = Math.sqrt(Math.log(1 + variance));
+    const mu = Math.log(mean) - (sigma * sigma) / 2;
+    const fmt = (v: number) => String(Number(v.toPrecision(3)));
+    // 1.96 sigma is the central 95% interval of the normal in log space; the
+    // previous 2.5 sigma covered 98.8% while the label claimed 95%.
+    return `log-normal · median ≈ ${fmt(Math.exp(mu))}, 95% range ≈ [${fmt(Math.exp(mu - 1.96 * sigma))}, ${fmt(Math.exp(mu + 1.96 * sigma))}]`;
+  };
+
+  // log sampling needs strictly positive support: constant is never scalable,
+  // uniform needs min > 0, normal (lognormal draw) needs mean > 0.
+  const scaleDisabledFor = (entry: VarSelection | undefined): boolean =>
+    !entry ||
+    entry.distribution === "constant" ||
+    (entry.distribution === "uniform" && !(typeof entry.min === "number" && entry.min > 0)) ||
+    (entry.distribution === "normal" && !(typeof entry.mean === "number" && entry.mean > 0));
+
+  const derivedNoteFor = (entry: VarSelection | undefined): string => {
+    if (!entry || entry.scale !== "log") return "";
+    const fmt = (v: number | undefined) => (typeof v === "number" ? String(Number(v.toPrecision(3))) : "?");
+    if (entry.distribution === "normal") return logNormalDerivedNote(entry.mean, entry.std);
+    if (entry.distribution === "uniform") return `log-uniform in [${fmt(entry.min)}, ${fmt(entry.max)}]`;
+    return "";
+  };
 
   const handleSetLocalDistribution = useCallback(
     (newInputVars: typeof localDistribution) => {
@@ -166,6 +200,21 @@ export function InputVariableDist() {
       };
     }
     newInputVars[inputVar][type as Variables] = value;
+    // log scale is invalid for non-positive support: clear it when the
+    // uniform min (or a normal mean, which is what the log-normal box is
+    // anchored on) stops being positive (GH-Copilot #663 audit: the mean path
+    // was the hole — the payload builders read `scale` verbatim, so a surviving
+    // flag shipped an invalid log-normal that the backend V16 guard 400s).
+    const supportAnchor = type === "min" || (type === "mean" && newInputVars[inputVar].distribution === "normal");
+    if (supportAnchor && newInputVars[inputVar].scale === "log" && !(typeof value === "number" && value > 0)) {
+      newInputVars[inputVar] = { ...newInputVars[inputVar], scale: "linear" };
+    }
+    handleSetLocalDistribution(newInputVars);
+  };
+
+  const handleSetScale = (inputVar: string, scale: "linear" | "log") => {
+    const newInputVars = { ...localDistribution };
+    newInputVars[inputVar] = { ...newInputVars[inputVar], scale };
     handleSetLocalDistribution(newInputVars);
   };
 
@@ -350,15 +399,28 @@ export function InputVariableDist() {
                     <MenuItem value="constant">Constant</MenuItem>
                     <MenuItem value="normal">Normal (Gaussian)</MenuItem>
                     <MenuItem value="uniform">Uniform</MenuItem>
-                    <MenuItem value="log-normal" disabled>
-                      LogNormal
-                    </MenuItem>
-                    <MenuItem value="exponential" disabled>
-                      Exponential
-                    </MenuItem>
+                    {/* log-normal is NOT a shape here: it is uniform/normal shape +
+                        the orthogonal Scale=Log toggle below (B33/V40) */}
                   </Select>
                 </InputLabel>
               )}
+              {["UQ"].includes(serviceMode) &&
+                ["normal", "uniform"].includes(localDistribution[inputVar]?.distribution ?? "") && (
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <Typography sx={{ fontSize: "0.7em", color: theme.palette.text.secondary }}>Scale</Typography>
+                    <CustomAnimatedToggle
+                      data={["linear", "log"]}
+                      value={localDistribution[inputVar]?.scale === "log" ? 1 : 0}
+                      disabled={scaleDisabledFor(localDistribution[inputVar])}
+                      onChange={value => handleSetScale(inputVar, value === 1 ? "log" : "linear")}
+                    />
+                    {derivedNoteFor(localDistribution[inputVar]) && (
+                      <Typography sx={{ fontSize: "0.7em", color: theme.palette.text.secondary }}>
+                        {derivedNoteFor(localDistribution[inputVar])}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
               <>
                 {localDistribution[inputVar]?.distribution === "constant" && (
                   <ConstantInputDistribution
@@ -371,11 +433,31 @@ export function InputVariableDist() {
                   <NormalInputDistribution inputVar={inputVar} distribution={localDistribution} handleSetValue={handleSetValue} />
                 )}
                 {localDistribution[inputVar]?.distribution === "uniform" && (
-                  <UniformInputDistribution
-                    inputVar={inputVar}
-                    distribution={localDistribution}
-                    handleSetValue={handleSetValue}
-                  />
+                  <>
+                    <UniformInputDistribution
+                      inputVar={inputVar}
+                      distribution={localDistribution}
+                      handleSetValue={handleSetValue}
+                    />
+                    {["SUMO", "MOGA"].includes(serviceMode) && (
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <Typography sx={{ fontSize: "0.75em", fontWeight: 300, color: theme.palette.text.secondary }}>
+                          Sampling scale
+                        </Typography>
+                        <CustomAnimatedToggle
+                          data={["linear", "log"]}
+                          value={localDistribution[inputVar]?.scale === "log" ? 1 : 0}
+                          disabled={!(typeof localDistribution[inputVar].min === "number" && localDistribution[inputVar].min > 0)}
+                          onChange={value => handleSetScale(inputVar, value === 1 ? "log" : "linear")}
+                        />
+                        {derivedNoteFor(localDistribution[inputVar]) && (
+                          <Typography sx={{ fontSize: "0.7em", color: theme.palette.text.secondary }}>
+                            {derivedNoteFor(localDistribution[inputVar])}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </>
                 )}
                 {!localDistribution[inputVar]?.distribution && "not found"}
                 {/* For v9 release, removed log-normal and exponential input distributions

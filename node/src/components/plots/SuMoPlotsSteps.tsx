@@ -9,10 +9,16 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
 import { QoISelector } from "./QoISelector";
+import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 
 function SuMoPlotsSteps({ onInspectModel }: { onInspectModel?: () => void }) {
   const { inputVars, selectedFunction, distribution, outputVars } = useFunctionContext();
   const { selectedQoI, setSelectedQoI } = useMMUXContext();
+  // V12: this route IS where a SuMo user meets output scaling — the three
+  // stepped plots below read outputLogScales, so auto-detection has to run
+  // here, not only behind the Inspect Model modal (GH-Copilot #696 re-review:
+  // SuMo plots otherwise silently stay on an all-linear output surrogate).
+  useAutoDetectQoiScale(selectedQoI ? [selectedQoI] : undefined);
   const context = useJobContext();
   const { filteredJobList, selectedJobUids } = context;
   const [activeStep, setActiveStep] = React.useState(0);

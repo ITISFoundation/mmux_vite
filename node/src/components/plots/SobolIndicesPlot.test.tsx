@@ -22,7 +22,7 @@ vi.mock("../../context/MMUXContext", () => ({
   useMMUXContext: () => ({ uqSettings: mocks.uqSettings, selectedQoI: mocks.selectedQoI }),
 }));
 vi.mock("../../context/FunctionContext", () => {
-  const value = { selectedFunction: { uid: "fn-1" }, inputVars: ["x1", "x2"], distribution: {} };
+  const value = { selectedFunction: { uid: "fn-1" }, inputVars: ["x1", "x2"], distribution: {}, outputLogScales: {} };
   return { useFunctionContext: () => value };
 });
 vi.mock("../../context/JobContext", () => ({
