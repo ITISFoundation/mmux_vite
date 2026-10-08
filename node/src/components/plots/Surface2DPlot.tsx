@@ -110,7 +110,7 @@ function Surface2DPlot() {
         inputLogScales,
         outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
       };
-      // V46sc (T39ab): session cache subsumes the V16/V18 lastFetchedKey slot -
+      // V46sc (T41ab): session cache subsumes the V16/V18 lastFetchedKey slot -
       // the same (url, body) answers with zero network and survives unmount,
       // failures stay uncached (retry stays possible). The grid endpoint derives
       // everything from this body (jobs + slider values + log flags; the FE-side
