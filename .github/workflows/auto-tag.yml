@@ -31,7 +31,12 @@ name: Tag and release
 #   IS the head of an open develop->main release PR — a skip-ci tip silently
 #   suppressed every PR check run there ("no checks reported", discovered on
 #   #706, 2026-10-08). Loop prevention moved into the bump steps: a run whose
-#   fresh tip is the bot's own stamp line exits before advancing the counter.
+#   fresh tip is the bot's own stamp (author email ∧ devN-shaped subject) exits
+#   before advancing the counter.
+#   LORE: the skip-ci matcher is a substring scan of the WHOLE commit message,
+#   so any commit quoting the bracketed marker skips itself — #710's head
+#   commit did, and #710's merge commit (PR title embedded in its body)
+#   skipped this workflow's stamp push outright (SPEC §T43ci).
 #   Recovery and publish steps are idempotent, so a stamp-triggered run
 #   additionally self-heals a partial publish one step sooner.
 on:
@@ -136,8 +141,13 @@ jobs:
             # header): the stamp push triggers this workflow itself. Recovery
             # above already ran (idempotent); the counter must NOT advance
             # again or every stamp would immediately spawn the next one.
-            # A human commit starting with this exact subject line would be
-            # skipped here — version-check.yml still gates any real release.
+            # BOTH identity signals are required (GH-Copilot #710 review):
+            # the bot author email, plus the FULL stamp subject shape incl.
+            # the .devN tail — check-pr (version-check.yml) rejects any PR
+            # that INTRODUCES a .devN (heads inheriting develop's stamp
+            # unchanged pass, auto_version.py:343), so humans cannot mint
+            # this subject+author pair; a human "...to 1.7.0" gets its
+            # real bump.
             if [[ "$(git log -1 --format=%ae)" == "github-actions[bot]@users.noreply.github.com" ]] \
                && git log -1 --format=%s | grep -qE '^chore: bump dev version to [0-9]+\.[0-9]+\.[0-9]+\.dev[0-9]+$'; then
               echo "fresh tip is the bot's own stamp; nothing to bump"
