@@ -8,6 +8,11 @@ are allowed).
 
 from typing import Any
 
+import pytest
+
+# §V32qt (fork issue #82): every flaskapi test case carries ≥1 tier marker.
+pytestmark = pytest.mark.unit
+
 
 def assert_error_json(response: Any, status: int) -> dict[str, Any]:
     assert response.status_code == status, response.get_data(as_text=True)[:200]
