@@ -460,24 +460,60 @@ describe("useAutoDetectQoiScale", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("refunds the cache key when a CV pair fails, so a later generation can retry it", async () => {
+  it("self-heals a transient CV failure: the retried pair commits its verdict (GH-Copilot #706)", async () => {
+    // The FIRST request of the first pair answers malformed (rmse undefined);
+    // everything after behaves like the canned good pair.
+    const good = mockCvFetch();
+    let poisoned = false;
+    const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
+      if (!poisoned) {
+        poisoned = true;
+        return { ok: true, json: async () => ({ error: "transient blip" }) } as unknown as Response;
+      }
+      return good(url, init);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { setOutputLogScales } = setupContexts({
+      jobs: [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)],
+    });
+
+    renderHook(() => useAutoDetectQoiScale(["qoi"]));
+
+    // No rerender, no dep change: the failure itself re-fires the effect and
+    // the second pair's verdict lands (refund-only, Copilot #696, never did).
+    await waitFor(() => {
+      expect(setOutputLogScales).toHaveBeenCalled();
+    });
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(2); // the pair re-fired
+  });
+
+  it("gives up after the retry cap when CV keeps failing — no verdict, no infinite loop (GH-Copilot #706)", async () => {
     // every CV call answers without the observed/predicted arrays → both rmse undefined
     const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ error: "boom" }) }) as unknown as Response);
     vi.stubGlobal("fetch", fetchMock);
     const jobs = [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)];
-    setupContexts({ jobs });
+    const { setOutputLogScales } = setupContexts({ jobs });
 
     const { rerender } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-    });
 
-    // Same key (identical job UIDs / scales) via a fresh deps identity: the
-    // failed pair must NOT have consumed the key (GH-Copilot #696 re-review).
+    // The refund alone never re-fired anything (refs don't render — the old
+    // contract needed a manual rerender to observe a retry). Now the pair
+    // re-fires on its own, bounded per key: 1 initial + maxCvRetries=2
+    // retries = 3 pairs × 2 CV calls.
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(6);
+    });
+    await new Promise(resolve => setTimeout(resolve, 20));
+    expect(fetchMock).toHaveBeenCalledTimes(6); // bounded: CV traffic stopped
+    expect(setOutputLogScales).not.toHaveBeenCalled(); // and nothing was committed
+
+    // A later effect run for the SAME key (new filteredJobList identity,
+    // identical content) must NOT re-arm a fresh pair: the give-up is terminal
+    // per key, not re-armed per effect-run (GH-Copilot #707 review — refunding
+    // before the cap check made the budget per-run instead of per-key).
     setupContexts({ jobs: [...jobs] });
     rerender();
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(4); // retry happened
-    });
+    await new Promise(resolve => setTimeout(resolve, 20));
+    expect(fetchMock).toHaveBeenCalledTimes(6); // still terminal
   });
 });

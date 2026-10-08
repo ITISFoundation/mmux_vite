@@ -1,7 +1,7 @@
 SHELL 				 			:= /bin/sh
 .DEFAULT_GOAL 		 			:= help
 
-DOCKER_IMAGE_TAG := 1.6.3
+DOCKER_IMAGE_TAG := 1.6.4
 
 
 FLASKAPI_DIR := ./flaskapi
@@ -171,8 +171,8 @@ run-prod-local-uq-write: ## runs for validation as it would be in production UQ/
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-local.yml up
 
-.PHONY: run-prod-moga-read
-run-prod-moga-read: ## runs for validation as it would be in production MOGA/READ-ONLY
+.PHONY: run-prod-local-moga-read
+run-prod-local-moga-read: ## runs for validation as it would be in production MOGA/READ-ONLY
 	export SERVICE_MODE=MOGA && \
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -181,8 +181,8 @@ run-prod-moga-read: ## runs for validation as it would be in production MOGA/REA
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-local.yml up
 
-.PHONY: run-prod-moga-write
-run-prod-moga-write: ## runs for validation as it would be in production MOGA/WRITE
+.PHONY: run-prod-local-moga-write
+run-prod-local-moga-write: ## runs for validation as it would be in production MOGA/WRITE
 	export SERVICE_MODE=MOGA && \
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \

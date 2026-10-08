@@ -26,7 +26,7 @@ from mmux_flaskapi.blueprints.sampling_models import (
     TestJobRequest,
 )
 from mmux_flaskapi.utils.api_endpoint import api_endpoint
-from mmux_flaskapi.utils.helpers import dict_keys_snake_to_camel
+from mmux_flaskapi.utils.helpers import create_run_dir, dict_keys_snake_to_camel
 from mmux_flaskapi.utils.json_serializer import parse_request_model
 from mmux_flaskapi.utils.local_job_store import (
     create_local_function,
@@ -178,9 +178,13 @@ def flask_grid_sampling():
         points_per_variable = {vc.variable: vc.steps for vc in config}
 
         # V49ad: grid generation runs Dakota (cwd-mutating) -> serialized.
-        grid = _run_engine(
-            generate_grid_samples, domains, points_per_variable, workspace=SAMPLING_RUNS_DIR
-        )
+        # Per-request run dir (GH-Copilot #706 review): ENGINE_LOCK is
+        # process-local while production runs four gunicorn workers, so
+        # handing every grid request the shared SAMPLING_RUNS_DIR let runs in
+        # different workers write the same Dakota workspace concurrently.
+        # Mirrors the per-request `workspace=` idiom of every dakota.py route.
+        run_dir = create_run_dir(SAMPLING_RUNS_DIR, "grid")
+        grid = _run_engine(generate_grid_samples, domains, points_per_variable, workspace=run_dir)
         samples = [
             {name: float(value) for name, value in row.items()}
             for row in grid.to_dict(orient="records")

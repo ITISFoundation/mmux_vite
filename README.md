@@ -51,19 +51,40 @@ uvx prek install
 make prek
 ```
 
-Start for development mode with
+Start for development mode with (pick the mode × permissions variant you need, see the run matrix below)
 ```shell
-make run-develop
+make run-develop-sumo-read
 ```
 
 NOTE: code will be running inside docker containers.
 
+### Run matrix (modes × permissions)
+
+The app ships as 3 service modes × 2 permission levels, each with a development launcher (live source mounts, debug logging) and a production-local launcher (built images, validation mount only). There are 12 targets in total:
+
+| Mode | Purpose | Dev (live mounts) | Prod-local (built images) |
+|---|---|---|---|
+| SuMo | surrogate metamodeling (fit/validation of AI models) | `make run-develop-sumo-read` | `make run-prod-local-sumo-read` |
+| SuMo | same, writable (run sampling, persist collections) | `make run-develop-sumo-write` | `make run-prod-local-sumo-write` |
+| UQ | uncertainty quantification (histograms, correlation, Sobol indices) | `make run-develop-uq-read` | `make run-prod-local-uq-read` |
+| UQ | same, writable | `make run-develop-uq-write` | `make run-prod-local-uq-write` |
+| MOGA | multi-objective genetic algorithm optimization (preview) | `make run-develop-moga-read` | `make run-prod-local-moga-read` |
+| MOGA | same, writable | `make run-develop-moga-write` | `make run-prod-local-moga-write` |
+
+Target naming: `make run-{develop|prod-local}-{sumo|uq|moga}-{read|write}` — mode/perm are passed to the backend as `SERVICE_MODE`/`PERMISSIONS` (§ SPEC.md §I env contract).
+
+Notes:
+
+- The app (Caddy proxy) publishes on host port `8888` by default; if busy, `scripts/resolve-app-port.sh` picks the next free port (fallbacks 8889-8892) and the launcher prints the actual URL(s).
+- Under WSL2 the printed output distinguishes the shell-local `http://localhost:<port>` from the Windows-browser `http://<WSL-IP>:<port>`; Windows `localhost` on fallback ports needs `netsh interface portproxy` rules (ask a maintainer for the current recipe).
+- Dev launchers bind-mount `flaskapi/` and `node/` (container runs as your host UID/GID), so edits are served live — Vite HMR for the frontend, Flask debug reload for the backend.
+
 ### Final validation step
 
-When done editing always validate the production build of the app with the below command, since it's the only one giving some minor guarantee on the corectness of your changes.
+When done editing always validate the production build of the app with the below command (pick your variant), since it's the only one giving some minor guarantee on the corectness of your changes.
 
 ```shell
-make run-prod-local
+make run-prod-local-sumo-read
 ```
 
 ## Updating the ospsarc package

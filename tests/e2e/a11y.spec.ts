@@ -15,7 +15,7 @@ import {
 } from "./helpers";
 
 /**
- * Accessibility smoke checks (root SPEC §T37 / §V30rb): axe-core runs on the setup, results
+ * Accessibility smoke checks (root SPEC §T37 / §V42rb): axe-core runs on the setup, results
  * and error views and fails on serious or critical violations. Plotly's canvas/SVG output
  * is third-party and excluded; everything else the app renders is in scope.
  */
