@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OsparcFunctionJob } from "../context/types";
 import { jsonResponse } from "../test/fetchStub";
 import { fetchWithRetry } from "./fetchRetry";
-import { buildSobolBarData, buildSobolHeatmapData, fetchSobolIndices } from "./sobolIndices";
+import { buildSobolBarData, buildSobolBounds, buildSobolHeatmapData, fetchSobolIndices } from "./sobolIndices";
 
 vi.mock("./fetchRetry", () => ({
   fetchWithRetry: vi.fn(),
@@ -50,9 +50,8 @@ describe("fetchSobolIndices", () => {
     const result = await fetchSobolIndices({
       inputVars: ["x1", "x2"],
       output: "y",
-      distributions: { x1: { distribution: "uniform", min: 0, max: 1 } },
+      domains: { x1: { minimum: 0, maximum: 1 } },
       functionJobs: mockJobs,
-      numSamples: 500,
       seed: 42,
     });
 
@@ -69,8 +68,12 @@ describe("fetchSobolIndices", () => {
     expect(body).toEqual({
       inputVars: ["x1", "x2"],
       output: "y",
-      distributions: { x1: { distribution: "uniform", min: 0, max: 1 } },
-      numSamples: 500,
+      // Domain vocabulary of the bounds-editor contract (GH-Copilot #706):
+      // ⊥ distributions/numSamples — SobolIndicesRequest dropped them, and
+      // keep-sending them made every request silently score the auto-inferred
+      // box instead of the configured exploration ranges.
+      domains: { x1: { minimum: 0, maximum: 1 } },
+      fixed: {},
       FunctionJobs: mockJobs,
       seed: 42,
       // V12: the scale maps ride every request (SobolIndicesRequest inherits
@@ -90,9 +93,7 @@ describe("fetchSobolIndices", () => {
     await fetchSobolIndices({
       inputVars: ["x1"],
       output: "y",
-      distributions: {},
       functionJobs: mockJobs,
-      numSamples: 100,
       inputLogScales: { x1: true },
       outputLogScale: true,
     });
@@ -100,6 +101,8 @@ describe("fetchSobolIndices", () => {
     const [, options] = mockedFetchWithRetry.mock.calls[0];
     const body = JSON.parse((options as RequestInit).body as string);
     expect(body.seed).toBe(0);
+    expect(body.domains).toEqual({});
+    expect(body.fixed).toEqual({});
     // scale flags reach the wire verbatim
     expect(body.inputLogScales).toEqual({ x1: true });
     expect(body.outputLogScales).toEqual({ y: true });
@@ -112,11 +115,64 @@ describe("fetchSobolIndices", () => {
       fetchSobolIndices({
         inputVars: ["x1"],
         output: "y",
-        distributions: {},
         functionJobs: mockJobs,
-        numSamples: 100,
       }),
     ).rejects.toThrow("Sobol model failed");
+  });
+});
+
+describe("buildSobolBounds", () => {
+  it("maps uniform -> domain box, normal -> mean +/- 2.5*std (the LHS convention), constant -> fixed pin", () => {
+    const distribution: InputVarSelection = {
+      x1: { distribution: "uniform", min: 0, max: 1 },
+      x2: { distribution: "normal", mean: 10, std: 2 },
+      x3: { distribution: "constant", value: 7 },
+    };
+    expect(buildSobolBounds(distribution, ["x1", "x2", "x3"])).toEqual({
+      domains: {
+        x1: { minimum: 0, maximum: 1 },
+        x2: { minimum: 5, maximum: 15 },
+      },
+      fixed: { x3: 7 },
+    });
+  });
+
+  it("omits incomplete or degenerate entries so the backend auto-infers (V26dd) instead of 400ing", () => {
+    const distribution: InputVarSelection = {
+      x1: { distribution: "uniform", min: 5, max: 5 }, // degenerate box
+      x2: { distribution: "uniform", min: 1 }, // missing max
+      x3: { distribution: "normal", mean: 1, std: 0 }, // ⊥ positive spread
+      x4: { distribution: "normal", mean: 2 }, // missing std
+      x5: { distribution: "constant" }, // missing value
+    };
+    expect(buildSobolBounds(distribution, ["x1", "x2", "x3", "x4", "x5"])).toEqual({
+      domains: {},
+      fixed: {},
+    });
+  });
+
+  it("drops the domain of a LOG-flagged variable when the box minimum is <= 0 (⊥ the positivity guard's 400)", () => {
+    const distribution: InputVarSelection = {
+      x1: { distribution: "uniform", min: 0.5, max: 5, scale: "log" }, // positive box ships
+      x2: { distribution: "uniform", min: 0, max: 5, scale: "log" }, // boundary: auto-infer
+      x3: { distribution: "normal", mean: 1, std: 2, scale: "log" }, // mean-2.5*std < 0: auto-infer
+      x4: { distribution: "uniform", min: -1, max: 5 }, // linear flag: negative box is fine
+    };
+    expect(buildSobolBounds(distribution, ["x1", "x2", "x3", "x4"])).toEqual({
+      domains: {
+        x1: { minimum: 0.5, maximum: 5 },
+        x4: { minimum: -1, maximum: 5 },
+      },
+      fixed: {},
+    });
+  });
+
+  it("ignores variables absent from the selection and an undefined selection entirely", () => {
+    expect(buildSobolBounds({ x1: { distribution: "uniform", min: 0, max: 1 } }, ["x1", "x9"])).toEqual({
+      domains: { x1: { minimum: 0, maximum: 1 } },
+      fixed: {},
+    });
+    expect(buildSobolBounds(undefined, ["x1"])).toEqual({ domains: {}, fixed: {} });
   });
 });
 

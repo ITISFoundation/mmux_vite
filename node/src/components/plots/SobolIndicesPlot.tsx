@@ -14,7 +14,7 @@ import {
   toLogSafe,
   type ScaleType,
 } from "../../utils/plotScale";
-import { buildSobolHeatmapData, fetchSobolIndices } from "../../utils/sobolIndices";
+import { buildSobolBounds, buildSobolHeatmapData, fetchSobolIndices } from "../../utils/sobolIndices";
 import { getErrorMessage } from "../../utils/httpError";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
@@ -76,6 +76,12 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
     [inputVars, distribution, selectedFunction],
   );
   const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
+  // Bounds-editor contract (GH-Copilot #706 review): the request speaks
+  // domains/fixed, derived from the UQ config with the LHS box convention.
+  const { domains, fixed } = useMemo(
+    () => buildSobolBounds(distribution[selectedFunction?.uid || ""], inputVars),
+    [distribution, selectedFunction, inputVars],
+  );
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [sobolData, setSobolData] = useState<SobolIndicesResponse | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
@@ -97,9 +103,9 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
         const data = await fetchSobolIndices({
           inputVars,
           output: selectedQoI,
-          distributions: distribution[selectedFunction?.uid || ""],
           functionJobs: filteredJobList,
-          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
+          domains,
+          fixed,
           seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
           inputLogScales,
           outputLogScale: outputLogScaleForQoi,
