@@ -1,7 +1,7 @@
 SHELL 				 			:= /bin/sh
 .DEFAULT_GOAL 		 			:= help
 
-DOCKER_IMAGE_TAG := 1.6.4.dev2
+DOCKER_IMAGE_TAG := 1.6.4.dev3
 
 
 FLASKAPI_DIR := ./flaskapi
