@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { requestJson } from "../api/client";
 import { useFunctionContext } from "../context/FunctionContext";
@@ -27,6 +27,13 @@ import { aggregateOutputValues } from "./functionUtils";
 // max(5, n_inputs + 1). A fixed 5 would fire the pair early for ≥5-input
 // functions and get 422 on both CV calls (GH-Copilot #696 re-review).
 export const minCvJobs = (numInputVars: number): number => Math.max(5, numInputVars + 1);
+
+// Retries the hook schedules for a CV pair that failed or answered malformed,
+// per (uid, QoI, job-set, scale) key, beyond the initial attempt. One
+// transient blip heals on the first retry; the cap keeps a hard failure (dead
+// endpoint, persistently bad payload) from hammering CV forever
+// (GH-Copilot #706).
+const maxCvRetries = 2;
 
 // Single definition of the CV pair's cache key — the hook and the provenance
 // UI both compute it, so "is this receipt current?" is a shared predicate
@@ -119,6 +126,12 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
   // must NOT commit its verdict (GH-Copilot #665 review — the same
   // stale-response class as node B23rv/T29sw, narrowed to this hook).
   const latestKeyByQoi = useRef<{ [uidQoi: string]: string }>({});
+  // Failed-pair self-heal (GH-Copilot #706): refunding a key alone never
+  // re-fires the effect — refs don't render — so a failure also bumps this
+  // nonce (it is in the effect deps below). Attempts are counted per cache
+  // key so a persistent failure gives up at maxCvRetries instead of looping.
+  const [retryNonce, setRetryNonce] = useState(0);
+  const cvAttemptsByCacheKey = useRef<Map<string, number>>(new Map());
 
   // Current per-input log flags — the CV pair must score the surrogate the
   // user's input scales actually imply, and a change to any flag invalidates
@@ -197,11 +210,17 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
         ]);
         if (rmseLinear === undefined || rmseLog === undefined) {
           // A failed/malformed pair has nothing to commit, so it must not have
-          // consumed its key: refund like the stale-discard path, or a
-          // transient error pins this key for the instance's lifetime and the
-          // tooltip says "Comparing…" forever with no possible retry
-          // (GH-Copilot #696 re-review).
+          // consumed its key (refund like the stale-discard path, GH-Copilot
+          // #696 re-review). The refund ALONE is not a retry: refs never
+          // re-render, so the tooltip sat on "Comparing…" until some unrelated
+          // dep changed (GH-Copilot #706). Bump the nonce so this pair
+          // re-fires, bounded per key; past the cap the honest pending state
+          // stands and CV traffic stops.
           resolvedKeys.current.delete(cacheKey);
+          const attempts = cvAttemptsByCacheKey.current.get(cacheKey) ?? 1;
+          if (attempts > maxCvRetries) return;
+          cvAttemptsByCacheKey.current.set(cacheKey, attempts + 1);
+          setRetryNonce(nonce => nonce + 1);
           return;
         }
         if (outputLogScaleUserSetRef.current[uid]?.[qoi]) return; // re-check: may have been locked mid-flight
@@ -232,5 +251,5 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
       })();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qois?.join(","), filteredJobList, selectedFunction?.uid, inputVars.join(","), inputScaleSignature]);
+  }, [qois?.join(","), filteredJobList, selectedFunction?.uid, inputVars.join(","), inputScaleSignature, retryNonce]);
 }
