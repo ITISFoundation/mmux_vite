@@ -10,14 +10,22 @@ const mocks = vi.hoisted(() => ({
     distribution: {} as Record<string, InputVarSelection>,
     setDistribution: vi.fn(),
   },
+  filteredJobList: [] as Array<{ status?: string; inputs?: Record<string, unknown> | null }>,
 }));
 
 vi.mock("../../context/FunctionContext", () => ({ useFunctionContext: () => mocks.value }));
 vi.mock("../../context/ServiceContext", () => ({ useServiceContext: () => ({ serviceMode: mocks.serviceMode }) }));
+vi.mock("../../context/JobContext", () => ({ useJobContext: () => ({ filteredJobList: mocks.filteredJobList }) }));
 vi.mock("../navigation/Header", () => ({ default: ({ tabTitle }: { tabTitle: string }) => <h2>{tabTitle}</h2> }));
 
-function setup(serviceMode: string, inputVars: string[], persisted?: InputVarSelection) {
+function setup(
+  serviceMode: string,
+  inputVars: string[],
+  persisted?: InputVarSelection,
+  jobs?: Array<{ status?: string; inputs?: Record<string, unknown> | null }>,
+) {
   mocks.serviceMode = serviceMode;
+  mocks.filteredJobList = jobs ?? [];
   mocks.value = {
     ...mocks.value,
     inputVars,
@@ -144,5 +152,25 @@ describe("InputVariableDist", () => {
   it("shows a placeholder for an entry without a distribution form", () => {
     setup("SUMO", ["x"], { x: {} as never });
     expect(screen.getByText("not found")).toBeInTheDocument();
+  });
+
+  it("explains the data-driven shape/scale under the log toggle (SUMO uniform) when jobs are present", () => {
+    // 10 evenly log-spaced samples across 9 decades (exactly at the shape-fit bar)
+    // -> describeShapeFit reports the log-uniform winner, so the user sees WHY
+    // scale:"log" is a good default.
+    const jobs = Array.from({ length: 10 }, (_, i) => ({
+      status: "SUCCESS",
+      inputs: { x: 10 ** i },
+    }));
+    setup("SUMO", ["x"], { x: { distribution: "uniform", min: 1, max: 1e9, scale: "log" } }, jobs);
+
+    const note = document.querySelector('[mmux-testid="input-var-x-shape-fit-note"]') as HTMLElement;
+    expect(note).not.toBeNull();
+    expect(note.textContent).toMatch(/log-uniform/i);
+  });
+
+  it("omits the shape-fit note when there is no data to fit", () => {
+    setup("SUMO", ["x"], { x: { distribution: "uniform", min: 1, max: 2 } }, []);
+    expect(document.querySelector('[mmux-testid="input-var-x-shape-fit-note"]')).toBeNull();
   });
 });

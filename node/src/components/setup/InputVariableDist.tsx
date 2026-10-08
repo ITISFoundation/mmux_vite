@@ -1,11 +1,14 @@
 import { Box, Chip, InputLabel, MenuItem, Select, Typography, useTheme } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServiceContext } from "../../context/ServiceContext";
 import InputVariableDistDocument from "../documents/InputVariableDistDocument";
 import { InputBlock } from "../utils/InputBlock";
 import { CustomAnimatedToggle } from "../utils/CustomAnimatedToggle";
 import Header from "../navigation/Header";
 import { useFunctionContext } from "../../context/FunctionContext";
+import { useJobContext } from "../../context/JobContext";
+import { extractValuesFromJobs } from "../../utils/distributionDiagnostics";
+import { describeShapeFit } from "../../utils/jobCollectionCsv";
 
 interface InputDistProps {
   inputVar: string;
@@ -145,8 +148,21 @@ const UniformInputDistribution = ({ inputVar, distribution, handleSetValue }: In
 export function InputVariableDist() {
   const { selectedFunction, inputVars, distribution, setDistribution } = useFunctionContext();
   const { serviceMode } = useServiceContext();
+  const { filteredJobList } = useJobContext();
   const [localDistribution, setLocalDistribution] = useState(distribution[selectedFunction?.uid || ""] || {});
   const theme = useTheme();
+
+  // WHY is this variable's shape/scale what it is? Re-runs the same shape-fit the
+  // CSV import used (describeShapeFit mirrors pickDistributionPreset) over the
+  // visible jobs, so the note stays honest as the job selection changes. Advisory
+  // only: never feeds requests (the distribution map does).
+  const shapeFitNoteByVar = useMemo(() => {
+    const notes: Record<string, string | undefined> = {};
+    inputVars.forEach(v => {
+      notes[v] = describeShapeFit(extractValuesFromJobs(filteredJobList, v, "input"));
+    });
+    return notes;
+  }, [inputVars, filteredJobList]);
 
   // B33/V40: transparent derived note for a log-scaled normal (log-normal). The user
   // enters LINEAR mean/std; this shows what those map to so it's clear how the
@@ -419,6 +435,14 @@ export function InputVariableDist() {
                         {derivedNoteFor(localDistribution[inputVar])}
                       </Typography>
                     )}
+                    {shapeFitNoteByVar[inputVar] && (
+                      <Typography
+                        sx={{ fontSize: "0.65em", fontStyle: "italic", color: theme.palette.text.secondary }}
+                        mmux-testid={`input-var-${inputVar}-shape-fit-note`}
+                      >
+                        {shapeFitNoteByVar[inputVar]}
+                      </Typography>
+                    )}
                   </Box>
                 )}
               <>
@@ -453,6 +477,14 @@ export function InputVariableDist() {
                         {derivedNoteFor(localDistribution[inputVar]) && (
                           <Typography sx={{ fontSize: "0.7em", color: theme.palette.text.secondary }}>
                             {derivedNoteFor(localDistribution[inputVar])}
+                          </Typography>
+                        )}
+                        {shapeFitNoteByVar[inputVar] && (
+                          <Typography
+                            sx={{ fontSize: "0.65em", fontStyle: "italic", color: theme.palette.text.secondary }}
+                            mmux-testid={`input-var-${inputVar}-shape-fit-note`}
+                          >
+                            {shapeFitNoteByVar[inputVar]}
                           </Typography>
                         )}
                       </Box>
