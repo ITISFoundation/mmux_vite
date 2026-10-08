@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { parseJobCollectionCsv, pickDistributionPreset, pickSingleCsvFile } from "./jobCollectionCsv";
+import { parseJobCollectionCsv, pickDistributionPreset, describeShapeFit, pickSingleCsvFile } from "./jobCollectionCsv";
 
 describe("jobCollectionCsv", () => {
   describe("parseJobCollectionCsv", () => {
@@ -291,6 +291,25 @@ describe("jobCollectionCsv", () => {
         expect(preset.min).toBe(Number(preset.min.toPrecision(3)));
         expect(preset.max).toBe(Number(preset.max.toPrecision(3)));
       }
+    });
+  });
+
+  describe("describeShapeFit (visible rationale under the scale toggle)", () => {
+    it("returns undefined when there is no data", () => {
+      expect(describeShapeFit([])).toBeUndefined();
+    });
+
+    it("reports constant for identical values", () => {
+      expect(describeShapeFit([5, 5, 5])).toBe("constant · every value identical");
+    });
+
+    it("is honest about the low-sample fallback", () => {
+      expect(describeShapeFit([1, 2, 3])).toContain("below the shape-fit bar");
+    });
+
+    it("names the winning candidate and both distances once the sample bar is cleared", () => {
+      const values = Array.from({ length: 10 }, (_, i) => 10 ** i); // evenly log-spaced: log-uniform
+      expect(describeShapeFit(values)).toMatch(/^best fit log-uniform · shape-distance \d\.\d\d vs uniform \d\.\d\d$/);
     });
   });
 

@@ -271,6 +271,57 @@ export function pickDistributionPreset(values: number[]): UploadedInputPreset {
   };
 }
 
+/**
+ * Short human-readable verdict of the shape fit this data implies, so the UI can
+ * explain WHY an imported column got the shape/scale it did (and why an
+ * untouched-looking default is actually data-driven). Mirrors
+ * pickDistributionPreset's candidate math; returns undefined when there is no
+ * data to describe. Not wired into pickDistributionPreset itself — the preset
+ * stays the single source of truth for what is applied.
+ */
+export function describeShapeFit(values: number[]): string | undefined {
+  if (values.length === 0) {
+    return undefined;
+  }
+  const { min, max } = minMax(values);
+  if (min === max) {
+    return "constant · every value identical";
+  }
+
+  const diagnostics = computeDiagnostics(values);
+  if (!diagnostics.hasEnoughSamples) {
+    const logFallback = shouldUseLogScale(values);
+    return `uniform · ${values.length} samples (below the shape-fit bar; log axis only via the >=2-decade span rule: ${logFallback ? "met" : "not met"})`;
+  }
+
+  const allPositive = values.every(value => value > 0);
+  const spansEnoughForLogScale = allPositive && spansAtLeastDecades(min, max, minLogScaleSpanDecades);
+  const distToNormal = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, 0);
+  const distToUniform = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, uniformRefExcessKurt);
+
+  let distToLogNormal: number | undefined;
+  let distToLogUniform: number | undefined;
+  if (allPositive) {
+    const logDiagnostics = computeDiagnostics(values.map(value => Math.log(value)));
+    distToLogNormal = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, 0);
+    if (spansEnoughForLogScale) {
+      distToLogUniform = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt);
+    }
+  }
+
+  type Candidate = { kind: "normal" | "log-normal" | "log-uniform"; distance: number };
+  const candidates: Candidate[] = [{ kind: "normal", distance: distToNormal }];
+  if (distToLogNormal !== undefined) candidates.push({ kind: "log-normal", distance: distToLogNormal });
+  if (distToLogUniform !== undefined) candidates.push({ kind: "log-uniform", distance: distToLogUniform });
+
+  const best = candidates.reduce((closest, candidate) => (candidate.distance < closest.distance ? candidate : closest));
+
+  if (best.distance + distributionPreferenceMargin < distToUniform) {
+    return `best fit ${best.kind} · shape-distance ${best.distance.toFixed(2)} vs uniform ${distToUniform.toFixed(2)}`;
+  }
+  return `plain uniform · no shape beats it (uniform ${distToUniform.toFixed(2)}, closest ${best.kind} ${best.distance.toFixed(2)}) by the ${distributionPreferenceMargin} margin`;
+}
+
 export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCsv {
   const { preamble, tableLines } = splitPreambleAndTable(csvContent);
   const dataLines = tableLines.map(line => line.trimEnd()).filter(line => line.trim().length > 0);
