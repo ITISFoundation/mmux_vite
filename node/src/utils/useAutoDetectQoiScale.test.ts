@@ -491,15 +491,14 @@ describe("useAutoDetectQoiScale", () => {
     // every CV call answers without the observed/predicted arrays → both rmse undefined
     const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ error: "boom" }) }) as unknown as Response);
     vi.stubGlobal("fetch", fetchMock);
-    const { setOutputLogScales } = setupContexts({
-      jobs: [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)],
-    });
+    const jobs = [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)];
+    const { setOutputLogScales } = setupContexts({ jobs });
 
-    renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    const { rerender } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
 
     // The refund alone never re-fired anything (refs don't render — the old
     // contract needed a manual rerender to observe a retry). Now the pair
-    // re-fires on its own, bounded per key: 1 initial + MAX_CV_RETRIES=2
+    // re-fires on its own, bounded per key: 1 initial + maxCvRetries=2
     // retries = 3 pairs × 2 CV calls.
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(6);
@@ -507,5 +506,14 @@ describe("useAutoDetectQoiScale", () => {
     await new Promise(resolve => setTimeout(resolve, 20));
     expect(fetchMock).toHaveBeenCalledTimes(6); // bounded: CV traffic stopped
     expect(setOutputLogScales).not.toHaveBeenCalled(); // and nothing was committed
+
+    // A later effect run for the SAME key (new filteredJobList identity,
+    // identical content) must NOT re-arm a fresh pair: the give-up is terminal
+    // per key, not re-armed per effect-run (GH-Copilot #707 review — refunding
+    // before the cap check made the budget per-run instead of per-key).
+    setupContexts({ jobs: [...jobs] });
+    rerender();
+    await new Promise(resolve => setTimeout(resolve, 20));
+    expect(fetchMock).toHaveBeenCalledTimes(6); // still terminal
   });
 });

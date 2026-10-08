@@ -214,11 +214,18 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
           // #696 re-review). The refund ALONE is not a retry: refs never
           // re-render, so the tooltip sat on "Comparing…" until some unrelated
           // dep changed (GH-Copilot #706). Bump the nonce so this pair
-          // re-fires, bounded per key; past the cap the honest pending state
-          // stands and CV traffic stops.
-          resolvedKeys.current.delete(cacheKey);
+          // re-fires.
+          // Cap check FIRST (GH-Copilot #707 review): refunding before the
+          // give-up return left the key unresolved, so every later effect run
+          // — a fresh filteredJobList identity with identical content alone
+          // suffices — re-armed a fresh pair, making the 1 + maxCvRetries
+          // budget per effect-run instead of per key. At the cap the key stays
+          // resolved: give-up is terminal for this key for the instance's
+          // lifetime, the honest pending state stands, and recovery rides a
+          // key change (jobs/scales) — the budget is per key by design.
           const attempts = cvAttemptsByCacheKey.current.get(cacheKey) ?? 1;
           if (attempts > maxCvRetries) return;
+          resolvedKeys.current.delete(cacheKey);
           cvAttemptsByCacheKey.current.set(cacheKey, attempts + 1);
           setRetryNonce(nonce => nonce + 1);
           return;
