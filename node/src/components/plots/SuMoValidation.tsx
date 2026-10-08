@@ -17,6 +17,8 @@ import { requestJson } from "../../api/client";
 import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
 import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
+import { useDisplayScale } from "../../utils/useDisplayScale";
+import { DisplayScaleToggle } from "./DisplayScaleToggle";
 
 function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: string }) {
   const theme = useTheme();
@@ -39,6 +41,12 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
     [inputVars, distribution, selectedFunction],
   );
   const outputLogScaleForQoi = validationQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[validationQoI]) : false;
+  // Display axis scale (view-only) defaults to the compute scale; the resetKey is
+  // the (function, validated-QoI) identity so a view choice doesn't leak across.
+  const [displayLog, setDisplayLog] = useDisplayScale(
+    outputLogScaleForQoi,
+    `${selectedFunction?.uid || ""}|${validationQoI || ""}`,
+  );
   // V26/V27: propose linear-vs-log surrogate scale for the validated QoI from a
   // CV RMSE comparison; a manual toggle in OutputVariableDist locks it (V27).
   useAutoDetectQoiScale(validationQoI ? [validationQoI] : undefined);
@@ -191,10 +199,19 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
     }
   }, [boxRef]);
 
+  // Horizontal violins carry their values on x (observations + predictions); a log
+  // x-axis is only renderable if every plotted value is strictly positive.
+  const canLog = plotData.every(trace => {
+    const xs = (trace.x as number[] | undefined) ?? [];
+    return xs.length === 0 || xs.every(v => v > 0);
+  });
+  const axisLog = displayLog && canLog;
+
   const layout: Partial<Layout> = {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
+    xaxis: { type: axisLog ? "log" : "linear" },
     title: {
       text: `${validationQoI || "Quantity of Interest"} Sample Distribution`,
     },
@@ -237,7 +254,20 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
           numInputVars={inputVars.length}
         />
       )}
-      {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+      {!propagating && plotData.length !== 0 && (
+        <Box sx={{ position: "relative", width: "100%" }}>
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+          <Box sx={{ position: "absolute", top: 8, left: 8, zIndex: 1 }}>
+            <DisplayScaleToggle
+              log={axisLog}
+              onChange={setDisplayLog}
+              disabled={!canLog}
+              disabledReason="Values include non-positive samples; a log axis can't render them."
+              testId="sumo-validation-display-scale"
+            />
+          </Box>
+        </Box>
+      )}
 
       {cvMetrics ? (
         <Box display="flex" flexDirection="row" flex={1} justifyContent="space-around" mt={4}>

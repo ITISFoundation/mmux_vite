@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import UncertainUQ from "./UncertainUQ";
 import { jsonResponse, stubFetch } from "../../test/fetchStub";
@@ -54,6 +54,58 @@ function firstBarY(): number[] {
   const plot = screen.getByTestId("plotly");
   return (JSON.parse(plot.getAttribute("data-traces") as string) as Array<{ y: number[] }>)[0].y;
 }
+
+function layoutXaxisType(): string {
+  const plot = screen.getByTestId("plotly");
+  return (JSON.parse(plot.getAttribute("data-layout") as string) as { xaxis?: { type?: string } }).xaxis?.type as string;
+}
+
+describe("UncertainUQ display-scale toggle (C5, §V12)", () => {
+  const props = { loading: false, jobProgress: 0, colsFetched: { current: 1 }, jobsFetched: { current: 3 } } as const;
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("defaults to linear (compute scale is linear) and switches the axis to log on toggle", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `job-${i}` }));
+    // unique QoI + settings: a fresh cache key, so the session cache from earlier
+    // tests in this file can never serve a stale histogram here
+    mocks.selectedQoI = "y-display-linear";
+    mocks.uqSettings = { "fn-1": { numSamples: 101 } };
+    stubFetch(jsonResponse(histogramPayload([1, 2])));
+
+    render(<UncertainUQ {...props} />);
+    await waitFor(() => expect(firstBarY()).toEqual([1, 2]));
+    expect(layoutXaxisType()).toBe("linear");
+
+    fireEvent.click(
+      within(document.querySelector('[mmux-testid="uq-display-scale"]') as HTMLElement).getByRole("button", { name: "log" }),
+    );
+    await waitFor(() => expect(layoutXaxisType()).toBe("log"));
+    mocks.uqSettings = {};
+  });
+
+  it("disables the log view when bin centers include a non-positive value", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `job-${i}` }));
+    mocks.selectedQoI = "y-display-nonpos";
+    mocks.uqSettings = { "fn-1": { numSamples: 102 } };
+    // binsStart<0 so the first bin center is negative -> a log x-axis can't render it
+    stubFetch(jsonResponse({ ...histogramPayload([1, 2]), binsStart: -2, binsEnd: 2 }));
+
+    render(<UncertainUQ {...props} />);
+    await waitFor(() => expect(firstBarY()).toEqual([1, 2]));
+
+    const logBtn = within(document.querySelector('[mmux-testid="uq-display-scale"]') as HTMLElement).getByRole("button", {
+      name: "log",
+    }) as HTMLButtonElement;
+    expect(logBtn.disabled).toBe(true);
+    expect(layoutXaxisType()).toBe("linear");
+    mocks.uqSettings = {};
+  });
+});
 
 describe("UncertainUQ fetch freshness (V45gd)", () => {
   afterEach(() => {

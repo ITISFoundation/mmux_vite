@@ -10,6 +10,8 @@ import { requestJson } from "../../api/client";
 import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
 import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
+import { useDisplayScale } from "../../utils/useDisplayScale";
+import { DisplayScaleToggle } from "./DisplayScaleToggle";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
@@ -35,6 +37,13 @@ export default function UncertainUQ(props: UncertainUQProps) {
     [inputVars, distribution, selectedFunction],
   );
   const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
+  // Display axis scale follows the QoI's COMPUTE scale until the user overrides it
+  // in this panel; the override is view-only (never in the request/cache key — the
+  // uqBody below carries outputLogScales from the compute flag alone).
+  const [displayLog, setDisplayLog] = useDisplayScale(
+    outputLogScaleForQoi,
+    `${selectedFunction?.uid || ""}|${selectedQoI || ""}`,
+  );
   // V26/V27: propose linear-vs-log surrogate scale for the selected QoI from a
   // CV RMSE comparison; a manual toggle in OutputVariableDist locks it (V27).
   useAutoDetectQoiScale(selectedQoI ? [selectedQoI] : undefined);
@@ -129,9 +138,16 @@ export default function UncertainUQ(props: UncertainUQProps) {
     return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;
   }
 
+  // A log axis cannot render bins whose centers are <= 0; keep the toggle honest
+  // about that (disable + fall back to a linear axis) rather than shipping a blank plot.
+  const plottedX = (plotData[0] as { x?: unknown } | undefined)?.x;
+  const plotMinX = Array.isArray(plottedX) ? Math.min(...(plottedX as number[])) : 1;
+  const canLog = plotMinX > 0;
+  const axisLog = displayLog && canLog;
+
   const layout = {
     title: { text: "Uncertainty Quantification Histogram" },
-    xaxis: { title: { text: selectedQoI || "Output" } },
+    xaxis: { title: { text: selectedQoI || "Output" }, type: axisLog ? "log" : "linear" },
     yaxis: { title: { text: "Density" } },
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
@@ -166,6 +182,17 @@ export default function UncertainUQ(props: UncertainUQProps) {
               <Tune fontSize="small" />
             </IconButton>
           </Tooltip>
+        )}
+        {plotData.length !== 0 && (
+          <Box sx={{ position: "absolute", top: 8, left: 8, zIndex: 1 }}>
+            <DisplayScaleToggle
+              log={axisLog}
+              onChange={setDisplayLog}
+              disabled={!canLog}
+              disabledReason="Bin centers include non-positive values; a log axis can't render them."
+              testId="uq-display-scale"
+            />
+          </Box>
         )}
         {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
         {!propagating && plotData.length === 0 && (
