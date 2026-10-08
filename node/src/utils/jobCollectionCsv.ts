@@ -94,11 +94,14 @@ function shapeDistance(skew: number, excessKurt: number, refSkew: number, refExc
 const uniformRefExcessKurt = -1.2;
 
 // B48ab (legacy B30): minimum span (in orders of magnitude) required before a shape-fit is even
-// allowed to suggest log-scale for a uniform-shaped variable, in addition to the
-// distributionPreferenceMargin check below. A skewness/kurtosis shape-fit is noisy at
+// allowed to suggest a LOG-scale candidate — BOTH log-normal and log-uniform
+// (GH-Copilot #714: the gate once only covered log-uniform, so a narrow positive
+// column could still infer scale:"log" via a log-normal shape-fit — e.g. the
+// bell-shaped fixture exponentiated by position/10 spans ~0.26 decades yet
+// picked log-normal). A skewness/kurtosis shape-fit is noisy at
 // realistic sample sizes (e.g. N=50: skewness's standard error alone is ~0.3), so on a
 // narrow-range (<1 decade) variable that noise can spuriously tip the shape distance
-// toward "closer to log-uniform" even though a log axis would barely differ visually
+// toward "closer to log" even though a log axis would barely differ visually
 // from a linear one there. Requiring a minimum span filters out that false-positive
 // case without rejecting genuinely log-sampled data (real log-LHS columns in practice
 // still comfortably clear 1+ decades).
@@ -183,8 +186,9 @@ function ceilToSignificantDigits(value: number, digits = 3): number {
  *
  * At/above that threshold, every candidate distribution's shape distance is computed
  * properly in (skewness, excess-kurtosis) space (B48ab — see shapeDistance) against
- * normal (0,0), and — for strictly-positive data — log-normal and log-uniform (both
- * evaluated on log(values), against (0,0) and (0,-1.2) respectively). The closest
+ * normal (0,0), and — for strictly-positive data spanning at least
+ * minLogScaleSpanDecades — log-normal and log-uniform (both evaluated on
+ * log(values), against (0,0) and (0,-1.2) respectively). The closest
  * candidate wins only if it beats plain uniform by distributionPreferenceMargin;
  * otherwise plain uniform remains the default.
  *
@@ -217,12 +221,14 @@ export function pickDistributionPreset(values: number[]): UploadedInputPreset {
   let logDiagnostics: ReturnType<typeof computeDiagnostics> | undefined;
   let distToLogNormal: number | undefined;
   let distToLogUniform: number | undefined;
-  if (allPositive) {
+  if (spansEnoughForLogScale) {
+    // GH-Copilot #714 (B51gh): BOTH log candidates sit behind the ≥1-decade
+    // gate — V13 has always said "log candidates gated on ≥1-decade span", but
+    // the gate once covered only log-uniform, letting a narrow positive column
+    // infer scale:"log" through a log-normal shape-fit.
     logDiagnostics = computeDiagnostics(values.map(value => Math.log(value)));
     distToLogNormal = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, 0);
-    if (spansEnoughForLogScale) {
-      distToLogUniform = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt);
-    }
+    distToLogUniform = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt);
   }
 
   type Candidate = { kind: "normal" | "log-normal" | "log-uniform"; distance: number };
@@ -301,12 +307,11 @@ export function describeShapeFit(values: number[]): string | undefined {
 
   let distToLogNormal: number | undefined;
   let distToLogUniform: number | undefined;
-  if (allPositive) {
+  if (spansEnoughForLogScale) {
+    // mirrors pickDistributionPreset: both log candidates behind the ≥1-decade gate
     const logDiagnostics = computeDiagnostics(values.map(value => Math.log(value)));
     distToLogNormal = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, 0);
-    if (spansEnoughForLogScale) {
-      distToLogUniform = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt);
-    }
+    distToLogUniform = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt);
   }
 
   type Candidate = { kind: "normal" | "log-normal" | "log-uniform"; distance: number };

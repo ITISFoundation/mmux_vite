@@ -199,6 +199,24 @@ describe("jobCollectionCsv", () => {
       }
     });
 
+    it('B51gh (GH-Copilot #714): a narrow-span bell (<1 decade) never infers scale:"log" — log-NORMAL is gated like log-uniform', () => {
+      // Copilot's counterexample verbatim: the same bell fixture exponentiated
+      // by position/10 spans ~0.26 decades. The log-normal shape-fit still
+      // wins on shape distance, but V13 gates ANY log candidate on the
+      // ≥1-decade span — a log axis here would be visually indistinguishable
+      // from linear, so the linear reading must win.
+      const narrowBell = normalLikeValues.map(position => Math.exp(position / 10));
+      const preset = pickDistributionPreset(narrowBell);
+      expect(preset.scale).toBe("linear");
+      expect(preset.distribution).toBe("normal");
+    });
+
+    it("the wide exponentiated bell clears the decade gate and STILL infers log (gate ⊥ over-reach)", () => {
+      // e^-3..e^3 ≈ 2.6 decades: genuinely log-scale data keeps its verdict.
+      const preset = pickDistributionPreset(normalLikeValues.map(position => Math.exp(position)));
+      expect(preset.scale).toBe("log");
+    });
+
     it("B48ab: detects log-uniform (not plain uniform) for real log-LHS-sampled data at N=50", () => {
       // Real user-reported log-LHS columns. The pre-replay heuristic (legacy §B30) collapsed
       // (skewness, excess-kurtosis) into a non-negative magnitude, losing kurtosis's
@@ -310,6 +328,16 @@ describe("jobCollectionCsv", () => {
     it("names the winning candidate and both distances once the sample bar is cleared", () => {
       const values = Array.from({ length: 10 }, (_, i) => 10 ** i); // evenly log-spaced: log-uniform
       expect(describeShapeFit(values)).toMatch(/^best fit log-uniform · shape-distance \d\.\d\d vs uniform \d\.\d\d$/);
+    });
+
+    it("B51gh (GH-Copilot #714): mirrors the gate — a narrow bell's rationale is plain normal, never log-normal", () => {
+      const positions = [-3, -2, -1, 0, 1, 2, 3];
+      const counts = [1, 6, 15, 20, 15, 6, 1];
+      const bell = positions.flatMap((position, index) => Array(counts[index]).fill(position));
+      const narrowBell = bell.map(position => Math.exp(position / 10)); // ~0.26 decades
+      expect(describeShapeFit(narrowBell)).toMatch(/^best fit normal ·/);
+      // and the genuinely wide column keeps naming log-normal
+      expect(describeShapeFit(bell.map(position => Math.exp(position)))).toMatch(/^best fit log-normal ·/);
     });
   });
 
