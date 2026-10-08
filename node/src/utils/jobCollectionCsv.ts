@@ -78,7 +78,7 @@ function minMax(values: number[]): { min: number; max: number } {
   });
 }
 
-// B30: L1 distance in (skewness, excess-kurtosis) space between a sample's shape
+// B48ab (legacy B30): L1 distance in (skewness, excess-kurtosis) space between a sample's shape
 // stats and a reference distribution's theoretical shape. This MUST use the signed
 // excess kurtosis, not a pre-collapsed |skew|+|kurt| magnitude — collapsing to a
 // single non-negative scalar before comparing against a reference number loses the
@@ -93,7 +93,7 @@ function shapeDistance(skew: number, excessKurt: number, refSkew: number, refExc
 // The "normal" reference is (0, 0), used directly as literals below.
 const uniformRefExcessKurt = -1.2;
 
-// B30: minimum span (in orders of magnitude) required before a shape-fit is even
+// B48ab (legacy B30): minimum span (in orders of magnitude) required before a shape-fit is even
 // allowed to suggest log-scale for a uniform-shaped variable, in addition to the
 // distributionPreferenceMargin check below. A skewness/kurtosis shape-fit is noisy at
 // realistic sample sizes (e.g. N=50: skewness's standard error alone is ~0.3), so on a
@@ -139,12 +139,12 @@ function shouldUseLogScale(values: number[]): boolean {
   return distToLogUniform <= distToRawUniform - distributionPreferenceMargin;
 }
 
-// B28: round a value to N significant digits for display/entry.
+// B48ab (legacy B28): round a value to N significant digits for display/entry.
 function roundToSignificantDigits(value: number, digits = 3): number {
   return Number(value.toPrecision(digits));
 }
 
-// B28: round a lower bound DOWN (toward -Infinity) to N significant digits, so the
+// B48ab (legacy B28): round a lower bound DOWN (toward -Infinity) to N significant digits, so the
 // rounded bound never excludes the observed data it was derived from (plain
 // toPrecision rounds to nearest, which can round a min *up* past real samples).
 function floorToSignificantDigits(value: number, digits = 3): number {
@@ -156,7 +156,7 @@ function floorToSignificantDigits(value: number, digits = 3): number {
   return Math.floor(value * scale) / scale;
 }
 
-// B28: round an upper bound UP (toward +Infinity) to N significant digits — the max
+// B48ab (legacy B28): round an upper bound UP (toward +Infinity) to N significant digits — the max
 // counterpart of floorToSignificantDigits above.
 function ceilToSignificantDigits(value: number, digits = 3): number {
   if (value === 0) {
@@ -178,18 +178,18 @@ function ceilToSignificantDigits(value: number, digits = 3): number {
  * spans >=2 orders of magnitude (shouldUseLogScale), in which case we still can't tell
  * log-normal (bell-shaped in log-space) from log-uniform (flat in log-space) apart, so
  * log-uniform (uniform w/ scale:"log") is preferred as the least-assumption choice
- * (B27/B30) — mirroring why plain (non-log) uniform is already the low-confidence
+ * (B48ab) — mirroring why plain (non-log) uniform is already the low-confidence
  * default for narrow-range data, rather than assuming a bell curve.
  *
  * At/above that threshold, every candidate distribution's shape distance is computed
- * properly in (skewness, excess-kurtosis) space (B30 — see shapeDistance) against
+ * properly in (skewness, excess-kurtosis) space (B48ab — see shapeDistance) against
  * normal (0,0), and — for strictly-positive data — log-normal and log-uniform (both
  * evaluated on log(values), against (0,0) and (0,-1.2) respectively). The closest
  * candidate wins only if it beats plain uniform by distributionPreferenceMargin;
  * otherwise plain uniform remains the default.
  *
  * Values computed from data (mean/std/min/max) are rounded to 3 significant digits
- * (B28); min rounds down and max rounds up so the bounds never exclude the data they
+ * (B48ab); min rounds down and max rounds up so the bounds never exclude the data they
  * were derived from.
  */
 export function pickDistributionPreset(values: number[]): UploadedInputPreset {
