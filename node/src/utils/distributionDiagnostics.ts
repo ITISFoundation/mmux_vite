@@ -14,7 +14,7 @@ import { OsparcFunctionJob } from "../context/types";
 
 const minSamplesForDiagnostics = 10;
 
-export type NormalityVerdict = "likely-normal" | "unclear" | "not-normal" | "not-applicable";
+type NormalityVerdict = "likely-normal" | "unclear" | "not-normal" | "not-applicable";
 
 export interface VariableDiagnostics {
   count: number;

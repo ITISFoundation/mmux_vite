@@ -4,6 +4,7 @@
 // see node/SPEC.md §C structural conventions.
 
 import { UploadedInputPreset, ParsedJobCollectionRow, ParsedJobCollectionCsv } from "./types";
+import { computeDiagnostics } from "./distributionDiagnostics";
 
 const inputPrefix = "input__";
 const outputPrefix = "output__";
@@ -77,6 +78,41 @@ function minMax(values: number[]): { min: number; max: number } {
   });
 }
 
+// B30: L1 distance in (skewness, excess-kurtosis) space between a sample's shape
+// stats and a reference distribution's theoretical shape. This MUST use the signed
+// excess kurtosis, not a pre-collapsed |skew|+|kurt| magnitude — collapsing to a
+// single non-negative scalar before comparing against a reference number loses the
+// sign, so a heavy-tailed *positive*-kurtosis shape (e.g. log-normal-like data in
+// raw space) could spuriously read as "close to uniform" (kurtosis=-1.2) whenever
+// its magnitude happened to coincide numerically.
+function shapeDistance(skew: number, excessKurt: number, refSkew: number, refExcessKurt: number): number {
+  return Math.abs(skew - refSkew) + Math.abs(excessKurt - refExcessKurt);
+}
+
+// Theoretical (skewness, excess kurtosis) of a perfect uniform distribution: 0, -1.2.
+// The "normal" reference is (0, 0), used directly as literals below.
+const uniformRefExcessKurt = -1.2;
+
+// B30: minimum span (in orders of magnitude) required before a shape-fit is even
+// allowed to suggest log-scale for a uniform-shaped variable, in addition to the
+// distributionPreferenceMargin check below. A skewness/kurtosis shape-fit is noisy at
+// realistic sample sizes (e.g. N=50: skewness's standard error alone is ~0.3), so on a
+// narrow-range (<1 decade) variable that noise can spuriously tip the shape distance
+// toward "closer to log-uniform" even though a log axis would barely differ visually
+// from a linear one there. Requiring a minimum span filters out that false-positive
+// case without rejecting genuinely log-sampled data (real log-LHS columns in practice
+// still comfortably clear 1+ decades).
+const minLogScaleSpanDecades = 1;
+
+function spansAtLeastDecades(min: number, max: number, decades: number): boolean {
+  return min > 0 && max > 0 && Math.log10(max / min) >= decades;
+}
+
+// Only prefer a richer/more-specific distribution (log-scale over linear, normal or
+// log-normal over uniform) when its shape-fit is clearly better by this margin —
+// avoids needless flip-flopping between near-tied candidates.
+const distributionPreferenceMargin = 0.06;
+
 function shouldUseLogScale(values: number[]): boolean {
   if (values.length === 0 || values.some(value => value <= 0)) {
     return false;
@@ -85,8 +121,154 @@ function shouldUseLogScale(values: number[]): boolean {
   if (!(max > min)) {
     return false;
   }
-  // heuristic: values spanning >=2 orders of magnitude read better on a log axis
-  return Math.log10(max) - Math.log10(min) >= 2;
+
+  const diagnostics = computeDiagnostics(values);
+  if (!diagnostics.hasEnoughSamples) {
+    // heuristic: values spanning >=2 orders of magnitude read better on a log axis
+    return Math.log10(max) - Math.log10(min) >= 2;
+  }
+
+  if (!spansAtLeastDecades(min, max, minLogScaleSpanDecades)) {
+    return false;
+  }
+
+  const logDiagnostics = computeDiagnostics(values.map(value => Math.log10(value)));
+  const distToRawUniform = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, uniformRefExcessKurt);
+  const distToLogUniform = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt);
+
+  return distToLogUniform <= distToRawUniform - distributionPreferenceMargin;
+}
+
+// B28: round a value to N significant digits for display/entry.
+function roundToSignificantDigits(value: number, digits = 3): number {
+  return Number(value.toPrecision(digits));
+}
+
+// B28: round a lower bound DOWN (toward -Infinity) to N significant digits, so the
+// rounded bound never excludes the observed data it was derived from (plain
+// toPrecision rounds to nearest, which can round a min *up* past real samples).
+function floorToSignificantDigits(value: number, digits = 3): number {
+  if (value === 0) {
+    return 0;
+  }
+  const exponent = Math.floor(Math.log10(Math.abs(value)));
+  const scale = 10 ** (digits - 1 - exponent);
+  return Math.floor(value * scale) / scale;
+}
+
+// B28: round an upper bound UP (toward +Infinity) to N significant digits — the max
+// counterpart of floorToSignificantDigits above.
+function ceilToSignificantDigits(value: number, digits = 3): number {
+  if (value === 0) {
+    return 0;
+  }
+  const exponent = Math.floor(Math.log10(Math.abs(value)));
+  const scale = 10 ** (digits - 1 - exponent);
+  return Math.ceil(value * scale) / scale;
+}
+
+/**
+ * Infer the best-fit distribution (constant, uniform [linear or log-scale], normal, or
+ * log-normal expressed as the narrowed union's normal shape + scale:"log") for a
+ * variable's imported data, so newly-created functions start with sensible defaults
+ * instead of always defaulting to uniform.
+ *
+ * Below `minSamplesForDiagnostics` there's too little data to trust a skewness/kurtosis
+ * shape-fit, so we fall back to uniform — UNLESS the data is strictly positive and
+ * spans >=2 orders of magnitude (shouldUseLogScale), in which case we still can't tell
+ * log-normal (bell-shaped in log-space) from log-uniform (flat in log-space) apart, so
+ * log-uniform (uniform w/ scale:"log") is preferred as the least-assumption choice
+ * (B27/B30) — mirroring why plain (non-log) uniform is already the low-confidence
+ * default for narrow-range data, rather than assuming a bell curve.
+ *
+ * At/above that threshold, every candidate distribution's shape distance is computed
+ * properly in (skewness, excess-kurtosis) space (B30 — see shapeDistance) against
+ * normal (0,0), and — for strictly-positive data — log-normal and log-uniform (both
+ * evaluated on log(values), against (0,0) and (0,-1.2) respectively). The closest
+ * candidate wins only if it beats plain uniform by distributionPreferenceMargin;
+ * otherwise plain uniform remains the default.
+ *
+ * Values computed from data (mean/std/min/max) are rounded to 3 significant digits
+ * (B28); min rounds down and max rounds up so the bounds never exclude the data they
+ * were derived from.
+ */
+export function pickDistributionPreset(values: number[]): UploadedInputPreset {
+  const { min, max } = minMax(values);
+
+  if (min === max) {
+    return { distribution: "constant", value: roundToSignificantDigits(min), scale: "linear" };
+  }
+
+  const diagnostics = computeDiagnostics(values);
+  if (!diagnostics.hasEnoughSamples) {
+    return {
+      distribution: "uniform",
+      min: floorToSignificantDigits(min),
+      max: ceilToSignificantDigits(max),
+      scale: shouldUseLogScale(values) ? "log" : "linear",
+    };
+  }
+
+  const allPositive = values.every(value => value > 0);
+  const spansEnoughForLogScale = allPositive && spansAtLeastDecades(min, max, minLogScaleSpanDecades);
+  const distToNormal = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, 0);
+  const distToUniform = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, uniformRefExcessKurt);
+
+  let logDiagnostics: ReturnType<typeof computeDiagnostics> | undefined;
+  let distToLogNormal: number | undefined;
+  let distToLogUniform: number | undefined;
+  if (allPositive) {
+    logDiagnostics = computeDiagnostics(values.map(value => Math.log(value)));
+    distToLogNormal = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, 0);
+    if (spansEnoughForLogScale) {
+      distToLogUniform = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt);
+    }
+  }
+
+  type Candidate = { kind: "normal" | "log-normal" | "log-uniform"; distance: number };
+  const candidates: Candidate[] = [{ kind: "normal", distance: distToNormal }];
+  if (distToLogNormal !== undefined) candidates.push({ kind: "log-normal", distance: distToLogNormal });
+  if (distToLogUniform !== undefined) candidates.push({ kind: "log-uniform", distance: distToLogUniform });
+
+  const best = candidates.reduce((closest, candidate) => (candidate.distance < closest.distance ? candidate : closest));
+
+  if (best.distance + distributionPreferenceMargin < distToUniform) {
+    if (best.kind === "normal") {
+      return {
+        distribution: "normal",
+        mean: roundToSignificantDigits(diagnostics.mean),
+        std: roundToSignificantDigits(diagnostics.std),
+        scale: "linear",
+      };
+    }
+    if (best.kind === "log-normal" && logDiagnostics) {
+      // Convert log-space moments to LINEAR-space mean/std so users read the
+      // intuitive linear values (B33/V40: normal shape + orthogonal scale:"log"
+      // IS the log-normal; there is no separate log-normal form).
+      const expMuHalfSigmaSq = Math.exp(logDiagnostics.mean + (logDiagnostics.std * logDiagnostics.std) / 2);
+      const mean = expMuHalfSigmaSq;
+      const variance = expMuHalfSigmaSq * expMuHalfSigmaSq * (Math.exp(logDiagnostics.std * logDiagnostics.std) - 1);
+      return {
+        distribution: "normal",
+        mean: roundToSignificantDigits(mean),
+        std: roundToSignificantDigits(Math.sqrt(variance)),
+        scale: "log",
+      };
+    }
+    return {
+      distribution: "uniform",
+      min: floorToSignificantDigits(min),
+      max: ceilToSignificantDigits(max),
+      scale: "log",
+    };
+  }
+
+  return {
+    distribution: "uniform",
+    min: floorToSignificantDigits(min),
+    max: ceilToSignificantDigits(max),
+    scale: "linear",
+  };
 }
 
 export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCsv {
@@ -151,15 +333,9 @@ export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCs
     if (values.length === 0) {
       return;
     }
-    const { min, max } = minMax(values);
-    inputPresets[variable] = {
-      distribution: "uniform",
-      min,
-      max,
-      // Orthogonal scale tag (VarSelection.scale): CSV columns spanning >=2
-      // orders of magnitude default to log sampling/fitting.
-      scale: shouldUseLogScale(values) ? "log" : "linear",
-    };
+    // V13: the best-fit shape (constant/uniform/normal x linear/log) inferred from
+    // the column's data, with 3-sig-digit parameters (uniform bounds outward).
+    inputPresets[variable] = pickDistributionPreset(values);
   });
 
   return { ...base, inputVars, outputVars, inputPresets, rows };
