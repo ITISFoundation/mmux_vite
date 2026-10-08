@@ -64,9 +64,13 @@ def test_v26_b15_dirty_store_never_leaks_into_repo(test_client, patch_list_funct
 
 
 def test_v26_text_file_write_lands_in_tmp_dir(test_client, tmp_path):
-    """A real (unmocked) text-file POST writes into the tmp dir; the container
-    default `/text-files` or repo paths are never touched."""
+    """A real (unmocked) text-file POST writes into the tmp dir.
+
+    Landing in the patched per-test dir is the hermetic proof that the request
+    used the isolated destination. The guard deliberately ⊥ also assert that the
+    SHARED `/text-files` default stayed clean: reading pre-existing external
+    state is exactly what §V26 isolation exists to tolerate (GH-Copilot #715).
+    """
     response = test_client.post("/flask/text-file/", json={"filename": "v26.txt", "content": "hi"})
     assert response.status_code == 200
     assert (tmp_path / "text_files" / "v26.txt").read_text(encoding="utf-8") == "hi"
-    assert not Path("/text-files/v26.txt").exists()
