@@ -199,8 +199,8 @@ describe("jobCollectionCsv", () => {
       }
     });
 
-    it("B30: detects log-uniform (not plain uniform) for real log-LHS-sampled data at N=50", () => {
-      // Real user-reported log-LHS columns. The pre-B30 heuristic collapsed
+    it("B48ab: detects log-uniform (not plain uniform) for real log-LHS-sampled data at N=50", () => {
+      // Real user-reported log-LHS columns. The pre-replay heuristic (legacy §B30) collapsed
       // (skewness, excess-kurtosis) into a non-negative magnitude, losing kurtosis's
       // sign, so these heavy-tailed positive-kurtosis-in-raw-space columns
       // spuriously read as "close to uniform" and never got scale:"log" despite
@@ -230,7 +230,7 @@ describe("jobCollectionCsv", () => {
       });
     });
 
-    it("B30: does not spuriously flag a narrow-range (<1 decade) variable as log-scale even when raw-space kurtosis is large and positive", () => {
+    it("B48ab: does not spuriously flag a narrow-range (<1 decade) variable as log-scale even when raw-space kurtosis is large and positive", () => {
       // Same user CSV, a column spanning <1 decade (0.46-0.96): a log axis wouldn't
       // meaningfully differ from a linear one, so scale stays "linear" regardless of
       // what a noisy skewness/kurtosis shape-fit says at N=50.
@@ -249,11 +249,11 @@ describe("jobCollectionCsv", () => {
       }
     });
 
-    it("B27: falls back to uniform below the sample bar when the data doesn't span >=2 orders of magnitude", () => {
+    it("B48ab: falls back to uniform below the sample bar when the data doesn't span >=2 orders of magnitude", () => {
       expect(pickDistributionPreset([1, 3, 5, 7, 9])).toEqual({ distribution: "uniform", min: 1, max: 9, scale: "linear" });
     });
 
-    it("B27/B30: prefers log-uniform over plain uniform for positive data spanning >=2 orders of magnitude even with too few samples for a shape-fit", () => {
+    it("B48ab: prefers log-uniform over plain uniform for positive data spanning >=2 orders of magnitude even with too few samples for a shape-fit", () => {
       const preset = pickDistributionPreset([1, 10, 100, 1000, 10000]);
       expect(preset.distribution).toBe("uniform");
       if (preset.distribution === "uniform") {
@@ -263,7 +263,7 @@ describe("jobCollectionCsv", () => {
       }
     });
 
-    it("B28: rounds inferred uniform min/max to 3 significant digits, outward so bounds still cover the data", () => {
+    it("B48ab: rounds inferred uniform min/max to 3 significant digits, outward so bounds still cover the data", () => {
       // stratified/evenly-spread values (like a uniform LHS design) over a narrow
       // (<2 orders of magnitude) range, N=10: reliably picks uniform via the
       // shape-fit path, exercising the min/max rounding rather than log branches.
@@ -281,7 +281,7 @@ describe("jobCollectionCsv", () => {
       }
     });
 
-    it("B28: exported high-precision values are rounded to 3 significant digits without excluding the data", () => {
+    it("B48ab: exported high-precision values are rounded to 3 significant digits without excluding the data", () => {
       const boneCancellous = [0.006066, 0.00828, 0.011315, 0.017044, 0.024212, 0.03712, 0.053109, 0.089766, 0.145988, 0.19478];
       const preset = pickDistributionPreset(boneCancellous);
       expect(preset.distribution).toBe("uniform");
