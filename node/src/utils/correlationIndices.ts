@@ -5,7 +5,11 @@ import { getCachedOrFetch } from "../api/sessionResponseCache";
 export type FetchCorrelationIndicesParams = {
   inputVars: string[];
   output: string | undefined;
-  distributions: InputVarSelection;
+  // ⊥ distribution entries on a freshly restored session → the runtime-possible
+  // undefined becomes explicit at the boundary (B50ef's withoutConstantFactors
+  // passes it through verbatim; an absent map still surfaces as the backend's
+  // "distributions missing" 422, ⊥ a silently invented {}).
+  distributions: InputVarSelection | undefined;
   functionJobs: OsparcFunctionJob[];
   numSamples: number;
   seed?: number;

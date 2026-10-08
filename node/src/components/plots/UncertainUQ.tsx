@@ -9,6 +9,7 @@ import { useMMUXContext } from "../../context/MMUXContext";
 import { requestJson } from "../../api/client";
 import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
+import { withoutConstantFactors } from "../../utils/constantFactors";
 import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 import { useDisplayScale } from "../../utils/useDisplayScale";
 import { DisplayScaleToggle } from "./DisplayScaleToggle";
@@ -24,17 +25,24 @@ export default function UncertainUQ(props: UncertainUQProps) {
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { uqSettings, selectedQoI } = useMMUXContext();
+  // B50ef (GH-Copilot #714): `constant` is FE preset state — DistributionParams
+  // accepts only normal|uniform, so constant factors leave the surrogate
+  // request (and its dimension count) rather than 422'ing the whole payload.
+  const { inputVars: activeInputVars, distributions: activeDistributions } = useMemo(
+    () => withoutConstantFactors(inputVars, distribution[selectedFunction?.uid || ""]),
+    [inputVars, distribution, selectedFunction],
+  );
   // Per-variable log-scale flags (node SPEC V12), see Curves1DPlot for the pattern.
   const inputLogScales = useMemo(
     () =>
-      inputVars.reduce(
+      activeInputVars.reduce(
         (acc: { [key: string]: boolean }, key) => {
-          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          acc[key] = activeDistributions?.[key]?.scale === "log";
           return acc;
         },
         {} as { [key: string]: boolean },
       ),
-    [inputVars, distribution, selectedFunction],
+    [activeInputVars, activeDistributions],
   );
   const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
   // Display axis scale follows the QoI's COMPUTE scale until the user overrides it
@@ -69,9 +77,9 @@ export default function UncertainUQ(props: UncertainUQProps) {
         console.info("Propagating UQ...");
         console.info("SelectedQoI: ", selectedQoI);
         const uqBody = {
-          inputVars,
+          inputVars: activeInputVars,
           output: selectedQoI,
-          distributions: distribution[selectedFunction?.uid || ""],
+          distributions: activeDistributions,
           FunctionJobs: filteredJobList,
           numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
           inputLogScales,
@@ -126,8 +134,8 @@ export default function UncertainUQ(props: UncertainUQProps) {
       filteredJobList,
       selectedQoI,
       uqSettings,
-      inputVars,
-      distribution,
+      activeInputVars,
+      activeDistributions,
       selectedFunction,
       theme.palette.primary.main,
       inputLogScales,
@@ -200,7 +208,7 @@ export default function UncertainUQ(props: UncertainUQProps) {
             fetchedJobCollections={fetchedJobCollections}
             filteredJobList={filteredJobList}
             height={plotStyle.height}
-            numInputVars={inputVars.length}
+            numInputVars={activeInputVars.length}
             errorMessage={errorMessage}
           />
         )}

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   selectedQoI: "y" as string | undefined,
   uqSettings: {},
   fetchedJobCollections: [{}],
+  distribution: {} as { [uid: string]: InputVarSelection },
 }));
 
 vi.mock("react-plotly.js", () => import("../../test/plotlyMock"));
@@ -18,7 +19,10 @@ vi.mock("../../context/FunctionContext", () => {
   const value = {
     selectedFunction: { uid: "fn-1" },
     inputVars: ["x1", "x2"],
-    distribution: {},
+    // mutable per-test (B50ef boundary tests seed a constant factor here)
+    get distribution() {
+      return mocks.distribution;
+    },
     // #663 replay: context contract grows the log-scale maps + setter consumed
     // by the auto-detect hook (stub jobs carry no outputs, so it stays inert).
     outputLogScales: {},
@@ -179,5 +183,61 @@ describe("UncertainUQ fetch freshness (V45gd)", () => {
     await waitFor(() => expect(firstBarY()).toEqual([7, 8]));
     expect(fetchMock).toHaveBeenCalledTimes(2);
     mocks.uqSettings = {};
+  });
+});
+
+describe("UncertainUQ constant-factor boundary (B50ef, GH-Copilot #714)", () => {
+  const props = { loading: false, jobProgress: 0, colsFetched: { current: 1 }, jobsFetched: { current: 3 } } as const;
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    mocks.distribution = {};
+    mocks.uqSettings = {};
+  });
+
+  it("drops constant factors from the propagation body — DistributionParams accepts only normal|uniform", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `job-${i}` }));
+    mocks.selectedQoI = "y-const-boundary";
+    mocks.uqSettings = { "fn-1": { numSamples: 103 } };
+    mocks.distribution = {
+      "fn-1": {
+        x1: { distribution: "constant", value: 2, scale: "linear" },
+        x2: { distribution: "uniform", min: 1, max: 100, scale: "log" },
+      },
+    };
+    const fetchMock = stubFetch(jsonResponse(histogramPayload([1, 2])));
+
+    render(<UncertainUQ {...props} />);
+    await waitFor(() => expect(firstBarY()).toEqual([1, 2]));
+
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    // the constant leaves inputVars, the map AND the scale flags (removed factor,
+    // zero variance ⇒ nothing for the surrogate to propagate)
+    expect(body.inputVars).toEqual(["x2"]);
+    expect(Object.keys(body.distributions)).toEqual(["x2"]);
+    expect(body.distributions.x2).toEqual({ distribution: "uniform", min: 1, max: 100, scale: "log" });
+    expect(body.inputLogScales).toEqual({ x2: true });
+  });
+
+  it("all-constant factors send an empty input set (honest backend error beats a guaranteed-422 shape)", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `job-${i}` }));
+    mocks.selectedQoI = "y-all-const";
+    mocks.uqSettings = { "fn-1": { numSamples: 104 } };
+    mocks.distribution = {
+      "fn-1": {
+        x1: { distribution: "constant", value: 2, scale: "linear" },
+        x2: { distribution: "constant", value: 7, scale: "linear" },
+      },
+    };
+    const fetchMock = stubFetch(jsonResponse(histogramPayload([1, 2])));
+
+    render(<UncertainUQ {...props} />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.inputVars).toEqual([]);
+    expect(body.distributions).toEqual({});
   });
 });
