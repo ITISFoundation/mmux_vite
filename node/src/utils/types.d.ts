@@ -5,12 +5,16 @@ import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 // can import them directly without pulling in those modules and risking future
 // circular imports between utils files.
 
-export interface UploadedInputPreset {
-  distribution: "uniform";
-  min: number;
-  max: number;
-  scale: "linear" | "log";
-}
+// Best-fit preset inferred from a CSV column's data (jobCollectionCsv
+// pickDistributionPreset): the shape is whichever candidate (constant,
+// uniform in linear or log space, normal in linear or log space) whose
+// (skewness, excess-kurtosis) shape is closest to the theoretical reference,
+// plain uniform being the least-assumption fallback. Parameters are rounded
+// to 3 significant digits (uniform bounds round outward).
+export type UploadedInputPreset =
+  | (VarSelection & { distribution: "constant"; value: number })
+  | (VarSelection & { distribution: "uniform"; min: number; max: number })
+  | (VarSelection & { distribution: "normal"; mean: number; std: number });
 
 export interface ParsedJobCollectionRow {
   sourceJobUid?: string;
