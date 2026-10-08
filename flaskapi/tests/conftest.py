@@ -63,6 +63,36 @@ def mock_test_env_vars():
 
 
 @pytest.fixture(autouse=True)
+def isolate_persistence_dirs(tmp_path, monkeypatch):
+    """Root SPEC.md §V26 / §T26 (B15): every test gets per-run temp dirs for the
+    local job store and the text-file storage, before any app or persistence
+    code can read them.
+
+    B15 bit again on 2026-10-08: a `make run-*` dev stack left 3 collections in
+    the repository `flaskapi/runs_local/` and 9 list-endpoint tests failed
+    (`assert 3 == 0`) until the store was manually isolated. The blueprints
+    read these module globals at request time, so patching the attributes is
+    what the request path actually sees; the env vars are patched too for any
+    code that re-reads them (e.g. a re-import). Fresh dir per test ⇒ persistence
+    is reset between tests by construction.
+    """
+    from mmux_flaskapi.blueprints import textfile
+    from mmux_flaskapi.utils import local_job_store as ljs
+
+    store_dir = tmp_path / "runs_local"
+    files_dir = tmp_path / "text_files"
+    files_dir.mkdir()
+    monkeypatch.setattr(ljs, "LOCAL_STORE_DIR", store_dir)
+    monkeypatch.setattr(ljs, "LOCAL_STORE_FILE", store_dir / "uploaded_job_collections_store.json")
+    monkeypatch.setattr(textfile, "FILES_STORAGE_DIR", files_dir)
+    with patch.dict(
+        "os.environ",
+        {"LOCAL_STORE_DIR": str(store_dir), "TEXT_FILES_DIR": str(files_dir)},
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def default_osparc_reachable():
     """Default the oSPARC connectivity probe (`OsparcApi.is_connected()`) to "reachable"
     across the suite, by making the underlying `UsersApi.get_my_profile()` call it makes
