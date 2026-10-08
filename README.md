@@ -1,6 +1,11 @@
 # MMUX Vite
 
+[![Build and check image](https://github.com/ITISFoundation/mmux_vite/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ITISFoundation/mmux_vite/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
+[![codecov node](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?flag=node&token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
+[![codecov flaskapi](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?flag=flaskapi&token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
+[![codecov e2e](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?flag=e2e&token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
+[![release](https://img.shields.io/github/v/release/ITISFoundation/mmux_vite)](https://github.com/ITISFoundation/mmux_vite/releases)
 
 This repository is under active development. It aims to bring up meta-modeling functionality in an interactive, user-friendly, guided step-by-step way.
 
