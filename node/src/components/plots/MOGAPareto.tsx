@@ -11,6 +11,7 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import MogaParetoTable from "./MOGAParetoTable";
 import { requestJson } from "../../api/client";
 import { aggregateOutputValues } from "../../utils/functionUtils";
+import { withoutConstantFactors } from "../../utils/constantFactors";
 import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
 import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
@@ -38,19 +39,29 @@ export function MOGAPareto(props: MOGAParetoProps) {
   const { loading, jobProgress, setCalculating } = props;
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution, outputTargets, outputLogScales } = useFunctionContext();
+  // B50ef (GH-Copilot #714): `constant` is FE preset state — MOGAOptimizationRequest
+  // requires uniform(min,max) per input variable (DistributionParams ⊥ constant),
+  // so constant factors leave the optimization (a zero-width domain cannot be
+  // optimized anyway) rather than 422'ing the whole payload. The Pareto table
+  // columns come from the same filtered set so the row builders never read a
+  // result column the optimizer did not explore.
+  const { inputVars: activeInputVars, distributions: activeDistributions } = useMemo(
+    () => withoutConstantFactors(inputVars, distribution[selectedFunction?.uid || ""]),
+    [inputVars, distribution, selectedFunction],
+  );
   // Per-variable log-scale flags (node SPEC V12): MOGA optimizes every objective,
   // so all objective keys are flagged from the per-function outputLogScales map.
   useAutoDetectQoiScale(selectedFunction ? Object.keys(outputTargets[selectedFunction.uid] || {}) : undefined);
   const inputLogScales = useMemo(
     () =>
-      inputVars.reduce(
+      activeInputVars.reduce(
         (acc: { [key: string]: boolean }, key) => {
-          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          acc[key] = activeDistributions?.[key]?.scale === "log";
           return acc;
         },
         {} as { [key: string]: boolean },
       ),
-    [inputVars, distribution, selectedFunction],
+    [activeInputVars, activeDistributions],
   );
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const { mogaSettings } = useMOGASettingsContext();
@@ -178,9 +189,9 @@ export function MOGAPareto(props: MOGAParetoProps) {
           method: "POST",
           retry: true,
           body: {
-            inputVars,
+            inputVars: activeInputVars,
             mogaSettings: localsettings,
-            distributions: distribution[selectedFunction?.uid || ""],
+            distributions: activeDistributions,
             outputVarSelection: OVS,
             FunctionJobs: jobs,
             inputLogScales,
@@ -202,11 +213,11 @@ export function MOGAPareto(props: MOGAParetoProps) {
 
       // set table data
       const newTableData: MogaDataType = {
-        inputs: inputVars,
+        inputs: activeInputVars,
         outputs: localOptVars,
         raw: results,
         rows: results.nonDominatedIndices.map((ndi: number) => ({
-          ...inputVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
+          ...activeInputVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
           ...localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
           performance: calculatePerformance(
             localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
@@ -221,7 +232,15 @@ export function MOGAPareto(props: MOGAParetoProps) {
       // overwrite a newer table + selected vars.
       return { newTableData, localOptVars };
     },
-    [mogaSettings, selectedFunction?.uid, distribution, inputVars, calculatePerformance, inputLogScales, outputLogScales],
+    [
+      mogaSettings,
+      selectedFunction?.uid,
+      activeInputVars,
+      activeDistributions,
+      calculatePerformance,
+      inputLogScales,
+      outputLogScales,
+    ],
   );
 
   const updatePlot = useCallback(
@@ -491,7 +510,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}
           height={plotStyle.height}
-          numInputVars={inputVars.length}
+          numInputVars={activeInputVars.length}
         />
       )}
       {!propagating && selectedFunction && plotData.length !== 0 && (
