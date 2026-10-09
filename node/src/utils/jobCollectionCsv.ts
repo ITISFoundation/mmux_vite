@@ -93,23 +93,16 @@ function shapeDistance(skew: number, excessKurt: number, refSkew: number, refExc
 // The "normal" reference is (0, 0), used directly as literals below.
 const uniformRefExcessKurt = -1.2;
 
-// B48ab (legacy B30): minimum span (in orders of magnitude) required before a shape-fit is even
-// allowed to suggest a LOG-scale candidate — BOTH log-normal and log-uniform
-// (GH-Copilot #714: the gate once only covered log-uniform, so a narrow positive
-// column could still infer scale:"log" via a log-normal shape-fit — e.g. the
-// bell-shaped fixture exponentiated by position/10 spans ~0.26 decades yet
-// picked log-normal). A skewness/kurtosis shape-fit is noisy at
-// realistic sample sizes (e.g. N=50: skewness's standard error alone is ~0.3), so on a
-// narrow-range (<1 decade) variable that noise can spuriously tip the shape distance
-// toward "closer to log" even though a log axis would barely differ visually
-// from a linear one there. Requiring a minimum span filters out that false-positive
-// case without rejecting genuinely log-sampled data (real log-LHS columns in practice
-// still comfortably clear 1+ decades).
-const minLogScaleSpanDecades = 1;
-
-function spansAtLeastDecades(min: number, max: number, decades: number): boolean {
-  return min > 0 && max > 0 && Math.log10(max / min) >= decades;
-}
+// B48ab (legacy B30) originally gated log-scale shape-fits on a >=1-decade span
+// (a skewness/kurtosis shape-fit is noisy at realistic sample sizes — e.g. N=50
+// skewness SE ~0.3 — so on a narrow-range column noise could tip the shape
+// distance toward "closer to log" on an axis that barely differs from linear).
+// OWNER DECISION 2026-10-08 (B52ij, superseding B51gh): ⊥ ANY hard span gate —
+// scale is the user's call, and a factor-10 disagreement between the selected
+// scale and the data's span is an ADVISORY WARNING on the Scale toggle
+// (utils/logScaleAdvice.ts), never something inference silently overrides.
+// The <10-sample fallback's own >=2-decade heuristic (shouldUseLogScale below)
+// is not a gate on a shape-fit — it is the entire low-confidence verdict, and stays.
 
 // Only prefer a richer/more-specific distribution (log-scale over linear, normal or
 // log-normal over uniform) when its shape-fit is clearly better by this margin —
@@ -129,10 +122,6 @@ function shouldUseLogScale(values: number[]): boolean {
   if (!diagnostics.hasEnoughSamples) {
     // heuristic: values spanning >=2 orders of magnitude read better on a log axis
     return Math.log10(max) - Math.log10(min) >= 2;
-  }
-
-  if (!spansAtLeastDecades(min, max, minLogScaleSpanDecades)) {
-    return false;
   }
 
   const logDiagnostics = computeDiagnostics(values.map(value => Math.log10(value)));
@@ -186,9 +175,11 @@ function ceilToSignificantDigits(value: number, digits = 3): number {
  *
  * At/above that threshold, every candidate distribution's shape distance is computed
  * properly in (skewness, excess-kurtosis) space (B48ab — see shapeDistance) against
- * normal (0,0), and — for strictly-positive data spanning at least
- * minLogScaleSpanDecades — log-normal and log-uniform (both evaluated on
- * log(values), against (0,0) and (0,-1.2) respectively). The closest
+ * normal (0,0), and — for strictly-positive data — log-normal and log-uniform (both
+ * evaluated on log(values), against (0,0) and (0,-1.2) respectively). ⊥ span gate on
+ * the log candidates (owner decision, B52ij): a scale that disagrees with the data's
+ * decade span is warned about in the UI (utils/logScaleAdvice.ts), never suppressed
+ * here. The closest
  * candidate wins only if it beats plain uniform by distributionPreferenceMargin;
  * otherwise plain uniform remains the default.
  *
@@ -214,18 +205,16 @@ export function pickDistributionPreset(values: number[]): UploadedInputPreset {
   }
 
   const allPositive = values.every(value => value > 0);
-  const spansEnoughForLogScale = allPositive && spansAtLeastDecades(min, max, minLogScaleSpanDecades);
   const distToNormal = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, 0);
   const distToUniform = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, uniformRefExcessKurt);
 
   let logDiagnostics: ReturnType<typeof computeDiagnostics> | undefined;
   let distToLogNormal: number | undefined;
   let distToLogUniform: number | undefined;
-  if (spansEnoughForLogScale) {
-    // GH-Copilot #714 (B51gh): BOTH log candidates sit behind the ≥1-decade
-    // gate — V13 has always said "log candidates gated on ≥1-decade span", but
-    // the gate once covered only log-uniform, letting a narrow positive column
-    // infer scale:"log" through a log-normal shape-fit.
+  if (allPositive) {
+    // B52ij (owner): ⊥ span gate — both log candidates always compete for
+    // positive data; a scale/span mismatch is a Scale-toggle warning, not a
+    // silently suppressed candidate.
     logDiagnostics = computeDiagnostics(values.map(value => Math.log(value)));
     distToLogNormal = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, 0);
     distToLogUniform = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt);
@@ -301,14 +290,13 @@ export function describeShapeFit(values: number[]): string | undefined {
   }
 
   const allPositive = values.every(value => value > 0);
-  const spansEnoughForLogScale = allPositive && spansAtLeastDecades(min, max, minLogScaleSpanDecades);
   const distToNormal = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, 0);
   const distToUniform = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, uniformRefExcessKurt);
 
   let distToLogNormal: number | undefined;
   let distToLogUniform: number | undefined;
-  if (spansEnoughForLogScale) {
-    // mirrors pickDistributionPreset: both log candidates behind the ≥1-decade gate
+  if (allPositive) {
+    // mirrors pickDistributionPreset: ⊥ span gate, both log candidates always compete (B52ij)
     const logDiagnostics = computeDiagnostics(values.map(value => Math.log(value)));
     distToLogNormal = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, 0);
     distToLogUniform = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt);
