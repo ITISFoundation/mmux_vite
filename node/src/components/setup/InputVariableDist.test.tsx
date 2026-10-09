@@ -173,4 +173,34 @@ describe("InputVariableDist", () => {
     setup("SUMO", ["x"], { x: { distribution: "uniform", min: 1, max: 2 } }, []);
     expect(document.querySelector('[mmux-testid="input-var-x-shape-fit-note"]')).toBeNull();
   });
+
+  // B52ij (owner): factor-10 span/scale mismatch is a warning symbol at the
+  // Scale toggle — both directions — never an inference gate.
+  const wideJobs = Array.from({ length: 10 }, (_, i) => ({ status: "SUCCESS", inputs: { x: 10 ** i } }));
+  const narrowJobs = Array.from({ length: 10 }, (_, i) => ({ status: "SUCCESS", inputs: { x: 1 + i / 9 } }));
+
+  it("warns when LINEAR is selected but the data spans more than a factor of 10", () => {
+    setup("SUMO", ["x"], { x: { distribution: "uniform", min: 1, max: 1e9, scale: "linear" } }, wideJobs);
+    expect(document.querySelector('[mmux-testid="input-var-x-scale-advice"]')).not.toBeNull();
+  });
+
+  it("omits the warning when LOG is selected and the data genuinely spans more than a factor of 10", () => {
+    setup("SUMO", ["x"], { x: { distribution: "uniform", min: 1, max: 1e9, scale: "log" } }, wideJobs);
+    expect(document.querySelector('[mmux-testid="input-var-x-scale-advice"]')).toBeNull();
+  });
+
+  it("warns (vice versa) when LOG is selected but the data spans at most a factor of 10", () => {
+    setup("SUMO", ["x"], { x: { distribution: "uniform", min: 1, max: 2, scale: "log" } }, narrowJobs);
+    expect(document.querySelector('[mmux-testid="input-var-x-scale-advice"]')).not.toBeNull();
+  });
+
+  it("omits the warning when LINEAR and a narrow span agree", () => {
+    setup("SUMO", ["x"], { x: { distribution: "uniform", min: 1, max: 2, scale: "linear" } }, narrowJobs);
+    expect(document.querySelector('[mmux-testid="input-var-x-scale-advice"]')).toBeNull();
+  });
+
+  it("no jobs, no advice (⊥ verdicts without data)", () => {
+    setup("SUMO", ["x"], { x: { distribution: "uniform", min: 1, max: 1e9, scale: "linear" } }, []);
+    expect(document.querySelector('[mmux-testid="input-var-x-scale-advice"]')).toBeNull();
+  });
 });
