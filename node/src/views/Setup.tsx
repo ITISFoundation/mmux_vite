@@ -20,7 +20,10 @@ export default function Setup(props: SetupProps) {
     >
       <FunctionList />
       <InputVariableDist />
-      {serviceMode === "MOGA" && <OutputVariableDist />}
+      {/* V12 QoI scale applies wherever a surrogate predicts an output, not just MOGA:
+          all modes get the scale cards; MOGA additionally gets the minimize/maximize
+          target surface (see OutputVariableDist.serviceMode). */}
+      <OutputVariableDist serviceMode={serviceMode} />
     </MetaModelingUX>
   );
 }

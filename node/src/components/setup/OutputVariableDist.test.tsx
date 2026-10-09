@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { OutputVariableDist } from "./OutputVariableDist";
 
@@ -61,7 +61,7 @@ describe("OutputVariableDist surrogate-scale provenance (V12 receipts)", () => {
 
   it("shows an 'auto' chip and a tooltip with both CV errors, winner bolded", async () => {
     setup({ evidence });
-    render(<OutputVariableDist />);
+    render(<OutputVariableDist serviceMode="MOGA" />);
 
     expect(screen.getByText("auto")).toBeDefined();
     expect(screen.queryByText("manual")).toBeNull();
@@ -77,7 +77,7 @@ describe("OutputVariableDist surrogate-scale provenance (V12 receipts)", () => {
 
   it("shows a 'manual' chip and the no-override line once the user toggles", async () => {
     setup({ evidence, locked: true });
-    render(<OutputVariableDist />);
+    render(<OutputVariableDist serviceMode="MOGA" />);
 
     expect(screen.getByText("manual")).toBeDefined();
     hoverScaleRow();
@@ -87,7 +87,7 @@ describe("OutputVariableDist surrogate-scale provenance (V12 receipts)", () => {
 
   it("with no verdict and too few jobs: no chip, tooltip explains when detection starts", async () => {
     setup({ jobCount: 2 });
-    render(<OutputVariableDist />);
+    render(<OutputVariableDist serviceMode="MOGA" />);
 
     expect(screen.queryByText("auto")).toBeNull();
     expect(screen.queryByText("manual")).toBeNull();
@@ -99,7 +99,7 @@ describe("OutputVariableDist surrogate-scale provenance (V12 receipts)", () => {
 
   it("toggling the scale locks the pair via outputLogScaleUserSet (V27)", async () => {
     const { setOutputLogScaleUserSet } = setup({ evidence });
-    render(<OutputVariableDist />);
+    render(<OutputVariableDist serviceMode="MOGA" />);
 
     fireEvent.click(screen.getByRole("button", { name: "log" }));
     await waitFor(() => {
@@ -111,7 +111,7 @@ describe("OutputVariableDist surrogate-scale provenance (V12 receipts)", () => {
     setup({
       evidence: { fn1: { qoi: { ...evidence.fn1.qoi, key: "fn1::qoi::old-jobs::0" } } },
     });
-    render(<OutputVariableDist />);
+    render(<OutputVariableDist serviceMode="MOGA" />);
 
     expect(screen.queryByText("auto")).toBeNull(); // stale chip ⊥ rendered
     expect(screen.queryByText("manual")).toBeNull();
@@ -135,7 +135,7 @@ describe("OutputVariableDist surrogate-scale provenance (V12 receipts)", () => {
         { uid: "j5", status: "SUCCESS", outputs: { qoi: 50 } },
       ],
     });
-    render(<OutputVariableDist />);
+    render(<OutputVariableDist serviceMode="MOGA" />);
 
     hoverScaleRow();
     expect(
@@ -144,5 +144,69 @@ describe("OutputVariableDist surrogate-scale provenance (V12 receipts)", () => {
       ),
     ).toBeDefined();
     expect(fetchSpy).not.toHaveBeenCalled(); // ineligible: ⊥ CV pair, invalidation branch only
+  });
+});
+
+describe("OutputVariableDist outside MOGA (UQ/SUMO get the scale cards, ⊥ the target surface)", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    fetchSpy = vi.fn(() => new Promise<Response>(() => undefined));
+    vi.stubGlobal("fetch", fetchSpy);
+  });
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  function setupNonMoga() {
+    const setOutputLogScaleUserSet = vi.fn();
+    useFunctionContextMock.mockReturnValue({
+      selectedFunction: { uid: "fn1" },
+      inputVars: ["x"],
+      distribution: {},
+      outputVars: ["qoi", "other"],
+      // UQ/SUMO never configure optimization targets:
+      outputTargets: {},
+      setOutputTargets: vi.fn(),
+      outputLogScales: {},
+      setOutputLogScales: vi.fn(),
+      setOutputLogScaleUserSet,
+      outputLogScaleUserSet: {},
+      qoiScaleEvidence: {},
+      setQoiScaleEvidence: vi.fn(),
+    });
+    useJobContextMock.mockReturnValue({ filteredJobList: makeJobs(5) });
+    return { setOutputLogScaleUserSet };
+  }
+
+  it("renders a scale card for EVERY output variable and no target controls", () => {
+    setupNonMoga();
+    render(<OutputVariableDist serviceMode="UQ" />);
+
+    expect(screen.getByText("Predicted Outputs")).toBeDefined();
+    expect(screen.queryByText("Optimization Objectives")).toBeNull();
+    expect(document.querySelector('[mmux-testid="surrogate-scale-qoi"]')).not.toBeNull();
+    expect(document.querySelector('[mmux-testid="surrogate-scale-other"]')).not.toBeNull();
+
+    // the MOGA-only surface is absent
+    expect(screen.queryByRole("button", { name: "minimize" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "maximize" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "remove" })).toBeNull();
+    expect(document.querySelector('[mmux-testid="add-output-var-btn"]')).toBeNull();
+    expect(screen.queryByText("Please select at least one output variable to optimize.")).toBeNull();
+  });
+
+  it("auto-detection scopes to the output variables (⊥ targets) and the toggle still locks", async () => {
+    const { setOutputLogScaleUserSet } = setupNonMoga();
+    render(<OutputVariableDist serviceMode="SUMO" />);
+
+    // eligible qoi (5 positive jobs >= max(5, n_inputs+1)=5) fires its CV double-shot;
+    // "other" has no job values so it stays pending-with-explanation and adds no requests.
+    await waitFor(() => expect(fetchSpy.mock.calls.length).toBeGreaterThanOrEqual(2));
+
+    // two cards each carry a linear/log segment: scope the click to the qoi card
+    const qoiRow = document.querySelector('[mmux-testid="surrogate-scale-qoi"]') as HTMLElement;
+    fireEvent.click(within(qoiRow).getByRole("button", { name: "log" }));
+    await waitFor(() => expect(setOutputLogScaleUserSet).toHaveBeenCalled());
   });
 });
