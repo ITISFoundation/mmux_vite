@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { parseJobCollectionCsv, pickDistributionPreset, describeShapeFit, pickSingleCsvFile } from "./jobCollectionCsv";
+import { scaleSpanAdvice } from "./logScaleAdvice";
 
 describe("jobCollectionCsv", () => {
   describe("parseJobCollectionCsv", () => {
@@ -199,19 +200,18 @@ describe("jobCollectionCsv", () => {
       }
     });
 
-    it('B51gh (GH-Copilot #714): a narrow-span bell (<1 decade) never infers scale:"log" — log-NORMAL is gated like log-uniform', () => {
-      // Copilot's counterexample verbatim: the same bell fixture exponentiated
-      // by position/10 spans ~0.26 decades. The log-normal shape-fit still
-      // wins on shape distance, but V13 gates ANY log candidate on the
-      // ≥1-decade span — a log axis here would be visually indistinguishable
-      // from linear, so the linear reading must win.
+    it("B52ij (owner): ⊥ span gate — the narrow bell infers its log-normal shape honestly; the mismatch is a UI advisory", () => {
+      // GH-Copilot #714 flagged this fixture (bell exponentiated by position/10,
+      // ~0.26 decades): the shipped gate suppressed log candidates below 1
+      // decade. Owner decision 2026-10-08: ⊥ ANY hard span gate — pure shape-fit
+      // decides, and utils/logScaleAdvice.ts warns about scale/span mismatch.
       const narrowBell = normalLikeValues.map(position => Math.exp(position / 10));
       const preset = pickDistributionPreset(narrowBell);
-      expect(preset.scale).toBe("linear");
+      expect(preset.scale).toBe("log");
       expect(preset.distribution).toBe("normal");
     });
 
-    it("the wide exponentiated bell clears the decade gate and STILL infers log (gate ⊥ over-reach)", () => {
+    it("the wide bell infers log through plain shape fit too (⊥ gate needed, ⊥ gate over-reach)", () => {
       // e^-3..e^3 ≈ 2.6 decades: genuinely log-scale data keeps its verdict.
       const preset = pickDistributionPreset(normalLikeValues.map(position => Math.exp(position)));
       expect(preset.scale).toBe("log");
@@ -248,10 +248,13 @@ describe("jobCollectionCsv", () => {
       });
     });
 
-    it("B48ab: does not spuriously flag a narrow-range (<1 decade) variable as log-scale even when raw-space kurtosis is large and positive", () => {
-      // Same user CSV, a column spanning <1 decade (0.46-0.96): a log axis wouldn't
-      // meaningfully differ from a linear one, so scale stays "linear" regardless of
-      // what a noisy skewness/kurtosis shape-fit says at N=50.
+    it("B48ab trap SUPERSEDED by B52ij: the narrow-range kurtosis case now infers log honestly (⊥ gate) — the toggle advisory covers it", () => {
+      // Same user CSV, a column spanning <1 decade (0.46-0.96). The B48ab gate
+      // forced "linear" here regardless of what the shape-fit said. Owner
+      // decision (B52ij): ⊥ span gate — the N=50 shape-fit now gets its honest
+      // (noisy) log-uniform verdict, and because the preset's scale is what the
+      // Scale toggle shows, scaleSpanAdvice warns about the ≤10 factor right
+      // where the user can act on it (utils/logScaleAdvice).
       const bloodSigma = [
         0.75131, 0.79399, 0.490335, 0.47301, 0.915867, 0.724899, 0.686434, 0.703126, 0.825238, 0.933432, 0.637843, 0.791281,
         0.514158, 0.564657, 0.549407, 0.802335, 0.473728, 0.561337, 0.890955, 0.536966, 0.83158, 0.553725, 0.865674, 0.48544,
@@ -263,8 +266,10 @@ describe("jobCollectionCsv", () => {
       const preset = pickDistributionPreset(bloodSigma);
       expect(preset.distribution).toBe("uniform");
       if (preset.distribution === "uniform") {
-        expect(preset.scale).toBe("linear");
+        expect(preset.scale).toBe("log");
       }
+      // ...and the mismatch is exactly what the advisory warns about:
+      expect(scaleSpanAdvice(bloodSigma, "log")).toMatch(/barely differs from linear/);
     });
 
     it("B48ab: falls back to uniform below the sample bar when the data doesn't span >=2 orders of magnitude", () => {
@@ -330,13 +335,15 @@ describe("jobCollectionCsv", () => {
       expect(describeShapeFit(values)).toMatch(/^best fit log-uniform · shape-distance \d\.\d\d vs uniform \d\.\d\d$/);
     });
 
-    it("B51gh (GH-Copilot #714): mirrors the gate — a narrow bell's rationale is plain normal, never log-normal", () => {
+    it("B52ij (owner): ⊥ span gate — the rationale names the honest winner even for a narrow bell (advisory lives in the UI)", () => {
       const positions = [-3, -2, -1, 0, 1, 2, 3];
       const counts = [1, 6, 15, 20, 15, 6, 1];
       const bell = positions.flatMap((position, index) => Array(counts[index]).fill(position));
       const narrowBell = bell.map(position => Math.exp(position / 10)); // ~0.26 decades
-      expect(describeShapeFit(narrowBell)).toMatch(/^best fit normal ·/);
-      // and the genuinely wide column keeps naming log-normal
+      // pure shape-fit: log-normal genuinely fits this fixture best; the
+      // scale/span mismatch is warned about at the toggle (logScaleAdvice), not
+      // hidden here.
+      expect(describeShapeFit(narrowBell)).toMatch(/^best fit log-normal ·/);
       expect(describeShapeFit(bell.map(position => Math.exp(position)))).toMatch(/^best fit log-normal ·/);
     });
   });
