@@ -1,4 +1,5 @@
-import { Box, Chip, InputLabel, MenuItem, Select, Typography, useTheme } from "@mui/material";
+import { Box, Chip, InputLabel, MenuItem, Select, Tooltip, Typography, useTheme } from "@mui/material";
+import { WarningAmberRounded } from "@mui/icons-material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServiceContext } from "../../context/ServiceContext";
 import InputVariableDistDocument from "../documents/InputVariableDistDocument";
@@ -9,6 +10,7 @@ import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { extractValuesFromJobs } from "../../utils/distributionDiagnostics";
 import { describeShapeFit } from "../../utils/jobCollectionCsv";
+import { scaleSpanAdvice } from "../../utils/logScaleAdvice";
 
 interface InputDistProps {
   inputVar: string;
@@ -156,13 +158,42 @@ export function InputVariableDist() {
   // CSV import used (describeShapeFit mirrors pickDistributionPreset) over the
   // visible jobs, so the note stays honest as the job selection changes. Advisory
   // only: never feeds requests (the distribution map does).
+  const jobValuesByVar = useMemo(() => {
+    const values: Record<string, number[]> = {};
+    inputVars.forEach(v => {
+      values[v] = extractValuesFromJobs(filteredJobList, v, "input");
+    });
+    return values;
+  }, [inputVars, filteredJobList]);
   const shapeFitNoteByVar = useMemo(() => {
     const notes: Record<string, string | undefined> = {};
     inputVars.forEach(v => {
-      notes[v] = describeShapeFit(extractValuesFromJobs(filteredJobList, v, "input"));
+      notes[v] = describeShapeFit(jobValuesByVar[v]);
     });
     return notes;
-  }, [inputVars, filteredJobList]);
+  }, [inputVars, jobValuesByVar]);
+
+  // B52ij (owner): ⊥ span gate in the inference — a factor-10 disagreement between
+  // the selected scale and the data's span shows as a warning symbol next to the
+  // toggle (both directions), the choice itself stays the user's.
+  const scaleAdviceFor = (inputVar: string) => {
+    const advice = scaleSpanAdvice(
+      jobValuesByVar[inputVar] ?? [],
+      localDistribution[inputVar]?.scale === "log" ? "log" : "linear",
+    );
+    if (!advice) {
+      return null;
+    }
+    return (
+      <Tooltip title={advice}>
+        <WarningAmberRounded
+          mmux-testid={`input-var-${inputVar}-scale-advice`}
+          aria-label="Scale span advice"
+          sx={{ fontSize: 16, color: theme.palette.warning.main, cursor: "help" }}
+        />
+      </Tooltip>
+    );
+  };
 
   // B33/V40: transparent derived note for a log-scaled normal (log-normal). The user
   // enters LINEAR mean/std; this shows what those map to so it's clear how the
@@ -423,7 +454,10 @@ export function InputVariableDist() {
               {["UQ"].includes(serviceMode) &&
                 ["normal", "uniform"].includes(localDistribution[inputVar]?.distribution ?? "") && (
                   <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <Typography sx={{ fontSize: "0.7em", color: theme.palette.text.secondary }}>Scale</Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Typography sx={{ fontSize: "0.7em", color: theme.palette.text.secondary }}>Scale</Typography>
+                      {scaleAdviceFor(inputVar)}
+                    </Box>
                     <CustomAnimatedToggle
                       data={["linear", "log"]}
                       value={localDistribution[inputVar]?.scale === "log" ? 1 : 0}
@@ -465,9 +499,12 @@ export function InputVariableDist() {
                     />
                     {["SUMO", "MOGA"].includes(serviceMode) && (
                       <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <Typography sx={{ fontSize: "0.75em", fontWeight: 300, color: theme.palette.text.secondary }}>
-                          Sampling scale
-                        </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <Typography sx={{ fontSize: "0.75em", fontWeight: 300, color: theme.palette.text.secondary }}>
+                            Sampling scale
+                          </Typography>
+                          {scaleAdviceFor(inputVar)}
+                        </Box>
                         <CustomAnimatedToggle
                           data={["linear", "log"]}
                           value={localDistribution[inputVar]?.scale === "log" ? 1 : 0}
