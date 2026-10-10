@@ -2,16 +2,64 @@ import { OsparcFunctionJob } from "../context/types";
 import { requestJson } from "../api/client";
 import { getCachedOrFetch } from "../api/sessionResponseCache";
 
+// Domain-vocabulary request shape (flaskapi SobolIndicesRequest, bounds-editor
+// contract): per-input exploration boxes + constant pins. Variables absent
+// from BOTH maps fall back to the package's auto-inferred observed-bounds box
+// (flaskapi SPEC V26dd).
+export type SobolDomainBox = { minimum: number; maximum: number };
+
 export type FetchSobolIndicesParams = {
   inputVars: string[];
   output: string | undefined;
-  distributions: InputVarSelection;
   functionJobs: OsparcFunctionJob[];
-  numSamples: number;
+  domains?: { [varName: string]: SobolDomainBox };
+  fixed?: { [varName: string]: number };
   seed?: number;
   inputLogScales?: { [varName: string]: boolean };
   outputLogScale?: boolean;
 };
+
+const isFiniteNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
+
+/**
+ * Derive the domains/fixed request shape from the UQ configuration, reusing
+ * the SAME exploration-box convention LHS sampling already applies
+ * (utils/sampling.ts): uniform -> [min, max]; normal -> mean +/- 2.5*std
+ * (the 98.8% interval the sampling grids explore); constant -> a `fixed` pin
+ * (a9: a pinned factor leaves the sensitivity sweep entirely).
+ *
+ * Incomplete or degenerate entries are OMITTED, so the backend auto-infers
+ * the observed box (V26dd) rather than the request 400ing on a degenerate
+ * box. A log-flagged variable only gets a box while its minimum is > 0: the
+ * backend positivity guard rejects every non-positive log request, and the
+ * auto-inferred box over positive job data is the honest fallback
+ * (mirrors how the UQ panels keep log requests valid).
+ */
+export function buildSobolBounds(
+  distribution: InputVarSelection | undefined,
+  inputVars: string[],
+): { domains: { [varName: string]: SobolDomainBox }; fixed: { [varName: string]: number } } {
+  const domains: { [varName: string]: SobolDomainBox } = {};
+  const fixed: { [varName: string]: number } = {};
+  inputVars.forEach(inputVar => {
+    const entry = distribution?.[inputVar];
+    if (!entry) return;
+    if (entry.distribution === "constant") {
+      if (isFiniteNumber(entry.value)) fixed[inputVar] = entry.value;
+      return;
+    }
+    let box: SobolDomainBox | undefined;
+    if (entry.distribution === "uniform" && isFiniteNumber(entry.min) && isFiniteNumber(entry.max)) {
+      box = { minimum: entry.min, maximum: entry.max };
+    } else if (entry.distribution === "normal" && isFiniteNumber(entry.mean) && isFiniteNumber(entry.std) && entry.std > 0) {
+      box = { minimum: entry.mean - 2.5 * entry.std, maximum: entry.mean + 2.5 * entry.std };
+    }
+    if (!box || box.maximum <= box.minimum) return; // degenerate/invalid -> auto-infer
+    if (entry.scale === "log" && !(box.minimum > 0)) return; // ⊥ the positivity guard's 400
+    domains[inputVar] = box;
+  });
+  return { domains, fixed };
+}
 
 /**
  * Fetch per-input first-order (main effect) and total-order Sobol' sensitivity
@@ -22,9 +70,9 @@ export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promis
   const {
     inputVars,
     output,
-    distributions,
     functionJobs,
-    numSamples,
+    domains = {},
+    fixed = {},
     seed = 0,
     inputLogScales = {},
     outputLogScale = false,
@@ -36,8 +84,13 @@ export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promis
   const body = {
     inputVars,
     output,
-    distributions,
-    numSamples,
+    // Domain vocabulary since the bounds-editor contract (GH-Copilot #706
+    // review): the legacy distributions/numSamples fields were GONE from
+    // SobolIndicesRequest, so keep-sending them meant Pydantic silently
+    // ignored them and every UI request scored the auto-inferred box instead
+    // of the configured exploration ranges.
+    domains,
+    fixed,
     FunctionJobs: functionJobs,
     seed,
     // V12: scales ride EVERY surrogate request — the backend
