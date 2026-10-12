@@ -267,7 +267,7 @@ test-e2e-update: clean-e2e-snapshots ## regenerate read-only e2e pixel baselines
 	cd ${NODE_DIR} && npm run test:e2e:update
 
 .PHONY: test-e2e-update-docker
-PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.63.0-noble
+PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.64.0-noble
 test-e2e-update-docker: ## regenerate e2e baselines INSIDE the pinned Playwright image (font-stable, see V12); keep tag == @playwright/test
 	docker run --rm --user root --network host \
 		-v "$(PWD)":/work -w /work -e HOME=/root \
