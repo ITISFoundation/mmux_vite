@@ -14,6 +14,28 @@ NODE_DIR := ./node
 ## pass these. The :-1000 fallbacks keep headless/CI launches usable.
 HOST_ID_ENV := HOST_UID=$$(id -u) HOST_GID=$$(id -g)
 
+## V45wk/B27wk: docker-compose.yml is NOT in the .bumpversion.cfg fan-out (§V5),
+## so `docker compose build` tags every image with the .devN-stripped BASE while
+## the dev composes and publish-local demand the full $(DOCKER_IMAGE_TAG) stamp.
+## The build recipes must alias that stamp or `make run-develop-*` tries to PULL
+## an image that was never built (registry "pull access denied"). RELEASE_TAG is
+## DERIVED by stripping .devN — a second stamped literal would just re-open the
+## drift; ⊥ literal versions in the alias machinery (pinned by
+## flaskapi/tests/test_local_dev_image_tags.py).
+RELEASE_TAG := $(shell printf '%s' '$(DOCKER_IMAGE_TAG)' | sed 's/\.dev[0-9][0-9]*$$//')
+
+## Every image docker-compose.yml builds; tag-local aliases each
+## :$(RELEASE_TAG) build to :$(DOCKER_IMAGE_TAG).
+MMUX_LOCAL_IMAGES := \
+	simcore/services/dynamic/mmux-vite-backend \
+	simcore/services/dynamic/mmux-vite-web \
+	simcore/services/dynamic/mmux-vite-app-sumo-read \
+	simcore/services/dynamic/mmux-vite-app-sumo-write \
+	simcore/services/dynamic/mmux-vite-app-uq-read \
+	simcore/services/dynamic/mmux-vite-app-uq-write \
+	simcore/services/dynamic/mmux-vite-app-moga-read \
+	simcore/services/dynamic/mmux-vite-app-moga-write
+
 ## Front-end
 install-node: ## install Node.js dependencies
 # curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
@@ -59,10 +81,19 @@ compose-spec: ## runs ooil to assemble the docker-compose.yml file
 .PHONY: build
 build: compose-spec ## build docker images
 	docker compose build
+	$(MAKE) tag-local
 
 .PHONY: build-no-cache
 build-no-cache: compose-spec ## build docker images
 	docker compose build --no-cache --pull --parallel
+	$(MAKE) tag-local
+
+.PHONY: tag-local
+tag-local: ## alias locally built images to $(DOCKER_IMAGE_TAG) for dev compose + publish-local (V45wk/B27wk)
+	@for img in $(MMUX_LOCAL_IMAGES); do \
+		echo "tagging $${img}:$(RELEASE_TAG) -> $${img}:$(DOCKER_IMAGE_TAG)"; \
+		docker tag "$${img}:$(RELEASE_TAG)" "$${img}:$(DOCKER_IMAGE_TAG)"; \
+	done
 
 ## NB: VSCode might keep old credentials cached, even if changed in .env
 ## run in a non-VSCode terminal to avoid this
