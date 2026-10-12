@@ -11,14 +11,31 @@ _logger = logging.getLogger(__name__)
 deployment_bp = Blueprint("deployment", __name__)
 
 
+# SPEC.md §V4 (fork issue #80): these three env vars are enums, not free text.
+# Presence-only checking let `SERVICE_MODE=FOO` pass with 200, so a typo'd
+# service definition or a misconfigured compose env silently produced an app
+# that served a mode no view implements. Out-of-range → the same JSON error
+# path as "not set" (KeyError → api_endpoint surface → 500), in every caller
+# of these getters (deployment endpoints AND sampling's DEPLOYMENT_MODE read).
+_VALID_ENV_VALUES: dict[str, frozenset[str]] = {
+    "SERVICE_MODE": frozenset({"UQ", "SUMO", "MOGA"}),
+    "PERMISSIONS": frozenset({"READ-ONLY", "WRITE"}),
+    "DEPLOYMENT_MODE": frozenset({"LOCAL", "OSPARC"}),
+}
+
+
 def _get_required_env_var(name: str) -> str:
     try:
         value = os.environ[name]
         _logger.info("%s: %s", name, value)
-        return value
     except KeyError as exc:
         _logger.error("%s environment variable is not set.", name)
         raise KeyError(f"{name} not set") from exc
+    allowed = _VALID_ENV_VALUES.get(name)
+    if allowed is not None and value not in allowed:
+        _logger.error("%s: %r is not one of %s", name, value, sorted(allowed))
+        raise KeyError(f"{name} '{value}' is not one of {sorted(allowed)}")
+    return value
 
 
 def get_service_mode_value() -> str:
