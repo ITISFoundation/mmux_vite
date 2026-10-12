@@ -48,3 +48,7 @@ ph_context.json
 opencode.json
 flaskapi/runs_*
 coverage/
+
+# e2e backend boot state (tests/e2e/scripts/run-e2e-backend.sh; never baselines)
+tests/e2e/.e2e-text-files/
+tests/e2e/.e2e-local-store/
