@@ -112,3 +112,13 @@ def test_v45wk_tag_local_aliases_every_built_image_without_new_version_literals(
         f"V45wk: the alias machinery must carry no literal version "
         f"(found {literals}); single source is DOCKER_IMAGE_TAG per .bumpversion.cfg"
     )
+
+    # GH-Copilot #718 (B28qm): /bin/sh exits a for-loop with the LAST command's
+    # status, so an unguarded mid-loop `docker tag` failure is masked whenever
+    # the final image aliases fine — build reports success with stamps missing.
+    assert re.search(r"docker tag[^\n]*\|\| exit 1", recipe), (
+        "tag-local must fail fatally on the first failed docker tag (B28qm): "
+        "under /bin/sh a for-loop returns the last command's status, masking "
+        "missing aliases exactly when the final image succeeds (V45wk "
+        "forbids recipe paths that leave the stamped tag unproduced)"
+    )

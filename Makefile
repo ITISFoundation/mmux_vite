@@ -92,7 +92,7 @@ build-no-cache: compose-spec ## build docker images
 tag-local: ## alias locally built images to $(DOCKER_IMAGE_TAG) for dev compose + publish-local (V45wk/B27wk)
 	@for img in $(MMUX_LOCAL_IMAGES); do \
 		echo "tagging $${img}:$(RELEASE_TAG) -> $${img}:$(DOCKER_IMAGE_TAG)"; \
-		docker tag "$${img}:$(RELEASE_TAG)" "$${img}:$(DOCKER_IMAGE_TAG)"; \
+		docker tag "$${img}:$(RELEASE_TAG)" "$${img}:$(DOCKER_IMAGE_TAG)" || exit 1; \
 	done
 
 ## NB: VSCode might keep old credentials cached, even if changed in .env
