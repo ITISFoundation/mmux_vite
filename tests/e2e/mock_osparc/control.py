@@ -24,6 +24,7 @@ e2e_control_bp = Blueprint("e2e_control", __name__)
 
 _ALLOWED_SERVICE_MODES = {"SUMO", "UQ", "MOGA"}
 _ALLOWED_PERMISSIONS = {"READ-ONLY", "WRITE"}
+_ALLOWED_DEPLOYMENT_MODES = {"LOCAL", "OSPARC"}
 FAULTS: set[str] = set()
 
 
@@ -51,6 +52,8 @@ def set_deployment():
 
     deployment_mode = payload.get("deploymentMode")
     if deployment_mode is not None:
+        if deployment_mode not in _ALLOWED_DEPLOYMENT_MODES:
+            return jsonify({"error": f"invalid deploymentMode: {deployment_mode}"}), 400
         os.environ["DEPLOYMENT_MODE"] = deployment_mode
 
     return (
