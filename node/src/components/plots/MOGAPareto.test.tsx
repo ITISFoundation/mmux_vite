@@ -1,16 +1,24 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MOGAPareto } from "./MOGAPareto";
 import { jsonResponse, stubFetch } from "../../test/fetchStub";
 
 const mocks = vi.hoisted(() => ({
   filteredJobList: [] as Array<Record<string, unknown>>,
+  modalProps: undefined as Record<string, unknown> | undefined,
 }));
 
 vi.mock("react-plotly.js", () => import("../../test/plotlyMock"));
 vi.mock("../../utils/useAutoDetectQoiScale", () => ({ useAutoDetectQoiScale: () => undefined }));
-// eslint-disable-next-line @typescript-eslint/naming-convention
-vi.mock("./MOGAPlotModal", () => ({ MOGAPlotModal: () => null }));
+vi.mock("./MOGAPlotModal", () => ({
+  // null-render, but capture LIVE props so a test can drive the modal's apply
+  // path (setSelectedOptVars + updatePlot) exactly as the real modal does
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  MOGAPlotModal: (props: Record<string, unknown>) => {
+    mocks.modalProps = props;
+    return null;
+  },
+}));
 vi.mock("./MOGAParetoTable", () => ({ default: () => null }));
 // eslint-disable-next-line @typescript-eslint/naming-convention
 vi.mock("../data/JobsLoading", () => ({ JobsLoading: () => null }));
@@ -111,5 +119,40 @@ describe("MOGAPareto display-scale toggles (B53kq, V12)", () => {
     // the x axis is unaffected — canLog is per axis
     const xToggle = within(document.querySelector('[mmux-testid="moga-pareto-display-scale-x"]') as HTMLElement);
     expect((xToggle.getByRole("button", { name: "log" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("re-seeds the 1D value-axis override when the displayed objective changes", async () => {
+    // B56yz (V12): the 1D single-objective view paints selectedOptVars[0]; the
+    // y-hook key must follow the DISPLAYED objective, ⊥ freeze on
+    // `${uid}|undefined` and strand a manual override onto the next objective.
+    mocks.filteredJobList = jobs("moga-1d", i => 100 + 10 * i);
+    stubFetch(jsonResponse(mogaResults(Array.from({ length: 18 }, (_, i) => 100 + i))));
+    render(<MOGAPareto {...props} />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+
+    // drive the modal exactly as the real one applies a view: selection + updatePlot
+    const applyModal = (extPlotType: Record<string, string> | undefined, vars: string[]) =>
+      act(async () => {
+        const m = mocks.modalProps as unknown as {
+          setSelectedOptVars: (v: string[]) => void;
+          updatePlot: (...args: unknown[]) => Promise<void>;
+          tableData: unknown;
+        };
+        m.setSelectedOptVars(vars);
+        await m.updatePlot(mocks.filteredJobList, m.tableData, extPlotType, vars);
+      });
+
+    await applyModal({ dimensionType: "1D", scaleType: "linear" }, ["y"]);
+    let yToggle = within(document.querySelector('[mmux-testid="moga-pareto-display-scale-y"]') as HTMLElement);
+    expect(yToggle.getByText("y")).toBeInTheDocument();
+    fireEvent.click(yToggle.getByRole("button", { name: "log" }));
+    await waitFor(() => expect(layout().yaxis?.type).toBe("log"));
+
+    // switch the single displayed objective (same function); y2 computes linear,
+    // so the stale manual log MUST drop — not paint y2 on a log axis
+    await applyModal(undefined, ["y2"]);
+    yToggle = within(document.querySelector('[mmux-testid="moga-pareto-display-scale-y"]') as HTMLElement);
+    expect(yToggle.getByText("y2")).toBeInTheDocument();
+    expect(layout().yaxis?.type).toBeUndefined();
   });
 });

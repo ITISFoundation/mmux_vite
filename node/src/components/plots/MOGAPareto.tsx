@@ -73,17 +73,23 @@ export function MOGAPareto(props: MOGAParetoProps) {
   const [layout, setLayout] = useState<Partial<Plotly.Layout>>({});
   const [plotType, setPlotType] = useState<PlotConfig>();
   const [selectedOptVars, setSelectedOptVars] = useState<Array<string>>([]);
+  const dimension = plotType?.dimensionType ?? "2D";
   // B53kq per-objective DISPLAY scale (V12): default = each objective's compute
   // scale; the plot modal's linear/log control acts as a SET-BOTH shortcut; the
   // in-plot toggles are the axis truth. ⊥ ever re-types the iteration axis (1D)
-  // or feeds a request/cache key.
+  // or feeds a request/cache key. The y-key mirrors the toggle label (B56yz): in
+  // the 1D single-objective view the painted objective IS selectedOptVars[0], so
+  // keying optKey(1) there would freeze `${uid}|undefined` and strand a stale
+  // manual override when the displayed objective switches (V12 re-seed).
   const computeLogFor = (optVar: string | undefined) =>
     optVar ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[optVar]) : false;
   const optKey = (index: number) => `${selectedFunction?.uid}|${selectedOptVars[index]}`;
   const [displayX, setDisplayX] = useDisplayScale(computeLogFor(selectedOptVars[0]), optKey(0));
-  const [displayY, setDisplayY] = useDisplayScale(computeLogFor(selectedOptVars[1] ?? selectedOptVars[0]), optKey(1));
+  const [displayY, setDisplayY] = useDisplayScale(
+    computeLogFor(selectedOptVars[1] ?? selectedOptVars[0]),
+    optKey(dimension === "1D" ? 0 : 1),
+  );
   const [displayZ, setDisplayZ] = useDisplayScale(computeLogFor(selectedOptVars[2]), optKey(2));
-  const dimension = plotType?.dimensionType ?? "2D";
   // Gate on what IS painted per axis (a log axis cannot render non-positive values).
   const paintedValues = (key: "x" | "y" | "z") =>
     plotData.map(trace => (trace as Record<string, unknown>)[key]).filter(v => v !== undefined);
