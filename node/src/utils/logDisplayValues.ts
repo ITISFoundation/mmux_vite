@@ -34,10 +34,18 @@ function powerLabel(exp: number): string {
   return String(Number(Math.pow(10, exp).toPrecision(3)));
 }
 
+function mantissaLabel(v: number): string {
+  if (v >= 1e-4 && v < 1e7) return String(Number(v.toPrecision(6)));
+  return v.toExponential().replace(/e([+-])0?(\d+)/, "e$1$2");
+}
+
 /**
- * Colorbar ticks for log10-painted values: integer exponents inside the painted
- * range, else the endpoints themselves — a log colorbar is never left showing
- * bare exponents. Input is the ORIGINAL (pre-log) values.
+ * Colorbar ticks for log10-painted values (input: the ORIGINAL pre-log values).
+ * B55tm: `tickvals` REPLACES Plotly's auto ticks — a sparser list means fewer
+ * labels, never interpolated ones — so the grid must always be dense enough to
+ * read like a log axis: whole decades when ≥ 2 fit inside the span, else the
+ * standard 1..9 mantissa sub-ticks, and only a span too narrow even for those
+ * falls back to its endpoints. A log colorbar is never left bare.
  */
 export function logColorbarTicks(values: unknown): { tickvals: number[]; ticktext: string[] } {
   let min = Infinity;
@@ -53,8 +61,18 @@ export function logColorbarTicks(values: unknown): { tickvals: number[]; ticktex
   if (!Number.isFinite(min) || !Number.isFinite(max) || min <= 0) return { tickvals: [], ticktext: [] };
   const minExp = Math.log10(min);
   const maxExp = Math.log10(max);
-  const exps: number[] = [];
-  for (let e = Math.ceil(minExp); e <= Math.floor(maxExp); e += 1) exps.push(e);
-  const tickvals = exps.length >= 2 ? exps : [minExp, maxExp];
-  return { tickvals, ticktext: tickvals.map(powerLabel) };
+  const decades: number[] = [];
+  for (let e = Math.ceil(minExp); e <= Math.floor(maxExp); e += 1) decades.push(Math.pow(10, e));
+  if (decades.length >= 2) {
+    return { tickvals: decades.map(Math.log10), ticktext: decades.map(d => powerLabel(Math.round(Math.log10(d)))) };
+  }
+  const minors: number[] = [];
+  for (let e = Math.floor(minExp); e <= Math.ceil(maxExp); e += 1) {
+    for (let m = 1; m <= 9; m += 1) {
+      const v = m * Math.pow(10, e);
+      if (v >= min && v <= max) minors.push(v);
+    }
+  }
+  const picks = minors.length >= 2 ? minors : [min, max];
+  return { tickvals: picks.map(Math.log10), ticktext: picks.map(mantissaLabel) };
 }

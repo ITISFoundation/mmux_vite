@@ -146,8 +146,12 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   // (a) DISABLED on QoI y — its linearized-Gaussian spread (σ = √(Σg²σ²), √2 over
   //     the N(1,1) inputs) reaches negative bin centers, so the ≤0 gate (B54rz
   //     reading) kills the LOG option — element baseline pins exactly that state.
-  // (b) LIVE on QoI y4 = 2 + 0.02·(x3+x4)² — strictly positive by construction,
-  //     tight gradient ⇒ positive bins ⇒ full log-histogram baseline.
+  // (b) LIVE on QoI y4 = 2 + 0.5·(x3+x4)² — its convexity makes the QoI card's
+  //     auto-detect COMMIT LOG as compute scale (visible on the inputs shots),
+  //     and log-space prediction exp's back STRICTLY positive samples
+  //     (≈ 0.14 .. 49 ⇒ > 2 decades) so the log histogram is renderable AND
+  //     worth seeing. The display DEFAULT is log here — click linear first,
+  //     then log, so the shot always captures an actual toggle action.
   const plotBack = page.locator('[mmux-testid="uq-plot-back"]');
   for (let step = 0; step < 2; step += 1) {
     await expect(plotBack).toBeEnabled({ timeout: VIEW_TIMEOUT });
@@ -158,9 +162,10 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
 
   await page.locator('[mmux-testid="uq-plot-qoi-select"]').click();
   await page.getByRole("option", { name: "y4", exact: true }).click();
-  // the positive stats line proves the y4 histogram replaced the y one
-  await expect(page.getByText(/Min: [12]\./)).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  // ANY positive Min proves the y4 histogram replaced the y one (y's is "Min: -3.145")
+  await expect(page.getByText(/Min: \d/)).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   const histogramScale = page.locator('[mmux-testid="uq-display-scale"]');
+  await histogramScale.getByRole("button", { name: "linear" }).click({ timeout: MODEL_READY_TIMEOUT });
   await histogramScale.getByRole("button", { name: "log" }).click({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("uq-readonly-histogram-log-y4.png");
 
