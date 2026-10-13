@@ -98,7 +98,7 @@ make run-prod-local-sumo-read
 Performance is measured continuously with [CodSpeed](https://app.codspeed.io/ITISFoundation/mmux_vite) in CPU simulation mode; every pull request gets a report through `.github/workflows/codspeed.yml`.
 
 - Frontend benchmarks: `node/src/**/*.bench.ts` (vitest bench) — job-collection CSV import and sampling bounds.
-- Backend benchmarks: `flaskapi/benchmarks/` (pytest-codspeed) — the Flask API boundary only (request/response case conversion, pydantic validation and the Flask JSON round trip). The Dakota data-processing internals are benchmarked where they live, in [itis-sumo](https://github.com/ITISFoundation/itis-sumo).
+- Backend benchmarks: `flaskapi/benchmarks/` (pytest-codspeed) — the Flask API boundary only (request/response key case conversion on production-shaped payloads, pydantic validation and the Flask JSON round trip). The Dakota data-processing internals will be benchmarked where they live, in [itis-sumo](https://github.com/ITISFoundation/itis-sumo); the move is tracked in [itis-sumo#56](https://github.com/ITISFoundation/itis-sumo/issues/56).
 
 Run them locally (requires the [CodSpeed CLI](https://codspeed.io/docs/cli)):
 

@@ -28,7 +28,9 @@ jobs:
       - name: Checkout repo content
         uses: actions/checkout@v5
       - name: Set up uv
-        uses: astral-sh/setup-uv@v3
+        # Full-version pin: astral-sh/setup-uv no longer publishes bare major
+        # tags (same rationale as .github/workflows/ci.yml).
+        uses: astral-sh/setup-uv@v10.2.0
       - name: Install Flask API dependencies
         run: make install-flaskapi-deps
       # pytest-codspeed is installed as an overlay (uv run --with) instead of
