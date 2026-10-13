@@ -13,6 +13,9 @@ import { useJobContext } from "../../context/JobContext";
 import { requestJson } from "../../api/client";
 import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
+import { useDisplayScale } from "../../utils/useDisplayScale";
+import { allPositive, logColorbarTicks, toLogDisplay } from "../../utils/logDisplayValues";
+import { DisplayScaleToggle } from "./DisplayScaleToggle";
 
 function IsoSurface3DPlot() {
   const theme = useTheme();
@@ -31,6 +34,8 @@ function IsoSurface3DPlot() {
     [inputVars, distribution, selectedFunction],
   );
   const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
+  // Per-panel DISPLAY scale (V12): default = compute scale, re-seeds on (fn,QoI).
+  const [displayLog, setDisplayLog] = useDisplayScale(outputLogScaleForQoi, `${selectedFunction?.uid}|${selectedQoI}`);
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
   const filteredInputVars = filterInputVars({
@@ -274,6 +279,19 @@ function IsoSurface3DPlot() {
     overflow: "hidden",
   };
 
+  // The isosurface's QoI lives in `value` — color (and iso levels) scale LINEARLY
+  // there, no axis involved (B53kq): a log display paints log10(value) and
+  // relabels the colorbar. The scene x/y/z stay INPUT axes with their compute
+  // flags; the toggle never re-types them (V12: value axis only).
+  const canLog = plotData.length > 0 && plotData.every(trace => allPositive((trace as { value?: unknown }).value));
+  const axisLog = displayLog && canLog;
+  const displayData = !axisLog
+    ? plotData
+    : plotData.map(trace => {
+        const value = (trace as { value?: unknown }).value;
+        return { ...trace, value: toLogDisplay(value), colorbar: logColorbarTicks(value) } as Plotly.Data;
+      });
+
   return (
     <Box display="flex" flexDirection="column" width="100%">
       {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={false} />}
@@ -286,7 +304,20 @@ function IsoSurface3DPlot() {
           numInputVars={inputVars.length}
         />
       )}
-      {!propagating && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+      {!propagating && plotData.length !== 0 && (
+        <Box sx={{ position: "relative", width: "100%" }}>
+          <Plot data={displayData} layout={layout} style={plotStyle} />
+          <Box sx={{ position: "absolute", top: 8, left: 8, zIndex: 1 }}>
+            <DisplayScaleToggle
+              log={axisLog}
+              onChange={setDisplayLog}
+              disabled={!canLog}
+              disabledReason="Volume values include non-positive numbers; a log colorbar can't render them."
+              testId="sumo-3d-display-scale"
+            />
+          </Box>
+        </Box>
+      )}
       <Box mt={2}>
         <Header headerType="subTitle" infoText="" tabTitle="Selection" />
       </Box>

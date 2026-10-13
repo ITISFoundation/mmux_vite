@@ -13,7 +13,20 @@ import { aggregateOutputValues } from "../../utils/functionUtils";
 // 3 significant digits keeps RMSE comparisons readable without false precision.
 const fmtRmse = (v: number) => String(Number(v.toPrecision(3)));
 
-export function OutputVariableDist() {
+interface OutputVariableDistProps {
+  /**
+   * "MOGA" additionally surfaces the optimization-target controls (add/remove
+   * outputs, minimize/maximize). SUMO/UQ get the same cards for EVERY output,
+   * carrying only the surrogate-scale control — V12's QoI scale is meaningful
+   * wherever a surrogate predicts the output, not just in MOGA (the old MOGA-only
+   * mount left UQ/SUMO users with invisible auto-detection and no way to override
+   * it).
+   */
+  serviceMode: string;
+}
+
+export function OutputVariableDist({ serviceMode }: OutputVariableDistProps) {
+  const optimization = serviceMode === "MOGA";
   const {
     selectedFunction,
     inputVars,
@@ -43,7 +56,7 @@ export function OutputVariableDist() {
   // hooks and this panel are never mounted on the same screen — and any
   // verdict already in qoiScaleEvidence for the current key short-circuits the
   // pair anyway.
-  useAutoDetectQoiScale(selectedFunction ? Object.keys(outputTargets[uid] || {}) : undefined);
+  useAutoDetectQoiScale(selectedFunction ? (optimization ? Object.keys(outputTargets[uid] || {}) : outputVars) : undefined);
   const outputsByVar = useMemo(() => aggregateOutputValues(filteredJobList), [filteredJobList]);
   // Same primitives the hook hashes into its cache key, so "is this receipt
   // about the CURRENT jobs/scales?" is answerable at the card (GH-Copilot
@@ -115,19 +128,29 @@ export function OutputVariableDist() {
     return <></>;
   }
 
+  // MOGA renders the user-configured target subset; SUMO/UQ have no target concept,
+  // so every output gets a scale card.
+  const renderedOutputs = optimization ? Object.keys(configuredOutputs) : outputVars;
+
   return (
     <Box sx={{ marginTop: "8px", paddingTop: "8px", borderRadius: "8px" }}>
       <Header
         fontWeight={300}
         headerType="subTitle"
-        tabTitle="Optimization Objectives"
-        infoText="Optimize the output variables by minimizing or maximizing their range"
+        tabTitle={optimization ? "Optimization Objectives" : "Predicted Outputs"}
+        infoText={
+          optimization
+            ? "Optimize the output variables by minimizing or maximizing their range"
+            : "Whether each output is fitted on a linear or log scale. Auto-detection runs once enough positive samples exist; toggle to override."
+        }
         errorMessage={
-          Object.keys(configuredOutputs).length === 0 ? "Please select at least one output variable to optimize." : undefined
+          optimization && Object.keys(configuredOutputs).length === 0
+            ? "Please select at least one output variable to optimize."
+            : undefined
         }
       />
       <Box sx={{ display: "flex", overflowX: "auto" }}>
-        {Object.keys(configuredOutputs).map(outputVar => {
+        {renderedOutputs.map(outputVar => {
           // WHY is this scale what it is: locked by manual toggle, or the
           // auto-detect CV pair's verdict (and its measured errors)?
           const locked = !!outputLogScaleUserSet[uid]?.[outputVar];
@@ -182,43 +205,47 @@ export function OutputVariableDist() {
                     backgroundColor: theme.palette.primary.main,
                   }}
                 />
-                <IconButton
-                  aria-label="remove"
-                  onClick={() => {
-                    const newOutputs = { ...configuredOutputs };
-                    delete newOutputs[outputVar];
-                    handlesetConfiguredOutputs(newOutputs);
-                  }}
-                  sx={{
-                    position: "absolute",
-                    zIndex: 10,
-                    right: "8px",
-                    display: "block",
-                    fontSize: "1em",
-                    lineHeight: "1.1em",
-                    fontWeight: "100",
-                    textTransform: "uppercase",
-                    borderRadius: "8px",
-                    padding: "4px",
-                    backgroundColor: "transparent",
-                    color: theme.palette.text.primary,
-                  }}
-                >
-                  <Cancel sx={{ fontSize: "1.1em", lineHeight: "1.1em" }} />
-                </IconButton>
+                {optimization && (
+                  <IconButton
+                    aria-label="remove"
+                    onClick={() => {
+                      const newOutputs = { ...configuredOutputs };
+                      delete newOutputs[outputVar];
+                      handlesetConfiguredOutputs(newOutputs);
+                    }}
+                    sx={{
+                      position: "absolute",
+                      zIndex: 10,
+                      right: "8px",
+                      display: "block",
+                      fontSize: "1em",
+                      lineHeight: "1.1em",
+                      fontWeight: "100",
+                      textTransform: "uppercase",
+                      borderRadius: "8px",
+                      padding: "4px",
+                      backgroundColor: "transparent",
+                      color: theme.palette.text.primary,
+                    }}
+                  >
+                    <Cancel sx={{ fontSize: "1.1em", lineHeight: "1.1em" }} />
+                  </IconButton>
+                )}
               </Typography>
               <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <CustomAnimatedToggle
-                  data={["minimize", "maximize"]}
-                  value={configuredOutputs[outputVar] === "minimize" ? 0 : 1}
-                  disabled={false}
-                  onChange={value => {
-                    handlesetConfiguredOutputs({
-                      ...configuredOutputs,
-                      [outputVar]: value === 0 ? "minimize" : "maximize",
-                    });
-                  }}
-                />
+                {optimization && (
+                  <CustomAnimatedToggle
+                    data={["minimize", "maximize"]}
+                    value={configuredOutputs[outputVar] === "minimize" ? 0 : 1}
+                    disabled={false}
+                    onChange={value => {
+                      handlesetConfiguredOutputs({
+                        ...configuredOutputs,
+                        [outputVar]: value === 0 ? "minimize" : "maximize",
+                      });
+                    }}
+                  />
+                )}
                 <Tooltip
                   placement="top"
                   title={
@@ -284,7 +311,7 @@ export function OutputVariableDist() {
             </Box>
           );
         })}
-        {Object.keys(configuredOutputs).length < outputVars.length && (
+        {optimization && Object.keys(configuredOutputs).length < outputVars.length && (
           <Box
             key="add-output"
             sx={{
@@ -320,19 +347,21 @@ export function OutputVariableDist() {
           </Box>
         )}
       </Box>
-      <AddOutputModal
-        open={openModal}
-        setOpen={setOpenModal}
-        data={outputVars.filter(v => !(v in configuredOutputs))}
-        onChange={value => {
-          // Handle the change event
-          handlesetConfiguredOutputs({
-            ...configuredOutputs,
-            [value]: "minimize",
-          });
-          setOpenModal(false);
-        }}
-      />
+      {optimization && (
+        <AddOutputModal
+          open={openModal}
+          setOpen={setOpenModal}
+          data={outputVars.filter(v => !(v in configuredOutputs))}
+          onChange={value => {
+            // Handle the change event
+            handlesetConfiguredOutputs({
+              ...configuredOutputs,
+              [value]: "minimize",
+            });
+            setOpenModal(false);
+          }}
+        />
+      )}
     </Box>
   );
 }

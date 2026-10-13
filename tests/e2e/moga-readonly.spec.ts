@@ -105,6 +105,16 @@ test("MOGA read-only optimization flow renders pareto front and inspect-model mo
   // Pixel baseline: the MOGA Pareto front with the real (deterministic) Plotly render.
   await expect(page).toHaveScreenshot("moga-readonly-pareto.png");
 
+  // Pixel baseline: the per-objective log DISPLAY toggle in its triggered state
+  // (V36ez). This scenario runs with ONE objective ⇒ the 1D iteration view, where
+  // the objective is painted on y (the iteration axis is never re-typed); the
+  // objective values on the mock jobs are strictly positive ⇒ LOG enabled. The
+  // 2D/3D multi-objective toggle matrix is pinned in MOGAPareto.test.tsx.
+  const paretoY = page.locator('[mmux-testid="moga-pareto-display-scale-y"]');
+  await paretoY.getByRole("button", { name: "log" }).click();
+  await expect(page).toHaveScreenshot("moga-readonly-pareto-log-y.png");
+  await paretoY.getByRole("button", { name: "linear" }).click();
+
   // Inspect Model opens the SuMo cross-validation modal (regression guard for
   // the MUI Modal ref-forwarding fix; the MOGA-mode button now carries a testid).
   await expect(inspectButton).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });

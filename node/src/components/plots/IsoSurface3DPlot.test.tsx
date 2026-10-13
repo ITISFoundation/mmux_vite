@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import IsoSurface3DPlot from "./IsoSurface3DPlot";
 import { jsonResponse, malformedJsonResponse, networkError, stubFetch, textResponse } from "../../test/fetchStub";
@@ -141,5 +141,50 @@ describe("IsoSurface3DPlot", () => {
 
     act(() => mocks.setAxis[idx](axis));
     await waitFor(() => expect(mocks.axes).toEqual(expected));
+  });
+});
+
+describe("IsoSurface3DPlot display-scale toggle (B53kq, V12)", () => {
+  beforeEach(() => {
+    mocks.setOtherAxis = undefined;
+    mocks.setAxis = {};
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const freshJobs = (tag: string) => Array.from({ length: 5 }, (_, i) => ({ uid: `job-${tag}-${i}` }));
+
+  it("log display paints log10(value) with power-of-10 colorbar ticks, never touching the request", async () => {
+    mocks.filteredJobList = freshJobs("3d-log");
+    const fetchMock = stubFetch(jsonResponse(grid([1, 10, 100])));
+    render(<IsoSurface3DPlot />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+    expect(isosurface().value).toEqual([1, 10, 100]); // linear default
+
+    const toggle = within(document.querySelector('[mmux-testid="sumo-3d-display-scale"]') as HTMLElement);
+    fireEvent.click(toggle.getByRole("button", { name: "log" }));
+    await waitFor(() => expect(isosurface().value).toEqual([0, 1, 2]));
+    expect(isosurface()).toMatchObject({
+      colorbar: { tickvals: [0, 1, 2], ticktext: ["1", "10", "100"] },
+    });
+
+    // display-only (V12): the request still carries the COMPUTE scale
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.outputLogScales).toEqual({ y: false });
+  });
+
+  it("disables the log view when volume values include zero", async () => {
+    mocks.filteredJobList = freshJobs("3d-nonpos");
+    stubFetch(jsonResponse(grid([0, 10, 100])));
+    render(<IsoSurface3DPlot />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+
+    const toggle = within(document.querySelector('[mmux-testid="sumo-3d-display-scale"]') as HTMLElement);
+    expect((toggle.getByRole("button", { name: "log" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(isosurface().value).toEqual([0, 10, 100]);
   });
 });

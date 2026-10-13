@@ -11,9 +11,13 @@ import InsufficientDataWarning from "./InsufficientDataWarning";
 import MogaParetoTable from "./MOGAParetoTable";
 import { requestJson } from "../../api/client";
 import { aggregateOutputValues } from "../../utils/functionUtils";
+import { withoutConstantFactors } from "../../utils/constantFactors";
 import { useMOGATableContext } from "../../context/MOGATableContext";
 import { defaultMogaValues, useMOGASettingsContext } from "../../context/MOGASettingsContext";
 import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
+import { useDisplayScale } from "../../utils/useDisplayScale";
+import { allPositive } from "../../utils/logDisplayValues";
+import { DisplayScaleToggle } from "./DisplayScaleToggle";
 import { MOGAPlotModal } from "./MOGAPlotModal";
 import { plotMarginsNarrow, plotMarginsMedium } from "./PlotTools";
 
@@ -38,19 +42,29 @@ export function MOGAPareto(props: MOGAParetoProps) {
   const { loading, jobProgress, setCalculating } = props;
   const theme = useTheme();
   const { selectedFunction, inputVars, distribution, outputTargets, outputLogScales } = useFunctionContext();
+  // B50ef (GH-Copilot #714): `constant` is FE preset state — MOGAOptimizationRequest
+  // requires uniform(min,max) per input variable (DistributionParams ⊥ constant),
+  // so constant factors leave the optimization (a zero-width domain cannot be
+  // optimized anyway) rather than 422'ing the whole payload. The Pareto table
+  // columns come from the same filtered set so the row builders never read a
+  // result column the optimizer did not explore.
+  const { inputVars: activeInputVars, distributions: activeDistributions } = useMemo(
+    () => withoutConstantFactors(inputVars, distribution[selectedFunction?.uid || ""]),
+    [inputVars, distribution, selectedFunction],
+  );
   // Per-variable log-scale flags (node SPEC V12): MOGA optimizes every objective,
   // so all objective keys are flagged from the per-function outputLogScales map.
   useAutoDetectQoiScale(selectedFunction ? Object.keys(outputTargets[selectedFunction.uid] || {}) : undefined);
   const inputLogScales = useMemo(
     () =>
-      inputVars.reduce(
+      activeInputVars.reduce(
         (acc: { [key: string]: boolean }, key) => {
-          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          acc[key] = activeDistributions?.[key]?.scale === "log";
           return acc;
         },
         {} as { [key: string]: boolean },
       ),
-    [inputVars, distribution, selectedFunction],
+    [activeInputVars, activeDistributions],
   );
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const { mogaSettings } = useMOGASettingsContext();
@@ -59,6 +73,60 @@ export function MOGAPareto(props: MOGAParetoProps) {
   const [layout, setLayout] = useState<Partial<Plotly.Layout>>({});
   const [plotType, setPlotType] = useState<PlotConfig>();
   const [selectedOptVars, setSelectedOptVars] = useState<Array<string>>([]);
+  const dimension = plotType?.dimensionType ?? "2D";
+  // B53kq per-objective DISPLAY scale (V12): default = each objective's compute
+  // scale; the plot modal's linear/log control acts as a SET-BOTH shortcut; the
+  // in-plot toggles are the axis truth. ⊥ ever re-types the iteration axis (1D)
+  // or feeds a request/cache key. The y-key mirrors the toggle label (B56yz): in
+  // the 1D single-objective view the painted objective IS selectedOptVars[0], so
+  // keying optKey(1) there would freeze `${uid}|undefined` and strand a stale
+  // manual override when the displayed objective switches (V12 re-seed).
+  const computeLogFor = (optVar: string | undefined) =>
+    optVar ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[optVar]) : false;
+  const optKey = (index: number) => `${selectedFunction?.uid}|${selectedOptVars[index]}`;
+  const [displayX, setDisplayX] = useDisplayScale(computeLogFor(selectedOptVars[0]), optKey(0));
+  const [displayY, setDisplayY] = useDisplayScale(
+    computeLogFor(selectedOptVars[1] ?? selectedOptVars[0]),
+    optKey(dimension === "1D" ? 0 : 1),
+  );
+  const [displayZ, setDisplayZ] = useDisplayScale(computeLogFor(selectedOptVars[2]), optKey(2));
+  // Gate on what IS painted per axis (a log axis cannot render non-positive values).
+  const paintedValues = (key: "x" | "y" | "z") =>
+    plotData.map(trace => (trace as Record<string, unknown>)[key]).filter(v => v !== undefined);
+  const canLogX = allPositive(paintedValues("x"));
+  const canLogY = allPositive(paintedValues("y"));
+  const canLogZ = allPositive(paintedValues("z"));
+  const logX = dimension !== "1D" && displayX && canLogX;
+  const logY = displayY && canLogY;
+  const logZ = dimension === "3D" && displayZ && canLogZ;
+  const renderLayout = useMemo(() => {
+    const withType = (axis: Record<string, unknown> | undefined, log: boolean) => ({
+      ...axis,
+      type: log ? "log" : undefined,
+    });
+    if (dimension === "3D") {
+      const scene = layout.scene as Record<string, Record<string, unknown> | undefined> | undefined;
+      return {
+        ...layout,
+        scene: {
+          ...scene,
+          xaxis: withType(scene?.xaxis, logX),
+          yaxis: withType(scene?.yaxis, logY),
+          zaxis: withType(scene?.zaxis, logZ),
+        },
+      } as Partial<Plotly.Layout>;
+    }
+    const layoutAxes = layout as Record<string, Record<string, unknown> | undefined>;
+    if (dimension === "1D") {
+      // x = iteration index: never a value axis, never re-typed.
+      return { ...layout, yaxis: withType(layoutAxes.yaxis, logY) } as Partial<Plotly.Layout>;
+    }
+    return {
+      ...layout,
+      xaxis: withType(layoutAxes.xaxis, logX),
+      yaxis: withType(layoutAxes.yaxis, logY),
+    } as Partial<Plotly.Layout>;
+  }, [layout, dimension, logX, logY, logZ]);
   const [tableData, setTableData] = useState<MogaDataType | undefined>(undefined);
   const [hovered, setHovered] = useState<number | null>(null);
   const [propagating, setPropagating] = useState(false);
@@ -178,9 +246,9 @@ export function MOGAPareto(props: MOGAParetoProps) {
           method: "POST",
           retry: true,
           body: {
-            inputVars,
+            inputVars: activeInputVars,
             mogaSettings: localsettings,
-            distributions: distribution[selectedFunction?.uid || ""],
+            distributions: activeDistributions,
             outputVarSelection: OVS,
             FunctionJobs: jobs,
             inputLogScales,
@@ -202,11 +270,11 @@ export function MOGAPareto(props: MOGAParetoProps) {
 
       // set table data
       const newTableData: MogaDataType = {
-        inputs: inputVars,
+        inputs: activeInputVars,
         outputs: localOptVars,
         raw: results,
         rows: results.nonDominatedIndices.map((ndi: number) => ({
-          ...inputVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
+          ...activeInputVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
           ...localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
           performance: calculatePerformance(
             localOptVars.map(v => ({ [v]: results[v][ndi] })).reduce((a, b) => ({ ...a, ...b }), {}),
@@ -221,7 +289,15 @@ export function MOGAPareto(props: MOGAParetoProps) {
       // overwrite a newer table + selected vars.
       return { newTableData, localOptVars };
     },
-    [mogaSettings, selectedFunction?.uid, distribution, inputVars, calculatePerformance, inputLogScales, outputLogScales],
+    [
+      mogaSettings,
+      selectedFunction?.uid,
+      activeInputVars,
+      activeDistributions,
+      calculatePerformance,
+      inputLogScales,
+      outputLogScales,
+    ],
   );
 
   const updatePlot = useCallback(
@@ -231,7 +307,9 @@ export function MOGAPareto(props: MOGAParetoProps) {
       const results = localTableData?.raw ? localTableData.raw : {};
       const outputValues = aggregateOutputValues(jobs);
       // console.log("Updating MOGA Pareto plot...", jobs, localOptVars, results, outputValues);
-      let scaleType: "linear" | "log" = "linear";
+      // Initial bulk state of the modal's single linear/log control: in sync with
+      // the compute scales (per-axis truth lives in the display hooks, V12).
+      let scaleType: "linear" | "log" = localOptVars.length > 0 && localOptVars.every(computeLogFor) ? "log" : "linear";
       let localPlotType: "1D" | "2D" | "3D" = localOptVars.length < 2 ? "1D" : "2D";
       // localPlotType = localOptVars.length > 2 ? "3D" : localPlotType;
       if (extPlotType) {
@@ -322,7 +400,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
 
           Object.assign(newLayout, {
             xaxis: { title: { text: "Iteration" } },
-            yaxis: { title: { text: localOptVars[0] }, type: scaleType },
+            yaxis: { title: { text: localOptVars[0] } },
             showlegend: true, // Show legend to distinguish between initial and MOGA samples
             legend: {
               x: 0.92, // Position legend inside plot area (right side)
@@ -346,8 +424,8 @@ export function MOGAPareto(props: MOGAParetoProps) {
           newPlotData[0].type = "scatter";
           newPlotData[1].type = "scatter";
           newPlotData[2].type = "scatter";
-          newLayout.xaxis = { title: { text: localOptVars[0] }, type: scaleType };
-          newLayout.yaxis = { title: { text: localOptVars[1] }, type: scaleType };
+          newLayout.xaxis = { title: { text: localOptVars[0] } };
+          newLayout.yaxis = { title: { text: localOptVars[1] } };
           break;
         }
         case "3D": {
@@ -364,9 +442,9 @@ export function MOGAPareto(props: MOGAParetoProps) {
           newPlotData[1].type = "scatter3d";
           newPlotData[2].type = "scatter3d";
           newLayout.scene = {
-            xaxis: { title: { text: localOptVars[0] }, type: scaleType },
-            yaxis: { title: { text: localOptVars[1] }, type: scaleType },
-            zaxis: { title: { text: localOptVars[2] }, type: scaleType },
+            xaxis: { title: { text: localOptVars[0] } },
+            yaxis: { title: { text: localOptVars[1] } },
+            zaxis: { title: { text: localOptVars[2] } },
           };
           break;
         }
@@ -482,6 +560,25 @@ export function MOGAPareto(props: MOGAParetoProps) {
     return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;
   }
 
+  // The modal's single linear/log control acts as a SET-BOTH shortcut onto the
+  // per-axis display state (which is the axis truth); the internal effect keeps
+  // calling updatePlot directly, so an unrelated refetch never clobbers a
+  // per-axis tweak.
+  const applyPlotConfig = (
+    jobs: OsparcFunctionJob[],
+    localTableData: MogaDataType,
+    extPlotType?: PlotConfig,
+    extSelectedOptVars?: string[],
+  ) => {
+    if (extPlotType) {
+      const log = extPlotType.scaleType === "log";
+      setDisplayX(log);
+      setDisplayY(log);
+      setDisplayZ(log);
+    }
+    return updatePlot(jobs, localTableData, extPlotType, extSelectedOptVars);
+  };
+
   return (
     <Box display="flex" flexDirection="column" gap={1} width="100%" mmux-testid="moga-pareto-plot">
       {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
@@ -491,16 +588,48 @@ export function MOGAPareto(props: MOGAParetoProps) {
           fetchedJobCollections={fetchedJobCollections}
           filteredJobList={filteredJobList}
           height={plotStyle.height}
-          numInputVars={inputVars.length}
+          numInputVars={activeInputVars.length}
         />
       )}
       {!propagating && selectedFunction && plotData.length !== 0 && (
         <>
-          <Plot data={plotData} layout={layout} style={plotStyle} />
+          <Box sx={{ position: "relative", width: "100%" }}>
+            <Plot data={plotData} layout={renderLayout} style={plotStyle} />
+            <Box sx={{ position: "absolute", top: 8, left: 8, zIndex: 1, display: "flex", gap: 1 }}>
+              {dimension !== "1D" && (
+                <DisplayScaleToggle
+                  log={logX}
+                  onChange={setDisplayX}
+                  disabled={!canLogX}
+                  disabledReason="Objective values include non-positive numbers; a log axis can't render them."
+                  testId="moga-pareto-display-scale-x"
+                  label={selectedOptVars[0]}
+                />
+              )}
+              <DisplayScaleToggle
+                log={logY}
+                onChange={setDisplayY}
+                disabled={!canLogY}
+                disabledReason="Objective values include non-positive numbers; a log axis can't render them."
+                testId="moga-pareto-display-scale-y"
+                label={dimension === "1D" ? selectedOptVars[0] : selectedOptVars[1]}
+              />
+              {dimension === "3D" && (
+                <DisplayScaleToggle
+                  log={logZ}
+                  onChange={setDisplayZ}
+                  disabled={!canLogZ}
+                  disabledReason="Objective values include non-positive numbers; a log axis can't render them."
+                  testId="moga-pareto-display-scale-z"
+                  label={selectedOptVars[2]}
+                />
+              )}
+            </Box>
+          </Box>
           <MOGAPlotModal
             plotType={plotType}
             tableData={tableData}
-            updatePlot={updatePlot}
+            updatePlot={applyPlotConfig}
             filteredJobList={filteredJobList}
             optVars={Object.keys(outputTargets[selectedFunction.uid])}
             selectedOptVars={selectedOptVars}

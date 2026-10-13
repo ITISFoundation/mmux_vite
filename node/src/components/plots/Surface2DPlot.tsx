@@ -13,6 +13,9 @@ import { useJobContext } from "../../context/JobContext";
 import { requestJson } from "../../api/client";
 import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
+import { useDisplayScale } from "../../utils/useDisplayScale";
+import { allPositive, logColorbarTicks, toLogDisplay } from "../../utils/logDisplayValues";
+import { DisplayScaleToggle } from "./DisplayScaleToggle";
 
 function Surface2DPlot() {
   const theme = useTheme();
@@ -31,6 +34,8 @@ function Surface2DPlot() {
     [inputVars, distribution, selectedFunction],
   );
   const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
+  // Per-panel DISPLAY scale (V12): default = compute scale, re-seeds on (fn,QoI).
+  const [displayLog, setDisplayLog] = useDisplayScale(outputLogScaleForQoi, `${selectedFunction?.uid}|${selectedQoI}`);
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
   const filteredInputVars = filterInputVars({ ...context, selectedFunction, inputVars, distribution });
@@ -163,6 +168,23 @@ function Surface2DPlot() {
     ],
   );
 
+  // The 3D `surface` trace maps COLOR linearly in z regardless of any axis type
+  // (B53kq): a log DISPLAY scale must therefore paint log10(z) and relabel the
+  // colorbar. canLog gates on the PAINTED numbers; scene.zaxis keeps no type —
+  // log geometry comes from the paint, so the two never double-transform.
+  const canLog = plotData.length > 0 && plotData.every(trace => allPositive((trace as { z?: unknown }).z));
+  const axisLog = displayLog && canLog;
+  const displayData = useMemo(
+    () =>
+      !axisLog
+        ? plotData
+        : plotData.map(trace => {
+            const z = (trace as { z?: unknown }).z;
+            return { ...trace, z: toLogDisplay(z), colorbar: logColorbarTicks(z) } as Plotly.Data;
+          }),
+    [plotData, axisLog],
+  );
+
   const layout: Partial<Layout> = {
     title: {
       text: `${selectedQoI} Surface 2D Plot`,
@@ -170,7 +192,7 @@ function Surface2DPlot() {
     scene: {
       xaxis: { title: { text: axis1 }, type: axis1 && inputLogScales[axis1] ? "log" : undefined },
       yaxis: { title: { text: axis2 }, type: axis2 && inputLogScales[axis2] ? "log" : undefined },
-      zaxis: { title: { text: selectedQoI }, type: outputLogScaleForQoi ? "log" : undefined },
+      zaxis: { title: { text: selectedQoI } },
     },
     autosize: true,
     plot_bgcolor: `${theme.palette.background.default}`,
@@ -205,7 +227,20 @@ function Surface2DPlot() {
             numInputVars={inputVars.length}
           />
         )}
-        {plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+        {plotData.length !== 0 && (
+          <Box sx={{ position: "relative", width: "100%" }}>
+            <Plot data={displayData} layout={layout} style={plotStyle} />
+            <Box sx={{ position: "absolute", top: 8, left: 8, zIndex: 1 }}>
+              <DisplayScaleToggle
+                log={axisLog}
+                onChange={setDisplayLog}
+                disabled={!canLog}
+                disabledReason="Surface values include non-positive numbers; a log colorbar can't render them."
+                testId="sumo-2d-display-scale"
+              />
+            </Box>
+          </Box>
+        )}
       </Box>
 
       <Box mt={2}>

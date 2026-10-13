@@ -95,6 +95,14 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   // mock surrogate, unmasked).
   await expect(page).toHaveScreenshot("sumo-readonly-plot-1d.png");
 
+  // Pixel baseline: the same 1D curves on the log DISPLAY scale (per-panel toggle,
+  // B53kq; all mock predictions are strictly positive ⇒ LOG enabled). Toggle back
+  // so later baselines keep the default display.
+  const scale1d = page.locator('[mmux-testid="sumo-1d-display-scale"]');
+  await scale1d.getByRole("button", { name: "log" }).click();
+  await expect(page).toHaveScreenshot("sumo-readonly-plot-1d-log.png");
+  await scale1d.getByRole("button", { name: "linear" }).click();
+
   // Inspect Model opens the cross-validation modal. Pixel baseline captures the
   // modal over the results view (full viewport, unmasked).
   const inspectButton = page.locator('[mmux-testid="inspect-model-button"]');
@@ -111,6 +119,16 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(extendSampling).toBeDisabled();
 
   await expect(page).toHaveScreenshot("sumo-readonly-validation.png");
+
+  // Pixel baseline: the SAME validation view on the log DISPLAY scale (display-only
+  // toggle). Every mock job value is strictly positive (y ∈ [1.325, 9.95]), so LOG
+  // is enabled here — unlike the UQ histogram, whose synthesized bins span negative
+  // values and where the toggle is disabled by the V-invariant unit test.
+  const validationScale = validationView.locator('[mmux-testid="sumo-validation-display-scale"]');
+  await validationScale.getByRole("button", { name: "log" }).click();
+  await expect(page).toHaveScreenshot("sumo-readonly-validation-log.png");
+  await validationScale.getByRole("button", { name: "linear" }).click();
+
   await page.keyboard.press("Escape");
   await expect(modal).toBeHidden({ timeout: VIEW_TIMEOUT });
 
@@ -128,12 +146,26 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expectPlotlyReady(page);
   await expect(page).toHaveScreenshot("sumo-readonly-plot-2d.png");
 
+  // Pixel baseline: log DISPLAY on the SURFACE COLORBAR — the 3D `surface` trace
+  // scales color linearly in z, so the log view paints log10(z) with power-of-10
+  // ticks (B53kq). Toggle back afterwards.
+  const scale2d = page.locator('[mmux-testid="sumo-2d-display-scale"]');
+  await scale2d.getByRole("button", { name: "log" }).click();
+  await expect(page).toHaveScreenshot("sumo-readonly-plot-2d-log.png");
+  await scale2d.getByRole("button", { name: "linear" }).click();
+
   // Step 3 — 3D IsoSurface.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("3D IsoSurface", { exact: true })).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expectPlotlyReady(page);
   await expect(page).toHaveScreenshot("sumo-readonly-plot-3d.png");
+
+  // Pixel baseline: log DISPLAY on the ISOSURFACE value/colorbar (B53kq).
+  const scale3d = page.locator('[mmux-testid="sumo-3d-display-scale"]');
+  await scale3d.getByRole("button", { name: "log" }).click();
+  await expect(page).toHaveScreenshot("sumo-readonly-plot-3d-log.png");
+  await scale3d.getByRole("button", { name: "linear" }).click();
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
   expect(runtimeErrors, `JavaScript errors captured: ${runtimeErrors.join("\n")}`).toEqual([]);
