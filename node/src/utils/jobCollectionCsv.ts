@@ -118,17 +118,9 @@ function shouldUseLogScale(values: number[]): boolean {
     return false;
   }
 
-  const diagnostics = computeDiagnostics(values);
-  if (!diagnostics.hasEnoughSamples) {
-    // heuristic: values spanning >=2 orders of magnitude read better on a log axis
-    return Math.log10(max) - Math.log10(min) >= 2;
-  }
-
-  const logDiagnostics = computeDiagnostics(values.map(value => Math.log10(value)));
-  const distToRawUniform = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, uniformRefExcessKurt);
-  const distToLogUniform = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt);
-
-  return distToLogUniform <= distToRawUniform - distributionPreferenceMargin;
+  // This is only the low-sample fallback; full fits always compare raw and log
+  // candidates in `fitDistribution` below.
+  return Math.log10(max) - Math.log10(min) >= 2;
 }
 
 // B48ab (legacy B28): round a value to N significant digits for display/entry.
@@ -157,6 +149,63 @@ function ceilToSignificantDigits(value: number, digits = 3): number {
   const exponent = Math.floor(Math.log10(Math.abs(value)));
   const scale = 10 ** (digits - 1 - exponent);
   return Math.ceil(value * scale) / scale;
+}
+
+type CandidateKind = "normal" | "log-normal" | "log-uniform";
+
+type DistributionFit =
+  | { kind: "constant"; min: number; max: number }
+  | { kind: "fallback"; min: number; max: number; logFallback: boolean; count: number }
+  | {
+      kind: "evaluated";
+      min: number;
+      max: number;
+      diagnostics: ReturnType<typeof computeDiagnostics>;
+      logDiagnostics?: ReturnType<typeof computeDiagnostics>;
+      best: { kind: CandidateKind; distance: number };
+      uniformDistance: number;
+      prefersBest: boolean;
+    };
+
+/** The single source of truth for CSV presets and their visible shape-fit receipt. */
+function fitDistribution(values: number[]): DistributionFit | undefined {
+  if (values.length === 0) return undefined;
+
+  const { min, max } = minMax(values);
+  if (min === max) return { kind: "constant", min, max };
+
+  const diagnostics = computeDiagnostics(values);
+  if (!diagnostics.hasEnoughSamples) {
+    return { kind: "fallback", min, max, logFallback: shouldUseLogScale(values), count: values.length };
+  }
+
+  const uniformDistance = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, uniformRefExcessKurt);
+  const candidates: Array<{ kind: CandidateKind; distance: number }> = [
+    { kind: "normal", distance: shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, 0) },
+  ];
+  let logDiagnostics: ReturnType<typeof computeDiagnostics> | undefined;
+  if (values.every(value => value > 0)) {
+    logDiagnostics = computeDiagnostics(values.map(value => Math.log(value)));
+    candidates.push(
+      { kind: "log-normal", distance: shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, 0) },
+      {
+        kind: "log-uniform",
+        distance: shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt),
+      },
+    );
+  }
+
+  const best = candidates.reduce((closest, candidate) => (candidate.distance < closest.distance ? candidate : closest));
+  return {
+    kind: "evaluated",
+    min,
+    max,
+    diagnostics,
+    logDiagnostics,
+    best,
+    uniformDistance,
+    prefersBest: best.distance + distributionPreferenceMargin < uniformDistance,
+  };
 }
 
 /**
@@ -188,81 +237,48 @@ function ceilToSignificantDigits(value: number, digits = 3): number {
  * were derived from.
  */
 export function pickDistributionPreset(values: number[]): UploadedInputPreset {
-  const { min, max } = minMax(values);
-
-  if (min === max) {
-    return { distribution: "constant", value: roundToSignificantDigits(min), scale: "linear" };
+  const fit = fitDistribution(values);
+  if (!fit) {
+    throw new Error("Cannot infer a distribution from no values");
   }
-
-  const diagnostics = computeDiagnostics(values);
-  if (!diagnostics.hasEnoughSamples) {
+  if (fit.kind === "constant") {
+    return { distribution: "constant", value: roundToSignificantDigits(fit.min), scale: "linear" };
+  }
+  if (fit.kind === "fallback" || !fit.prefersBest) {
     return {
       distribution: "uniform",
-      min: floorToSignificantDigits(min),
-      max: ceilToSignificantDigits(max),
-      scale: shouldUseLogScale(values) ? "log" : "linear",
+      min: floorToSignificantDigits(fit.min),
+      max: ceilToSignificantDigits(fit.max),
+      scale: fit.kind === "fallback" && fit.logFallback ? "log" : "linear",
     };
   }
-
-  const allPositive = values.every(value => value > 0);
-  const distToNormal = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, 0);
-  const distToUniform = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, uniformRefExcessKurt);
-
-  let logDiagnostics: ReturnType<typeof computeDiagnostics> | undefined;
-  let distToLogNormal: number | undefined;
-  let distToLogUniform: number | undefined;
-  if (allPositive) {
-    // B52ij (owner): ⊥ span gate — both log candidates always compete for
-    // positive data; a scale/span mismatch is a Scale-toggle warning, not a
-    // silently suppressed candidate.
-    logDiagnostics = computeDiagnostics(values.map(value => Math.log(value)));
-    distToLogNormal = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, 0);
-    distToLogUniform = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt);
-  }
-
-  type Candidate = { kind: "normal" | "log-normal" | "log-uniform"; distance: number };
-  const candidates: Candidate[] = [{ kind: "normal", distance: distToNormal }];
-  if (distToLogNormal !== undefined) candidates.push({ kind: "log-normal", distance: distToLogNormal });
-  if (distToLogUniform !== undefined) candidates.push({ kind: "log-uniform", distance: distToLogUniform });
-
-  const best = candidates.reduce((closest, candidate) => (candidate.distance < closest.distance ? candidate : closest));
-
-  if (best.distance + distributionPreferenceMargin < distToUniform) {
-    if (best.kind === "normal") {
-      return {
-        distribution: "normal",
-        mean: roundToSignificantDigits(diagnostics.mean),
-        std: roundToSignificantDigits(diagnostics.std),
-        scale: "linear",
-      };
-    }
-    if (best.kind === "log-normal" && logDiagnostics) {
-      // Convert log-space moments to LINEAR-space mean/std so users read the
-      // intuitive linear values (B33/V40: normal shape + orthogonal scale:"log"
-      // IS the log-normal; there is no separate log-normal form).
-      const expMuHalfSigmaSq = Math.exp(logDiagnostics.mean + (logDiagnostics.std * logDiagnostics.std) / 2);
-      const mean = expMuHalfSigmaSq;
-      const variance = expMuHalfSigmaSq * expMuHalfSigmaSq * (Math.exp(logDiagnostics.std * logDiagnostics.std) - 1);
-      return {
-        distribution: "normal",
-        mean: roundToSignificantDigits(mean),
-        std: roundToSignificantDigits(Math.sqrt(variance)),
-        scale: "log",
-      };
-    }
+  if (fit.best.kind === "normal") {
     return {
-      distribution: "uniform",
-      min: floorToSignificantDigits(min),
-      max: ceilToSignificantDigits(max),
+      distribution: "normal",
+      mean: roundToSignificantDigits(fit.diagnostics.mean),
+      std: roundToSignificantDigits(fit.diagnostics.std),
+      scale: "linear",
+    };
+  }
+  if (fit.best.kind === "log-normal" && fit.logDiagnostics) {
+    // Convert log-space moments to LINEAR-space mean/std so users read the
+    // intuitive linear values (B33/V40: normal shape + orthogonal scale:"log"
+    // IS the log-normal; there is no separate log-normal form).
+    const expMuHalfSigmaSq = Math.exp(fit.logDiagnostics.mean + (fit.logDiagnostics.std * fit.logDiagnostics.std) / 2);
+    const mean = expMuHalfSigmaSq;
+    const variance = expMuHalfSigmaSq * expMuHalfSigmaSq * (Math.exp(fit.logDiagnostics.std * fit.logDiagnostics.std) - 1);
+    return {
+      distribution: "normal",
+      mean: roundToSignificantDigits(mean),
+      std: roundToSignificantDigits(Math.sqrt(variance)),
       scale: "log",
     };
   }
-
   return {
     distribution: "uniform",
-    min: floorToSignificantDigits(min),
-    max: ceilToSignificantDigits(max),
-    scale: "linear",
+    min: floorToSignificantDigits(fit.min),
+    max: ceilToSignificantDigits(fit.max),
+    scale: "log",
   };
 }
 
@@ -275,44 +291,18 @@ export function pickDistributionPreset(values: number[]): UploadedInputPreset {
  * stays the single source of truth for what is applied.
  */
 export function describeShapeFit(values: number[]): string | undefined {
-  if (values.length === 0) {
-    return undefined;
-  }
-  const { min, max } = minMax(values);
-  if (min === max) {
+  const fit = fitDistribution(values);
+  if (!fit) return undefined;
+  if (fit.kind === "constant") {
     return "constant · every value identical";
   }
-
-  const diagnostics = computeDiagnostics(values);
-  if (!diagnostics.hasEnoughSamples) {
-    const logFallback = shouldUseLogScale(values);
-    return `uniform · ${values.length} samples (below the shape-fit bar; log axis only via the >=2-decade span rule: ${logFallback ? "met" : "not met"})`;
+  if (fit.kind === "fallback") {
+    return `uniform · ${fit.count} samples (below the shape-fit bar; log axis only via the >=2-decade span rule: ${fit.logFallback ? "met" : "not met"})`;
   }
-
-  const allPositive = values.every(value => value > 0);
-  const distToNormal = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, 0);
-  const distToUniform = shapeDistance(diagnostics.skewness, diagnostics.excessKurtosis, 0, uniformRefExcessKurt);
-
-  let distToLogNormal: number | undefined;
-  let distToLogUniform: number | undefined;
-  if (allPositive) {
-    // mirrors pickDistributionPreset: ⊥ span gate, both log candidates always compete (B52ij)
-    const logDiagnostics = computeDiagnostics(values.map(value => Math.log(value)));
-    distToLogNormal = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, 0);
-    distToLogUniform = shapeDistance(logDiagnostics.skewness, logDiagnostics.excessKurtosis, 0, uniformRefExcessKurt);
+  if (fit.prefersBest) {
+    return `best fit ${fit.best.kind} · shape-distance ${fit.best.distance.toFixed(2)} vs uniform ${fit.uniformDistance.toFixed(2)}`;
   }
-
-  type Candidate = { kind: "normal" | "log-normal" | "log-uniform"; distance: number };
-  const candidates: Candidate[] = [{ kind: "normal", distance: distToNormal }];
-  if (distToLogNormal !== undefined) candidates.push({ kind: "log-normal", distance: distToLogNormal });
-  if (distToLogUniform !== undefined) candidates.push({ kind: "log-uniform", distance: distToLogUniform });
-
-  const best = candidates.reduce((closest, candidate) => (candidate.distance < closest.distance ? candidate : closest));
-
-  if (best.distance + distributionPreferenceMargin < distToUniform) {
-    return `best fit ${best.kind} · shape-distance ${best.distance.toFixed(2)} vs uniform ${distToUniform.toFixed(2)}`;
-  }
-  return `plain uniform · no shape beats it (uniform ${distToUniform.toFixed(2)}, closest ${best.kind} ${best.distance.toFixed(2)}) by the ${distributionPreferenceMargin} margin`;
+  return `plain uniform · no shape beats it (uniform ${fit.uniformDistance.toFixed(2)}, closest ${fit.best.kind} ${fit.best.distance.toFixed(2)}) by the ${distributionPreferenceMargin} margin`;
 }
 
 export function parseJobCollectionCsv(csvContent: string): ParsedJobCollectionCsv {

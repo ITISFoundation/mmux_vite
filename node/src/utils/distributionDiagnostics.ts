@@ -1,10 +1,5 @@
 // Lightweight, client-side distribution diagnostics for input/output variables.
 //
-// These checks are advisory only: they surface warnings on the parameter card so
-// the user can spot mismatches between the declared distribution and the data
-// (e.g. data that is log-distributed when the user has uniform/linear configured),
-// and to flag potential outliers via Tukey's IQR fence rule.
-//
 // We deliberately use simple skewness/kurtosis heuristics rather than a full
 // Shapiro-Wilk or Anderson-Darling implementation: this keeps the bundle small
 // and runs cheaply on every render. The heuristic is intended as a hint, not a
@@ -24,10 +19,6 @@ export interface VariableDiagnostics {
   excessKurtosis: number;
   rawNormality: NormalityVerdict;
   logNormality: NormalityVerdict;
-  outlierCount: number;
-  outlierIndices: number[];
-  /** The actual out-of-fence values (same order as outlierIndices), for display. */
-  outlierValues: number[];
   hasEnoughSamples: boolean;
 }
 
@@ -69,31 +60,6 @@ function normalityVerdict(skew: number, excessKurt: number): NormalityVerdict {
   return "unclear";
 }
 
-function quantile(sorted: number[], q: number): number {
-  if (sorted.length === 0) return NaN;
-  const pos = q * (sorted.length - 1);
-  const lo = Math.floor(pos);
-  const hi = Math.ceil(pos);
-  if (lo === hi) return sorted[lo];
-  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
-}
-
-// Tukey's IQR rule with 1.5*IQR fences (the standard "outlier" definition,
-// not the 3*IQR "extreme outlier" one).
-function tukeyOutliers(values: number[]): { indices: number[]; lower: number; upper: number } {
-  const sorted = [...values].sort((a, b) => a - b);
-  const q1 = quantile(sorted, 0.25);
-  const q3 = quantile(sorted, 0.75);
-  const iqr = q3 - q1;
-  const lower = q1 - 1.5 * iqr;
-  const upper = q3 + 1.5 * iqr;
-  const indices: number[] = [];
-  values.forEach((v, i) => {
-    if (v < lower || v > upper) indices.push(i);
-  });
-  return { indices, lower, upper };
-}
-
 export function computeDiagnostics(values: number[]): VariableDiagnostics {
   const finite = values.filter(v => Number.isFinite(v));
   const n = finite.length;
@@ -105,9 +71,6 @@ export function computeDiagnostics(values: number[]): VariableDiagnostics {
     excessKurtosis: NaN,
     rawNormality: "unclear",
     logNormality: "not-applicable",
-    outlierCount: 0,
-    outlierIndices: [],
-    outlierValues: [],
     hasEnoughSamples: n >= minSamplesForDiagnostics,
   };
   if (n < minSamplesForDiagnostics) return empty;
@@ -122,8 +85,6 @@ export function computeDiagnostics(values: number[]): VariableDiagnostics {
     logVerdict = normalityVerdict(lm.skew, lm.excessKurt);
   }
 
-  const outliers = tukeyOutliers(finite);
-
   return {
     count: n,
     mean: mu,
@@ -132,19 +93,8 @@ export function computeDiagnostics(values: number[]): VariableDiagnostics {
     excessKurtosis: excessKurt,
     rawNormality: rawVerdict,
     logNormality: logVerdict,
-    outlierCount: outliers.indices.length,
-    outlierIndices: outliers.indices,
-    outlierValues: outliers.indices.map(i => finite[i]),
     hasEnoughSamples: true,
   };
-}
-
-// Format a value for display in a warning message: 4 significant digits, without
-// forcing scientific notation for typical magnitudes (data here can range from
-// ~1e-4 to ~1e9, so plain toFixed would either truncate small values to 0 or print
-// unreadably long strings for large ones).
-function formatDiagnosticValue(value: number): string {
-  return String(Number(value.toPrecision(4)));
 }
 
 export function extractValuesFromJobs(jobs: OsparcFunctionJob[], variable: string, type: "input" | "output"): number[] {
@@ -162,81 +112,4 @@ export function extractValuesFromJobs(jobs: OsparcFunctionJob[], variable: strin
     }
   });
   return values;
-}
-
-export interface DiagnosticsWarningContext {
-  /** True if the user has the per-variable log scale enabled (orthogonal to distribution shape). */
-  scale?: "linear" | "log";
-  /** The user's chosen distribution form (only meaningful for UQ inputs). */
-  declaredDistribution?: Distribution;
-  /** Variable role — affects message wording. */
-  role: "input" | "output";
-  /** Service mode — controls which warnings to surface. */
-  serviceMode?: string;
-}
-
-/**
- * Produce a (possibly empty) list of short, plain-English warnings for the
- * parameter card. Each warning is a single sentence; the parent component
- * decides how to render them.
- */
-export function buildWarnings(diag: VariableDiagnostics, ctx: DiagnosticsWarningContext): string[] {
-  if (!diag.hasEnoughSamples) {
-    if (diag.count > 0) {
-      return [
-        `Only ${diag.count} completed sample${diag.count === 1 ? "" : "s"} — diagnostics need at least ${minSamplesForDiagnostics}.`,
-      ];
-    }
-    return [];
-  }
-
-  const out: string[] = [];
-
-  // Suggest log-scale when the data is clearly non-normal in raw space but
-  // significantly more symmetric in log-space. This covers both log-normal data
-  // (log-space → "likely-normal") and log-uniform data (log-space → "unclear"
-  // because kurtosis ≈ -1.2 but skewness ≈ 0, i.e. still better than raw).
-  const logBetterThanRaw =
-    diag.logNormality !== "not-applicable" && diag.logNormality !== "not-normal" && diag.rawNormality === "not-normal";
-
-  if ((ctx.serviceMode === "SUMO" || ctx.serviceMode === "MOGA") && ctx.role === "input") {
-    if (logBetterThanRaw && ctx.scale !== "log") {
-      out.push(
-        `Data is heavily skewed in linear space (skewness=${diag.skewness.toFixed(2)}) but more symmetric in log-space; consider enabling log-scale.`,
-      );
-    } else if (ctx.scale === "log" && diag.rawNormality === "likely-normal" && diag.logNormality !== "likely-normal") {
-      out.push(
-        `Log-scale is on but raw data already looks well-spread (skewness=${diag.skewness.toFixed(2)}); log may not be helping.`,
-      );
-    } else if (diag.rawNormality === "not-normal" && diag.logNormality !== "likely-normal" && ctx.scale !== "log") {
-      out.push(
-        `Data is heavily skewed (skewness=${diag.skewness.toFixed(2)}); consider more samples or a wider parameter range.`,
-      );
-    }
-  }
-
-  if (ctx.serviceMode === "UQ" && ctx.role === "input" && ctx.declaredDistribution) {
-    if (ctx.declaredDistribution === "normal" && diag.rawNormality === "not-normal") {
-      out.push(`Selected distribution is normal, but data does not look normal (skewness=${diag.skewness.toFixed(2)}).`);
-    }
-    if (ctx.declaredDistribution === "uniform" && diag.rawNormality === "likely-normal") {
-      out.push("Selected distribution is uniform, but data looks closer to normal — verify the choice.");
-    }
-  }
-
-  if (ctx.role === "output" && (ctx.serviceMode === "SUMO" || ctx.serviceMode === "MOGA")) {
-    if (logBetterThanRaw && ctx.scale !== "log") {
-      out.push(
-        `Output is heavily skewed in linear space (skewness=${diag.skewness.toFixed(2)}); consider enabling log-scale for better surrogate fit.`,
-      );
-    }
-  }
-
-  if (diag.outlierCount > 0) {
-    const shown = diag.outlierValues.slice(0, 10).map(formatDiagnosticValue).join(", ");
-    const more = diag.outlierValues.length > 10 ? `, +${diag.outlierValues.length - 10} more` : "";
-    out.push(`${diag.outlierCount} of ${diag.count} samples are outside Tukey IQR fences (potential outliers): ${shown}${more}.`);
-  }
-
-  return out;
 }

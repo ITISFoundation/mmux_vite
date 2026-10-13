@@ -335,6 +335,12 @@ describe("jobCollectionCsv", () => {
       expect(describeShapeFit(values)).toMatch(/^best fit log-uniform · shape-distance \d\.\d\d vs uniform \d\.\d\d$/);
     });
 
+    it("keeps the receipt aligned with the imported preset", () => {
+      const values = Array.from({ length: 10 }, (_, i) => 10 ** i);
+      expect(pickDistributionPreset(values)).toMatchObject({ distribution: "uniform", scale: "log" });
+      expect(describeShapeFit(values)).toMatch(/^best fit log-uniform ·/);
+    });
+
     it("B52ij (owner): ⊥ span gate — the rationale names the honest winner even for a narrow bell (advisory lives in the UI)", () => {
       const positions = [-3, -2, -1, 0, 1, 2, 3];
       const counts = [1, 6, 15, 20, 15, 6, 1];
