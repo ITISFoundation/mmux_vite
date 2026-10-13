@@ -107,7 +107,11 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
         box: {
           visible: true,
         },
-        spanmode: "soft", // TODO show Esra both variants
+        // Hard span (B54rz): the density curve stays inside the data support. Soft
+        // mode bleeds the KDE past the samples into x<=0, which a log x-axis
+        // rasterizes as a NaN SVG path (the ≤0 canLog gate only sees raw samples,
+        // and Plotly's spill is invisible to it).
+        spanmode: "hard",
       });
       const newPlotData: Partial<Plotly.ViolinData>[] = [
         createViolinPlot(y, "Observations", "positive"),

@@ -115,6 +115,17 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
 
   // Pixel baseline: the Inspect Model modal (cross-validation view).
   await expect(page).toHaveScreenshot("uq-readonly-inspect-modal.png");
+
+  // Pixel baseline: the same modal on the log DISPLAY scale. The modal's violins
+  // plot the raw mock job values (strictly positive), so LOG is enabled; toggle
+  // back to linear afterwards so later baselines keep the default display.
+  // (The histogram itself has NO -log baseline: its synthesized bins span negative
+  // values for QoI y, which disables its LOG toggle by design.)
+  const validationScale = modal.locator('[mmux-testid="sumo-validation-display-scale"]');
+  await validationScale.getByRole("button", { name: "log" }).click();
+  await expect(page).toHaveScreenshot("uq-readonly-inspect-modal-log.png");
+  await validationScale.getByRole("button", { name: "linear" }).click();
+
   await page.keyboard.press("Escape");
   await expect(modal).toBeHidden({ timeout: VIEW_TIMEOUT });
 
@@ -130,6 +141,28 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   await expect(page.getByText("Sobol' Indices")).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expect(page.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("uq-readonly-sobol-indices.png");
+
+  // The histogram's log display gets TWO witness baselines:
+  // (a) DISABLED on QoI y — its linearized-Gaussian spread (σ = √(Σg²σ²), √2 over
+  //     the N(1,1) inputs) reaches negative bin centers, so the ≤0 gate (B54rz
+  //     reading) kills the LOG option — element baseline pins exactly that state.
+  // (b) LIVE on QoI y4 = 2 + 0.02·(x3+x4)² — strictly positive by construction,
+  //     tight gradient ⇒ positive bins ⇒ full log-histogram baseline.
+  const plotBack = page.locator('[mmux-testid="uq-plot-back"]');
+  for (let step = 0; step < 2; step += 1) {
+    await expect(plotBack).toBeEnabled({ timeout: VIEW_TIMEOUT });
+    await plotBack.click();
+  }
+  await expect(page.getByText("Uncertainty Quantification Histogram")).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await expect(page.locator('[mmux-testid="uq-display-scale"]')).toHaveScreenshot("uq-readonly-histogram-log-disabled.png");
+
+  await page.locator('[mmux-testid="uq-plot-qoi-select"]').click();
+  await page.getByRole("option", { name: "y4", exact: true }).click();
+  // the positive stats line proves the y4 histogram replaced the y one
+  await expect(page.getByText(/Min: [12]\./)).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
+  const histogramScale = page.locator('[mmux-testid="uq-display-scale"]');
+  await histogramScale.getByRole("button", { name: "log" }).click({ timeout: MODEL_READY_TIMEOUT });
+  await expect(page).toHaveScreenshot("uq-readonly-histogram-log-y4.png");
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
   expect(runtimeErrors, `JavaScript errors captured: ${runtimeErrors.join("\n")}`).toEqual([]);

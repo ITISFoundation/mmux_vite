@@ -9,6 +9,8 @@ interface DisplayScaleToggleProps {
   disabled: boolean;
   disabledReason: string;
   testId: string;
+  /** Caption over the toggle; names the quantity when a panel has several axes. */
+  label?: string;
 }
 
 /**
@@ -17,7 +19,14 @@ interface DisplayScaleToggleProps {
  * in) stays owned by the QoI Surrogate-scale card. Defaults come from that card
  * so the panel initially shows the scale the model actually lives in.
  */
-export function DisplayScaleToggle({ log, onChange, disabled, disabledReason, testId }: DisplayScaleToggleProps) {
+export function DisplayScaleToggle({
+  log,
+  onChange,
+  disabled,
+  disabledReason,
+  testId,
+  label = "Display scale",
+}: DisplayScaleToggleProps) {
   const theme = useTheme();
   return (
     <Tooltip
@@ -36,7 +45,7 @@ export function DisplayScaleToggle({ log, onChange, disabled, disabledReason, te
           backgroundColor: theme.palette.background.paper,
         }}
       >
-        <Typography sx={{ fontSize: "0.65em", fontWeight: 300, color: theme.palette.text.secondary }}>Display scale</Typography>
+        <Typography sx={{ fontSize: "0.65em", fontWeight: 300, color: theme.palette.text.secondary }}>{label}</Typography>
         <CustomAnimatedToggle
           data={["linear", "log"]}
           value={log ? 1 : 0}

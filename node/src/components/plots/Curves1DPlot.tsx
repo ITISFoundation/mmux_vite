@@ -13,6 +13,8 @@ import { useJobContext } from "../../context/JobContext";
 import { requestJson } from "../../api/client";
 import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
+import { useDisplayScale } from "../../utils/useDisplayScale";
+import { DisplayScaleToggle } from "./DisplayScaleToggle";
 
 type GPPrediction = {
   x: number[];
@@ -40,6 +42,9 @@ function Curves1DPlots() {
     [inputVars, distribution, selectedFunction],
   );
   const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
+  // Per-panel DISPLAY scale (V12): defaults to the QoI compute scale, overrides
+  // re-seed on (fn,QoI) identity change; feeds ONLY the value-axis type below.
+  const [displayLog, setDisplayLog] = useDisplayScale(outputLogScaleForQoi, `${selectedFunction?.uid}|${selectedQoI}`);
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
   const filteredInputVars = filterInputVars({
@@ -196,6 +201,15 @@ function Curves1DPlots() {
     overflow: "hidden",
   };
 
+  // A log value axis can only render strictly-positive predictions (B54rz: gate on
+  // what is PAINTED — every trace's y, band gaps (null) aside).
+  const canLog =
+    plotData.length > 0 &&
+    plotData.every(trace =>
+      (((trace as { y?: unknown }).y as unknown[]) ?? []).filter((v): v is number => typeof v === "number").every(v => v > 0),
+    );
+  const axisLog = displayLog && canLog;
+
   const layout: Partial<Layout> = {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
@@ -214,7 +228,7 @@ function Curves1DPlots() {
     yaxis: {
       title: { text: selectedQoI },
       anchor: "x",
-      type: outputLogScaleForQoi ? "log" : undefined,
+      type: axisLog ? "log" : undefined,
     },
     showlegend: true,
   };
@@ -231,7 +245,20 @@ function Curves1DPlots() {
             numInputVars={inputVars.length}
           />
         )}
-        {plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+        {plotData.length !== 0 && (
+          <Box sx={{ position: "relative", width: "100%" }}>
+            <Plot data={plotData} layout={layout} style={plotStyle} />
+            <Box sx={{ position: "absolute", top: 8, left: 8, zIndex: 1 }}>
+              <DisplayScaleToggle
+                log={axisLog}
+                onChange={setDisplayLog}
+                disabled={!canLog}
+                disabledReason="Predicted values include non-positive numbers; a log axis can't render them."
+                testId="sumo-1d-display-scale"
+              />
+            </Box>
+          </Box>
+        )}
       </Box>
       <Box>
         <Header headerType="subTitle" infoText="" tabTitle="Selection" />
