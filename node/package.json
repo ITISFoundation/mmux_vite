@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "test": "npx vitest",
     "test:coverage": "vitest run --coverage",
+    "bench": "npx vitest bench --run",
     "test:e2e": "NODE_PATH=\"$PWD/node_modules\" playwright test",
     "test:e2e:update": "NODE_PATH=\"$PWD/node_modules\" playwright test --update-snapshots",
     "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json}\"",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@codspeed/vitest-plugin": "^6.0.0",
     "@eslint/eslintrc": "^3.3.7",
     "@openapitools/openapi-generator-cli": "^2.41.0",
     "@playwright/test": "^1.64.0",
