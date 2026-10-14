@@ -116,7 +116,12 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
         setErrorMessage(getErrorMessage(error));
       }
     },
-    [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction],
+    // #663 log-scale deps ride the union — this panel was MISSED by that sweep
+    // (GH-Copilot #706 re-review, B58rs): the request body reads the derived
+    // scale flags, so a committed output scale (auto-detect or manual toggle)
+    // while the panel stays mounted must invalidate the all-linear generation;
+    // ⊥ them here and the panel paints the stale verdict + cache key forever.
+    [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction, inputLogScales, outputLogScaleForQoi],
   );
 
   useEffect(() => {
