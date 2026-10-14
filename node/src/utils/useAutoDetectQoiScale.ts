@@ -132,6 +132,23 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
   // key so a persistent failure gives up at maxCvRetries instead of looping.
   const [retryNonce, setRetryNonce] = useState(0);
   const cvAttemptsByCacheKey = useRef<Map<string, number>>(new Map());
+  // B57np (GH-Copilot #706 re-review): `latestKeyByQoi` FREEZES at unmount — no
+  // later generation can advance it — so an in-flight pair whose key was current
+  // AT unmount passes the latest-key check below and would commit evidence +
+  // output scale through the PARENT's context setters for an instance that no
+  // longer exists (the write still fans out: scale change ⇒ requests/persistence).
+  // The mount effect's cleanup flips this flag; a pair resolving after it returns
+  // before retry/refund/commits — refunding a ref nobody will read again is dead
+  // bookkeeping. StrictMode re-mounts flip it back to true BEFORE the first pair
+  // resolves, so the generation a simulated remount superseded still commits
+  // (same key, same instance — ⊥ the extra CV pair a per-generation flag costs).
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Current per-input log flags — the CV pair must score the surrogate the
   // user's input scales actually imply, and a change to any flag invalidates
@@ -208,6 +225,7 @@ export function useAutoDetectQoiScale(qois: string[] | undefined) {
           fetchCvRmse(inputVars, qoi, filteredJobList, false, inputLogScales, minJobs),
           fetchCvRmse(inputVars, qoi, filteredJobList, true, inputLogScales, minJobs),
         ]);
+        if (!mountedRef.current) return; // B57np: post-unmount the latest-key check can no longer be refuted — commit ⊥ (see mountedRef)
         if (rmseLinear === undefined || rmseLog === undefined) {
           // A failed/malformed pair has nothing to commit, so it must not have
           // consumed its key (refund like the stale-discard path, GH-Copilot

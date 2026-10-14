@@ -516,4 +516,36 @@ describe("useAutoDetectQoiScale", () => {
     await new Promise(resolve => setTimeout(resolve, 20));
     expect(fetchMock).toHaveBeenCalledTimes(6); // still terminal
   });
+
+  it("never commits a verdict for a pair still in flight when the hook unmounts (GH-Copilot #706 unmount hole)", async () => {
+    const jobs = [makeJob("j1", 10), makeJob("j2", 20), makeJob("j3", 30), makeJob("j4", 40), makeJob("j5", 50)];
+    // Gate the pair until AFTER unmount: the in-flight key IS the latest key,
+    // and after unmount `latestKeyByQoi` can no longer advance — so the
+    // latest-key check alone lets this pair commit through the PARENT's
+    // context setters (evidence + output scale fan-out) for a dead instance.
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => {
+      await gate;
+      return { ok: true, json: async () => ({ observed: [1, 2, 3, 4, 5], predicted: [1, 2, 3, 4, 5] }) } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { setOutputLogScales, setQoiScaleEvidence } = setupContexts({ jobs });
+
+    const { unmount } = renderHook(() => useAutoDetectQoiScale(["qoi"]));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2); // the CV pair is in flight
+    });
+
+    unmount();
+    release();
+    await new Promise(resolve => {
+      setTimeout(resolve, 0); // let the gated pair resolve and run its continuation
+    });
+
+    expect(setOutputLogScales).not.toHaveBeenCalled();
+    expect(setQoiScaleEvidence).not.toHaveBeenCalled();
+  });
 });
