@@ -1,6 +1,12 @@
 # MMUX Vite
 
+[![Build and check image](https://github.com/ITISFoundation/mmux_vite/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ITISFoundation/mmux_vite/actions/workflows/ci.yml)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://app.codspeed.io/ITISFoundation/mmux_vite?utm_source=badge)
 [![codecov](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
+[![codecov node](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?flag=node&token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
+[![codecov flaskapi](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?flag=flaskapi&token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
+[![codecov e2e](https://codecov.io/gh/ITISFoundation/mmux_vite/graph/badge.svg?flag=e2e&token=x7ha0WSGJl)](https://codecov.io/gh/ITISFoundation/mmux_vite)
+[![release](https://img.shields.io/github/v/release/ITISFoundation/mmux_vite)](https://github.com/ITISFoundation/mmux_vite/releases)
 
 This repository is under active development. It aims to bring up meta-modeling functionality in an interactive, user-friendly, guided step-by-step way.
 
@@ -51,19 +57,54 @@ uvx prek install
 make prek
 ```
 
-Start for development mode with
+Start for development mode with (pick the mode × permissions variant you need, see the run matrix below)
 ```shell
-make run-develop
+make run-develop-sumo-read
 ```
 
 NOTE: code will be running inside docker containers.
 
+### Run matrix (modes × permissions)
+
+The app ships as 3 service modes × 2 permission levels, each with a development launcher (live source mounts, debug logging) and a production-local launcher (built images, validation mount only). There are 12 targets in total:
+
+| Mode | Purpose | Dev (live mounts) | Prod-local (built images) |
+|---|---|---|---|
+| SuMo | surrogate metamodeling (fit/validation of AI models) | `make run-develop-sumo-read` | `make run-prod-local-sumo-read` |
+| SuMo | same, writable (run sampling, persist collections) | `make run-develop-sumo-write` | `make run-prod-local-sumo-write` |
+| UQ | uncertainty quantification (histograms, correlation, Sobol indices) | `make run-develop-uq-read` | `make run-prod-local-uq-read` |
+| UQ | same, writable | `make run-develop-uq-write` | `make run-prod-local-uq-write` |
+| MOGA | multi-objective genetic algorithm optimization (preview) | `make run-develop-moga-read` | `make run-prod-local-moga-read` |
+| MOGA | same, writable | `make run-develop-moga-write` | `make run-prod-local-moga-write` |
+
+Target naming: `make run-{develop|prod-local}-{sumo|uq|moga}-{read|write}` — mode/perm are passed to the backend as `SERVICE_MODE`/`PERMISSIONS` (§ SPEC.md §I env contract).
+
+Notes:
+
+- The app (Caddy proxy) publishes on host port `8888` by default; if busy, `scripts/resolve-app-port.sh` picks the next free port (fallbacks 8889-8892) and the launcher prints the actual URL(s).
+- Under WSL2 the printed output distinguishes the shell-local `http://localhost:<port>` from the Windows-browser `http://<WSL-IP>:<port>`; Windows `localhost` on fallback ports needs `netsh interface portproxy` rules (ask a maintainer for the current recipe).
+- Dev launchers bind-mount `flaskapi/` and `node/` (container runs as your host UID/GID), so edits are served live — Vite HMR for the frontend, Flask debug reload for the backend.
+
 ### Final validation step
 
-When done editing always validate the production build of the app with the below command, since it's the only one giving some minor guarantee on the corectness of your changes.
+When done editing always validate the production build of the app with the below command (pick your variant), since it's the only one giving some minor guarantee on the corectness of your changes.
 
 ```shell
-make run-prod-local
+make run-prod-local-sumo-read
+```
+
+## Performance benchmarks
+
+Performance is measured continuously with [CodSpeed](https://app.codspeed.io/ITISFoundation/mmux_vite) in CPU simulation mode; every pull request gets a report through `.github/workflows/codspeed.yml`.
+
+- Frontend benchmarks: `node/src/**/*.bench.ts` (vitest bench) — job-collection CSV import, sampling bounds, and the session response-cache request key.
+- Backend benchmarks: `flaskapi/benchmarks/` (pytest-codspeed) — the Flask API boundary only (request/response key case conversion on production-shaped payloads, pydantic validation and the Flask JSON round trip). The Dakota data-processing internals will be benchmarked where they live, in [itis-sumo](https://github.com/ITISFoundation/itis-sumo); the move is tracked in [itis-sumo#56](https://github.com/ITISFoundation/itis-sumo/issues/56).
+
+Run them locally (requires the [CodSpeed CLI](https://codspeed.io/docs/cli)):
+
+```shell
+make bench-flaskapi
+make bench-node
 ```
 
 ## Updating the ospsarc package

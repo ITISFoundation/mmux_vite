@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Surface2DPlot from "./Surface2DPlot";
 import { jsonResponse, malformedJsonResponse, networkError, stubFetch, textResponse } from "../../test/fetchStub";
@@ -23,7 +23,8 @@ vi.mock("../../context/FunctionContext", () => {
   };
   const selectedFunction = { uid: "fn-1" };
   return {
-    useFunctionContext: () => ({ selectedFunction, inputVars: mocks.inputVars, distribution }),
+    // #663 replay: FunctionContext now carries the per-function QoI log-scale map.
+    useFunctionContext: () => ({ selectedFunction, inputVars: mocks.inputVars, distribution, outputLogScales: {} }),
   };
 });
 vi.mock("../../context/JobContext", () => ({
@@ -113,5 +114,75 @@ describe("Surface2DPlot", () => {
 
     await act(async () => resolveStale(jsonResponse(grid([[1]]))));
     expect(surface().z).toEqual([[9]]);
+  });
+});
+
+describe("Surface2DPlot display-scale toggle (B53kq, V12)", () => {
+  beforeEach(() => {
+    mocks.inputVars = ["x1", "x2", "x3"];
+    mocks.setOtherAxis = undefined;
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // job uids ride the request body → fresh list per test = fresh cache key
+  const freshJobs = (tag: string) => Array.from({ length: 5 }, (_, i) => ({ uid: `job-${tag}-${i}` }));
+
+  it("log display paints log10(z) with power-of-10 colorbar ticks, never touching the request", async () => {
+    mocks.filteredJobList = freshJobs("2d-log");
+    const z = [
+      [1, 10],
+      [100, 1000],
+    ];
+    const fetchMock = stubFetch(jsonResponse(grid(z)));
+    render(<Surface2DPlot />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+    expect((surface() as { colorbar?: unknown }).colorbar).toBeUndefined(); // linear default
+
+    const toggle = within(document.querySelector('[mmux-testid="sumo-2d-display-scale"]') as HTMLElement);
+    fireEvent.click(toggle.getByRole("button", { name: "log" }));
+    await waitFor(() =>
+      expect((surface() as { z: number[][] }).z).toEqual([
+        [0, 1],
+        [2, 3],
+      ]),
+    );
+    expect(surface()).toMatchObject({
+      colorbar: { tickvals: [0, 1, 2, 3], ticktext: ["1", "10", "100", "1000"] },
+    });
+    // the scene z-axis keeps no type — the paint IS the log, no double transform
+    const layout = JSON.parse(screen.getByTestId("plotly").getAttribute("data-layout") as string) as {
+      scene?: { zaxis?: { type?: string } };
+    };
+    expect(layout.scene?.zaxis?.type).toBeUndefined();
+
+    // display-only (V12): the request still carries the COMPUTE scale
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.outputLogScales).toEqual({ y: false });
+  });
+
+  it("disables the log view when surface values include zero", async () => {
+    mocks.filteredJobList = freshJobs("2d-nonpos");
+    stubFetch(
+      jsonResponse(
+        grid([
+          [0, 10],
+          [100, 1000],
+        ]),
+      ),
+    );
+    render(<Surface2DPlot />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+
+    const toggle = within(document.querySelector('[mmux-testid="sumo-2d-display-scale"]') as HTMLElement);
+    expect((toggle.getByRole("button", { name: "log" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((surface() as { z: number[][] }).z).toEqual([
+      [0, 10],
+      [100, 1000],
+    ]);
   });
 });

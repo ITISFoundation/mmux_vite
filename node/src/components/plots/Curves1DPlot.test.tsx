@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Curves1DPlots from "./Curves1DPlot";
 import { jsonResponse, malformedJsonResponse, networkError, stubFetch, textResponse } from "../../test/fetchStub";
@@ -19,6 +19,8 @@ vi.mock("../../context/FunctionContext", () => {
     distribution: {
       "fn-1": { x1: { distribution: "uniform", min: 0, max: 1 }, x2: { distribution: "uniform", min: 2, max: 3 } },
     },
+    // #663 replay: FunctionContext now carries the per-function QoI log-scale map.
+    outputLogScales: {},
   };
   return { useFunctionContext: () => value };
 });
@@ -62,7 +64,15 @@ describe("Curves1DPlot", () => {
     await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
     expect(traces().map(t => t.name)).toEqual(["Model prediction", "x1+2σ", "x1+/-2σ (95% Confidence Interval)"]);
     const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
-    expect(body).toMatchObject({ inputs: ["x1", "x2"], output: "y", sliderValues: { x1: 0, x2: 2 }, log: false });
+    // #663 replay: the legacy single `log` flag is replaced by the per-variable
+    // maps (all-false defaults here; the session-cache key rides the body).
+    expect(body).toMatchObject({
+      inputs: ["x1", "x2"],
+      output: "y",
+      sliderValues: { x1: 0, x2: 2 },
+      inputLogScales: { x1: false, x2: false },
+      outputLogScales: { y: false },
+    });
 
     mocks.filteredJobList = [...jobs];
     rerender(<Curves1DPlots />);
@@ -138,5 +148,47 @@ describe("Curves1DPlot", () => {
     await act(async () => resolveStale(jsonResponse(predictions([1, 2]))));
     expect(screen.getByText(/You need at least 5 samples/)).toBeInTheDocument();
     expect(screen.queryByTestId("plotly")).toBeNull(); // stale result gated
+  });
+});
+
+describe("Curves1DPlot display-scale toggle (B53kq, V12)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // job uids ride the request body → a fresh list per test is a fresh session-cache
+  // key, so earlier tests in this file can never serve a stale payload
+  const freshJobs = (tag: string) => Array.from({ length: 5 }, (_, i) => ({ uid: `job-${tag}-${i}` }));
+
+  const yaxisType = () =>
+    (JSON.parse(screen.getByTestId("plotly").getAttribute("data-layout") as string) as { yaxis?: { type?: string } }).yaxis?.type;
+
+  it("toggles the value axis to log and never lets the display choice reach the request", async () => {
+    mocks.filteredJobList = freshJobs("1d-log");
+    const fetchMock = stubFetch(jsonResponse(predictions([1, 2])));
+    render(<Curves1DPlots />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+    expect(yaxisType()).toBeUndefined(); // compute scale is linear
+
+    const toggle = within(document.querySelector('[mmux-testid="sumo-1d-display-scale"]') as HTMLElement);
+    expect((toggle.getByRole("button", { name: "log" }) as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(toggle.getByRole("button", { name: "log" }));
+    await waitFor(() => expect(yaxisType()).toBe("log"));
+
+    // display-only (V12): the request still carries the COMPUTE scale
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.outputLogScales).toEqual({ y: false });
+  });
+
+  it("disables the log view when the prediction includes a non-positive value", async () => {
+    mocks.filteredJobList = freshJobs("1d-nonpos");
+    stubFetch(jsonResponse(predictions([-1, 2])));
+    render(<Curves1DPlots />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+
+    const toggle = within(document.querySelector('[mmux-testid="sumo-1d-display-scale"]') as HTMLElement);
+    expect((toggle.getByRole("button", { name: "log" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(yaxisType()).toBeUndefined();
   });
 });

@@ -23,7 +23,12 @@ JOB_COLLECTION_UID = "jc-sumo-readonly-e2e"
 # (helpers.ts ``fillUniformInputRanges``) mirror these domains so the 1D/2D/3D
 # plots evaluate the surrogate inside its training region.
 # Outputs: y = 2*x1 + 0.3*x1² + 0.5*x2 (1D/2D plot), y2 = x1*x2,
-# y3 = sin(x1) + cos(x2), y4 = x3 + x4
+# y3 = sin(x1) + cos(x2), y4 = 2 + 0.5·(x3+x4)² — convex, so the QoI-card
+# auto-detect COMMITS LOG as its compute scale (B55tm); log-space prediction
+# exp's back STRICTLY positive propagated samples (~0.14..49 ⇒ > 2 decades) and
+# its log DISPLAY toggle is live — the e2e log-histogram witness (B55tm owner
+# ask: wide enough to SEE the log effect). y/y2/y3 stay negative-spanning under
+# input propagation and witness the DISABLED toggle (B53kq/B54rz, T48kq).
 _NX1, _NX2 = 8, 6
 _X1_MIN, _X1_MAX = 0.5, 3.0
 _X2_MIN, _X2_MAX = 0.5, 2.5
@@ -50,7 +55,7 @@ def _outputs(x1: float, x2: float, x3: float, x4: float) -> tuple[float, float, 
     y = round(2.0 * x1 + 0.3 * x1 * x1 + 0.5 * x2, 6)
     y2 = round(x1 * x2, 6)
     y3 = round(math.sin(x1) + math.cos(x2), 6)
-    y4 = round(x3 + x4, 6)
+    y4 = round(2.0 + 0.5 * (x3 + x4) * (x3 + x4), 6)
     return y, y2, y3, y4
 
 

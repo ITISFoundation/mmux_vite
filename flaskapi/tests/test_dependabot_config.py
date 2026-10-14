@@ -24,11 +24,25 @@ def _update_blocks() -> list[str]:
 def test_v35rx_dependabot_updates_are_grouped_and_scheduled():
     blocks = _update_blocks()
 
-    assert len(blocks) == 2
-    assert {re.search(r"package-ecosystem: (\S+)", block).group(1) for block in blocks} == {
-        "npm",
-        "uv",
+    # Exact (ecosystem, directory) coverage: npm+uv for the two package trees,
+    # github-actions for the pinned workflow actions, docker for each
+    # production Dockerfile (the e2e Playwright container pin in ci.yml is
+    # hand-managed in lock-step with @playwright/test and stays out of scope).
+    assert {
+        (
+            re.search(r"package-ecosystem: (\S+)", block).group(1),
+            re.search(r"directory: (\S+)", block).group(1),
+        )
+        for block in blocks
+    } == {
+        ("npm", "/node"),
+        ("uv", "/flaskapi"),
+        ("github-actions", "/"),
+        ("docker", "/flaskapi"),
+        ("docker", "/node"),
+        ("docker", "/proxy"),
     }
+    assert len(blocks) == 6
 
     for block in blocks:
         assert "target-branch: develop" in block

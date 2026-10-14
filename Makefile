@@ -1,7 +1,7 @@
 SHELL 				 			:= /bin/sh
 .DEFAULT_GOAL 		 			:= help
 
-DOCKER_IMAGE_TAG := 1.6.3
+DOCKER_IMAGE_TAG := 1.6.4.dev11
 
 
 FLASKAPI_DIR := ./flaskapi
@@ -13,6 +13,28 @@ NODE_DIR := ./node
 ## degrade the pin to 1000:1000 on non-1000 hosts), so each dev launcher must
 ## pass these. The :-1000 fallbacks keep headless/CI launches usable.
 HOST_ID_ENV := HOST_UID=$$(id -u) HOST_GID=$$(id -g)
+
+## V45wk/B27wk: docker-compose.yml is NOT in the .bumpversion.cfg fan-out (§V5),
+## so `docker compose build` tags every image with the .devN-stripped BASE while
+## the dev composes and publish-local demand the full $(DOCKER_IMAGE_TAG) stamp.
+## The build recipes must alias that stamp or `make run-develop-*` tries to PULL
+## an image that was never built (registry "pull access denied"). RELEASE_TAG is
+## DERIVED by stripping .devN — a second stamped literal would just re-open the
+## drift; ⊥ literal versions in the alias machinery (pinned by
+## flaskapi/tests/test_local_dev_image_tags.py).
+RELEASE_TAG := $(shell printf '%s' '$(DOCKER_IMAGE_TAG)' | sed 's/\.dev[0-9][0-9]*$$//')
+
+## Every image docker-compose.yml builds; tag-local aliases each
+## :$(RELEASE_TAG) build to :$(DOCKER_IMAGE_TAG).
+MMUX_LOCAL_IMAGES := \
+	simcore/services/dynamic/mmux-vite-backend \
+	simcore/services/dynamic/mmux-vite-web \
+	simcore/services/dynamic/mmux-vite-app-sumo-read \
+	simcore/services/dynamic/mmux-vite-app-sumo-write \
+	simcore/services/dynamic/mmux-vite-app-uq-read \
+	simcore/services/dynamic/mmux-vite-app-uq-write \
+	simcore/services/dynamic/mmux-vite-app-moga-read \
+	simcore/services/dynamic/mmux-vite-app-moga-write
 
 ## Front-end
 install-node: ## install Node.js dependencies
@@ -33,18 +55,19 @@ check-types-flaskapi: install-flaskapi-deps ## run ty type checker against flask
 
 
 # Builds new service version ----------------------------------------------------------------------------
-define _bumpversion
-	# upgrades as $(subst $(1),,$@) version, commits and tags
-	@docker run -i --rm -v $(PWD):/ml-lab \
+# Human base bumps run scripts/auto_version.py, NOT bump2version: the
+# semver-only fanout entries (.osparc/*/metadata.yml, issue #695) carry the
+# BASE while current_version may carry .devN, so bump2version's single
+# `search = {current_version}` token no longer matches every file. `bump
+# --part` raises the base across all entries (dev counter dropped) and
+# re-checks the §V5 fanout; ensure_newer still refuses stale bases.
+.PHONY: version-patch version-minor version-major
+version-patch version-minor version-major: .bumpversion.cfg ## increases service's base version (semver-aware fanout)
+	@make compose-spec
+	@docker run -i --rm -v $(PWD):/ml-lab -e HOME=/tmp \
 		-u $(shell id -u):$(shell id -g) \
 		itisfoundation/ci-service-integration-library:v2.1.23 \
-		sh -c "cd /ml-lab && bump2version --verbose --list --config-file $(1) $(subst $(2),,$@)"
-endef
-
-.PHONY: version-patch version-minor version-major
-version-patch version-minor version-major: .bumpversion.cfg ## increases service's version
-	@make compose-spec
-	@$(call _bumpversion,$<,version-)
+		sh -c "cd /ml-lab && python3 scripts/auto_version.py bump --part $(subst version-,,$@)"
 	@make compose-spec
 
 
@@ -58,10 +81,19 @@ compose-spec: ## runs ooil to assemble the docker-compose.yml file
 .PHONY: build
 build: compose-spec ## build docker images
 	docker compose build
+	$(MAKE) tag-local
 
 .PHONY: build-no-cache
 build-no-cache: compose-spec ## build docker images
 	docker compose build --no-cache --pull --parallel
+	$(MAKE) tag-local
+
+.PHONY: tag-local
+tag-local: ## alias locally built images to $(DOCKER_IMAGE_TAG) for dev compose + publish-local (V45wk/B27wk)
+	@for img in $(MMUX_LOCAL_IMAGES); do \
+		echo "tagging $${img}:$(RELEASE_TAG) -> $${img}:$(DOCKER_IMAGE_TAG)"; \
+		docker tag "$${img}:$(RELEASE_TAG)" "$${img}:$(DOCKER_IMAGE_TAG)" || exit 1; \
+	done
 
 ## NB: VSCode might keep old credentials cached, even if changed in .env
 ## run in a non-VSCode terminal to avoid this
@@ -170,8 +202,8 @@ run-prod-local-uq-write: ## runs for validation as it would be in production UQ/
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-local.yml up
 
-.PHONY: run-prod-moga-read
-run-prod-moga-read: ## runs for validation as it would be in production MOGA/READ-ONLY
+.PHONY: run-prod-local-moga-read
+run-prod-local-moga-read: ## runs for validation as it would be in production MOGA/READ-ONLY
 	export SERVICE_MODE=MOGA && \
 	export PERMISSIONS=READ-ONLY && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -180,8 +212,8 @@ run-prod-moga-read: ## runs for validation as it would be in production MOGA/REA
 	printf '\n============================================================\nMMUX app URL (this WSL shell): http://localhost:%s\nMMUX app URL (Windows browser via WSL IP): http://%s:%s\n============================================================\n\n' "$$APP_PORT" "$$(hostname -I | awk '{print $$1}')" "$$APP_PORT" && \
 	docker compose --file docker-compose-local.yml up
 
-.PHONY: run-prod-moga-write
-run-prod-moga-write: ## runs for validation as it would be in production MOGA/WRITE
+.PHONY: run-prod-local-moga-write
+run-prod-local-moga-write: ## runs for validation as it would be in production MOGA/WRITE
 	export SERVICE_MODE=MOGA && \
 	export PERMISSIONS=WRITE && \
 	export DEPLOYMENT_MODE=LOCAL && \
@@ -266,7 +298,7 @@ test-e2e-update: clean-e2e-snapshots ## regenerate read-only e2e pixel baselines
 	cd ${NODE_DIR} && npm run test:e2e:update
 
 .PHONY: test-e2e-update-docker
-PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.63.0-noble
+PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.64.0-noble
 test-e2e-update-docker: ## regenerate e2e baselines INSIDE the pinned Playwright image (font-stable, see V12); keep tag == @playwright/test
 	docker run --rm --user root --network host \
 		-v "$(PWD)":/work -w /work -e HOME=/root \
@@ -279,6 +311,20 @@ test-e2e-docker: ## verify e2e pixel diff vs committed baselines INSIDE the pinn
 		-v "$(PWD)":/work -w /work -e HOME=/root -e E2E_MAKE_TARGET=test-e2e \
 		$(PLAYWRIGHT_IMAGE) \
 		bash /work/tests/e2e/scripts/gen-baselines.sh
+
+# BENCHMARKING (CodSpeed)
+.PHONY: bench-flaskapi
+bench-flaskapi: install-flaskapi-deps ## run the Flask API CodSpeed benchmarks (CPU simulation)
+	cd ${FLASKAPI_DIR} && \
+	codspeed run --mode simulation -- \
+		uv run --with 'pytest-codspeed>=5,<6' pytest benchmarks/ --codspeed --no-cov
+
+.PHONY: bench-node
+bench-node: ## run the frontend CodSpeed benchmarks (CPU simulation)
+	cd ${NODE_DIR} && npm ci && codspeed run --mode simulation -- npm run bench
+
+.PHONY: bench
+bench: bench-flaskapi bench-node ## run all CodSpeed benchmarks locally
 
 .PHONY: ci
 ci: test-flaskapi test-node build-no-cache ## mimmicks the GitHub CI

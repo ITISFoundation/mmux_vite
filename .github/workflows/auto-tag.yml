@@ -27,6 +27,18 @@ name: Tag and release
 #   A ruleset rejection fails fast with the remote's own message instead of
 #   burning the race retries, which exist only for genuine non-fast-forward
 #   races (learned the hard way on 2026-10-06).
+# * Stamp commits carry NO [skip ci]. The stamp is the tip of develop, which
+#   IS the head of an open develop->main release PR — a skip-ci tip silently
+#   suppressed every PR check run there ("no checks reported", discovered on
+#   #706, 2026-10-08). Loop prevention moved into the bump steps: a run whose
+#   fresh tip is the bot's own stamp (author email ∧ devN-shaped subject) exits
+#   before advancing the counter.
+#   LORE: the skip-ci matcher is a substring scan of the WHOLE commit message,
+#   so any commit quoting the bracketed marker skips itself — #710's head
+#   commit did, and #710's merge commit (PR title embedded in its body)
+#   skipped this workflow's stamp push outright (SPEC §T43ci).
+#   Recovery and publish steps are idempotent, so a stamp-triggered run
+#   additionally self-heals a partial publish one step sooner.
 on:
   push:
     branches: [develop, main]
@@ -47,7 +59,7 @@ env:
 
 jobs:
   develop-dev-tag:
-    if: github.ref_name == 'develop' && !contains(github.event.head_commit.message, '[skip ci]')
+    if: github.ref_name == 'develop'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -64,7 +76,8 @@ jobs:
           # Work on the CURRENT develop tip, not the push event's checkout:
           # a rerun of a failed workflow still sees the pre-bump SHA, and
           # recovery targeting it would skip the stranded commit the previous
-          # run already pushed ([skip ci] pushes trigger no workflow).
+          # run already pushed (recovery therefore always resets to the
+          # fetched tip — stamp pushes now trigger this workflow too).
           git fetch --tags --force
           git fetch origin "$GH_BRANCH"
           git reset --hard "origin/$GH_BRANCH"
@@ -73,7 +86,7 @@ jobs:
           # failed before creating them) must be published BEFORE the
           # counter advances, or a rerun would silently skip it. Locating it
           # by `git log -G` on the cfg's history is sound only because the
-          # bot's [skip ci] commits are the ONLY writers of .devN lines —
+          # bot's stamp commits are the ONLY writers of .devN lines —
           # anyone changing that ownership must revisit this lookup.
           current=$("${script[@]}" current-version)
           if [[ "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.dev[0-9]+$ ]] \
@@ -124,13 +137,29 @@ jobs:
             git fetch --tags --force
             git fetch origin "$GH_BRANCH"
             git reset --hard "origin/$GH_BRANCH"
+            # Self-trigger guard (replaces the [skip ci] stamp suffix, see
+            # header): the stamp push triggers this workflow itself. Recovery
+            # above already ran (idempotent); the counter must NOT advance
+            # again or every stamp would immediately spawn the next one.
+            # BOTH identity signals are required (GH-Copilot #710 review):
+            # the bot author email, plus the FULL stamp subject shape incl.
+            # the .devN tail — check-pr (version-check.yml) rejects any PR
+            # that INTRODUCES a .devN (heads inheriting develop's stamp
+            # unchanged pass, auto_version.py:343), so humans cannot mint
+            # this subject+author pair; a human "...to 1.7.0" gets its
+            # real bump.
+            if [[ "$(git log -1 --format=%ae)" == "github-actions[bot]@users.noreply.github.com" ]] \
+               && git log -1 --format=%s | grep -qE '^chore: bump dev version to [0-9]+\.[0-9]+\.[0-9]+\.dev[0-9]+$'; then
+              echo "fresh tip is the bot's own stamp; nothing to bump"
+              exit 0
+            fi
             version=$(uv run --no-project --with packaging python scripts/auto_version.py next-dev)
             uv run --no-project --with packaging python scripts/auto_version.py apply --to "$version"
             # Nothing to apply means the tip already sits at the next dev
             # version: a no-op, not a failure (the old `break` fell through
             # to the after-3-attempts exit 1).
             git diff --quiet && { echo "nothing to bump at $version"; exit 0; }
-            git commit -am "chore: bump dev version to $version [skip ci]"
+            git commit -am "chore: bump dev version to $version"
             # A non-fast-forward race clears on retry; a GH006/GH013 policy
             # rejection never does. 2026-10-06: three "push raced with
             # another merge" messages hid a ruleset rejection - tell the two
@@ -164,7 +193,7 @@ jobs:
             --prerelease --generate-notes --title "v$version (dev)"
 
   main-release:
-    if: github.ref_name == 'main' && !contains(github.event.head_commit.message, '[skip ci]')
+    if: github.ref_name == 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -237,7 +266,11 @@ jobs:
               echo "target=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            git commit -am "chore: release version $version [skip ci]"
+            git commit -am "chore: release version $version"
+            # No [skip ci] (see header): the stamp's own push re-runs this
+            # workflow and lands here only mid-race; the resume detection in
+            # the compute step already resolves a completed self-publish to
+            # action=done, so the loop is not reachable twice.
             # Race-vs-policy discrimination, as in the develop job.
             if push_output=$(git push "$push_remote" "HEAD:$GH_BRANCH" 2>&1); then
               printf '%s\n' "$push_output"

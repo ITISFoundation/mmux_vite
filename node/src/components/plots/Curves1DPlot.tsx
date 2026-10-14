@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
@@ -13,6 +13,8 @@ import { useJobContext } from "../../context/JobContext";
 import { requestJson } from "../../api/client";
 import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
+import { useDisplayScale } from "../../utils/useDisplayScale";
+import { DisplayScaleToggle } from "./DisplayScaleToggle";
 
 type GPPrediction = {
   x: number[];
@@ -22,8 +24,27 @@ type GPPrediction = {
 
 function Curves1DPlots() {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { selectedQoI } = useMMUXContext();
+  // Per-variable log-scale flags (node SPEC V12): input flags come from the
+  // distribution config (VarSelection.scale), the output flag from the
+  // per-function outputLogScales map (only meaningful for the selected QoI).
+  // The backend folds both into PreprocessingSpec overrides (flaskapi V16).
+  const inputLogScales = useMemo(
+    () =>
+      inputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = distribution[selectedFunction?.uid || ""]?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [inputVars, distribution, selectedFunction],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
+  // Per-panel DISPLAY scale (V12): defaults to the QoI compute scale, overrides
+  // re-seed on (fn,QoI) identity change; feeds ONLY the value-axis type below.
+  const [displayLog, setDisplayLog] = useDisplayScale(outputLogScaleForQoi, `${selectedFunction?.uid}|${selectedQoI}`);
   const context = useJobContext();
   const { filteredJobList, fetchedJobCollections } = context;
   const filteredInputVars = filterInputVars({
@@ -111,13 +132,17 @@ function Curves1DPlots() {
       output: selectedQoI,
       sliderValues: otherAxis,
       FunctionJobs: jobs,
-      log: false,
+      inputLogScales,
+      outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
     };
     // V46sc: the V16/V18 lastFetchedKey success slot is subsumed by the session
     // cache - the same (url, body) answers with zero network and survives
     // unmount, failures stay uncached (retry stays possible). The plotted
     // axis' sampling range that the hand-curated key encoded for #501 lives
     // inside `distribution` in the body, so it keys the entry by construction.
+    // The replayed #663 log-scale fields ride the same guarantee: toggling a
+    // scale changes the body, hence the key (the fork-side buildDakotaRequestKey
+    // logScales term is dead under V46sc).
     getCachedOrFetch<{ predictions: Record<string, GPPrediction> }>(`/flask/dakota/sumo_along_axes`, requestBody, () =>
       requestJson<{ predictions: Record<string, GPPrediction> }>(`/flask/dakota/sumo_along_axes`, {
         method: "POST",
@@ -155,7 +180,19 @@ function Curves1DPlots() {
       // session response cache (V46sc): a repeated (url, body) is a hit.
       return RunCentralSuMoInterpolations(jobs, isStale);
     },
-    [inputVars, selectedQoI, selectedFunction, axis, otherAxis, filteredJobList, distribution],
+    // #663 log-scale deps added to the union: flipping either flag must
+    // re-trigger; identity changes ride distribution/outputLogScales maps.
+    [
+      inputVars,
+      selectedQoI,
+      selectedFunction,
+      axis,
+      otherAxis,
+      filteredJobList,
+      distribution,
+      inputLogScales,
+      outputLogScaleForQoi,
+    ],
   );
 
   const plotStyle = {
@@ -163,6 +200,15 @@ function Curves1DPlots() {
     borderRadius: "8px",
     overflow: "hidden",
   };
+
+  // A log value axis can only render strictly-positive predictions (B54rz: gate on
+  // what is PAINTED — every trace's y, band gaps (null) aside).
+  const canLog =
+    plotData.length > 0 &&
+    plotData.every(trace =>
+      (((trace as { y?: unknown }).y as unknown[]) ?? []).filter((v): v is number => typeof v === "number").every(v => v > 0),
+    );
+  const axisLog = displayLog && canLog;
 
   const layout: Partial<Layout> = {
     plot_bgcolor: `${theme.palette.background.default}`,
@@ -177,10 +223,12 @@ function Curves1DPlots() {
     },
     xaxis: {
       title: { text: axis }, // FIXME axis is only showing for the first parameter in the list
+      type: inputLogScales[axis] ? "log" : undefined,
     },
     yaxis: {
       title: { text: selectedQoI },
       anchor: "x",
+      type: axisLog ? "log" : undefined,
     },
     showlegend: true,
   };
@@ -197,7 +245,20 @@ function Curves1DPlots() {
             numInputVars={inputVars.length}
           />
         )}
-        {plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+        {plotData.length !== 0 && (
+          <Box sx={{ position: "relative", width: "100%" }}>
+            <Plot data={plotData} layout={layout} style={plotStyle} />
+            <Box sx={{ position: "absolute", top: 8, left: 8, zIndex: 1 }}>
+              <DisplayScaleToggle
+                log={axisLog}
+                onChange={setDisplayLog}
+                disabled={!canLog}
+                disabledReason="Predicted values include non-positive numbers; a log axis can't render them."
+                testId="sumo-1d-display-scale"
+              />
+            </Box>
+          </Box>
+        )}
       </Box>
       <Box>
         <Header headerType="subTitle" infoText="" tabTitle="Selection" />

@@ -6,7 +6,7 @@
 #
 #   docker run --rm --user root --network host \
 #     -v "$PWD":/work -w /work -e HOME=/root \
-#     mcr.microsoft.com/playwright:v1.63.0-noble \
+#     mcr.microsoft.com/playwright:v1.64.0-noble \
 #     bash /work/tests/e2e/scripts/gen-baselines.sh
 #
 # Python venv, text-file storage and Dakota runs are redirected to /tmp so the
@@ -29,6 +29,7 @@ export PATH="${HOME}/.local/bin:${PATH}"
 
 export UV_PROJECT_ENVIRONMENT=/tmp/flaskapi-venv
 export TEXT_FILES_DIR=/tmp/e2e-text-files
+export LOCAL_STORE_DIR=/tmp/e2e-local-store
 export DAKOTA_RUNS_DIR=/tmp/dakota_runs
 uv python install 3.11
 

@@ -1,6 +1,7 @@
 import os
 from unittest.mock import MagicMock, patch
 
+import pytest
 from conftest import assert_route_exists
 from flask import Flask
 from osparc import ApiClient
@@ -12,6 +13,8 @@ from osparc import Configuration as OsparcConfiguration
 from mmux_flaskapi.app import MMUXFlask
 from mmux_flaskapi.utils.helpers import is_test_environment
 from mmux_flaskapi.utils.webserver_config import OsparcApi
+
+pytestmark = pytest.mark.unit
 
 
 class TestFlaskAppSetup:

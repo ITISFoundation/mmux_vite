@@ -5,10 +5,16 @@ import { getCachedOrFetch } from "../api/sessionResponseCache";
 export type FetchCorrelationIndicesParams = {
   inputVars: string[];
   output: string | undefined;
-  distributions: InputVarSelection;
+  // ⊥ distribution entries on a freshly restored session → the runtime-possible
+  // undefined becomes explicit at the boundary (B50ef's withoutConstantFactors
+  // passes it through verbatim; an absent map still surfaces as the backend's
+  // "distributions missing" 422, ⊥ a silently invented {}).
+  distributions: InputVarSelection | undefined;
   functionJobs: OsparcFunctionJob[];
   numSamples: number;
   seed?: number;
+  inputLogScales?: { [varName: string]: boolean };
+  outputLogScale?: boolean;
 };
 
 /**
@@ -16,7 +22,16 @@ export type FetchCorrelationIndicesParams = {
  * backend (#470), computed on the same Monte Carlo sample set used for UQ propagation.
  */
 export async function fetchCorrelationIndices(params: FetchCorrelationIndicesParams): Promise<CorrelationIndicesResponse> {
-  const { inputVars, output, distributions, functionJobs, numSamples, seed = 0 } = params;
+  const {
+    inputVars,
+    output,
+    distributions,
+    functionJobs,
+    numSamples,
+    seed = 0,
+    inputLogScales = {},
+    outputLogScale = false,
+  } = params;
 
   // V44eh: single dialect via requestJson. It still rejects (⊥ resolve) on
   // failure so callers' .catch/try-catch can clear fetch-dedup state (V18) and
@@ -28,6 +43,12 @@ export async function fetchCorrelationIndices(params: FetchCorrelationIndicesPar
     numSamples,
     FunctionJobs: functionJobs,
     seed,
+    // V12: scales ride EVERY surrogate request — CorrelationIndicesRequest
+    // inherits the scale maps from ManualUQPropagationRequest, so omitting
+    // them here let the panel score an all-linear surrogate whose cache key
+    // ignored scale toggles entirely (GH-Copilot #696 re-review).
+    inputLogScales,
+    outputLogScales: output ? { [output]: outputLogScale } : {},
   };
   // V46sc: every sent parameter is in the cache key by construction.
   return getCachedOrFetch<CorrelationIndicesResponse>(`/flask/dakota/compute_correlation_indices`, body, () =>

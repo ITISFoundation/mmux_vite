@@ -41,3 +41,58 @@ updates:
       python-dependencies:
         patterns:
           - "*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+      timezone: Europe/Zurich
+    groups:
+      github-actions-dependencies:
+        patterns:
+          - "*"
+
+  # Base images in the production Dockerfiles. The e2e suite pins the Playwright
+  # IMAGE (ci.yml container:) in lock-step with @playwright/test, so that pin is
+  # NOT dependabot-managed — only the runtime images below.
+  - package-ecosystem: docker
+    directory: /flaskapi
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+      timezone: Europe/Zurich
+    groups:
+      docker-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directory: /node
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+      timezone: Europe/Zurich
+    groups:
+      docker-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directory: /proxy
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+      timezone: Europe/Zurich
+    groups:
+      docker-dependencies:
+        patterns:
+          - "*"

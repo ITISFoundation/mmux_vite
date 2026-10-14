@@ -13,7 +13,7 @@
 // plot mutating its data can poison neither the cache nor a concurrent sibling.
 //
 // Lives at module scope: the Map survives component unmount and is dropped when
-// the tab closes (root V39xk). Entries beyond a fixed LRU cap evict least
+// the tab closes (root V40xk). Entries beyond a fixed LRU cap evict least
 // recently used first.
 
 const cacheCap = 60;

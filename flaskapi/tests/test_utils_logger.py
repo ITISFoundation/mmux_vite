@@ -9,6 +9,10 @@ import logging
 import os
 from unittest.mock import patch
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 
 class TestLoggerConfiguration:
     """Test logger configuration and setup."""

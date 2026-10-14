@@ -184,8 +184,8 @@ interface InputTextBlockProps {
   onChange: (value: string) => void;
 }
 
-type Distribution = "constant" | "normal" | "uniform" | "log-normal" | "exponential";
-type Variables = "value" | "mean" | "std" | "min" | "max" | "location" | "scale";
+type Distribution = "constant" | "normal" | "uniform";
+type Variables = "value" | "mean" | "std" | "min" | "max";
 type OutputOptimization = "minimize" | "maximize";
 
 interface VarSelection {
@@ -195,11 +195,13 @@ interface VarSelection {
   std?: number;
   min?: number;
   max?: number;
-  location?: number;
-  scale?: number;
-  // Per-variable log-scale tag inferred/set alongside the distribution (V13);
-  // end-to-end plot/request wiring lands separately (§T8/T9, V12).
-  logScale?: boolean;
+  // Orthogonal linear/log sampling scale, independent of the distribution
+  // `shape`. "log" means the variable is sampled/trained in log space
+  // (log-uniform for a uniform shape, log-normal for a normal shape).
+  // Replaces the old per-type `logScale` (uniform only) / separate
+  // `log-normal` type. End-to-end: request models fold it into
+  // inputLogScales/outputLogScales (flaskapi SPEC V16).
+  scale?: "linear" | "log";
 }
 
 interface OutputVarSelection {

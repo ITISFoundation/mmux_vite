@@ -1,4 +1,4 @@
-"""Contract tests that pin frontend-facing request/route guarantees (root SPEC §V31sc, node SPEC §V38ap)."""
+"""Contract tests that pin frontend-facing request/route guarantees (root SPEC §V43sc, node SPEC §V38ap)."""
 
 import json
 

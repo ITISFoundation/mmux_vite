@@ -1,5 +1,5 @@
 import { Box, ToggleButton, ToggleButtonGroup, useTheme } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -15,6 +15,7 @@ import {
   type CorrelationScaleType,
 } from "../../utils/plotScale";
 import { fetchCorrelationIndices } from "../../utils/correlationIndices";
+import { withoutConstantFactors } from "../../utils/constantFactors";
 import { getErrorMessage } from "../../utils/httpError";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
@@ -73,8 +74,28 @@ export function CorrelationControls({ viewMode, scaleType, onViewModeChange, onS
 // 3-var 1D/2D/3D plot limit).
 export default function CorrelationIndicesPlot({ viewMode, scaleType }: CorrelationIndicesPlotProps) {
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { uqSettings, selectedQoI } = useMMUXContext();
+  // B50ef (GH-Copilot #714): `constant` is FE preset state — CorrelationIndicesRequest
+  // inherits DistributionParams (normal|uniform only), so constant factors leave
+  // the request rather than 422'ing it.
+  const { inputVars: activeInputVars, distributions: activeDistributions } = useMemo(
+    () => withoutConstantFactors(inputVars, distribution[selectedFunction?.uid || ""]),
+    [inputVars, distribution, selectedFunction],
+  );
+  // Per-variable log-scale flags (node SPEC V12), see UncertainUQ for the pattern.
+  const inputLogScales = useMemo(
+    () =>
+      activeInputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = activeDistributions?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [activeInputVars, activeDistributions],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [correlations, setCorrelations] = useState<CorrelationIndicesResponse["correlations"] | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
@@ -94,12 +115,14 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
       }
       try {
         const data = await fetchCorrelationIndices({
-          inputVars,
+          inputVars: activeInputVars,
           output: selectedQoI,
-          distributions: distribution[selectedFunction?.uid || ""],
+          distributions: activeDistributions,
           functionJobs: filteredJobList,
           numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
           seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
+          inputLogScales,
+          outputLogScale: outputLogScaleForQoi,
         });
         if (isStale()) return;
         setCorrelations(data.correlations);
@@ -113,7 +136,21 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
         setErrorMessage(getErrorMessage(error));
       }
     },
-    [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction],
+    // #663 log-scale deps ride the union — this panel was MISSED by that sweep
+    // (GH-Copilot #706 re-review, B58rs): the request body reads the derived
+    // scale flags, so a committed output scale (auto-detect or manual toggle)
+    // while the panel stays mounted must invalidate the all-linear generation;
+    // ⊥ them here and the panel paints the stale verdict + cache key forever.
+    [
+      filteredJobList,
+      selectedQoI,
+      uqSettings,
+      activeInputVars,
+      activeDistributions,
+      selectedFunction,
+      inputLogScales,
+      outputLogScaleForQoi,
+    ],
   );
 
   useEffect(() => {
@@ -233,7 +270,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
           filteredJobList={filteredJobList}
           height={plotStyle.height}
           errorMessage={errorMessage}
-          numInputVars={inputVars.length}
+          numInputVars={activeInputVars.length}
         />
       )}
       {!computing && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}

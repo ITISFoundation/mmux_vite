@@ -18,6 +18,16 @@ export DEPLOYMENT_MODE="${DEPLOYMENT_MODE:-LOCAL}"
 export TEXT_FILES_DIR="${TEXT_FILES_DIR:-$REPO_ROOT/tests/e2e/.e2e-text-files}"
 mkdir -p "$TEXT_FILES_DIR"
 
+# Local, writable function/job collection store. Unset, the backend defaults to the
+# repo's flaskapi/runs_local (T18/B1 anchoring) — a gitignored, developer-owned file
+# whose CSV uploads silently merge into /flask/osparc/list_functions and were baked
+# into the 2026-10-12 pixel baselines (root SPEC B30qj). Pin to an e2e-dedicated dir
+# and wipe on boot: every run starts from the deterministic mock-only function list
+# (root SPEC §V11/§V29; CI checkouts are clean, hosts are not).
+export LOCAL_STORE_DIR="${LOCAL_STORE_DIR:-$REPO_ROOT/tests/e2e/.e2e-local-store}"
+rm -rf "$LOCAL_STORE_DIR"
+mkdir -p "$LOCAL_STORE_DIR"
+
 # Make the deterministic test-double package importable (tests/e2e/mock_osparc/).
 export PYTHONPATH="$REPO_ROOT/tests/e2e${PYTHONPATH:+:$PYTHONPATH}"
 

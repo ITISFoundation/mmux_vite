@@ -8,16 +8,21 @@ const mocks = vi.hoisted(() => ({
   selectedQoI: "y" as string | undefined,
   uqSettings: {},
   fetchedJobCollections: [{}],
+  // Mutable so a test can flip the committed output scale under a MOUNTED
+  // panel — the B58rs scenario (auto-detect commits while the panel sits).
+  contextValue: {
+    selectedFunction: { uid: "fn-1" },
+    inputVars: ["x1", "x2"],
+    distribution: {},
+    outputLogScales: {} as { [fnUid: string]: { [qoi: string]: boolean } },
+  },
 }));
 
 vi.mock("react-plotly.js", () => import("../../test/plotlyMock"));
 vi.mock("../../context/MMUXContext", () => ({
   useMMUXContext: () => ({ uqSettings: mocks.uqSettings, selectedQoI: mocks.selectedQoI }),
 }));
-vi.mock("../../context/FunctionContext", () => {
-  const value = { selectedFunction: { uid: "fn-1" }, inputVars: ["x1", "x2"], distribution: {} };
-  return { useFunctionContext: () => value };
-});
+vi.mock("../../context/FunctionContext", () => ({ useFunctionContext: () => mocks.contextValue }));
 vi.mock("../../context/JobContext", () => ({
   useJobContext: () => ({ filteredJobList: mocks.filteredJobList, fetchedJobCollections: mocks.fetchedJobCollections }),
 }));
@@ -53,5 +58,26 @@ describe("CorrelationIndicesPlot fetch freshness (V45gd)", () => {
 
     await act(async () => resolveStale(jsonResponse(corrPayload([0.1, 0.2]))));
     expect(firstBarY()).toEqual([0.6, 0.4]);
+  });
+
+  it("refetches with the committed scale when an output scale flips under the mounted panel (GH-Copilot #706, B58rs)", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `job-${i}` }));
+    mocks.selectedQoI = "y";
+    mocks.contextValue.outputLogScales = {};
+    const fetchMock = stubFetch(jsonResponse(corrPayload([0.6, 0.4])));
+
+    const { rerender } = render(<CorrelationIndicesPlot viewMode="pearson" scaleType="linear" />);
+    await waitFor(() => expect(firstBarY()).toEqual([0.6, 0.4]));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // useAutoDetectQoiScale commits a LOG verdict for the QoI while the panel
+    // is still mounted. Before the deps fix the request read the flag but no
+    // dep changed → the panel kept painting the all-linear result (⊥ V12).
+    mocks.contextValue.outputLogScales = { "fn-1": { y: true } };
+    rerender(<CorrelationIndicesPlot viewMode="pearson" scaleType="linear" />);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    const body = JSON.parse((fetchMock.mock.calls[1][1] as RequestInit).body as string);
+    expect(body.outputLogScales).toEqual({ y: true }); // refetch carries the scale
   });
 });

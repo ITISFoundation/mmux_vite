@@ -1,6 +1,6 @@
 import { Box, IconButton, Tooltip, useTheme } from "@mui/material";
 import { Tune } from "@mui/icons-material";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -9,6 +9,10 @@ import { useMMUXContext } from "../../context/MMUXContext";
 import { requestJson } from "../../api/client";
 import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
+import { withoutConstantFactors } from "../../utils/constantFactors";
+import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
+import { useDisplayScale } from "../../utils/useDisplayScale";
+import { DisplayScaleToggle } from "./DisplayScaleToggle";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
@@ -19,8 +23,38 @@ type UncertainUQProps = LoadingPropsType & { onOpenSettings?: () => void };
 export default function UncertainUQ(props: UncertainUQProps) {
   const { loading, jobProgress, onOpenSettings } = props;
   const theme = useTheme();
-  const { selectedFunction, inputVars, distribution } = useFunctionContext();
+  const { selectedFunction, inputVars, distribution, outputLogScales } = useFunctionContext();
   const { uqSettings, selectedQoI } = useMMUXContext();
+  // B50ef (GH-Copilot #714): `constant` is FE preset state — DistributionParams
+  // accepts only normal|uniform, so constant factors leave the surrogate
+  // request (and its dimension count) rather than 422'ing the whole payload.
+  const { inputVars: activeInputVars, distributions: activeDistributions } = useMemo(
+    () => withoutConstantFactors(inputVars, distribution[selectedFunction?.uid || ""]),
+    [inputVars, distribution, selectedFunction],
+  );
+  // Per-variable log-scale flags (node SPEC V12), see Curves1DPlot for the pattern.
+  const inputLogScales = useMemo(
+    () =>
+      activeInputVars.reduce(
+        (acc: { [key: string]: boolean }, key) => {
+          acc[key] = activeDistributions?.[key]?.scale === "log";
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      ),
+    [activeInputVars, activeDistributions],
+  );
+  const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
+  // Display axis scale follows the QoI's COMPUTE scale until the user overrides it
+  // in this panel; the override is view-only (never in the request/cache key — the
+  // uqBody below carries outputLogScales from the compute flag alone).
+  const [displayLog, setDisplayLog] = useDisplayScale(
+    outputLogScaleForQoi,
+    `${selectedFunction?.uid || ""}|${selectedQoI || ""}`,
+  );
+  // V26/V27: propose linear-vs-log surrogate scale for the selected QoI from a
+  // CV RMSE comparison; a manual toggle in OutputVariableDist locks it (V27).
+  useAutoDetectQoiScale(selectedQoI ? [selectedQoI] : undefined);
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [dataUQHistogram, setDataUQHistogram] = useState<DataUQHistogramType>();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
@@ -43,17 +77,19 @@ export default function UncertainUQ(props: UncertainUQProps) {
         console.info("Propagating UQ...");
         console.info("SelectedQoI: ", selectedQoI);
         const uqBody = {
-          inputVars,
+          inputVars: activeInputVars,
           output: selectedQoI,
-          distributions: distribution[selectedFunction?.uid || ""],
+          distributions: activeDistributions,
           FunctionJobs: filteredJobList,
           numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
-          log: false,
+          inputLogScales,
+          outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
           nHistograms: uqSettings[selectedFunction?.uid || ""]?.nHistograms || 50,
           seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
         };
-        // V46sc: seed/numSamples/nHistograms/distributions are ALL in the cache
-        // key by construction - changing any of them misses and refetches.
+        // V46sc: seed/numSamples/nHistograms/distributions (and the #663
+        // log-scale maps) are ALL in the cache key by construction - changing
+        // any of them misses and refetches.
         const data = await getCachedOrFetch<DataUQHistogramType>(
           `/flask/dakota/manual_uq_propagation_with_uncertainty`,
           uqBody,
@@ -93,15 +129,33 @@ export default function UncertainUQ(props: UncertainUQProps) {
         setDataUQHistogram(undefined);
       }
     },
-    [filteredJobList, selectedQoI, uqSettings, inputVars, distribution, selectedFunction, theme.palette.primary.main],
+    // #663 log-scale deps ride the union (uqSettings already replaces numSamples here)
+    [
+      filteredJobList,
+      selectedQoI,
+      uqSettings,
+      activeInputVars,
+      activeDistributions,
+      selectedFunction,
+      theme.palette.primary.main,
+      inputLogScales,
+      outputLogScaleForQoi,
+    ],
   );
   if (loading) {
     return <JobsLoading jobProgress={jobProgress} message="Creating AI model..." />;
   }
 
+  // A log axis cannot render bins whose centers are <= 0; keep the toggle honest
+  // about that (disable + fall back to a linear axis) rather than shipping a blank plot.
+  const plottedX = (plotData[0] as { x?: unknown } | undefined)?.x;
+  const plotMinX = Array.isArray(plottedX) ? Math.min(...(plottedX as number[])) : 1;
+  const canLog = plotMinX > 0;
+  const axisLog = displayLog && canLog;
+
   const layout = {
     title: { text: "Uncertainty Quantification Histogram" },
-    xaxis: { title: { text: selectedQoI || "Output" } },
+    xaxis: { title: { text: selectedQoI || "Output" }, type: axisLog ? "log" : "linear" },
     yaxis: { title: { text: "Density" } },
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
@@ -137,13 +191,24 @@ export default function UncertainUQ(props: UncertainUQProps) {
             </IconButton>
           </Tooltip>
         )}
+        {plotData.length !== 0 && (
+          <Box sx={{ position: "absolute", top: 8, left: 8, zIndex: 1 }}>
+            <DisplayScaleToggle
+              log={axisLog}
+              onChange={setDisplayLog}
+              disabled={!canLog}
+              disabledReason="Bin centers include non-positive values; a log axis can't render them."
+              testId="uq-display-scale"
+            />
+          </Box>
+        )}
         {propagating && <CalculatingWarning height={plotStyle.height} dontShowText={plotData.length !== 0} />}
         {!propagating && plotData.length === 0 && (
           <InsufficientDataWarning
             fetchedJobCollections={fetchedJobCollections}
             filteredJobList={filteredJobList}
             height={plotStyle.height}
-            numInputVars={inputVars.length}
+            numInputVars={activeInputVars.length}
             errorMessage={errorMessage}
           />
         )}

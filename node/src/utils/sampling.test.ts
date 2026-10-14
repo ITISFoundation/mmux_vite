@@ -12,8 +12,9 @@ describe("sampling range helpers", () => {
     ["constant", { distribution: "constant", value: 3 }, 3, 3],
     ["normal", { distribution: "normal", mean: 10, std: 2 }, 5, 15],
     ["uniform", { distribution: "uniform", min: -1, max: 4 }, -1, 4],
-    ["log-normal", { distribution: "log-normal", location: 0, scale: 1 }, Math.exp(-2.5), Math.exp(2.5)],
-    ["exponential", { distribution: "exponential", scale: 0.5 }, 0, 10],
+    // log-normal/exponential removed from the Distribution union (#663/B33/V40:
+    // log is the orthogonal VarSelection.scale, not a shape); unsupported shapes
+    // fall through to the "Error..." sentinel covered below.
   ])("derives the %s sampling range", (_label, dist, start, end) => {
     const distribution = { x: dist } as never as InputVarSelection;
     expect(getSamplingStartValue("x", distribution)).toBeCloseTo(start as number);
@@ -32,9 +33,7 @@ describe("sampling range helpers", () => {
     expect(console.warn).toHaveBeenCalled();
   });
 
-  it("cannot bound an exponential without a scale", () => {
-    const distribution = { x: { distribution: "exponential" } } as never as InputVarSelection;
-    expect(getSamplingStartValue("x", distribution)).toBe(0);
-    expect(getSamplingEndValue("x", distribution)).toBe(ERROR);
-  });
+  // "cannot bound an exponential without a scale" dropped with the #663 replay:
+  // exponential is no longer a Distribution shape (B33/V40); unsupported forms
+  // fall through to the ERROR sentinel covered by the table above.
 });

@@ -43,6 +43,10 @@ interface PersistenceType {
   outputVars: string[];
   distribution: { [key: string]: InputVarSelection };
   outputTargets: { [key: string]: OutputVarSelection };
+  // Per-function, per-QoI log-fit flags (surrogate trained on log(QoI)) and
+  // the manual-toggle lock map that protects them from auto-detection.
+  outputLogScales: { [key: string]: { [varName: string]: boolean } };
+  outputLogScaleUserSet: { [key: string]: { [varName: string]: boolean } };
   lhsSamplingConfig: LHSamplingConfig;
   gridSamplingConfig: GridSamplingConfig;
   singleJobConfig: SingleJobConfig[];

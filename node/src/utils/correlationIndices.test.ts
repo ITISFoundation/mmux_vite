@@ -57,6 +57,10 @@ describe("fetchCorrelationIndices", () => {
       numSamples: 500,
       FunctionJobs: mockJobs,
       seed: 42,
+      // V12: the scale maps ride every request (CorrelationIndicesRequest
+      // inherits them from ManualUQPropagationRequest).
+      inputLogScales: {},
+      outputLogScales: { y: false },
     });
   });
 
@@ -72,11 +76,16 @@ describe("fetchCorrelationIndices", () => {
       distributions: {},
       functionJobs: mockJobs,
       numSamples: 100,
+      inputLogScales: { x1: true },
+      outputLogScale: true,
     });
 
     const [, options] = mockedFetchWithRetry.mock.calls[0];
     const body = JSON.parse((options as RequestInit).body as string);
     expect(body.seed).toBe(0);
+    // scale flags reach the wire verbatim
+    expect(body.inputLogScales).toEqual({ x1: true });
+    expect(body.outputLogScales).toEqual({ y: true });
   });
 
   it("throws (⊥ resolves) on a non-OK response", async () => {

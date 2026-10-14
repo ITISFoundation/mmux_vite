@@ -8,6 +8,8 @@ import pytest
 
 from mmux_flaskapi.utils import local_job_store as ljs
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture(autouse=True)
 def isolated_store(tmp_path, monkeypatch):
