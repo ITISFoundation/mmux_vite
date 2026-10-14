@@ -26,11 +26,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo content
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
       - name: Set up uv
         # Full-version pin: astral-sh/setup-uv no longer publishes bare major
         # tags (same rationale as .github/workflows/ci.yml).
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v10.3.0
       - name: Install Flask API dependencies
         run: make install-flaskapi-deps
       # pytest-codspeed is installed as an overlay (uv run --with) instead of
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo content
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
       - name: Use Node.js 24
         uses: actions/setup-node@v7
         with:

@@ -18,11 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo content
-      uses: actions/checkout@v5
+      uses: actions/checkout@v7
     - name: Set up uv
       # Full-version pin: astral-sh/setup-uv no longer publishes bare major
       # tags (no `v10` ref exists), so `@v10` would fail to resolve.
-      uses: astral-sh/setup-uv@v10.2.0
+      uses: astral-sh/setup-uv@v10.3.0
     - name: Use Node.js 24
       uses: actions/setup-node@v7
       with:
@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo content
-      uses: actions/checkout@v5
+      uses: actions/checkout@v7
     - name: Use Node.js 24
       uses: actions/setup-node@v7
       with:
@@ -74,9 +74,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo content
-      uses: actions/checkout@v5
+      uses: actions/checkout@v7
     - name: Set up uv
-      uses: astral-sh/setup-uv@v10.2.0
+      uses: astral-sh/setup-uv@v10.3.0
     - name: Install Flask API dependencies
       run: make install-flaskapi-deps
     - name: Run flaskapi tests
@@ -119,7 +119,7 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.64.0-noble
     steps:
       - name: Checkout repo content
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
       # The Playwright image ships node + browsers but not GNU make (the Makefile
       # entry points need it).
       - name: Install make
@@ -130,7 +130,7 @@ jobs:
         run: apt-get update && apt-get install -y --no-install-recommends openjdk-21-jre-headless
       # uv drives the Flask backend the webServer boots (tests/e2e/scripts/run-e2e-backend.sh).
       - name: Set up uv
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v10.3.0
       - name: Install node dependencies
         run: cd node && npm ci
       - name: Install Flask API dependencies
@@ -170,7 +170,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo content
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
       - name: ooil version
         uses: docker://itisfoundation/ci-service-integration-library:v2.1.23
         with:
