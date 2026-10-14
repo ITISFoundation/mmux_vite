@@ -1,7 +1,7 @@
 SHELL 				 			:= /bin/sh
 .DEFAULT_GOAL 		 			:= help
 
-DOCKER_IMAGE_TAG := 1.6.4.dev9
+DOCKER_IMAGE_TAG := 1.6.4.dev10
 
 
 FLASKAPI_DIR := ./flaskapi
@@ -311,6 +311,20 @@ test-e2e-docker: ## verify e2e pixel diff vs committed baselines INSIDE the pinn
 		-v "$(PWD)":/work -w /work -e HOME=/root -e E2E_MAKE_TARGET=test-e2e \
 		$(PLAYWRIGHT_IMAGE) \
 		bash /work/tests/e2e/scripts/gen-baselines.sh
+
+# BENCHMARKING (CodSpeed)
+.PHONY: bench-flaskapi
+bench-flaskapi: install-flaskapi-deps ## run the Flask API CodSpeed benchmarks (CPU simulation)
+	cd ${FLASKAPI_DIR} && \
+	codspeed run --mode simulation -- \
+		uv run --with 'pytest-codspeed>=5,<6' pytest benchmarks/ --codspeed --no-cov
+
+.PHONY: bench-node
+bench-node: ## run the frontend CodSpeed benchmarks (CPU simulation)
+	cd ${NODE_DIR} && npm ci && codspeed run --mode simulation -- npm run bench
+
+.PHONY: bench
+bench: bench-flaskapi bench-node ## run all CodSpeed benchmarks locally
 
 .PHONY: ci
 ci: test-flaskapi test-node build-no-cache ## mimmicks the GitHub CI
