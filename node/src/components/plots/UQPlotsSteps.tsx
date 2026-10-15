@@ -10,7 +10,10 @@ const uqStepTitles = ["Histogram", "Correlation", "Sobol' Indices"];
 const uqStepInfoTexts: Record<string, string | undefined> = {
   Histogram: "Uncertainty propagation histogram with percentile statistics",
   Correlation: undefined,
-  "Sobol' Indices": undefined,
+  // ROOT #84: the Sobol' box is auto-derived engine-side and ⊥ editable — the
+  // copy must name whose ensemble the indices describe (README "Sampling limits").
+  "Sobol' Indices":
+    "Sobol' indices describe the surrogate's own exploration ensemble: itis-sumo draws uniformly over the surrogate's domain box, auto-derived from the observed training-sample bounds (a constant column stays fixed). These sampling limits are not editable. To see your input distributions pushed through the surrogate, use the Correlation panel.",
 };
 
 type UQPlotsStepsProps = LoadingPropsType & { qoiSelector?: React.ReactNode; onOpenSettings?: () => void };
