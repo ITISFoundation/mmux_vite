@@ -283,12 +283,14 @@ def flask_list_function_jobs_for_jobcollectionid():
 def _fetch_remote_job_collections_for_function(
     osparc_api: OsparcApi, function_uid: str
 ) -> list[dict[str, Any]]:
-    return [
-        i.to_dict()
-        for i in osparc_api.get_job_collection_api()
-        .list_function_job_collections(has_function_id=function_uid)
-        .items
-    ]
+    # Paginate via `_get_all_items` like every other oSPARC listing here (flaskapi/SPEC.md
+    # V50tj, upstream #382): a single unpaginated `list_function_job_collections(...)` call
+    # returns only the server's default page (20), so the Sampling collections table
+    # silently stopped growing once a function had 20 collections.
+    return _get_all_items(
+        osparc_api.get_job_collection_api().list_function_job_collections,
+        has_function_id=function_uid,
+    )
 
 
 @osparc_bp.route("/list_function_job_collections_for_functionid", methods=["GET"])

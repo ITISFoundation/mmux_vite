@@ -214,6 +214,41 @@ def patch_list_function_job_collections_422():
         yield
 
 
+# --- Page-aware mock: job collections BEYOND the server default page (upstream #382) ---
+JC_PAGED_TOTAL = 25
+# The oSPARC job-collection listing's server-side default page size: an omitted
+# `limit` returns at most this many items (max allowed is 50, see helpers._get_all_items).
+JC_SERVER_DEFAULT_PAGE = 20
+
+
+def _job_collection_item(index: int) -> MagicMock:
+    return MagicMock(
+        to_dict=lambda: {
+            "uid": f"jc-{index:02d}",
+            "job_ids": [f"job-{index:02d}"],
+            "name": f"Collection {index:02d}",
+        }
+    )
+
+
+def mock_list_function_job_collections_paged(*args, **kwargs):
+    """Honor limit/offset like the real API, applying the server default page size
+    when `limit` is omitted — the exact cap that made collections >20 invisible."""
+    limit = kwargs.get("limit") or JC_SERVER_DEFAULT_PAGE
+    offset = kwargs.get("offset") or 0
+    items = [_job_collection_item(i) for i in range(JC_PAGED_TOTAL)]
+    return MagicMock(items=items[offset : offset + limit], total=JC_PAGED_TOTAL)
+
+
+@pytest.fixture
+def patch_list_function_job_collections_paged():
+    with patch(
+        "osparc_client.api.function_job_collections_api.FunctionJobCollectionsApi.list_function_job_collections",
+        side_effect=mock_list_function_job_collections_paged,
+    ):
+        yield
+
+
 # --- Mock FunctionsApi.list_function_jobs_for_functionid() and FunctionJobApi.function_job_status() ---
 def mock_list_function_jobs_for_functionid_success(function_uid: str, **kwargs):
     """Standard successful response for jobs for a function UID."""

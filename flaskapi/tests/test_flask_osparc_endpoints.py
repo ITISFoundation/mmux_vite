@@ -376,6 +376,22 @@ class TestOsparcListFunctionJobCollectionsForFunctionId:
         assert isinstance(data, list)
         assert len(data) == 0
 
+    def test_list_function_job_collections_for_functionid_paginates_beyond_server_page(
+        self, test_client, patch_list_function_job_collections_paged
+    ):
+        """Regression for upstream #382 (flaskapi SPEC.md V50tj/B39tj): a function with
+        more job collections than the server default page size (20) must have ALL of
+        them retrieved. The pre-fix code read `.items` from one unpaginated call, so
+        the Sampling collections table silently capped at the page size."""
+        response = test_client.get(
+            "/flask/osparc/list_function_job_collections_for_functionid?functionUid=func1"
+        )
+        assert response.status_code == 200
+        data = response.get_json()
+        assert isinstance(data, list)
+        assert len(data) == 25
+        assert {item["uid"] for item in data} == {f"jc-{i:02d}" for i in range(25)}
+
     def test_list_function_job_collections_for_functionid_422(
         self, test_client, patch_list_function_job_collections_422
     ):
