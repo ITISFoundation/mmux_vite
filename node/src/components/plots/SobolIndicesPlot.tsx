@@ -97,9 +97,7 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
         const data = await fetchSobolIndices({
           inputVars,
           output: selectedQoI,
-          distributions: distribution[selectedFunction?.uid || ""],
           functionJobs: filteredJobList,
-          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
           seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
           inputLogScales,
           outputLogScale: outputLogScaleForQoi,
