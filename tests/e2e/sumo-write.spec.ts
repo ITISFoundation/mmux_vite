@@ -48,7 +48,9 @@ async function openLhsCampaign(page: Page, baseURL: string) {
   await extendSampling.click();
   await page.locator('[mmux-testid="new-sampling-campaign-btn"]').click();
   await expect(page.getByText("Latin Hypercube Sampling")).toBeVisible({ timeout: VIEW_TIMEOUT });
-  return page.locator('[mmux-testid="run-sampling-btn"]').first();
+  const runButton = page.locator('[mmux-testid="run-sampling-btn"]').first();
+  await expect(runButton).toBeEnabled({ timeout: MODEL_READY_TIMEOUT });
+  return runButton;
 }
 
 test("an LHS launch sends JSON and adds the new collection to the job table", async ({ page, baseURL }) => {
