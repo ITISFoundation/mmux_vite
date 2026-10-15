@@ -82,8 +82,25 @@ Target naming: `make run-{develop|prod-local}-{sumo|uq|moga}-{read|write}` — m
 Notes:
 
 - The app (Caddy proxy) publishes on host port `8888` by default; if busy, `scripts/resolve-app-port.sh` picks the next free port (fallbacks 8889-8892) and the launcher prints the actual URL(s).
-- Under WSL2 the printed output distinguishes the shell-local `http://localhost:<port>` from the Windows-browser `http://<WSL-IP>:<port>`; Windows `localhost` on fallback ports needs `netsh interface portproxy` rules (ask a maintainer for the current recipe).
+- Under WSL2 the printed output distinguishes the shell-local `http://localhost:<port>` from the Windows-browser `http://<WSL-IP>:<port>`; if Windows `localhost` fails on a fallback port while the WSL-IP URL works, see the portproxy workaround in the next section.
 - Dev launchers bind-mount `flaskapi/` and `node/` (container runs as your host UID/GID), so edits are served live — Vite HMR for the frontend, Flask debug reload for the backend.
+
+### WSL2: Windows browser access on fallback ports
+
+Under WSL2, Windows localhost forwarding may already make the selected app port accessible, including fallback ports (`8889`-`8892`); it is not limited to `8888`. If `http://localhost:<port>` fails from a Windows browser but the launcher's `http://<WSL-IP>:<port>` URL works, the manual `netsh interface portproxy` workaround below can forward the port into WSL. Adding or deleting these rules requires an **elevated** Command Prompt (cmd.exe "Run as administrator"; unprivileged `add`/`delete` is refused).
+
+Manual flow in an elevated Command Prompt — show, delete stale, add, show — with `<WSL-IP>` set to the current WSL IP (the one the launcher prints, or the first address of `hostname -I` inside WSL):
+
+```bat
+netsh interface portproxy show v4tov4
+for /L %p in (8889,1,8892) do netsh interface portproxy delete v4tov4 listenaddress=0.0.0.0 listenport=%p
+for /L %p in (8889,1,8892) do netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=%p connectaddress=<WSL-IP> connectport=%p
+netsh interface portproxy show v4tov4
+```
+
+Or run `scripts/setup-windows-portproxy.sh` inside WSL: it detects the current WSL IP (same detection as the launcher banner) and prints this block pre-filled, ready to paste. To tear the rules down, run only the `delete` line.
+
+**Warning — stale rules after an IP change:** the WSL IP is reassigned after `wsl --shutdown` or a Windows reboot. Existing portproxy rules keep forwarding to the OLD address, so `localhost:<fallback-port>` from Windows silently fails even while `http://<WSL-IP>:<port>` still works. Re-run `scripts/setup-windows-portproxy.sh` (or repeat delete + add with the new IP) after every restart. If the rules look correct but connections are still refused, Windows Defender Firewall may be blocking them; an inbound allow rule fixes it (run once): `netsh advfirewall firewall add rule name="mmux-vite WSL fallback ports" dir=in action=allow protocol=TCP localport=8889-8892`.
 
 ### Final validation step
 
