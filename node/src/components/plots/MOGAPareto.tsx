@@ -31,12 +31,57 @@ type MogaResults = Record<string, number[]> & {
 };
 
 function normalizeMogaResults(payload: unknown): MogaResults {
-  const rawResults = payload as Record<string, number[] | undefined> & { nonDominatedIndices?: number[] };
-  const { nonDominatedIndices = [], ...results } = rawResults;
-  return {
-    ...results,
-    nonDominatedIndices,
-  } as MogaResults;
+  // B59wp (V49wp): flaskapi's MOGAOptimizationResponse WRAPS the result map —
+  // the wire body is {optimizationResults: {<varName>: number[], non_dominated_indices: number[]}}.
+  // The wrapper key is camelCased like every API field, but the response
+  // serializer preserves the inner map VERBATIM (variable names + the
+  // snake_case metadata key), so the envelope must be unwrapped here and the
+  // ndi key folded from BOTH spellings into nonDominatedIndices. A flat
+  // payload (unit-test fixtures / pre-envelope wire shape) is accepted unchanged.
+  const top = payload as Record<string, unknown> | undefined;
+  const body = (top?.optimizationResults ?? top?.optimization_results ?? top ?? {}) as Record<string, number[] | undefined>;
+  const nonDominatedIndices = body.nonDominatedIndices ?? body["non_dominated_indices"] ?? [];
+  const variableEntries = Object.entries(body).filter(
+    ([key]) => key !== "nonDominatedIndices" && key !== "non_dominated_indices",
+  );
+  return { ...Object.fromEntries(variableEntries), nonDominatedIndices } as MogaResults;
+}
+
+// B59wp (V49wp): the itis-sumo port (1fc54192) removed the non_dominated_indices
+// metadata from the wire — ParetoFrontResult.data carries value columns only —
+// so the non-dominated front is derived here from the result arrays and each
+// objective's direction (OutputVarSelection "minimize"/"maximize", minimize
+// default like calculatePerformance's reading). j dominates i iff j is at least
+// as good on EVERY objective and strictly better on at least one; ties never
+// dominate each other. Index order is ascending, like the pre-port contract.
+export function deriveNonDominatedIndices(
+  results: Record<string, number[] | undefined>,
+  optVars: string[],
+  outputVarSelection: OutputVarSelection,
+): number[] {
+  const n = optVars.length > 0 ? (results[optVars[0]]?.length ?? 0) : 0;
+  const isMin = optVars.map(v => outputVarSelection[v] !== "maximize");
+  const front: number[] = [];
+  for (let i = 0; i < n; i += 1) {
+    let dominated = false;
+    for (let j = 0; j < n && !dominated; j += 1) {
+      if (i === j) continue;
+      let allAtLeastAsGood = true;
+      let someStrictlyBetter = false;
+      for (let k = 0; k < optVars.length; k += 1) {
+        const jVal = results[optVars[k]]?.[j] as number;
+        const iVal = results[optVars[k]]?.[i] as number;
+        if (isMin[k] ? jVal < iVal : jVal > iVal) someStrictlyBetter = true;
+        else if (jVal !== iVal) {
+          allAtLeastAsGood = false;
+          break;
+        }
+      }
+      if (allAtLeastAsGood && someStrictlyBetter) dominated = true;
+    }
+    if (!dominated) front.push(i);
+  }
+  return front;
 }
 
 export function MOGAPareto(props: MOGAParetoProps) {
@@ -267,6 +312,11 @@ export function MOGAPareto(props: MOGAParetoProps) {
       );
 
       const results = normalizeMogaResults(rawResults);
+      // B59wp (V49wp): the post-port wire carries value columns only — derive
+      // the front when the metadata is absent (flat unit payloads keep theirs).
+      if (results.nonDominatedIndices.length === 0) {
+        results.nonDominatedIndices = deriveNonDominatedIndices(results, localOptVars, OVS);
+      }
       const minMax = getMinMax(localOptVars, results);
       // console.info("MOGA results:", results);
       // console.log("localOptVars: ", localOptVars)
