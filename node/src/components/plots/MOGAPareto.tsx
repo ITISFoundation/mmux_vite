@@ -20,6 +20,7 @@ import { allPositive } from "../../utils/logDisplayValues";
 import { DisplayScaleToggle } from "./DisplayScaleToggle";
 import { MOGAPlotModal } from "./MOGAPlotModal";
 import { plotMarginsNarrow, plotMarginsMedium } from "./PlotTools";
+import { DownloadDataButton } from "./DownloadDataButton";
 
 interface MOGAParetoProps extends LoadingPropsType {
   setCalculating?: (value: boolean) => void;
@@ -70,6 +71,11 @@ export function MOGAPareto(props: MOGAParetoProps) {
   const { mogaSettings } = useMOGASettingsContext();
   const { weights } = useMOGATableContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
+  // T30ln(b) replay: the raw perform_moga_optimization response committed by
+  // the SAME guarded generation that painted the Pareto front (V45gd) and
+  // cleared with it on failure — the download exports exactly what this plot
+  // was computed from, never a re-fetch.
+  const [rawResponse, setRawResponse] = useState<unknown>(undefined);
   const [layout, setLayout] = useState<Partial<Plotly.Layout>>({});
   const [plotType, setPlotType] = useState<PlotConfig>();
   const [selectedOptVars, setSelectedOptVars] = useState<Array<string>>([]);
@@ -286,8 +292,9 @@ export function MOGAPareto(props: MOGAParetoProps) {
       };
       // V45gd: runMOGA pure-returns; the table/vars state commits happen in
       // the effect AFTER its staleness check, so a stale generation cannot
-      // overwrite a newer table + selected vars.
-      return { newTableData, localOptVars };
+      // overwrite a newer table + selected vars. The raw response rides along
+      // for the same reason: only the effect may commit it (download button).
+      return { newTableData, localOptVars, rawResponse: rawResults };
     },
     [
       mogaSettings,
@@ -485,16 +492,22 @@ export function MOGAPareto(props: MOGAParetoProps) {
         setPropagating(true);
         if (setCalculating) setCalculating(true);
         console.info("Fetching MOGA Pareto data...");
-        const { newTableData, localOptVars } = await runMOGA(jobs, outputTargets[selectedFunction.uid]);
+        const {
+          newTableData,
+          localOptVars,
+          rawResponse: rawMogaResponse,
+        } = await runMOGA(jobs, outputTargets[selectedFunction.uid]);
         if (isStale()) return;
         setSelectedOptVars(localOptVars);
         setTableData(newTableData);
+        setRawResponse(rawMogaResponse);
         await updatePlot(jobs, newTableData, plotType, localOptVars);
         setPropagating(false);
         if (setCalculating) setCalculating(false);
       } catch (error) {
         if (isStale()) return;
         setPropagating(false);
+        setRawResponse(undefined);
         if (setCalculating) setCalculating(false);
         console.error("Error fetching MOGA Pareto data:", error);
       }
@@ -624,6 +637,13 @@ export function MOGAPareto(props: MOGAParetoProps) {
                   label={selectedOptVars[2]}
                 />
               )}
+            </Box>
+            <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
+              <DownloadDataButton
+                data={rawResponse}
+                filename={`moga-pareto-${selectedFunction.uid}.json`}
+                testId="download-moga-data-btn"
+              />
             </Box>
           </Box>
           <MOGAPlotModal

@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MOGAPareto } from "./MOGAPareto";
 import { jsonResponse, stubFetch } from "../../test/fetchStub";
+import { captureBlobDownloads } from "../../test/downloadCapture";
 
 const mocks = vi.hoisted(() => ({
   filteredJobList: [] as Array<Record<string, unknown>>,
@@ -154,5 +155,59 @@ describe("MOGAPareto display-scale toggles (B53kq, V12)", () => {
     yToggle = within(document.querySelector('[mmux-testid="moga-pareto-display-scale-y"]') as HTMLElement);
     expect(yToggle.getByText("y2")).toBeInTheDocument();
     expect(layout().yaxis?.type).toBeUndefined();
+  });
+});
+
+describe("MOGAPareto raw-data download (T30ln(b) replay, fork issue #79)", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.spyOn(console, "debug").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const downloadButton = () =>
+    (document.querySelector('[mmux-testid="download-moga-data-btn"]') as HTMLElement).querySelector("button") as HTMLElement;
+
+  it("exports the optimization response the front was computed from, without any refetch", async () => {
+    mocks.filteredJobList = jobs("moga-dl", i => 100 + 10 * i);
+    const payload = mogaResults(Array.from({ length: 18 }, (_, i) => 100 + i));
+    const fetchMock = stubFetch(jsonResponse(payload));
+    const downloads = captureBlobDownloads();
+    render(<MOGAPareto {...props} />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+
+    fireEvent.click(downloadButton());
+
+    expect(downloads).toHaveLength(1);
+    expect(downloads[0].filename).toBe("moga-pareto-fn-1.json");
+    // verbatim: the raw backend payload, wrapper shape included — no client-side reshape
+    expect(JSON.parse(await downloads[0].text())).toEqual(payload);
+    expect(fetchMock).toHaveBeenCalledTimes(1); // ⊥ refetch on download
+  });
+
+  it("keeps a late-resolving older optimization out of the download (V45gd commit)", async () => {
+    mocks.filteredJobList = jobs("moga-dl-stale-a", i => 100 + 10 * i);
+    let resolveStale: (r: Response) => void = () => undefined;
+    const stale = () => new Promise<Response>(resolve => (resolveStale = resolve));
+    const newest = mogaResults(Array.from({ length: 18 }, (_, i) => 100 + i));
+    const fetchMock = stubFetch(stale, jsonResponse(newest));
+    const { rerender } = render(<MOGAPareto {...props} />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    // a fresh job selection supersedes generation 1; generation 2 resolves first
+    mocks.filteredJobList = jobs("moga-dl-stale-b", i => 200 + 10 * i);
+    rerender(<MOGAPareto {...props} />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+    await act(async () => resolveStale(jsonResponse(mogaResults(Array.from({ length: 18 }, (_, i) => 999 + i)))));
+
+    const downloads = captureBlobDownloads();
+    fireEvent.click(downloadButton());
+    expect(JSON.parse(await downloads[0].text())).toEqual(newest); // only the committed generation
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

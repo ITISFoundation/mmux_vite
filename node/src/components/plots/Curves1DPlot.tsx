@@ -15,6 +15,7 @@ import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
 import { useDisplayScale } from "../../utils/useDisplayScale";
 import { DisplayScaleToggle } from "./DisplayScaleToggle";
+import { DownloadDataButton } from "./DownloadDataButton";
 
 type GPPrediction = {
   x: number[];
@@ -54,6 +55,10 @@ function Curves1DPlots() {
     distribution,
   });
   const [plotData, setPlotData] = useState<Array<Data>>([]);
+  // T30ln(b) replay: the plot's own backend response, committed by the SAME
+  // generation as plotData (V45gd) and cleared with it on failure (V18/V23) —
+  // the download button never offers data that is not what the plot shows.
+  const [rawData, setRawData] = useState<unknown>(undefined);
   const [axis, setAxis] = useState(filteredInputVars[0]);
   const [propagating, setPropagating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
@@ -153,6 +158,7 @@ function Curves1DPlots() {
         if (isStale()) return;
         // Backend wraps the per-axis predictions under `predictions` (SumoAlongAxesResponse).
         createPlotData(data?.predictions);
+        setRawData(data);
         setPropagating(false);
         setErrorMessage(undefined);
       })
@@ -160,6 +166,7 @@ function Curves1DPlots() {
         if (isStale()) return;
         console.warn("SuMo Curves plot error: ", error);
         setPlotData([]);
+        setRawData(undefined);
         setPropagating(false);
         setErrorMessage(getErrorMessage(error));
       });
@@ -255,6 +262,13 @@ function Curves1DPlots() {
                 disabled={!canLog}
                 disabledReason="Predicted values include non-positive numbers; a log axis can't render them."
                 testId="sumo-1d-display-scale"
+              />
+            </Box>
+            <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
+              <DownloadDataButton
+                data={rawData}
+                filename={`curves1d-${selectedQoI}-vs-${axis}.json`}
+                testId="download-curves1d-data-btn"
               />
             </Box>
           </Box>

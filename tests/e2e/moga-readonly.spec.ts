@@ -12,7 +12,12 @@ import {
   fillUniformInputRanges,
   expectModelModalReady,
   expectPlotlyReady,
+  downloadAndParseJson,
 } from "./helpers";
+
+// The mock function's schema (mock_osparc/data.py): 4 inputs + the single
+// added objective "y" — the download payload must carry a column per variable.
+const INPUT_VARS = ["x1", "x2", "x3", "x4"];
 
 /**
  * MOGA (Multi-Objective Genetic Algorithm) READ-ONLY behavioral + pixel-snapshot
@@ -104,6 +109,36 @@ test("MOGA read-only optimization flow renders pareto front and inspect-model mo
 
   // Pixel baseline: the MOGA Pareto front with the real (deterministic) Plotly render.
   await expect(page).toHaveScreenshot("moga-readonly-pareto.png");
+
+  // Raw-data download button (T30ln(b) replay, fork issue #79; root V36ez):
+  // behavioral witness via the mmux-testid + payload shape below, pixel witness
+  // via the dedicated element baseline. The wire shape is the flaskapi §I
+  // contract: everything wrapped under `optimizationResults`, keyed by variable
+  // name (a preserved response subtree — original identifiers verbatim). The
+  // current itis_sumo engine reports the Pareto-optimal population columns
+  // only; there is NO non_dominated_indices key (the FE's destructured
+  // `nonDominatedIndices` can never be satisfied — fork issue #79 PR note).
+  const mogaDownload = (await downloadAndParseJson(
+    page,
+    "download-moga-data-btn",
+    `moga-pareto-${FUNCTION_UID}.json`,
+  )) as { optimizationResults: Record<string, number[]> };
+  const opt = mogaDownload.optimizationResults;
+  expect(opt, "results wrapped under optimizationResults (flaskapi §I)").toBeTruthy();
+  const columns = [...INPUT_VARS, "y"];
+  const frontLengths = columns.map(col => {
+    expect(opt[col], `${col} present`).toBeTruthy();
+    return opt[col].length;
+  });
+  expect(Math.min(...frontLengths), "every variable column carries the population").toBeGreaterThan(0);
+  expect(new Set(frontLengths).size, "all variable columns share one length").toBe(1);
+  // Mock formula (mock_osparc/data.py): y = 2*x1 + 0.3*x1² + 0.5*x2; the GP
+  // surrogate fits it near-exactly, so exported pairs must honor it loosely.
+  const mockY = (x1: number, x2: number) => 2 * x1 + 0.3 * x1 * x1 + 0.5 * x2;
+  for (let i = 0; i < opt.y.length; i++) {
+    expect(opt.y[i], `y[${i}] matches the mock formula`).toBeCloseTo(mockY(opt.x1[i], opt.x2[i]), 1);
+  }
+  await expect(page.locator('[mmux-testid="download-moga-data-btn"]')).toHaveScreenshot("moga-readonly-download-btn.png");
 
   // Pixel baseline: the per-objective log DISPLAY toggle in its triggered state
   // (V36ez). This scenario runs with ONE objective ⇒ the 1D iteration view, where

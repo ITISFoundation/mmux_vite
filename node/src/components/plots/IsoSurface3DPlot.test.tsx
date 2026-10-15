@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import IsoSurface3DPlot from "./IsoSurface3DPlot";
 import { jsonResponse, malformedJsonResponse, networkError, stubFetch, textResponse } from "../../test/fetchStub";
+import { captureBlobDownloads } from "../../test/downloadCapture";
 
 const jobs = Array.from({ length: 5 }, (_, i) => ({ uid: `job-${i}` }));
 
@@ -186,5 +187,45 @@ describe("IsoSurface3DPlot display-scale toggle (B53kq, V12)", () => {
     const toggle = within(document.querySelector('[mmux-testid="sumo-3d-display-scale"]') as HTMLElement);
     expect((toggle.getByRole("button", { name: "log" }) as HTMLButtonElement).disabled).toBe(true);
     expect(isosurface().value).toEqual([0, 10, 100]);
+  });
+});
+
+describe("IsoSurface3DPlot raw-data download (T30ln(b) replay, fork issue #79)", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const freshJobs = (tag: string) => Array.from({ length: 5 }, (_, i) => ({ uid: `job-${tag}-${i}` }));
+
+  it("exports the plot's own committed volume response without any refetch", async () => {
+    mocks.filteredJobList = freshJobs("3d-dl");
+    const payload = grid([1, 10, 100]);
+    const fetchMock = stubFetch(jsonResponse(payload));
+    const downloads = captureBlobDownloads();
+    render(<IsoSurface3DPlot />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+
+    const button = (document.querySelector('[mmux-testid="download-isosurface3d-data-btn"]') as HTMLElement).querySelector(
+      "button",
+    ) as HTMLElement;
+    fireEvent.click(button);
+
+    expect(downloads).toHaveLength(1);
+    expect(downloads[0].filename).toBe("isosurface3d-y-x1-x2-x3.json");
+    expect(JSON.parse(await downloads[0].text())).toEqual(payload);
+    expect(fetchMock).toHaveBeenCalledTimes(1); // ⊥ refetch on download (V46sc cache-read-only)
+  });
+
+  it("offers no download after a failed fetch", async () => {
+    mocks.filteredJobList = freshJobs("3d-dl-fail");
+    stubFetch(textResponse("bad volume", 422));
+    render(<IsoSurface3DPlot />);
+    expect(await screen.findByText(/failed/)).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="download-isosurface3d-data-btn"]')).toBeNull();
   });
 });
