@@ -235,3 +235,37 @@ class TestLocalModeGracefulDegradationForFunctionIdEndpoints:
         assert response.status_code == 200
         data = response.get_json()
         assert len(data) == 1
+
+
+class TestGetFunctionJobCollectionCountsLocal:
+    """Aggregate counts endpoint (ITISFoundation#498) obeys the same V15/V38 rules:
+    local functions always merge in, an unreachable backend degrades to local-only."""
+
+    def test_counts_include_local_functions(
+        self,
+        test_client,
+        patch_list_functions_success,
+        patch_list_function_job_collections_success,
+        local_function_and_collection,
+    ):
+        local_fun, _ = local_function_and_collection  # 1 local collection, 1 job
+        response = test_client.get("/flask/osparc/get_function_job_collection_counts")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data[local_fun["uid"]] == {"campaignCount": 1, "evaluationCount": 1}
+        # remote functions ride the shared collections mock (2 collections / 3 jobs)
+        assert data["func1"] == {"campaignCount": 2, "evaluationCount": 3}
+        assert len(data) == 4  # 3 remote + 1 local
+
+    def test_counts_degrade_gracefully_when_osparc_unreachable(
+        self, test_client, local_function_and_collection
+    ):
+        local_fun, _ = local_function_and_collection
+        with patch.dict("os.environ", {"DEPLOYMENT_MODE": "LOCAL"}):
+            with patch(
+                "mmux_flaskapi.blueprints.osparc.get_osparc_api_if_connected", return_value=None
+            ):
+                response = test_client.get("/flask/osparc/get_function_job_collection_counts")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data == {local_fun["uid"]: {"campaignCount": 1, "evaluationCount": 1}}

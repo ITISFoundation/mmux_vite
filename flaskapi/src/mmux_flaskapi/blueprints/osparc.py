@@ -310,6 +310,35 @@ def flask_get_function_job_collections_for_functionid():
     return job_collections, 200
 
 
+@osparc_bp.route("/get_function_job_collection_counts", methods=["GET"])
+@api_endpoint
+def flask_get_function_job_collection_counts():
+    """Aggregate {functionUid: {campaignCount, evaluationCount}} for EVERY function
+    (remote + local) in ONE response.
+
+    Replaces the function viewer's per-function `list_function_job_collections_for_functionid`
+    fan-out (O(N) browser requests per load, ITISFoundation#498) with a single request.
+    Counts are computed with the same merge/degrade skeletons as every other listing
+    (`_list_merged`/`_list_merged_for_parent`, flaskapi/SPEC.md V38), fully paginated
+    (V50tj), so an unreachable backend degrades to local-only counts instead of 500ing (V15).
+    """
+    counts: dict[str, dict[str, int]] = {}
+    for function in _list_merged(_FUNCTION_KIND):
+        function_uid = function["uid"]
+        job_collections = _list_merged_for_parent(
+            function_uid,
+            is_local_function_uid,
+            list_local_job_collections_for_function,
+            _fetch_remote_job_collections_for_function,
+        )
+        counts[function_uid] = {
+            "campaign_count": len(job_collections),
+            "evaluation_count": sum(len(jc.get("job_ids") or []) for jc in job_collections),
+        }
+    _logger.debug(f"Job collection counts for {len(counts)} functions")
+    return counts, 200
+
+
 ###########################################################################################
 ## Endpoints to get a single Job information (general info, status, outputs) from its UID
 ###########################################################################################
