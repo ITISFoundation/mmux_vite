@@ -82,12 +82,12 @@ Target naming: `make run-{develop|prod-local}-{sumo|uq|moga}-{read|write}` — m
 Notes:
 
 - The app (Caddy proxy) publishes on host port `8888` by default; if busy, `scripts/resolve-app-port.sh` picks the next free port (fallbacks 8889-8892) and the launcher prints the actual URL(s).
-- Under WSL2 the printed output distinguishes the shell-local `http://localhost:<port>` from the Windows-browser `http://<WSL-IP>:<port>`; Windows `localhost` on fallback ports needs `netsh interface portproxy` rules — see the next section.
+- Under WSL2 the printed output distinguishes the shell-local `http://localhost:<port>` from the Windows-browser `http://<WSL-IP>:<port>`; if Windows `localhost` fails on a fallback port while the WSL-IP URL works, see the portproxy workaround in the next section.
 - Dev launchers bind-mount `flaskapi/` and `node/` (container runs as your host UID/GID), so edits are served live — Vite HMR for the frontend, Flask debug reload for the backend.
 
 ### WSL2: Windows browser access on fallback ports
 
-Under WSL2, Docker publishes the app inside the WSL VM. `http://<WSL-IP>:<port>` always works from a Windows browser (the launcher prints it), but Windows `localhost` only reaches a fallback port (`8889`-`8892`) if Windows forwards that port into WSL — the built-in WSL localhost forwarding covers the default `8888`, not the fallbacks. The forwarding is managed with `netsh interface portproxy`, which only mutates rules from an **elevated** Command Prompt (cmd.exe "Run as administrator"; unprivileged `add`/`delete` is refused).
+Under WSL2, Windows localhost forwarding may already make the selected app port accessible, including fallback ports (`8889`-`8892`); it is not limited to `8888`. If `http://localhost:<port>` fails from a Windows browser but the launcher's `http://<WSL-IP>:<port>` URL works, the manual `netsh interface portproxy` workaround below can forward the port into WSL. Adding or deleting these rules requires an **elevated** Command Prompt (cmd.exe "Run as administrator"; unprivileged `add`/`delete` is refused).
 
 Manual flow in an elevated Command Prompt — show, delete stale, add, show — with `<WSL-IP>` set to the current WSL IP (the one the launcher prints, or the first address of `hostname -I` inside WSL):
 
