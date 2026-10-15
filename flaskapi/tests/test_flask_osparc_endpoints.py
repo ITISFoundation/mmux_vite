@@ -7,6 +7,7 @@ Different patches for osparc_client.api.functions_api.***Api.*** are provided, t
 from unittest.mock import patch
 
 import pytest
+from osparc_api_mocks import mock_list_function_job_collections_success
 
 pytestmark = pytest.mark.unit
 
@@ -398,6 +399,82 @@ class TestOsparcListFunctionJobCollectionsForFunctionId:
         response = test_client.get(
             "/flask/osparc/list_function_job_collections_for_functionid?functionUid=func1"
         )
+        assert response.status_code == 422
+        data = response.get_json()
+        assert "error" in data
+        assert "422" in data["error"]
+
+
+###########################################################################################
+## Aggregate counts endpoint: /osparc/get_function_job_collection_counts
+## (one request replaces the function viewer's per-function fan-out, ITISFoundation#498)
+###########################################################################################
+
+
+class TestOsparcGetFunctionJobCollectionCounts:
+    def test_counts_for_all_functions_in_one_request(
+        self,
+        test_client,
+        patch_list_functions_success,
+        patch_list_function_job_collections_success,
+    ):
+        """ONE request returns {functionUid: {campaignCount, evaluationCount}} for EVERY
+        function — the property that kills the FE N+1 fan-out. The shared collections
+        mock serves 2 collections (job_ids total 3) to each of the 3 mocked functions."""
+        response = test_client.get("/flask/osparc/get_function_job_collection_counts")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data == {
+            uid: {"campaignCount": 2, "evaluationCount": 3} for uid in ("func1", "func2", "func-3")
+        }
+
+    def test_counts_paginate_beyond_default_first_page(
+        self,
+        test_client,
+        patch_list_functions_success,
+        patch_list_function_job_collections_paged,
+    ):
+        """V51 (on V50tj's pagination): counts ride `_get_all_items`, so the server
+        default page (20) must not cap them — 25 collections, 25 evaluations."""
+        response = test_client.get("/flask/osparc/get_function_job_collection_counts")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data) == 3
+        assert all(
+            counts == {"campaignCount": 25, "evaluationCount": 25} for counts in data.values()
+        )
+
+    def test_counts_upstream_volume_grows_with_functions_not_collections(
+        self, test_client, patch_list_functions_success
+    ):
+        """Slice-B contract pin (ITISFoundation#498): per remote function the endpoint
+        makes probe + pages = 2 upstream collection calls, each properly filtered —
+        independent of the total collection count. Option A (job-join) replaces this
+        O(functions) upstream loop; if this number starts growing quadratically, STOP."""
+        calls: list[dict] = []
+
+        def counting(*args, **kwargs):
+            calls.append(kwargs)
+            return mock_list_function_job_collections_success(*args, **kwargs)
+
+        with patch(
+            "osparc_client.api.function_job_collections_api."
+            "FunctionJobCollectionsApi.list_function_job_collections",
+            side_effect=counting,
+        ):
+            response = test_client.get("/flask/osparc/get_function_job_collection_counts")
+
+        assert response.status_code == 200
+        assert len(calls) == 3 * 2  # 3 mocked functions x (limit=1 probe + one page)
+        assert all(kwargs.get("has_function_id") for kwargs in calls)
+
+    def test_counts_propagate_downstream_error(
+        self,
+        test_client,
+        patch_list_functions_success,
+        patch_list_function_job_collections_422,
+    ):
+        response = test_client.get("/flask/osparc/get_function_job_collection_counts")
         assert response.status_code == 422
         data = response.get_json()
         assert "error" in data
