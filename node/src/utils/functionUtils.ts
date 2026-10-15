@@ -115,6 +115,20 @@ export async function getFunctionJobCollections(functionUid: string): Promise<Re
   );
 }
 
+// Aggregate campaign/evaluation counts for ALL functions in ONE request, replacing
+// FunctionList's historical one-request-per-function getFunctionJobCollections fan-out
+// (node/SPEC.md V49, ITISFoundation#498). Keys are function uids (uuid/local-prefixed,
+// never snake_case), so uid keys survive normalizePayloadToCamelCase untouched.
+export type FunctionJobCollectionCounts = {
+  [functionUid: string]: { campaignCount: number; evaluationCount: number };
+};
+
+export async function getFunctionJobCollectionCounts(): Promise<FunctionJobCollectionCounts> {
+  return normalizePayloadToCamelCase<FunctionJobCollectionCounts>(
+    await requestJson(`/flask/osparc/get_function_job_collection_counts`, { retry: true }),
+  );
+}
+
 export async function getFunctionJobsFromFunctionJobCollection(jobCollectionUid: string): Promise<OsparcFunctionJob[]> {
   return normalizePayloadToCamelCase<OsparcFunctionJob[]>(
     await requestJson(`/flask/osparc/list_function_jobs_for_jobcollectionid?JobCollectionUid=${jobCollectionUid}`, {

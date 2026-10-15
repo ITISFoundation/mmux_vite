@@ -12,7 +12,7 @@ import {
   RegisteredPythonCodeFunction,
 } from "osparc-api-ts-client";
 import { RegisteredFunction } from "../../context/types";
-import { listFunctions, getFunctionJobCollections } from "../../utils/functionUtils";
+import { listFunctions, getFunctionJobCollectionCounts } from "../../utils/functionUtils";
 import { HelpContents } from "../navigation/TutorialManualLinks";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useSamplingContext } from "../../context/SamplingContext";
@@ -51,23 +51,6 @@ export function FunctionList() {
   const [jobCount, setJobCount] = useState<{ [key: string]: number }>({});
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: "include", ids: new Set() });
 
-  const fetchJobJobCollectionCount = async (fun: RegisteredFunction) => {
-    try {
-      const jcs = await getFunctionJobCollections(fun.uid);
-      const jobColCount = jcs.length;
-      const JobCount = jcs.map(jc => (jc.jobIds ? jc.jobIds.length : 0)).reduce((a, b) => a + b, 0);
-      return {
-        "Function Uid": fun.uid,
-        "Job Collection Count": jobColCount,
-        "Job Count": JobCount,
-      };
-    } catch (err) {
-      console.warn("Error fetching job count for Function ", fun.uid);
-      console.error(err);
-    }
-    return undefined;
-  };
-
   const fetchFunctions = async (): Promise<RegisteredFunction[]> => {
     let funs: RegisteredFunction[] = [];
     try {
@@ -77,17 +60,25 @@ export function FunctionList() {
       if (funs.length === 0) {
         toast.info("No functions available. Please create a function first.");
       } else {
-        const fetchedCounts = await Promise.all(funs.map(fun => fetchJobJobCollectionCount(fun)));
-        const jcCount: { [key: string]: number } = {};
-        const jCount: { [key: string]: number } = {};
-        fetchedCounts.forEach(item => {
-          if (item) {
-            jcCount[item["Function Uid"]] = item["Job Collection Count"];
-            jCount[item["Function Uid"]] = item["Job Count"];
-          }
-        });
-        setJobCollectionCount(jcCount);
-        setJobCount(jCount);
+        // ONE aggregate request for every row's counts — a deliberate replacement of the
+        // historical Promise.all fan-out of one getFunctionJobCollections call per
+        // function (request volume must not grow with the function count; node/SPEC.md
+        // V49, ITISFoundation#498).
+        try {
+          const counts = await getFunctionJobCollectionCounts();
+          const jcCount: { [key: string]: number } = {};
+          const jCount: { [key: string]: number } = {};
+          Object.entries(counts).forEach(([functionUid, { campaignCount, evaluationCount }]) => {
+            jcCount[functionUid] = campaignCount;
+            jCount[functionUid] = evaluationCount;
+          });
+          setJobCollectionCount(jcCount);
+          setJobCount(jCount);
+        } catch (err) {
+          // Parity with the old per-row partial-failure semantics: rows keep rendering
+          // "Loading..." instead of failing the whole function list.
+          console.warn("Error fetching job collection counts for functions:", err);
+        }
       }
       setError(false);
     } catch (err) {
@@ -221,7 +212,6 @@ export function FunctionList() {
     (async () => {
       await fetchFunctions();
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
