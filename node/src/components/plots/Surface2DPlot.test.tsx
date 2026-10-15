@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { captureBlobDownloads } from "../../test/downloadCapture";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Surface2DPlot from "./Surface2DPlot";
 import { jsonResponse, malformedJsonResponse, networkError, stubFetch, textResponse } from "../../test/fetchStub";
@@ -416,5 +417,48 @@ describe("Surface2DPlot grid scales, degenerate selections and superseded failur
       [7, 8],
       [9, 10],
     ]);
+  });
+});
+
+describe("Surface2DPlot raw-data download (T30ln(b) replay, fork issue #79)", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const freshJobs = (tag: string) => Array.from({ length: 5 }, (_, i) => ({ uid: `job-${tag}-${i}` }));
+
+  it("exports the plot's own committed grid response without any refetch", async () => {
+    mocks.filteredJobList = freshJobs("2d-dl");
+    const payload = grid([
+      [1, 2],
+      [3, 4],
+    ]);
+    const fetchMock = stubFetch(jsonResponse(payload));
+    const downloads = captureBlobDownloads();
+    render(<Surface2DPlot />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+
+    const button = (document.querySelector('[mmux-testid="download-surface2d-data-btn"]') as HTMLElement).querySelector(
+      "button",
+    ) as HTMLElement;
+    fireEvent.click(button);
+
+    expect(downloads).toHaveLength(1);
+    expect(downloads[0].filename).toBe("surface2d-y-x1-x2.json");
+    expect(JSON.parse(await downloads[0].text())).toEqual(payload);
+    expect(fetchMock).toHaveBeenCalledTimes(1); // ⊥ refetch on download (V46sc cache-read-only)
+  });
+
+  it("offers no download after a failed fetch", async () => {
+    mocks.filteredJobList = freshJobs("2d-dl-fail");
+    stubFetch(textResponse("bad grid", 422));
+    render(<Surface2DPlot />);
+    expect(await screen.findByText(/failed/)).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="download-surface2d-data-btn"]')).toBeNull();
   });
 });
