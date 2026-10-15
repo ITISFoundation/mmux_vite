@@ -13,7 +13,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -71,28 +71,28 @@ class TestMainEntrypoint:
             assert hasattr(main.app, "config")
             assert hasattr(main.app, "blueprints")
 
-    def test_main_module_logging_configuration(self):
-        """Test that main.py configures logging correctly."""
-        with patch("logging.basicConfig") as mock_basic_config:
-            with patch("logging.getLogger") as mock_get_logger:
-                mock_logger = Mock()
-                mock_get_logger.return_value = mock_logger
+    def test_main_module_logging_configuration(self, capsys):
+        """Test that main.py configures central logging on import."""
+        with patch.dict(os.environ, TEST_ENV | {"LOG_LEVEL": "INFO"}):
+            if "main" in sys.modules:
+                importlib.reload(sys.modules["main"])
+            else:
+                import main  # noqa: F401
 
-                with patch.dict(os.environ, TEST_ENV):
-                    # Force reload of main module to test logging setup
-                    if "main" in sys.modules:
-                        importlib.reload(sys.modules["main"])
-                    else:
-                        pass
+        # Central init (V50tl): root logger driven by LOG_LEVEL, single stdout
+        # StreamHandler, no FileHandler — effective even though pytest's root
+        # already carries handlers (the gunicorn no-op class, B59tl).
+        stdout_handlers = [
+            h
+            for h in logging.root.handlers
+            if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+        ]
+        assert len(stdout_handlers) == 1
+        assert logging.root.level == logging.INFO
+        assert [h for h in logging.root.handlers if isinstance(h, logging.FileHandler)] == []
 
-                # Verify basicConfig was called with INFO level
-                mock_basic_config.assert_called_with(level=logging.INFO)
-
-                # Verify logger was created - checking that it was called (might be called for other modules too)
-                assert mock_get_logger.called, "getLogger should have been called"
-
-                # Verify startup message was logged
-                mock_logger.info.assert_called_with("Flask API started!")
+        # Startup banner reached stdout (not the removed basicConfig INFO hack).
+        assert "Flask API started!" in capsys.readouterr().out
 
     def test_main_module_app_has_required_blueprints(self):
         """Test that the created app has the expected blueprints registered."""
