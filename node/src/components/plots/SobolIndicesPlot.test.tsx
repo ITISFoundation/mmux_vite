@@ -361,7 +361,7 @@ describe("SobolIndicesPlot request payload", () => {
 
     const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
     expect(body.seed).toBe(9); // the stored numSamples (4321) ⊥ reaches this wire — see the fresh-state guard
-    expect(body.distributions).toEqual({ x1: { scale: "log" }, x2: { scale: "linear" } });
+    expect(body).not.toHaveProperty("distributions"); // V50/B60vw: distribution vocabulary ⊥ this wire
     expect(body.inputLogScales).toEqual({ x1: true, x2: false }); // scale === "log" drives the flag
     expect(body.outputLogScales).toEqual({ y: false });
   });
