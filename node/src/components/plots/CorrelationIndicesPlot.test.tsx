@@ -1,7 +1,8 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CorrelationIndicesPlot from "./CorrelationIndicesPlot";
-import { jsonResponse, stubFetch } from "../../test/fetchStub";
+import { jsonResponse, stubFetch, textResponse } from "../../test/fetchStub";
+import { captureBlobDownloads } from "../../test/downloadCapture";
 
 const mocks = vi.hoisted(() => ({
   filteredJobList: [] as Array<{ uid: string }>,
@@ -79,5 +80,50 @@ describe("CorrelationIndicesPlot fetch freshness (V45gd)", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     const body = JSON.parse((fetchMock.mock.calls[1][1] as RequestInit).body as string);
     expect(body.outputLogScales).toEqual({ y: true }); // refetch carries the scale
+  });
+});
+
+describe("CorrelationIndicesPlot raw-data download (T30ln(b) sweep, fork issue #79)", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("exports the FULL resolved response (wrapper included) without any refetch", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `dl-job-${i}` }));
+    mocks.selectedQoI = "y-dl";
+    mocks.contextValue.outputLogScales = {};
+    const payload = corrPayload([0.6, -0.4]);
+    const fetchMock = stubFetch(jsonResponse(payload));
+    const downloads = captureBlobDownloads();
+
+    render(<CorrelationIndicesPlot viewMode="pearson" scaleType="linear" />);
+    await waitFor(() => expect(firstBarY()).toEqual([0.6, -0.4]));
+
+    const button = (document.querySelector('[mmux-testid="download-correlation-data-btn"]') as HTMLElement).querySelector(
+      "button",
+    ) as HTMLElement;
+    fireEvent.click(button);
+
+    expect(downloads).toHaveLength(1);
+    expect(downloads[0].filename).toBe("correlation-y-dl.json");
+    // verbatim: the {correlations:{...}} wrapper survives — NOT a correlations-only slice
+    expect(JSON.parse(await downloads[0].text())).toEqual(payload);
+    expect(fetchMock).toHaveBeenCalledTimes(1); // ⊥ refetch on click (V46sc cache-read)
+  });
+
+  it("offers no download after a failed fetch", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `dl-fail-job-${i}` }));
+    mocks.selectedQoI = "y-dl-fail";
+    stubFetch(textResponse("bad correlations", 422));
+
+    render(<CorrelationIndicesPlot viewMode="pearson" scaleType="linear" />);
+    expect(await screen.findByText(/failed/)).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="download-correlation-data-btn"]')).toBeNull();
   });
 });

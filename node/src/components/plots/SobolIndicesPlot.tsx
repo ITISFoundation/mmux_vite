@@ -18,6 +18,7 @@ import { buildSobolHeatmapData, fetchSobolIndices } from "../../utils/sobolIndic
 import { getErrorMessage } from "../../utils/httpError";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
+import { DownloadDataButton } from "./DownloadDataButton";
 
 export type SobolViewMode = "first-order" | "total-order" | "second-order";
 
@@ -251,7 +252,16 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
           numInputVars={inputVars.length}
         />
       )}
-      {!computing && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+      {!computing && plotData.length !== 0 && (
+        <Box sx={{ position: "relative", width: "100%" }}>
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+          {/* T30ln(b) sweep: sobolData IS the full resolved response (main/total +
+              CIs + second-order matrix) — download exports it verbatim, cache-read. */}
+          <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
+            <DownloadDataButton data={sobolData} filename={`sobol-${selectedQoI}.json`} testId="download-sobol-data-btn" />
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 }

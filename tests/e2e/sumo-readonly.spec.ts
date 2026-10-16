@@ -163,6 +163,27 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(page).toHaveScreenshot("sumo-readonly-validation-log.png");
   await validationScale.getByRole("button", { name: "linear" }).click();
 
+  // Raw-data download inside the validation modal (T53st sweep, fork issue #79; root V36ez):
+  // {observed, predicted} is the CV response behind BOTH the violins and the MAE/RMSE metrics —
+  // the chip lives bottom-right because the in-plot legend pins the top-right corner here.
+  const cvDownload = (await downloadAndParseJson(
+    page,
+    "download-validation-data-btn",
+    "sumo-validation-y.json",
+  )) as { observed: number[]; predicted: number[] };
+  expect(cvDownload.observed.length, "observed samples present").toBeGreaterThan(0);
+  expect(cvDownload.predicted, "predicted length mirrors observed").toHaveLength(cvDownload.observed.length);
+  cvDownload.observed.forEach((value, i) => {
+    expect(Number.isFinite(value), `observed[${i}] finite`).toBe(true);
+    expect(Number.isFinite(cvDownload.predicted[i]), `predicted[${i}] finite`).toBe(true);
+    // The surrogate interpolates the deterministic mock samples almost exactly (the metrics row
+    // shows MAE ~1e-10), so predictions must track observations.
+    expect(cvDownload.predicted[i], `predicted[${i}] tracks observed[${i}]`).toBeCloseTo(value, 1);
+  });
+  await expect(page.locator('[mmux-testid="download-validation-data-btn"]')).toHaveScreenshot(
+    "sumo-readonly-download-validation-btn.png",
+  );
+
   await page.keyboard.press("Escape");
   await expect(modal).toBeHidden({ timeout: VIEW_TIMEOUT });
 
