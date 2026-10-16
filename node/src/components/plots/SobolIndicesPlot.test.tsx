@@ -1,9 +1,10 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { logColorbarTicks } from "../../utils/plotScale";
 import { buildSobolBarData, buildSobolHeatmapData } from "../../utils/sobolIndices";
 import SobolIndicesPlot from "./SobolIndicesPlot";
-import { jsonResponse, stubFetch } from "../../test/fetchStub";
+import { jsonResponse, stubFetch, textResponse } from "../../test/fetchStub";
+import { captureBlobDownloads } from "../../test/downloadCapture";
 
 vi.mock("../../utils/sobolIndices", async importOriginal => {
   const mod = await importOriginal<typeof import("../../utils/sobolIndices")>();
@@ -182,5 +183,49 @@ describe("SobolIndicesPlot fetch freshness (V45gd)", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     const body = JSON.parse((fetchMock.mock.calls[1][1] as RequestInit).body as string);
     expect(body.outputLogScales).toEqual({ y: true }); // refetch carries the scale
+  });
+});
+
+describe("SobolIndicesPlot raw-data download (T30ln(b) sweep, fork issue #79)", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("exports the full indices response (main/total + CIs) without any refetch", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `dl-job-${i}` }));
+    mocks.selectedQoI = "y-dl";
+    mocks.contextValue.outputLogScales = {};
+    const payload = sobolPayload([0.6, 0.4], [0.9, 0.7]);
+    const fetchMock = stubFetch(jsonResponse(payload));
+    const downloads = captureBlobDownloads();
+
+    render(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+    await waitFor(() => expect(firstOrderY()).toEqual([0.6, 0.4]));
+
+    const button = (document.querySelector('[mmux-testid="download-sobol-data-btn"]') as HTMLElement).querySelector(
+      "button",
+    ) as HTMLElement;
+    fireEvent.click(button);
+
+    expect(downloads).toHaveLength(1);
+    expect(downloads[0].filename).toBe("sobol-y-dl.json");
+    expect(JSON.parse(await downloads[0].text())).toEqual(payload);
+    expect(fetchMock).toHaveBeenCalledTimes(1); // ⊥ refetch on click (V46sc cache-read)
+  });
+
+  it("offers no download after a failed fetch", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `dl-fail-job-${i}` }));
+    mocks.selectedQoI = "y-dl-fail";
+    stubFetch(textResponse("bad sobol", 422));
+
+    render(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+    expect(await screen.findByText(/failed/)).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="download-sobol-data-btn"]')).toBeNull();
   });
 });
