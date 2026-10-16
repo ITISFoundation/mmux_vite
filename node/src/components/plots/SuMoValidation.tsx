@@ -19,6 +19,7 @@ import { getErrorMessage } from "../../utils/httpError";
 import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 import { useDisplayScale } from "../../utils/useDisplayScale";
 import { DisplayScaleToggle } from "./DisplayScaleToggle";
+import { DownloadDataButton } from "./DownloadDataButton";
 
 function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: string }) {
   const theme = useTheme();
@@ -52,6 +53,10 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
   useAutoDetectQoiScale(validationQoI ? [validationQoI] : undefined);
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
+  // T30ln(b) sweep: the FULL {observed,predicted,...} CV response this
+  // generation committed — the download exports it verbatim so users can
+  // re-derive MAE/RMSE or re-plot the violins themselves (V46sc cache-read).
+  const [cvRawResponse, setCvRawResponse] = useState<unknown>(undefined);
   const [plotData, setPlotData] = useState<Partial<Plotly.ViolinData>[]>([]);
   const [propagating, setPropagating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
@@ -131,12 +136,14 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
 
     if (!jobs || jobs.length < 5) {
       setCvMetrics(undefined);
+      setCvRawResponse(undefined);
       setPlotData([]);
       setPropagating(false);
       return;
     }
 
     setCvMetrics(undefined);
+    setCvRawResponse(undefined);
     setPlotData([]);
     setPropagating(true);
     setErrorMessage(undefined);
@@ -163,6 +170,9 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
           throw new Error(`Error running SuMo Validation: ${response?.error}`);
         } else {
           createDataAndMetrics(response as unknown as { [key: string]: number[] });
+          // only a response that actually produced the painted violins may be
+          // downloaded (createDataAndMetrics throws on a missing series)
+          setCvRawResponse(response);
           setPropagating(false);
           setErrorMessage(undefined);
         }
@@ -172,6 +182,7 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
         console.warn("Error:", error);
         setPropagating(false);
         setPlotData([]);
+        setCvRawResponse(undefined);
         setCvMetrics(undefined);
         setErrorMessage(getErrorMessage(error));
       });
@@ -268,6 +279,16 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
               disabled={!canLog}
               disabledReason="Values include non-positive samples; a log axis can't render them."
               testId="sumo-validation-display-scale"
+            />
+          </Box>
+          {/* BOTTOM-right, not the usual top-right: the legend is pinned to the
+              plot's top-right corner (layout legend x:1 y:1), so the chip goes
+              to the one corner the plot leaves empty. */}
+          <Box sx={{ position: "absolute", bottom: 8, right: 8, zIndex: 1 }}>
+            <DownloadDataButton
+              data={cvRawResponse}
+              filename={`sumo-validation-${validationQoI}.json`}
+              testId="download-validation-data-btn"
             />
           </Box>
         </Box>
