@@ -51,7 +51,13 @@ vi.mock("../../context/JobContext", () => ({
 }));
 
 vi.mock("../data/UploadJobCollectionButton", () => ({
-  default: () => <button type="button">Upload Data</button>,
+  // clicking fires the success callback (the V13 upload→refresh path) so tests can
+  // drive a post-upload re-fetch — see the stale-counts refresh test
+  default: ({ onUploadSuccess }: { onUploadSuccess: (r: { targetFunctionUid: string }) => void }) => (
+    <button type="button" onClick={() => onUploadSuccess({ targetFunctionUid: "function-1" })}>
+      Upload Data
+    </button>
+  ),
 }));
 
 vi.mock("../navigation/TutorialManualLinks", () => ({
@@ -64,12 +70,20 @@ vi.mock("@mui/x-data-grid", () => ({
   DataGrid: (props: {
     rows: Array<{ uid: string; title: string; description: string; inputSchema: unknown; outputSchema: unknown }>;
     onRowSelectionModelChange: (model: { ids: Set<string> }) => void;
+    columns?: Array<{ renderCell?: (p: { row: Record<string, unknown> }) => React.ReactNode }>;
   }) => (
     <div>
       {props.rows.map(row => (
-        <button type="button" key={row.uid} onClick={() => props.onRowSelectionModelChange({ ids: new Set([row.uid]) })}>
-          Select {row.title}
-        </button>
+        <div key={row.uid}>
+          <button type="button" onClick={() => props.onRowSelectionModelChange({ ids: new Set([row.uid]) })}>
+            Select {row.title}
+          </button>
+          {/* cells run through renderCell so count-pinned state (Loading... vs
+              Campaigns: n) is assertable — see the stale-counts refresh test */}
+          {props.columns?.map((col, i) => (
+            <span key={i}>{col.renderCell?.({ row } as never)}</span>
+          ))}
+        </div>
       ))}
     </div>
   ),
@@ -159,5 +173,25 @@ describe("FunctionList", () => {
 
     expect(await screen.findByRole("button", { name: "Select Demo Function" })).toBeInTheDocument();
     expect(screen.queryByText(/Error fetching functions from the server/)).toBeNull();
+  });
+
+  // Copilot #739: a REFRESH whose counts request fails must clear the previous aggregate —
+  // rows fall back to "Loading...", ⊥ silently keeping stale totals over new imports.
+  it("clears stale counts back to Loading... when a refresh's counts request fails after a success", async () => {
+    vi.mocked(listFunctions).mockResolvedValue([functionFixture]);
+    vi.mocked(getFunctionJobCollectionCounts)
+      .mockResolvedValueOnce({ "function-1": { campaignCount: 2, evaluationCount: 5 } })
+      .mockRejectedValueOnce(new Error("counts unavailable"));
+
+    render(<FunctionList />);
+    await screen.findByRole("button", { name: "Select Demo Function" });
+    await waitFor(() => expect(screen.getByText("Campaigns: 2 (5 total evaluations)")).toBeInTheDocument());
+
+    // the V13 CSV-upload path re-runs fetchFunctions() — its counts leg now fails
+    fireEvent.click(screen.getByRole("button", { name: "Upload Data" }));
+    await waitFor(() => expect(getFunctionJobCollectionCounts).toHaveBeenCalledTimes(2));
+
+    expect(screen.queryByText("Campaigns: 2 (5 total evaluations)")).toBeNull();
+    expect(await screen.findByText("Loading...")).toBeInTheDocument();
   });
 });
