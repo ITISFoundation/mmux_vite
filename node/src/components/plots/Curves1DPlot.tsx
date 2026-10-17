@@ -264,13 +264,18 @@ function Curves1DPlots() {
                 testId="sumo-1d-display-scale"
               />
             </Box>
-            <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
-              <DownloadDataButton
-                data={rawData}
-                filename={`curves1d-${selectedQoI}-vs-${axis}.json`}
-                testId="download-curves1d-data-btn"
-              />
-            </Box>
+            {/* ⊥ download while re-propagating (Copilot #741): the stale plot keeps rendering
+                during a QoI/axis refetch, so the button would export OLD rawData under a NEW
+                selection-derived filename — payload and filename must agree */}
+            {!propagating && (
+              <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
+                <DownloadDataButton
+                  data={rawData}
+                  filename={`curves1d-${selectedQoI}-vs-${axis}.json`}
+                  testId="download-curves1d-data-btn"
+                />
+              </Box>
+            )}
           </Box>
         )}
       </Box>
