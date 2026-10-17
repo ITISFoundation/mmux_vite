@@ -24,8 +24,14 @@ beforeEach(() => {
 
 describe("UQSettingsModal", () => {
   it("renders nothing while closed", () => {
-    render(<UQSettingsModal open={false} setOpen={vi.fn()} />);
-    expect(screen.queryByTestId("uq-settings-modal")).toBeNull();
+    // The modal marks itself with the app's custom `mmux-testid` attribute (UQSettingsModal.tsx:45),
+    // which RTL's queryByTestId (data-testid) cannot see — query the attribute it actually renders.
+    // The open dialog portals to document.body (outside RTL's container), so query at document
+    // level, and prove presence-when-open so the closed-state null is a real regression detector.
+    const { rerender } = render(<UQSettingsModal open={false} setOpen={vi.fn()} />);
+    expect(document.querySelector('[mmux-testid="uq-settings-modal"]')).toBeNull();
+    rerender(<UQSettingsModal open setOpen={vi.fn()} />);
+    expect(document.querySelector('[mmux-testid="uq-settings-modal"]')).toBeInTheDocument();
   });
 
   it("seeds defaults for a function without stored settings", () => {
