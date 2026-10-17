@@ -267,6 +267,29 @@ describe("Curves1DPlot raw-data download (T30ln(b) replay, fork issue #79)", () 
     expect(JSON.parse(await downloads[0].text())).toEqual(newest); // only the committed generation
   });
 
+  it("hides the download while a selection change is still propagating (payload↔filename agreement)", async () => {
+    mocks.filteredJobList = freshJobs("1d-dl-pending");
+    let resolveNext: (r: Response) => void = () => undefined;
+    const fetchMock = stubFetch(
+      jsonResponse(predictions([1, 2])),
+      () => new Promise<Response>(resolve => (resolveNext = resolve)),
+    );
+    render(<Curves1DPlots />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+    expect(document.querySelector('[mmux-testid="download-curves1d-data-btn"]')).toBeInTheDocument();
+
+    await waitFor(() => expect(mocks.setOtherAxis).toBeDefined());
+    act(() => mocks.setOtherAxis?.({ x1: 0, x2: 2.5 })); // refetch starts; the stale curve keeps rendering
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    // Copilot #741: clicking here used to export the OLD payload under curves1d-y-vs-x2-style
+    // names — while pending, the export is gone even though the plot is not
+    expect(screen.getByTestId("plotly")).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="download-curves1d-data-btn"]')).toBeNull();
+
+    await act(async () => resolveNext(jsonResponse(predictions([7, 8]))));
+    await waitFor(() => expect(document.querySelector('[mmux-testid="download-curves1d-data-btn"]')).toBeInTheDocument());
+  });
+
   it("offers no download after a failed fetch", async () => {
     mocks.filteredJobList = freshJobs("1d-dl-fail");
     stubFetch(new Response("bad curve", { status: 422 }));

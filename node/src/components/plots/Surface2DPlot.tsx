@@ -245,13 +245,16 @@ function Surface2DPlot() {
                 testId="sumo-2d-display-scale"
               />
             </Box>
-            <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
-              <DownloadDataButton
-                data={rawData}
-                filename={`surface2d-${selectedQoI}-${axis1}-${axis2}.json`}
-                testId="download-surface2d-data-btn"
-              />
-            </Box>
+            {/* ⊥ download while propagating — payload↔filename agreement (see Curves1DPlot) */}
+            {!propagating && (
+              <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
+                <DownloadDataButton
+                  data={rawData}
+                  filename={`surface2d-${selectedQoI}-${axis1}-${axis2}.json`}
+                  testId="download-surface2d-data-btn"
+                />
+              </Box>
+            )}
           </Box>
         )}
       </Box>

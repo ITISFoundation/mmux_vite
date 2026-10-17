@@ -454,6 +454,43 @@ describe("Surface2DPlot raw-data download (T30ln(b) replay, fork issue #79)", ()
     expect(fetchMock).toHaveBeenCalledTimes(1); // ⊥ refetch on download (V46sc cache-read-only)
   });
 
+  it("hides the download while a selection change is still propagating (payload↔filename agreement)", async () => {
+    mocks.filteredJobList = freshJobs("2d-dl-pending");
+    let resolveNext: (r: Response) => void = () => undefined;
+    const fetchMock = stubFetch(
+      jsonResponse(
+        grid([
+          [1, 2],
+          [3, 4],
+        ]),
+      ),
+      () => new Promise<Response>(resolve => (resolveNext = resolve)),
+    );
+    render(<Surface2DPlot />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+    expect(document.querySelector('[mmux-testid="download-surface2d-data-btn"]')).toBeInTheDocument();
+
+    await waitFor(() => expect(mocks.setOtherAxis).toBeDefined());
+    act(() => mocks.setOtherAxis?.({ x1: 0, x2: 0, x3: 5.5 })); // refetch starts; the stale surface stays
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    // Copilot #741: an axis swap renamed the export (…-x1-x3.json) while the OLD x1/x2
+    // grid was still the only payload — while pending, the export is gone
+    expect(screen.getByTestId("plotly")).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="download-surface2d-data-btn"]')).toBeNull();
+
+    await act(async () =>
+      resolveNext(
+        jsonResponse(
+          grid([
+            [5, 6],
+            [7, 8],
+          ]),
+        ),
+      ),
+    );
+    await waitFor(() => expect(document.querySelector('[mmux-testid="download-surface2d-data-btn"]')).toBeInTheDocument());
+  });
+
   it("offers no download after a failed fetch", async () => {
     mocks.filteredJobList = freshJobs("2d-dl-fail");
     stubFetch(textResponse("bad grid", 422));
