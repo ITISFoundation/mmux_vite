@@ -5,9 +5,7 @@ import { getCachedOrFetch } from "../api/sessionResponseCache";
 export type FetchSobolIndicesParams = {
   inputVars: string[];
   output: string | undefined;
-  distributions: InputVarSelection;
   functionJobs: OsparcFunctionJob[];
-  numSamples: number;
   seed?: number;
   inputLogScales?: { [varName: string]: boolean };
   outputLogScale?: boolean;
@@ -17,18 +15,25 @@ export type FetchSobolIndicesParams = {
  * Fetch per-input first-order (main effect) and total-order Sobol' sensitivity
  * indices plus pairwise second-order indices from the backend, computed via
  * scipy on a surrogate model built from the completed jobs.
+ *
+ * ROOT #84 (auto-derived sampling limits, DOMAIN ⊥ DISTRIBUTION): the Sobol'
+ * exploration box is DOMAIN vocabulary owned by itis-sumo — `domains`/`fixed`
+ * are OPTIONAL, and omitted boxes are auto-inferred from the OBSERVED sample
+ * bounds (a column constant in the samples becomes a fixed factor; draws are
+ * uniform across the box, log-uniform under a log-scale flag). The Saltelli
+ * sample count is fixed inside the engine (V36). Modeller distributions are
+ * NOT an input here — they drive the uncertainty propagation, never this
+ * endpoint. So the body carries ONLY jobs + inputVars/output + seed + scale
+ * maps: `domains`/`fixed` would re-derive a box in the FE (exactly what the
+ * removed bounds-editor `buildSobolBounds`, PRs #698/#711/#56, got wrong),
+ * and `distributions`/`numSamples` are GONE from the backend contract
+ * (SobolIndicesRequest) — they were tolerated extra keys that only polluted
+ * the V46sc cache key (a distribution/numSamples edit was a guaranteed cache
+ * MISS for a response that cannot depend on them, B59vw). Locked by the
+ * node V49 contract test in sobolIndices.test.ts.
  */
 export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promise<SobolIndicesResponse> {
-  const {
-    inputVars,
-    output,
-    distributions,
-    functionJobs,
-    numSamples,
-    seed = 0,
-    inputLogScales = {},
-    outputLogScale = false,
-  } = params;
+  const { inputVars, output, functionJobs, seed = 0, inputLogScales = {}, outputLogScale = false } = params;
 
   // V44eh: single dialect via requestJson. It still rejects (⊥ resolve) on
   // failure so callers' .catch/try-catch can clear fetch-dedup state (V18) and
@@ -36,8 +41,6 @@ export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promis
   const body = {
     inputVars,
     output,
-    distributions,
-    numSamples,
     FunctionJobs: functionJobs,
     seed,
     // V12: scales ride EVERY surrogate request — the backend

@@ -50,9 +50,7 @@ describe("fetchSobolIndices", () => {
     const result = await fetchSobolIndices({
       inputVars: ["x1", "x2"],
       output: "y",
-      distributions: { x1: { distribution: "uniform", min: 0, max: 1 } },
       functionJobs: mockJobs,
-      numSamples: 500,
       seed: 42,
     });
 
@@ -69,8 +67,6 @@ describe("fetchSobolIndices", () => {
     expect(body).toEqual({
       inputVars: ["x1", "x2"],
       output: "y",
-      distributions: { x1: { distribution: "uniform", min: 0, max: 1 } },
-      numSamples: 500,
       FunctionJobs: mockJobs,
       seed: 42,
       // V12: the scale maps ride every request (SobolIndicesRequest inherits
@@ -79,6 +75,46 @@ describe("fetchSobolIndices", () => {
       inputLogScales: {},
       outputLogScales: { y: false },
     });
+  });
+
+  // V49 (root #84, auto-infer contract, V46sc body-shape style): the Sobol'
+  // exploration box is the ENGINE's DOMAIN vocabulary — itis-sumo auto-infers
+  // each variable's box from the observed sample bounds (constant column →
+  // fixed factor) and fixes the Saltelli sample count inside the package
+  // (flaskapi V36). The wire body therefore NEVER carries domain vocabulary
+  // (domains/fixed — the removed FE bounds-editor / buildSobolBounds shape,
+  // PRs #698/#711/#56) nor distribution vocabulary (distributions — Sobol'
+  // ignores distribution shape) nor numSamples. A full key-set lock, so any
+  // future key sneaking back onto the wire REDs this test — the exact
+  // DOMAIN↔DISTRIBUTION conflation root #63/#84 killed must not regrow.
+  it("NEVER carries domains/fixed/distributions/numSamples on the wire (V49)", async () => {
+    mockedFetchWithRetry.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ sobol: {}, sobolSecondOrder: {} }),
+    } as Response);
+
+    await fetchSobolIndices({
+      inputVars: ["x1"],
+      output: "y",
+      functionJobs: mockJobs,
+      seed: 7,
+      inputLogScales: { x1: false },
+      outputLogScale: false,
+    });
+
+    const [, options] = mockedFetchWithRetry.mock.calls[0];
+    const body = JSON.parse((options as RequestInit).body as string);
+    expect(Object.keys(body).sort()).toEqual([
+      "FunctionJobs",
+      "inputLogScales",
+      "inputVars",
+      "output",
+      "outputLogScales",
+      "seed",
+    ]);
+    for (const banned of ["domains", "fixed", "distributions", "numSamples"]) {
+      expect(body).not.toHaveProperty(banned);
+    }
   });
 
   it("defaults seed to 0 when not provided (backend scipy accepts seed >= 0)", async () => {
@@ -90,9 +126,7 @@ describe("fetchSobolIndices", () => {
     await fetchSobolIndices({
       inputVars: ["x1"],
       output: "y",
-      distributions: {},
       functionJobs: mockJobs,
-      numSamples: 100,
       inputLogScales: { x1: true },
       outputLogScale: true,
     });
@@ -112,9 +146,7 @@ describe("fetchSobolIndices", () => {
       fetchSobolIndices({
         inputVars: ["x1"],
         output: "y",
-        distributions: {},
         functionJobs: mockJobs,
-        numSamples: 100,
       }),
     ).rejects.toThrow("Sobol model failed");
   });
