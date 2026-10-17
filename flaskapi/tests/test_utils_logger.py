@@ -61,6 +61,28 @@ class TestConfigureLogging:
             with pytest.raises(ValueError):
                 configure_logging()
 
+    def test_lowercase_and_mixed_case_levels_accepted(self, reset_root_logging):
+        """Copilot #738: gunicorn takes LOG_LEVEL verbatim (lowercase legal) while Python
+        logging only knows exact-uppercase names — pre-fix, LOG_LEVEL=debug booted the
+        server yet ValueError-crashed the app import."""
+        for raw in ("debug", "DeBuG"):
+            with patch.dict(os.environ, {"LOG_LEVEL": raw}):
+                configure_logging()
+            assert logging.root.level == logging.DEBUG
+
+    def test_handler_threshold_gates_explicit_child_logger(self, reset_root_logging, capsys):
+        """Copilot #738: with root at ERROR, a child logger EXPLICITLY set to INFO must not
+        stream INFO records — handlers default to NOTSET and would emit whatever propagated."""
+        with patch.dict(os.environ, {"LOG_LEVEL": "ERROR"}):
+            configure_logging()
+        child = logging.getLogger("mmux_flaskapi.child")
+        child.setLevel(logging.INFO)
+        child.info("info-must-not-surface")
+        child.error("error-must-surface")
+        out = capsys.readouterr().out
+        assert "info-must-not-surface" not in out
+        assert "error-must-surface" in out
+
     def test_single_stdout_handler_no_file_handler(self, reset_root_logging):
         with patch.dict(os.environ, {}, clear=True):
             configure_logging()
