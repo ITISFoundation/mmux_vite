@@ -19,6 +19,7 @@ import { withoutConstantFactors } from "../../utils/constantFactors";
 import { getErrorMessage } from "../../utils/httpError";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
+import { DownloadDataButton } from "./DownloadDataButton";
 
 export type CorrelationViewMode = "pearson" | "spearman";
 
@@ -98,6 +99,10 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
   const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [correlations, setCorrelations] = useState<CorrelationIndicesResponse["correlations"] | null>(null);
+  // T30ln(b) sweep: the FULL resolved response (not just .correlations — the
+  // download must carry everything the backend answered, wrapper included),
+  // committed with the same generation and cleared with it (V45gd/V46sc, V49ij).
+  const [rawResponse, setRawResponse] = useState<CorrelationIndicesResponse | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>();
   const [computing, setComputing] = useState(false);
@@ -105,6 +110,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
   useGuardedAsyncEffect(
     async isStale => {
       setCorrelations(null);
+      setRawResponse(null);
       setPlotData([]);
       setErrorMessage(undefined);
       setComputing(true);
@@ -126,6 +132,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
         });
         if (isStale()) return;
         setCorrelations(data.correlations);
+        setRawResponse(data);
         setErrorMessage(undefined);
         setComputing(false);
       } catch (error) {
@@ -133,6 +140,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
         console.warn("Error computing correlation indices:", error);
         setComputing(false);
         setCorrelations(null);
+        setRawResponse(null);
         setErrorMessage(getErrorMessage(error));
       }
     },
@@ -273,7 +281,18 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
           numInputVars={activeInputVars.length}
         />
       )}
-      {!computing && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+      {!computing && plotData.length !== 0 && (
+        <Box sx={{ position: "relative", width: "100%" }}>
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+          <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
+            <DownloadDataButton
+              data={rawResponse}
+              filename={`correlation-${selectedQoI}.json`}
+              testId="download-correlation-data-btn"
+            />
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 }

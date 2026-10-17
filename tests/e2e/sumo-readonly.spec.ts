@@ -9,7 +9,19 @@ import {
   expectModelModalReady,
   fillUniformInputRanges,
   expectPlotlyReady,
+  downloadAndParseJson,
 } from "./helpers";
+
+// The mock function's input schema (mock_osparc/data.py) — the download payload
+// keys are asserted against it without hard-coding which QoI is selected.
+const INPUT_VARS = ["x1", "x2", "x3", "x4"];
+
+// 21 points per swept variable is the itis_sumo default (points_per_variable in
+// api/workflows.py, carried through evaluate/funs_evaluate.py as NSAMPLESPERVAR),
+// so these point counts are guaranteed by backend code, not by static mock data.
+const CURVE_POINTS = 21;
+const GRID_2D_POINTS = CURVE_POINTS * CURVE_POINTS; // 441
+const GRID_3D_POINTS = CURVE_POINTS * CURVE_POINTS * CURVE_POINTS; // 9261
 
 /**
  * SuMo READ-ONLY behavioral + pixel-snapshot suite (§T11 / §V10,§V13).
@@ -103,6 +115,28 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(page).toHaveScreenshot("sumo-readonly-plot-1d-log.png");
   await scale1d.getByRole("button", { name: "linear" }).click();
 
+  // Raw-data download button (T30ln(b) replay, fork issue #79; root V36ez):
+  // behavioral witness via the mmux-testid + exact payload shape below, pixel
+  // witness via the dedicated element baseline. The mock backend is
+  // deterministic, so every swept axis carries exactly CURVE_POINTS samples.
+  const curveDownload = (await downloadAndParseJson(
+    page,
+    "download-curves1d-data-btn",
+    "curves1d-y-vs-x1.json",
+  )) as {
+    predictions: Record<string, { x: number[]; yHat: number[]; stdHat: number[] }>;
+  };
+  expect(Object.keys(curveDownload.predictions).sort()).toEqual([...INPUT_VARS].sort());
+  for (const varName of INPUT_VARS) {
+    const axisData = curveDownload.predictions[varName];
+    expect(axisData.x, `${varName}.x length`).toHaveLength(CURVE_POINTS);
+    expect(axisData.yHat, `${varName}.yHat length`).toHaveLength(CURVE_POINTS);
+    expect(axisData.stdHat, `${varName}.stdHat length`).toHaveLength(CURVE_POINTS);
+  }
+  await expect(page.locator('[mmux-testid="download-curves1d-data-btn"]')).toHaveScreenshot(
+    "sumo-readonly-download-1d-btn.png",
+  );
+
   // Inspect Model opens the cross-validation modal. Pixel baseline captures the
   // modal over the results view (full viewport, unmasked).
   const inspectButton = page.locator('[mmux-testid="inspect-model-button"]');
@@ -129,6 +163,27 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(page).toHaveScreenshot("sumo-readonly-validation-log.png");
   await validationScale.getByRole("button", { name: "linear" }).click();
 
+  // Raw-data download inside the validation modal (T53st sweep, fork issue #79; root V36ez):
+  // {observed, predicted} is the CV response behind BOTH the violins and the MAE/RMSE metrics —
+  // the chip lives bottom-right because the in-plot legend pins the top-right corner here.
+  const cvDownload = (await downloadAndParseJson(
+    page,
+    "download-validation-data-btn",
+    "sumo-validation-y.json",
+  )) as { observed: number[]; predicted: number[] };
+  expect(cvDownload.observed.length, "observed samples present").toBeGreaterThan(0);
+  expect(cvDownload.predicted, "predicted length mirrors observed").toHaveLength(cvDownload.observed.length);
+  cvDownload.observed.forEach((value, i) => {
+    expect(Number.isFinite(value), `observed[${i}] finite`).toBe(true);
+    expect(Number.isFinite(cvDownload.predicted[i]), `predicted[${i}] finite`).toBe(true);
+    // The surrogate interpolates the deterministic mock samples almost exactly (the metrics row
+    // shows MAE ~1e-10), so predictions must track observations.
+    expect(cvDownload.predicted[i], `predicted[${i}] tracks observed[${i}]`).toBeCloseTo(value, 1);
+  });
+  await expect(page.locator('[mmux-testid="download-validation-data-btn"]')).toHaveScreenshot(
+    "sumo-readonly-download-validation-btn.png",
+  );
+
   await page.keyboard.press("Escape");
   await expect(modal).toBeHidden({ timeout: VIEW_TIMEOUT });
 
@@ -154,6 +209,25 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(page).toHaveScreenshot("sumo-readonly-plot-2d-log.png");
   await scale2d.getByRole("button", { name: "linear" }).click();
 
+  // 2D raw-data download (root V36ez witness): every input array is broadcast
+  // to the full flattened grid (held vars at their slider values), while the
+  // selected QoI "y" comes back as the nested 21x21 z-grid (Surface2DPaint
+  // reshapes it as z[y][x]).
+  const surface2dDownload = (await downloadAndParseJson(
+    page,
+    "download-surface2d-data-btn",
+    "surface2d-y-x1-x2.json",
+  )) as { gridData: Record<string, number[] | number[][]> };
+  for (const varName of INPUT_VARS) {
+    expect(surface2dDownload.gridData[varName], `${varName} length`).toHaveLength(GRID_2D_POINTS);
+  }
+  const qoiGrid2d = surface2dDownload.gridData["y"] as number[][];
+  expect(qoiGrid2d, "QoI grid is a nested 21x21 array").toHaveLength(CURVE_POINTS);
+  expect(qoiGrid2d[0], "QoI grid row length").toHaveLength(CURVE_POINTS);
+  await expect(page.locator('[mmux-testid="download-surface2d-data-btn"]')).toHaveScreenshot(
+    "sumo-readonly-download-2d-btn.png",
+  );
+
   // Step 3 — 3D IsoSurface.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
@@ -166,6 +240,20 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await scale3d.getByRole("button", { name: "log" }).click();
   await expect(page).toHaveScreenshot("sumo-readonly-plot-3d-log.png");
   await scale3d.getByRole("button", { name: "linear" }).click();
+
+  // 3D raw-data download (root V36ez witness): flat 21³ = 9261-point volume
+  // grids for every input AND for the selected QoI "y".
+  const surface3dDownload = (await downloadAndParseJson(
+    page,
+    "download-isosurface3d-data-btn",
+    "isosurface3d-y-x1-x2-x3.json",
+  )) as { gridData: Record<string, number[]> };
+  for (const varName of [...INPUT_VARS, "y"]) {
+    expect(surface3dDownload.gridData[varName], `${varName} length`).toHaveLength(GRID_3D_POINTS);
+  }
+  await expect(page.locator('[mmux-testid="download-isosurface3d-data-btn"]')).toHaveScreenshot(
+    "sumo-readonly-download-3d-btn.png",
+  );
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
   expect(runtimeErrors, `JavaScript errors captured: ${runtimeErrors.join("\n")}`).toEqual([]);
