@@ -20,7 +20,7 @@ vi.mock("../../utils/functionUtils", () => ({
   listFunctions: vi.fn(),
   getFunctionJobCollectionCounts: vi.fn(),
   // Remains on the module surface only as a regression tripwire: FunctionList must
-  // NEVER call it again (V49 aggregate endpoint replaced the per-function fan-out).
+  // NEVER call it again (V51cs aggregate endpoint replaced the per-function fan-out).
   getFunctionJobCollections: vi.fn(),
 }));
 
@@ -141,7 +141,7 @@ describe("FunctionList", () => {
     expect(screen.getByRole("button", { name: "Upload Data" })).toBeInTheDocument();
   });
 
-  // V49 / ITISFoundation#498: the mount-time request volume ! grow with the function
+  // V51cs / ITISFoundation#498: the mount-time request volume ! grow with the function
   // count — exactly list_functions + get_function_job_collection_counts, ∀N.
   it("fetches campaign counts with ONE aggregate request, never a per-function fan-out", async () => {
     const baseFunction = functionFixture as unknown as Record<string, unknown>;
