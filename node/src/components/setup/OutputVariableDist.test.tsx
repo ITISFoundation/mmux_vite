@@ -145,6 +145,19 @@ describe("OutputVariableDist surrogate-scale provenance (V12 receipts)", () => {
     ).toBeDefined();
     expect(fetchSpy).not.toHaveBeenCalled(); // ineligible: ⊥ CV pair, invalidation branch only
   });
+
+  it("bolds the linear column when linear wins the CV pair", async () => {
+    setup({ evidence: { fn1: { qoi: { rmseLinear: 0, rmseLog: 5, jobs: 5, key: currentKey } } } });
+    render(<OutputVariableDist serviceMode="MOGA" />);
+
+    expect(screen.getByText("auto")).toBeDefined();
+    hoverScaleRow();
+    expect(await screen.findByText(/CV error · 5 jobs/)).toBeDefined();
+    // mirror image of the log-winner test: linear bolded, log regular
+    expect(screen.getByText("linear 0")).toHaveStyle({ fontWeight: 700 });
+    expect(screen.getByText("log 5")).toHaveStyle({ fontWeight: 400 });
+    expect(fetchSpy).not.toHaveBeenCalled(); // current-key receipt still short-circuits
+  });
 });
 
 describe("OutputVariableDist outside MOGA (UQ/SUMO get the scale cards, ⊥ the target surface)", () => {
@@ -208,5 +221,166 @@ describe("OutputVariableDist outside MOGA (UQ/SUMO get the scale cards, ⊥ the 
     const qoiRow = document.querySelector('[mmux-testid="surrogate-scale-qoi"]') as HTMLElement;
     fireEvent.click(within(qoiRow).getByRole("button", { name: "log" }));
     await waitFor(() => expect(setOutputLogScaleUserSet).toHaveBeenCalled());
+  });
+});
+
+describe("OutputVariableDist MOGA target management", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    fetchSpy = vi.fn(() => new Promise<Response>(() => undefined));
+    vi.stubGlobal("fetch", fetchSpy);
+  });
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("surfaces the no-targets error and the add-output affordance", () => {
+    useFunctionContextMock.mockReturnValue({
+      selectedFunction: { uid: "fn1" },
+      inputVars: ["x"],
+      distribution: {},
+      outputVars: ["qoi", "other"],
+      outputTargets: {}, // nothing configured yet (freshly added function)
+      setOutputTargets: vi.fn(),
+      outputLogScales: {},
+      setOutputLogScales: vi.fn(),
+      outputLogScaleUserSet: {},
+      setOutputLogScaleUserSet: vi.fn(),
+      qoiScaleEvidence: {},
+      setQoiScaleEvidence: vi.fn(),
+    });
+    useJobContextMock.mockReturnValue({ filteredJobList: makeJobs(5) });
+    render(<OutputVariableDist serviceMode="MOGA" />);
+
+    expect(screen.getByText("Optimization Objectives")).toBeDefined();
+    expect(screen.getByText("Please select at least one output variable to optimize.")).toBeDefined();
+    expect(document.querySelector('[mmux-testid="add-output-var-btn"]')).not.toBeNull();
+    // no cards render until a target exists, and an empty candidate list means ⊥ CV calls
+    expect(document.querySelector('[mmux-testid="surrogate-scale-qoi"]')).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("adds, retargets, removes objectives and locks a surrogate scale", () => {
+    const setOutputTargets = vi.fn();
+    let logScales: Record<string, Record<string, boolean>> = {};
+    let userSet: Record<string, Record<string, boolean>> = {};
+    useFunctionContextMock.mockReturnValue({
+      selectedFunction: { uid: "fn1" },
+      inputVars: ["x"],
+      // log-scaled input -> the "1" input-scale signature feeds the evidence key
+      distribution: { fn1: { x: { distribution: "uniform", min: 1, max: 2, scale: "log" } } },
+      outputVars: ["qoi", "other", "third"],
+      outputTargets: { fn1: { qoi: "minimize", other: "maximize" } },
+      setOutputTargets,
+      outputLogScales: {},
+      // state-like setters: actually run the functional updaters the component
+      // passes so the per-uid MERGE paths execute (GH-Copilot #663 audit)
+      setOutputLogScales: vi.fn(
+        (updater: (prev: Record<string, Record<string, boolean>>) => Record<string, Record<string, boolean>>) => {
+          logScales = updater(logScales);
+        },
+      ),
+      setOutputLogScaleUserSet: vi.fn(
+        (updater: (prev: Record<string, Record<string, boolean>>) => Record<string, Record<string, boolean>>) => {
+          userSet = updater(userSet);
+        },
+      ),
+      outputLogScaleUserSet: {},
+      qoiScaleEvidence: {},
+      setQoiScaleEvidence: vi.fn(),
+    });
+    useJobContextMock.mockReturnValue({ filteredJobList: makeJobs(5) });
+    render(<OutputVariableDist serviceMode="MOGA" />);
+
+    expect(screen.queryByText("Please select at least one output variable to optimize.")).toBeNull();
+
+    // qoi starts minimized -> flip it to maximize (first card's toggle)
+    fireEvent.click(screen.getAllByRole("button", { name: "maximize" })[0]);
+    expect(setOutputTargets).toHaveBeenLastCalledWith({ fn1: { qoi: "maximize", other: "maximize" } });
+
+    // other starts maximized -> flip it back to minimize (second card's toggle)
+    fireEvent.click(screen.getAllByRole("button", { name: "minimize" })[1]);
+    expect(setOutputTargets).toHaveBeenLastCalledWith({ fn1: { qoi: "maximize", other: "minimize" } });
+
+    // remove the second (other) objective
+    fireEvent.click(screen.getAllByRole("button", { name: "remove" })[1]);
+    expect(setOutputTargets).toHaveBeenLastCalledWith({ fn1: { qoi: "maximize" } });
+
+    // add an output through the modal: data = unconfigured ["other", "third"], default "other"
+    fireEvent.click(document.querySelector('[mmux-testid="add-output-var-btn"]')!);
+    expect(screen.getByText("Add Output Variable")).toBeDefined();
+    fireEvent.click(document.querySelector('[mmux-testid="confirm-add-output-btn"]')!);
+    expect(setOutputTargets).toHaveBeenLastCalledWith({ fn1: { qoi: "maximize", other: "minimize" } });
+
+    // surrogate-scale toggle locks the pair through BOTH functional updaters
+    const qoiRow = document.querySelector('[mmux-testid="surrogate-scale-qoi"]') as HTMLElement;
+    fireEvent.click(within(qoiRow).getByRole("button", { name: "log" }));
+    expect(logScales).toEqual({ fn1: { qoi: true } });
+    expect(userSet).toEqual({ fn1: { qoi: true } });
+  });
+});
+
+describe("OutputVariableDist degenerate mounts", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    fetchSpy = vi.fn(() => new Promise<Response>(() => undefined));
+    vi.stubGlobal("fetch", fetchSpy);
+  });
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("renders nothing when the function has no outputs", () => {
+    useFunctionContextMock.mockReturnValue({
+      selectedFunction: { uid: "fn1" },
+      inputVars: [],
+      distribution: {},
+      outputVars: [],
+      outputTargets: {},
+      setOutputTargets: vi.fn(),
+      outputLogScales: {},
+      setOutputLogScales: vi.fn(),
+      outputLogScaleUserSet: {},
+      setOutputLogScaleUserSet: vi.fn(),
+      qoiScaleEvidence: {},
+      setQoiScaleEvidence: vi.fn(),
+    });
+    useJobContextMock.mockReturnValue({ filteredJobList: [] });
+    const { container } = render(<OutputVariableDist serviceMode="MOGA" />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders cards without a selected function and skips all persistence", () => {
+    const setOutputTargets = vi.fn();
+    const setOutputLogScales = vi.fn();
+    const setOutputLogScaleUserSet = vi.fn();
+    useFunctionContextMock.mockReturnValue({
+      selectedFunction: undefined, // persistence restore before the function resolved
+      inputVars: ["x"],
+      distribution: {},
+      outputVars: ["qoi"],
+      outputTargets: {},
+      setOutputTargets,
+      outputLogScales: {},
+      setOutputLogScales,
+      outputLogScaleUserSet: {},
+      setOutputLogScaleUserSet,
+      qoiScaleEvidence: {},
+      setQoiScaleEvidence: vi.fn(),
+    });
+    useJobContextMock.mockReturnValue({ filteredJobList: makeJobs(5) });
+    render(<OutputVariableDist serviceMode="SUMO" />);
+
+    // cards render under the "" fallback uid; auto-detect sees no function and stays silent
+    const row = document.querySelector('[mmux-testid="surrogate-scale-qoi"]') as HTMLElement;
+    expect(row).not.toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    fireEvent.click(within(row).getByRole("button", { name: "log" }));
+    expect(setOutputTargets).not.toHaveBeenCalled();
+    expect(setOutputLogScales).not.toHaveBeenCalled();
+    expect(setOutputLogScaleUserSet).not.toHaveBeenCalled();
   });
 });

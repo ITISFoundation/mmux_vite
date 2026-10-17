@@ -26,12 +26,14 @@ export default defineConfig({
       reportsDirectory: "./coverage",
       include: ["src/**/*.{ts,tsx}"],
       exclude: ["src/osparc-api-ts-client/**", "src/test/**", "**/*.d.ts", "**/*.bench.ts"],
-      // Ratchet only upward (node SPEC §V27ku); next milestone is 60 for every metric.
+      // Ratchet only upward (node SPEC §V27ku). 80/80/80/80 adopted 2026-10-17
+      // (§T22 sweep; measured floor St 94.9 / Br 90.2 / Fn 93.7 / Ln 95.0 — the
+      // remaining headroom is the next raise's budget, ⊥ lower these numbers).
       thresholds: {
-        lines: 60,
-        functions: 60,
-        branches: 60,
-        statements: 60,
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80,
       },
     },
   },
