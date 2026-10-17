@@ -63,7 +63,7 @@ export function FunctionList() {
         // ONE aggregate request for every row's counts — a deliberate replacement of the
         // historical Promise.all fan-out of one getFunctionJobCollections call per
         // function (request volume must not grow with the function count; node/SPEC.md
-        // V49, ITISFoundation#498).
+        // V51cs, ITISFoundation#498).
         try {
           const counts = await getFunctionJobCollectionCounts();
           const jcCount: { [key: string]: number } = {};
