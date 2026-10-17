@@ -5,7 +5,7 @@ import { InputVariableDist } from "./InputVariableDist";
 const mocks = vi.hoisted(() => ({
   serviceMode: "SUMO",
   value: {
-    selectedFunction: { uid: "fn-1" },
+    selectedFunction: { uid: "fn-1" } as { uid: string } | undefined,
     inputVars: [] as string[],
     distribution: {} as Record<string, InputVarSelection>,
     setDistribution: vi.fn(),
@@ -202,5 +202,157 @@ describe("InputVariableDist", () => {
   it("no jobs, no advice (⊥ verdicts without data)", () => {
     setup("SUMO", ["x"], { x: { distribution: "uniform", min: 1, max: 1e9, scale: "linear" } }, []);
     expect(document.querySelector('[mmux-testid="input-var-x-scale-advice"]')).toBeNull();
+  });
+});
+
+// B33/V40 orthogonal scale + the #663 support guards: log needs strictly
+// positive support (uniform min > 0, normal mean > 0), constant never scales.
+describe("InputVariableDist scale toggle & log-support guards", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    mocks.value.selectedFunction = { uid: "fn-1" };
+  });
+
+  it("explains a log-scaled normal with its derived log-normal note and shape fit", () => {
+    const jobs = Array.from({ length: 10 }, (_, i) => ({ status: "SUCCESS", inputs: { x: 10 ** i } }));
+    setup("UQ", ["x"], { x: { distribution: "normal", mean: 2, std: 0.4, scale: "log" } }, jobs);
+
+    // user enters LINEAR mean/std; the note shows the log-normal mapping (V40)
+    expect(screen.getByText(/log-normal · median ≈/)).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="input-var-x-shape-fit-note"]')).not.toBeNull();
+    expect(screen.getByRole("button", { name: "log" })).toBeEnabled();
+  });
+
+  it("drops the note and disables the toggle when a normal mean is not positive", () => {
+    setup("UQ", ["x"], { x: { distribution: "normal", mean: -1, std: 0.4, scale: "log" } });
+    expect(screen.queryByText(/log-normal/)).toBeNull();
+    expect(screen.getByRole("button", { name: "log" })).toBeDisabled();
+  });
+
+  it("disables the toggle when a normal entry has no mean at all", () => {
+    setup("UQ", ["x"], { x: { distribution: "normal", scale: "log" } });
+    expect(screen.queryByText(/log-normal/)).toBeNull();
+    expect(screen.getByRole("button", { name: "log" })).toBeDisabled();
+  });
+
+  it("shows unknown bounds for a log-uniform without min and keeps the toggle disabled", () => {
+    setup("UQ", ["x"], { x: { distribution: "uniform", scale: "log" } });
+    expect(screen.getByText("log-uniform in [?, ?]")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "log" })).toBeDisabled();
+  });
+
+  it("flips the UQ scale toggle both ways through handleSetScale", () => {
+    setup("UQ", ["x"], { x: { distribution: "uniform", min: 1, max: 2 } });
+    fireEvent.click(screen.getByRole("button", { name: "log" }));
+    expect(lastSaved()).toEqual({ x: { distribution: "uniform", min: 1, max: 2, scale: "log" } });
+    fireEvent.click(screen.getByRole("button", { name: "linear" }));
+    expect(lastSaved()).toEqual({ x: { distribution: "uniform", min: 1, max: 2, scale: "linear" } });
+  });
+
+  it("flips the SuMo sampling-scale toggle when a positive min is set", () => {
+    setup("SUMO", ["x"], { x: { distribution: "uniform", min: 1, max: 2 } });
+    fireEvent.click(screen.getByRole("button", { name: "log" }));
+    expect(lastSaved()).toEqual({ x: { distribution: "uniform", min: 1, max: 2, scale: "log" } });
+    fireEvent.click(screen.getByRole("button", { name: "linear" }));
+    expect(lastSaved()).toEqual({ x: { distribution: "uniform", min: 1, max: 2, scale: "linear" } });
+  });
+
+  it("gates the SuMo sampling-scale toggle until a positive min is set", () => {
+    setup("SUMO", ["mystery"]); // seeded with NaN bounds
+    expect(screen.getByRole("button", { name: "log" })).toBeDisabled();
+  });
+
+  it("clears a log scale when a uniform min stops being positive (#663 min path)", () => {
+    setup("SUMO", ["x"], { x: { distribution: "uniform", min: 1, max: 10, scale: "log" } });
+    commit("Min", "0");
+    expect(lastSaved()).toEqual({ x: { distribution: "uniform", min: 0, max: 10, scale: "linear" } });
+  });
+
+  it("clears a log scale when a normal mean stops being positive (#663 mean path)", () => {
+    setup("UQ", ["x"], { x: { distribution: "normal", mean: 2, std: 0.4, scale: "log" } });
+    commit("Mean", "-1");
+    expect(lastSaved()).toEqual({ x: { distribution: "normal", mean: -1, std: 0.4, scale: "linear" } });
+  });
+
+  it("keeps the log scale when the committed mean stays positive", () => {
+    setup("UQ", ["x"], { x: { distribution: "normal", mean: 2, std: 0.4, scale: "log" } });
+    commit("Mean", "5");
+    expect(lastSaved()).toEqual({ x: { distribution: "normal", mean: 5, std: 0.4, scale: "log" } });
+  });
+});
+
+describe("InputVariableDist seeding presets", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    mocks.value.selectedFunction = { uid: "fn-1" };
+  });
+
+  it("seeds SuMo geometry presets case-insensitively", () => {
+    setup("SUMO", ["gap", "SiliconeExtra", "interElectrodeSpacing"]);
+    expect(lastSaved()).toEqual({
+      gap: { distribution: "uniform", min: 0.2, max: 2 },
+      SiliconeExtra: { distribution: "uniform", min: 0.5, max: 2.5 },
+      interElectrodeSpacing: { distribution: "uniform", min: 0.2, max: 2 },
+    });
+  });
+
+  it("seeds every UQ tissue-property preset", () => {
+    setup("UQ", ["sigma_conn", "sigma_fasc_lon", "sigma_fasc_tra", "sigma_nerve", "sigma_saline"]);
+    expect(lastSaved()).toEqual({
+      sigma_conn: { distribution: "normal", mean: 0.08, std: 0.016 },
+      sigma_fasc_lon: { distribution: "normal", mean: 0.57, std: 0.114 },
+      sigma_fasc_tra: { distribution: "normal", mean: 0.16, std: 0.032 },
+      sigma_nerve: { distribution: "normal", mean: 0.34, std: 0.068 },
+      sigma_saline: { distribution: "normal", mean: 2, std: 0.4 },
+    });
+  });
+
+  it("falls back to a normal distribution for an unknown UQ input", () => {
+    setup("UQ", ["zzz"]);
+    expect(lastSaved()).toEqual({ zzz: { distribution: "normal", mean: NaN, std: NaN, min: NaN, max: NaN } });
+  });
+
+  it("shows the dev-default 0/1 fields for a normal entry without parameters", () => {
+    setup("UQ", ["x"], { x: { distribution: "normal" } });
+    expect(field("Mean")).toHaveValue(0);
+    expect(field("Standard Deviation")).toHaveValue(1);
+    expect(screen.getByText("Empty value")).toBeInTheDocument();
+  });
+
+  it("shows empty fields and an error for a uniform entry without bounds", () => {
+    setup("UQ", ["x"], { x: { distribution: "uniform" } });
+    expect(field("Min").value).toBe("");
+    expect(field("Max").value).toBe("");
+    expect(screen.getByText("Empty value")).toBeInTheDocument();
+  });
+
+  it("renders the UQ form selector with an empty value for an entry with no form", () => {
+    setup("UQ", ["x"], { x: {} as never });
+    expect(screen.getByText("not found")).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="input-var-x-distribution-selector"]')).not.toBeNull();
+    expect(screen.queryByText("Scale")).toBeNull(); // no scale box without a form
+  });
+
+  it("seeds locally without a selected function, persisting nothing", () => {
+    mocks.serviceMode = "SUMO";
+    mocks.filteredJobList = [];
+    mocks.value = {
+      selectedFunction: undefined,
+      inputVars: ["x"],
+      distribution: {},
+      setDistribution: vi.fn(),
+    };
+    render(<InputVariableDist />);
+
+    expect(screen.getByText("Parameter Ranges")).toBeInTheDocument();
+    expect(field("Min").value).toBe(""); // x was seeded into local state only
+    expect(mocks.value.setDistribution).not.toHaveBeenCalled();
+  });
+
+  it("treats a persisted variable absent from inputVars as having no job data", () => {
+    setup("SUMO", ["x"], { y: { distribution: "uniform", min: 1, max: 2 } });
+    expect(screen.getByText("y")).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="input-var-y-scale-advice"]')).toBeNull();
+    expect(mocks.value.setDistribution).not.toHaveBeenCalled(); // persisted map is kept
   });
 });
