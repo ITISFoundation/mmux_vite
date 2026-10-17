@@ -11,7 +11,7 @@
  * `UploadJobCollectionButton.test.tsx`.
  *
  * What is mocked:
- *   - API calls (listFunctions, getFunctionJobCollections, uploadJobCollectionCsv)
+ *   - API calls (listFunctions, getFunctionJobCollectionCounts, uploadJobCollectionCsv)
  *   - File picker (pickSingleCsvFile) → a duck-typed file backed by a CSV string
  *   - Secondary contexts (SamplingContext, JobContext) and PersistenceContext
  *   - react-toastify (side-effect-free stub) + @mui/x-data-grid (render stub)
@@ -93,7 +93,8 @@ vi.mock("../../context/PersistenceContext", () => ({
 const {
   persistenceSeed,
   mockListFunctions,
-  mockGetFunctionJobCollections,
+  mockGetFunctionJobCollectionCounts,
+  mockGetFunctionJobCollectionsFanoutTripwire,
   mockUploadJobCollectionCsv,
   mockPickSingleCsvFile,
   mockSetSelectedJobUids,
@@ -105,7 +106,10 @@ const {
 } = vi.hoisted(() => ({
   persistenceSeed: { values: {} as Record<string, unknown> },
   mockListFunctions: vi.fn(),
-  mockGetFunctionJobCollections: vi.fn(),
+  mockGetFunctionJobCollectionCounts: vi.fn(),
+  // Kept only as a tripwire: the V51cs aggregate endpoint replaced the per-function
+  // fan-out, so any call to this util from the upload flow is a regression.
+  mockGetFunctionJobCollectionsFanoutTripwire: vi.fn(),
   mockUploadJobCollectionCsv: vi.fn(),
   mockPickSingleCsvFile: vi.fn(),
   mockSetSelectedJobUids: vi.fn(),
@@ -142,7 +146,8 @@ vi.mock("../navigation/TutorialManualLinks", () => ({
 
 vi.mock("../../utils/functionUtils", () => ({
   listFunctions: mockListFunctions,
-  getFunctionJobCollections: mockGetFunctionJobCollections,
+  getFunctionJobCollectionCounts: mockGetFunctionJobCollectionCounts,
+  getFunctionJobCollections: mockGetFunctionJobCollectionsFanoutTripwire,
   uploadJobCollectionCsv: mockUploadJobCollectionCsv,
 }));
 
@@ -208,7 +213,8 @@ describe("FunctionList — CSV upload consumer wiring (V13 port from fork#17)", 
     // Call sequence for listFunctions:
     //   1st call – initial fetchFunctions on mount → empty list
     //   2nd+ call – fetchFunctions inside handleCsvUploadSuccess → the new function
-    mockGetFunctionJobCollections.mockResolvedValue([]);
+    // Counts arrive as ONE aggregate map (V51cs), not a per-function fan-out.
+    mockGetFunctionJobCollectionCounts.mockResolvedValue({ "test-uid": { campaignCount: 1, evaluationCount: 2 } });
   });
 
   it("uploads CSV, auto-selects the new function, and MERGE-prefills the parsed presets into distribution", async () => {
@@ -248,6 +254,10 @@ describe("FunctionList — CSV upload consumer wiring (V13 port from fork#17)", 
     expect(readPresetsFor("test-uid")).toEqual({ ...seededPresets, ...expectedPresets });
 
     expect(mockUploadJobCollectionCsv).toHaveBeenCalledTimes(1);
+    // V51cs/#498: the upload-success re-fetch takes the same 2-request contract
+    // (empty-list mount fetches no counts; the post-upload fetch pulls ONE map).
+    expect(mockGetFunctionJobCollectionCounts).toHaveBeenCalledTimes(1);
+    expect(mockGetFunctionJobCollectionsFanoutTripwire).not.toHaveBeenCalled();
   });
 
   it("prefills a log scale tag through the same consumer via the <10-sample >=2-decade fallback verdict", async () => {
