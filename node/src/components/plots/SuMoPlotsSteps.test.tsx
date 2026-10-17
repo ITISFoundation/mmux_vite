@@ -108,15 +108,20 @@ describe("SuMoPlotsSteps", () => {
     const user = userEvent.setup();
     mocks.filteredJobList = [{ uid: "j1" }];
     mocks.filterInputVars.mockImplementation(() => vars(2));
-    render(<SuMoPlotsSteps />);
+    const { rerender } = render(<SuMoPlotsSteps />);
     await user.click(nextButton());
     expect(screen.getByText("2D Surface")).toBeDefined();
 
     mocks.filterInputVars.mockImplementation(() => vars(1));
     mocks.filteredJobList = [{ uid: "j1" }, { uid: "j2" }];
     mocks.selectedJobUids = ["j1", "j2"];
-    render(<SuMoPlotsSteps />);
-    // fresh mount re-clamps to the single surviving input
+    // rerender the SAME instance (a fresh render() would mount at step 0 and
+    // stay green even with the clamp effect removed) — the changed
+    // selectedJobUids/filteredJobList deps must re-run the clamp: the active
+    // 2D surface disappears and the step falls back to the 1D curves.
+    rerender(<SuMoPlotsSteps />);
+    expect(screen.queryByText("2D Surface")).toBeNull();
+    expect(screen.queryByTestId("surface")).toBeNull();
     expect(screen.getByText("1D Curves")).toBeDefined();
     expect(screen.getByTestId("curves")).toBeDefined();
   });

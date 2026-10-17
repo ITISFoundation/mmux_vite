@@ -81,9 +81,15 @@ describe("MOGA view", () => {
     expect(mocks.jobSamplingDisabled).toBe(true);
   });
 
-  it("keeps buttons disabled without a selected function", () => {
+  it("keeps buttons disabled without a selected function", async () => {
+    const user = userEvent.setup();
     mocks.selectedFunction = null;
     render(<MOGA />);
+    // finish loading first: while loading is true it disables both buttons on
+    // its own, so only afterwards do these assertions isolate the
+    // !selectedFunction guard
+    await user.click(screen.getByText("jobs-done"));
     expect(screen.getByRole("button", { name: "Optimization Settings" })).toBeDisabled();
+    expect(buttonByTestId("inspect-model-button") as HTMLElement).toBeDisabled();
   });
 });

@@ -80,17 +80,21 @@ const toggleButton = (text: string) => {
 
 describe("MOGAPlotModal", () => {
   // the modal's dimensions.map returns a bare <></> for hidden axes (no key),
-  // so React logs a once-per-stack missing-key warning — legit source noise,
-  // swallowed per repo convention (spy + restore keeps the global guard intact)
-  let errorSpy: ReturnType<typeof vi.spyOn>;
-
+  // so React logs a once-per-stack missing-key warning. A local blindfold spy
+  // here would swallow EVERY console.error in this file and bypass the
+  // unexpected-error guard in node/src/test/setup.ts — so assert against the
+  // spy setup.ts owns instead: anything that is not that missing-key warning
+  // fails the suite, then the calls are cleared for setup.ts's afterEach.
   beforeEach(() => {
     vi.clearAllMocks();
-    errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
   afterEach(() => {
-    errorSpy.mockRestore();
+    const spy = vi.mocked(console.error);
+    for (const [message] of spy.mock.calls) {
+      expect(String(message)).toMatch(/unique "key" prop/i);
+    }
+    spy.mockClear();
   });
 
   it("opens the plot configuration modal with the axes of the current view", () => {
