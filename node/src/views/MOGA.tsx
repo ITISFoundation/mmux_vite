@@ -20,7 +20,13 @@ export default function MOGA() {
   return (
     <MetaModelingUX headerType="title" tabTitle={`Multi Objective Genetic Algorithm: ${selectedFunction?.title}`}>
       <Box display="flex" justifyContent="space-between" gap={2} padding="0 4px 16px">
-        <Button variant="contained" size="small" disabled={loading || !selectedFunction} onClick={() => setMogaModal(true)}>
+        <Button
+          variant="contained"
+          size="small"
+          disabled={loading || !selectedFunction}
+          onClick={() => setMogaModal(true)}
+          mmux-testid="moga-settings-button"
+        >
           Optimization Settings
         </Button>
         <Button
