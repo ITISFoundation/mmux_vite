@@ -34,6 +34,11 @@ def configure_logging() -> logging.Logger:
     Idempotent: `force=True` replaces previous handlers instead of stacking
     duplicates on repeated calls.
     """
+    # Normalize once: gunicorn accepts lowercase --log-level, but Python's logging accepts ONLY the
+    # exact uppercase names — LOG_LEVEL=debug booted gunicorn yet crashed the app at import
+    # (ValueError in basicConfig). upper() keeps both consumers on one env value.
+    level = os.environ.get("LOG_LEVEL", "DEBUG").upper()
+
     handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
 
     log_file = os.environ.get("LOG_FILE")
@@ -42,8 +47,14 @@ def configure_logging() -> logging.Logger:
         # writable location (a mounted dir); a bad path fails loudly at boot.
         handlers.append(logging.FileHandler(log_file))
 
+    # Handlers default to NOTSET: a child logger with an EXPLICIT level (e.g. INFO under a
+    # root at ERROR) propagates its records and the handler lets anything through — LOG_LEVEL
+    # would only gate the root logger, not the sinks. Pin every handler's threshold (Copilot #738).
+    for handler in handlers:
+        handler.setLevel(level)
+
     logging.basicConfig(
-        level=os.environ.get("LOG_LEVEL", "DEBUG"),
+        level=level,
         format=LOG_FORMAT,
         handlers=handlers,
         force=True,
