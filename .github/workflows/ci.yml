@@ -13,6 +13,14 @@ on:
       - synchronize
       - reopened
 
+  # Required checks must also report on merge-queue synthetic commits
+  # (gh-readonly-queue/*): without this trigger the queue never receives
+  # prek/node-tests/flaskapi-tests/e2e-tests/verify-image-build and the
+  # merge fails after the checks-timeout ("the merge will fail as the
+  # required status check will not be reported" — GitHub merge-queue docs).
+  merge_group:
+    branches: [main, develop]
+
 jobs:
   prek:
     runs-on: ubuntu-latest
@@ -130,6 +138,10 @@ jobs:
           flaskapi/coverage-analytical.xml
           flaskapi/coverage.xml
           flaskapi/.coverage.*
+        # upload-artifact v4+ defaults include-hidden-files:false, and the
+        # raw coverage DBs are literally dot-files (.coverage.*) — without
+        # this the promised raw data would silently never land.
+        include-hidden-files: true
         if-no-files-found: warn
         retention-days: 14
 

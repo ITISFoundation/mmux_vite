@@ -43,6 +43,16 @@ Merge-blocking (the full suite — mirrors "CI green before merge", SPEC §C), a
 | `verify-image-build` | `ci.yml` job `verify-image-build` |
 | `version` | `version-check.yml` job `version` ("Check release version") |
 
+Merge-queue compatibility (both changes landed with this PR): the queue validates
+synthetic `gh-readonly-queue/*` commits via the `merge_group` event, and required
+checks that do not run on that event are never reported — the queue then stalls
+until timeout and rejects the PR. `ci.yml` and `version-check.yml` therefore both
+trigger on `merge_group` (branches `main`, `develop`). Relatedly, `version-check.yml`
+must NOT use workflow-level `paths-ignore` while `version` is required: a docs-only
+PR would leave the required check permanently "waiting for status". It instead runs
+always, and `auto_version.py check-pr` green-lights an unchanged version ("develop:
+X unchanged, ok").
+
 Applied 2026-10-17; kept for reproduction on forks or drift recovery (keeps all other rules intact):
 
 ```bash

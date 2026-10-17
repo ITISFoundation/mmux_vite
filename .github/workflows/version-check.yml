@@ -9,10 +9,16 @@ name: Check release version
 on:
   pull_request:
     branches: [develop, main]
-    paths-ignore:
-      - "docs/**"
-      - "validation/**"
-      - "**/*.md"
+  # See ci.yml: the merge queue only accepts required checks that run on
+  # merge_group events.
+  merge_group:
+    branches: [develop, main]
+
+# No workflow-level paths-ignore: `version` is a REQUIRED status check
+# (ruleset 5597677), and a check whose workflow is filtered away by
+# paths-ignore never reports — leaving every docs-only PR permanently
+# "Expected — waiting for status" behind a required check. The job is
+# cheap (uv + git + one script), so it always runs and reports green.
 
 permissions:
   contents: read
@@ -33,5 +39,8 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
+          # merge_group events may carry refs/heads/<name>; check-pr wants the short name
+          BASE_REF="${BASE_REF#refs/heads/}"
+          echo "validating against target branch: ${BASE_REF}"
           git fetch --tags --force
           uv run --no-project --with packaging python scripts/auto_version.py check-pr --target "$BASE_REF"
