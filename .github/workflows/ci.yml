@@ -18,13 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo content
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Set up uv
       # Full-version pin: astral-sh/setup-uv no longer publishes bare major
       # tags (no `v10` ref exists), so `@v10` would fail to resolve.
-      uses: astral-sh/setup-uv@v10.3.0
+      uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
     - name: Use Node.js 24
-      uses: actions/setup-node@v7
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: 24.x
         cache: 'npm'
@@ -34,7 +34,10 @@ jobs:
     - name: Generate oSPARC TypeScript client
       run: cd node && npm run generate-osparc-cli
     - name: Install Flask API dependencies
-      run: make install-flaskapi-deps
+      # Locked tier (V47dp): uv sync --locked FAILS when uv.lock is stale vs
+      # pyproject.toml and installs strictly from the lock — CI never re-locks.
+      # The npm twin is `npm ci`, which fails on package.json↔lock drift (V44qf).
+      run: make install-flaskapi-deps-locked
     - name: Run prek
       run: uvx prek run --all-files
 
@@ -42,9 +45,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo content
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Use Node.js 24
-      uses: actions/setup-node@v7
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: 24.x
         cache: 'npm'
@@ -61,7 +64,7 @@ jobs:
     - name: Run node tests with coverage
       run: cd node && npm run test:coverage
     - name: Upload node coverage
-      uses: codecov/codecov-action@v7
+      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
       with:
         files: ./node/coverage/cobertura-coverage.xml
         flags: node
@@ -69,16 +72,26 @@ jobs:
         fail_ci_if_error: false
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    # Debug artifact (#627): keep the run's coverage report even when the
+    # codecov upload above is red/skipped — the CI log alone cannot be browsed.
+    - name: Upload node test artifacts
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: node-coverage-reports
+        path: node/coverage
+        if-no-files-found: warn
+        retention-days: 14
 
   flaskapi-tests:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo content
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Set up uv
-      uses: astral-sh/setup-uv@v10.3.0
+      uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
     - name: Install Flask API dependencies
-      run: make install-flaskapi-deps
+      run: make install-flaskapi-deps-locked
     - name: Run flaskapi tests
       run: |
         cd flaskapi
@@ -96,7 +109,7 @@ jobs:
         uv run coverage combine --data-file=.coverage.combined .coverage.regular .coverage.analytical
         uv run coverage xml --data-file=.coverage.combined -o coverage.xml
     - name: Upload coverage reports
-      uses: codecov/codecov-action@v7
+      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
       with:
         files: ./flaskapi/coverage.xml
         flags: flaskapi
@@ -104,6 +117,21 @@ jobs:
         fail_ci_if_error: false
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    # Debug artifact (#627): browsable HTML report, per-tier XML and the raw
+    # coverage data files — survives independently of the codecov upload.
+    - name: Upload flaskapi test artifacts
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: flaskapi-test-reports
+        path: |
+          flaskapi/htmlcov
+          flaskapi/coverage-regular.xml
+          flaskapi/coverage-analytical.xml
+          flaskapi/coverage.xml
+          flaskapi/.coverage.*
+        if-no-files-found: warn
+        retention-days: 14
 
   # Read-only Playwright e2e suite (SuMo/UQ/MOGA; root SPEC §T11,§T12 / §V10-§V13).
   # Runs inside the PINNED Playwright docker image so chromium + its bundled
@@ -119,7 +147,7 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.64.0-noble
     steps:
       - name: Checkout repo content
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # The Playwright image ships node + browsers but not GNU make (the Makefile
       # entry points need it).
       - name: Install make
@@ -130,11 +158,11 @@ jobs:
         run: apt-get update && apt-get install -y --no-install-recommends openjdk-21-jre-headless
       # uv drives the Flask backend the webServer boots (tests/e2e/scripts/run-e2e-backend.sh).
       - name: Set up uv
-        uses: astral-sh/setup-uv@v10.3.0
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - name: Install node dependencies
         run: cd node && npm ci
       - name: Install Flask API dependencies
-        run: make install-flaskapi-deps
+        run: make install-flaskapi-deps-locked
       # Compares against the committed baselines under tests/e2e/__snapshots__.
       # Baselines are regenerated ONLY via `make test-e2e-update` in THIS image (§V12);
       # a non-green pixel diff fails the job and (via branch protection) gates merge (§C).
@@ -143,7 +171,7 @@ jobs:
       - name: Assert E2E coverage report exists
         run: test -s coverage/e2e/report/cobertura-coverage.xml
       - name: Upload E2E coverage
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: ./coverage/e2e/report/cobertura-coverage.xml
           flags: e2e
@@ -153,7 +181,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       - name: Upload Playwright report + screenshots
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-report
           path: |
@@ -170,7 +198,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo content
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: ooil version
         uses: docker://itisfoundation/ci-service-integration-library:v2.1.23
         with:

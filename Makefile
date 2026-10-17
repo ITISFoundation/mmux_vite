@@ -49,6 +49,10 @@ start-frontend: ## start the Vite development server
 install-flaskapi-deps: ## install Flask API Python dependencies
 	cd ${FLASKAPI_DIR} && make install-flaskapi-deps
 
+.PHONY: install-flaskapi-deps-locked
+install-flaskapi-deps-locked: ## install Flask API deps from a freshness-validated uv.lock (CI gate, V47dp)
+	cd ${FLASKAPI_DIR} && make install-flaskapi-deps-locked
+
 .PHONY: check-types-flaskapi
 check-types-flaskapi: install-flaskapi-deps ## run ty type checker against flaskapi/src/mmux_flaskapi
 	cd ${FLASKAPI_DIR} && make check-types-flaskapi

@@ -1,8 +1,15 @@
+# Dependency-update ownership (docs/ci-and-dependency-policy.md, root V47dp):
+# every bump PR lands on develop assigned to the dependency owner below;
+# merge = CI green + 1 approval (protected branch ruleset). Majors blocked by
+# upstream peer caps stay in the ignore lists — adopting them is a deliberate
+# act with its own PR, not an unattended bump.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /node
     target-branch: develop
+    assignees:
+      - JavierGOrdonnez
     schedule:
       interval: weekly
       day: monday
@@ -32,6 +39,8 @@ updates:
   - package-ecosystem: uv
     directory: /flaskapi
     target-branch: develop
+    assignees:
+      - JavierGOrdonnez
     schedule:
       interval: weekly
       day: monday
@@ -45,6 +54,8 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     target-branch: develop
+    assignees:
+      - JavierGOrdonnez
     schedule:
       interval: weekly
       day: monday
@@ -61,6 +72,8 @@ updates:
   - package-ecosystem: docker
     directory: /flaskapi
     target-branch: develop
+    assignees:
+      - JavierGOrdonnez
     schedule:
       interval: weekly
       day: monday
@@ -74,6 +87,8 @@ updates:
   - package-ecosystem: docker
     directory: /node
     target-branch: develop
+    assignees:
+      - JavierGOrdonnez
     schedule:
       interval: weekly
       day: monday
@@ -87,6 +102,8 @@ updates:
   - package-ecosystem: docker
     directory: /proxy
     target-branch: develop
+    assignees:
+      - JavierGOrdonnez
     schedule:
       interval: weekly
       day: monday

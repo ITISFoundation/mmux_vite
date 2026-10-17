@@ -26,18 +26,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo content
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up uv
         # Full-version pin: astral-sh/setup-uv no longer publishes bare major
         # tags (same rationale as .github/workflows/ci.yml).
-        uses: astral-sh/setup-uv@v10.3.0
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - name: Install Flask API dependencies
-        run: make install-flaskapi-deps
+        run: make install-flaskapi-deps-locked
       # pytest-codspeed is installed as an overlay (uv run --with) instead of
       # being added to pyproject.toml: it is a benchmark-only dependency and
       # should not end up in the application lock file.
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@v5
+        uses: CodSpeedHQ/action@821a40cd6c80e3cfe387caf55668287addd808da # v5.5.0
         with:
           mode: simulation
           working-directory: flaskapi
@@ -48,9 +48,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo content
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Use Node.js 24
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.x
           cache: 'npm'
@@ -58,7 +58,7 @@ jobs:
       - name: Install node dependencies
         run: cd node && npm ci
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@v5
+        uses: CodSpeedHQ/action@821a40cd6c80e3cfe387caf55668287addd808da # v5.5.0
         with:
           mode: simulation
           working-directory: node

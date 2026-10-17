@@ -36,6 +36,10 @@ make test-flaskapi
 
 CI combines regular and analytical backend coverage before uploading it.
 
+Branch protection, required-vs-informational checks, lockfile validation and
+dependency-update ownership are documented in
+[docs/ci-and-dependency-policy.md](docs/ci-and-dependency-policy.md).
+
 ## Development
 
 To setup your development environment, you need to fill it with the API access data from your oSPARC's account. Login on a deployment with your account and create a `New API Key` and use that data to fill out the generated `.env` file:

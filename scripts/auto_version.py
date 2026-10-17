@@ -89,7 +89,8 @@ def versioned_files(parser: configparser.RawConfigParser) -> list[tuple[str, str
     `semver-only = true` marks files whose version field must carry the semver
     BASE (`.devN` stripped) because their schema validates strict semver —
     oSPARC `metadata.yml` (MetadataConfig) is the case that forced #695; the
-    compose image tags and pyproject keep the full dev version.
+    compose image tags, pyproject and the `uv.lock` self-package version keep
+    the full dev version.
     """
     files = []
     for section in parser.sections():
@@ -253,6 +254,10 @@ FANOUT_FIELDS = (
         re.compile(r"^\s*image:\s*.*:(\S+)\s*$", re.MULTILINE),
     ),
     (re.compile(r"flaskapi/pyproject\.toml$"), re.compile(r'^version\s*=\s*"([^"]+)"\s*$', re.MULTILINE)),
+    (
+        re.compile(r"flaskapi/uv\.lock$"),
+        re.compile(r'^name = "mmux-flaskapi"\nversion = "([^"]+)"$', re.MULTILINE),
+    ),
 )
 
 
