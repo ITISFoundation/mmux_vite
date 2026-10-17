@@ -4,25 +4,32 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { RegisteredFunctionJobCollection } from "osparc-api-ts-client";
 import { toast } from "react-toastify";
 import { JobContextProvider, useJobContext } from "./JobContext";
-import { getFunctionJobCollections } from "../utils/functionUtils";
+import { getFunctionJobCollections, getFunctionJobsFromFunctionJobCollection } from "../utils/functionUtils";
+import type { OsparcFunctionJob } from "./types";
 
 vi.mock("react-toastify", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("../utils/functionUtils", async importOriginal => ({
   ...(await importOriginal<typeof import("../utils/functionUtils")>()),
   getFunctionJobCollections: vi.fn(),
+  getFunctionJobsFromFunctionJobCollection: vi.fn(),
 }));
-// Mock dependencies
-vi.mock("./PersistenceContext", () => ({
-  usePersistenceContext: () => ({
+// Mock dependencies. The persistence state lives in a hoisted container so tests can
+// swap in variants (no persistence yet, still loading, no currentView) without giving
+// up the stable defaults the static component tests rely on.
+const jobCtxPersistence = vi.hoisted(() => ({
+  state: {
     persistence: {
       runningJobCollection: undefined,
       fetchedJobCollections: [],
       selectedJobUids: [],
       currentView: "testView",
-    },
+    } as unknown,
     saveState: vi.fn(),
     loading: false,
-  }),
+  },
+}));
+vi.mock("./PersistenceContext", () => ({
+  usePersistenceContext: () => jobCtxPersistence.state,
 }));
 
 function TestComponent() {
@@ -304,5 +311,442 @@ describe("JobContextProvider", () => {
 
     await waitFor(() => expect(settled).toBe(true));
     expect(toast.error).toHaveBeenCalledWith("Failed to refresh job collections. Please try again.");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateJobCollections / requestForceFetch fetching behaviour, the 5-sample
+// floor shared by filteredJobList/allJobsList, and the persistence-hydration
+// guards on mount.
+// ---------------------------------------------------------------------------
+
+const click = (element: HTMLElement) => element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+const jcFixture = (uid: string, jobIds?: string[]) => ({ uid, jobIds }) as unknown as RegisteredFunctionJobCollection;
+
+const jobFixture = (uid: string, status: unknown) => ({ uid, status }) as unknown as OsparcFunctionJob;
+
+function setPersistedJobCollections(fetchedJobCollections: SelectedJobCollection[] | undefined) {
+  jobCtxPersistence.state.persistence = {
+    runningJobCollection: undefined,
+    fetchedJobCollections,
+    selectedJobUids: [],
+    currentView: "testView",
+  };
+}
+
+type FetchRun = { promise?: Promise<void> };
+
+function FetchProbe({ progress, onFetch }: { progress: (progress: number) => void; onFetch: (promise: Promise<void>) => void }) {
+  const { requestForceFetch, fetchedJobCollections } = useJobContext();
+  return (
+    <div>
+      <button
+        type="button"
+        data-testid="refresh"
+        onClick={() => {
+          onFetch(requestForceFetch("function-1", progress));
+        }}
+      >
+        Refresh
+      </button>
+      <div data-testid="fetched-count">
+        {fetchedJobCollections === undefined ? "undefined" : String(fetchedJobCollections.length)}
+      </div>
+      <div data-testid="fetched-projection">
+        {JSON.stringify(
+          fetchedJobCollections?.map(fjc => [
+            fjc.jobCollection.uid,
+            fjc.selected,
+            fjc.subJobs.map(sj => [sj.job.uid, sj.job.status, sj.selected]),
+          ]),
+        )}
+      </div>
+    </div>
+  );
+}
+
+function renderFetchProbe() {
+  const progress = vi.fn();
+  const run: FetchRun = {};
+  const view = render(
+    <JobContextProvider>
+      <FetchProbe progress={progress} onFetch={promise => void (run.promise = promise)} />
+    </JobContextProvider>,
+  );
+  const refresh = async () => {
+    await act(async () => {
+      click(view.getByTestId("refresh"));
+      await run.promise;
+    });
+  };
+  return { ...view, progress, refresh };
+}
+
+describe("JobContextProvider job collection fetching", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    cleanup();
+    jobCtxPersistence.state = {
+      persistence: {
+        runningJobCollection: undefined,
+        fetchedJobCollections: [],
+        selectedJobUids: [],
+        currentView: "testView",
+      },
+      saveState: vi.fn(),
+      loading: false,
+    };
+  });
+
+  it("clears fetchedJobCollections when the function has no job collections", async () => {
+    setPersistedJobCollections(undefined);
+    vi.mocked(getFunctionJobCollections).mockResolvedValue([]);
+    const { getByTestId, progress, refresh } = renderFetchProbe();
+    expect(getByTestId("fetched-count").textContent).toBe("undefined");
+
+    await refresh();
+
+    expect(getByTestId("fetched-count").textContent).toBe("0");
+    expect(getByTestId("fetched-projection").textContent).toBe("[]");
+    expect(progress).not.toHaveBeenCalled();
+    expect(vi.mocked(getFunctionJobsFromFunctionJobCollection)).not.toHaveBeenCalled();
+  });
+
+  it("fetches every job when nothing is cached yet, auto-selecting SUCCESS jobs", async () => {
+    setPersistedJobCollections(undefined);
+    vi.mocked(getFunctionJobCollections).mockResolvedValue([jcFixture("jc-1", ["j1"])]);
+    vi.mocked(getFunctionJobsFromFunctionJobCollection).mockImplementation(uid =>
+      Promise.resolve(uid === "jc-1" ? [jobFixture("j1", "SUCCESS")] : []),
+    );
+    const { getByTestId, progress, refresh } = renderFetchProbe();
+
+    await refresh();
+
+    expect(progress.mock.calls.map(c => c[0])).toEqual([0, 100, 100]);
+    expect(getByTestId("fetched-projection").textContent).toBe(JSON.stringify([["jc-1", true, [["j1", "SUCCESS", true]]]]));
+  });
+
+  it("skips the refetch when every cached collection is complete and final", async () => {
+    setPersistedJobCollections([
+      {
+        jobCollection: jcFixture("jc-1"),
+        selected: true,
+        subJobs: [{ selected: true, job: jobFixture("j1", "SUCCESS") }],
+      },
+    ]);
+    vi.mocked(getFunctionJobCollections).mockResolvedValue([jcFixture("jc-1", ["j1"])]);
+    const { getByTestId, progress, refresh } = renderFetchProbe();
+
+    await refresh();
+
+    expect(vi.mocked(getFunctionJobsFromFunctionJobCollection)).not.toHaveBeenCalled();
+    expect(progress).not.toHaveBeenCalled();
+    expect(getByTestId("fetched-projection").textContent).toBe(JSON.stringify([["jc-1", true, [["j1", "SUCCESS", true]]]]));
+  });
+
+  it("refetches only stale collections while preserving each subJob selection", async () => {
+    setPersistedJobCollections([
+      {
+        jobCollection: jcFixture("jc-1"),
+        selected: true,
+        subJobs: [{ selected: true, job: jobFixture("j1", "SUCCESS") }],
+      },
+      {
+        jobCollection: jcFixture("jc-2"),
+        selected: true,
+        subJobs: [{ selected: false, job: jobFixture("j9", "STARTED") }],
+      },
+      {
+        jobCollection: jcFixture("jc-4"),
+        selected: true,
+        subJobs: [{ selected: true, job: jobFixture("j20", "STARTED") }],
+      },
+    ]);
+    vi.mocked(getFunctionJobCollections).mockResolvedValue([
+      jcFixture("jc-1", ["j1"]),
+      jcFixture("jc-2", ["j9", "j10", "j11"]),
+      jcFixture("jc-3"),
+      jcFixture("jc-4", ["j20"]),
+    ]);
+    vi.mocked(getFunctionJobsFromFunctionJobCollection).mockImplementation(uid =>
+      Promise.resolve(
+        uid === "jc-2"
+          ? [jobFixture("j9", "SUCCESS"), jobFixture("j10", { status: "FAILED" }), jobFixture("j11", "SUCCESS")]
+          : uid === "jc-3"
+            ? [jobFixture("j12", "PENDING")]
+            : uid === "jc-4"
+              ? [jobFixture("j20", "STARTED")]
+              : [],
+      ),
+    );
+    const { getByTestId, progress, refresh } = renderFetchProbe();
+
+    await refresh();
+
+    // Only the stale/unknown collections are fetched; the final one is reused as-is.
+    expect(vi.mocked(getFunctionJobsFromFunctionJobCollection).mock.calls.map(c => c[0])).toEqual(["jc-2", "jc-3", "jc-4"]);
+    // progress(0), one tick per of 5 total jobs, then progress(100).
+    expect(progress.mock.calls.map(c => c[0])).toEqual([0, 20, 40, 60, 80, 100, 100]);
+    expect(getByTestId("fetched-projection").textContent).toBe(
+      JSON.stringify([
+        ["jc-1", true, [["j1", "SUCCESS", true]]], // cached entry reused untouched
+        [
+          "jc-2",
+          true,
+          [
+            ["j9", "SUCCESS", false], // refetched as SUCCESS but the user's deselect is preserved
+            ["j10", "FAILED", false], // FunctionJobStatus object flattened, new non-SUCCESS job unselected
+            ["j11", "SUCCESS", true], // new SUCCESS job auto-selected
+          ],
+        ],
+        ["jc-3", false, [["j12", "PENDING", false]]], // collection with no jobIds, nothing selected
+        ["jc-4", true, [["j20", "STARTED", true]]], // stale (non-final status) refetched, selection kept
+      ]),
+    );
+  });
+  it("treats a cached collection whose jobCollection lost its jobIds as stale", async () => {
+    setPersistedJobCollections([
+      {
+        jobCollection: jcFixture("jc-1"),
+        selected: true,
+        subJobs: [{ selected: true, job: jobFixture("j1", "SUCCESS") }],
+      },
+      {
+        jobCollection: jcFixture("jc-3"),
+        selected: true,
+        subJobs: [{ selected: true, job: jobFixture("j12", "STARTED") }],
+      },
+      {
+        jobCollection: jcFixture("jc-5"),
+        selected: false,
+        subJobs: [],
+      },
+    ]);
+    // jc-3 and jc-5 come back WITHOUT jobIds: jc-3's cached job no longer matches the
+    // (missing) jobIds list and must be refetched, while the empty jc-5 stays as-is.
+    vi.mocked(getFunctionJobCollections).mockResolvedValue([jcFixture("jc-1", ["j1"]), jcFixture("jc-3"), jcFixture("jc-5")]);
+    vi.mocked(getFunctionJobsFromFunctionJobCollection).mockImplementation(uid =>
+      Promise.resolve(uid === "jc-3" ? [jobFixture("j12", "SUCCESS")] : []),
+    );
+    const { getByTestId, progress, refresh } = renderFetchProbe();
+
+    await refresh();
+
+    expect(vi.mocked(getFunctionJobsFromFunctionJobCollection).mock.calls.map(c => c[0])).toEqual(["jc-3"]);
+    expect(progress.mock.calls.map(c => c[0])).toEqual([0, 100, 100]);
+    expect(getByTestId("fetched-projection").textContent).toBe(
+      JSON.stringify([
+        ["jc-1", true, [["j1", "SUCCESS", true]]],
+        ["jc-3", true, [["j12", "SUCCESS", true]]], // refetched, user selection preserved
+        ["jc-5", false, []],
+      ]),
+    );
+  });
+});
+
+const uidJob = (uid: string) => ({ uid, status: "SUCCESS" }) as unknown as OsparcFunctionJob;
+const JOBS5 = ["u1", "u2", "u3", "u4", "u5"].map(uidJob);
+
+function jcFromJobs(jcUid: string, jobs: OsparcFunctionJob[]): SelectedJobCollection {
+  return {
+    jobCollection: { uid: jcUid } as unknown as RegisteredFunctionJobCollection,
+    selected: true,
+    subJobs: jobs.map(job => ({ selected: true, job })),
+  };
+}
+
+function SelectionProbe() {
+  const { setFetchedJobCollections, setSelectedJobUids, filteredJobList, allJobsList } = useJobContext();
+  return (
+    <div>
+      <button type="button" data-testid="set-5" onClick={() => setFetchedJobCollections([jcFromJobs("jc-a", JOBS5)])}>
+        Set 5
+      </button>
+      <button type="button" data-testid="set-5-again" onClick={() => setFetchedJobCollections([jcFromJobs("jc-b", JOBS5)])}>
+        Set same 5 again
+      </button>
+      <button type="button" data-testid="set-4" onClick={() => setFetchedJobCollections([jcFromJobs("jc-c", JOBS5.slice(0, 4))])}>
+        Set 4
+      </button>
+      <button type="button" data-testid="select-all" onClick={() => setSelectedJobUids(JOBS5.map(j => j.uid))}>
+        Select all
+      </button>
+      <button type="button" data-testid="select-4" onClick={() => setSelectedJobUids(["u1", "u2", "u3", "u4"])}>
+        Select 4
+      </button>
+      <div data-testid="filtered">{JSON.stringify(filteredJobList.map(j => j.uid))}</div>
+      <div data-testid="all-count">{String(allJobsList().length)}</div>
+    </div>
+  );
+}
+
+function renderSelectionProbe() {
+  const view = render(
+    <JobContextProvider>
+      <SelectionProbe />
+    </JobContextProvider>,
+  );
+  return {
+    ...view,
+    clickButton: (testId: string) =>
+      act(() => {
+        click(view.getByTestId(testId));
+      }),
+  };
+}
+
+describe("JobContextProvider sample floor (filteredJobList / allJobsList)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    cleanup();
+    jobCtxPersistence.state = {
+      persistence: {
+        runningJobCollection: undefined,
+        fetchedJobCollections: [],
+        selectedJobUids: [],
+        currentView: "testView",
+      },
+      saveState: vi.fn(),
+      loading: false,
+    };
+  });
+
+  it("rebuilds filteredJobList on selection, skips no-op refetches and drops below the floor", () => {
+    const { getByTestId, clickButton } = renderSelectionProbe();
+    clickButton("set-5");
+    expect(getByTestId("all-count").textContent).toBe("5");
+    // 5 selected jobs cross the Dakota floor and are handed to the plots...
+    clickButton("select-all");
+    expect(getByTestId("filtered").textContent).toBe(JSON.stringify(["u1", "u2", "u3", "u4", "u5"]));
+    // ...a brand-new collection array holding the SAME jobs must not recompute anything.
+    clickButton("set-5-again");
+    expect(getByTestId("filtered").textContent).toBe(JSON.stringify(["u1", "u2", "u3", "u4", "u5"]));
+    // 4 selected jobs fall below the floor again -> cleared.
+    clickButton("select-4");
+    expect(getByTestId("filtered").textContent).toBe("[]");
+    expect(getByTestId("all-count").textContent).toBe("5");
+  });
+
+  it("caps allJobsList to [] whenever fewer than five jobs were fetched", () => {
+    const { getByTestId, clickButton } = renderSelectionProbe();
+    expect(getByTestId("all-count").textContent).toBe("0");
+    clickButton("set-5");
+    expect(getByTestId("all-count").textContent).toBe("5");
+    clickButton("set-4");
+    expect(getByTestId("all-count").textContent).toBe("0");
+  });
+});
+
+function StatusProbe() {
+  const { parseStatus } = useJobContext();
+  const shapes: Array<[string, unknown]> = [
+    ["status-null", null],
+    ["status-empty-object", {}],
+    ["status-object-nonstring", { status: 42 }],
+    ["status-unknown-string", "UNKNOWN"],
+    ["status-job-pending", "JOB_WAITING"],
+    ["status-failed", "FAILED"],
+    ["status-aborted", "ABORTED"],
+  ];
+  return (
+    <div>
+      {shapes.map(([testid, value]) => (
+        <div key={testid} data-testid={testid}>
+          {parseStatus(value as never, {})}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+describe("JobContextProvider status classification extras", () => {
+  it("classifies unrecognized status shapes and the remaining status spellings", () => {
+    const { getByTestId } = render(
+      <JobContextProvider>
+        <StatusProbe />
+      </JobContextProvider>,
+    );
+    for (const testid of ["status-null", "status-empty-object", "status-object-nonstring", "status-unknown-string"]) {
+      expect(getByTestId(testid).textContent).toBe("Please try again later");
+    }
+    expect(getByTestId("status-job-pending").textContent).toBe("Pending to run");
+    expect(getByTestId("status-failed").textContent).toBe("Failed - no outputs");
+    expect(getByTestId("status-aborted").textContent).toBe("Failed - no outputs");
+  });
+});
+
+describe("JobContextProvider persistence hydration guards", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    cleanup();
+    jobCtxPersistence.state = {
+      persistence: {
+        runningJobCollection: undefined,
+        fetchedJobCollections: [],
+        selectedJobUids: [],
+        currentView: "testView",
+      },
+      saveState: vi.fn(),
+      loading: false,
+    };
+  });
+
+  it("stays cold when there is no persistence context at all", () => {
+    jobCtxPersistence.state.persistence = null;
+    const { getByTestId } = render(
+      <JobContextProvider>
+        <TestComponent />
+      </JobContextProvider>,
+    );
+    expect(getByTestId("fetched-jobs").textContent).toBe("");
+    expect(getByTestId("selected-uids").textContent).toBe("[]");
+    expect(jobCtxPersistence.state.saveState).not.toHaveBeenCalled();
+  });
+
+  it("stops saving the moment the persistence context disappears mid-session", () => {
+    const { getByTestId } = render(
+      <JobContextProvider>
+        <TestComponent />
+      </JobContextProvider>,
+    );
+    // Hydration (and the first save) happened while persistence existed.
+    jobCtxPersistence.state.saveState.mockClear();
+    jobCtxPersistence.state.persistence = null;
+
+    act(() => {
+      click(getByTestId("set-selected"));
+    });
+
+    expect(getByTestId("selected-uids").textContent).toContain('"1"');
+    expect(jobCtxPersistence.state.saveState).not.toHaveBeenCalled();
+  });
+
+  it("does not hydrate or persist while the persistence layer is still loading", () => {
+    jobCtxPersistence.state.loading = true;
+    const { getByTestId } = render(
+      <JobContextProvider>
+        <TestComponent />
+      </JobContextProvider>,
+    );
+    expect(getByTestId("fetched-jobs").textContent).toBe("");
+    expect(jobCtxPersistence.state.saveState).not.toHaveBeenCalled();
+  });
+
+  it("ignores persisted job state that carries no currentView", () => {
+    jobCtxPersistence.state.persistence = {
+      runningJobCollection: undefined,
+      fetchedJobCollections: [{ jobCollection: jcFixture("jc-p"), selected: false, subJobs: [] }],
+      selectedJobUids: ["j1"],
+      currentView: undefined,
+    };
+    const { getByTestId } = render(
+      <JobContextProvider>
+        <TestComponent />
+      </JobContextProvider>,
+    );
+    expect(getByTestId("fetched-jobs").textContent).toBe("");
+    expect(getByTestId("selected-uids").textContent).toBe("[]");
+    expect(jobCtxPersistence.state.saveState).not.toHaveBeenCalled();
   });
 });
