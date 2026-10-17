@@ -107,7 +107,7 @@ const {
   persistenceSeed: { values: {} as Record<string, unknown> },
   mockListFunctions: vi.fn(),
   mockGetFunctionJobCollectionCounts: vi.fn(),
-  // Kept only as a tripwire: the V49 aggregate endpoint replaced the per-function
+  // Kept only as a tripwire: the V51cs aggregate endpoint replaced the per-function
   // fan-out, so any call to this util from the upload flow is a regression.
   mockGetFunctionJobCollectionsFanoutTripwire: vi.fn(),
   mockUploadJobCollectionCsv: vi.fn(),
@@ -213,7 +213,7 @@ describe("FunctionList — CSV upload consumer wiring (V13 port from fork#17)", 
     // Call sequence for listFunctions:
     //   1st call – initial fetchFunctions on mount → empty list
     //   2nd+ call – fetchFunctions inside handleCsvUploadSuccess → the new function
-    // Counts arrive as ONE aggregate map (V49), not a per-function fan-out.
+    // Counts arrive as ONE aggregate map (V51cs), not a per-function fan-out.
     mockGetFunctionJobCollectionCounts.mockResolvedValue({ "test-uid": { campaignCount: 1, evaluationCount: 2 } });
   });
 
@@ -254,7 +254,7 @@ describe("FunctionList — CSV upload consumer wiring (V13 port from fork#17)", 
     expect(readPresetsFor("test-uid")).toEqual({ ...seededPresets, ...expectedPresets });
 
     expect(mockUploadJobCollectionCsv).toHaveBeenCalledTimes(1);
-    // V49/#498: the upload-success re-fetch takes the same 2-request contract
+    // V51cs/#498: the upload-success re-fetch takes the same 2-request contract
     // (empty-list mount fetches no counts; the post-upload fetch pulls ONE map).
     expect(mockGetFunctionJobCollectionCounts).toHaveBeenCalledTimes(1);
     expect(mockGetFunctionJobCollectionsFanoutTripwire).not.toHaveBeenCalled();
