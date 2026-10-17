@@ -44,15 +44,14 @@ function normalizePayloadToCamelCase<T>(payload: unknown, parentKey?: string): T
       return payload as T;
     }
 
-    return Object.entries(payload as Record<string, unknown>).reduce(
-      (normalized, [key, value]) => {
+    // Object.fromEntries assigns entries into ONE fresh object: the spread-accumulator reduce
+    // this replaces copied the whole partial result per key ⇒ O(N²) on the aggregate uid-keyed
+    // counts map (Copilot #739). Key order + duplicate-key semantics are identical.
+    return Object.fromEntries(
+      Object.entries(payload as Record<string, unknown>).map(([key, value]) => {
         const camelKey = snakeToCamelCase(key);
-        return {
-          ...normalized,
-          [camelKey]: normalizePayloadToCamelCase(value, camelKey),
-        };
-      },
-      {} as Record<string, unknown>,
+        return [camelKey, normalizePayloadToCamelCase(value, camelKey)];
+      }),
     ) as T;
   }
 

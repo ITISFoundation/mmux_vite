@@ -76,8 +76,12 @@ export function FunctionList() {
           setJobCount(jCount);
         } catch (err) {
           // Parity with the old per-row partial-failure semantics: rows keep rendering
-          // "Loading..." instead of failing the whole function list.
+          // "Loading..." instead of failing the whole function list — on a REFRESH that
+          // means CLEARING the previous maps, ⊥ silently leaving stale totals painted
+          // over freshly imported evaluations when the aggregate request fails (Copilot #739).
           console.warn("Error fetching job collection counts for functions:", err);
+          setJobCollectionCount({});
+          setJobCount({});
         }
       }
       setError(false);
