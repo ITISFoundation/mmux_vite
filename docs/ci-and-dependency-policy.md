@@ -25,25 +25,25 @@ repos/ITISFoundation/mmux_vite/rulesets/5597677`) applies to `~DEFAULT_BRANCH`
 - Deletion, creation and non-fast-forward pushes blocked.
 - Bypass: repository **Admin** role only (`bypass_mode: always`) — this is the
   identity behind the `AUTOTAG_PUSH_TOKEN` secret used by `auto-tag.yml`.
-- `required_status_checks`: **currently EMPTY** — no workflow check is
-  formally required on either branch today. Merge gating therefore rests on
-  the merge queue + social convention, not on CI being required. This is the
-  gap #627 calls out; the recommended list below closes it.
+- `required_status_checks`: **6 checks enforced on both branches** (applied 2026-10-17 via the
+  `gh api` PUT below, verified live). When #627 was audited the list was still EMPTY — merge
+  gating rested on the merge queue + social convention, not on CI being required — exactly
+  the gap #627 called out.
 
-### Recommended required status checks (owner action, not enforced yet)
+### Required status checks (enforced on `main` + `develop` since 2026-10-17)
 
-Merge-blocking (the full suite — mirrors "CI green before merge", SPEC §C):
+Merge-blocking (the full suite — mirrors "CI green before merge", SPEC §C), as shown in PR checks:
 
 | Check name (as shown in PR checks) | Source |
 | --- | --- |
 | `prek` | `ci.yml` job `prek` (includes the lockfile freshness gate) |
 | `node-tests` | `ci.yml` job `node-tests` (vitest thresholds = coverage ratchet) |
 | `flaskapi-tests` | `ci.yml` job `flaskapi-tests` (regular + analytical tiers) |
-| `e2e-tests` | `ci.yml` job `e2e-tests` (pixel baselines; ci.yml comment already claims it gates merge — true only once listed here) |
+| `e2e-tests` | `ci.yml` job `e2e-tests` (pixel baselines — the ci.yml "gates merge via branch protection" comment is now literally true) |
 | `verify-image-build` | `ci.yml` job `verify-image-build` |
 | `version` | `version-check.yml` job `version` ("Check release version") |
 
-Apply with (keeps all other rules intact):
+Applied 2026-10-17; kept for reproduction on forks or drift recovery (keeps all other rules intact):
 
 ```bash
 gh api repos/ITISFoundation/mmux_vite/rulesets/5597677 |
