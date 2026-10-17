@@ -58,4 +58,55 @@ describe("architecture", { timeout: 60_000 }, () => {
       .check();
     expect(violations).toEqual([]);
   });
+
+  // V50kl download COMPLETENESS (T54vw): a data-fetch site inside a component ⇒ the same file
+  // mounts a DownloadDataButton, so ∄ a rendered payload the user cannot obtain as JSON. The
+  // universe is mechanical, ⊥ a hand list: a `/flask/` endpoint literal, the generic-call syntax
+  // getCachedOrFetch[<(], or a fetch[A-Z]* wrapper (imports count — util wrappers live outside
+  // src/components by the layering rules and their component consumer carries the button).
+  const hasDataFetchSite = (content: string) => /\/flask\/|getCachedOrFetch[<(]|\bfetch[A-Z]/.test(content);
+
+  // Escape hatch (V50kl: "control-plane endpoints … excluded in the scan"): components whose
+  // fetch response configures or polls rather than paints a dataset for the user. Every entry
+  // is a permanent, reason-documented exception — new ones need a spec decision, not a patch.
+  const downloadScanExempt: Record<string, string> = {
+    "src/components/setup/FunctionList.tsx":
+      "control plane: function registration catalog + job-collection counts (refresh/create flow)",
+    "src/components/sampling/GridSearchSampling.tsx":
+      "sampling-create POST /flask/sampling/grid — registers a job collection (job-CRUD; response holds no analyzable dataset)",
+    "src/components/sampling/LHSSampling.tsx":
+      "sampling-create POST /flask/sampling/lhs — registers a job collection (job-CRUD; response holds no analyzable dataset)",
+  };
+
+  it("every component data-fetch site mounts a DownloadDataButton (V50kl)", async () => {
+    const violations = await projectFiles(TSCONFIG)
+      .inFolder("src/components/**")
+      .should()
+      .adhereTo(
+        file =>
+          !isProductionSource(file.path) ||
+          Object.keys(downloadScanExempt).some(exempt => file.path.endsWith(exempt)) ||
+          !hasDataFetchSite(file.content) ||
+          file.content.includes("DownloadDataButton"),
+        "a data-fetch site must mount a DownloadDataButton (V49ij semantics, V50kl completeness)",
+      )
+      .check();
+    expect(violations).toEqual([]);
+  });
+
+  // Guards against a vacuous pass: all 8 current plots satisfy the law, so the scan alone can
+  // only ever prove GREEN. These cases pin that the predicate itself still discriminates — a
+  // fetch-site file without a button IS a violation, and real call-site syntax IS matched.
+  it("the download-completeness predicate discriminates (guards against vacuous passes)", () => {
+    expect(hasDataFetchSite("const d = await getCachedOrFetch<PlotType>(url, body, () => requestJson<PlotType>(u));")).toBe(true);
+    expect(hasDataFetchSite("const d = await getCachedOrFetch(`/flask/dakota/x`, ...);")).toBe(true);
+    expect(hasDataFetchSite("import { fetchCorrelationIndices } from '../../utils/correlationIndices';")).toBe(true);
+    expect(hasDataFetchSite("requestJson(`/api/v1/jobs`, { method: 'GET' });")).toBe(false);
+    expect(hasDataFetchSite("<Box>plain UI</Box>")).toBe(false);
+
+    // the whole-file rule: fetch site WITHOUT a button is flagged, WITH a button passes
+    const fileAdheres = (content: string) => !hasDataFetchSite(content) || content.includes("DownloadDataButton");
+    expect(fileAdheres("await fetchSomeNewDataView({});")).toBe(false); // planted violation
+    expect(fileAdheres("await fetchSomeNewDataView({}); return <DownloadDataButton />;")).toBe(true);
+  });
 });
