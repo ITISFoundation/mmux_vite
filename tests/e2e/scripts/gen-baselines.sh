@@ -31,7 +31,7 @@ export UV_PROJECT_ENVIRONMENT=/tmp/flaskapi-venv
 export TEXT_FILES_DIR=/tmp/e2e-text-files
 export LOCAL_STORE_DIR=/tmp/e2e-local-store
 export DAKOTA_RUNS_DIR=/tmp/dakota_runs
-uv python install 3.11
+uv python install 3.12
 
 echo "=== installing flaskapi deps (uv sync) ==="
 make install-flaskapi-deps
