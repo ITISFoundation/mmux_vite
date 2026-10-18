@@ -62,20 +62,15 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
+  // Weight changes re-sort the table. The Performance VALUES themselves are not
+  // computed here: the parent (MOGAPareto's projection effect) is the single
+  // writer of `row.performance` (normalized min-max, minimize/maximize-aware,
+  // over the all-evaluations domain) and feeds it through the tableData prop →
+  // the [tableData] effect below. The naive raw sum this effect used to write
+  // (`Σ wᵢ·xᵢ`, no normalization, direction-blind) was a SECOND source of truth
+  // racing the parent's writes — the zero-tolerance MOGA e2e baselines captured
+  // either value depending on effect ordering (§B B60px).
   useEffect(() => {
-    if (data !== undefined && data.rows && weights !== undefined) {
-      console.log("Updating performance column with weights:", weights);
-      const updatedRows = data.rows.map(row => {
-        let performance = 0;
-        Object.keys(weights).forEach(key => {
-          if (row[key] !== undefined) {
-            performance += weights[key] * row[key];
-          }
-        });
-        return { ...row, performance };
-      });
-      setData({ ...data, rows: updatedRows });
-    }
     handleSortModelChange(defaultSortModel); // reset sorting when changing weights
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weights]);

@@ -186,21 +186,24 @@ describe("MogaParetoTable", () => {
     expect(mocks.setWeights).toHaveBeenCalledWith({ y: 0.7, y2: 0.5 });
   });
 
-  it("recomputes the performance column on weight changes, skipping unknown keys", async () => {
+  it("on a weights-only edit: re-sorts, keeps GIVEN performance, and does not realign or recompute (B63px)", async () => {
     const { rerender } = render(<MogaParetoTable {...defaultProps} />);
     await waitFor(() => expect(screen.getByTestId("data-grid").dataset.loading).toBe("false"));
     // aligned weights: nothing to realign
     expect(mocks.setWeights).not.toHaveBeenCalled();
 
-    // weights change: performance = 2*y + 0*y2, the unknown "ghost" key is skipped
+    // weights change to a mismatched key set with UNCHANGED data: the realign effect
+    // is keyed to [data] only now, and performance is exclusively the parent's write.
     mocks.weights = { y: 2, y2: 0, ghost: 1 };
     rerender(<MogaParetoTable {...defaultProps} />);
-    await waitFor(() => expect(screen.getByText("10")).toBeInTheDocument());
-    expect(screen.getByText("3.0")).toBeInTheDocument();
-    // the sort must reset to the default performance-desc model again
-    expect(mocks.setSortModel).toHaveBeenLastCalledWith([{ field: "performance", sort: "desc" }]);
-    // the mismatched key set now gets realigned to the objectives
-    expect(mocks.setWeights).toHaveBeenCalledWith({ y: 2, y2: 0 });
+    await waitFor(() => expect(mocks.setSortModel).toHaveBeenLastCalledWith([{ field: "performance", sort: "desc" }]));
+    expect(mocks.setWeights).not.toHaveBeenCalled();
+    // the retired child writer (Σ wᵢ·xᵢ = 10 / 3.0 for these fixtures) must NOT appear…
+    expect(screen.queryByText("10")).toBeNull();
+    expect(screen.queryByText("3.0")).toBeNull();
+    // …the GIVEN scores stand untouched (NaN → dash, 0.5 → 0.50).
+    expect(screen.getByText("-")).toBeInTheDocument();
+    expect(screen.getByText("0.50")).toBeInTheDocument();
   });
 
   it("opens the performance editor from the header and closes it again", async () => {
@@ -253,5 +256,38 @@ describe("MogaParetoTable", () => {
     // no data → the weights sync and the performance recompute stay out of the way
     expect(mocks.setWeights).not.toHaveBeenCalled();
     expect(mocks.setSortModel).toHaveBeenCalledWith([{ field: "performance", sort: "desc" }]);
+  });
+});
+
+// §B B63px regression (from the #745 e2e batch, ported to this suite's grid stub): the
+// Performance column had TWO writers — this table's own effect wrote a direction-blind
+// naive sum Σ wᵢ·xᵢ over the parent's already-computed `row.performance`, and with the
+// e2e-seeded empty weights the override produced a second, timing-dependent render
+// ("-" / "0.00"). MOGAPareto's [weights] effect is the single writer: the table renders
+// the score it is GIVEN, untouched.
+describe("MogaParetoTable Performance single-writer regression (B63px)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.weights = {}; // the e2e-seeded empty weights that used to trigger the override
+    mocks.sortModel = undefined;
+    mocks.gridSortModels = [];
+    mocks.gridStyles = undefined;
+    mocks.gridValues = [];
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders parent-computed scores verbatim under seeded-empty weights and never recomputes", async () => {
+    render(<MogaParetoTable {...defaultProps} />);
+    await waitFor(() => expect(screen.getByTestId("data-grid").dataset.loading).toBe("false"));
+    // the GIVEN normalized scores reach the grid; the retired child override would have
+    // rewritten both rows to its Σ wᵢ·xᵢ = 0 render under these weights.
+    expect(screen.getByText("0.50")).toBeInTheDocument();
+    expect(screen.queryByText("0.00")).toBeNull();
+    expect(screen.getAllByText("-")).toHaveLength(1); // the upstream NaN row only
+    // the table still seeds default weights for fresh output sets (unchanged job).
+    await waitFor(() => expect(mocks.setWeights).toHaveBeenCalledWith({ y: 0.5, y2: 0.5 }));
   });
 });
