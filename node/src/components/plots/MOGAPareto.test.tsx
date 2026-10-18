@@ -509,7 +509,7 @@ describe("MOGAPareto performance calculation", () => {
     mocks.weights = { y: 2, y2: -1 };
     rerender(<MOGAPareto {...props} />);
     await waitFor(() =>
-      expect((mocks.tableProps?.tableData as { rows: Array<Record<string, number>> }).rows[0].Performance).toBe(2),
+      expect((mocks.tableProps?.tableData as { rows: Array<Record<string, number>> }).rows[0].performance).toBe(2),
     );
     expect(console.warn).toHaveBeenCalledWith("Performance calculation out of bounds:", 2, expect.anything());
 
@@ -517,7 +517,7 @@ describe("MOGAPareto performance calculation", () => {
     mocks.weights = { y: -1, y2: 2 };
     rerender(<MOGAPareto {...props} />);
     await waitFor(() =>
-      expect((mocks.tableProps?.tableData as { rows: Array<Record<string, number>> }).rows[0].Performance).toBe(-1),
+      expect((mocks.tableProps?.tableData as { rows: Array<Record<string, number>> }).rows[0].performance).toBe(-1),
     );
     expect(console.warn).toHaveBeenCalledWith("Performance calculation out of bounds:", -1, expect.anything());
 
@@ -525,7 +525,7 @@ describe("MOGAPareto performance calculation", () => {
     mocks.weights = { z: 5 };
     rerender(<MOGAPareto {...props} />);
     await waitFor(() =>
-      expect((mocks.tableProps?.tableData as { rows: Array<Record<string, number>> }).rows[0].Performance).toBeNaN(),
+      expect((mocks.tableProps?.tableData as { rows: Array<Record<string, number>> }).rows[0].performance).toBeNaN(),
     );
     expect(console.warn).toHaveBeenCalledWith("weightSum is equal to zero! Setting performance to NaN ");
 
@@ -533,14 +533,14 @@ describe("MOGAPareto performance calculation", () => {
     mocks.weights = { y: 0, y2: 0 };
     rerender(<MOGAPareto {...props} />);
     await waitFor(() =>
-      expect((mocks.tableProps?.tableData as { rows: Array<Record<string, number>> }).rows[1].Performance).toBeNaN(),
+      expect((mocks.tableProps?.tableData as { rows: Array<Record<string, number>> }).rows[1].performance).toBeNaN(),
     );
 
     // weights not hydrated yet (undefined) → the early bail-out warns and yields NaN
     mocks.weights = undefined;
     rerender(<MOGAPareto {...props} />);
     await waitFor(() =>
-      expect((mocks.tableProps?.tableData as { rows: Array<Record<string, number>> }).rows[0].Performance).toBeNaN(),
+      expect((mocks.tableProps?.tableData as { rows: Array<Record<string, number>> }).rows[0].performance).toBeNaN(),
     );
     expect(console.warn).toHaveBeenCalledWith("Weights passed to calculate performance are empty! ", undefined);
 
@@ -548,7 +548,7 @@ describe("MOGAPareto performance calculation", () => {
     mocks.weights = { y: -1, y2: -2 };
     rerender(<MOGAPareto {...props} />);
     await waitFor(() =>
-      expect((mocks.tableProps?.tableData as { rows: Array<Record<string, number>> }).rows[0].Performance).toBeNaN(),
+      expect((mocks.tableProps?.tableData as { rows: Array<Record<string, number>> }).rows[0].performance).toBeNaN(),
     );
     expect(console.warn).toHaveBeenCalledWith("weightedSum is smaller than zero! Setting performance to NaN");
 
