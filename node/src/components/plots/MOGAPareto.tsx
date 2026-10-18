@@ -566,21 +566,40 @@ export function MOGAPareto(props: MOGAParetoProps) {
     [filteredJobList, mogaSettings, inputLogScales, outputLogScales],
   );
 
-  // When weights change, recalculate tableData (refresh table) but do NOT rerun runMOGA
+  // The SINGLE writer of the rendered `performance` field (§B B60px): a pure
+  // projection of (tableData, weights, outputTargets). It fires on every
+  // tableData commit as well as every weights/direction edit, so no matter how
+  // runMOGA's async commits interleave with the child's default-weight
+  // generation, the column converges to one value. Previously three async
+  // events each committed a DIFFERENT domain — runMOGA with pre-generation
+  // empty weights (NaN → "-"), runMOGA after generation (normalized over ALL
+  // evaluations → 1.0), and this effect re-deriving min/max from the visible
+  // front rows (a single-objective front is all rows tied at the optimum:
+  // min === max → the norm=0 fallback zeroed the whole column → 0.0) — and
+  // whichever landed last became the terminal frame. Two invariants keep this
+  // effect safe as the authoritative writer: minMax comes from prev.raw, the
+  // same all-evaluations domain runMOGA normalizes in (byte-identical values),
+  // and the functional update returns the CURRENT object when nothing would
+  // change, so the new tableData dependency converges instead of ping-ponging.
   useEffect(() => {
-    if (!tableData || !tableData.rows) return;
     if (!selectedFunction) return;
-
-    const localOptVars = Object.keys(outputTargets[selectedFunction.uid]);
-    const minMax = getMinMax(localOptVars, {}, tableData);
-    // Recalculate performance for each row
-    const newRows = tableData.rows.map(row => ({
-      ...row,
-      Performance: calculatePerformance(row, outputTargets[selectedFunction.uid], minMax),
-    }));
-    setTableData({ ...tableData, rows: newRows });
+    const ovs = outputTargets[selectedFunction.uid];
+    const localOptVars = Object.keys(ovs);
+    setTableData(prev => {
+      if (!prev || !prev.rows || prev.rows.length === 0) return prev;
+      const minMax = getMinMax(localOptVars, prev.raw);
+      let changed = false;
+      const rows = prev.rows.map(row => {
+        const performance = calculatePerformance(row, ovs, minMax);
+        const same = Number.isNaN(performance) ? Number.isNaN(row.performance) : performance === row.performance;
+        if (same) return row;
+        changed = true;
+        return { ...row, performance };
+      });
+      return changed ? { ...prev, rows } : prev;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weights]);
+  }, [weights, tableData, outputTargets[selectedFunction?.uid as string], selectedFunction?.uid]);
 
   useEffect(() => {
     if (tableData) {
