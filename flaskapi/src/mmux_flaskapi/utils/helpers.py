@@ -4,7 +4,7 @@ import re
 import uuid
 from collections.abc import Callable
 from pathlib import Path
-from typing import TypeVar, overload
+from typing import overload
 
 import numpy as np
 import pandas as pd
@@ -235,9 +235,6 @@ def _get_last_N_items(api_call: Callable, N: int, **kwargs):
     return items
 
 
-T = TypeVar("T")
-
-
 @overload
 def sanitize_varnames(input_data: str) -> str: ...
 
@@ -247,7 +244,7 @@ def sanitize_varnames(input_data: list[str]) -> list[str]: ...
 
 
 @overload
-def sanitize_varnames(input_data: dict[str, T]) -> dict[str, T]: ...
+def sanitize_varnames[T](input_data: dict[str, T]) -> dict[str, T]: ...
 
 
 @overload
