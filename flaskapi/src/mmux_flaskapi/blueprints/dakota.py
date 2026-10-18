@@ -7,7 +7,7 @@ import threading
 import traceback
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, NoReturn, TypeVar
+from typing import Any, NoReturn
 
 import pandas as pd
 
@@ -78,10 +78,8 @@ assert DAKOTA_RUNS_DIR.is_dir(), "Dakota Runs Dir does not exist!!"
 # (cwd-independent execution, e.g. subprocess cwd=) would retire this lock.
 ENGINE_LOCK = threading.Lock()
 
-_T = TypeVar("_T")
 
-
-def _run_engine(fn: Callable[..., _T], *args: Any, **kwargs: Any) -> _T:
+def _run_engine[T](fn: Callable[..., T], *args: Any, **kwargs: Any) -> T:
     """Call an itis-sumo workflow under ENGINE_LOCK (V49ad).
 
     One Dakota-bound run per process at a time: the package's runner chdirs
