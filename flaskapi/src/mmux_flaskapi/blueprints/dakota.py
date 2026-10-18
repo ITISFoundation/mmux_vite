@@ -10,7 +10,7 @@ import threading
 import traceback
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, NoReturn, TypeVar
+from typing import Any, NoReturn
 
 import pandas as pd
 import psutil
@@ -89,7 +89,6 @@ assert DAKOTA_RUNS_DIR.is_dir(), "Dakota Runs Dir does not exist!!"
 # would retire this lock.
 ENGINE_LOCK = threading.Lock()
 
-_T = TypeVar("_T")
 
 ########################################################
 # Engine watchdog + single-flight (V51et, B62et, issue #753)
@@ -353,13 +352,13 @@ def engine_queue_stats() -> dict[str, Any]:
     }
 
 
-def _run_engine(
-    fn: Callable[..., _T],
+def _run_engine[T](
+    fn: Callable[..., T],
     *args: Any,
     workflow: str | None = None,
     dedupe: Any = None,
     **kwargs: Any,
-) -> _T:
+) -> T:
     """Call an itis-sumo workflow under ENGINE_LOCK (V49ad).
 
     One Dakota-bound run per process at a time: the package's runner chdirs

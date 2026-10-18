@@ -9,7 +9,7 @@ exchange between backend and frontend.
 
 import json
 import logging
-from typing import Any, TypeVar
+from typing import Any
 
 from flask import Flask, jsonify, request
 from pydantic import BaseModel, ValidationError
@@ -22,7 +22,6 @@ from mmux_flaskapi.utils.helpers import (
 )
 
 _logger = logging.getLogger(__name__)
-RequestModelT = TypeVar("RequestModelT", bound=BaseModel)
 
 
 def _with_invalid_request_prefix(message: str) -> str:
@@ -55,7 +54,9 @@ def _format_validation_error(exc: ValidationError) -> tuple[str, list[str]]:
     return f"Validation failed: {', '.join(details)}", details
 
 
-def parse_request_model(model_class: type[RequestModelT]) -> RequestModelT:
+def parse_request_model[RequestModelT: BaseModel](
+    model_class: type[RequestModelT],
+) -> RequestModelT:
     """Parse request JSON, normalize it to snake_case, and validate it."""
     try:
         request_json = get_request()
