@@ -1,169 +1,162 @@
-"""
-Tests for the logger utility module.
+"""Tests for the central logging configuration (`utils/logger.configure_logging`).
 
-This module tests the logging configuration, file creation, and logger propagation
-settings for the Flask application.
+Pins flaskapi/SPEC.md V50tl (B59tl): stdout-only terminal logging, LOG_LEVEL
+effective (also under a gunicorn-style pre-configured root), file logging only
+via LOG_FILE, and no package-dir log files — the container/graylog contract
+behind upstream issue #112.
 """
 
+import importlib
 import logging
 import os
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import werkzeug._internal
+
+import mmux_flaskapi
+from mmux_flaskapi.utils.logger import LOG_FORMAT, configure_logging
 
 pytestmark = pytest.mark.unit
 
+PACKAGE_LOGS_DIR = Path(mmux_flaskapi.__file__).parent / "utils" / "logs"
 
-class TestLoggerConfiguration:
-    """Test logger configuration and setup."""
 
-    def test_logger_import_creates_log_file(self, tmp_path):
-        """Test that importing logger creates the log file in the correct location."""
-        # This test verifies that the logger module can be imported without errors
-        # and that the logging configuration is applied
-        import mmux_flaskapi.utils.logger
+@pytest.fixture
+def reset_root_logging():
+    """Restore root handlers/level after each test (conftest re-inits anyway,
+    but keep this file self-contained)."""
+    yield
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
 
-        # Verify that the module imports successfully
-        assert mmux_flaskapi.utils.logger is not None
 
-    def test_logger_basic_configuration(self):
-        """Test that basic logging is configured correctly."""
-        # Import the logger module to ensure it's initialized
+def _stdout_handlers():
+    return [
+        h
+        for h in logging.root.handlers
+        if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+    ]
 
-        # Get the root logger
-        root_logger = logging.getLogger()
 
-        # Check that handlers are configured
-        assert len(root_logger.handlers) >= 2  # At least file and stream handlers
-
-        # Check that there's a FileHandler
-        file_handlers = [h for h in root_logger.handlers if isinstance(h, logging.FileHandler)]
-        assert len(file_handlers) >= 1
-
-        # Check that there's a StreamHandler
-        stream_handlers = [h for h in root_logger.handlers if isinstance(h, logging.StreamHandler)]
-        assert len(stream_handlers) >= 1
-
-    def test_log_level_from_environment_default(self):
-        """Test that default log level is DEBUG when not set in environment."""
+class TestConfigureLogging:
+    def test_returns_app_logger(self, reset_root_logging):
         with patch.dict(os.environ, {}, clear=True):
-            with patch("mmux_flaskapi.utils.logger.logging.basicConfig") as mock_config:
-                # Re-import to trigger configuration with cleared environment
-                import importlib
+            logger = configure_logging()
+        assert logger.name == "mmux_flaskapi"
+        assert logger.propagate is True
 
-                import mmux_flaskapi.utils.logger
+    def test_default_level_is_debug(self, reset_root_logging):
+        with patch.dict(os.environ, {}, clear=True):
+            configure_logging()
+        assert logging.root.level == logging.DEBUG
 
-                importlib.reload(mmux_flaskapi.utils.logger)
+    def test_level_from_environment(self, reset_root_logging):
+        with patch.dict(os.environ, {"LOG_LEVEL": "WARNING"}):
+            configure_logging()
+        assert logging.root.level == logging.WARNING
 
-                # Check that basicConfig was called with DEBUG level
-                mock_config.assert_called()
-                call_args = mock_config.call_args
-                assert call_args[1]["level"] == "DEBUG"
+    def test_invalid_level_fails_loudly(self, reset_root_logging):
+        with patch.dict(os.environ, {"LOG_LEVEL": "NOT_A_LEVEL"}):
+            with pytest.raises(ValueError):
+                configure_logging()
 
-    def test_log_level_from_environment_custom(self):
-        """Test that log level is read from LOG_LEVEL environment variable."""
-        with patch.dict(os.environ, {"LOG_LEVEL": "INFO"}):
-            with patch("mmux_flaskapi.utils.logger.logging.basicConfig") as mock_config:
-                # Re-import to trigger configuration with custom log level
-                import importlib
+    def test_lowercase_and_mixed_case_levels_accepted(self, reset_root_logging):
+        """Copilot #738: gunicorn takes LOG_LEVEL verbatim (lowercase legal) while Python
+        logging only knows exact-uppercase names — pre-fix, LOG_LEVEL=debug booted the
+        server yet ValueError-crashed the app import."""
+        for raw in ("debug", "DeBuG"):
+            with patch.dict(os.environ, {"LOG_LEVEL": raw}):
+                configure_logging()
+            assert logging.root.level == logging.DEBUG
 
-                import mmux_flaskapi.utils.logger
+    def test_handler_threshold_gates_explicit_child_logger(self, reset_root_logging, capsys):
+        """Copilot #738: with root at ERROR, a child logger EXPLICITLY set to INFO must not
+        stream INFO records — handlers default to NOTSET and would emit whatever propagated."""
+        with patch.dict(os.environ, {"LOG_LEVEL": "ERROR"}):
+            configure_logging()
+        child = logging.getLogger("mmux_flaskapi.child")
+        child.setLevel(logging.INFO)
+        child.info("info-must-not-surface")
+        child.error("error-must-surface")
+        out = capsys.readouterr().out
+        assert "info-must-not-surface" not in out
+        assert "error-must-surface" in out
 
-                importlib.reload(mmux_flaskapi.utils.logger)
+    def test_single_stdout_handler_no_file_handler(self, reset_root_logging):
+        with patch.dict(os.environ, {}, clear=True):
+            configure_logging()
+        assert len(_stdout_handlers()) == 1
+        assert [h for h in logging.root.handlers if isinstance(h, logging.FileHandler)] == []
 
-                # Check that basicConfig was called with INFO level
-                mock_config.assert_called()
-                call_args = mock_config.call_args
-                assert call_args[1]["level"] == "INFO"
+    def test_no_package_dir_log_file(self, reset_root_logging):
+        """B59tl: importing/configuring must never create utils/logs/ inside the package."""
+        with patch.dict(os.environ, {}, clear=True):
+            configure_logging()
+            importlib.reload(importlib.import_module("mmux_flaskapi.utils.logger"))
+        assert not PACKAGE_LOGS_DIR.exists()
 
-    def test_flask_logger_propagation(self):
-        """Test that Flask logger propagation is enabled."""
+    def test_log_file_env_is_opt_in(self, reset_root_logging, tmp_path):
+        log_file = tmp_path / "backend.log"
+        with patch.dict(os.environ, {"LOG_FILE": str(log_file)}):
+            configure_logging()
+        file_handlers = [h for h in logging.root.handlers if isinstance(h, logging.FileHandler)]
+        assert len(file_handlers) == 1
+        assert Path(file_handlers[0].baseFilename) == log_file
+        logging.getLogger("test.log_file").error("written to file")
+        for handler in logging.root.handlers:
+            handler.flush()
+        assert "written to file" in log_file.read_text()
 
-        flask_logger = logging.getLogger("flask")
-        assert flask_logger.propagate is True
+    def test_effective_under_preconfigured_root(self, reset_root_logging):
+        """gunicorn attaches its own root handler before the app import; a plain
+        basicConfig() is then a silent no-op (B59tl). force=True must win."""
+        foreign = logging.StreamHandler()
+        logging.basicConfig(level=logging.INFO, handlers=[foreign], force=True)
+        with patch.dict(os.environ, {"LOG_LEVEL": "DEBUG"}):
+            configure_logging()
+        assert foreign not in logging.root.handlers
+        assert logging.root.level == logging.DEBUG
 
-    def test_werkzeug_logger_propagation(self):
-        """Test that Werkzeug logger propagation is enabled."""
+    def test_idempotent_no_duplicate_handlers(self, reset_root_logging):
+        with patch.dict(os.environ, {}, clear=True):
+            configure_logging()
+            configure_logging()
+            configure_logging()
+        assert len(_stdout_handlers()) == 1
+        assert len(logging.root.handlers) == 1
 
-        werkzeug_logger = logging.getLogger("werkzeug")
-        assert werkzeug_logger.propagate is True
+    def test_format_is_pinned(self, reset_root_logging):
+        with patch.dict(os.environ, {}, clear=True):
+            configure_logging()
+        formatter = _stdout_handlers()[0].formatter
+        assert formatter is not None
+        assert formatter._fmt == LOG_FORMAT
 
-    def test_log_format_configuration(self):
-        """Test that log format is configured correctly."""
-        with patch("mmux_flaskapi.utils.logger.logging.basicConfig") as mock_config:
-            # Re-import to trigger configuration
-            import importlib
+    def test_flask_werkzeug_propagate(self, reset_root_logging):
+        with patch.dict(os.environ, {}, clear=True):
+            configure_logging()
+        assert logging.getLogger("flask").propagate is True
+        assert logging.getLogger("werkzeug").propagate is True
 
-            import mmux_flaskapi.utils.logger
-
-            importlib.reload(mmux_flaskapi.utils.logger)
-
-            # Check that basicConfig was called with correct format
-            mock_config.assert_called()
-            call_args = mock_config.call_args
-            expected_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            assert call_args[1]["format"] == expected_format
-
-    def test_log_file_path_generation(self):
-        """Test that log file path is generated correctly."""
-        # Test that the logger module sets up the path correctly
-        import mmux_flaskapi.utils.logger
-
-        # Verify that the module is imported and configured without errors
-        assert mmux_flaskapi.utils.logger is not None
-
-    def test_handlers_configuration(self):
-        """Test that both file and stream handlers are configured."""
-        with patch("mmux_flaskapi.utils.logger.logging.basicConfig") as mock_config:
-            # Re-import to trigger configuration
-            import importlib
-
-            import mmux_flaskapi.utils.logger
-
-            importlib.reload(mmux_flaskapi.utils.logger)
-
-            # Check that handlers are configured
-            mock_config.assert_called()
-            call_args = mock_config.call_args
-            handlers = call_args[1]["handlers"]
-
-            # Should have exactly 2 handlers
-            assert len(handlers) == 2
-
-            # Check handler types
-            handler_types = [type(h).__name__ for h in handlers]
-            assert "FileHandler" in handler_types
-            assert "StreamHandler" in handler_types
-
-    def test_multiple_imports_no_duplicate_configuration(self):
-        """Test that multiple imports don't cause duplicate configuration."""
-        # Import multiple times
-
-        root_logger = logging.getLogger()
-
-        # Count FileHandlers to ensure we don't have duplicates
-        # Note: This test may need adjustment based on test execution order
-        file_handlers = [h for h in root_logger.handlers if isinstance(h, logging.FileHandler)]
-
-        # We expect at least one FileHandler, but not an excessive number
-        assert len(file_handlers) >= 1
-        assert len(file_handlers) <= 3  # Allow some tolerance for test execution
-
-    def test_log_directory_creation(self):
-        """Test that log directory is created if it doesn't exist."""
-        # Test that the logger module sets up logging without errors
-        import mmux_flaskapi.utils.logger
-
-        # Verify that the module is imported and configured without errors
-        assert mmux_flaskapi.utils.logger is not None
-
-    def test_logger_module_constants_exist(self):
-        """Test that the logger module has the expected structure."""
-        import mmux_flaskapi.utils.logger as logger_module
-
-        # Check that the module can be imported without errors
-        assert logger_module is not None
-
-        # Verify that logging is properly configured after import
-        root_logger = logging.getLogger()
-        assert root_logger.level <= logging.DEBUG  # Should be at DEBUG level or lower
+    def test_werkzeug_dev_server_logging_follows_log_level(self, reset_root_logging, capsys):
+        """Copilot #738: configure_logging only set werkzeug's PROPAGATION, leaving its level
+        NOTSET — werkzeug._internal initializes lazily on the first log call, pinning NOTSET to
+        INFO and self-mounting a stderr handler when the chain rejects INFO, so `flask run`
+        request logs bypassed LOG_LEVEL=ERROR. Exercises the REAL dev-server logging entry
+        (werkzeug._internal._log, used by serving.py) with its lazy-init branch forced."""
+        with patch.dict(os.environ, {"LOG_LEVEL": "ERROR"}):
+            configure_logging()
+        werkzeug._internal._logger = None  # force lazy init, as a fresh flask-run worker has
+        try:
+            werkzeug._internal._log("info", "werkzeug-info-must-not-surface")
+            werkzeug._internal._log("error", "werkzeug-error-must-surface")
+        finally:
+            werkzeug._internal._logger = None
+        captured = capsys.readouterr()
+        assert "werkzeug-info-must-not-surface" not in captured.out + captured.err
+        assert "werkzeug-error-must-surface" in captured.out
+        assert captured.err == ""  # ⊥ self-mounted stderr handler: stdout stays the ONE sink
+        assert logging.getLogger("werkzeug").handlers == []
+        assert logging.getLogger("werkzeug").level == logging.ERROR

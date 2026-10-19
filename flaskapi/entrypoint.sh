@@ -29,14 +29,18 @@ if [ "$DEVELOPMENT_MODE" = "true" ]; then
     echo "$INFO" "Starting Flask development server with arguments: ${FLASK_ARGS[@]}"
     exec uv run python -m flask run "${FLASK_ARGS[@]}"
 else
-    # Production mode - use gunicorn
-    echo "$INFO" "Starting gunicorn production server on $HOST:$PORT"
+    # Production mode - use gunicorn.
+    # --log-level must follow LOG_LEVEL (⊥ hardcoded INFO, B59tl): gunicorn's
+    # own gunicorn.error/gunicorn.access handlers use it, while the app root
+    # logger level is set from the same env by utils/logger.configure_logging().
+    GUNICORN_LOG_LEVEL=${LOG_LEVEL,,}
+    echo "$INFO" "Starting gunicorn production server on $HOST:$PORT (log level: ${GUNICORN_LOG_LEVEL})"
     exec uv run gunicorn --bind "$HOST:$PORT" \
         --workers=4 \
         --worker-class=gevent \
         --timeout=1200 \
         --access-logfile=- \
         --error-logfile=- \
-        --log-level=INFO \
+        --log-level="${GUNICORN_LOG_LEVEL}" \
         "main:app"
 fi
