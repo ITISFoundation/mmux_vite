@@ -2,9 +2,16 @@ name: CodSpeed benchmarks
 
 on:
   # Run the workflow for pushes to the main branch (baseline for comparisons)
+  # and to develop (the branch integration PRs target): before/after benchmark
+  # pairs like the FunctionList counts fetch (#498, flaskapi
+  # benchmarks/test_bench_function_counts.py) only report a delta if the
+  # "before" numbers were recorded on the branch the "after" PR compares
+  # against. If the CodSpeed project's base-branch setting still points at
+  # main, point it at develop so develop runs serve as the comparison baseline.
   push:
     branches:
       - main
+      - develop
 
   # Run the workflow for pull requests, so every PR gets a performance report
   pull_request:
