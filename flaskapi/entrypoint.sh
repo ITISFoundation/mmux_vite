@@ -33,7 +33,7 @@ else
     # --log-level must follow LOG_LEVEL (⊥ hardcoded INFO, B59tl): gunicorn's
     # own gunicorn.error/gunicorn.access handlers use it, while the app root
     # logger level is set from the same env by utils/logger.configure_logging().
-    GUNICORN_LOG_LEVEL=$(printf '%s' "${LOG_LEVEL}" | tr '[:upper:]' '[:lower:]')
+    GUNICORN_LOG_LEVEL=${LOG_LEVEL,,}
     echo "$INFO" "Starting gunicorn production server on $HOST:$PORT (log level: ${GUNICORN_LOG_LEVEL})"
     exec uv run gunicorn --bind "$HOST:$PORT" \
         --workers=4 \

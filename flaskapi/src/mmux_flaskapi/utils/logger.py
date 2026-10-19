@@ -14,6 +14,9 @@ collector, e.g. graylog, ingests):
     defaults INFO inside containers);
   - a file handler exists ONLY when `LOG_FILE` is set, at an
     operator-chosen path (e.g. a mounted dir) — never the package dir;
+  - the `werkzeug` logger level is pinned at init: left unset, Werkzeug lazily
+    defaults it to INFO on its first log call and self-mounts a stderr handler
+    when the chain rejects INFO, bypassing `LOG_LEVEL` under `flask run`;
   - `force=True` replaces a pre-existing root configuration, so the settings
     stay effective under gunicorn, whose root console handler would otherwise
     make a plain `basicConfig()` a no-op (B59tl). gunicorn's own
@@ -63,7 +66,16 @@ def configure_logging() -> logging.Logger:
     # Make Flask propagate its logs to the root logger
     logging.getLogger("flask").propagate = True
 
-    # Same for Werkzeug (Flask's underlying WSGI library)
-    logging.getLogger("werkzeug").propagate = True
+    # Werkzeug (Flask's underlying WSGI library) needs its level PINNED, not just
+    # propagation: werkzeug._internal initializes the logger lazily on its FIRST
+    # log call — an unset (NOTSET) level is pinned to INFO there, and a stderr
+    # StreamHandler is self-mounted whenever no handler in the chain accepts that
+    # level. With sinks pinned to WARNING/ERROR the chain never accepts INFO, so
+    # the dev server would bypass LOG_LEVEL on its own stderr handler (Copilot
+    # #738). Pinning the level here makes both lazy-init branches no-ops: the
+    # root sinks stay the only termination point.
+    werkzeug = logging.getLogger("werkzeug")
+    werkzeug.setLevel(level)
+    werkzeug.propagate = True
 
     return logging.getLogger("mmux_flaskapi")

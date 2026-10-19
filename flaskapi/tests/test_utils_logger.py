@@ -13,6 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import werkzeug._internal
 
 import mmux_flaskapi
 from mmux_flaskapi.utils.logger import LOG_FORMAT, configure_logging
@@ -138,3 +139,24 @@ class TestConfigureLogging:
             configure_logging()
         assert logging.getLogger("flask").propagate is True
         assert logging.getLogger("werkzeug").propagate is True
+
+    def test_werkzeug_dev_server_logging_follows_log_level(self, reset_root_logging, capsys):
+        """Copilot #738: configure_logging only set werkzeug's PROPAGATION, leaving its level
+        NOTSET — werkzeug._internal initializes lazily on the first log call, pinning NOTSET to
+        INFO and self-mounting a stderr handler when the chain rejects INFO, so `flask run`
+        request logs bypassed LOG_LEVEL=ERROR. Exercises the REAL dev-server logging entry
+        (werkzeug._internal._log, used by serving.py) with its lazy-init branch forced."""
+        with patch.dict(os.environ, {"LOG_LEVEL": "ERROR"}):
+            configure_logging()
+        werkzeug._internal._logger = None  # force lazy init, as a fresh flask-run worker has
+        try:
+            werkzeug._internal._log("info", "werkzeug-info-must-not-surface")
+            werkzeug._internal._log("error", "werkzeug-error-must-surface")
+        finally:
+            werkzeug._internal._logger = None
+        captured = capsys.readouterr()
+        assert "werkzeug-info-must-not-surface" not in captured.out + captured.err
+        assert "werkzeug-error-must-surface" in captured.out
+        assert captured.err == ""  # ⊥ self-mounted stderr handler: stdout stays the ONE sink
+        assert logging.getLogger("werkzeug").handlers == []
+        assert logging.getLogger("werkzeug").level == logging.ERROR
