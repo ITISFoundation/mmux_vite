@@ -5,13 +5,16 @@ re-rendering (job-collection rows / sampling-points default / accordion collapse
 can land on a replaced DOM node: the handler never runs and NO request leaves the page
 (CI ARIA snapshot evidence, B31rv). The readiness oracle has two halves — awaited
 `networkidle` (late async arrivals) AND awaited `expectLaunchPanelSettled` (same-button-node
-at same position across consecutive frames; network-invisible React/Collapse commits are
-exactly what networkidle cannot see, GH-Copilot #752) — and write-mode tests must budget
-for the serialized single-threaded e2e backend.
+at the same rect across consecutive frames; network-invisible React/Collapse commits are
+exactly what networkidle cannot see, GH-Copilot #752) — carried by the shared
+`openLhsCampaign` flow, which every launch-action site must go through. Write-mode tests
+must also budget for the serialized single-threaded e2e backend.
 
-The guards match the AWAITED call forms and check each test individually, so dropping an
-`await`, commenting out a budget, or moving one test's `test.slow()` into another test
-still redden this file (GH-Copilot #752 review).
+The guards match the AWAITED call forms, pair every action site with the readiness flow,
+check the handoff inside that flow, and check each test individually for its budget — so
+dropping an `await`, bypassing the helper with a fresh locator, commenting out a budget, or
+moving one test's `test.slow()` into another test all redden this file
+(GH-Copilot #752 + alexpargon #752 review).
 """
 
 import re
@@ -32,34 +35,67 @@ AWAITED_SETTLED = re.compile(r"^\s*await expectLaunchPanelSettled\(", flags=re.M
 # end-of-line comment is allowed.
 SLOW_STATEMENT = re.compile(r"^\s+test\.slow\(\);(\s*//.*)?$", flags=re.MULTILINE)
 TEST_START = re.compile(r"^test\(\"", flags=re.MULTILINE)
+ACTION_SITE = re.compile(r"runButton\.(?:dbl)?click\(\)")
+READINESS_FLOW_CALL = "await openLhsCampaign("
+OPEN_FLOW_DEF = re.compile(r"async function openLhsCampaign\(.*?\n\}", flags=re.DOTALL)
+
+
+def _test_bodies(source: str) -> list[str]:
+    starts = [m.start() for m in TEST_START.finditer(source)]
+    return [
+        source[start : starts[i + 1] if i + 1 < len(starts) else len(source)]
+        for i, start in enumerate(starts)
+    ]
 
 
 @pytest.mark.unit
-def test_launch_click_is_preceded_by_awaited_readiness_waits():
-    """Both awaited readiness waits must appear AFTER acquiring run-sampling-btn and BEFORE any launch action."""
+def test_readiness_flow_waits_between_button_handoff_and_return():
+    """The shared openLhsCampaign flow must await BOTH readiness forms AFTER acquiring
+    run-sampling-btn and BEFORE returning it (V47rv). Awaited forms only: dropping the
+    `await` reddens (GH-Copilot #752)."""
     source = SPEC.read_text(encoding="utf-8")
 
-    assert AWAITED_NETWORKIDLE.search(source), (
-        'spec lacks `await page.waitForLoadState("networkidle")` (V47rv)'
-    )
-    assert AWAITED_SETTLED.search(source), (
-        "spec lacks `await expectLaunchPanelSettled(...)` (V47rv)"
+    flow = OPEN_FLOW_DEF.search(source)
+    assert flow, "spec must keep the shared openLhsCampaign flow that carries launch readiness"
+    body = flow.group(0)
+
+    acquired = body.index("run-sampling-btn")
+    returned = body.index("return runButton")
+    for pattern, label in (
+        (AWAITED_NETWORKIDLE, 'await page.waitForLoadState("networkidle");'),
+        (AWAITED_SETTLED, "await expectLaunchPanelSettled("),
+    ):
+        wait = pattern.search(body)
+        assert wait, f"openLhsCampaign lacks the awaited form `{label}` (V47rv/B31rv)"
+        assert acquired < wait.start() < returned, (
+            f"awaited readiness wait `{label}` at {wait.start()} does not sit between button "
+            f"acquisition ({acquired}) and `return runButton` ({returned}) (V47rv)"
+        )
+
+
+@pytest.mark.unit
+def test_every_launch_action_site_goes_through_the_readiness_flow():
+    """Per action site (∀, alexpargon #752): every test body that dispatches a launch click
+    must reach it through `await openLhsCampaign(...)` BEFORE the action — a future test that
+    grabs a fresh run-sampling-btn locator and clicks it sails nowhere past this guard."""
+    source = SPEC.read_text(encoding="utf-8")
+
+    action_sites = list(ACTION_SITE.finditer(source))
+    assert action_sites, (
+        "sumo-write.spec.ts contains no runButton click/dblclick sites — if the write flows were "
+        "moved, this guard and V47rv must move with them (legibility over silent green)"
     )
 
-    acquired = source.index("run-sampling-btn")
-    first_action = min(
-        idx
-        for idx in (
-            source.find("runButton.click()"),
-            source.find("runButton.dblclick()"),
-        )
-        if idx != -1
-    )
-    for pattern in (AWAITED_NETWORKIDLE, AWAITED_SETTLED):
-        pos = pattern.search(source).start()
-        assert acquired < pos < first_action, (
-            f"awaited readiness wait at {pos} does not sit between button acquisition "
-            f"({acquired}) and the first launch action ({first_action}) (V47rv/B31rv)"
+    for body in _test_bodies(source):
+        action = ACTION_SITE.search(body)
+        if action is None:
+            continue
+        name = re.match(r"test\(\"([^\"]+)", body).group(1)
+        flow_call = body.find(READINESS_FLOW_CALL)
+        assert flow_call != -1 and flow_call < action.start(), (
+            f"launch action at offset {action.start()} in test {name!r} is not preceded by "
+            f"`{READINESS_FLOW_CALL}` — dispatching without the readiness flow reintroduces "
+            "the swallowed-click class (V47rv/B31rv)"
         )
 
 
@@ -77,7 +113,13 @@ def test_settle_helper_pins_node_identity_mechanism():
     )
     assert "el === settle.node" in body, "settle oracle must demand the SAME DOM node across frames"
     assert "getBoundingClientRect" in body, (
-        "settle oracle must demand an unchanged position across frames"
+        "settle oracle must demand an unchanged rect across frames"
+    )
+    assert "top === settle.top" in body, (
+        "settle oracle must COMPARE the tracked top, not just assign it"
+    )
+    assert "left === settle.left" in body, (
+        "settle oracle must COMPARE the tracked left, not just assign it (alexpargon #752)"
     )
     assert "el.disabled" in body, "settle oracle must require the Run button to be enabled"
 
@@ -90,12 +132,8 @@ def test_every_write_mode_test_budgets_serialized_backend_compute():
     budget + one duplicate in another test pass — so this checks per-test bodies."""
     source = SPEC.read_text(encoding="utf-8")
 
-    starts = [m.start() for m in TEST_START.finditer(source)]
-    assert len(starts) >= 3
-    bodies = [
-        source[start : starts[i + 1] if i + 1 < len(starts) else len(source)]
-        for i, start in enumerate(starts)
-    ]
+    bodies = _test_bodies(source)
+    assert len(bodies) >= 3
     unbudgeted = [
         re.match(r'test\("([^"]+)', body).group(1)
         for body in bodies

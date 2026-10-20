@@ -52,18 +52,21 @@ export async function expectLaunchPanelSettled(page: Page, stableFrames = 15, ti
   await page.waitForFunction(
     ([tid, frames]: [string, number]) => {
       const el = document.querySelector(`[mmux-testid="${tid}"]`) as HTMLButtonElement | null;
-      type Settle = { node: Element | null; top: number; count: number };
+      type Settle = { node: Element | null; top: number; left: number; count: number };
       const w = window as unknown as { __mmuxLaunchSettle?: Settle };
-      const settle = (w.__mmuxLaunchSettle ??= { node: null, top: NaN, count: 0 });
+      const settle = (w.__mmuxLaunchSettle ??= { node: null, top: NaN, left: NaN, count: 0 });
       if (!el || el.disabled || !el.textContent?.includes("Run")) {
         settle.node = null;
         settle.count = 0;
         return false;
       }
-      const top = Math.round(el.getBoundingClientRect().top);
-      const unchanged = el === settle.node && top === settle.top;
+      const rect = el.getBoundingClientRect();
+      const top = Math.round(rect.top);
+      const left = Math.round(rect.left);
+      const unchanged = el === settle.node && top === settle.top && left === settle.left;
       settle.node = el;
       settle.top = top;
+      settle.left = left;
       settle.count = unchanged ? settle.count + 1 : 0;
       return settle.count >= frames;
     },
