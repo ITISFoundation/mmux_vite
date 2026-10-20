@@ -4,6 +4,7 @@ import {
   FUNCTION_UID,
   MODEL_READY_TIMEOUT,
   VIEW_TIMEOUT,
+  expectLaunchPanelSettled,
   fillUniformInputRanges,
   resetMockOsparc,
   resetPersistence,
@@ -55,10 +56,12 @@ async function openLhsCampaign(page: Page, baseURL: string) {
   // and an actionability-checked click can dispatch onto a node about to be replaced —
   // the handler never runs and NO POST leaves the page (CI ARIA snapshot at failure:
   // button still "Run"/enabled, zero toasts, zero POSTs in the backend log). Wait out the
-  // async arrivals (networkidle, the convention every read-only spec already uses), then
-  // re-assert enabled, so the launch click lands on a settled tree.
+  // late async arrivals (networkidle), then demand NODE-SETTLED (GH-Copilot #752): on an
+  // already-idle page networkidle resolves immediately and the React/Collapse commits that
+  // open the accordions are network-invisible — expectLaunchPanelSettled pins the Run button
+  // node (same node, same position, enabled, "Run") across consecutive frames.
   await page.waitForLoadState("networkidle");
-  await expect(runButton).toBeEnabled();
+  await expectLaunchPanelSettled(page);
   return runButton;
 }
 
