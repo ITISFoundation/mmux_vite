@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import dataclasses
+import hashlib
+import json
 import logging
 import os
 import threading
@@ -10,6 +12,7 @@ from pathlib import Path
 from typing import Any, NoReturn, TypeVar
 
 import pandas as pd
+import psutil
 
 #
 from flask import Blueprint, abort, jsonify, make_response
@@ -80,15 +83,293 @@ ENGINE_LOCK = threading.Lock()
 
 _T = TypeVar("_T")
 
+########################################################
+# Engine watchdog + single-flight (V51et, B62et, issue #753)
+########################################################
+# itis-sumo runs Dakota in a fresh `ProcessPoolExecutor(1)` per call and waits
+# on it with NO deadline (core/dakota_object.future_exec): one hung Dakota
+# child blocks the engine thread inside that wait, and today it would hold
+# ENGINE_LOCK forever — every later /flask/dakota/* request starves while
+# non-engine routes keep answering (observed: run 39607253103, 5/20 e2e red
+# for ~7 min, only `gh run rerun` recovered). The watchdog below bounds each
+# call, kills ONLY the timed-out run's child tree, and fails exactly that one
+# request. A plain `concurrent.futures` timeout cannot do this (it abandons
+# the blocked thread, the hung child, AND keeps the lock, B62et) — hence:
+# the request thread keeps ENGINE_LOCK ownership, the engine body runs on a
+# daemon thread, and on expiry we SIGTERM→SIGKILL the hung run's process tree
+# (itis-sumo's wait then unwinds with BrokenProcessPool) and reclaim.
 
-def _run_engine(fn: Callable[..., _T], *args: Any, **kwargs: Any) -> _T:
+#: Per-engine-call budget under ENGINE_LOCK, read from `MMUX_ENGINE_TIMEOUT_S`
+#: per call (⊥ import-time capture: ops and tests retune without a redeploy).
+#: Sized far above the slowest legitimate run (CI Tier-3 analytical suite
+#: ~43 s end-to-end, a single Dakota run ~90 ms); `0` disables the watchdog
+#: and reproduces the pre-#753 wait-forever semantics.
+ENGINE_TIMEOUT_S_DEFAULT = 300.0
+
+#: SIGTERM → SIGKILL escalation window for the child-tree kill (tests shrink
+#: these two via monkeypatch; module globals so the watchdog reads them live).
+TERM_GRACE_S = 5.0
+
+#: After the kill, how long to let the engine thread unwind before the request
+#: thread releases ENGINE_LOCK anyway. An orphan past this grace is a dead
+#: thread as far as the queue cares: its process tree is killed, the next run
+#: owns the lock, and the daemon thread dies with the worker process.
+RECLAIM_GRACE_S = 10.0
+
+#: Upper bound of joiners sharing one in-flight run (B34xx-class duplicate
+#: bursts queue behind the leader instead of recomputing); an overflow caller
+#: runs independently rather than growing the wait set unboundedly.
+MAX_JOINERS_PER_RUN = 32
+
+
+class EngineTimeoutError(RuntimeError):
+    """Engine call exceeded MMUX_ENGINE_TIMEOUT_S; its child tree was killed.
+
+    A RuntimeError on purpose (⊥ ValueError/SumoInputError): the dakota
+    routes' 4xx branches must NOT swallow it — it falls through to the routes'
+    catch-all and surfaces as the repo-standard 500 `{"error", "workflow"}`
+    envelope (V48jd) naming the run directory and killed pids.
+    """
+
+
+def _engine_timeout_s() -> float:
+    """Resolve the per-call engine budget from the environment (V51et).
+
+    Unset/blank → ENGINE_TIMEOUT_S_DEFAULT; unparsable → default + WARNING
+    (⊥ crash-looping the whole blueprint over a typo'd knob); <=0 → 0.0,
+    disabling the watchdog.
+    """
+    raw = os.environ.get("MMUX_ENGINE_TIMEOUT_S", "").strip()
+    if not raw:
+        return ENGINE_TIMEOUT_S_DEFAULT
+    try:
+        timeout = float(raw)
+    except ValueError:
+        _logger.warning(
+            "Ignoring MMUX_ENGINE_TIMEOUT_S=%r (not a number); using %gs",
+            raw,
+            ENGINE_TIMEOUT_S_DEFAULT,
+        )
+        return ENGINE_TIMEOUT_S_DEFAULT
+    if timeout <= 0:
+        return 0.0
+    return timeout
+
+
+def _kill_engine_child_tree(run_dir: Any) -> list[int]:
+    """Kill the process tree of the timed-out engine run — and nothing else.
+
+    Scope: the children (recursive) of THIS process. itis-sumo forks its
+    `ProcessPoolExecutor(1)` worker from here and the Dakota binary is that
+    worker's child, so every process visible under this pid while the lock is
+    held belongs to the run that timed out — V49ad serialization rules out a
+    sibling engine run in the same process. Other Dakota processes on the
+    host (e.g. Tier-3 analytical tests in separate pytest workers) are NOT
+    children of this process and are never touched (⊥ blanket-kill, #753).
+    SIGTERM first, then SIGKILL on survivors (a child ignoring SIGTERM must
+    still die — the request path returns and the lock releases either way).
+    Returns every pid that was signalled.
+    """
+    try:
+        descendants = psutil.Process(os.getpid()).children(recursive=True)
+    except psutil.Error as exc:
+        _logger.error(
+            "engine timeout: cannot enumerate child processes (%s); run dir %s", exc, run_dir
+        )
+        return []
+
+    terminated: list[psutil.Process] = []
+    for proc in descendants:
+        try:
+            proc.terminate()
+            terminated.append(proc)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+
+    gone, alive = psutil.wait_procs(terminated, timeout=TERM_GRACE_S)
+    killed = [proc.pid for proc in gone]
+    for proc in alive:
+        try:
+            proc.kill()
+            killed.append(proc.pid)
+        except psutil.NoSuchProcess:
+            continue
+    return sorted(set(killed))
+
+
+def _call_engine_guarded(
+    fn: Callable[..., Any], args: tuple[Any, ...], kwargs: dict[str, Any], timeout_s: float
+) -> Any:
+    """One engine call with a hard deadline and a scoped child-tree kill.
+
+    ENGINE_LOCK stays owned by the CALLING (request) thread across this
+    helper — V49ad serialization keeps covering the whole run — while the
+    engine body runs on a daemon thread so the request thread is free to
+    enforce the deadline: on expiry it kills the hung run's child tree (which
+    unblocks itis-sumo's ProcessPoolExecutor wait with BrokenProcessPool),
+    grants a short reclaim grace, then releases the lock and raises
+    EngineTimeoutError. Even a pathologically stuck engine thread can no
+    longer wedge the queue behind it (V51et; B62et names the
+    abandon-the-thread design this deliberately replaces).
+    """
+    run_dir = kwargs.get("workspace")
+    box: dict[str, Any] = {}
+    done = threading.Event()
+
+    def _body() -> None:
+        try:
+            box["value"] = fn(*args, **kwargs)
+        except BaseException as exc:  # re-raised verbatim on the request thread
+            box["error"] = exc
+        finally:
+            done.set()
+
+    threading.Thread(target=_body, name="mmux-engine-run", daemon=True).start()
+
+    if done.wait(timeout_s):
+        if "error" in box:
+            raise box["error"]
+        return box["value"]
+
+    killed_pids = _kill_engine_child_tree(run_dir)
+    recovered = done.wait(RECLAIM_GRACE_S)
+    _logger.error(
+        "Dakota engine timeout: run exceeded MMUX_ENGINE_TIMEOUT_S=%gs (run dir %s); "
+        "killed pids %s; engine thread %s after the kill.",
+        timeout_s,
+        run_dir,
+        killed_pids or "none (engine hung before/without spawning a child)",
+        "recovered" if recovered else "still stuck — orphaned, its run tree is dead",
+    )
+    detail = "none — engine hung before spawning a child process"
+    raise EngineTimeoutError(
+        f"Dakota engine run exceeded MMUX_ENGINE_TIMEOUT_S={timeout_s:g}s and was "
+        f"killed (run dir: {run_dir}, killed pids: {killed_pids or detail}). "
+        "The engine queue was released; retry the request."
+    )
+
+
+class _Flight:
+    """One shared in-flight engine run for single-flight dedupe (V51et)."""
+
+    def __init__(self) -> None:
+        self.done = threading.Event()
+        self.value: Any = None
+        self.error: BaseException | None = None
+        # Observability only (engine_queue_stats); joiners mutate it without
+        # a lock — a racing read may transiently miscount one waiter, no more.
+        self.joiners = 0
+
+
+_FLIGHT_LOCK = threading.Lock()
+_FLIGHTS: dict[str, _Flight] = {}
+
+
+def _dedupe_key(workflow: str | None, model: Any) -> str:
+    """Stable key for one request shape: (workflow, hash of validated payload).
+
+    Hashes the *validated* request model (its normalized JSON), so two
+    clients that differ only in key order/whitespace still dedupe, and the
+    engine-side `workspace=` run dir — unique per request — is deliberately
+    NOT part of the key (it would make every call look distinct and
+    neutralize the dedupe, #753).
+    """
+    payload = json.dumps(model.model_dump(mode="json"), sort_keys=True, default=str)
+    return f"{workflow or ''}:{hashlib.sha256(payload.encode()).hexdigest()}"
+
+
+def _await_flight(flight: _Flight) -> Any:
+    """Joiner side of single-flight: wait for the leader, inherit its outcome.
+
+    No second deadline: the leader is itself bounded by the engine watchdog
+    (its own timeout + kill + reclaim graces, V51et), so the wait is bounded
+    transitively; with MMUX_ENGINE_TIMEOUT_S=0 it degrades to exactly the
+    pre-#753 wait-forever semantics the leader opted into.
+    """
+    flight.done.wait()
+    flight.joiners -= 1
+    if flight.error is not None:
+        raise flight.error
+    return flight.value
+
+
+def engine_queue_stats() -> dict[str, Any]:
+    """Engine-queue snapshot for the health route (V51et, #753 criterion 3).
+
+    `engine_busy` = ENGINE_LOCK currently held by a run; `engine_active_runs`
+    = registered in-flight leader runs; `engine_queue_depth` = joiners waiting
+    to share one. Lets CI/ops SEE a wedge instead of inferring it from
+    per-test timeouts.
+    """
+    with _FLIGHT_LOCK:
+        active_runs = len(_FLIGHTS)
+        waiting = sum(flight.joiners for flight in _FLIGHTS.values())
+    return {
+        "engine_busy": ENGINE_LOCK.locked(),
+        "engine_active_runs": active_runs,
+        "engine_queue_depth": waiting,
+    }
+
+
+def _run_engine(
+    fn: Callable[..., _T],
+    *args: Any,
+    workflow: str | None = None,
+    dedupe: Any = None,
+    **kwargs: Any,
+) -> _T:
     """Call an itis-sumo workflow under ENGINE_LOCK (V49ad).
 
     One Dakota-bound run per process at a time: the package's runner chdirs
     for the duration of a run, so overlapping calls corrupt each other.
+
+    On top of the serialization the call gets (V51et, issue #753):
+    * a hard timeout (`MMUX_ENGINE_TIMEOUT_S`, default 300 s, 0 disables)
+      enforced by the watchdog in `_call_engine_guarded` — on expiry the
+      hung run's child tree is killed, ENGINE_LOCK is released, and THIS
+      request alone fails with EngineTimeoutError (→ 500 dialect);
+    * single-flight dedupe: with a route-supplied `dedupe` model, concurrent
+      calls whose (workflow, payload) hash identically share ONE execution —
+      late joiners wait on the in-flight run and receive its result or its
+      failure (B34xx duplicate bursts cost one run, not N).
     """
-    with ENGINE_LOCK:
-        return fn(*args, **kwargs)
+    timeout_s = _engine_timeout_s()
+    key = _dedupe_key(workflow, dedupe) if dedupe is not None else None
+
+    flight: _Flight | None = None
+    joined: _Flight | None = None
+    if key is not None:
+        with _FLIGHT_LOCK:
+            existing = _FLIGHTS.get(key)
+            if existing is None:
+                flight = _Flight()
+                _FLIGHTS[key] = flight  # this caller is the leader
+            elif existing.joiners < MAX_JOINERS_PER_RUN:
+                existing.joiners += 1
+                joined = existing
+            # else: joiner cap hit — run independently (bounded wait set).
+    if joined is not None:
+        return _await_flight(joined)
+
+    try:
+        with ENGINE_LOCK:
+            if timeout_s > 0:
+                value = _call_engine_guarded(fn, args, kwargs, timeout_s)
+            else:
+                value = fn(*args, **kwargs)
+    except BaseException as exc:
+        if flight is not None:
+            flight.error = exc
+        raise
+    else:
+        if flight is not None:
+            flight.value = value
+        return value
+    finally:
+        if flight is not None:
+            with _FLIGHT_LOCK:
+                _FLIGHTS.pop(key, None)
+            flight.done.set()
 
 
 ########################################################
@@ -208,6 +489,8 @@ def flask_sumo_cross_validation():
                 validated_request.input_log_scales, validated_request.output_log_scales
             ),
             workspace=run_dir,
+            workflow="sumo_cross_validation",
+            dedupe=validated_request,
         )
 
         # Fixed-field contract (FE sumoValidation.ts destructures
@@ -290,6 +573,8 @@ def flask_manual_uq_propagation_with_uncertainty():
                 validated_request.input_log_scales, validated_request.output_log_scales
             ),
             workspace=run_dir,
+            workflow="manual_uq_propagation_with_uncertainty",
+            dedupe=validated_request,
         )
 
         response_data = {
@@ -378,6 +663,8 @@ def flask_compute_correlation_indices():
                 validated_request.input_log_scales, validated_request.output_log_scales
             ),
             workspace=run_dir,
+            workflow="compute_correlation_indices",
+            dedupe=validated_request,
         )
 
         response_data = {"correlations": result.coefficients}
@@ -444,6 +731,8 @@ def flask_compute_sobol_indices():
                 validated_request.input_log_scales, validated_request.output_log_scales
             ),
             workspace=run_dir,
+            workflow="compute_sobol_indices",
+            dedupe=validated_request,
         )
 
         response_data = {
@@ -503,6 +792,8 @@ def flask_evaluate_sumo_along_axes():
                 validated_request.input_log_scales, validated_request.output_log_scales
             ),
             workspace=run_dir,
+            workflow="sumo_along_axes",
+            dedupe=validated_request,
         )
 
         predictions = {
@@ -565,6 +856,8 @@ def flask_sumo_grid_evaluation():
                 validated_request.input_log_scales, validated_request.output_log_scales
             ),
             workspace=run_dir,
+            workflow="sumo_grid_evaluation",
+            dedupe=validated_request,
         )
 
         response_data = {"grid_data": result.data}
@@ -617,6 +910,8 @@ def flask_get_sumo_cv_accuracy_metrics():
                     {output_response: True} if validated_request.log else {},
                 ),
                 workspace=run_dir,
+                workflow="get_sumo_cv_accuracy_metrics",
+                dedupe=validated_request,
             )
             response_metrics = {
                 output_response: CVAccuracyMetrics(
@@ -693,6 +988,8 @@ def flask_perform_moga_optimization():
                 validated_request.input_log_scales, validated_request.output_log_scales
             ),
             workspace=run_dir,
+            workflow="perform_moga_optimization",
+            dedupe=validated_request,
         )
 
         response_data = {"optimization_results": result.data}

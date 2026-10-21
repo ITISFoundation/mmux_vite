@@ -3,6 +3,7 @@ import os
 
 from flask import Blueprint, jsonify
 
+from mmux_flaskapi.blueprints.dakota import engine_queue_stats
 from mmux_flaskapi.blueprints.sampling_models import ErrorResponse
 from mmux_flaskapi.utils.api_endpoint import api_endpoint
 
@@ -53,8 +54,15 @@ def get_deployment_mode_value() -> str:
 @deployment_bp.route("/health")
 @api_endpoint
 def health_check():
-    """Used by docker to check the health of the Flask app."""
-    return jsonify({"status": "healthy"}), 200
+    """Used by docker to check the health of the Flask app.
+
+    Also carries the engine-queue snapshot (V51et, issue #753): B62et's wedge
+    was invisible precisely because the server looked healthy while every
+    engine route starved, so CI/ops can now SEE `engine_busy` /
+    `engine_queue_depth` instead of inferring it from per-test timeouts. The
+    docker healthcheck keys on HTTP 200 (`curl -f`), ⊥ this payload shape.
+    """
+    return jsonify({"status": "healthy", **engine_queue_stats()}), 200
 
 
 @deployment_bp.route("/service-mode")
