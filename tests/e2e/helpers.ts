@@ -27,6 +27,26 @@ export async function expectPlotlyReady(container: Locator, timeout = MODEL_READ
   return plot;
 }
 
+/**
+ * Wait for the MOGA Pareto table's Performance column to hold computed scores.
+ *
+ * The score is a two-pass render: rows first show the `Number.isNaN` placeholder
+ * "-" until the table synthesizes default weights for the fresh output set and
+ * the parent recomputes `row.performance` (the SINGLE writer since §B B60px).
+ * Zero-tolerance pixel baselines (root §V10) must never capture that transient,
+ * so every full-page MOGA screenshot gates on the placeholder being gone.
+ */
+export async function expectMogaPerformanceComputed(page: Page, timeout = VIEW_TIMEOUT): Promise<void> {
+  const cells = page.locator('[role="row"] .performance-cols');
+  // Existence first: a zero-count wait alone passes vacuously before the rows
+  // render at all, which would let the racy state slip through again.
+  await expect(cells.first()).toBeVisible({ timeout });
+  await expect(cells.filter({ hasText: /^-$/ }), "MOGA Performance column should resolve to computed scores").toHaveCount(
+    0,
+    { timeout },
+  );
+}
+
 export async function expectModelModalReady(
   page: Page,
   selector = '[mmux-testid="validation-modal"]',

@@ -12,6 +12,7 @@ import {
   fillUniformInputRanges,
   expectModelModalReady,
   expectPlotlyReady,
+  expectMogaPerformanceComputed,
   downloadAndParseJson,
 } from "./helpers";
 
@@ -106,6 +107,9 @@ test("MOGA read-only optimization flow renders pareto front and inspect-model mo
 
   // The Pareto front renders once the optimization over the mock jobs completes.
   await expectPlotlyReady(paretoView);
+  // The table below the plot needs one more settle before its pixels are final:
+  // the Performance column resolves asynchronously (B60px single-writer path).
+  await expectMogaPerformanceComputed(page);
 
   // Pixel baseline: the MOGA Pareto front with the real (deterministic) Plotly render.
   await expect(page).toHaveScreenshot("moga-readonly-pareto.png");
