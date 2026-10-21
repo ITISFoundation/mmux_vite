@@ -64,9 +64,12 @@ from mmux_flaskapi.utils.json_serializer import parse_request_model
 _logger = logging.getLogger(__name__)
 dakota_bp = Blueprint("dakota", __name__)
 
+# .resolve() (B63et): run dirs are computed on the REQUEST thread while
+# another thread may hold ENGINE_LOCK mid-chdir (V49ad); a relative env
+# value would silently resolve against that foreign cwd.
 DAKOTA_RUNS_DIR = Path(
     os.environ.get("DAKOTA_RUNS_DIR", Path(__file__).resolve().parents[3] / "runs_dakota")
-)
+).resolve()
 _logger.info(f"Saving runs in {DAKOTA_RUNS_DIR}")
 DAKOTA_RUNS_DIR.mkdir(parents=True, exist_ok=True)
 assert DAKOTA_RUNS_DIR.is_dir(), "Dakota Runs Dir does not exist!!"
@@ -75,10 +78,14 @@ assert DAKOTA_RUNS_DIR.is_dir(), "Dakota Runs Dir does not exist!!"
 # which mutates the PROCESS-WIDE cwd for the duration of a run. Two overlapping
 # Dakota-bound calls therefore corrupt each other's paths (observed as nested
 # run dirs and `predictions.dat does not exist` under concurrent CV + UQ). The
-# adapter serializes all Dakota-bound package calls on this lock; in-memory
-# helpers (compute_correlations, generate_lhs_samples) stay outside it.
-# ⊥ assume workspace paths alone make concurrent runs safe. The upstream fix
-# (cwd-independent execution, e.g. subprocess cwd=) would retire this lock.
+# adapter serializes all Dakota-bound package calls on this lock; helpers
+# with no cwd/subprocess surface (compute_correlations, generate_lhs_samples,
+# generate_grid_samples — B63et) stay outside it: the lock guards the
+# process-wide chdir, not 'engine' branding.
+# ⊥ assume workspace paths alone make concurrent runs safe — and ⊥ drag
+# cwd-free callers through the lock (for them the absolute path IS the
+# safety). The upstream fix (cwd-independent execution, e.g. subprocess cwd=)
+# would retire this lock.
 ENGINE_LOCK = threading.Lock()
 
 _T = TypeVar("_T")

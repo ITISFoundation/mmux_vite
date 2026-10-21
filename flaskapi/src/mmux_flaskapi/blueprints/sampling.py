@@ -35,13 +35,14 @@ from mmux_flaskapi.utils.local_job_store import (
 from mmux_flaskapi.utils.webserver_config import get_osparc_api
 
 #
-from .dakota import _run_engine  # V49ad: engine serialization (package runner chdirs)
-
-#
 _logger = logging.getLogger(__name__)
+# .resolve() (B63et): grid generation no longer crosses ENGINE_LOCK, so this
+# ABSOLUTE root is the only isolation from a concurrent engine's mid-run
+# process-wide chdir (V49ad) — a relative env value would resolve against
+# that foreign cwd.
 SAMPLING_RUNS_DIR = Path(
     os.environ.get("SAMPLING_RUNS_DIR", Path(__file__).resolve().parents[3] / "runs_sampling")
-)
+).resolve()
 _logger.info(f"Saving runs in {SAMPLING_RUNS_DIR}")
 SAMPLING_RUNS_DIR.mkdir(parents=True, exist_ok=True)
 assert SAMPLING_RUNS_DIR.is_dir(), "Sampling Runs Dir does not exist!!"
@@ -177,14 +178,16 @@ def flask_grid_sampling():
         domains = {vc.variable: DomainSpec(minimum=vc.start, maximum=vc.end) for vc in config}
         points_per_variable = {vc.variable: vc.steps for vc in config}
 
-        # V49ad: grid generation runs Dakota (cwd-mutating) -> serialized.
-        # Per-request run dir (GH-Copilot #706 review): ENGINE_LOCK is
-        # process-local while production runs four gunicorn workers, so
-        # handing every grid request the shared SAMPLING_RUNS_DIR let runs in
-        # different workers write the same Dakota workspace concurrently.
-        # Mirrors the per-request `workspace=` idiom of every dakota.py route.
+        # V49ad amended (B63et): generate_grid_samples is pure numpy/pandas —
+        # it never reaches the package's process-wide working_directory call
+        # site, so it ⊥ crosses ENGINE_LOCK: a grid request must never queue
+        # behind a MOGA campaign. The per-request run dir (GH-Copilot #706
+        # review) STAYS — the lock was never the cross-worker fix (it is
+        # process-local, prod runs four gunicorn workers); the absolute
+        # create_run_dir path is the real isolation, mirroring this
+        # blueprint's generate_lhs_samples exemption.
         run_dir = create_run_dir(SAMPLING_RUNS_DIR, "grid")
-        grid = _run_engine(generate_grid_samples, domains, points_per_variable, workspace=run_dir)
+        grid = generate_grid_samples(domains, points_per_variable, workspace=run_dir)
         samples = [
             {name: float(value) for name, value in row.items()}
             for row in grid.to_dict(orient="records")
