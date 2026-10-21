@@ -1,3 +1,4 @@
+import path from "node:path";
 import { env } from "node:process";
 import { defineConfig, devices } from "@playwright/test";
 
@@ -28,9 +29,18 @@ export default defineConfig({
   snapshotPathTemplate: "../tests/e2e/__snapshots__/{testFilePath}/{arg}{ext}",
   fullyParallel: false,
   forbidOnly: !!env.CI,
-  retries: 0,
+  // V48fl: ONE retry on CI, and only to CLASSIFY — a pass-on-retry becomes a
+  // visible YELLOW flake via ../tests/e2e/flaky-reporter.ts (GitHub warning
+  // annotation + HTML annotation + flake-ledger.json riding the
+  // playwright-report artifact), never a silent green. Deterministic failures
+  // die on both attempts and stay red, so §V10's green contract is untouched.
+  // Local stays 0: the dev loop ⊥ auto-retries. ⊥ ever bump this number.
+  retries: env.CI ? 1 : 0,
   workers: 1,
-  reporter: env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
+  reporter: [
+    ...(env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]]),
+    [path.join(repoRoot, "tests", "e2e", "flaky-reporter.ts")],
+  ],
   timeout: 120_000,
   expect: {
     // STRICT zero tolerance for COUNTED pixel diffs (root SPEC V10): every
