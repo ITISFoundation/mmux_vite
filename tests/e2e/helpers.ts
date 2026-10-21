@@ -36,6 +36,45 @@ export async function expectModelModalReady(
   return modal;
 }
 
+/**
+ * B31rv (GH-Copilot #752 follow-up): the launch readiness oracle for the campaign panel.
+ *
+ * `waitForLoadState("networkidle")` alone is NOT panel readiness: on an already-idle page it
+ * resolves immediately (⊥ it starts a NEW quiet period), and the campaign accordions expand
+ * through React state + MUI Collapse CSS transitions (`JobSampling.tsx`, `PlusButton.tsx`) —
+ * all network-invisible commits that can replace the DOM node under a passed actionability
+ * check and swallow the click (B31rv). This waits instead for the observable terminal state:
+ * the `[mmux-testid="run-sampling-btn"]` node exists, is enabled and shows "Run" (not the
+ * loading/launching states), and the SAME node at the SAME position across `stableFrames`
+ * consecutive animation frames — one replacement commit or one transition pixel resets it.
+ */
+export async function expectLaunchPanelSettled(page: Page, stableFrames = 15, timeout = VIEW_TIMEOUT): Promise<void> {
+  await page.waitForFunction(
+    ([tid, frames]: [string, number]) => {
+      const el = document.querySelector(`[mmux-testid="${tid}"]`) as HTMLButtonElement | null;
+      type Settle = { node: Element | null; top: number; left: number; count: number };
+      const w = window as unknown as { __mmuxLaunchSettle?: Settle };
+      const settle = (w.__mmuxLaunchSettle ??= { node: null, top: NaN, left: NaN, count: 0 });
+      if (!el || el.disabled || !el.textContent?.includes("Run")) {
+        settle.node = null;
+        settle.count = 0;
+        return false;
+      }
+      const rect = el.getBoundingClientRect();
+      const top = Math.round(rect.top);
+      const left = Math.round(rect.left);
+      const unchanged = el === settle.node && top === settle.top && left === settle.left;
+      settle.node = el;
+      settle.top = top;
+      settle.left = left;
+      settle.count = unchanged ? settle.count + 1 : 0;
+      return settle.count >= frames;
+    },
+    ["run-sampling-btn", stableFrames] as [string, number],
+    { timeout },
+  );
+}
+
 // Mirror of the frontend persistence shape so each run starts from a clean slate.
 export const DEFAULT_PERSISTENCE = {
   currentView: 0,
