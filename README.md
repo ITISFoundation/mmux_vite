@@ -127,7 +127,7 @@ What this means in practice:
 - **The two boxes are different boxes.** Sobol' sees the observed training bounds; the LHS/grid forms seed `mean ± 2.5σ` ranges. Whether they should be reconciled is an engine decision, tracked in [itis-sumo#55](https://github.com/ITISFoundation/itis-sumo/issues/55); this README documents both conventions rather than assuming they match.
 
 > [!NOTE]
-> Engine pin: this behavior ships with `itis-sumo==0.1.0a10` (pinned in `flaskapi/pyproject.toml`). The auto-infer contract above — optional `domains`/`fixed`, observed-bounds inference, constant column → fixed factor, uniform draws, and both docstring quotes — was verified against **that pin** (`itis_sumo/api/_session.py` in the published `0.1.0a10` wheel), not only against newer `a11+` documentation.
+> Engine pin: this behavior ships with the released `itis-sumo==0.1.0` on PyPI (pinned in `flaskapi/pyproject.toml`). The auto-infer contract above — optional `domains`/`fixed`, observed-bounds inference, constant column → fixed factor, uniform draws, and both docstring quotes — was verified against **that pin** (`itis_sumo/api/_session.py` in the published `0.1.0` wheel).
 
 ## Performance benchmarks
 
