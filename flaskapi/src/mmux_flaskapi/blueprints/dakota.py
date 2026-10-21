@@ -106,12 +106,25 @@ _T = TypeVar("_T")
 # daemon thread, and on expiry we SIGTERM→SIGKILL the hung run's process tree
 # (itis-sumo's wait then unwinds with BrokenProcessPool) and reclaim.
 
-#: Per-engine-call budget under ENGINE_LOCK, read from `MMUX_ENGINE_TIMEOUT_S`
-#: per call (⊥ import-time capture: ops and tests retune without a redeploy).
-#: Sized far above the slowest legitimate run (CI Tier-3 analytical suite
-#: ~43 s end-to-end, a single Dakota run ~90 ms); `0` disables the watchdog
-#: and reproduces the pre-#753 wait-forever semantics.
-ENGINE_TIMEOUT_S_DEFAULT = 300.0
+#: Per-engine-call budget CLASSES under ENGINE_LOCK, read per call from env
+#: (⊥ import-time capture: ops and tests retune without a redeploy). FAST
+#: covers the plotting/validation workflows and sits far above the slowest
+#: legitimate run (CI Tier-3 analytical suite ~43 s end-to-end, a single
+#: Dakota run ~90 ms). LONG covers load-bearing MOGA campaigns, whose
+#: length (surrogate fit × genetic search, per objective) is unbounded by
+#: design and ⊥ be cut off at plotting scale. `0` disables a class and
+#: reproduces the pre-#753 wait-forever semantics.
+ENGINE_TIMEOUT_FAST_S_DEFAULT = 60.0
+ENGINE_TIMEOUT_LONG_S_DEFAULT = 3600.0
+
+_FAST_TIMEOUT_ENV = "MMUX_ENGINE_TIMEOUT_S"
+_LONG_TIMEOUT_ENV = "MMUX_ENGINE_TIMEOUT_LONG_S"
+
+#: Workflows in the LONG budget class. When MOGA becomes a background job
+#: polled to completion (iterative sampling, §T T53et) the request-scoped
+#: watchdog premise for `optimize` disappears — drop the entry from this
+#: set then, and the long class retires with it.
+_LONG_TIMEOUT_WORKFLOWS = frozenset({"perform_moga_optimization"})
 
 #: SIGTERM → SIGKILL escalation window for the child-tree kill (tests shrink
 #: these two via monkeypatch; module globals so the watchdog reads them live).
@@ -130,7 +143,10 @@ MAX_JOINERS_PER_RUN = 32
 
 
 class EngineTimeoutError(RuntimeError):
-    """Engine call exceeded MMUX_ENGINE_TIMEOUT_S; its child tree was killed.
+    """Engine call exceeded its class budget; its child tree was killed.
+
+    The budget is `MMUX_ENGINE_TIMEOUT_S` (fast class) or
+    `MMUX_ENGINE_TIMEOUT_LONG_S` (`_LONG_TIMEOUT_WORKFLOWS`, MOGA).
 
     A RuntimeError on purpose (⊥ ValueError/SumoInputError): the dakota
     routes' 4xx branches must NOT swallow it — it falls through to the routes'
@@ -139,25 +155,25 @@ class EngineTimeoutError(RuntimeError):
     """
 
 
-def _engine_timeout_s() -> float:
-    """Resolve the per-call engine budget from the environment (V51et).
+def _engine_timeout_s(long_class: bool = False) -> float:
+    """Resolve the per-call engine budget for one class from the environment.
 
-    Unset/blank → ENGINE_TIMEOUT_S_DEFAULT; unparsable → default + WARNING
-    (⊥ crash-looping the whole blueprint over a typo'd knob); <=0 → 0.0,
-    disabling the watchdog.
+    FAST class (default) reads `MMUX_ENGINE_TIMEOUT_S` (default 60 s); the
+    LONG class (`_LONG_TIMEOUT_WORKFLOWS`, V51et) reads
+    `MMUX_ENGINE_TIMEOUT_LONG_S` (default 3600 s). Unset/blank → the class
+    default; unparsable → default + WARNING (⊥ crash-looping the whole
+    blueprint over a typo'd knob); <=0 → 0.0, disabling that class.
     """
-    raw = os.environ.get("MMUX_ENGINE_TIMEOUT_S", "").strip()
+    env = _LONG_TIMEOUT_ENV if long_class else _FAST_TIMEOUT_ENV
+    default = ENGINE_TIMEOUT_LONG_S_DEFAULT if long_class else ENGINE_TIMEOUT_FAST_S_DEFAULT
+    raw = os.environ.get(env, "").strip()
     if not raw:
-        return ENGINE_TIMEOUT_S_DEFAULT
+        return default
     try:
         timeout = float(raw)
     except ValueError:
-        _logger.warning(
-            "Ignoring MMUX_ENGINE_TIMEOUT_S=%r (not a number); using %gs",
-            raw,
-            ENGINE_TIMEOUT_S_DEFAULT,
-        )
-        return ENGINE_TIMEOUT_S_DEFAULT
+        _logger.warning("Ignoring %s=%r (not a number); using %gs", env, raw, default)
+        return default
     if timeout <= 0:
         return 0.0
     return timeout
@@ -205,7 +221,11 @@ def _kill_engine_child_tree(run_dir: Any) -> list[int]:
 
 
 def _call_engine_guarded(
-    fn: Callable[..., Any], args: tuple[Any, ...], kwargs: dict[str, Any], timeout_s: float
+    fn: Callable[..., Any],
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    timeout_s: float,
+    env_name: str,
 ) -> Any:
     """One engine call with a hard deadline and a scoped child-tree kill.
 
@@ -241,8 +261,9 @@ def _call_engine_guarded(
     killed_pids = _kill_engine_child_tree(run_dir)
     recovered = done.wait(RECLAIM_GRACE_S)
     _logger.error(
-        "Dakota engine timeout: run exceeded MMUX_ENGINE_TIMEOUT_S=%gs (run dir %s); "
+        "Dakota engine timeout: run exceeded %s=%gs (run dir %s); "
         "killed pids %s; engine thread %s after the kill.",
+        env_name,
         timeout_s,
         run_dir,
         killed_pids or "none (engine hung before/without spawning a child)",
@@ -250,7 +271,7 @@ def _call_engine_guarded(
     )
     detail = "none — engine hung before spawning a child process"
     raise EngineTimeoutError(
-        f"Dakota engine run exceeded MMUX_ENGINE_TIMEOUT_S={timeout_s:g}s and was "
+        f"Dakota engine run exceeded {env_name}={timeout_s:g}s and was "
         f"killed (run dir: {run_dir}, killed pids: {killed_pids or detail}). "
         "The engine queue was released; retry the request."
     )
@@ -289,9 +310,10 @@ def _await_flight(flight: _Flight) -> Any:
     """Joiner side of single-flight: wait for the leader, inherit its outcome.
 
     No second deadline: the leader is itself bounded by the engine watchdog
-    (its own timeout + kill + reclaim graces, V51et), so the wait is bounded
-    transitively; with MMUX_ENGINE_TIMEOUT_S=0 it degrades to exactly the
-    pre-#753 wait-forever semantics the leader opted into.
+    (its own class budget + kill + reclaim graces, V51et), so the wait is
+    bounded transitively; with the leader's class budget disabled (`0`) it
+    degrades to exactly the pre-#753 wait-forever semantics the leader opted
+    into.
     """
     flight.done.wait()
     flight.joiners -= 1
@@ -315,6 +337,10 @@ def engine_queue_stats() -> dict[str, Any]:
         "engine_busy": ENGINE_LOCK.locked(),
         "engine_active_runs": active_runs,
         "engine_queue_depth": waiting,
+        # Effective per-class budgets (V51et): ops SEE which knob governs a
+        # future timeout envelope instead of guessing from a 500 message.
+        "engine_timeout_fast_s": _engine_timeout_s(),
+        "engine_timeout_long_s": _engine_timeout_s(long_class=True),
     }
 
 
@@ -331,8 +357,11 @@ def _run_engine(
     for the duration of a run, so overlapping calls corrupt each other.
 
     On top of the serialization the call gets (V51et, issue #753):
-    * a hard timeout (`MMUX_ENGINE_TIMEOUT_S`, default 300 s, 0 disables)
-      enforced by the watchdog in `_call_engine_guarded` — on expiry the
+    * a hard timeout by BUDGET CLASS (V51et) enforced by the watchdog in
+      `_call_engine_guarded` — fast class `MMUX_ENGINE_TIMEOUT_S` (default
+      60 s) for plotting/validation workflows, long class
+      `MMUX_ENGINE_TIMEOUT_LONG_S` (default 3600 s) for
+      `_LONG_TIMEOUT_WORKFLOWS` (MOGA); `0` disables a class. On expiry the
       hung run's child tree is killed, ENGINE_LOCK is released, and THIS
       request alone fails with EngineTimeoutError (→ 500 dialect);
     * single-flight dedupe: with a route-supplied `dedupe` model, concurrent
@@ -340,7 +369,9 @@ def _run_engine(
       late joiners wait on the in-flight run and receive its result or its
       failure (B34xx duplicate bursts cost one run, not N).
     """
-    timeout_s = _engine_timeout_s()
+    long_class = workflow in _LONG_TIMEOUT_WORKFLOWS
+    timeout_s = _engine_timeout_s(long_class)
+    env_name = _LONG_TIMEOUT_ENV if long_class else _FAST_TIMEOUT_ENV
     key = _dedupe_key(workflow, dedupe) if dedupe is not None else None
 
     flight: _Flight | None = None
@@ -361,7 +392,7 @@ def _run_engine(
     try:
         with ENGINE_LOCK:
             if timeout_s > 0:
-                value = _call_engine_guarded(fn, args, kwargs, timeout_s)
+                value = _call_engine_guarded(fn, args, kwargs, timeout_s, env_name)
             else:
                 value = fn(*args, **kwargs)
     except BaseException as exc:
