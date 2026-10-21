@@ -1,8 +1,9 @@
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { logColorbarTicks } from "../../utils/plotScale";
 import { buildSobolBarData, buildSobolHeatmapData } from "../../utils/sobolIndices";
-import SobolIndicesPlot from "./SobolIndicesPlot";
+import SobolIndicesPlot, { SobolControls } from "./SobolIndicesPlot";
 import { jsonResponse, stubFetch } from "../../test/fetchStub";
 
 vi.mock("../../utils/sobolIndices", async importOriginal => {
@@ -13,14 +14,14 @@ vi.mock("../../utils/sobolIndices", async importOriginal => {
 const mocks = vi.hoisted(() => ({
   filteredJobList: [] as Array<{ uid: string }>,
   selectedQoI: "y" as string | undefined,
-  uqSettings: {},
+  uqSettings: {} as { [fnUid: string]: { numSamples?: number; seed?: number } },
   fetchedJobCollections: [{}],
   // Mutable so a test can flip the committed output scale under a MOUNTED
   // panel — the B58rs scenario (auto-detect commits while the panel sits).
   contextValue: {
-    selectedFunction: { uid: "fn-1" },
+    selectedFunction: { uid: "fn-1" } as { uid: string } | undefined,
     inputVars: ["x1", "x2"],
-    distribution: {},
+    distribution: {} as { [fnUid: string]: { [varName: string]: { scale?: string } } },
     outputLogScales: {} as { [fnUid: string]: { [qoi: string]: boolean } },
   },
 }));
@@ -182,5 +183,294 @@ describe("SobolIndicesPlot fetch freshness (V45gd)", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     const body = JSON.parse((fetchMock.mock.calls[1][1] as RequestInit).body as string);
     expect(body.outputLogScales).toEqual({ y: true }); // refetch carries the scale
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Coverage extension: controls, fetch gates, error surfacing and the
+// total-order / second-order / log-scale plot-shaping branches.
+// ---------------------------------------------------------------------------
+
+/** Restores every mock to the state the component-level tests assume. */
+function resetMocks(numJobs: number) {
+  mocks.filteredJobList = Array.from({ length: numJobs }, (_, i) => ({ uid: `job-${i}` }));
+  mocks.selectedQoI = "y";
+  mocks.uqSettings = {};
+  mocks.fetchedJobCollections = [{}];
+  mocks.contextValue = {
+    selectedFunction: { uid: "fn-1" },
+    inputVars: ["x1", "x2"],
+    distribution: {},
+    outputLogScales: {},
+  };
+}
+
+function firstTrace(): { [key: string]: unknown } {
+  return (JSON.parse(screen.getByTestId("plotly").getAttribute("data-traces") as string) as Array<{ [key: string]: unknown }>)[0];
+}
+
+function traceY(): number[] {
+  return firstTrace().y as number[];
+}
+
+function plotLayout(): { [key: string]: unknown } {
+  return JSON.parse(screen.getByTestId("plotly").getAttribute("data-layout") as string) as { [key: string]: unknown };
+}
+
+// x2 entirely absent + x1 missing CI fields: the BE may omit them, so the
+// panel's ?? guards must fold to 0 / CI=value. Values are exact binary
+// fractions (0.25/0.5/0.75) so trace assertions can use exact equality.
+const sparseSobolPayload = {
+  sobol: { x1: { main: 0.5, total: 0.75, mainCiHigh: 0.75, totalCiLow: 0.25 } } as unknown as SobolIndicesResponse["sobol"],
+  sobolSecondOrder: { x1: { x2: 0.02 } },
+};
+
+const heatSobolPayload = {
+  sobol: {
+    x1: { main: 0.5, total: 0.7, mainCiLow: 0.5, mainCiHigh: 0.5, totalCiLow: 0.7, totalCiHigh: 0.7 },
+    x2: { main: 0.3, total: 0.5, mainCiLow: 0.3, mainCiHigh: 0.3, totalCiLow: 0.5, totalCiHigh: 0.5 },
+  },
+  sobolSecondOrder: { x1: { x2: 0.02 } },
+};
+
+describe("SobolControls", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("reports view-mode and scale changes, null when the active button is re-clicked", async () => {
+    const user = userEvent.setup();
+    const onViewModeChange = vi.fn();
+    const onScaleTypeChange = vi.fn();
+    render(
+      <SobolControls
+        viewMode="first-order"
+        scaleType="linear"
+        onViewModeChange={onViewModeChange}
+        onScaleTypeChange={onScaleTypeChange}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Second order" }));
+    expect(onViewModeChange).toHaveBeenLastCalledWith(expect.anything(), "second-order");
+    await user.click(screen.getByRole("button", { name: "Total order" }));
+    expect(onViewModeChange).toHaveBeenLastCalledWith(expect.anything(), "total-order");
+
+    // exclusive group: re-clicking the active button means "nothing selected"
+    await user.click(screen.getByRole("button", { name: "First order" }));
+    expect(onViewModeChange).toHaveBeenLastCalledWith(expect.anything(), null);
+
+    await user.click(screen.getByRole("button", { name: "Log" }));
+    expect(onScaleTypeChange).toHaveBeenLastCalledWith(expect.anything(), "log");
+    await user.click(screen.getByRole("button", { name: "Linear" }));
+    expect(onScaleTypeChange).toHaveBeenLastCalledWith(expect.anything(), null);
+  });
+});
+
+describe("SobolIndicesPlot gates, warnings and errors", () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("paints Calculating only while a request is pending", async () => {
+    resetMocks(3);
+    let resolvePending: (r: Response) => void = () => undefined;
+    stubFetch(() => new Promise<Response>(resolve => (resolvePending = resolve)));
+
+    render(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+    expect(screen.getByText("Calculating...")).toBeInTheDocument();
+    expect(screen.queryByTestId("plotly")).toBeNull();
+
+    await act(async () => resolvePending(jsonResponse(sobolPayload([0.6, 0.4], [0.9, 0.7]))));
+    await waitFor(() => expect(traceY()).toEqual([0.6, 0.4]));
+    expect(screen.queryByText("Calculating...")).toBeNull();
+  });
+
+  it("does not call the backend without jobs and asks for samples", async () => {
+    resetMocks(0);
+    mocks.fetchedJobCollections = [];
+    const fetchMock = stubFetch(jsonResponse(sobolPayload([0.6, 0.4], [0.9, 0.7])));
+
+    render(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+    await waitFor(() => expect(screen.getByText("No data available. Please create more Samples.")).toBeInTheDocument());
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("plotly")).toBeNull();
+  });
+
+  it("does not call the backend when no QoI is selected", async () => {
+    resetMocks(6);
+    mocks.selectedQoI = undefined; // explicit: the resetMocks default would restore "y"
+    const fetchMock = stubFetch(jsonResponse(sobolPayload([0.6, 0.4], [0.9, 0.7])));
+
+    render(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+    // 6 completed jobs ≥ max(5, 2 inputs + 1), so the warning blames the
+    // calculation, not the sample count (InsufficientDataWarning's split).
+    await waitFor(() => expect(screen.getByText("Error during calculation, please contact support.")).toBeInTheDocument());
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("surfaces the backend error message verbatim when the compute fails", async () => {
+    resetMocks(3);
+    const fetchMock = stubFetch(jsonResponse({ error: "surrogate fit failed" }, 400));
+
+    render(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+    await waitFor(() => expect(screen.getByText("surrogate fit failed")).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledTimes(1); // 400 is not retryable: no retry storm
+    expect(screen.queryByTestId("plotly")).toBeNull();
+  });
+
+  it("ignores a late rejection from a superseded request (V45gd error gate)", async () => {
+    resetMocks(3);
+    let resolveFirst: (r: Response) => void = () => undefined;
+    stubFetch(
+      () => new Promise<Response>(resolve => (resolveFirst = resolve)),
+      jsonResponse(sobolPayload([0.6, 0.4], [0.9, 0.7])),
+    );
+
+    const { rerender } = render(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+    mocks.selectedQoI = "z";
+    rerender(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+    await waitFor(() => expect(traceY()).toEqual([0.6, 0.4]));
+
+    // the QoI-y request fails AFTER the QoI-z result already painted:
+    // stale generation → the catch must not surface the error (line 112 gate).
+    await act(async () => resolveFirst(jsonResponse({ error: "late failure" }, 400)));
+    expect(traceY()).toEqual([0.6, 0.4]);
+    expect(screen.queryByText("late failure")).toBeNull();
+  });
+});
+
+describe("SobolIndicesPlot request payload", () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("sends numSamples/seed from uqSettings and per-variable input log scales", async () => {
+    resetMocks(3);
+    mocks.uqSettings = { "fn-1": { numSamples: 4321, seed: 9 } };
+    mocks.contextValue.distribution = { "fn-1": { x1: { scale: "log" }, x2: { scale: "linear" } } };
+    const fetchMock = stubFetch(jsonResponse(sobolPayload([0.6, 0.4], [0.9, 0.7])));
+
+    render(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+    await waitFor(() => expect(traceY()).toEqual([0.6, 0.4]));
+
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.numSamples).toBe(4321); // from uqSettings, not the 10000 default
+    expect(body.seed).toBe(9);
+    expect(body.distributions).toEqual({ x1: { scale: "log" }, x2: { scale: "linear" } });
+    expect(body.inputLogScales).toEqual({ x1: true, x2: false }); // scale === "log" drives the flag
+    expect(body.outputLogScales).toEqual({ y: false });
+  });
+
+  it("falls back to empty-uid lookups and defaults when no function is selected", async () => {
+    resetMocks(3);
+    mocks.contextValue.selectedFunction = undefined; // selectedFunction?.uid || "" path
+    mocks.contextValue.distribution = { "fn-1": { x1: { scale: "log" } } }; // keyed under a DIFFERENT uid
+    const fetchMock = stubFetch(jsonResponse(sobolPayload([0.5, 0.5], [0.5, 0.5])));
+
+    render(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+    await waitFor(() => expect(traceY()).toEqual([0.5, 0.5]));
+
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.distributions).toBeUndefined(); // "" lookup misses the fn-1-only map
+    expect(body.inputLogScales).toEqual({ x1: false, x2: false });
+    expect(body.numSamples).toBe(10000); // uqSettings[""] missing → default
+    expect(body.seed).toBe(0);
+  });
+});
+
+describe("SobolIndicesPlot plot-data shaping", () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("first-order folds missing CIs into the value and clamps bars on log scale", async () => {
+    resetMocks(3);
+    stubFetch(jsonResponse(sparseSobolPayload));
+
+    const { rerender } = render(<SobolIndicesPlot viewMode="first-order" scaleType="linear" />);
+    await waitFor(() => expect(traceY()).toEqual([0.5, 0])); // x2 absent from the payload → 0
+    const trace = firstTrace();
+    expect(trace.name).toBe("First order");
+    expect(trace.customdata).toEqual([
+      [0.5, 0.5, 0.75],
+      [0, 0, 0],
+    ]); // missing mainCiLow folds to main
+    expect((trace.error_y as { array: number[] }).array).toEqual([0.25, 0]);
+    expect((trace.error_y as { arrayminus: number[] }).arrayminus).toEqual([0, 0]);
+    expect((plotLayout().yaxis as { type: string }).type).toBe("linear");
+    expect((plotLayout().yaxis as { range: number[] }).range).toEqual([0, 1]);
+
+    rerender(<SobolIndicesPlot viewMode="first-order" scaleType="log" />);
+    expect(traceY()).toEqual([0.5, 0.01]); // below-floor values clamp to logFloor, not -Infinity
+    expect((firstTrace().error_y as { array: number[] }).array).toEqual([0.25, 0]); // logErrorDeltas on floored values
+    expect((plotLayout().yaxis as { type: string }).type).toBe("log");
+    expect((plotLayout().yaxis as { range: number[] }).range).toEqual([-2, 0]); // sobolLogRange in log10 units
+  });
+
+  it("total-order folds missing CIs the same way and mirrors the log clamp", async () => {
+    resetMocks(3);
+    const fetchMock = stubFetch(jsonResponse(sparseSobolPayload));
+
+    const { rerender } = render(<SobolIndicesPlot viewMode="total-order" scaleType="linear" />);
+    await waitFor(() => expect(traceY()).toEqual([0.75, 0]));
+    const trace = firstTrace();
+    expect(trace.name).toBe("Total order");
+    expect(trace.customdata).toEqual([
+      [0.75, 0.25, 0.75],
+      [0, 0, 0],
+    ]); // missing totalCiHigh folds to total
+    expect((trace.error_y as { array: number[] }).array).toEqual([0, 0]);
+    expect((trace.error_y as { arrayminus: number[] }).arrayminus).toEqual([0.5, 0]);
+
+    rerender(<SobolIndicesPlot viewMode="total-order" scaleType="log" />);
+    expect(traceY()).toEqual([0.75, 0.01]);
+    // view/scale toggles only re-shape the cached payload — no refetch
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("second-order heatmap toggles between fixed linear and log color ranges", async () => {
+    resetMocks(3);
+    const fetchMock = stubFetch(jsonResponse(heatSobolPayload));
+
+    const { rerender } = render(<SobolIndicesPlot viewMode="second-order" scaleType="linear" />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+    expect(firstTrace().type).toBe("heatmap");
+    expect(firstTrace().z).toEqual([
+      [0.5, 0.02],
+      [0.02, 0.3],
+    ]); // diagonal = main, off-diagonal = pairwise
+    expect(firstTrace().zmin).toBe(0);
+    expect(firstTrace().zmax).toBe(1);
+    expect(firstTrace().hovertemplate).toContain("%{z:");
+    const heatmapLayout = plotLayout();
+    expect((heatmapLayout.xaxis as { title: { text: string } }).title.text).toBe("Variable");
+    expect((heatmapLayout.yaxis as { autorange: string }).autorange).toBe("reversed");
+
+    rerender(<SobolIndicesPlot viewMode="second-order" scaleType="log" />);
+    const logTrace = firstTrace();
+    // z folds through toLogSafe; raw indices stay in customdata for the hover
+    expect(logTrace.z).toEqual([
+      [Math.log10(0.5), Math.log10(0.02)],
+      [Math.log10(0.02), Math.log10(0.3)],
+    ]);
+    expect(logTrace.customdata).toEqual([
+      [0.5, 0.02],
+      [0.02, 0.3],
+    ]);
+    expect(logTrace.zmin).toBe(-2);
+    expect(logTrace.zmax).toBe(0);
+    const colorbar = logTrace.colorbar as { title: { text: string }; tickvals: number[]; ticktext: string[] };
+    expect(colorbar.title.text).toBe("Sobol' index"); // heatmap colorbar title survives the merge
+    expect(colorbar.tickvals).toEqual([-2, -1, 0]);
+    expect(colorbar.ticktext).toEqual(["0.01", "0.1", "1"]); // labels back-transformed, not exponents
+    expect(logTrace.hovertemplate).toContain("%{customdata:");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
