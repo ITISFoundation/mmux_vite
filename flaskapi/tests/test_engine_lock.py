@@ -18,6 +18,7 @@ view's own propagation run reproduced it as nested run dirs and a missing
   a control test proves the detector is sensitive.
 """
 
+import os
 import threading
 import time
 from typing import Any
@@ -136,6 +137,94 @@ class TestInMemoryHelpersUnlockNotRequired:
         )
         assert response.status_code == 200
         assert locked == [False]
+
+    def test_grid_generation_runs_without_lock(
+        self, test_client: Flask, monkeypatch: pytest.MonkeyPatch
+    ):
+        # B63et: generate_grid_samples is pure numpy/pandas — its route
+        # comment once claimed it "runs Dakota", which the grep of the
+        # package's sole working_directory call site refutes. Serializing it
+        # would queue plotting-scale requests behind hour-scale MOGA
+        # campaigns. Same probe idiom as the LHS guard above.
+        locked: list[bool] = []
+
+        def fake(*args: Any, **kwargs: Any):
+            locked.append(dakota.ENGINE_LOCK.locked())
+            return DataFrame({"x1": [0.0, 0.5, 1.0]})
+
+        monkeypatch.setattr("mmux_flaskapi.blueprints.sampling.generate_grid_samples", fake)
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.sampling._run_sampling_map",
+            lambda function_uid, samples: {"jobId": "local"},
+        )
+        response = test_client.post(
+            "/flask/sampling/grid",
+            json={
+                "funUid": "func-1",
+                "config": [{"variable": "x1", "start": 0.0, "end": 1.0, "steps": 3}],
+            },
+        )
+        assert response.status_code == 200
+        assert locked == [False]
+
+    def test_grid_route_answers_while_engine_is_busy(
+        self,
+        test_client: Flask,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path,
+    ):
+        # Liveness half of the B63et guard (B37kl lesson): a fake engine
+        # HOLDS ENGINE_LOCK and chdirs — exactly what a real Dakota run does
+        # to the process — while a grid request must still complete. Anyone
+        # re-wiring the route through _run_engine fails this on the clock
+        # (the request would block until the holder releases), not just on
+        # the flag.
+        original_cwd = os.getcwd()
+        holding = threading.Event()
+
+        def fake_engine_holder():
+            with dakota.ENGINE_LOCK:
+                os.chdir(tmp_path)
+                holding.set()
+                time.sleep(2.0)  # a "long run" occupying the lock
+                os.chdir(original_cwd)
+
+        ran: list[bool] = []
+
+        def fake(*args: Any, **kwargs: Any):
+            # Deliberately NOT asserting ENGINE_LOCK.locked()==False here: the
+            # holder legitimately holds the lock — the sub-second completion
+            # below is what proves the route crossed it unlocked.
+            ran.append(True)
+            return DataFrame({"x1": [0.0, 0.5, 1.0]})
+
+        monkeypatch.setattr("mmux_flaskapi.blueprints.sampling.generate_grid_samples", fake)
+        monkeypatch.setattr(
+            "mmux_flaskapi.blueprints.sampling._run_sampling_map",
+            lambda function_uid, samples: {"jobId": "local"},
+        )
+        holder = threading.Thread(target=fake_engine_holder, daemon=True)
+        holder.start()
+        assert holding.wait(2), "engine holder never took the lock"
+        try:
+            started = time.monotonic()
+            response = test_client.post(
+                "/flask/sampling/grid",
+                json={
+                    "funUid": "func-1",
+                    "config": [{"variable": "x1", "start": 0.0, "end": 1.0, "steps": 3}],
+                },
+            )
+            elapsed = time.monotonic() - started
+            assert response.status_code == 200
+            assert elapsed < 1.0, (
+                f"grid waited {elapsed:.2f}s behind a fake engine run — it "
+                "must never queue on ENGINE_LOCK (B63et)"
+            )
+            assert ran == [True], "grid generator must have run exactly once"
+        finally:
+            holder.join(5)
+            os.chdir(original_cwd)  # idempotent safety if the holder died early
 
 
 def _overlapping_pairs(spans: list[tuple[float, float]]) -> int:

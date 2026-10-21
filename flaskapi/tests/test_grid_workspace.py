@@ -12,6 +12,7 @@ is a fresh directory under the sampling root (``create_run_dir`` nesting),
 never the root itself, and two requests never share one.
 """
 
+import importlib
 from typing import Any
 
 import pytest
@@ -65,3 +66,22 @@ class TestGridRouteWorkspace:
         first, second = captured_workspaces
         assert first is not None and second is not None
         assert first != second
+
+    def test_relative_sampling_runs_dir_resolves_absolute(
+        self, tmp_path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """B63et: with the grid route outside ENGINE_LOCK, the run-dir root is
+        the ONLY isolation from a concurrent engine's mid-run process-wide
+        chdir — a relative ``SAMPLING_RUNS_DIR`` env value must be resolved to
+        absolute AT IMPORT, never lazily against whatever cwd a run left."""
+        try:
+            monkeypatch.chdir(tmp_path)
+            monkeypatch.setenv("SAMPLING_RUNS_DIR", "rel_runs")
+            importlib.reload(sampling)
+            resolved = sampling.SAMPLING_RUNS_DIR
+            assert resolved == tmp_path / "rel_runs"
+            assert resolved.is_absolute()
+            assert resolved.is_dir(), "import-time mkdir must follow the RESOLVED path"
+        finally:
+            monkeypatch.undo()
+            importlib.reload(sampling)  # restore the suite-wide default
