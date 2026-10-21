@@ -8,7 +8,8 @@ the rest of the job — 5/20 e2e red while health stayed green. These tests
 pin the adapter-side watchdog and the single-flight dedupe, with a MOCK
 engine that blocks on an event (deterministic; ⊥ real Dakota):
 
-* a hung engine call hits the MMUX_ENGINE_TIMEOUT_S budget → 500 error
+* a hung engine call hits its class budget (fast MMUX_ENGINE_TIMEOUT_S,
+  long MMUX_ENGINE_TIMEOUT_LONG_S for MOGA) → 500 error
   dialect naming the run dir, ENGINE_LOCK released, the NEXT request
   succeeds (queue drains — no rerun-the-CI-job recovery);
 * the child-tree kill escalates SIGTERM → SIGKILL, scoped to THIS process's
@@ -70,8 +71,14 @@ def _cv_result(n: int = 3) -> SimpleNamespace:
 
 @pytest.fixture
 def fast_watchdog(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Watchdog armed at 1 s with sub-second graces (tests ⊥ wait 300+ s)."""
+    """Watchdog armed at 1 s with sub-second graces (tests ⊥ wait 60+ s).
+
+    Both classes armed: every route used here is fast-class, and pinning the
+    LONG knob too means a misclassified call fails fast instead of waiting
+    out the 3600 s default.
+    """
     monkeypatch.setenv("MMUX_ENGINE_TIMEOUT_S", "1")
+    monkeypatch.setenv("MMUX_ENGINE_TIMEOUT_LONG_S", "1")
     monkeypatch.setattr(dakota, "TERM_GRACE_S", 0.1)
     monkeypatch.setattr(dakota, "RECLAIM_GRACE_S", 0.3)
 
@@ -287,7 +294,7 @@ class TestSerializationSurvivesWatchdog:
     Concurrent DISTINCT calls (no dedupe sharing) must still run one-at-a-time
     under ENGINE_LOCK. Spans are recorded from inside the engine body but
     compared OUTSIDE any lock (B37kl detector lesson); default env ⇒
-    MMUX_ENGINE_TIMEOUT_S=300, i.e. the watchdog/thread path is live.
+    MMUX_ENGINE_TIMEOUT_S=60, i.e. the watchdog/thread path is live.
     """
 
     N = 4
@@ -328,15 +335,57 @@ class TestWatchdogKnobs:
 
     def test_timeout_env_parsing(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.delenv("MMUX_ENGINE_TIMEOUT_S", raising=False)
-        assert dakota._engine_timeout_s() == 300.0  # default above slowest Tier-3 run
+        monkeypatch.delenv("MMUX_ENGINE_TIMEOUT_LONG_S", raising=False)
+        assert dakota._engine_timeout_s() == 60.0  # fast default above slowest Tier-3 run
+        assert dakota._engine_timeout_s(long_class=True) == 3600.0  # MOGA class
+        for knob, long_class in (
+            ("MMUX_ENGINE_TIMEOUT_S", False),
+            ("MMUX_ENGINE_TIMEOUT_LONG_S", True),
+        ):
+            default = 60.0 if not long_class else 3600.0
+            monkeypatch.setenv(knob, "0")
+            assert dakota._engine_timeout_s(long_class) == 0.0  # 0 disables per class
+            monkeypatch.setenv(knob, "-2")
+            assert dakota._engine_timeout_s(long_class) == 0.0
+            monkeypatch.setenv(knob, "7.5")
+            assert dakota._engine_timeout_s(long_class) == 7.5
+            monkeypatch.setenv(knob, "not-a-number")
+            assert dakota._engine_timeout_s(long_class) == default  # typo ⊥ crash-loop
+            monkeypatch.delenv(knob)
+        # The knobs are independent: retuning one class ⊥ move the other.
+        monkeypatch.setenv("MMUX_ENGINE_TIMEOUT_S", "5")
+        assert dakota._engine_timeout_s() == 5.0
+        assert dakota._engine_timeout_s(long_class=True) == 3600.0
+
+    def test_moga_workflow_selects_long_class(self, monkeypatch: pytest.MonkeyPatch):
+        # Fast class DISABLED: only a correct long-class pick times out here.
         monkeypatch.setenv("MMUX_ENGINE_TIMEOUT_S", "0")
-        assert dakota._engine_timeout_s() == 0.0  # 0 disables (pre-#753 semantics)
-        monkeypatch.setenv("MMUX_ENGINE_TIMEOUT_S", "-2")
-        assert dakota._engine_timeout_s() == 0.0
-        monkeypatch.setenv("MMUX_ENGINE_TIMEOUT_S", "7.5")
-        assert dakota._engine_timeout_s() == 7.5
-        monkeypatch.setenv("MMUX_ENGINE_TIMEOUT_S", "not-a-number")
-        assert dakota._engine_timeout_s() == 300.0  # typo ⊥ blueprint crash-loop
+        monkeypatch.setenv("MMUX_ENGINE_TIMEOUT_LONG_S", "1")
+        monkeypatch.setattr(dakota, "TERM_GRACE_S", 0.1)
+        monkeypatch.setattr(dakota, "RECLAIM_GRACE_S", 0.2)
+        with pytest.raises(
+            dakota.EngineTimeoutError, match="exceeded MMUX_ENGINE_TIMEOUT_LONG_S=1s"
+        ):
+            dakota._run_engine(
+                lambda *_, **__: time.sleep(5),
+                workflow="perform_moga_optimization",
+                workspace="unused-run-dir",
+            )
+
+    def test_plotting_workflow_keeps_fast_class(self, monkeypatch: pytest.MonkeyPatch):
+        # Long class DISABLED: a misclassified plotting call would sleep the
+        # full 4 s and RETURN instead of raising — pytest.raises fails fast
+        # either way (⊥ hang if the class table inverts).
+        monkeypatch.setenv("MMUX_ENGINE_TIMEOUT_S", "1")
+        monkeypatch.setenv("MMUX_ENGINE_TIMEOUT_LONG_S", "0")
+        monkeypatch.setattr(dakota, "TERM_GRACE_S", 0.1)
+        monkeypatch.setattr(dakota, "RECLAIM_GRACE_S", 0.2)
+        with pytest.raises(dakota.EngineTimeoutError, match="exceeded MMUX_ENGINE_TIMEOUT_S=1s"):
+            dakota._run_engine(
+                lambda *_, **__: time.sleep(4),
+                workflow="sumo_along_axes",
+                workspace="unused-run-dir",
+            )
 
     def test_timeout_zero_runs_engine_inline_and_serves(
         self, test_client: Flask, monkeypatch: pytest.MonkeyPatch
@@ -363,6 +412,10 @@ class TestWatchdogKnobs:
         assert body["engineBusy"] is False
         assert body["engineActiveRuns"] == 0
         assert body["engineQueueDepth"] == 0
+        # Effective class budgets are visible too (V51et): which knob owns a
+        # future timeout envelope is a read, not a guess from a 500 message.
+        assert body["engineTimeoutFastS"] == dakota.ENGINE_TIMEOUT_FAST_S_DEFAULT
+        assert body["engineTimeoutLongS"] == dakota.ENGINE_TIMEOUT_LONG_S_DEFAULT
 
 
 class TestDedupeKey:
