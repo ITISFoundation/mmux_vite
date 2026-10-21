@@ -1,19 +1,21 @@
 """Benchmarks for the Function viewer's per-mount counts fetch (ITISFoundation#498).
 
 Every ``FunctionList`` mount (initial viewer load, Refresh, the post-CSV-upload
-refetch) fetches campaign/evaluation counts for EVERY function. As of this
-benchmark's writing the client does it as a fan-out: one
-``GET /flask/osparc/list_functions`` followed by one
-``GET /flask/osparc/list_function_job_collections_for_functionid`` per function
--- 1 + N full Flask request round-trips through the api_endpoint/JSON-transform
+refetch) fetches campaign/evaluation counts for EVERY function. The client now
+does it in TWO requests: one ``GET /flask/osparc/list_functions`` plus one
+``GET /flask/osparc/get_function_job_collection_counts`` (slice B of #498).
+Before that slice the client fanned out one
+``list_function_job_collections_for_functionid`` request per function -- 1 + N
+full Flask request round-trips through the api_endpoint/JSON-transform
 middleware, each per-function leg additionally paying the V50tj (upstream
-#382) probe + page calls of the now-paginated fetcher; the mock below
-reproduces the API's pagination protocol, default page included.
+#382) probe + page calls. CodSpeed's baseline run still measures that fan-out;
+this body is the "after" side of the pair (fork PR #751 -> #739).
 
-``test_functionlist_counts_fetch`` measures that fetch as ONE workload, with the
-request pattern itself as code under test. The #498 scalability slice replaces
-the fan-out with the aggregate ``get_function_job_collection_counts`` endpoint
-(1 + 1 requests).
+``test_functionlist_counts_fetch`` measures the fetch as ONE workload, with the
+request pattern itself as code under test. Upstream oSPARC volume stays
+O(functions) here (slice A, flaskapi SPEC T35cs successor, replaces the server
+loop); what this endpoint removes is the N-fold Flask-boundary cost pinned by
+the assertions below and by the per-function upstream-call-count tripwire test.
 
 IMPORTANT: the benchmark function's NAME is its identity in CodSpeed. The
 before/after PRs must rewrite this body in place -- do not rename the test --
@@ -188,27 +190,22 @@ def counts_client(tmp_path, monkeypatch):
 def test_functionlist_counts_fetch(benchmark, counts_client):
     """Whole client workload of populating the counts column for all functions.
 
-    Baseline (fan-out): 1 list_functions + 25 per-function requests. The
-    per-function fetcher is V50tj-paginated (upstream #382), so each request
-    pays the _get_all_items probe + page round-trips on the way to the full
-    25-collection count -- this is the honest pattern the aggregate endpoint
-    must beat, middleware cost included.
+    Slice B (this body): exactly 2 requests -- list_functions + the aggregate
+    counts endpoint. Both sides of this pair are V50tj-paginated and report the
+    full 25 collections per function; what differs is the 24 request
+    round-trips through the Flask boundary.
     """
 
     def fetch_all_counts():
         functions = counts_client.get("/flask/osparc/list_functions").get_json()
-        per_function = [
-            counts_client.get(
-                f"/flask/osparc/list_function_job_collections_for_functionid?functionUid={function['uid']}"
-            ).get_json()
-            for function in functions
-        ]
-        return [
-            (len(job_collections), sum(len(jc["jobIds"]) for jc in job_collections))
-            for job_collections in per_function
-        ]
+        counts = counts_client.get("/flask/osparc/get_function_job_collection_counts").get_json()
+        return [counts[function["uid"]] for function in functions]
 
     counts = benchmark(fetch_all_counts)
     assert len(counts) == N_FUNCTIONS
-    # Paginated (V50tj): full 25 collections x 4 jobs each, not the 20-item page.
-    assert counts == [(JC_PER_FUNCTION, JC_PER_FUNCTION * JOBS_PER_JC)] * N_FUNCTIONS
+    # Fully paginated counts: 25 collections x 4 jobs each.
+    assert (
+        counts
+        == [{"campaignCount": JC_PER_FUNCTION, "evaluationCount": JC_PER_FUNCTION * JOBS_PER_JC}]
+        * N_FUNCTIONS
+    )
