@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Curves1DPlots from "./Curves1DPlot";
 import { jsonResponse, malformedJsonResponse, networkError, stubFetch, textResponse } from "../../test/fetchStub";
+import { captureBlobDownloads } from "../../test/downloadCapture";
 
 const jobs = Array.from({ length: 5 }, (_, i) => ({ uid: `job-${i}` }));
 
@@ -190,5 +191,110 @@ describe("Curves1DPlot display-scale toggle (B53kq, V12)", () => {
     const toggle = within(document.querySelector('[mmux-testid="sumo-1d-display-scale"]') as HTMLElement);
     expect((toggle.getByRole("button", { name: "log" }) as HTMLButtonElement).disabled).toBe(true);
     expect(yaxisType()).toBeUndefined();
+  });
+});
+
+describe("Curves1DPlot raw-data download (T30ln(b) replay, fork issue #79)", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  // fresh job uids = fresh session-cache key per test (see the display-scale suite)
+  const freshJobs = (tag: string) => Array.from({ length: 5 }, (_, i) => ({ uid: `job-${tag}-${i}` }));
+
+  const downloadButton = () =>
+    (document.querySelector('[mmux-testid="download-curves1d-data-btn"]') as HTMLElement)?.querySelector("button") as HTMLElement;
+
+  it("exports the plot's own committed response verbatim on every click, with zero refetch", async () => {
+    mocks.filteredJobList = freshJobs("1d-dl");
+    const payload = predictions([1, 2]);
+    const fetchMock = stubFetch(jsonResponse(payload));
+    const downloads = captureBlobDownloads();
+    render(<Curves1DPlots />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+
+    fireEvent.click(downloadButton());
+    fireEvent.click(downloadButton());
+    expect(downloads).toHaveLength(2);
+    for (const download of downloads) {
+      expect(download.filename).toBe("curves1d-y-vs-x1.json");
+      // verbatim: the file is exactly the resolved response, not a re-derivation
+      expect(JSON.parse(await download.text())).toEqual(payload);
+    }
+    // the download consumed committed state: ⊥ refetch (V46sc cache-read-only)
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("serves the identical payload from a V46sc cache hit after remount, with zero network", async () => {
+    mocks.filteredJobList = freshJobs("1d-dl-hit");
+    const payload = predictions([3, 4]);
+    const fetchMock = stubFetch(jsonResponse(payload));
+    const { unmount } = render(<Curves1DPlots />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    unmount();
+
+    const downloads = captureBlobDownloads();
+    render(<Curves1DPlots />); // same (url, body) → cache hit, no fetcher
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledTimes(1); // zero network on hit, even after unmount
+
+    fireEvent.click(downloadButton());
+    expect(JSON.parse(await downloads[0].text())).toEqual(payload); // payload == cached response
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a late-resolving older response out of the download (V45gd commit)", async () => {
+    mocks.filteredJobList = freshJobs("1d-dl-race");
+    let resolveStale: (r: Response) => void = () => undefined;
+    const stale = () => new Promise<Response>(resolve => (resolveStale = resolve));
+    const newest = predictions([7, 8]);
+    stubFetch(stale, jsonResponse(newest));
+    render(<Curves1DPlots />);
+
+    await waitFor(() => expect(mocks.setOtherAxis).toBeDefined());
+    act(() => mocks.setOtherAxis?.({ x1: 0, x2: 2.5 }));
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+    await act(async () => resolveStale(jsonResponse(predictions([1, 2]))));
+
+    const downloads = captureBlobDownloads();
+    fireEvent.click(downloadButton());
+    expect(JSON.parse(await downloads[0].text())).toEqual(newest); // only the committed generation
+  });
+
+  it("hides the download while a selection change is still propagating (payload↔filename agreement)", async () => {
+    mocks.filteredJobList = freshJobs("1d-dl-pending");
+    let resolveNext: (r: Response) => void = () => undefined;
+    const fetchMock = stubFetch(
+      jsonResponse(predictions([1, 2])),
+      () => new Promise<Response>(resolve => (resolveNext = resolve)),
+    );
+    render(<Curves1DPlots />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
+    expect(document.querySelector('[mmux-testid="download-curves1d-data-btn"]')).toBeInTheDocument();
+
+    await waitFor(() => expect(mocks.setOtherAxis).toBeDefined());
+    act(() => mocks.setOtherAxis?.({ x1: 0, x2: 2.5 })); // refetch starts; the stale curve keeps rendering
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    // Copilot #741: clicking here used to export the OLD payload under curves1d-y-vs-x2-style
+    // names — while pending, the export is gone even though the plot is not
+    expect(screen.getByTestId("plotly")).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="download-curves1d-data-btn"]')).toBeNull();
+
+    await act(async () => resolveNext(jsonResponse(predictions([7, 8]))));
+    await waitFor(() => expect(document.querySelector('[mmux-testid="download-curves1d-data-btn"]')).toBeInTheDocument());
+  });
+
+  it("offers no download after a failed fetch", async () => {
+    mocks.filteredJobList = freshJobs("1d-dl-fail");
+    stubFetch(new Response("bad curve", { status: 422 }));
+    render(<Curves1DPlots />);
+    expect(await screen.findByText(/failed/)).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="download-curves1d-data-btn"]')).toBeNull();
   });
 });

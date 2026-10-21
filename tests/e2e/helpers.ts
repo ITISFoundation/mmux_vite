@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, type Locator, type Page, type APIRequestContext } from "@playwright/test";
 
 /**
@@ -172,6 +173,32 @@ export function trackPageErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   return errors;
+}
+
+/**
+ * Click a plot's "download data" button (mmux-testid="download-*-data-btn"),
+ * capture the resulting browser download, and parse its content as JSON.
+ * The button downloads a Blob built client-side from the response the plot
+ * already committed, so the click itself triggers no network round-trip
+ * (V46sc: the download is a cache-read, ⊥ a re-fetch). The pointer retreats
+ * afterwards so the button's hover Tooltip never bleeds into a later baseline.
+ */
+export async function downloadAndParseJson(
+  page: Page,
+  testId: string,
+  expectedFilename?: string,
+): Promise<unknown> {
+  const button = page.locator(`[mmux-testid="${testId}"]`);
+  await expect(button, `download button ${testId} visible`).toBeVisible({ timeout: VIEW_TIMEOUT });
+  const [download] = await Promise.all([page.waitForEvent("download"), button.click()]);
+  if (expectedFilename !== undefined) {
+    expect(download.suggestedFilename(), "download filename carries the plot identity").toBe(expectedFilename);
+  }
+  const filePath = await download.path();
+  expect(filePath, `download ${testId} produced a file`).toBeTruthy();
+  const content = readFileSync(filePath as string, "utf-8");
+  await page.mouse.move(0, 0);
+  return JSON.parse(content) as unknown;
 }
 
 /**
