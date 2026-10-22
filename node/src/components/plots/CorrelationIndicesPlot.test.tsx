@@ -300,7 +300,7 @@ describe("CorrelationIndicesPlot request payload", () => {
     expect(body.distributions).toBeUndefined(); // "" lookup misses the fn-1-only map
     expect(body.inputLogScales).toEqual({ x1: false, x2: false });
     expect(body.numSamples).toBe(defaultUQSettings.numSamples); // uqSettings[""] missing → default
-    expect(body.seed).toBe(0);
+    expect(body.seed).toBe(defaultUQSettings.seed); // V49ub: seed rides the SAME resolution, no local `|| 0`
     expect(body.outputLogScales).toEqual({ y: false }); // no committed scale → linear
   });
 });

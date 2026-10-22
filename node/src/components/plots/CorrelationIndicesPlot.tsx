@@ -115,13 +115,17 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
         return;
       }
       try {
+        // ONE resolution for every UQ-shaped field (node V49ub): a component-local
+        // `|| 0` seed fallback would keep drifting the moment defaultUQSettings.seed
+        // changes while the modal, histogram and Sobol panels follow the shared default.
+        const configured = uqSettingsFor(uqSettings, selectedFunction?.uid);
         const data = await fetchCorrelationIndices({
           inputVars: activeInputVars,
           output: selectedQoI,
           distributions: activeDistributions,
           functionJobs: filteredJobList,
-          numSamples: uqSettingsFor(uqSettings, selectedFunction?.uid).numSamples,
-          seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
+          numSamples: configured.numSamples,
+          seed: configured.seed,
           inputLogScales,
           outputLogScale: outputLogScaleForQoi,
         });
