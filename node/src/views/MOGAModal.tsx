@@ -165,6 +165,7 @@ const MOGAModal = ({ open, setOpen }: { open: boolean; setOpen: (value: boolean)
       }}
     >
       <Card
+        mmux-testid="moga-settings-modal"
         sx={{
           overflow: "auto",
           backgroundImage: "none",

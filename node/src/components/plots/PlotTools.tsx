@@ -72,14 +72,23 @@ export function CreateSelect({ axis, idx, setAxis }: CreateSelectProps) {
   const filteredInputVars = filterInputVars({ ...context, selectedFunction, inputVars, distribution });
   console.log("filteredInputVars constant checks", filteredInputVars, inputVars, distribution[selectedFunction?.uid || ""]);
 
+  // Unique, RESOLVING ids: this control used to hard-code id/labelId "select-key1", so
+  // every axis select shared one id (2D renders two, 3D three) and `aria-labelledby`
+  // pointed at an element that does not exist — the caption is a <p>, and a <label> cannot
+  // name a div[role=combobox] anyway. axe then reports `aria-input-field-name` (serious)
+  // and node V42ax is violated; the e2e scan that caught it is root SPEC §T47mx
+  // (SuMo 1D Curves view). Naming the control with its own visible caption fixes both.
+  const axisKey = idx ?? "sweep";
+  const labelId = `select-axis-${axisKey}-label`;
+
   return (
     <InputLabel sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-      <Typography variant="h6" component="p" fontFamily="inherit" fontWeight={100}>
+      <Typography id={labelId} variant="h6" component="p" fontFamily="inherit" fontWeight={100}>
         Axis {idx || ""}:
       </Typography>
       <Select
-        labelId="select-key1"
-        id="select-key1"
+        labelId={labelId}
+        id={`select-axis-${axisKey}`}
         size="small"
         defaultValue=""
         value={axis}

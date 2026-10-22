@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, type APIRequestContext } from "@playwright/test";
 
 /**
@@ -15,6 +16,24 @@ export const FUNCTION_UID = "func-sumo-readonly-e2e";
 
 export const VIEW_TIMEOUT = 30_000;
 export const MODEL_READY_TIMEOUT = 60_000;
+
+/**
+ * axe-core scan (root SPEC §V42rb / §T37): serious or critical violations fail the test.
+ *
+ * Plotly's canvas/SVG output is third-party and excluded; everything else the app renders
+ * is in scope. Moved out of `a11y.spec.ts` (root §T47mx) so the view scans run on the views
+ * the read-only FLOW specs already render instead of re-driving the same flows from scratch:
+ * one render, one axe pass, one pixel baseline per view. Call it AFTER that view's
+ * `toHaveScreenshot` — axe injects its script (and short-lived measurement nodes) into the
+ * live document, so a scan must never precede a pixel capture of the same state (§V10).
+ */
+export async function expectNoSeriousViolations(page: Page): Promise<void> {
+  const { violations } = await new AxeBuilder({ page }).exclude(".js-plotly-plot").analyze();
+  const serious = violations
+    .filter(v => v.impact === "serious" || v.impact === "critical")
+    .map(v => `${v.id} (${v.impact}): ${v.nodes.map(n => `${n.html.slice(0, 200)} → ${n.failureSummary}`).join(" | ")}`);
+  expect(serious, serious.join("\n")).toEqual([]);
+}
 
 export async function expectPlotlyReady(container: Locator, timeout = MODEL_READY_TIMEOUT): Promise<Locator> {
   const plot = container.locator(".js-plotly-plot");
