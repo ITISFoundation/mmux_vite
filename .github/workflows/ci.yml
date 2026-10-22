@@ -119,10 +119,12 @@ jobs:
   # production build now happen ONCE in e2e-prep; lanes restore node_modules +
   # client + dist and run a file-grouped subset (E2E_PREBUILT=1 makes build:e2e a
   # no-op so ⊥ lane regenerates them).
+  # Start at t=0: prep has ⊥ data dependency on the unit-test stages (its inputs are
+  # the checkout + caches), and gating it on them only added ~100 s of their wall to
+  # the e2e critical path (owner decision 2026-10-22; wasted lane job-minutes on a
+  # sibling-stage RED = ACCEPTED cost, wall-clock is the objective). The LANES still
+  # gate on e2e-prep — they require its client/dist artifacts.
   e2e-prep:
-    needs:
-      - node-tests
-      - flaskapi-tests
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.64.0-noble
