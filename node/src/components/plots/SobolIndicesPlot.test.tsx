@@ -5,6 +5,7 @@ import { logColorbarTicks } from "../../utils/plotScale";
 import { buildSobolBarData, buildSobolHeatmapData } from "../../utils/sobolIndices";
 import SobolIndicesPlot, { SobolControls } from "./SobolIndicesPlot";
 import { jsonResponse, stubFetch } from "../../test/fetchStub";
+import { defaultUQSettings } from "../../utils/uqSettings";
 
 vi.mock("../../utils/sobolIndices", async importOriginal => {
   const mod = await importOriginal<typeof import("../../utils/sobolIndices")>();
@@ -359,7 +360,7 @@ describe("SobolIndicesPlot request payload", () => {
     await waitFor(() => expect(traceY()).toEqual([0.6, 0.4]));
 
     const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
-    expect(body.numSamples).toBe(4321); // from uqSettings, not the 10000 default
+    expect(body.numSamples).toBe(4321); // from uqSettings, not the shared default
     expect(body.seed).toBe(9);
     expect(body.distributions).toEqual({ x1: { scale: "log" }, x2: { scale: "linear" } });
     expect(body.inputLogScales).toEqual({ x1: true, x2: false }); // scale === "log" drives the flag
@@ -378,7 +379,7 @@ describe("SobolIndicesPlot request payload", () => {
     const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
     expect(body.distributions).toBeUndefined(); // "" lookup misses the fn-1-only map
     expect(body.inputLogScales).toEqual({ x1: false, x2: false });
-    expect(body.numSamples).toBe(10000); // uqSettings[""] missing → default
+    expect(body.numSamples).toBe(defaultUQSettings.numSamples); // uqSettings[""] missing → default
     expect(body.seed).toBe(0);
   });
 });

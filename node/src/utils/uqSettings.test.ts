@@ -1,6 +1,34 @@
 import { describe, expect, it } from "vitest";
 import type { UQSettings } from "../context/types";
-import { clampUQSettings, defaultUQSettings, migrateLegacyUQSettings } from "./uqSettings";
+import { clampUQSettings, defaultUQSettings, migrateLegacyUQSettings, uqSettingsFor } from "./uqSettings";
+
+describe("defaultUQSettings", () => {
+  it("pins the approved defaults — a change here is a deliberate decision, not drift", () => {
+    // numSamples = 2 000: owner decision 2026-10-22. The previous 10 000 was arbitrary
+    // (never derived from a convergence requirement); Sobol uses its own fixed design rule
+    // and is ⊥ user-customizable; stored per-function settings keep their own values.
+    expect(defaultUQSettings).toEqual({ numSamples: 2000, nHistograms: 50, seed: 0 });
+  });
+});
+
+describe("uqSettingsFor", () => {
+  it("fills every missing field from the shared default", () => {
+    expect(uqSettingsFor(undefined, "a")).toEqual(defaultUQSettings);
+    expect(uqSettingsFor({}, "a")).toEqual(defaultUQSettings);
+    expect(uqSettingsFor({ a: { numSamples: 123 } as unknown as UQSettings }, "a")).toEqual({
+      ...defaultUQSettings,
+      numSamples: 123,
+    });
+  });
+
+  it("reads the empty-function key when no function is selected", () => {
+    expect(uqSettingsFor({ "": { numSamples: 7, nHistograms: 3, seed: 2 } }, undefined)).toEqual({
+      numSamples: 7,
+      nHistograms: 3,
+      seed: 2,
+    });
+  });
+});
 
 describe("migrateLegacyUQSettings", () => {
   it("migrates legacy per-function numSamples into full UQ settings", () => {

@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import UQSettingsModal from "./UQSettingsModal";
+import { defaultUQSettings } from "../utils/uqSettings";
 
 const mocks = vi.hoisted(() => ({
   uid: "fn-1",
@@ -36,7 +37,7 @@ describe("UQSettingsModal", () => {
 
   it("seeds defaults for a function without stored settings", () => {
     render(<UQSettingsModal open setOpen={vi.fn()} />);
-    expect(screen.getByLabelText("Number of UQ Samples")).toHaveValue(10000);
+    expect(screen.getByLabelText("Number of UQ Samples")).toHaveValue(defaultUQSettings.numSamples);
     expect(screen.getByLabelText("Number of Histograms")).toHaveValue(50);
     expect(screen.getByLabelText("Seed")).toHaveValue(0);
   });
@@ -77,9 +78,7 @@ describe("UQSettingsModal", () => {
     mocks.uid = "";
     render(<UQSettingsModal open setOpen={vi.fn()} />);
     await user.click(screen.getByRole("button", { name: "Save" }));
-    expect(mocks.setUQSettings).toHaveBeenCalledWith({
-      "": { numSamples: 10000, nHistograms: 50, seed: 0 },
-    });
+    expect(mocks.setUQSettings).toHaveBeenCalledWith({ "": defaultUQSettings });
   });
 
   it("closes via the modal Escape handler", () => {
