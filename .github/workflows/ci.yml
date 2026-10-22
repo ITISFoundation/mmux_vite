@@ -187,16 +187,23 @@ jobs:
           path: node/dist
           retention-days: 7
 
-  # LANES grouped by SPEC FILE name, ⊥ by test title: sibling PRs move tests between
-  # spec files (the a11y-fold PR moves axe tests INTO the flow specs), and file-based
-  # lanes retarget automatically on merge. a11y.spec.ts today (axe only, ⊥ pixel
-  # baselines) rides `behavior`; once folded it moves to its destination file's lane
-  # automatically — ⊥ CI edit needed. The lane lists + GUARD (pixel files + behavior
-  # files must partition tests/e2e/*.spec.ts, so ⊥ spec silently drops out of every
-  # lane) live in tests/e2e/scripts/run-e2e-lane.sh:
-  #   uq-moga:  uq-readonly + moga-readonly + sobol-highdim
-  #   sumo:     sumo-readonly + sumo-write
-  #   behavior: the INVERSE of the two pixel lanes, computed at runtime per lane
+  # LANES (root SPEC §V48sl): an EVOLVING partition of tests/e2e/*.spec.ts into NOW
+  # 3 lanes (repacking between 2 and 4 lanes on the wall objective prep+boot+max(lane
+  # tests) is a ci.yml + run-e2e-lane.sh edit + §T row, ⊥ a §V change — just re-sync
+  # the required checks to whatever lane names result). Grouping is by SPEC FILE
+  # name, ⊥ by test title: sibling PRs move tests between spec files (the a11y-fold
+  # PR moves axe tests INTO the flow specs), and file-based lanes retarget
+  # automatically on merge. a11y.spec.ts today (axe only, ⊥ pixel baselines) rides
+  # `behavior`; once folded it moves to its destination file's lane automatically —
+  # ⊥ CI edit needed. The lane lists + GUARD (pixel files + behavior files must
+  # partition tests/e2e/*.spec.ts, so ⊥ spec silently drops out of every lane) live
+  # in tests/e2e/scripts/run-e2e-lane.sh:
+  #   uq-moga:  PIXEL-CAPTURING uq-readonly + moga-readonly (§V12-critical) +
+  #             sobol-highdim — engine-heavy analysis-plot FLOW without a committed
+  #             baseline yet (the capture arrives with the sibling a11y-fold PR, ⊥
+  #             adding it here); it rides this lane for boot/test balance
+  #   sumo:     PIXEL-CAPTURING sumo-readonly + sumo-write
+  #   behavior: the INVERSE of the pixel-capturing lanes, computed at runtime per lane
   # §V12: every lane keeps the PINNED image and workers:1 (node/playwright.config.ts)
   # and boots its OWN webServer pair (reuseExistingServer stays false in CI).
   # Branch protection: the required check "e2e-tests" must become the three matrix
