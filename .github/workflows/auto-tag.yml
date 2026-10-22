@@ -143,7 +143,7 @@ jobs:
             # again or every stamp would immediately spawn the next one.
             # BOTH identity signals are required (GH-Copilot #710 review):
             # the bot author email, plus the FULL stamp subject shape incl.
-            # the .devN tail — check-pr (version-check.yml) rejects any PR
+            # the .devN tail — check-pr (ci.yml `prek` step "Check release version") rejects any PR
             # that INTRODUCES a .devN (heads inheriting develop's stamp
             # unchanged pass, auto_version.py:343), so humans cannot mint
             # this subject+author pair; a human "...to 1.7.0" gets its
