@@ -3,6 +3,7 @@ import {
   FUNCTION_UID,
   VIEW_TIMEOUT,
   MODEL_READY_TIMEOUT,
+  expectNoSeriousViolations,
   fetchJson,
   resetPersistence,
   setDeployment,
@@ -29,6 +30,12 @@ import {
  * the full 1920x1080 viewport with the real (unmasked) Plotly render: the mock
  * data and surrogate are fully deterministic, so the plot is reproducible in
  * the pinned image and a masked-out plot would defeat the pixel comparison.
+ *
+ * The view-scoped accessibility scans (root §V42rb) run INSIDE this flow (§T47mx):
+ * each scanned view is the one the flow already rendered, so one navigation serves
+ * both the pixel baseline and the axe scan instead of a second spec driving the
+ * same flow from scratch. Every scan sits AFTER that view's `toHaveScreenshot`
+ * (axe mutates the live document; a scan must never precede a pixel capture).
  */
 
 test("SuMo read-only response-surface flow renders validation view", async ({ page, baseURL }) => {
@@ -56,6 +63,8 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
 
   // Pixel baseline: the function-selection setup grid (full 1920x1080 viewport).
   await expect(page).toHaveScreenshot("sumo-readonly-setup.png");
+  // Accessibility: function-list/setup view (§V42rb — folded in from a11y.spec.ts, §T47mx).
+  await expectNoSeriousViolations(page);
 
   const selectButton = page.locator(`[mmux-testid="select-function-btn-${FUNCTION_UID}"]`);
   await expect(selectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
@@ -69,6 +78,9 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
 
   // Pixel baseline: function selected, input ranges configured and open.
   await expect(page).toHaveScreenshot("sumo-readonly-inputs.png");
+  // Accessibility: configured input-range blocks (the state the old standalone scan
+  // reached after fillUniformInputRanges — identical DOM, one navigation cheaper).
+  await expectNoSeriousViolations(page);
 
   const nextButton = page.locator('[mmux-testid="next-button"]');
   await expect(nextButton).toBeEnabled({ timeout: VIEW_TIMEOUT });
@@ -94,6 +106,9 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   // Pixel baseline: the 1D Curves plot with the real Plotly render (deterministic
   // mock surrogate, unmasked).
   await expect(page).toHaveScreenshot("sumo-readonly-plot-1d.png");
+  // Accessibility: the results view itself (V42rb "results views"; the standalone
+  // a11y spec only ever reached this view for UQ/MOGA).
+  await expectNoSeriousViolations(page);
 
   // Pixel baseline: the same 1D curves on the log DISPLAY scale (per-panel toggle,
   // B53kq; all mock predictions are strictly positive ⇒ LOG enabled). Toggle back
@@ -119,6 +134,9 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(extendSampling).toBeDisabled();
 
   await expect(page).toHaveScreenshot("sumo-readonly-validation.png");
+  // Accessibility: the cross-validation modal over the results view (the state the old
+  // standalone scan asserted — MAE visible — then scanned).
+  await expectNoSeriousViolations(page);
 
   // Pixel baseline: the SAME validation view on the log DISPLAY scale (display-only
   // toggle). Every mock job value is strictly positive (y ∈ [1.325, 9.95]), so LOG

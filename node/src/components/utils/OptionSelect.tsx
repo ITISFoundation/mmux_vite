@@ -39,6 +39,12 @@ export default function OptionSelector<T>({
           />
         </CustomTooltip>
       </Typography>
+      {/* OPEN DEFECT (root SPEC §T47mx): this Select names itself after "select-key1", an
+          id nothing in the document carries, so its accessible name resolves to nothing —
+          the same aria-input-field-name (serious) class §V42ax forbids, and the id is not
+          unique when a view renders several OptionSelects. No e2e axe scan reaches this
+          component yet (the read-only specs scan setup/results/Inspect Model only), so
+          nothing reddens today; fix it WITH a scan that proves it, not on its own. */}
       <Select
         labelId="select-key1"
         id="select-key1"

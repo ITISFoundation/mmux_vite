@@ -253,7 +253,13 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
           numInputVars={inputVars.length}
         />
       )}
-      {!computing && plotData.length !== 0 && <Plot data={plotData} layout={layout} style={plotStyle} />}
+      {/* testid container per §V13: the e2e baseline of the settled d=8 second-order
+          heatmap (root §T47mx) selects this box, not a structural `.js-plotly-plot`. */}
+      {!computing && plotData.length !== 0 && (
+        <Box mmux-testid="sobol-indices-plot">
+          <Plot data={plotData} layout={layout} style={plotStyle} />
+        </Box>
+      )}
     </Box>
   );
 }
