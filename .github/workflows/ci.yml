@@ -105,12 +105,21 @@ jobs:
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  # Read-only Playwright e2e suite (SuMo/UQ/MOGA; root SPEC §T11,§T12 / §V10-§V13).
+  # Read-only Playwright e2e suite (SuMo/UQ/MOGA; root SPEC §T11,§T12,§T47sl / §V10-§V13).
   # Runs inside the PINNED Playwright docker image so chromium + its bundled
   # fonts match the image the committed pixel baselines were generated in (§V12):
   # any host/runner font drift would otherwise break the snapshot comparison.
   # The tag MUST stay in lock-step with @playwright/test in node/package.json.
-  e2e-tests:
+  #
+  # SPLIT (root SPEC §T47sl): one shared prep job + 3 parallel lanes.
+  # WHY: the old single e2e-tests job measured 234-315 s wall: ~48 s pre/post steps,
+  # webServer boot ~109 s (openapi client generation 40-60 s + vite build), per-spec
+  # test sum ~117 s, coverage teardown 10-20 s. The metric is WALL-CLOCK (⊥ job-
+  # minutes: each lane boots its own backend+preview pair). Client generation and the
+  # production build now happen ONCE in e2e-prep; lanes restore node_modules +
+  # client + dist and run a file-grouped subset (E2E_PREBUILT=1 makes build:e2e a
+  # no-op so ⊥ lane regenerates them).
+  e2e-prep:
     needs:
       - node-tests
       - flaskapi-tests
@@ -120,26 +129,127 @@ jobs:
     steps:
       - name: Checkout repo content
         uses: actions/checkout@v7
+      - name: Use Node.js 24
+        # Warm `npm ci` cache. The image itself ships node 24 (== package engines),
+        # so prep and lanes agree on the node major that node_modules is warmed under.
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.x
+          cache: 'npm'
+          cache-dependency-path: node/package-lock.json
+      # node_modules is a pure function of the lockfile + this image + arch:
+      # warm it so lanes skip `npm ci` entirely (cache-hit restore ≫ cold ci).
+      - name: Restore node_modules cache
+        id: nm-cache
+        uses: actions/cache@v6
+        with:
+          path: node/node_modules
+          key: e2e-node-modules-${{ runner.arch }}-playwright-v1.64.0-noble-${{ hashFiles('node/package-lock.json') }}
+      - name: Install node dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: cd node && npm ci
+      # The generated client (§B16, not committed) is a pure function of
+      # node/openapi.json + openapitools.json + lockfile ⇒ cache it across runs;
+      # the JRE is then installed ONLY on a cache miss (openapi-generator is Java).
+      - name: Restore generated TS client cache
+        id: client-cache
+        uses: actions/cache@v6
+        with:
+          path: node/src/osparc-api-ts-client
+          key: e2e-ts-client-playwright-v1.64.0-noble-${{ hashFiles('node/openapi.json', 'node/openapitools.json', 'node/package-lock.json') }}
+      - name: Install Java runtime (only on TS client cache miss)
+        if: steps.client-cache.outputs.cache-hit != 'true'
+        # The Playwright image ships no JRE, but openapi-generator-cli requires
+        # `java` (mirrors tests/e2e/scripts/gen-baselines.sh).
+        run: apt-get update && apt-get install -y --no-install-recommends openjdk-21-jre-headless
+      - name: Generate oSPARC TypeScript client (only on TS client cache miss)
+        if: steps.client-cache.outputs.cache-hit != 'true'
+        run: cd node && npm run generate-osparc-cli
+      # E2E_COVERAGE=true gates vite's sourcemaps (node/vite.config.ts build.sourcemap):
+      # the coverage teardown maps /assets/ scripts back to src, so the PREP build must
+      # run with it — exactly the env the playwright webServer used for build:e2e before
+      # the split. `build:e2e:compile` == the tsc+vite half of `build:e2e` (client is
+      # already in place from cache/fresh generate above).
+      - name: Build sourcemapped production dist
+        run: cd node && npm run build:e2e:compile
+        env:
+          E2E_COVERAGE: 'true'
+      - name: Upload generated TS client
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-prep-osparc-client
+          path: node/src/osparc-api-ts-client
+          retention-days: 7
+      - name: Upload production dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-prep-dist
+          path: node/dist
+          retention-days: 7
+
+  # LANES grouped by SPEC FILE name, ⊥ by test title: sibling PRs move tests between
+  # spec files (the a11y-fold PR moves axe tests INTO the flow specs), and file-based
+  # lanes retarget automatically on merge. a11y.spec.ts today (axe only, ⊥ pixel
+  # baselines) rides `behavior`; once folded it moves to its destination file's lane
+  # automatically — ⊥ CI edit needed. The lane lists + GUARD (pixel files + behavior
+  # files must partition tests/e2e/*.spec.ts, so ⊥ spec silently drops out of every
+  # lane) live in tests/e2e/scripts/run-e2e-lane.sh:
+  #   uq-moga:  uq-readonly + moga-readonly + sobol-highdim
+  #   sumo:     sumo-readonly + sumo-write
+  #   behavior: the INVERSE of the two pixel lanes, computed at runtime per lane
+  # §V12: every lane keeps the PINNED image and workers:1 (node/playwright.config.ts)
+  # and boots its OWN webServer pair (reuseExistingServer stays false in CI).
+  # Branch protection: the required check "e2e-tests" must become the three matrix
+  # job names "e2e-tests (uq-moga)", "e2e-tests (sumo)", "e2e-tests (behavior)".
+  e2e-tests:
+    needs: e2e-prep
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [uq-moga, sumo, behavior]
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.0-noble
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v7
       # The Playwright image ships node + browsers but not GNU make (the Makefile
-      # entry points need it).
+      # entry points need it). NB: NO JRE here — with the prep artifacts restored,
+      # E2E_PREBUILT=1 means no lane ever regenerates the client.
       - name: Install make
         run: apt-get update && apt-get install -y --no-install-recommends make
-      # `build:e2e` regenerates the generated client through openapi-generator;
-      # the Playwright image does not ship a JRE, so install one here.
-      - name: Install Java runtime
-        run: apt-get update && apt-get install -y --no-install-recommends openjdk-21-jre-headless
       # uv drives the Flask backend the webServer boots (tests/e2e/scripts/run-e2e-backend.sh).
       - name: Set up uv
         uses: astral-sh/setup-uv@v10.3.0
-      - name: Install node dependencies
+      - name: Restore node_modules cache
+        id: nm-cache
+        uses: actions/cache@v6
+        with:
+          path: node/node_modules
+          key: e2e-node-modules-${{ runner.arch }}-playwright-v1.64.0-noble-${{ hashFiles('node/package-lock.json') }}
+      - name: Install node dependencies (fallback if prep cache evicted)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
         run: cd node && npm ci
       - name: Install Flask API dependencies
         run: make install-flaskapi-deps
+      - name: Place prep-generated TS client
+        uses: actions/download-artifact@v7
+        with:
+          name: e2e-prep-osparc-client
+          path: node/src/osparc-api-ts-client
+      - name: Place prep-built dist (vite preview serves this)
+        uses: actions/download-artifact@v7
+        with:
+          name: e2e-prep-dist
+          path: node/dist
       # Compares against the committed baselines under tests/e2e/__snapshots__.
       # Baselines are regenerated ONLY via `make test-e2e-update` in THIS image (§V12);
-      # a non-green pixel diff fails the job and (via branch protection) gates merge (§C).
-      - name: Run Playwright e2e suite (pixel diff vs committed baselines)
-        run: make test-e2e
+      # a non-green pixel diff fails the lane and (via branch protection) gates merge (§C).
+      - name: Run Playwright e2e lane ${{ matrix.lane }} (pixel diff vs committed baselines)
+        run: make test-e2e-lane LANE=${{ matrix.lane }}
+        env:
+          # webServer's build:e2e step becomes a no-op: client + dist came from e2e-prep.
+          E2E_PREBUILT: '1'
       - name: Assert E2E coverage report exists
         run: test -s coverage/e2e/report/cobertura-coverage.xml
       - name: Upload E2E coverage
@@ -147,7 +257,7 @@ jobs:
         with:
           files: ./coverage/e2e/report/cobertura-coverage.xml
           flags: e2e
-          name: e2e-coverage
+          name: e2e-coverage-${{ matrix.lane }}
           fail_ci_if_error: false
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -155,7 +265,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.lane }}
           path: |
             node/playwright-report
             node/test-results
