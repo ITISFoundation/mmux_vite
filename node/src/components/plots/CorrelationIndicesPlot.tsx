@@ -5,6 +5,7 @@ import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
+import { uqSettingsFor } from "../../utils/uqSettings";
 import {
   correlationAbsLogRange,
   correlationLinearRange,
@@ -119,7 +120,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
           output: selectedQoI,
           distributions: activeDistributions,
           functionJobs: filteredJobList,
-          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
+          numSamples: uqSettingsFor(uqSettings, selectedFunction?.uid).numSamples,
           seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
           inputLogScales,
           outputLogScale: outputLogScaleForQoi,
