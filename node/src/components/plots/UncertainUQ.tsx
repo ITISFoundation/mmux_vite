@@ -10,6 +10,7 @@ import { requestJson } from "../../api/client";
 import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
 import { withoutConstantFactors } from "../../utils/constantFactors";
+import { uqSettingsFor } from "../../utils/uqSettings";
 import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 import { useDisplayScale } from "../../utils/useDisplayScale";
 import { DisplayScaleToggle } from "./DisplayScaleToggle";
@@ -76,16 +77,20 @@ export default function UncertainUQ(props: UncertainUQProps) {
       try {
         console.info("Propagating UQ...");
         console.info("SelectedQoI: ", selectedQoI);
+        // Effective settings for this function: the stored entry over the shared defaults
+        // (node V49ub) — the SAME resolution the UQ Settings modal displays, so the card
+        // cannot compute a sample count the user never saw. ⊥ literals here.
+        const configured = uqSettingsFor(uqSettings, selectedFunction?.uid);
         const uqBody = {
           inputVars: activeInputVars,
           output: selectedQoI,
           distributions: activeDistributions,
           FunctionJobs: filteredJobList,
-          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
+          numSamples: configured.numSamples,
           inputLogScales,
           outputLogScales: selectedQoI ? { [selectedQoI]: outputLogScaleForQoi } : {},
-          nHistograms: uqSettings[selectedFunction?.uid || ""]?.nHistograms || 50,
-          seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
+          nHistograms: configured.nHistograms,
+          seed: configured.seed,
         };
         // V46sc: seed/numSamples/nHistograms/distributions (and the #663
         // log-scale maps) are ALL in the cache key by construction - changing
