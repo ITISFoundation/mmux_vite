@@ -19,10 +19,41 @@ jobs:
     steps:
     - name: Checkout repo content
       uses: actions/checkout@v7
+      with:
+        # full history + tags: the "Check release version" step's
+        # auto_version.py check-pr validates the PR base against ALL existing
+        # tags (small fetch cost, hygiene job only).
+        fetch-depth: 0
+        fetch-tags: true
     - name: Set up uv
       # Full-version pin: astral-sh/setup-uv no longer publishes bare major
       # tags (no `v10` ref exists), so `@v10` would fail to resolve.
       uses: astral-sh/setup-uv@v10.3.0
+    # Release-version backstop for the auto-tag flow (folded in from the
+    # standalone `version-check.yml`, deleted here: ~5 hosted slots at t=0 with
+    # three workflows firing simultaneously — a 12-17 s check ⊥ own slot).
+    # A PR changing the base version must bump to a clean X.Y.Z that clears
+    # every existing tag (the `.devN` suffix is owned by the auto-tag bot) AND
+    # exceeds its target branch's own base — for main that means a human base
+    # bump landed on develop first — and the §V5 fanout must stay consistent
+    # so a release never ships with drifted metadata.
+    # Guard = the old `pull_request branches: [develop, main]` trigger: PRs to
+    # other branches skip, AND ci.yml's push-to-main event (base_ref EMPTY)
+    # no-ops — ⊥ ever passing an empty --target. The old paths-ignore
+    # (docs/validation/*.md) is DROPPED deliberately: the check is cheap and
+    # passes vacuously on doc-only PRs. Permissions: this job needs only
+    # contents:read (checkout + tag fetch); ci.yml carries ⊥ workflow-level
+    # `permissions:` block, so the GITHUB_TOKEN default applies — ⊥ narrower
+    # block added here ⊥ risk the artifact/codecov steps that rely on defaults.
+    # Runs EARLY (right after uv) so a versioned PR with a bad base fails fast.
+    - name: Check release version
+      if: github.base_ref == 'develop' || github.base_ref == 'main'
+      env:
+        BASE_REF: ${{ github.base_ref }}
+      run: |
+        set -euo pipefail
+        git fetch --tags --force
+        uv run --no-project --with packaging python scripts/auto_version.py check-pr --target "$BASE_REF"
     - name: Use Node.js 24
       uses: actions/setup-node@v7
       with:
