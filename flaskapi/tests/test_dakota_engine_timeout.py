@@ -351,6 +351,11 @@ class TestWatchdogKnobs:
             assert dakota._engine_timeout_s(long_class) == 7.5
             monkeypatch.setenv(knob, "not-a-number")
             assert dakota._engine_timeout_s(long_class) == default  # typo ⊥ crash-loop
+            for junk in ("nan", "NaN", "inf", "-inf", "Infinity"):
+                monkeypatch.setenv(knob, junk)
+                # float() accepts these; both classes silently kill the
+                # watchdog (nan defeats `>0`, inf waits unboundedly).
+                assert dakota._engine_timeout_s(long_class) == default
             monkeypatch.delenv(knob)
         # The knobs are independent: retuning one class ⊥ move the other.
         monkeypatch.setenv("MMUX_ENGINE_TIMEOUT_S", "5")

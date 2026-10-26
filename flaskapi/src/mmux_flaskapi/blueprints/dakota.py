@@ -4,6 +4,7 @@ import dataclasses
 import hashlib
 import json
 import logging
+import math
 import os
 import threading
 import traceback
@@ -161,8 +162,11 @@ def _engine_timeout_s(long_class: bool = False) -> float:
     FAST class (default) reads `MMUX_ENGINE_TIMEOUT_S` (default 60 s); the
     LONG class (`_LONG_TIMEOUT_WORKFLOWS`, V51et) reads
     `MMUX_ENGINE_TIMEOUT_LONG_S` (default 3600 s). Unset/blank → the class
-    default; unparsable → default + WARNING (⊥ crash-looping the whole
-    blueprint over a typo'd knob); <=0 → 0.0, disabling that class.
+    default; unparsable OR non-finite → default + WARNING (⊥ crash-looping
+    the whole blueprint over a typo'd knob; nan/inf parse via `float()` yet
+    silently disable the watchdog — nan fails every comparison, inf makes
+    the deadline wait unbounded, Copilot fold-in #754); <=0 → 0.0,
+    disabling that class.
     """
     env = _LONG_TIMEOUT_ENV if long_class else _FAST_TIMEOUT_ENV
     default = ENGINE_TIMEOUT_LONG_S_DEFAULT if long_class else ENGINE_TIMEOUT_FAST_S_DEFAULT
@@ -173,6 +177,11 @@ def _engine_timeout_s(long_class: bool = False) -> float:
         timeout = float(raw)
     except ValueError:
         _logger.warning("Ignoring %s=%r (not a number); using %gs", env, raw, default)
+        return default
+    if not math.isfinite(timeout):
+        # nan would sail past `timeout_s > 0` and disable the watchdog;
+        # inf would make done.wait() block forever — both default, loudly.
+        _logger.warning("Ignoring %s=%r (not finite); using %gs", env, raw, default)
         return default
     if timeout <= 0:
         return 0.0
