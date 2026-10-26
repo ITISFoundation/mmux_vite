@@ -4,10 +4,8 @@ import { clampUQSettings, defaultUQSettings, migrateLegacyUQSettings, uqSettings
 
 describe("defaultUQSettings", () => {
   it("pins the approved defaults — a change here is a deliberate decision, not drift", () => {
-    // numSamples = 10 000: inherited value, deliberately UNCHANGED (uqSettings.ts carries the
-    // why) — surrogate-cheap ⇒ a smaller static N buys nothing; the principled policy is
-    // studied engine-side (ITISFoundation/itis-sumo#76). Sobol uses its own fixed design rule
-    // (engine V36; ⊥ this field); stored per-function settings keep their own values.
+    // 10 000 is inherited ∧ deliberately kept: N is ~free on the surrogate, so a smaller static value
+    // buys only less tail coverage — the principled N policy is studied engine-side (itis-sumo#76).
     expect(defaultUQSettings).toEqual({ numSamples: 10000, nHistograms: 50, seed: 0 });
   });
 });

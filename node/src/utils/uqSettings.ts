@@ -1,19 +1,8 @@
 import { UQSettings } from "../context/types";
 
 /**
- * THE single source of UQ defaults. Consumers (UQ histogram propagation, correlation and
- * Sobol panels, the settings modal) read these numbers — they ⊥ re-declare the literals,
- * because a copy that drifts makes the modal show one number while the request carries
- * another (node V49ub).
- *
- * `numSamples` stays the inherited 10 000: N is not worth moving in the UI. Propagation and
- * correlation evaluate the SURROGATE, so N costs ~nothing and a smaller value buys nothing —
- * 8192, the best power-of-2 candidate, would only shrink tail coverage (~82 vs ~100 paths
- * beyond P99). The principled policy (d-aware budget, adaptive doubling; note the Sobol'
- * design ignores this field entirely — engine V36 fixes `SOBOL_BASE_SAMPLES`) is studied
- * engine-side (ITISFoundation/itis-sumo#76) and the default stays untouched until it lands.
- * Stored per-function settings keep their explicit values through
- * `migrateLegacyUQSettings` — so only FRESH state gets the default anyway.
+ * THE single source of UQ defaults — ⊥ re-declared literals: a drift lets modal ∧ request disagree (V49ub).
+ * `numSamples` stays 10 000: N is ~free on the surrogate ⇒ smaller is strictly worse; policy → itis-sumo#76.
  */
 export const defaultUQSettings: UQSettings = {
   numSamples: 10000,
@@ -40,13 +29,8 @@ export const clampUQSettings = (settings: UQSettings): UQSettings => {
 };
 
 /**
- * The effective UQ settings for one function: stored entry (already clamped by
- * `migrateLegacyUQSettings` at load) filled field-by-field from `defaultUQSettings`.
- *
- * Every consumer that builds a UQ-shaped request body (histogram propagation, correlation,
- * Sobol') and the settings modal itself go through this, so the numbers a request carries
- * and the numbers the modal displays cannot diverge — the failure mode three inline `|| 10000`
- * copies used to allow (node V49ub).
+ * Effective UQ settings for a function: stored entry (clamped at load) over `defaultUQSettings` — the ONE
+ * resolution modal ∧ request bodies read, so the displayed number ∧ the sent number cannot diverge (V49ub).
  */
 export const uqSettingsFor = (
   uqSettings: { [key: string]: UQSettings } | undefined,
@@ -58,8 +42,7 @@ export const uqSettingsFor = (
 
 // Legacy persistence files stored each function's configured UQ sample count
 // in `numSamples` and have no `uqSettings`. Without migration those functions
-// silently drop to defaultUQSettings.numSamples (10 000 — see the default's note on
-// why that number is what it is). Explicit
+// silently drop to defaultUQSettings.numSamples (10 000). Explicit
 // `uqSettings` entries win over the migrated ones.
 //
 // Load-boundary enforcement (Copilot #687): clampUQSettings runs at modal

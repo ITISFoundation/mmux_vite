@@ -95,15 +95,14 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
         return;
       }
       try {
-        // Same default resolution as the UQ histogram (node V49ub): ONE source for the
-        // defaults, so a fresh session's panels agree with what UQ Settings displays.
+        // Seed is the ONLY UQ setting this request carries (V49ub resolution); the Sobol'
+        // sample count is fixed engine-side (itis-sumo V36), so numSamples ⊥ belongs here.
         const configured = uqSettingsFor(uqSettings, selectedFunction?.uid);
         const data = await fetchSobolIndices({
           inputVars,
           output: selectedQoI,
           distributions: distribution[selectedFunction?.uid || ""],
           functionJobs: filteredJobList,
-          numSamples: configured.numSamples,
           seed: configured.seed,
           inputLogScales,
           outputLogScale: outputLogScaleForQoi,
