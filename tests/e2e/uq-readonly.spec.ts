@@ -1,8 +1,12 @@
 import { test, expect } from "./coverage";
+// Type-only from the runner itself: ./coverage exports the configured `test`
+// and `expect`, not the runner's types (same pattern as helpers.ts).
+import type { Page } from "@playwright/test";
 import {
   FUNCTION_UID,
   VIEW_TIMEOUT,
   MODEL_READY_TIMEOUT,
+  expectNoSeriousViolations,
   fetchJson,
   resetPersistence,
   setDeployment,
@@ -27,9 +31,79 @@ import {
  * "UQ Settings" icon button (§V36 — every interactive element gets its own
  * e2e test + regression screenshot).
  *
+ * View-scoped axe scans (§V42rb) run on the views this flow already renders, each one
+ * AFTER that view's `toHaveScreenshot` (axe mutates the live document, so a scan must
+ * never precede a pixel capture — root §T47mx).
+ *
+ * Every pixel here is driven by the DEFAULT UQ settings (10 000 samples, node §V49ub) —
+ * the same captures develop owns. The out-of-order-response guard that re-runs with two
+ * typed budgets (§T47mx, pinning node §V45gd at the HTTP layer) lives in its OWN test at
+ * the end of this file, declared AFTER the flow so its typed budgets cannot reach these
+ * baselines: this suite runs one worker in declaration order (workers: 1, fullyParallel:
+ * false), and each spec's resetPersistence() clears the persisted settings anyway.
+ *
  * Pixel baselines are regenerated only in the pinned Playwright docker image
  * (§V12); host-generated baselines must not be committed.
  */
+
+// The endpoint whose response ordering this spec forces (flaskapi
+// `POST /flask/dakota/manual_uq_propagation_with_uncertainty`).
+const UQ_PROPAGATION_PATTERN = "**/flask/dakota/manual_uq_propagation_with_uncertainty";
+
+// Explicit sample budgets for the race test at the end of this file (§T47mx): powers of
+// 2 in the researched range (see ITISFoundation/itis-sumo#76 — surrogate-cheap ⇒ sized by
+// statistics), deliberately DISTINCT from the single-sourced 10 000 default (node V49ub)
+// so the route guard can tell the typed runs apart from any default-driven one, AND
+// distinct from each other at the card's rendered precision — otherwise the clobber check
+// would pass vacuously (B37kl control). The modal's SAVE persists them per function and
+// puts them on the wire — the V49ub modal→wire agreement and §V36ez "driven, not
+// assumed" both ride on typing these through the real control.
+const UQ_SAMPLES_STALE = 2048; // run #1 — its HTTP response is HELD until run #2's stats PAINT (then released)
+const UQ_SAMPLES_LATEST = 4096; // run #2 — the payload that must stay on screen
+
+/** The four headline stats the UQ card paints, as the UI renders them (Metric: toPrecision(4)). */
+type RenderedUQStats = { Mean: string; Std: string; Min: string; Max: string };
+const STAT_NAMES = ["Mean", "Std", "Min", "Max"] as const;
+
+const renderNumber = (value: number) => value.toPrecision(4);
+
+/**
+ * Open UQ Settings, TYPE the sample count, Save. The real control (§T47mx): saving is
+ * what re-fires the propagation, and it is the modal's SAVE that puts the typed number
+ * on the wire (V49ub) — the race test drives the control instead of assuming a default.
+ */
+async function setUQNumSamples(page: Page, numSamples: number): Promise<void> {
+  await page.locator('[mmux-testid="uq-settings-button"]').click();
+  const modal = page.locator('[mmux-testid="uq-settings-modal"]');
+  await expect(modal).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await modal.getByLabel("Number of UQ Samples").fill(String(numSamples));
+  await modal.getByRole("button", { name: "Save" }).click();
+  await expect(modal).toBeHidden({ timeout: VIEW_TIMEOUT });
+}
+
+/** Parse the four headline stats out of the stats row's text; null if any metric is absent. */
+function parseUQStats(text: string): RenderedUQStats | null {
+  const entries = STAT_NAMES.map(name => [name, new RegExp(`${name}:\\s*(\\S+)`).exec(text)?.[1] ?? null] as const);
+  if (entries.some(([, value]) => value === null)) return null;
+  return Object.fromEntries(entries.map(([name, value]) => [name, value as string])) as RenderedUQStats;
+}
+
+/** Read what the UQ card displays right now WITHOUT waiting — null while no stats are painted. */
+async function paintedUQStats(page: Page): Promise<RenderedUQStats | null> {
+  const text = await page
+    .locator('[mmux-testid="uq-histogram-stats"]')
+    .innerText({ timeout: 1000 })
+    .catch(() => "");
+  return parseUQStats(text);
+}
+
+/** Read the stats row the UQ card currently displays (it must be complete). */
+async function displayedUQStats(page: Page): Promise<RenderedUQStats> {
+  const text = await page.locator('[mmux-testid="uq-histogram-stats"]').innerText();
+  const stats = parseUQStats(text);
+  expect(stats, `UQ stats row shows no complete Mean/Std/Min/Max set in: ${JSON.stringify(text)}`).not.toBeNull();
+  return stats as RenderedUQStats;
+}
 
 test("UQ read-only propagation flow renders histogram and inspect-model modal", async ({ page, baseURL }) => {
   const url = baseURL!;
@@ -56,6 +130,8 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
 
   // Pixel baseline: the function-selection setup grid (full 1920x1080 viewport).
   await expect(page).toHaveScreenshot("uq-readonly-setup.png");
+  // Accessibility: function-list/setup view (§V42rb — folded in from a11y.spec.ts, §T47mx).
+  await expectNoSeriousViolations(page);
 
   const selectButton = page.locator(`[mmux-testid="select-function-btn-${FUNCTION_UID}"]`);
   await expect(selectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
@@ -70,6 +146,9 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
 
   // Pixel baseline: function selected, parameter distributions configured.
   await expect(page).toHaveScreenshot("uq-readonly-inputs.png");
+  // Accessibility: configured Mean/Std distribution blocks (the state the old standalone
+  // scan reached after fillNormalDistributions — identical DOM, one navigation cheaper).
+  await expectNoSeriousViolations(page);
 
   const nextButton = page.locator('[mmux-testid="next-button"]');
   await expect(nextButton).toBeEnabled({ timeout: VIEW_TIMEOUT });
@@ -86,14 +165,20 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   const inspectButton = page.locator('[mmux-testid="inspect-model-button"]');
   await expect(inspectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
 
-  // The UQ histogram renders once propagation over the mock jobs completes.
+  // The UQ histogram renders once the mount-time propagation completes — the untouched
+  // default (fresh persistence carries no uqSettings; 10 000 via node V49ub), so every
+  // capture downstream of here is the default-driven state and matches develop's
+  // baselines. Pixel FIRST, then the scan: axe injects script and measurement nodes into
+  // the live document, so a scan must never precede a capture sharing its view (§V10 —
+  // an ordering the fold had inverted for this view; repaired here).
   await expectPlotlyReady(page);
-
-  // Pixel baseline: the UQ histogram with the real (deterministic) Plotly render.
   await expect(page).toHaveScreenshot("uq-readonly-histogram.png");
+  // Accessibility: the UQ histogram results view (§V42rb "results views").
+  await expectNoSeriousViolations(page);
 
   // UQ Settings opens the sample/histogram/seed config modal (§V36 — every button
-  // gets an e2e test + regression screenshot).
+  // gets an e2e test + regression screenshot). It shows the default 10 000 here: this
+  // flow never touches it — typed budgets belong to the race test below (§T47mx).
   const settingsButton = page.locator('[mmux-testid="uq-settings-button"]');
   await expect(settingsButton).toBeVisible({ timeout: VIEW_TIMEOUT });
   await settingsButton.click();
@@ -115,6 +200,8 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
 
   // Pixel baseline: the Inspect Model modal (cross-validation view).
   await expect(page).toHaveScreenshot("uq-readonly-inspect-modal.png");
+  // Accessibility: the Inspect Model modal over the histogram view (§V42rb).
+  await expectNoSeriousViolations(page);
 
   // Pixel baseline: the same modal on the log DISPLAY scale. The modal's violins
   // plot the raw mock job values (strictly positive), so LOG is enabled; toggle
@@ -171,4 +258,198 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
   expect(runtimeErrors, `JavaScript errors captured: ${runtimeErrors.join("\n")}`).toEqual([]);
+});
+
+/**
+ * Dedicated race guard (root §T47mx, pinning node §V45gd) — declared AFTER the flow test
+ * on purpose so its typed budgets touch no pixel baseline: this file runs serially in
+ * declaration order (playwright.config: workers 1, fullyParallel false, retries 0), the
+ * budgets persist per function in the backend store, and every spec resetPersistence()s
+ * at its start — the flow's default-driven captures cannot be disturbed by what runs here.
+ * Navigation is duplicated from the flow rather than factored into a shared helper: the
+ * flow's pixel sequence is CI-verified and stays byte-for-byte untouched.
+ */
+test("out-of-order UQ responses do not clobber the newest generation", async ({ page, baseURL }) => {
+  const url = baseURL!;
+
+  // Backend contract check lives in the flow test; here only the mode switch + a clean
+  // store are needed (§T13 keeps this test order-independent).
+  await setDeployment(page.request, url, "UQ", "READ-ONLY");
+  await resetPersistence(page.request, url);
+  await page.goto(url, { timeout: MODEL_READY_TIMEOUT });
+  await page.waitForLoadState("networkidle");
+
+  const functionGrid = page.locator('[role="grid"]').first();
+  await functionGrid.waitFor({ state: "visible", timeout: VIEW_TIMEOUT });
+
+  const selectButton = page.locator(`[mmux-testid="select-function-btn-${FUNCTION_UID}"]`);
+  await expect(selectButton).toBeVisible({ timeout: VIEW_TIMEOUT });
+  await selectButton.click();
+
+  await expect(page.locator('[mmux-testid^="input-block-"][mmux-testid$="-Mean"] input').first()).toBeVisible({
+    timeout: VIEW_TIMEOUT,
+  });
+  await fillNormalDistributions(page);
+
+  const nextButton = page.locator('[mmux-testid="next-button"]');
+  await expect(nextButton).toBeEnabled({ timeout: VIEW_TIMEOUT });
+  await nextButton.click();
+
+  const creatingModel = page.getByText("Creating AI model...");
+  if (await creatingModel.first().isVisible().catch(() => false)) {
+    await creatingModel.first().waitFor({ state: "hidden", timeout: MODEL_READY_TIMEOUT });
+  }
+
+  await expect(page.locator('[mmux-testid="uq-plot-qoi-select"]')).toBeVisible({ timeout: VIEW_TIMEOUT });
+
+  // The mount-time DEFAULT propagation (10 000, node V49ub) must have PAINTED before the
+  // route is registered: the guard intercepts exactly the two typed runs below.
+  await expectPlotlyReady(page);
+
+  // ── Out-of-order response guard (root §T47mx, pinning node §V45gd) ──────────────
+  //
+  // Contract under test: when the endpoint answers an OLD request AFTER a newer one has
+  // already painted, the stale payload must NOT clobber the newer plot — UncertainUQ
+  // commits state only from its newest generation (useGuardedAsyncEffect). Removing that
+  // guard must redden this test, not slip through.
+  //
+  // The ordering is forced at the HTTP layer, so it is deterministic by construction and
+  // ⊥ dependent on engine timing: the handler holds run #1's response until the TEST BODY
+  // sees run #2's answer PAINTED on the card (a `route.fulfill` alone completes the
+  // interception, not the page's parse + React commit — releasing on the wire would let
+  // both continuations race in the page, where arrival order alone could make even an
+  // unguarded app end on run #2's stats ⇒ the oracle could pass WITHOUT the guard;
+  // GH-Copilot r4346159117). (The backend itself serializes Dakota runs on ENGINE_LOCK
+  // — flaskapi V49ad — so run #1's COMPUTE really does finish first; this test is about
+  // the HTTP/FE layer on top of that.)
+  //
+  // B37kl ("a test that can only pass is worthless"): the handler records both response
+  // payloads, and the test first PROVES they differ at the precision the card renders —
+  // only then does comparing the painted stats against run #2's payload have the power to
+  // fail. It releases the hold only on a card that PAINTED run #2, then awaits run #1's
+  // late landing BEFORE watching for a clobber, so the assertion cannot pass merely
+  // because the stale response never arrived nor because run #2 never committed.
+  //
+  // Forward-compat note: with the single-flight dedupe planned in PR #754 the two
+  // launches must DIFFER, else run #2 would join run #1's request instead of issuing its
+  // own — they do, because the payloads carry different numSamples (node V46sc puts the
+  // whole body in the cache key). If a future change instead ABORTS the superseded
+  // request, this test must be re-designed at that point: it pins "a late response is
+  // discarded", which is a different property from "no late response is ever sent".
+  const delivered = new Map<number, RenderedUQStats>();
+  const landed = new Set<number>();
+  let letStaleResponseLand = () => {};
+  const staleResponseMayLand = new Promise<void>(resolve => {
+    letStaleResponseLand = resolve;
+  });
+
+  await page.route(UQ_PROPAGATION_PATTERN, async route => {
+    const requested = JSON.parse(route.request().postData() ?? "{}") as { numSamples?: number };
+    const numSamples = requested.numSamples;
+    if (numSamples !== UQ_SAMPLES_STALE && numSamples !== UQ_SAMPLES_LATEST) {
+      // Should not happen: this test registers the route only AFTER the mount-time default
+      // run has painted and never changes the QoI afterwards — pass through defensively.
+      return route.continue();
+    }
+
+    const response = await route.fetch();
+    const body = await response.text();
+    const payload = JSON.parse(body) as Record<string, number>;
+    delivered.set(numSamples, {
+      Mean: renderNumber(payload.mean),
+      Std: renderNumber(payload.std),
+      Min: renderNumber(payload.min),
+      Max: renderNumber(payload.max),
+    });
+
+    if (numSamples === UQ_SAMPLES_LATEST) {
+      // Deliver the NEW answer first. The held one is released by the TEST BODY once the
+      // card has painted this payload — NOT here: `fulfill` says nothing about the page
+      // having parsed/committed it (see the paint gate below).
+      await route.fulfill({ status: response.status(), contentType: "application/json", body });
+      landed.add(numSamples);
+      return;
+    }
+
+    await staleResponseMayLand;
+    await route.fulfill({ status: response.status(), contentType: "application/json", body });
+    landed.add(numSamples);
+  });
+
+  // Run #1, then run #2 while #1 is still in flight (its response is held, so it is).
+  await setUQNumSamples(page, UQ_SAMPLES_STALE);
+  await setUQNumSamples(page, UQ_SAMPLES_LATEST);
+
+  // Run #2's answer must really have reached the PAGE (not just the handler): `landed` is
+  // written after `route.fulfill`, so a hang here means the launches never overlapped
+  // (or the app cancelled the superseded request) — a failure to see, not a silent one.
+  await expect
+    .poll(() => landed.has(UQ_SAMPLES_LATEST), {
+      timeout: MODEL_READY_TIMEOUT,
+      message: `run #2 (numSamples=${UQ_SAMPLES_LATEST}) never reached the backend`,
+    })
+    .toBe(true);
+
+  // Run #1's handler records its payload BEFORE parking on the release promise, so this
+  // poll only waits for its request to have entered the intercepted route.
+  await expect
+    .poll(() => delivered.has(UQ_SAMPLES_STALE), {
+      timeout: MODEL_READY_TIMEOUT,
+      message: `run #1 (numSamples=${UQ_SAMPLES_STALE}) never issued a request through the intercepted route`,
+    })
+    .toBe(true);
+
+  const staleStats = delivered.get(UQ_SAMPLES_STALE)!;
+  const latestStats = delivered.get(UQ_SAMPLES_LATEST)!;
+  // The control (B37kl): if these two ever render identically, the assertion below is
+  // vacuous — pick sample counts that do not collide at 4 significant digits.
+  expect(
+    staleStats,
+    `runs #1/#2 render the same stats (${JSON.stringify(staleStats)}) — the oracle cannot discriminate`,
+  ).not.toEqual(latestStats);
+
+  // PAINT GATE: release the hold only once the card DISPLAYS run #2's stats — the
+  // page-side commit that a wire-level `fulfill` cannot prove. The effect clears the card
+  // while a generation is pending, so stats equal to run #2's can only be run #2's commit
+  // (run #1's generation is already superseded — node V45gd).
+  await expect
+    .poll(() => paintedUQStats(page), {
+      timeout: MODEL_READY_TIMEOUT,
+      message: `the UQ card never painted run #2 (numSamples=${UQ_SAMPLES_LATEST}) — the stale response stayed held`,
+    })
+    .toEqual(latestStats);
+
+  // A clobber now has something to clobber: let run #1's held answer arrive LAST...
+  letStaleResponseLand();
+  // ...and await its landing before watching (B37kl: a pass must not mean "the stale
+  // response never arrived").
+  await expect
+    .poll(() => landed.has(UQ_SAMPLES_STALE), {
+      timeout: MODEL_READY_TIMEOUT,
+      message: `run #1 (numSamples=${UQ_SAMPLES_STALE}) never received its held response — the out-of-order delivery never happened`,
+    })
+    .toBe(true);
+
+  await expectPlotlyReady(page);
+
+  // The late response is now in the page's hands. Node §V45gd discards it BEFORE any
+  // setState, so the card cannot move; a guard regression repaints it within one React
+  // commit (≈ one frame). Grant a hypothetical regression three consecutive
+  // double-animation-frame windows and re-read the card in each (the same frame-stability
+  // idiom expectLaunchPanelSettled uses, §V47rv) — no polling for a good state, which
+  // could hide a clobber that lands later.
+  for (let check = 1; check <= 3; check += 1) {
+    await page.evaluate(
+      () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+    );
+    const painted = await displayedUQStats(page);
+    expect(
+      painted,
+      `after run #1's late response landed (check ${check}/3) the UQ card must still show ` +
+        `run #2 (numSamples=${UQ_SAMPLES_LATEST}); stale payload was ${JSON.stringify(staleStats)}`,
+    ).toEqual(latestStats);
+  }
+
+  // Interception done: the rest of the spec must run against the untouched backend.
+  await page.unroute(UQ_PROPAGATION_PATTERN);
 });
