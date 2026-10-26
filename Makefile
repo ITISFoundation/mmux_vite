@@ -289,6 +289,11 @@ test-flaskapi-analytical: install-flaskapi-deps ## run real-Dakota analytical in
 test-e2e: ## run the Playwright read-only pixel-snapshot e2e suite (SuMo/UQ/MOGA; boots backend+web via webServer)
 	cd ${NODE_DIR} && npm run test:e2e
 
+.PHONY: test-e2e-lane
+LANE ?=
+test-e2e-lane: ## run ONE file-grouped e2e lane (LANE=uq-moga|sumo|behavior; CI split, see tests/e2e/scripts/run-e2e-lane.sh + root SPEC T47sl)
+	cd ${NODE_DIR} && LANE="$(LANE)" npm run test:e2e:lane
+
 .PHONY: clean-e2e-snapshots
 clean-e2e-snapshots: ## delete all committed e2e pixel baselines (run before regen so an unreached screenshot goes missing, not silently stale, see V36ez)
 	find tests/e2e/__snapshots__ -name '*.png' -delete

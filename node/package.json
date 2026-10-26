@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run generate-osparc-cli && tsc -b && vite build",
-    "build:e2e": "npm run generate-osparc-cli && tsc -b && vite build",
+    "build:e2e": "if [ \"$E2E_PREBUILT\" = \"1\" ]; then echo 'e2e webServer: client+dist restored from CI e2e-prep (E2E_PREBUILT=1) — skipping generate/tsc/vite build'; else npm run build:e2e:full; fi",
+    "build:e2e:full": "npm run generate-osparc-cli && npm run build:e2e:compile",
+    "build:e2e:compile": "tsc -b && vite build",
     "lint": "eslint .",
     "knip": "knip --no-progress",
     "preview": "vite preview",
@@ -15,6 +17,7 @@
     "bench": "npx vitest bench --run",
     "test:e2e": "NODE_PATH=\"$PWD/node_modules\" playwright test",
     "test:e2e:update": "NODE_PATH=\"$PWD/node_modules\" playwright test --update-snapshots",
+    "test:e2e:lane": "NODE_PATH=\"$PWD/node_modules\" bash ../tests/e2e/scripts/run-e2e-lane.sh",
     "pretty": "prettier --write \"./**/*.{js,jsx,mjs,cjs,ts,tsx,json}\"",
     "generate-osparc-cli": "openapi-generator-cli generate"
   },
