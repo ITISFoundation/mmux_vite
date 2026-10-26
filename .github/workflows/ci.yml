@@ -22,7 +22,7 @@ jobs:
     - name: Set up uv
       # Full-version pin: astral-sh/setup-uv no longer publishes bare major
       # tags (no `v10` ref exists), so `@v10` would fail to resolve.
-      uses: astral-sh/setup-uv@v10.3.0
+      uses: astral-sh/setup-uv@v10.3.2
     - name: Use Node.js 24
       uses: actions/setup-node@v7
       with:
@@ -76,7 +76,7 @@ jobs:
     - name: Checkout repo content
       uses: actions/checkout@v7
     - name: Set up uv
-      uses: astral-sh/setup-uv@v10.3.0
+      uses: astral-sh/setup-uv@v10.3.2
     - name: Install Flask API dependencies
       run: make install-flaskapi-deps
     - name: Run flaskapi tests
@@ -130,7 +130,7 @@ jobs:
         run: apt-get update && apt-get install -y --no-install-recommends openjdk-21-jre-headless
       # uv drives the Flask backend the webServer boots (tests/e2e/scripts/run-e2e-backend.sh).
       - name: Set up uv
-        uses: astral-sh/setup-uv@v10.3.0
+        uses: astral-sh/setup-uv@v10.3.2
       - name: Install node dependencies
         run: cd node && npm ci
       - name: Install Flask API dependencies
