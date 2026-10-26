@@ -1,6 +1,33 @@
 import { describe, expect, it } from "vitest";
 import type { UQSettings } from "../context/types";
-import { clampUQSettings, defaultUQSettings, migrateLegacyUQSettings } from "./uqSettings";
+import { clampUQSettings, defaultUQSettings, migrateLegacyUQSettings, uqSettingsFor } from "./uqSettings";
+
+describe("defaultUQSettings", () => {
+  it("pins the approved defaults — a change here is a deliberate decision, not drift", () => {
+    // 10 000 is inherited ∧ deliberately kept: N is ~free on the surrogate, so a smaller static value
+    // buys only less tail coverage — the principled N policy is studied engine-side (itis-sumo#76).
+    expect(defaultUQSettings).toEqual({ numSamples: 10000, nHistograms: 50, seed: 0 });
+  });
+});
+
+describe("uqSettingsFor", () => {
+  it("fills every missing field from the shared default", () => {
+    expect(uqSettingsFor(undefined, "a")).toEqual(defaultUQSettings);
+    expect(uqSettingsFor({}, "a")).toEqual(defaultUQSettings);
+    expect(uqSettingsFor({ a: { numSamples: 123 } as unknown as UQSettings }, "a")).toEqual({
+      ...defaultUQSettings,
+      numSamples: 123,
+    });
+  });
+
+  it("reads the empty-function key when no function is selected", () => {
+    expect(uqSettingsFor({ "": { numSamples: 7, nHistograms: 3, seed: 2 } }, undefined)).toEqual({
+      numSamples: 7,
+      nHistograms: 3,
+      seed: 2,
+    });
+  });
+});
 
 describe("migrateLegacyUQSettings", () => {
   it("migrates legacy per-function numSamples into full UQ settings", () => {

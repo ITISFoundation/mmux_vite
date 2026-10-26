@@ -7,7 +7,6 @@ export type FetchSobolIndicesParams = {
   output: string | undefined;
   distributions: InputVarSelection;
   functionJobs: OsparcFunctionJob[];
-  numSamples: number;
   seed?: number;
   inputLogScales?: { [varName: string]: boolean };
   outputLogScale?: boolean;
@@ -19,16 +18,7 @@ export type FetchSobolIndicesParams = {
  * scipy on a surrogate model built from the completed jobs.
  */
 export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promise<SobolIndicesResponse> {
-  const {
-    inputVars,
-    output,
-    distributions,
-    functionJobs,
-    numSamples,
-    seed = 0,
-    inputLogScales = {},
-    outputLogScale = false,
-  } = params;
+  const { inputVars, output, distributions, functionJobs, seed = 0, inputLogScales = {}, outputLogScale = false } = params;
 
   // V44eh: single dialect via requestJson. It still rejects (⊥ resolve) on
   // failure so callers' .catch/try-catch can clear fetch-dedup state (V18) and
@@ -37,7 +27,8 @@ export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promis
     inputVars,
     output,
     distributions,
-    numSamples,
+    // ⊥ numSamples on this wire: the design base is fixed engine-side (itis-sumo V36,
+    // SOBOL_BASE_SAMPLES) — sending the UI knob implied it steered Sobol', ⊥ it does.
     FunctionJobs: functionJobs,
     seed,
     // V12: scales ride EVERY surrogate request — the backend

@@ -1,5 +1,9 @@
 import { UQSettings } from "../context/types";
 
+/**
+ * THE single source of UQ defaults — ⊥ re-declared literals: a drift lets modal ∧ request disagree (V49ub).
+ * `numSamples` stays 10 000: N is ~free on the surrogate ⇒ smaller is strictly worse; policy → itis-sumo#76.
+ */
 export const defaultUQSettings: UQSettings = {
   numSamples: 10000,
   nHistograms: 50,
@@ -23,6 +27,18 @@ export const clampUQSettings = (settings: UQSettings): UQSettings => {
   }
   return clamped;
 };
+
+/**
+ * Effective UQ settings for a function: stored entry (clamped at load) over `defaultUQSettings` — the ONE
+ * resolution modal ∧ request bodies read, so the displayed number ∧ the sent number cannot diverge (V49ub).
+ */
+export const uqSettingsFor = (
+  uqSettings: { [key: string]: UQSettings } | undefined,
+  functionId: string | undefined,
+): UQSettings => ({
+  ...defaultUQSettings,
+  ...(uqSettings?.[functionId || ""] ?? {}),
+});
 
 // Legacy persistence files stored each function's configured UQ sample count
 // in `numSamples` and have no `uqSettings`. Without migration those functions

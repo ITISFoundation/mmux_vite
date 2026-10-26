@@ -10,6 +10,7 @@ import {
 } from "../../utils/plotScale";
 import CorrelationIndicesPlot, { CorrelationControls } from "./CorrelationIndicesPlot";
 import { jsonResponse, stubFetch } from "../../test/fetchStub";
+import { defaultUQSettings } from "../../utils/uqSettings";
 
 const mocks = vi.hoisted(() => ({
   filteredJobList: [] as Array<{ uid: string }>,
@@ -256,7 +257,7 @@ describe("CorrelationIndicesPlot request payload", () => {
     await waitFor(() => expect(traceY()).toEqual([0.5, 0.25]));
 
     const body = requestBody(fetchMock);
-    expect(body.numSamples).toBe(4321); // from uqSettings, not the 10000 default
+    expect(body.numSamples).toBe(4321); // from uqSettings, not the shared default
     expect(body.seed).toBe(9);
     expect(body.output).toBe("y");
     expect(body.inputVars).toEqual(["x1", "x2"]);
@@ -298,8 +299,8 @@ describe("CorrelationIndicesPlot request payload", () => {
     const body = requestBody(fetchMock);
     expect(body.distributions).toBeUndefined(); // "" lookup misses the fn-1-only map
     expect(body.inputLogScales).toEqual({ x1: false, x2: false });
-    expect(body.numSamples).toBe(10000); // uqSettings[""] missing → default
-    expect(body.seed).toBe(0);
+    expect(body.numSamples).toBe(defaultUQSettings.numSamples); // uqSettings[""] missing → default
+    expect(body.seed).toBe(defaultUQSettings.seed); // V49ub: seed rides the SAME resolution, no local `|| 0`
     expect(body.outputLogScales).toEqual({ y: false }); // no committed scale → linear
   });
 });

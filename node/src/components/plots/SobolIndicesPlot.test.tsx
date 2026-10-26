@@ -5,6 +5,7 @@ import { logColorbarTicks } from "../../utils/plotScale";
 import { buildSobolBarData, buildSobolHeatmapData } from "../../utils/sobolIndices";
 import SobolIndicesPlot, { SobolControls } from "./SobolIndicesPlot";
 import { jsonResponse, stubFetch } from "../../test/fetchStub";
+import { defaultUQSettings } from "../../utils/uqSettings";
 
 vi.mock("../../utils/sobolIndices", async importOriginal => {
   const mod = await importOriginal<typeof import("../../utils/sobolIndices")>();
@@ -349,7 +350,7 @@ describe("SobolIndicesPlot request payload", () => {
     vi.unstubAllGlobals();
   });
 
-  it("sends numSamples/seed from uqSettings and per-variable input log scales", async () => {
+  it("sends seed from uqSettings and per-variable input log scales", async () => {
     resetMocks(3);
     mocks.uqSettings = { "fn-1": { numSamples: 4321, seed: 9 } };
     mocks.contextValue.distribution = { "fn-1": { x1: { scale: "log" }, x2: { scale: "linear" } } };
@@ -359,8 +360,7 @@ describe("SobolIndicesPlot request payload", () => {
     await waitFor(() => expect(traceY()).toEqual([0.6, 0.4]));
 
     const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
-    expect(body.numSamples).toBe(4321); // from uqSettings, not the 10000 default
-    expect(body.seed).toBe(9);
+    expect(body.seed).toBe(9); // the stored numSamples (4321) ⊥ reaches this wire — see the fresh-state guard
     expect(body.distributions).toEqual({ x1: { scale: "log" }, x2: { scale: "linear" } });
     expect(body.inputLogScales).toEqual({ x1: true, x2: false }); // scale === "log" drives the flag
     expect(body.outputLogScales).toEqual({ y: false });
@@ -378,8 +378,8 @@ describe("SobolIndicesPlot request payload", () => {
     const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
     expect(body.distributions).toBeUndefined(); // "" lookup misses the fn-1-only map
     expect(body.inputLogScales).toEqual({ x1: false, x2: false });
-    expect(body.numSamples).toBe(10000); // uqSettings[""] missing → default
-    expect(body.seed).toBe(0);
+    expect(body.numSamples).toBeUndefined(); // ⊥ dead knob: engine V36 fixes the design base
+    expect(body.seed).toBe(defaultUQSettings.seed); // uqSettings[""] missing → shared default
   });
 });
 

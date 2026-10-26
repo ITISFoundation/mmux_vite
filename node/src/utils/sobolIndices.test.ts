@@ -52,7 +52,6 @@ describe("fetchSobolIndices", () => {
       output: "y",
       distributions: { x1: { distribution: "uniform", min: 0, max: 1 } },
       functionJobs: mockJobs,
-      numSamples: 500,
       seed: 42,
     });
 
@@ -70,7 +69,6 @@ describe("fetchSobolIndices", () => {
       inputVars: ["x1", "x2"],
       output: "y",
       distributions: { x1: { distribution: "uniform", min: 0, max: 1 } },
-      numSamples: 500,
       FunctionJobs: mockJobs,
       seed: 42,
       // V12: the scale maps ride every request (SobolIndicesRequest inherits
@@ -92,7 +90,6 @@ describe("fetchSobolIndices", () => {
       output: "y",
       distributions: {},
       functionJobs: mockJobs,
-      numSamples: 100,
       inputLogScales: { x1: true },
       outputLogScale: true,
     });
@@ -114,7 +111,6 @@ describe("fetchSobolIndices", () => {
         output: "y",
         distributions: {},
         functionJobs: mockJobs,
-        numSamples: 100,
       }),
     ).rejects.toThrow("Sobol model failed");
   });

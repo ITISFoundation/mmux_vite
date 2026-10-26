@@ -5,6 +5,7 @@ import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
+import { uqSettingsFor } from "../../utils/uqSettings";
 import {
   correlationAbsLogRange,
   correlationLinearRange,
@@ -114,13 +115,17 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
         return;
       }
       try {
+        // ONE resolution for every UQ-shaped field (node V49ub): a component-local
+        // `|| 0` seed fallback would keep drifting the moment defaultUQSettings.seed
+        // changes while the modal, histogram and Sobol panels follow the shared default.
+        const configured = uqSettingsFor(uqSettings, selectedFunction?.uid);
         const data = await fetchCorrelationIndices({
           inputVars: activeInputVars,
           output: selectedQoI,
           distributions: activeDistributions,
           functionJobs: filteredJobList,
-          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
-          seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
+          numSamples: configured.numSamples,
+          seed: configured.seed,
           inputLogScales,
           outputLogScale: outputLogScaleForQoi,
         });

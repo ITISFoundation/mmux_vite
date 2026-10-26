@@ -5,6 +5,7 @@ import Plot from "react-plotly.js";
 import { useFunctionContext } from "../../context/FunctionContext";
 import { useJobContext } from "../../context/JobContext";
 import { useMMUXContext } from "../../context/MMUXContext";
+import { uqSettingsFor } from "../../utils/uqSettings";
 import {
   logColorbarTicks,
   logDisplayValue,
@@ -94,13 +95,15 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
         return;
       }
       try {
+        // Seed is the ONLY UQ setting this request carries (V49ub resolution); the Sobol'
+        // sample count is fixed engine-side (itis-sumo V36), so numSamples ⊥ belongs here.
+        const configured = uqSettingsFor(uqSettings, selectedFunction?.uid);
         const data = await fetchSobolIndices({
           inputVars,
           output: selectedQoI,
           distributions: distribution[selectedFunction?.uid || ""],
           functionJobs: filteredJobList,
-          numSamples: uqSettings[selectedFunction?.uid || ""]?.numSamples || 10000,
-          seed: uqSettings[selectedFunction?.uid || ""]?.seed || 0,
+          seed: configured.seed,
           inputLogScales,
           outputLogScale: outputLogScaleForQoi,
         });
