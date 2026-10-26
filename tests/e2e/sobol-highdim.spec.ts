@@ -21,9 +21,10 @@ import {
  * The real Flask backend still fits the surrogate and computes Sobol' indices
  * end-to-end over the request payload — only the oSPARC listing is intercepted.
  *
- * Behavioral assertions only (Plotly trace shape — the d=8 response contract
- * lives in flaskapi route tests), so this spec carries no pixel baseline and
- * can run on a host (§V12 untouched).
+ * Behavioral assertions (Plotly trace shape — the d=8 response contract
+ * lives in flaskapi route tests) PLUS one pixel baseline: the settled 8x8
+ * second-order heatmap container (§V36ez gap closed root §T47mx). With that
+ * baseline the spec is Docker-regenerated like every other pixel owner (§V12).
  */
 
 const HIGHDIM_FUNCTION_UID = "func-sobol-highdim-e2e";
@@ -207,6 +208,13 @@ test("second-order Sobol' heatmap works for 8 inputs (T31rb, arbitrary-d pairs)"
   expect(trace.rowLens, "every row spans all 8 columns").toEqual(Array(8).fill(8));
   expect(trace.x, "x ticks are the 8 inputs").toEqual([...vars]);
   expect(trace.y, "y ticks are the 8 inputs").toEqual([...vars]);
+
+  // Pixel baseline (§V36ez gap closed, root §T47mx): this spec used to own no pixels.
+  // The dedicated capture is the SETTLED 8x8 second-order heatmap (trace shape
+  // asserted above ⇒ ⊥ mid-compute), selected through the §V13 container testid.
+  await expect(page.locator('[mmux-testid="sobol-indices-plot"]')).toHaveScreenshot(
+    "sobol-highdim-second-order-heatmap.png",
+  );
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
   expect(runtimeErrors, `JavaScript errors captured: ${runtimeErrors.join("\n")}`).toEqual([]);
