@@ -16,6 +16,7 @@ import { getErrorMessage } from "../../utils/httpError";
 import { useDisplayScale } from "../../utils/useDisplayScale";
 import { allPositive, logColorbarTicks, toLogDisplay } from "../../utils/logDisplayValues";
 import { DisplayScaleToggle } from "./DisplayScaleToggle";
+import { DownloadDataButton } from "./DownloadDataButton";
 
 function Surface2DPlot() {
   const theme = useTheme();
@@ -43,6 +44,9 @@ function Surface2DPlot() {
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [propagating, setPropagating] = useState(false);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
+  // T30ln(b) replay: the grid response committed with this generation's plot
+  // data; the download exports it verbatim (see Curves1DPlot for the pattern).
+  const [rawData, setRawData] = useState<unknown>(undefined);
   const [errorMessage, setErrorMessage] = useState<string>();
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
@@ -131,6 +135,7 @@ function Surface2DPlot() {
           if (isStale()) return;
           // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
           reshapePlotData(d?.gridData);
+          setRawData(d);
           setPropagating(false);
           setErrorMessage(undefined);
         })
@@ -139,6 +144,7 @@ function Surface2DPlot() {
           console.warn("Error:", error);
           setPropagating(false);
           setPlotData([]);
+          setRawData(undefined);
           setErrorMessage(getErrorMessage(error));
         });
     },
@@ -239,6 +245,16 @@ function Surface2DPlot() {
                 testId="sumo-2d-display-scale"
               />
             </Box>
+            {/* ⊥ download while propagating — payload↔filename agreement (see Curves1DPlot) */}
+            {!propagating && (
+              <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
+                <DownloadDataButton
+                  data={rawData}
+                  filename={`surface2d-${selectedQoI}-${axis1}-${axis2}.json`}
+                  testId="download-surface2d-data-btn"
+                />
+              </Box>
+            )}
           </Box>
         )}
       </Box>

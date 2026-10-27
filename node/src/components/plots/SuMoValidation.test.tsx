@@ -1,7 +1,8 @@
 import { act, fireEvent, render, screen, waitFor, cleanup, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SuMoValidation from "./SuMoValidation";
 import { jsonResponse, stubFetch } from "../../test/fetchStub";
+import { captureBlobDownloads } from "../../test/downloadCapture";
 
 vi.mock("react-plotly.js", () => import("../../test/plotlyMock"));
 
@@ -359,5 +360,74 @@ describe("SuMoValidation", () => {
     });
 
     await waitFor(() => expect(plotLayout().width).toBe(640));
+  });
+});
+
+describe("SuMoValidation raw-data download (T30ln(b) sweep, fork issue #79)", () => {
+  const stubResizeObserver = () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+  };
+
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    mocks.validationQoI = "y";
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("exports the CV response verbatim without any refetch (violin source data)", async () => {
+    stubResizeObserver();
+    mocks.validationQoI = "dl-y";
+    const payload = { observed: [1, 2, 3], predicted: [1.1, 1.9, 3.2] };
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => payload });
+    vi.stubGlobal("fetch", fetchMock);
+    const downloads = captureBlobDownloads();
+
+    render(<SuMoValidation />);
+    await waitFor(() => expect(screen.getByTestId("plotly")).toBeDefined());
+
+    const button = (document.querySelector('[mmux-testid="download-validation-data-btn"]') as HTMLElement).querySelector(
+      "button",
+    ) as HTMLElement;
+    fireEvent.click(button);
+
+    expect(downloads).toHaveLength(1);
+    expect(downloads[0].filename).toBe("sumo-validation-dl-y.json");
+    // verbatim {observed,predicted}: users can re-derive MAE/RMSE or re-plot the violins
+    expect(JSON.parse(await downloads[0].text())).toEqual(payload);
+    expect(fetchMock).toHaveBeenCalledTimes(1); // ⊥ refetch on click (V46sc cache-read)
+  });
+
+  it("offers no download when the response lacks the observed/predicted series", async () => {
+    stubResizeObserver();
+    mocks.validationQoI = "dl-missing";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ unexpected: true }) }));
+
+    render(<SuMoValidation />);
+    // getValidationSeries finds no series → createDataAndMetrics throws → the
+    // ApiError-free generic warning; either way no raw response was committed
+    expect(await screen.findByText(/did not include observed and predicted series/i)).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="download-validation-data-btn"]')).toBeNull();
+  });
+
+  it("offers no download after a failed fetch", async () => {
+    stubResizeObserver();
+    mocks.validationQoI = "dl-fail";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500, text: async () => "cv boom" }));
+
+    render(<SuMoValidation />);
+    expect(await screen.findByText(/failed|cv boom/i)).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="download-validation-data-btn"]')).toBeNull();
   });
 });
