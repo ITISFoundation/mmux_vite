@@ -51,7 +51,7 @@ export async function expectPlotlyReady(container: Locator, timeout = MODEL_READ
  *
  * The score is a two-pass render: rows first show the `Number.isNaN` placeholder
  * "-" until the table synthesizes default weights for the fresh output set and
- * the parent recomputes `row.performance` (the SINGLE writer since §B B60px).
+ * the parent recomputes `row.performance` (the SINGLE writer since §B B63px).
  * Zero-tolerance pixel baselines (root §V10) must never capture that transient,
  * so every full-page MOGA screenshot gates on the placeholder being gone.
  */
