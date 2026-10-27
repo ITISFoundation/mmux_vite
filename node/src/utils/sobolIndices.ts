@@ -5,7 +5,6 @@ import { getCachedOrFetch } from "../api/sessionResponseCache";
 export type FetchSobolIndicesParams = {
   inputVars: string[];
   output: string | undefined;
-  distributions: InputVarSelection;
   functionJobs: OsparcFunctionJob[];
   seed?: number;
   inputLogScales?: { [varName: string]: boolean };
@@ -16,9 +15,18 @@ export type FetchSobolIndicesParams = {
  * Fetch per-input first-order (main effect) and total-order Sobol' sensitivity
  * indices plus pairwise second-order indices from the backend, computed via
  * scipy on a surrogate model built from the completed jobs.
+ *
+ * The body carries ONLY jobs + inputVars/output + seed + scale maps: the
+ * Sobol' exploration box is the engine's auto-inferred DOMAIN (omitted
+ * `domains`/`fixed` fall back to observed sample bounds, log-uniform draws
+ * under a log-scale flag, Saltelli count fixed inside the engine — flaskapi
+ * V40), and `distributions`/`numSamples` are GONE from the backend contract
+ * (`SobolIndicesRequest`); tolerated extras would only pollute the V46sc
+ * cache key (B60vw). Locked by the V50 key-set test in sobolIndices.test.ts;
+ * two-box convention: README "Sampling limits (auto-derived)".
  */
 export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promise<SobolIndicesResponse> {
-  const { inputVars, output, distributions, functionJobs, seed = 0, inputLogScales = {}, outputLogScale = false } = params;
+  const { inputVars, output, functionJobs, seed = 0, inputLogScales = {}, outputLogScale = false } = params;
 
   // V44eh: single dialect via requestJson. It still rejects (⊥ resolve) on
   // failure so callers' .catch/try-catch can clear fetch-dedup state (V18) and
@@ -26,9 +34,6 @@ export async function fetchSobolIndices(params: FetchSobolIndicesParams): Promis
   const body = {
     inputVars,
     output,
-    distributions,
-    // ⊥ numSamples on this wire: the design base is fixed engine-side (itis-sumo V36,
-    // SOBOL_BASE_SAMPLES) — sending the UI knob implied it steered Sobol', ⊥ it does.
     FunctionJobs: functionJobs,
     seed,
     // V12: scales ride EVERY surrogate request — the backend

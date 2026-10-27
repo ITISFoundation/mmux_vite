@@ -50,7 +50,6 @@ describe("fetchSobolIndices", () => {
     const result = await fetchSobolIndices({
       inputVars: ["x1", "x2"],
       output: "y",
-      distributions: { x1: { distribution: "uniform", min: 0, max: 1 } },
       functionJobs: mockJobs,
       seed: 42,
     });
@@ -68,7 +67,6 @@ describe("fetchSobolIndices", () => {
     expect(body).toEqual({
       inputVars: ["x1", "x2"],
       output: "y",
-      distributions: { x1: { distribution: "uniform", min: 0, max: 1 } },
       FunctionJobs: mockJobs,
       seed: 42,
       // V12: the scale maps ride every request (SobolIndicesRequest inherits
@@ -77,6 +75,38 @@ describe("fetchSobolIndices", () => {
       inputLogScales: {},
       outputLogScales: { y: false },
     });
+  });
+
+  // V50 key-set lock (root #84): the wire carries exactly the six live contract
+  // keys — ⊥ domain vocabulary (the box is the engine's auto-inferred DOMAIN,
+  // flaskapi V40 fixes the Saltelli base) and ⊥ distribution vocabulary (shape
+  // ⊥ this endpoint, and V46sc folds anything SENT into the cache key, B60vw).
+  // Equality, not subset: any regrown key REDs this test.
+  it("NEVER carries domains/fixed/distributions/numSamples on the wire (V50)", async () => {
+    mockedFetchWithRetry.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ sobol: {}, sobolSecondOrder: {} }),
+    } as Response);
+
+    await fetchSobolIndices({
+      inputVars: ["x1"],
+      output: "y",
+      functionJobs: mockJobs,
+      seed: 7,
+      inputLogScales: { x1: false },
+      outputLogScale: false,
+    });
+
+    const [, options] = mockedFetchWithRetry.mock.calls[0];
+    const body = JSON.parse((options as RequestInit).body as string);
+    expect(Object.keys(body).sort()).toEqual([
+      "FunctionJobs",
+      "inputLogScales",
+      "inputVars",
+      "output",
+      "outputLogScales",
+      "seed",
+    ]);
   });
 
   it("defaults seed to 0 when not provided (backend scipy accepts seed >= 0)", async () => {
@@ -88,7 +118,6 @@ describe("fetchSobolIndices", () => {
     await fetchSobolIndices({
       inputVars: ["x1"],
       output: "y",
-      distributions: {},
       functionJobs: mockJobs,
       inputLogScales: { x1: true },
       outputLogScale: true,
@@ -109,7 +138,6 @@ describe("fetchSobolIndices", () => {
       fetchSobolIndices({
         inputVars: ["x1"],
         output: "y",
-        distributions: {},
         functionJobs: mockJobs,
       }),
     ).rejects.toThrow("Sobol model failed");
