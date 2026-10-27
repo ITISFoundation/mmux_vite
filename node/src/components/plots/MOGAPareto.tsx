@@ -566,7 +566,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
     [filteredJobList, mogaSettings, inputLogScales, outputLogScales],
   );
 
-  // The SINGLE writer of the rendered `performance` field (§B B60px): a pure
+  // The SINGLE writer of the rendered `performance` field (§B B63px): a pure
   // projection of (tableData, weights, outputTargets). It fires on every
   // tableData commit as well as every weights/direction edit, so no matter how
   // runMOGA's async commits interleave with the child's default-weight

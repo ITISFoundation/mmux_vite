@@ -69,7 +69,7 @@ function MogaParetoTable({ tableData, hovered, setHovered }: MogaParetoTableProp
   // the [tableData] effect below. The naive raw sum this effect used to write
   // (`Σ wᵢ·xᵢ`, no normalization, direction-blind) was a SECOND source of truth
   // racing the parent's writes — the zero-tolerance MOGA e2e baselines captured
-  // either value depending on effect ordering (§B B60px).
+  // either value depending on effect ordering (§B B63px).
   useEffect(() => {
     handleSortModelChange(defaultSortModel); // reset sorting when changing weights
     // eslint-disable-next-line react-hooks/exhaustive-deps

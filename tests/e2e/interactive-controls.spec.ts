@@ -354,7 +354,7 @@ test("MOGA confirm controls, surrogate-scale lock, 3-objective x/z log toggles a
   // is unwrapped (V53wp) — the pre-fix wire shape left it silently empty.
   await expect(page.getByText("No rows")).toHaveCount(0);
   // Rows existing ≠ settled: the Performance column re-renders once weights are
-  // synthesized and the parent recomputes the score (B60px) — gate before the
+  // synthesized and the parent recomputes the score (B63px) — gate before the
   // full-page baselines (§V10 zero diff).
   await expectMogaPerformanceComputed(page);
   await expect(page).toHaveScreenshot("interactive-moga-pareto-2d.png");
