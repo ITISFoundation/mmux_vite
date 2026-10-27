@@ -181,7 +181,7 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   await expect(page).toHaveScreenshot("sumo-readonly-validation-log.png");
   await validationScale.getByRole("button", { name: "linear" }).click();
 
-  // Raw-data download inside the validation modal (T53st sweep, fork issue #79; root V36ez):
+  // Raw-data download inside the validation modal (T55st sweep, fork issue #79; root V36ez):
   // {observed, predicted} is the CV response behind BOTH the violins and the MAE/RMSE metrics —
   // the chip lives bottom-right because the in-plot legend pins the top-right corner here.
   const cvDownload = (await downloadAndParseJson(

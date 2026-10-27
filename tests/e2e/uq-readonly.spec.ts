@@ -185,7 +185,7 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   // Accessibility: the UQ histogram results view (§V42rb "results views").
   await expectNoSeriousViolations(page);
 
-  // Raw-data download (T53st sweep, fork issue #79; root V36ez): mock backend + default
+  // Raw-data download (T55st sweep, fork issue #79; root V36ez): mock backend + default
   // nHistograms/seed make the propagation deterministic, so replay the legacy shape +
   // five-number-summary ordering assertions on the exported JSON.
   const uqDownload = (await downloadAndParseJson(page, "download-uq-data-btn", "uq-histogram-y.json")) as {

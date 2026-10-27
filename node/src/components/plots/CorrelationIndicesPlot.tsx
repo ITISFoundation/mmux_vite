@@ -102,7 +102,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
   const [correlations, setCorrelations] = useState<CorrelationIndicesResponse["correlations"] | null>(null);
   // T30ln(b) sweep: the FULL resolved response (not just .correlations — the
   // download must carry everything the backend answered, wrapper included),
-  // committed with the same generation and cleared with it (V45gd/V46sc, V49ij).
+  // committed with the same generation and cleared with it (V45gd/V46sc, V51ij).
   const [rawResponse, setRawResponse] = useState<CorrelationIndicesResponse | null>(null);
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>();

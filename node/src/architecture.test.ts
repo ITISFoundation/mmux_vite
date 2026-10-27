@@ -59,14 +59,14 @@ describe("architecture", { timeout: 60_000 }, () => {
     expect(violations).toEqual([]);
   });
 
-  // V50kl download COMPLETENESS (T54vw): a data-fetch site inside a component ⇒ the same file
+  // V52kl download COMPLETENESS (T56vw): a data-fetch site inside a component ⇒ the same file
   // mounts a DownloadDataButton, so ∄ a rendered payload the user cannot obtain as JSON. The
   // universe is mechanical, ⊥ a hand list: a `/flask/` endpoint literal, the generic-call syntax
   // getCachedOrFetch[<(], or a fetch[A-Z]* wrapper (imports count — util wrappers live outside
   // src/components by the layering rules and their component consumer carries the button).
   const hasDataFetchSite = (content: string) => /\/flask\/|getCachedOrFetch[<(]|\bfetch[A-Z]/.test(content);
 
-  // Escape hatch (V50kl: "control-plane endpoints … excluded in the scan"): components whose
+  // Escape hatch (V52kl: "control-plane endpoints … excluded in the scan"): components whose
   // fetch response configures or polls rather than paints a dataset for the user. Every entry
   // is a permanent, reason-documented exception — new ones need a spec decision, not a patch.
   const downloadScanExempt: Record<string, string> = {
@@ -78,7 +78,7 @@ describe("architecture", { timeout: 60_000 }, () => {
       "sampling-create POST /flask/sampling/lhs — registers a job collection (job-CRUD; response holds no analyzable dataset)",
   };
 
-  it("every component data-fetch site mounts a DownloadDataButton (V50kl)", async () => {
+  it("every component data-fetch site mounts a DownloadDataButton (V52kl)", async () => {
     const violations = await projectFiles(TSCONFIG)
       .inFolder("src/components/**")
       .should()
@@ -88,7 +88,7 @@ describe("architecture", { timeout: 60_000 }, () => {
           Object.keys(downloadScanExempt).some(exempt => file.path.endsWith(exempt)) ||
           !hasDataFetchSite(file.content) ||
           file.content.includes("DownloadDataButton"),
-        "a data-fetch site must mount a DownloadDataButton (V49ij semantics, V50kl completeness)",
+        "a data-fetch site must mount a DownloadDataButton (V51ij semantics, V52kl completeness)",
       )
       .check();
     expect(violations).toEqual([]);
