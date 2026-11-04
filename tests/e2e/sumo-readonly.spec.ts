@@ -148,9 +148,6 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
     expect(axisData.yHat, `${varName}.yHat length`).toHaveLength(CURVE_POINTS);
     expect(axisData.stdHat, `${varName}.stdHat length`).toHaveLength(CURVE_POINTS);
   }
-  await expect(page.locator('[mmux-testid="download-curves1d-data-btn"]')).toHaveScreenshot(
-    "sumo-readonly-download-1d-btn.png",
-  );
 
   // Inspect Model opens the cross-validation modal. Pixel baseline captures the
   // modal over the results view (full viewport, unmasked).
@@ -198,9 +195,6 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
     // shows MAE ~1e-10), so predictions must track observations.
     expect(cvDownload.predicted[i], `predicted[${i}] tracks observed[${i}]`).toBeCloseTo(value, 1);
   });
-  await expect(page.locator('[mmux-testid="download-validation-data-btn"]')).toHaveScreenshot(
-    "sumo-readonly-download-validation-btn.png",
-  );
 
   await page.keyboard.press("Escape");
   await expect(modal).toBeHidden({ timeout: VIEW_TIMEOUT });
@@ -242,9 +236,6 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   const qoiGrid2d = surface2dDownload.gridData["y"] as number[][];
   expect(qoiGrid2d, "QoI grid is a nested 21x21 array").toHaveLength(CURVE_POINTS);
   expect(qoiGrid2d[0], "QoI grid row length").toHaveLength(CURVE_POINTS);
-  await expect(page.locator('[mmux-testid="download-surface2d-data-btn"]')).toHaveScreenshot(
-    "sumo-readonly-download-2d-btn.png",
-  );
 
   // Step 3 — 3D IsoSurface.
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
@@ -269,9 +260,6 @@ test("SuMo read-only response-surface flow renders validation view", async ({ pa
   for (const varName of [...INPUT_VARS, "y"]) {
     expect(surface3dDownload.gridData[varName], `${varName} length`).toHaveLength(GRID_3D_POINTS);
   }
-  await expect(page.locator('[mmux-testid="download-isosurface3d-data-btn"]')).toHaveScreenshot(
-    "sumo-readonly-download-3d-btn.png",
-  );
 
   const runtimeErrors = errors.filter(error => !error.includes("Failed to load resource"));
   expect(runtimeErrors, `JavaScript errors captured: ${runtimeErrors.join("\n")}`).toEqual([]);

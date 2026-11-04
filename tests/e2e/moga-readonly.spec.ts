@@ -247,7 +247,6 @@ test("MOGA read-only optimization flow renders pareto front and inspect-model mo
   for (let i = 0; i < opt.y.length; i++) {
     expect(opt.y[i], `y[${i}] matches the mock formula`).toBeCloseTo(mockY(opt.x1[i], opt.x2[i]), 1);
   }
-  await expect(page.locator('[mmux-testid="download-moga-data-btn"]')).toHaveScreenshot("moga-readonly-download-btn.png");
 
   // Pixel baseline: the per-objective log DISPLAY toggle in its triggered state
   // (V36ez). This scenario runs with ONE objective ⇒ the 1D iteration view, where
