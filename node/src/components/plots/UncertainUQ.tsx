@@ -197,7 +197,7 @@ export default function UncertainUQ(props: UncertainUQProps) {
             </IconButton>
           </Tooltip>
         )}
-        {/* T30ln(b) sweep (fork #79 follow-up): raw propagation export. dataUQHistogram
+        {/* Raw propagation export. dataUQHistogram
             is the exact getCachedOrFetch resolution committed with this generation's
             bars and cleared on failure — the click is a V46sc cache read. Offset past
             the UQ-Settings chip when it is mounted. */}

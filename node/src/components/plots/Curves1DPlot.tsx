@@ -55,7 +55,7 @@ function Curves1DPlots() {
     distribution,
   });
   const [plotData, setPlotData] = useState<Array<Data>>([]);
-  // T30ln(b) replay: the plot's own backend response, committed by the SAME
+  // The plot's own backend response, committed by the SAME
   // generation as plotData (V45gd) and cleared with it on failure (V18/V23) —
   // the download button never offers data that is not what the plot shows.
   const [rawData, setRawData] = useState<unknown>(undefined);

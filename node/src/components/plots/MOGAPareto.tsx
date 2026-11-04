@@ -71,7 +71,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
   const { mogaSettings } = useMOGASettingsContext();
   const { weights } = useMOGATableContext();
   const [plotData, setPlotData] = useState<Plotly.Data[]>([]);
-  // T30ln(b) replay: the raw perform_moga_optimization response committed by
+  // The raw perform_moga_optimization response committed by
   // the SAME guarded generation that painted the Pareto front (V45gd) and
   // cleared with it on failure — the download exports exactly what this plot
   // was computed from, never a re-fetch.

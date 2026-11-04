@@ -53,7 +53,7 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
   useAutoDetectQoiScale(validationQoI ? [validationQoI] : undefined);
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [cvMetrics, setCvMetrics] = useState<CvMetricsType>();
-  // T30ln(b) sweep: the FULL {observed,predicted,...} CV response this
+  // The FULL {observed,predicted,...} CV response this
   // generation committed — the download exports it verbatim so users can
   // re-derive MAE/RMSE or re-plot the violins themselves (V46sc cache-read).
   const [cvRawResponse, setCvRawResponse] = useState<unknown>(undefined);

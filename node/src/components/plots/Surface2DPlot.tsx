@@ -44,7 +44,7 @@ function Surface2DPlot() {
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [propagating, setPropagating] = useState(false);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
-  // T30ln(b) replay: the grid response committed with this generation's plot
+  // The grid response committed with this generation's plot
   // data; the download exports it verbatim (see Curves1DPlot for the pattern).
   const [rawData, setRawData] = useState<unknown>(undefined);
   const [errorMessage, setErrorMessage] = useState<string>();

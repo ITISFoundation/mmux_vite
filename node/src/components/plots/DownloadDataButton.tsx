@@ -15,7 +15,7 @@ interface DownloadDataButtonProps {
 }
 
 /**
- * Per-plot raw-data export button (T30ln(b) replay, fork issue #79). Placed by
+ * Per-plot raw-data export button. Placed by
  * callers with position:absolute so it never disturbs the existing plot layout
  * (DisplayScaleToggle owns the top-left corner; this takes the top-right).
  * Renders nothing while the plot holds no response — a download of a plot that

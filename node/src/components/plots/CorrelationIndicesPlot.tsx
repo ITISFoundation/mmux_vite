@@ -100,7 +100,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
   const outputLogScaleForQoi = selectedQoI ? Boolean(outputLogScales[selectedFunction?.uid || ""]?.[selectedQoI]) : false;
   const { fetchedJobCollections, filteredJobList } = useJobContext();
   const [correlations, setCorrelations] = useState<CorrelationIndicesResponse["correlations"] | null>(null);
-  // T30ln(b) sweep: the FULL resolved response (not just .correlations — the
+  // The FULL resolved response (not just .correlations — the
   // download must carry everything the backend answered, wrapper included),
   // committed with the same generation and cleared with it (V45gd/V46sc, V51ij).
   const [rawResponse, setRawResponse] = useState<CorrelationIndicesResponse | null>(null);
