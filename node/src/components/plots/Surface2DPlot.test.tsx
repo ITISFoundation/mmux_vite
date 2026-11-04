@@ -64,8 +64,10 @@ vi.mock("../../context/JobContext", () => ({
   useJobContext: () => ({ filteredJobList: mocks.filteredJobList, fetchedJobCollections: [{}] }),
 }));
 vi.mock("../navigation/Header", () => ({ default: () => null }));
-vi.mock("./PlotTools", () => ({
-  plotMarginsNarrow: {},
+vi.mock("./PlotTools", async importOriginal => ({
+  // real shared constants (plotMarginsNarrow, compactColorbar) — the geometry law
+  // is asserted against the actual values; only the interactive bits are faked
+  ...(await importOriginal<typeof import("./PlotTools")>()),
   filterInputVars: () => mocks.filteredVars,
   // eslint-disable-next-line @typescript-eslint/naming-convention
   CreateSelect: ({ idx, axis, setAxis }: { idx: number; axis: string; setAxis: (a: string) => void }) => {
@@ -182,7 +184,8 @@ describe("Surface2DPlot display-scale toggle (B53kq, V12)", () => {
     const fetchMock = stubFetch(jsonResponse(grid(z)));
     render(<Surface2DPlot />);
     await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
-    expect((surface() as { colorbar?: unknown }).colorbar).toBeUndefined(); // linear default
+    // linear default: shared compact geometry (V51ij), no log tick overrides
+    expect((surface() as { colorbar?: unknown }).colorbar).toEqual({ len: 0.8, xpad: 2 });
 
     const toggle = within(document.querySelector('[mmux-testid="sumo-2d-display-scale"]') as HTMLElement);
     fireEvent.click(toggle.getByRole("button", { name: "log" }));

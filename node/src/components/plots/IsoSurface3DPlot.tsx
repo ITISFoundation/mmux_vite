@@ -4,7 +4,7 @@ import { useGuardedAsyncEffect } from "../../hooks/useGuardedAsyncEffect";
 import Plot from "react-plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow } from "./PlotTools";
+import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow, compactColorbar } from "./PlotTools";
 import Header from "../navigation/Header";
 import CalculatingWarning from "./CalculatingWarning";
 import InsufficientDataWarning from "./InsufficientDataWarning";
@@ -252,7 +252,7 @@ function IsoSurface3DPlot() {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
-    margin: plotMarginsNarrow,
+    margin: { ...plotMarginsNarrow, r: 34 },
     scene: {
       xaxis: {
         title: { text: axis1 },
@@ -292,10 +292,14 @@ function IsoSurface3DPlot() {
   const canLog = plotData.length > 0 && plotData.every(trace => allPositive((trace as { value?: unknown }).value));
   const axisLog = displayLog && canLog;
   const displayData = !axisLog
-    ? plotData
+    ? plotData.map(trace => ({ ...trace, colorbar: { ...compactColorbar } }) as Plotly.Data)
     : plotData.map(trace => {
         const value = (trace as { value?: unknown }).value;
-        return { ...trace, value: toLogDisplay(value), colorbar: logColorbarTicks(value) } as Plotly.Data;
+        return {
+          ...trace,
+          value: toLogDisplay(value),
+          colorbar: { ...logColorbarTicks(value), ...compactColorbar },
+        } as Plotly.Data;
       });
 
   return (

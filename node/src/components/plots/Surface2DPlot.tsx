@@ -5,7 +5,7 @@ import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow } from "./PlotTools";
+import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow, compactColorbar } from "./PlotTools";
 import Header from "../navigation/Header";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -183,10 +183,10 @@ function Surface2DPlot() {
   const displayData = useMemo(
     () =>
       !axisLog
-        ? plotData
+        ? plotData.map(trace => ({ ...trace, colorbar: { ...compactColorbar } }) as Plotly.Data)
         : plotData.map(trace => {
             const z = (trace as { z?: unknown }).z;
-            return { ...trace, z: toLogDisplay(z), colorbar: logColorbarTicks(z) } as Plotly.Data;
+            return { ...trace, z: toLogDisplay(z), colorbar: { ...logColorbarTicks(z), ...compactColorbar } } as Plotly.Data;
           }),
     [plotData, axisLog],
   );
@@ -204,7 +204,7 @@ function Surface2DPlot() {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
-    margin: plotMarginsNarrow,
+    margin: { ...plotMarginsNarrow, r: 34 },
   };
 
   const plotStyle = {
