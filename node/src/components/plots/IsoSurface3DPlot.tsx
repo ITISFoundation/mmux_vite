@@ -322,7 +322,7 @@ function IsoSurface3DPlot() {
               testId="sumo-3d-display-scale"
             />
           </Box>
-          <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
+          <Box sx={{ position: "absolute", bottom: 8, right: 8, zIndex: 1 }}>
             <DownloadDataButton
               data={rawData}
               filename={`isosurface3d-${selectedQoI}-${axis1}-${axis2}-${axis3}.json`}

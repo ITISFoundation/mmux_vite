@@ -247,7 +247,7 @@ function Surface2DPlot() {
             </Box>
             {/* ⊥ download while propagating — payload↔filename agreement (see Curves1DPlot) */}
             {!propagating && (
-              <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
+              <Box sx={{ position: "absolute", bottom: 8, right: 8, zIndex: 1 }}>
                 <DownloadDataButton
                   data={rawData}
                   filename={`surface2d-${selectedQoI}-${axis1}-${axis2}.json`}

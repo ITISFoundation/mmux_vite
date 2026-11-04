@@ -268,7 +268,7 @@ function Curves1DPlots() {
                 during a QoI/axis refetch, so the button would export OLD rawData under a NEW
                 selection-derived filename — payload and filename must agree */}
             {!propagating && (
-              <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
+              <Box sx={{ position: "absolute", bottom: 8, right: 8, zIndex: 1 }}>
                 <DownloadDataButton
                   data={rawData}
                   filename={`curves1d-${selectedQoI}-vs-${axis}.json`}

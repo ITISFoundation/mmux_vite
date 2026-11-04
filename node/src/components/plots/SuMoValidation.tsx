@@ -281,9 +281,6 @@ function SuMoValidation({ validationQoIOverride }: { validationQoIOverride?: str
               testId="sumo-validation-display-scale"
             />
           </Box>
-          {/* BOTTOM-right, not the usual top-right: the legend is pinned to the
-              plot's top-right corner (layout legend x:1 y:1), so the chip goes
-              to the one corner the plot leaves empty. */}
           <Box sx={{ position: "absolute", bottom: 8, right: 8, zIndex: 1 }}>
             <DownloadDataButton
               data={cvRawResponse}

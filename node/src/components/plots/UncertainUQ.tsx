@@ -199,13 +199,12 @@ export default function UncertainUQ(props: UncertainUQProps) {
         )}
         {/* Raw propagation export. dataUQHistogram
             is the exact getCachedOrFetch resolution committed with this generation's
-            bars and cleared on failure — the click is a V46sc cache read. Offset past
-            the UQ-Settings chip when it is mounted. */}
+            bars and cleared on failure — the click is a V46sc cache read. */}
         {/* ⊥ download while propagating (Copilot #741 class): unlike the sibling plots this chip
             sits OUTSIDE the !propagating plot gate, so during a QoI refetch it would export the
             previous generation's histogram under the NEW selectedQoI filename */}
         {!propagating && (
-          <Box sx={{ position: "absolute", top: 8, right: onOpenSettings ? 48 : 8, zIndex: 1 }}>
+          <Box sx={{ position: "absolute", bottom: 8, right: 8, zIndex: 1 }}>
             <DownloadDataButton
               data={dataUQHistogram}
               filename={`uq-histogram-${selectedQoI}.json`}

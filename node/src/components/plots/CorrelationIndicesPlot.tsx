@@ -289,7 +289,7 @@ export default function CorrelationIndicesPlot({ viewMode, scaleType }: Correlat
       {!computing && plotData.length !== 0 && (
         <Box sx={{ position: "relative", width: "100%" }}>
           <Plot data={plotData} layout={layout} style={plotStyle} />
-          <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
+          <Box sx={{ position: "absolute", bottom: 8, right: 8, zIndex: 1 }}>
             <DownloadDataButton
               data={rawResponse}
               filename={`correlation-${selectedQoI}.json`}

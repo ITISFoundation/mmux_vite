@@ -638,7 +638,7 @@ export function MOGAPareto(props: MOGAParetoProps) {
                 />
               )}
             </Box>
-            <Box sx={{ position: "absolute", top: 8, right: 8, zIndex: 1 }}>
+            <Box sx={{ position: "absolute", bottom: 8, right: 8, zIndex: 1 }}>
               <DownloadDataButton
                 data={rawResponse}
                 filename={`moga-pareto-${selectedFunction.uid}.json`}
