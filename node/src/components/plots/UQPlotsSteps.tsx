@@ -11,7 +11,7 @@ const uqStepInfoTexts: Record<string, string | undefined> = {
   Histogram: "Uncertainty propagation histogram with percentile statistics",
   Correlation: undefined,
   "Sobol' Indices":
-    "Sobol' indices describe the importance of each parameter for the output QoI over the full surrogate domain, infered from training samples.",
+    "Sobol' indices describe the importance of each parameter for the surrogate's output QoI over the training domain.",
 };
 
 type UQPlotsStepsProps = LoadingPropsType & { qoiSelector?: React.ReactNode; onOpenSettings?: () => void };
