@@ -110,6 +110,24 @@ When done editing always validate the production build of the app with the below
 make run-prod-local-sumo-read
 ```
 
+## Sampling limits (auto-derived)
+
+Per-variable sampling limits are **auto-derived by convention, not hand-set per study**: there is no Sobol' bounds window in the UI — the Sobol' box is derived backend-side, in `itis-sumo` (the editable Sobol' bounds editor and the frontend box-derivation were deliberately removed as a DOMAIN↔DISTRIBUTION conflation; decision record: [JavierGOrdonnez/mmux_vite#84](https://github.com/JavierGOrdonnez/mmux_vite/issues/84)). Two **different** boxes exist in the stack and they need not coincide:
+
+| Box | Used by | Derived from | Rule |
+|---|---|---|---|
+| Sampling box | surrogate training/validation runs (LHS, grid search) | the modeller's input distributions | `uniform → [min, max]`, `normal → mean ± 2.5σ`, `constant → pinned value`; these derived ranges seed the Start/End fields of the sampling forms, where they may still be adjusted before launching a run |
+| Sobol' domain box | Sobol' sensitivity ensemble | the surrogate's **observed training samples** | per-variable `min`/`max` of the samples; a column constant in the samples becomes a fixed factor; draws are **uniform** over the box (log-uniform under a log-scale flag); **no UI to edit it** |
+
+What this means in practice:
+
+- **±2.5σ covers ≈98.8% of a normal distribution.** The remaining ≈1.2% of the mass lies *outside* the sampled/validated domain — there the surrogate is **extrapolating**, not interpolating.
+- **Sobol' indices describe the surrogate's own exploration ensemble, not your distribution.** The engine draws uniformly across the domain box, so the indices answer "how does the surrogate's output vary across this box?" — they are *not* your input distributions pushed through the surrogate (the Correlation panel is the distribution-shaped view; Sobol' ignores distribution shape entirely).
+- **Everything Sobol'-side is engine-owned.** `itis_sumo.api.evaluate_sobol` takes *optional* `domains`/`fixed` maps; anything omitted is auto-inferred from the observed sample bounds, and the Saltelli sample count is fixed inside the engine. The FE sends no domain or distribution keys on the Sobol' request — a contract test (`node/src/utils/sobolIndices.test.ts`) locks that. Engine docstrings, verbatim: modeller distributions are *"NOT an input here; they drive `evaluate_uncertainty`"* and *"no box is ever re-derived from a distribution's mean ± 3σ"*. Whether the two boxes should be reconciled is an engine decision, tracked in [itis-sumo#55](https://github.com/ITISFoundation/itis-sumo/issues/55).
+
+> [!NOTE]
+> Engine pin: this behavior ships with `itis-sumo==0.1.0a10` (pinned in `flaskapi/pyproject.toml`). The auto-infer contract above — optional `domains`/`fixed`, observed-bounds inference, constant column → fixed factor, uniform draws, and both docstring quotes — was verified against **that pin** (`itis_sumo/api/_session.py` in the published `0.1.0a10` wheel), not only against newer `a11+` documentation.
+
 ## Performance benchmarks
 
 Performance is measured continuously with [CodSpeed](https://app.codspeed.io/ITISFoundation/mmux_vite) in CPU simulation mode; every pull request gets a report through `.github/workflows/codspeed.yml`.
