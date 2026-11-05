@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MOGAPareto } from "./MOGAPareto";
+import { MOGAPareto, deriveNonDominatedIndices } from "./MOGAPareto";
 import { jsonResponse, stubFetch } from "../../test/fetchStub";
 import { captureBlobDownloads } from "../../test/downloadCapture";
 
@@ -383,17 +383,19 @@ describe("MOGAPareto request lifecycle", () => {
     expect(traces()[1].x).toHaveLength(12);
   });
 
-  it("tolerates a payload without nonDominatedIndices by defaulting to empty rows", async () => {
+  it("derives the Pareto front when the payload carries no nonDominatedIndices (V53wp)", async () => {
     mocks.filteredJobList = jobs("moga-ndi", i => 100 + 10 * i);
     const { nonDominatedIndices: _dropped, ...payload } = mogaResults(Array.from({ length: 18 }, (_, i) => 100 + i));
     stubFetch(jsonResponse(payload));
     render(<MOGAPareto {...props} />);
     await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
 
+    // both objectives strictly increase → point 0 dominates every other: the front is
+    // derived in the FE (V53wp), where the pre-fix code degraded to empty rows (B62wp).
     const tableData = mocks.tableProps?.tableData as { rows: unknown[] };
-    expect(tableData.rows).toEqual([]);
-    // the Pareto Front trace maps over the empty index list instead of crashing
-    expect(traces().find(t => t.name === "Pareto Front")?.x).toEqual([]);
+    expect(tableData.rows).toEqual([{ x1: 0, y: 9, y2: 100, ndi: 0, performance: 1 }]);
+    // the Pareto Front trace maps over the single derived index instead of crashing
+    expect(traces().find(t => t.name === "Pareto Front")?.x).toEqual([9]);
   });
 
   it("reports an HTTP error, releases loading and falls back to the no-data warning", async () => {
@@ -612,15 +614,12 @@ describe("MOGAPareto raw-data download (T30ln(b) replay, fork issue #79)", () =>
     vi.spyOn(console, "info").mockImplementation(() => undefined);
     vi.spyOn(console, "debug").mockImplementation(() => undefined);
   });
-
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
-
   const downloadButton = () =>
     (document.querySelector('[mmux-testid="download-moga-data-btn"]') as HTMLElement).querySelector("button") as HTMLElement;
-
   it("exports the optimization response the front was computed from, without any refetch", async () => {
     mocks.filteredJobList = jobs("moga-dl", i => 100 + 10 * i);
     const payload = mogaResults(Array.from({ length: 18 }, (_, i) => 100 + i));
@@ -628,16 +627,13 @@ describe("MOGAPareto raw-data download (T30ln(b) replay, fork issue #79)", () =>
     const downloads = captureBlobDownloads();
     render(<MOGAPareto {...props} />);
     await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
-
     fireEvent.click(downloadButton());
-
     expect(downloads).toHaveLength(1);
     expect(downloads[0].filename).toBe("moga-pareto-fn-1.json");
     // verbatim: the raw backend payload, wrapper shape included — no client-side reshape
     expect(JSON.parse(await downloads[0].text())).toEqual(payload);
     expect(fetchMock).toHaveBeenCalledTimes(1); // ⊥ refetch on download
   });
-
   it("keeps a late-resolving older optimization out of the download (V45gd commit)", async () => {
     mocks.filteredJobList = jobs("moga-dl-stale-a", i => 100 + 10 * i);
     let resolveStale: (r: Response) => void = () => undefined;
@@ -646,16 +642,42 @@ describe("MOGAPareto raw-data download (T30ln(b) replay, fork issue #79)", () =>
     const fetchMock = stubFetch(stale, jsonResponse(newest));
     const { rerender } = render(<MOGAPareto {...props} />);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-
     // a fresh job selection supersedes generation 1; generation 2 resolves first
     mocks.filteredJobList = jobs("moga-dl-stale-b", i => 200 + 10 * i);
     rerender(<MOGAPareto {...props} />);
     await waitFor(() => expect(screen.getByTestId("plotly")).toBeInTheDocument());
     await act(async () => resolveStale(jsonResponse(mogaResults(Array.from({ length: 18 }, (_, i) => 999 + i)))));
-
     const downloads = captureBlobDownloads();
     fireEvent.click(downloadButton());
     expect(JSON.parse(await downloads[0].text())).toEqual(newest); // only the committed generation
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+// B62wp (V53wp): the itis-sumo port dropped non_dominated_indices from the wire
+// (ParetoFrontResult.data carries value columns only), so the front is derived
+// in FE from the result arrays + each objective's direction. Pure function —
+// unit-tested directly, no render needed.
+describe("deriveNonDominatedIndices (B62wp, V53wp)", () => {
+  it("keeps mutually non-dominated ties and drops strictly dominated rows (minimize)", () => {
+    // i=2 (3,2) is dominated by i=1 (2,1); i=4 (5,1) by i=1. i=0/i=3 tie at
+    // (1,4) — ties are never dominated, both stay on the front.
+    expect(
+      deriveNonDominatedIndices({ y: [1, 2, 3, 1, 5], y2: [4, 1, 2, 4, 1] }, ["y", "y2"], {
+        y: "minimize",
+        y2: "minimize",
+      }),
+    ).toEqual([0, 1, 3]);
+  });
+  it("reads the direction per objective: maximize keeps the max, minimize the min (ties kept)", () => {
+    const results = { y: [3, 1, 1] };
+    expect(deriveNonDominatedIndices(results, ["y"], { y: "maximize" })).toEqual([0]);
+    expect(deriveNonDominatedIndices(results, ["y"], { y: "minimize" })).toEqual([1, 2]);
+  });
+  it("returns [] without objectives or without rows (and a missing direction defaults to minimize)", () => {
+    expect(deriveNonDominatedIndices({ y: [3, 1, 2] }, [], {})).toEqual([]);
+    expect(deriveNonDominatedIndices({ y: [] }, ["y"], { y: "minimize" })).toEqual([]);
+    // unlisted direction == minimize, like calculatePerformance's reading
+    expect(deriveNonDominatedIndices({ y: [3, 1, 2] }, ["y"], {})).toEqual([1]);
   });
 });
