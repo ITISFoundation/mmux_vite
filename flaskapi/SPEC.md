@@ -10,9 +10,9 @@ Caveman-encoded. Distilled from code 2026-05-28. Child of root spec.
 Flask API: relay frontend ↔ oSPARC (functions, jobs, collections, studies), generate samples (LHS / grid / single), run Dakota meta-modeling (SUMO surrogate, UQ propagation, MOGA optimization), persist state text files. Serve under `/flask/*`, port 5000.
 
 ## §C
-- Python `>=3.11,<3.14`; `flask==3.1.3`, `flask-cors==6.0.5`, `gevent==26.9.0`, `gunicorn==26.2.0`
+- Python `>=3.12,<3.14`; `flask==3.1.3`, `flask-cors==6.0.5`, `gevent==26.9.0`, `gunicorn==26.2.0`
 - run: dev `uv run python -m flask run` (entrypoint.sh), prod `uv run gunicorn main:app` (`main:app = create_flask_app()`)
-- oSPARC client `osparc==0.8.4.post0.dev2`; compute `itis-sumo==0.1.0a10` (TestPyPI index; owns the Dakota engine behind `itis_sumo.api`, parent SPEC T32qx)
+- oSPARC client `osparc==0.8.4.post0.dev2`; compute `itis-sumo==0.1.0` (released on PyPI; owns the Dakota engine behind `itis_sumo.api`, parent SPEC T32qx)
 - engine watchdog: `psutil==7.2.2` — scoped child-tree kill of hung Dakota runs past their CLASS budget `MMUX_ENGINE_TIMEOUT_S` (fast, 60 s) / `MMUX_ENGINE_TIMEOUT_LONG_S` (MOGA, 3600 s) (V51et, B62et)
 - numerics: `numpy==2.4.6`, `pandas==2.2.3`, `scipy==1.17.1`, `scikit-learn==1.9.1`
 - ⊥ in-repo compute: `mmux_flaskapi.dakota` subpackage + `mmux_flaskapi.data_preprocessor` DELETED (former §T15 inlining of vendored `mmux_python`); dakota/sampling blueprints delegate to `itis_sumo.api` (§V48ad)

@@ -126,7 +126,7 @@ What this means in practice:
 - **Everything Sobol'-side is engine-owned.** `itis_sumo.api.evaluate_sobol` takes *optional* `domains`/`fixed` maps; anything omitted is auto-inferred from the observed sample bounds, and the Saltelli sample count is fixed inside the engine. The FE sends no domain or distribution keys on the Sobol' request — a contract test (`node/src/utils/sobolIndices.test.ts`) locks that. Engine docstrings, verbatim: modeller distributions are *"NOT an input here; they drive `evaluate_uncertainty`"* and *"no box is ever re-derived from a distribution's mean ± 3σ"*. Whether the two boxes should be reconciled is an engine decision, tracked in [itis-sumo#55](https://github.com/ITISFoundation/itis-sumo/issues/55).
 
 > [!NOTE]
-> Engine pin: this behavior ships with `itis-sumo==0.1.0a10` (pinned in `flaskapi/pyproject.toml`). The auto-infer contract above — optional `domains`/`fixed`, observed-bounds inference, constant column → fixed factor, uniform draws, and both docstring quotes — was verified against **that pin** (`itis_sumo/api/_session.py` in the published `0.1.0a10` wheel), not only against newer `a11+` documentation.
+> Engine pin: this behavior ships with the released `itis-sumo==0.1.0` on PyPI (pinned in `flaskapi/pyproject.toml`). The auto-infer contract above — optional `domains`/`fixed`, observed-bounds inference, constant column → fixed factor, uniform draws, and both docstring quotes — was verified against **that pin** (`itis_sumo/api/_session.py` in the published `0.1.0` wheel).
 
 ## Performance benchmarks
 
