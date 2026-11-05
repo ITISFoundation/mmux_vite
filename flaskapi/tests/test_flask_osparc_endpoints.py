@@ -434,7 +434,7 @@ class TestOsparcGetFunctionJobCollectionCounts:
         patch_list_functions_success,
         patch_list_function_job_collections_paged,
     ):
-        """V51 (on V50tj's pagination): counts ride `_get_all_items`, so the server
+        """V52cs (on V50tj's pagination): counts ride `_get_all_items`, so the server
         default page (20) must not cap them — 25 collections, 25 evaluations."""
         response = test_client.get("/flask/osparc/get_function_job_collection_counts")
         assert response.status_code == 200
