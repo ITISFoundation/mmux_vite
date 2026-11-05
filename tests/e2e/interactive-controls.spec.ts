@@ -5,6 +5,7 @@ import {
   VIEW_TIMEOUT,
   expectModelModalReady,
   expectPlotlyReady,
+  expectMogaPerformanceComputed,
   fillNormalDistributions,
   fillUniformInputRanges,
   resetMockOsparc,
@@ -352,6 +353,10 @@ test("MOGA confirm controls, surrogate-scale lock, 3-objective x/z log toggles a
   // B62wp guard: the table only has rows once the {optimizationResults} envelope
   // is unwrapped (V53wp) — the pre-fix wire shape left it silently empty.
   await expect(page.getByText("No rows")).toHaveCount(0);
+  // Rows existing ≠ settled: the Performance column re-renders once weights are
+  // synthesized and the parent recomputes the score (B63px) — gate before the
+  // full-page baselines (§V10 zero diff).
+  await expectMogaPerformanceComputed(page);
   await expect(page).toHaveScreenshot("interactive-moga-pareto-2d.png");
 
   // Row-level Run buttons exist in the Pareto table and are permission-gated OFF
