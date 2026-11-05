@@ -30,7 +30,7 @@ const {
   persistenceSeed,
   uploadResults,
   mockListFunctions,
-  mockGetFunctionJobCollections,
+  mockGetFunctionJobCollectionCounts,
   mockToastInfo,
   mockToastError,
   mockSetSelectedJobUids,
@@ -58,7 +58,7 @@ const {
     },
   },
   mockListFunctions: vi.fn(),
-  mockGetFunctionJobCollections: vi.fn(),
+  mockGetFunctionJobCollectionCounts: vi.fn(),
   mockToastInfo: vi.fn(),
   mockToastError: vi.fn(),
   mockSetSelectedJobUids: vi.fn(),
@@ -103,7 +103,7 @@ vi.mock("../navigation/TutorialManualLinks", () => ({
 
 vi.mock("../../utils/functionUtils", () => ({
   listFunctions: mockListFunctions,
-  getFunctionJobCollections: mockGetFunctionJobCollections,
+  getFunctionJobCollectionCounts: mockGetFunctionJobCollectionCounts,
 }));
 
 // Stub upload button: two deterministic onUploadSuccess triggers (target found
@@ -284,18 +284,17 @@ describe("FunctionList — grid cell behavior", () => {
     cleanup();
     vi.clearAllMocks();
     persistenceSeed.values = {};
-    mockGetFunctionJobCollections.mockResolvedValue([]);
+    mockGetFunctionJobCollectionCounts.mockResolvedValue({});
   });
 
   it("renders solver/project/python/unknown cells, campaign counts, and a per-function Loading state", async () => {
-    const fetchError = new Error("job collections unavailable");
     mockListFunctions.mockResolvedValue([solverFunction, projectFunction, pythonFunction, unknownFunction]);
-    mockGetFunctionJobCollections.mockImplementation(async (uid: string) => {
-      if (uid === "fn-unknown") {
-        throw fetchError;
-      }
-      // Mixed collections: one with jobIds, one without (the `jobIds ? … : 0` arm).
-      return [{ uid: "jc-1", jobIds: ["j1", "j2"] }, { uid: "jc-2" }] as never;
+    // ONE aggregate response (node V51cs); fn-unknown is ABSENT from the payload —
+    // its row must keep the "Loading..." partial-failure semantics, never a bogus count.
+    mockGetFunctionJobCollectionCounts.mockResolvedValue({
+      "fn-solver": { campaignCount: 2, evaluationCount: 2 },
+      "fn-project": { campaignCount: 2, evaluationCount: 2 },
+      "fn-python": { campaignCount: 2, evaluationCount: 2 },
     });
     const postMessage = vi.spyOn(window.parent, "postMessage").mockImplementation(() => undefined);
     const user = userEvent.setup();
@@ -304,18 +303,14 @@ describe("FunctionList — grid cell behavior", () => {
 
     await waitFor(() => expect(screen.getByTestId("grid")).toBeInTheDocument());
 
-    // The failed per-function fetch logs but must skip (never poison) the count maps.
-    expect(console.error).toHaveBeenCalledWith(fetchError);
-    vi.mocked(console.error).mockClear();
-
     // Function-kind column: solver slug:version / project info button / code URL / Unknown.
     expect(screen.getByText("solver-x:1.2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open function" })).toBeInTheDocument();
     expect(screen.getByText("https://gitlab.example.com/fn.git")).toBeInTheDocument();
     expect(screen.getByText("Unknown")).toBeInTheDocument();
 
-    // Counts column: loaded rows show totals (2 collections, 2+0 evaluations);
-    // fn-unknown's failed fetch leaves it on "Loading...".
+    // Counts column: loaded rows show the aggregate payload's totals;
+    // fn-unknown's absence from the response leaves it on "Loading...".
     expect(screen.getAllByText("Campaigns: 2 (2 total evaluations)")).toHaveLength(3);
     expect(screen.getByText("Loading...")).toBeInTheDocument();
 
@@ -362,7 +357,7 @@ describe("FunctionList — selection behavior", () => {
     cleanup();
     vi.clearAllMocks();
     persistenceSeed.values = {};
-    mockGetFunctionJobCollections.mockResolvedValue([]);
+    mockGetFunctionJobCollectionCounts.mockResolvedValue({});
   });
 
   it("selects, unselects, and re-selects through the button toggle and sampling/jobs reset", async () => {
@@ -444,7 +439,7 @@ describe("FunctionList — loading, error and empty outcomes", () => {
     cleanup();
     vi.clearAllMocks();
     persistenceSeed.values = {};
-    mockGetFunctionJobCollections.mockResolvedValue([]);
+    mockGetFunctionJobCollectionCounts.mockResolvedValue({});
   });
 
   it("recovers from a failed fetch through the error view's Refresh button", async () => {
@@ -489,7 +484,7 @@ describe("FunctionList — loading, error and empty outcomes", () => {
     await waitFor(() => expect(screen.getByText("Functions help")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: "upload-found" })).toBeInTheDocument();
     expect(mockToastInfo).toHaveBeenCalledWith("No functions available. Please create a function first.");
-    expect(mockGetFunctionJobCollections).not.toHaveBeenCalled();
+    expect(mockGetFunctionJobCollectionCounts).not.toHaveBeenCalled();
     expect(screen.queryByTestId("grid")).toBeNull();
   });
 });
@@ -499,7 +494,7 @@ describe("FunctionList — CSV upload consumer outcomes", () => {
     cleanup();
     vi.clearAllMocks();
     persistenceSeed.values = {};
-    mockGetFunctionJobCollections.mockResolvedValue([]);
+    mockGetFunctionJobCollectionCounts.mockResolvedValue({});
   });
 
   it("auto-selects the uploaded function and merge-prefills presets into its distribution entry", async () => {
