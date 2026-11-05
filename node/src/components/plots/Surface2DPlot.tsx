@@ -5,7 +5,7 @@ import Plot from "react-plotly.js";
 import { Data, Layout } from "plotly.js";
 import { OsparcFunctionJob } from "../../context/types";
 import { useMMUXContext } from "../../context/MMUXContext";
-import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow } from "./PlotTools";
+import { CreateSelect, CreateSlider, filterInputVars, plotMarginsNarrow, compactColorbar } from "./PlotTools";
 import Header from "../navigation/Header";
 import InsufficientDataWarning from "./InsufficientDataWarning";
 import { useFunctionContext } from "../../context/FunctionContext";
@@ -16,6 +16,7 @@ import { getErrorMessage } from "../../utils/httpError";
 import { useDisplayScale } from "../../utils/useDisplayScale";
 import { allPositive, logColorbarTicks, toLogDisplay } from "../../utils/logDisplayValues";
 import { DisplayScaleToggle } from "./DisplayScaleToggle";
+import { DownloadDataButton } from "./DownloadDataButton";
 
 function Surface2DPlot() {
   const theme = useTheme();
@@ -43,6 +44,7 @@ function Surface2DPlot() {
   const [axis2, setAxis2] = useState(filteredInputVars[1]);
   const [propagating, setPropagating] = useState(false);
   const [plotData, setPlotData] = useState<Array<Plotly.Data>>([]);
+  const [rawData, setRawData] = useState<unknown>(undefined);
   const [errorMessage, setErrorMessage] = useState<string>();
   const [otherAxis, setOtherAxis] = useState<{ [key: string]: number }>(
     inputVars.reduce((acc: { [key: string]: number }, key) => {
@@ -131,6 +133,7 @@ function Surface2DPlot() {
           if (isStale()) return;
           // Backend wraps the grid arrays under `gridData` (SumoGridEvaluationResponse).
           reshapePlotData(d?.gridData);
+          setRawData(d);
           setPropagating(false);
           setErrorMessage(undefined);
         })
@@ -139,6 +142,7 @@ function Surface2DPlot() {
           console.warn("Error:", error);
           setPropagating(false);
           setPlotData([]);
+          setRawData(undefined);
           setErrorMessage(getErrorMessage(error));
         });
     },
@@ -177,10 +181,10 @@ function Surface2DPlot() {
   const displayData = useMemo(
     () =>
       !axisLog
-        ? plotData
+        ? plotData.map(trace => ({ ...trace, colorbar: { ...compactColorbar } }) as Plotly.Data)
         : plotData.map(trace => {
             const z = (trace as { z?: unknown }).z;
-            return { ...trace, z: toLogDisplay(z), colorbar: logColorbarTicks(z) } as Plotly.Data;
+            return { ...trace, z: toLogDisplay(z), colorbar: { ...logColorbarTicks(z), ...compactColorbar } } as Plotly.Data;
           }),
     [plotData, axisLog],
   );
@@ -198,7 +202,7 @@ function Surface2DPlot() {
     plot_bgcolor: `${theme.palette.background.default}`,
     paper_bgcolor: `${theme.palette.background.default}`,
     font: { color: `${theme.palette.text.primary}` },
-    margin: plotMarginsNarrow,
+    margin: { ...plotMarginsNarrow, r: 34 },
   };
 
   const plotStyle = {
@@ -239,6 +243,16 @@ function Surface2DPlot() {
                 testId="sumo-2d-display-scale"
               />
             </Box>
+            {/* ⊥ download while propagating — payload↔filename agreement (see Curves1DPlot) */}
+            {!propagating && (
+              <Box sx={{ position: "absolute", bottom: 8, right: 8, zIndex: 1 }}>
+                <DownloadDataButton
+                  data={rawData}
+                  filename={`surface2d-${selectedQoI}-${axis1}-${axis2}.json`}
+                  testId="download-surface2d-data-btn"
+                />
+              </Box>
+            )}
           </Box>
         )}
       </Box>

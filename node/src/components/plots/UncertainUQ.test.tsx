@@ -1,7 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import UncertainUQ from "./UncertainUQ";
-import { jsonResponse, stubFetch } from "../../test/fetchStub";
+import { jsonResponse, stubFetch, textResponse } from "../../test/fetchStub";
+import { captureBlobDownloads } from "../../test/downloadCapture";
 
 const mocks = vi.hoisted(() => ({
   filteredJobList: [] as Array<{ uid: string }>,
@@ -239,5 +240,54 @@ describe("UncertainUQ constant-factor boundary (B50ef, GH-Copilot #714)", () => 
     const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
     expect(body.inputVars).toEqual([]);
     expect(body.distributions).toEqual({});
+  });
+});
+
+describe("UncertainUQ raw-data download (T30ln(b) sweep, fork issue #79)", () => {
+  const props = { loading: false, jobProgress: 0, colsFetched: { current: 1 }, jobsFetched: { current: 3 } } as const;
+
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const downloadButton = () =>
+    (document.querySelector('[mmux-testid="download-uq-data-btn"]') as HTMLElement)?.querySelector("button") as HTMLElement;
+
+  it("exports the propagation response verbatim without any refetch (V46sc cache-read)", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `dl-job-${i}` }));
+    mocks.selectedQoI = "y-dl";
+    mocks.uqSettings = { "fn-1": { numSamples: 303 } };
+    const payload = histogramPayload([1, 2]);
+    const fetchMock = stubFetch(jsonResponse(payload));
+    const downloads = captureBlobDownloads();
+
+    render(<UncertainUQ {...props} />);
+    await waitFor(() => expect(firstBarY()).toEqual([1, 2]));
+
+    fireEvent.click(downloadButton());
+    fireEvent.click(downloadButton());
+    expect(downloads).toHaveLength(2);
+    for (const download of downloads) {
+      expect(download.filename).toBe("uq-histogram-y-dl.json");
+      expect(JSON.parse(await download.text())).toEqual(payload); // full response: bins + stats + outliers
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(1); // ⊥ refetch on click
+    mocks.uqSettings = {};
+  });
+
+  it("offers no download after a failed propagation", async () => {
+    mocks.filteredJobList = Array.from({ length: 3 }, (_, i) => ({ uid: `dl-fail-job-${i}` }));
+    mocks.selectedQoI = "y-dl-fail";
+    stubFetch(textResponse("bad propagation", 422));
+
+    render(<UncertainUQ {...props} />);
+    expect(await screen.findByText(/failed/)).toBeInTheDocument();
+    expect(document.querySelector('[mmux-testid="download-uq-data-btn"]')).toBeNull();
   });
 });

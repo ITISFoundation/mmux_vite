@@ -15,6 +15,7 @@ import { getCachedOrFetch } from "../../api/sessionResponseCache";
 import { getErrorMessage } from "../../utils/httpError";
 import { useDisplayScale } from "../../utils/useDisplayScale";
 import { DisplayScaleToggle } from "./DisplayScaleToggle";
+import { DownloadDataButton } from "./DownloadDataButton";
 
 type GPPrediction = {
   x: number[];
@@ -54,6 +55,7 @@ function Curves1DPlots() {
     distribution,
   });
   const [plotData, setPlotData] = useState<Array<Data>>([]);
+  const [rawData, setRawData] = useState<unknown>(undefined);
   const [axis, setAxis] = useState(filteredInputVars[0]);
   const [propagating, setPropagating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
@@ -153,6 +155,7 @@ function Curves1DPlots() {
         if (isStale()) return;
         // Backend wraps the per-axis predictions under `predictions` (SumoAlongAxesResponse).
         createPlotData(data?.predictions);
+        setRawData(data);
         setPropagating(false);
         setErrorMessage(undefined);
       })
@@ -160,6 +163,7 @@ function Curves1DPlots() {
         if (isStale()) return;
         console.warn("SuMo Curves plot error: ", error);
         setPlotData([]);
+        setRawData(undefined);
         setPropagating(false);
         setErrorMessage(getErrorMessage(error));
       });
@@ -257,6 +261,18 @@ function Curves1DPlots() {
                 testId="sumo-1d-display-scale"
               />
             </Box>
+            {/* ⊥ download while re-propagating (Copilot #741): the stale plot keeps rendering
+                during a QoI/axis refetch, so the button would export OLD rawData under a NEW
+                selection-derived filename — payload and filename must agree */}
+            {!propagating && (
+              <Box sx={{ position: "absolute", bottom: 8, right: 8, zIndex: 1 }}>
+                <DownloadDataButton
+                  data={rawData}
+                  filename={`curves1d-${selectedQoI}-vs-${axis}.json`}
+                  testId="download-curves1d-data-btn"
+                />
+              </Box>
+            )}
           </Box>
         )}
       </Box>

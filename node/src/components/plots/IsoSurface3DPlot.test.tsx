@@ -63,6 +63,7 @@ vi.mock("../navigation/Header", () => ({ default: () => null }));
 vi.mock("./CalculatingWarning", () => ({ default: () => <div>Calculating</div> }));
 vi.mock("./PlotTools", () => ({
   plotMarginsNarrow: {},
+  compactColorbar: {},
   filterInputVars: () => mocks.filteredVars,
   // eslint-disable-next-line @typescript-eslint/naming-convention
   CreateSelect: ({ idx, axis, setAxis }: { idx: number; axis: string; setAxis: (a: string) => void }) => {

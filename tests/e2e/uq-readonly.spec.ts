@@ -13,7 +13,20 @@ import {
   fillNormalDistributions,
   expectModelModalReady,
   expectPlotlyReady,
+  downloadAndParseJson,
 } from "./helpers";
+// The UQ defaults are single-sourced there (node SPEC V49ub) — Playwright transpiles the
+// relative import; the module is type-only-imported on its own side.
+import { defaultUQSettings } from "../../node/src/utils/uqSettings";
+
+// The mock function's input schema (mock_osparc/data.py) — the correlation and Sobol payloads
+// are keyed by exactly these variables.
+const INPUT_VARS = ["x1", "x2", "x3", "x4"];
+
+// The shipped histogram-bin default, read from its single source (V49ub) — ⊥ re-declared
+// literal here. The histogram's PIXEL baseline is the numeric drift detector; the download
+// test only witnesses that the button works and the payload is structurally valid.
+const HISTOGRAM_BINS = defaultUQSettings.nHistograms;
 
 /**
  * UQ (Uncertainty Quantification) READ-ONLY behavioral + pixel-snapshot suite
@@ -176,6 +189,40 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   // Accessibility: the UQ histogram results view (§V42rb "results views").
   await expectNoSeriousViolations(page);
 
+  // Raw-data download (T55st sweep, fork issue #79; root V36ez): mock backend + default
+  // nHistograms/seed make the propagation deterministic, so replay the legacy shape +
+  // five-number-summary ordering assertions on the exported JSON.
+  const uqDownload = (await downloadAndParseJson(page, "download-uq-data-btn", "uq-histogram-y.json")) as {
+    binMeans: number[];
+    binStds: number[];
+    binsStart: number;
+    binsEnd: number;
+    mean: number;
+    median: number;
+    min: number;
+    max: number;
+    q1: number;
+    q3: number;
+    std: number;
+    whiskerMin: number;
+    whiskerMax: number;
+    outliers: number[];
+  };
+  expect(uqDownload.binMeans, "binMeans length").toHaveLength(HISTOGRAM_BINS);
+  expect(uqDownload.binStds, "binStds length").toHaveLength(HISTOGRAM_BINS);
+  expect(Array.isArray(uqDownload.outliers), "outliers is an array").toBe(true);
+  expect(uqDownload.binsStart, "binsStart < binsEnd").toBeLessThan(uqDownload.binsEnd);
+  // Five-number-summary ordering must hold regardless of the exact sampled values.
+  expect(uqDownload.min, "min <= whiskerMin").toBeLessThanOrEqual(uqDownload.whiskerMin);
+  expect(uqDownload.whiskerMin, "whiskerMin <= q1").toBeLessThanOrEqual(uqDownload.q1);
+  expect(uqDownload.q1, "q1 <= median").toBeLessThanOrEqual(uqDownload.median);
+  expect(uqDownload.median, "median <= q3").toBeLessThanOrEqual(uqDownload.q3);
+  expect(uqDownload.q3, "q3 <= whiskerMax").toBeLessThanOrEqual(uqDownload.whiskerMax);
+  expect(uqDownload.whiskerMax, "whiskerMax <= max").toBeLessThanOrEqual(uqDownload.max);
+  expect(uqDownload.mean, "min <= mean <= max").toBeGreaterThanOrEqual(uqDownload.min);
+  expect(uqDownload.mean, "min <= mean <= max").toBeLessThanOrEqual(uqDownload.max);
+  expect(uqDownload.std, "std >= 0").toBeGreaterThanOrEqual(0);
+
   // UQ Settings opens the sample/histogram/seed config modal (§V36 — every button
   // gets an e2e test + regression screenshot). It shows the default 10 000 here: this
   // flow never touches it — typed budgets belong to the race test below (§T47mx).
@@ -223,11 +270,43 @@ test("UQ read-only propagation flow renders histogram and inspect-model modal", 
   await expect(page.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("uq-readonly-correlation-indices.png");
 
+  // Raw-data download (root V36ez witness): the export carries the FULL
+  // {correlations:{<var>:{pearson,spearman}}} response — wrapper included — one finite [-1,1]
+  // coefficient pair per mock input variable.
+  const corrDownload = (await downloadAndParseJson(
+    page,
+    "download-correlation-data-btn",
+    "correlation-y.json",
+  )) as { correlations: Record<string, { pearson: number; spearman: number }> };
+  expect(Object.keys(corrDownload.correlations).sort()).toEqual([...INPUT_VARS].sort());
+  for (const varName of INPUT_VARS) {
+    const { pearson, spearman } = corrDownload.correlations[varName];
+    expect(Number.isFinite(pearson), `${varName} pearson finite`).toBe(true);
+    expect(Number.isFinite(spearman), `${varName} spearman finite`).toBe(true);
+    expect(Math.abs(pearson), `${varName} pearson in [-1,1]`).toBeLessThanOrEqual(1.000001);
+    expect(Math.abs(spearman), `${varName} spearman in [-1,1]`).toBeLessThanOrEqual(1.000001);
+  }
+
   await expect(plotNext).toBeEnabled({ timeout: VIEW_TIMEOUT });
   await plotNext.click();
   await expect(page.getByText("Sobol' Indices")).toBeVisible({ timeout: VIEW_TIMEOUT });
   await expect(page.locator(".js-plotly-plot").first()).toBeVisible({ timeout: MODEL_READY_TIMEOUT });
   await expect(page).toHaveScreenshot("uq-readonly-sobol-indices.png");
+
+  // Raw-data download (root V36ez witness): main/total + CI bounds per mock input, exactly the
+  // response that feeds the first/total/second-order views.
+  const sobolDownload = (await downloadAndParseJson(page, "download-sobol-data-btn", "sobol-y.json")) as {
+    sobol: Record<string, { main: number; total: number; mainCiLow: number; mainCiHigh: number }>;
+    sobolSecondOrder: Record<string, unknown>;
+  };
+  expect(Object.keys(sobolDownload.sobol).sort()).toEqual([...INPUT_VARS].sort());
+  for (const varName of INPUT_VARS) {
+    const entry = sobolDownload.sobol[varName];
+    expect(Number.isFinite(entry.main) && entry.main >= 0, `${varName} main >= 0`).toBe(true);
+    expect(Number.isFinite(entry.total) && entry.total >= 0, `${varName} total >= 0`).toBe(true);
+    expect(entry.mainCiLow, `${varName} CI ordering`).toBeLessThanOrEqual(entry.mainCiHigh);
+  }
+  expect(typeof sobolDownload.sobolSecondOrder, "second-order matrix present").toBe("object");
 
   // The histogram's log display gets TWO witness baselines:
   // (a) DISABLED on QoI y — its linearized-Gaussian spread (σ = √(Σg²σ²), √2 over

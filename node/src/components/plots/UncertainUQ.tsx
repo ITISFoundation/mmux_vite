@@ -14,6 +14,7 @@ import { uqSettingsFor } from "../../utils/uqSettings";
 import { useAutoDetectQoiScale } from "../../utils/useAutoDetectQoiScale";
 import { useDisplayScale } from "../../utils/useDisplayScale";
 import { DisplayScaleToggle } from "./DisplayScaleToggle";
+import { DownloadDataButton } from "./DownloadDataButton";
 import { JobsLoading } from "../data/JobsLoading";
 import CalculatingWarning from "./CalculatingWarning";
 import HistogramStats from "./HistogramStats";
@@ -195,6 +196,18 @@ export default function UncertainUQ(props: UncertainUQProps) {
               <Tune fontSize="small" />
             </IconButton>
           </Tooltip>
+        )}
+        {/* ⊥ download while propagating (Copilot #741 class): unlike the sibling plots this chip
+            sits OUTSIDE the !propagating plot gate, so during a QoI refetch it would export the
+            previous generation's histogram under the NEW selectedQoI filename */}
+        {!propagating && (
+          <Box sx={{ position: "absolute", bottom: 8, right: 8, zIndex: 1 }}>
+            <DownloadDataButton
+              data={dataUQHistogram}
+              filename={`uq-histogram-${selectedQoI}.json`}
+              testId="download-uq-data-btn"
+            />
+          </Box>
         )}
         {plotData.length !== 0 && (
           <Box sx={{ position: "absolute", top: 8, left: 8, zIndex: 1 }}>

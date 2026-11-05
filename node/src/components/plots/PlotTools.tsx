@@ -260,3 +260,10 @@ export function CreateSlider({ dist, input, otherAxis, setOtherAxis }: CreateSli
 // plot margings to be applied to all plots
 export const plotMarginsNarrow = { l: 20, r: 40, b: 30, t: 55 };
 export const plotMarginsMedium = { l: 60, r: 40, b: 60, t: 40 };
+
+// Shared colorbar geometry for the two response-surface views (V51ij): Plotly's
+// full-height default bar runs down into the plot's bottom-right corner — the
+// seat of DownloadDataButton — and its tick labels collide with the chip.
+// Shorter (len) and closer to the axes (xpad) keeps that corner clear; the
+// default thickness stays (a thinner bar reads absurdly small).
+export const compactColorbar = { len: 0.8, xpad: 2 };
