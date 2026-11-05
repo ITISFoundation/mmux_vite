@@ -197,9 +197,6 @@ export default function UncertainUQ(props: UncertainUQProps) {
             </IconButton>
           </Tooltip>
         )}
-        {/* Raw propagation export. dataUQHistogram
-            is the exact getCachedOrFetch resolution committed with this generation's
-            bars and cleared on failure — the click is a V46sc cache read. */}
         {/* ⊥ download while propagating (Copilot #741 class): unlike the sibling plots this chip
             sits OUTSIDE the !propagating plot gate, so during a QoI refetch it would export the
             previous generation's histogram under the NEW selectedQoI filename */}

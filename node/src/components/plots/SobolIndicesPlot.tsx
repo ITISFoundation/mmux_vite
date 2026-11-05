@@ -261,8 +261,6 @@ export default function SobolIndicesPlot({ viewMode, scaleType }: SobolIndicesPl
       {!computing && plotData.length !== 0 && (
         <Box mmux-testid="sobol-indices-plot" sx={{ position: "relative", width: "100%" }}>
           <Plot data={plotData} layout={layout} style={plotStyle} />
-          {/* sobolData IS the full resolved response (main/total +
-              CIs + second-order matrix) — download exports it verbatim, cache-read. */}
           <Box sx={{ position: "absolute", bottom: 8, right: 8, zIndex: 1 }}>
             <DownloadDataButton data={sobolData} filename={`sobol-${selectedQoI}.json`} testId="download-sobol-data-btn" />
           </Box>
