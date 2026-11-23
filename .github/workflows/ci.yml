@@ -28,7 +28,7 @@ jobs:
     - name: Set up uv
       # Full-version pin: astral-sh/setup-uv no longer publishes bare major
       # tags (no `v10` ref exists), so `@v10` would fail to resolve.
-      uses: astral-sh/setup-uv@v10.3.3
+      uses: astral-sh/setup-uv@v10.4.0
     # Release-version backstop for the auto-tag flow (folded in from the
     # standalone `version-check.yml`, deleted here: ~5 hosted slots at t=0 with
     # three workflows firing simultaneously — a 12-17 s check ⊥ own slot).
@@ -107,7 +107,7 @@ jobs:
     - name: Checkout repo content
       uses: actions/checkout@v7
     - name: Set up uv
-      uses: astral-sh/setup-uv@v10.3.3
+      uses: astral-sh/setup-uv@v10.4.0
     - name: Install Flask API dependencies
       run: make install-flaskapi-deps
     - name: Run flaskapi tests
@@ -260,7 +260,7 @@ jobs:
         run: apt-get update && apt-get install -y --no-install-recommends make
       # uv drives the Flask backend the webServer boots (tests/e2e/scripts/run-e2e-backend.sh).
       - name: Set up uv
-        uses: astral-sh/setup-uv@v10.3.3
+        uses: astral-sh/setup-uv@v10.4.0
       - name: Restore node_modules cache
         id: nm-cache
         uses: actions/cache@v6
